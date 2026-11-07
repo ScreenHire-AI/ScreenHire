@@ -1,9 +1,9 @@
 import type { Automation, HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import {
-  FIRST_VIEW_MIN_ZOOM,
   LANE_NODE,
   NODE_WIDTH,
+  PLUS,
   VIEW_INSET,
   addAction,
   addAutomation,
@@ -12,11 +12,10 @@ import {
   canConnect,
   connect,
   firstView,
+  firstViewMinZoom,
   neighbour,
   nodeHeight,
   pathOf,
-  plusSize,
-  removeAutomation,
   routePath,
   testedPath,
   toGraph,
@@ -80,9 +79,8 @@ const lastSegment = (points: { x: number; y: number }[]) => {
 /** Every combination the layout draws, so the geometry rules hold for each. */
 const variants = (source: HiringWorkflow) =>
   [
-    { editable: false, touch: false },
-    { editable: true, touch: false },
-    { editable: true, touch: true },
+    { editable: false },
+    { editable: true },
   ].map((options) => ({ ...options, graph: toGraph(source, options) }));
 
 function expectGeometry(graph: Graph) {
@@ -206,6 +204,32 @@ describe('toGraph layout', () => {
     expectGeometry(graph);
   });
 
+  it('runs a move nested inside another nearer the stages, so the two lines do not cross', () => {
+    const stages = Array.from({ length: 6 }, (_, i) => ({ id: `n${i}`, name: `Stage ${i}`, kind: 'Screening' as const }));
+    const move = (id: string, from: number, to: number): Automation => ({
+      id,
+      name: id,
+      trigger: { type: 'StageEntered', stageId: `n${from}` },
+      conditions: null,
+      actions: [{ type: 'MoveToStage', stageId: `n${to}` }],
+    });
+    // The first runs forward over the whole pipeline; the second runs backward inside that span.
+    const graph = toGraph({ ...workflow, stages, automations: [move('wide', 0, 5), move('inner', 3, 1)] });
+
+    const line = (id: string) => graph.edges.find((edge) => edge.id === id)!.data!.points;
+    const wide = line('wide:action:0:moves');
+    const inner = line('inner:action:0:moves');
+    // Each move runs along its third and fourth points, and rises and drops through the rest.
+    const lane = (points: typeof wide) => ({ y: points[2]!.y, left: Math.min(points[2]!.x, points[3]!.x), right: Math.max(points[2]!.x, points[3]!.x) });
+    const crosses = (points: typeof wide, other: ReturnType<typeof lane>) => {
+      const between = (x: number) => x > other.left && x < other.right;
+      return (between(points[2]!.x) && points[2]!.y < other.y) || (between(points[3]!.x) && points[3]!.y < other.y);
+    };
+    expect(crosses(wide, lane(inner))).toBe(false);
+    expect(crosses(inner, lane(wide))).toBe(false);
+    expectGeometry(graph);
+  });
+
   it('keeps every node apart and every line off every node, however it is drawn', () => {
     for (const { graph } of variants(workflow)) expectGeometry(graph);
     for (const { graph } of variants({ ...workflow, automations: [...workflow.automations, ...large(3, 4).automations.map((a) => ({ ...a, id: `x-${a.id}` }))] })) expectGeometry(graph);
@@ -303,7 +327,7 @@ describe('the plus buttons', () => {
     expect(plusIds(graph).sort()).toEqual(
       ['add:lane', 'add:applied', 'add:screening', 'add:interview', 'advance:add-action', 'hello:add-action', 'hello:add-condition'].sort(),
     );
-    const plus = plusSize(false);
+    const plus = PLUS;
     const under = node(graph, 'add:screening');
     expect(under.width).toBe(plus);
     expect(under.position.x + plus / 2).toBe(node(graph, 'stage:screening').position.x + NODE_WIDTH / 2);
@@ -325,9 +349,10 @@ describe('the plus buttons', () => {
     expect(plus.bottom).toBeLessThan(action.top);
   });
 
-  it('are 48px on a coarse pointer', () => {
-    expect(node(toGraph(workflow, { editable: true, touch: true }), 'add:screening').width).toBe(48);
-    expect(plusSize(false)).toBeGreaterThanOrEqual(44);
+  it('stay a big enough target at the smallest zoom the first view fits to: 24px, or 44px for a finger', () => {
+    expect(PLUS * firstViewMinZoom(false)).toBe(24);
+    expect(PLUS * firstViewMinZoom(true)).toBe(44);
+    expect(node(toGraph(workflow, { editable: true }), 'add:screening').width).toBe(PLUS);
   });
 });
 
@@ -341,7 +366,7 @@ describe('reading a path', () => {
       ['stage:screening', 'advance:trigger', 'advance:conditions', 'advance:action:0', 'advance:action:1', 'advance:add-action', 'stage:interview'].sort(),
     );
     expect(path.edges.has('advance:action:1:moves')).toBe(true);
-    expect(path.edges.has('advance:trigger:fires-on') || path.edges.has('advance:fires-on')).toBe(true);
+    expect(path.edges.has('advance:fires-on')).toBe(true);
     expect(path.nodes.has('hello:trigger')).toBe(false);
   });
 
@@ -372,6 +397,15 @@ describe('reading a path', () => {
     const skipped = testedPath(graph, new Map([['hello', 'Skipped' as const], ['gone', 'Matched' as const]]));
     expect([...skipped.nodes].sort()).toEqual([LANE_NODE, 'hello:trigger'].sort());
   });
+
+  it('never lights a plus or its dashed line for a test: they are places to add a step, not steps it took', () => {
+    const matched = testedPath(graph, new Map([['hello', 'Matched' as const]]));
+
+    expect([...matched.nodes].filter((id) => id.includes(':add-'))).toEqual([]);
+    expect([...matched.edges].filter((id) => id.includes(':stub-'))).toEqual([]);
+    expect(matched.nodes.has('hello:action:0')).toBe(true);
+    expect(pathOf(graph, 'hello:trigger').nodes.has('hello:add-action')).toBe(true);
+  });
 });
 
 describe('lines', () => {
@@ -396,18 +430,29 @@ describe('the first view', () => {
     expect(view.y).toBe(VIEW_INSET.top);
   });
 
-  it('shrinks to fit, down to the smallest readable zoom', () => {
+  it('shrinks to fit, down to the smallest zoom it fits to', () => {
     const view = firstView({ width: 1500, height: 400 }, pane(1000));
 
     expect(view.zoom).toBeLessThan(1);
-    expect(view.zoom).toBeGreaterThanOrEqual(FIRST_VIEW_MIN_ZOOM);
+    expect(view.zoom).toBeGreaterThanOrEqual(firstViewMinZoom(false));
     expect(view.x).toBe(VIEW_INSET.left);
   });
 
-  it('starts at the top left at the smallest readable zoom when the workflow is bigger than that', () => {
+  it('starts at the top left at full size, where text is readable, when the workflow would need a smaller zoom than that', () => {
     const view = firstView(toGraph(large(20, 50)).bounds, pane(1100));
 
-    expect(view).toEqual({ x: VIEW_INSET.left, y: VIEW_INSET.top, zoom: FIRST_VIEW_MIN_ZOOM });
+    expect(view).toEqual({ x: VIEW_INSET.left, y: VIEW_INSET.top, zoom: 1 });
+  });
+
+  it('starts a phone at full size: text never shrinks there, and the workflow does not fit', () => {
+    expect(firstView(toGraph(large(4, 4)).bounds, pane(343)).zoom).toBe(1);
+  });
+
+  it('fits less far where a finger edits, so a plus stays a 44px target', () => {
+    const { bounds } = toGraph(large(7, 6), { editable: true });
+
+    expect(firstView(bounds, pane(1100)).zoom).toBeLessThan(firstViewMinZoom(true));
+    expect(firstView(bounds, pane(1100), true)).toEqual({ x: VIEW_INSET.left, y: VIEW_INSET.top, zoom: 1 });
   });
 
   it('shows a typical workflow whole at laptop width: the default stages with a handful of automations', () => {
@@ -417,7 +462,7 @@ describe('the first view', () => {
     const view = firstView(bounds, pane(1100));
 
     expect(bounds.width * view.zoom).toBeLessThanOrEqual(1100 - VIEW_INSET.left - VIEW_INSET.right);
-    expect(view.zoom).toBeGreaterThanOrEqual(FIRST_VIEW_MIN_ZOOM);
+    expect(view.zoom).toBeGreaterThanOrEqual(firstViewMinZoom(false));
   });
 });
 
@@ -436,14 +481,6 @@ describe('graph edits', () => {
 
     expect(added.automations.at(-1)!.trigger).toEqual({ type: 'ApplicationSubmitted' });
     expect(links(toGraph(added))).toContain(`${LANE_NODE}>${id}:trigger`);
-  });
-
-  it('removes an automation and every node it had', () => {
-    const removed = removeAutomation(workflow, 'advance');
-
-    expect(removed.automations.map((automation) => automation.id)).toEqual(['hello']);
-    expect(toGraph(removed).nodes.some((candidate) => candidate.id.startsWith('advance:'))).toBe(false);
-    expect(removeAutomation(workflow, 'missing')).toBe(workflow);
   });
 
   it("adds a condition the way the form's Add condition does, and the projection then draws an If", () => {

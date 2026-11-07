@@ -120,7 +120,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var edit = (await automation.BoundingBoxAsync())!;
         edit.X.Should().BeInRange(pane.X, pane.X + pane.Width - edit.Width);
         edit.Y.Should().BeInRange(pane.Y, pane.Y + pane.Height - edit.Height);
-        // The zoom toolbar floats over the canvas's bottom left; the graph starts at the top and right of it, so it covers no node.
+        // The zoom toolbar floats over the canvas's top left; the graph starts right of it, so it covers no node.
         var toolbar = (await Page.Locator("[data-graph-controls]").BoundingBoxAsync())!;
         foreach (var node in await Page.Locator(".svelte-flow__node").AllAsync())
         {

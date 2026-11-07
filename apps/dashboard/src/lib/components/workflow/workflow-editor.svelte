@@ -1,12 +1,12 @@
 <script lang="ts">
   import type { DefinitionError, EvaluationOutcome, HiringWorkflow, WorkflowSimulationResult } from '@screenhire/api-client';
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { laneOf, removeAt } from '#lib/workflow.js';
-  import { LANE_NODE, addAction, addAutomation, addCondition, connect, stageNode, triggerNode } from '#lib/workflow-graph.js';
+  import { LANE_NODE, addAction, addAutomation, addCondition, connect, definitionStamp, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
   import PipelineView from './pipeline-view.svelte';
   import ProblemsPanel from './problems-panel.svelte';
@@ -29,15 +29,19 @@
   // The last test's outcome per automation, lit on the graph once the person asks to see it there. The graph tab mounts
   // only while it is shown, and a test is about the workflow as it was, so an edit clears it.
   let tested = $state<ReadonlyMap<string, EvaluationOutcome> | undefined>();
-  const stamp = $derived(JSON.stringify([workflow.stages, workflow.automations]));
+  const stamp = $derived(definitionStamp(workflow));
   $effect(() => {
     void stamp;
     untrack(() => (tested = undefined));
   });
 
-  function showTested(result: WorkflowSimulationResult) {
+  async function showTested(result: WorkflowSimulationResult) {
     tested = new Map(result.automations.map((automation) => [automation.automationId, automation.outcome]));
     tab = 'graph';
+    // The button that asked leaves with its tab, so the focus goes to Clear, beside the words saying what is lit. On a
+    // node it would light that node's path in place of the test's.
+    await tick();
+    document.querySelector<HTMLElement>('[data-graph-clear]')?.focus();
   }
 
   let drawerOpen = $state(false);

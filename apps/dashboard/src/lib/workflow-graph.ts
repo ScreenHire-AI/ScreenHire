@@ -18,14 +18,11 @@ import {
   newAutomation,
   newRule,
   operatorLabels,
-  removeAt,
   triggerLabels,
 } from './workflow.js';
 
 export type StepKind = 'lane' | 'stage' | 'trigger' | 'conditions' | 'action' | 'add-automation' | 'add-condition' | 'add-action';
 
-/** The kinds that are an automation's own steps, as opposed to a lane or stage or a plus. */
-export const isStep = (kind: StepKind) => kind === 'trigger' || kind === 'conditions' || kind === 'action';
 /** The kinds that are a plus button: the place a new automation, condition or action would go. */
 export const isAdd = (kind: StepKind) => kind === 'add-automation' || kind === 'add-condition' || kind === 'add-action';
 
@@ -93,8 +90,6 @@ export interface GraphOptions {
   errors?: readonly DefinitionError[];
   /** Whether the graph can be edited here: it then draws the plus buttons. */
   editable?: boolean;
-  /** A coarse pointer, whose plus buttons are 44px (design system F4). */
-  touch?: boolean;
 }
 
 export interface Graph {
@@ -112,8 +107,8 @@ const BAND_GAP = 28;
 /** More room after the lane, which is not part of the pipeline. */
 const LANE_GAP = 20;
 const CHAIN_GAP = 36;
-const PLUS = 44;
-const PLUS_TOUCH = 48;
+/** A plus button's size at full size; `firstViewMinZoom` keeps it a big enough target on screen. */
+export const PLUS = 48;
 const PLUS_PAD = 16;
 /** Where a plus ends and the line below it can turn without touching it. */
 const TRUNK_CLEARANCE = 32;
@@ -122,8 +117,6 @@ const BUS_MARGIN = 16;
 /** How far apart lines that share a channel or a stage's top are drawn. */
 const LINE_SPACING = 8;
 const LANDING_SPACING = 12;
-
-export const plusSize = (touch: boolean) => (touch ? PLUS_TOUCH : PLUS);
 
 /** The whole-workflow lane's node id; a stage's is `stage:{id}`. */
 export const LANE_NODE = 'lane:workflow';
@@ -201,8 +194,7 @@ function groupBy<T, K>(items: readonly T[], key: (item: T) => K): T[][] {
 const none = { automation: null, automationId: null, automationName: '', path: '', lane: null, disabled: false, movesToStage: false } as const;
 
 export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): Graph {
-  const { templateNames = emailTemplateNames(undefined), errors = [], editable = false, touch = false } = options;
-  const plus = plusSize(touch);
+  const { templateNames = emailTemplateNames(undefined), errors = [], editable = false } = options;
   const addable = editable && workflow.automations.length > 0;
   const stageIds = new Set(workflow.stages.map((stage) => stage.id));
 
@@ -325,14 +317,14 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
   // The headers share a row and a height, so the backbone's lines are straight.
   const rowHeight = Math.max(...bands.map((band) => band.header.height));
   for (const band of bands) band.header.height = rowHeight;
-  const headerGap = PLUS_PAD + plus + PLUS_PAD + TRUNK_CLEARANCE;
+  const headerGap = PLUS_PAD + PLUS + PLUS_PAD + TRUNK_CLEARANCE;
   const centre = (left: number) => left + NODE_WIDTH / 2;
   const bandByKey = new Map(bands.map((band) => [band.key, band]));
   const headerCentre = (band: Band) => centre(band.x);
 
   // Down: each chain stacks from under its header. A trigger with no conditions and an action has room for a plus
   // between them.
-  const conditionGap = plus + 2 * PLUS_PAD;
+  const conditionGap = PLUS + 2 * PLUS_PAD;
   const actionTailGap = 20;
   let bottom = rowHeight;
   const chainsTop = rowHeight + headerGap;
@@ -345,13 +337,15 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
         y += entry.height + gap;
       });
       const last = chain.items.at(-1)!;
-      bottom = Math.max(bottom, last.y + last.height + (addable ? actionTailGap + plus : 0));
+      bottom = Math.max(bottom, last.y + last.height + (addable ? actionTailGap + PLUS : 0));
     }
   }
-  if (addable || bands.some((band) => band.chains.length === 0)) bottom = Math.max(bottom, rowHeight + PLUS_PAD + plus);
+  if (addable || bands.some((band) => band.chains.length === 0)) bottom = Math.max(bottom, rowHeight + PLUS_PAD + PLUS);
 
   // Moves: a move leaves its action's right side, rises through the channel beside its column to a lane above the
-  // stages, runs along it and drops into the target stage's top. Lanes are shared by moves that do not overlap.
+  // stages, runs along it and drops into the target stage's top. Lanes are shared by moves that do not overlap. The
+  // shortest runs choose first, so a run inside another sits nearer the stages and the longer line's rise and drop pass
+  // outside it. Two runs that only partly overlap cross once whichever is lower.
   interface Move {
     id: string;
     automationId: string;
@@ -392,16 +386,15 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
     group.sort((a, b) => a.channelX - b.channelX);
     group.forEach((move, i) => (move.landX = headerCentre(move.target) + spread(group.length, i, LANDING_SPACING, NODE_WIDTH / 2 - 16)));
   }
-  const laneEnds: number[] = [];
-  for (const move of [...moves].sort((a, b) => Math.min(a.channelX, a.landX) - Math.min(b.channelX, b.landX))) {
-    const left = Math.min(move.channelX, move.landX) - LANDING_SPACING;
-    const right = Math.max(move.channelX, move.landX) + LANDING_SPACING;
-    let lane = laneEnds.findIndex((end) => end < left);
-    if (lane < 0) lane = laneEnds.push(right) - 1;
-    else laneEnds[lane] = right;
+  const lanes: { left: number; right: number }[][] = [];
+  for (const move of [...moves].sort((a, b) => Math.abs(a.channelX - a.landX) - Math.abs(b.channelX - b.landX))) {
+    const run = { left: Math.min(move.channelX, move.landX) - LANDING_SPACING, right: Math.max(move.channelX, move.landX) + LANDING_SPACING };
+    let lane = lanes.findIndex((runs) => runs.every((other) => other.right < run.left || run.right < other.left));
+    if (lane < 0) lane = lanes.push([]) - 1;
+    lanes[lane]!.push(run);
     move.lane = lane;
   }
-  const busHeight = laneEnds.length > 0 ? BUS_MARGIN + laneEnds.length * BUS_PITCH : 0;
+  const busHeight = lanes.length > 0 ? BUS_MARGIN + lanes.length * BUS_PITCH : 0;
   const top = busHeight;
   const busY = (lane: number) => top - BUS_MARGIN - lane * BUS_PITCH;
 
@@ -426,8 +419,8 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
       id,
       type: 'step',
       position: { x: left, y: upper },
-      width: plus,
-      height: plus,
+      width: PLUS,
+      height: PLUS,
       domAttributes: wrapper,
       data: { ...spec, problems: [], column: columnOf, depth, label: ariaLabel },
     });
@@ -462,7 +455,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
       const title = band.key === LANE_BAND ? 'the whole workflow' : band.header.spec.title;
       plusNode(
         `add:${band.key}`,
-        hx - plus / 2,
+        hx - PLUS / 2,
         plusTop,
         { ...none, kind: 'add-automation', title: 'Add an automation', detail: '', lane: band.header.spec.lane, band: band.key },
         `Add an automation to ${title}`,
@@ -501,7 +494,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
         const above = top + first.y + first.height;
         plusNode(
           `${chain.id}:add-condition`,
-          cx - plus / 2,
+          cx - PLUS / 2,
           above + PLUS_PAD,
           { ...none, kind: 'add-condition', title: 'Add a condition', detail: '', automation: chain.index, automationId: chain.id, automationName: chain.name, band: band.key },
           `Add a condition to ${chain.name}`,
@@ -514,7 +507,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
       const tail = `${chain.id}:add-action`;
       plusNode(
         tail,
-        cx - plus / 2,
+        cx - PLUS / 2,
         lastBottom + actionTailGap,
         { ...none, kind: 'add-action', title: 'Add an action', detail: '', automation: chain.index, automationId: chain.id, automationName: chain.name, band: band.key },
         `Add an action to ${chain.name}`,
@@ -579,6 +572,9 @@ export function arrowhead(points: readonly Point[]): string {
   return `M${tip.x} ${tip.y}L${base.x + side.x} ${base.y + side.y}L${base.x - side.x} ${base.y - side.y}Z`;
 }
 
+/** What a test ran on: its result stops applying when this changes. */
+export const definitionStamp = (workflow: Pick<HiringWorkflow, 'stages' | 'automations'>) => JSON.stringify([workflow.stages, workflow.automations]);
+
 /** The ids of the nodes and lines a hover, a focus or a test lights, and so what everything else quietens. */
 export interface Path {
   nodes: Set<string>;
@@ -636,7 +632,8 @@ export function pathOf(graph: Pick<Graph, 'nodes' | 'edges'>, id: string): Path 
 
 /**
  * The path a test took (design system section 11, workflow graph): an automation that would run lights its whole chain;
- * one whose conditions do not hold stops at its conditions; a skipped or blocked one lights only its trigger.
+ * one whose conditions do not hold stops at its conditions; a skipped or blocked one lights only its trigger. A plus and
+ * its dashed line are places to add a step, not steps, so a test never lights them.
  */
 export function testedPath(graph: Pick<Graph, 'nodes' | 'edges'>, tested: ReadonlyMap<string, EvaluationOutcome>): Path {
   const path = emptyPath();
@@ -645,8 +642,8 @@ export function testedPath(graph: Pick<Graph, 'nodes' | 'edges'>, tested: Readon
     if (!trigger) continue;
     if (outcome === 'Matched') {
       const whole = pathOf(graph, trigger.id);
-      whole.nodes.forEach((id) => path.nodes.add(id));
-      whole.edges.forEach((id) => path.edges.add(id));
+      for (const node of graph.nodes) if (whole.nodes.has(node.id) && !isAdd(node.data.kind)) path.nodes.add(node.id);
+      for (const edge of graph.edges) if (whole.edges.has(edge.id) && edge.data?.kind !== 'stub') path.edges.add(edge.id);
       continue;
     }
     path.nodes.add(headerNode(trigger.data.band));
@@ -660,20 +657,27 @@ export function testedPath(graph: Pick<Graph, 'nodes' | 'edges'>, tested: Readon
   return path;
 }
 
-/** The smallest zoom the first view uses: below it text is too small to read, and a plus is under 24px. */
-export const FIRST_VIEW_MIN_ZOOM = 0.5;
+/**
+ * The smallest zoom the first view fits a workflow to: a plus is then still a 24px target, or 44px where a finger edits
+ * (design system F4). A fitted view is an overview of the flow: node text is 12px at full size and scales with the canvas.
+ */
+export const firstViewMinZoom = (touchEditing: boolean) => (touchEditing ? 44 : 24) / PLUS;
 /** The room the first view leaves around the graph: at the left, for the zoom controls floating over the canvas. */
 export const VIEW_INSET = { left: 72, top: 24, right: 24, bottom: 24 } as const;
 
 /**
- * Where the graph starts: the whole workflow when that fits at a readable zoom, centred across the pane; otherwise at
- * the smallest readable zoom from the top left, where the lane and the first stage are and reading starts, and the
- * rest is a pan away.
+ * Where the graph starts: the whole workflow when it fits at `firstViewMinZoom` or larger, centred across the pane.
+ * One that does not would be neither whole nor readable at that zoom, so it starts at full size from the top left, where
+ * the lane and the first stage are and reading starts, and the rest is a pan away.
  */
-export function firstView(bounds: { width: number; height: number }, pane: { width: number; height: number }): { x: number; y: number; zoom: number } {
+export function firstView(
+  bounds: { width: number; height: number },
+  pane: { width: number; height: number },
+  touchEditing = false,
+): { x: number; y: number; zoom: number } {
   const room = { width: pane.width - VIEW_INSET.left - VIEW_INSET.right, height: pane.height - VIEW_INSET.top - VIEW_INSET.bottom };
   const fit = Math.min(1, room.width / Math.max(bounds.width, 1), room.height / Math.max(bounds.height, 1));
-  const zoom = Math.max(FIRST_VIEW_MIN_ZOOM, fit);
+  const zoom = fit >= firstViewMinZoom(touchEditing) ? fit : 1;
   const spare = room.width - bounds.width * zoom;
   return { x: VIEW_INSET.left + Math.max(0, spare / 2), y: VIEW_INSET.top, zoom };
 }
@@ -708,12 +712,6 @@ export function neighbour(nodes: readonly StepNode[], id: string, key: string): 
 export function addAutomation(workflow: HiringWorkflow, stageId: string | null): { workflow: HiringWorkflow; id: string } {
   const automation = newAutomation(workflow, stageId);
   return { workflow: { ...workflow, automations: [...workflow.automations, automation] }, id: automation.id };
-}
-
-/** The workflow without the automation `automationId`. */
-export function removeAutomation(workflow: HiringWorkflow, automationId: string): HiringWorkflow {
-  const index = workflow.automations.findIndex((automation) => automation.id === automationId);
-  return index < 0 ? workflow : { ...workflow, automations: removeAt(workflow.automations, index) };
 }
 
 /**

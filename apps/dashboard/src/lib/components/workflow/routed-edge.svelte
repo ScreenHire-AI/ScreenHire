@@ -5,8 +5,9 @@
 
   // A line of the workflow graph. The path was worked out with the layout (`toGraph`), so it runs where the layout
   // reserved room for it and never through a node; this only draws it: rounded corners, an arrowhead at the end (the
-  // flow runs one way) and, on a move, the words "Moves to". Svelte Flow's own markers cannot take a CSS variable, so the
-  // head is drawn here in the line's token colour. Lit and quiet come from the path being lit (`PathLight`).
+  // flow runs one way) and, on a move, the words "Moves to". Svelte Flow's own markers live in a shared definition away
+  // from the line, so they cannot take its lit or quiet colour; the head is drawn here and takes `currentColor` with the
+  // line. Lit and quiet come from the path being lit (`PathLight`).
   let { id, data }: EdgeProps<RouteEdge> = $props();
 
   const light = usePathLight();

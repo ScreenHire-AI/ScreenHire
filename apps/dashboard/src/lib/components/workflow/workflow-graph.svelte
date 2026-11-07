@@ -9,7 +9,7 @@
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { emailTemplateNames } from '#lib/workflow.js';
-  import { FIRST_VIEW_MIN_ZOOM, VIEW_INSET, canConnect, pathOf, testedPath, toGraph, type StepNode } from '#lib/workflow-graph.js';
+  import { VIEW_INSET, canConnect, pathOf, testedPath, toGraph, type StepNode } from '#lib/workflow-graph.js';
   import GraphControls from './graph-controls.svelte';
   import GraphFit from './graph-fit.svelte';
   import GraphKeys from './graph-keys.svelte';
@@ -51,9 +51,9 @@
   const touch = new MediaQuery('pointer: coarse');
   const editing = $derived(phone.current ? undefined : actions);
   const empty = $derived(workflow.automations.length === 0);
-  const graph = $derived(toGraph(workflow, { templateNames, errors, editable: Boolean(editing), touch: touch.current }));
-  // It starts at the top left at a readable size until GraphFit has the pane's size to fit the workflow to.
-  const initialViewport = { x: VIEW_INSET.left, y: VIEW_INSET.top, zoom: FIRST_VIEW_MIN_ZOOM };
+  const graph = $derived(toGraph(workflow, { templateNames, errors, editable: Boolean(editing) }));
+  // It starts at the top left at full size until GraphFit has the pane's size to fit the workflow to.
+  const initialViewport = { x: VIEW_INSET.left, y: VIEW_INSET.top, zoom: 1 };
 
   // Which path is lit: the node under the pointer, else the one with the focus, else the path a test took.
   const light = providePathLight();
@@ -113,7 +113,7 @@
 {#if tested && tested.size > 0 && onclear}
   <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle px-4 py-2">
     <p>Showing the path of your last test.</p>
-    <Button variant="outline" size="sm" onclick={onclear}>Clear</Button>
+    <Button variant="outline" size="sm" data-graph-clear onclick={onclear}>Clear</Button>
   </div>
 {/if}
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -153,13 +153,14 @@
     <Background />
     <GraphControls />
     <GraphKeys {root} nodes={() => nodes} />
-    <GraphFit {root} bounds={() => graph.bounds} />
+    <GraphFit {root} bounds={() => graph.bounds} touchEditing={() => Boolean(editing) && touch.current} />
     {#if empty}
-      <Panel position="bottom-center" class="mb-[12%] max-w-sm rounded-lg bg-secondary p-4">
+      <!-- Under the stages, so its one action is on the first screen whatever the page's height. -->
+      <Panel position="top-center" class="mt-40 max-w-sm rounded-lg bg-secondary p-4">
         <p class="font-semibold">No automations yet</p>
         <p class="mt-1 text-muted-foreground">An automation does something on its own when an application arrives or reaches a stage, such as adding a tag or telling the team.</p>
         {#if editing}
-          <Button size="lg" class="mt-3" onclick={() => editing?.add(null)}>Add an automation</Button>
+          <Button variant="outline" size="lg" class="mt-3" onclick={() => editing?.add(null)}>Add an automation</Button>
         {/if}
       </Panel>
     {/if}

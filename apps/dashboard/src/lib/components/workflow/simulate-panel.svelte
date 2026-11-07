@@ -25,6 +25,7 @@
     triggerNeedsStage,
     triggerTypes,
   } from '#lib/workflow.js';
+  import { definitionStamp } from '#lib/workflow-graph.js';
   import { checkboxClass, kickerClass, labelClass, rowClass, selectClass } from './controls.js';
 
   // "Test this workflow" (workflow-engine.md §4): a sample application through the definition being edited, unsaved
@@ -50,6 +51,8 @@
   let accommodation = $state(false);
   let recommendation = $state('');
   let result = $state<WorkflowSimulationResult | null>(null);
+  // What the result ran on. Its path is about that workflow, so after an edit the graph can no longer show it.
+  let ranOn = $state('');
   let failure = $state<{ message: string; problems: string[] } | null>(null);
 
   // A reviewer decision comes from a stage's scorecard, and a passed time limit from a stage's limit, so each offers only
@@ -86,6 +89,7 @@
 
   async function run() {
     failure = null;
+    const running = definitionStamp(workflow);
     const facts = {
       answers: questions
         .map((question): AnswerFact => ({ questionId: question.id, values: question.type === 'MultiChoice' ? list(answers[question.id] ?? '') : [answers[question.id] ?? ''].filter(Boolean) }))
@@ -111,6 +115,7 @@
         },
       });
       result = response.data;
+      ranOn = running;
     } catch (error) {
       result = null;
       failure =
@@ -274,7 +279,7 @@
     {:else if result.automations.length === 0}
       <p>No automation fires on this trigger.</p>
     {:else}
-      {#if onshow}<div class="mb-3"><Button variant="outline" size="lg" onclick={() => onshow(result!)}>Show this path in the graph</Button></div>{/if}
+      {#if onshow && ranOn === definitionStamp(workflow)}<div class="mb-3"><Button variant="outline" size="lg" onclick={() => onshow(result!)}>Show this path in the graph</Button></div>{/if}
       <ol class="flex flex-col">
         {#each result.automations as automation (automation.automationId)}
           <li aria-label={`${automation.name}: ${outcomeText[automation.outcome]}`} class={['flex flex-col gap-1.5', rowClass]}>

@@ -68,10 +68,12 @@
     else if (data.automation !== null) actions.edit(data.automation, data.path);
   }
 
+  // Pressable or not, a node is a tab stop, so the keyboard always gets the focus ring, in the node's own shape. A
+  // button gets the hand from the theme (A10).
   const frame = $derived([
     'relative flex size-full text-left text-caption text-card-foreground outline-none',
-    // Pressable: a button, so the theme gives it the hand (A10); the keyboard gets the focus ring.
-    actions && 'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    isAdd(data.kind) ? 'rounded-full' : 'rounded-lg',
+    'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
   ]);
   const surface = $derived([
     'bg-card shadow-surface motion-safe:transition-[border-color,box-shadow]',

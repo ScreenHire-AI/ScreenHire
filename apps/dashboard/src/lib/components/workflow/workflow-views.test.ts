@@ -597,11 +597,43 @@ describe('workflow graph in the builder', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'Show this path in the graph' }));
 
     await vi.waitFor(() => expect(within(graph()).getByText('Showing the path of your last test.')).toBeInTheDocument());
+    // The button that asked left with its tab, so the focus goes to Clear rather than falling to the page.
+    await vi.waitFor(() => expect(within(graph()).getByRole('button', { name: 'Clear' })).toHaveFocus());
     expect(lightOf(node('When Tag screened'))).toBe('lit');
     expect(lightOf(node('When, off Tell the team'))).toBe('quiet');
     await fireEvent.click(within(graph()).getByRole('button', { name: 'Clear' }));
     expect(lightOf(node('When Tag screened'))).toBe('rest');
     expect(within(graph()).queryByText('Showing the path of your last test.')).toBeNull();
+  });
+
+  it('offers no path for a test once the workflow has changed since it ran', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        apiStub({
+          'GET /v1/email-templates': () => Response.json({ templates: [], sendingEnabled: false }),
+          'POST /v1/workflows/simulate': () =>
+            Response.json({ automations: [{ automationId: 'tag-screen', name: 'Tag screened', outcome: 'Matched', rules: [], actions: [{ type: 'AddTag', tag: 'screened' }], reason: null }] }),
+        }),
+      ),
+    );
+    renderViews('editor', 'simulate');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Run test' }));
+    await screen.findByRole('button', { name: 'Show this path in the graph' });
+    // The Pipeline tab's first Name field is the first stage's, and Simulate stays mounted behind it.
+    await fireEvent.input(screen.getAllByLabelText('Name')[0]!, { target: { value: 'Renamed' } });
+
+    await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Show this path in the graph' })).toBeNull());
+    expect(screen.getByRole('region', { name: 'What would happen' })).toHaveTextContent('Tag screened');
+  });
+
+  it('gives a node that cannot be pressed the focus ring too: it is still a tab stop', () => {
+    renderViews('summary', 'graph');
+
+    const box = within(screen.getByRole('tabpanel', { name: 'Graph' })).getByRole('group', { name: 'When: Tag screened' });
+    expect(box).toHaveAttribute('tabindex', '0');
+    expect(box.className).toContain('focus-visible:ring-2');
   });
 
   it('is for reading on a phone, where editing stays in the Pipeline view', () => {

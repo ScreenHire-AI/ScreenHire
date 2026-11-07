@@ -10,13 +10,14 @@
   // F4). Svelte Flow's Controls draw their own icons at 26px with native titles. It must sit inside SvelteFlow, whose
   // context useSvelteFlow reads.
   const flow = useSvelteFlow();
-  // The whole workflow, clear of the toolbar itself, and never bigger than life.
+  // At the top of the canvas, so a canvas taller than the window still has them on the first screen. Fit shows the whole
+  // workflow, clear of the toolbar itself, and never bigger than life.
   const fit = () =>
     flow.fitView({ maxZoom: 1, padding: { top: `${VIEW_INSET.top}px`, right: `${VIEW_INSET.right}px`, bottom: `${VIEW_INSET.bottom}px`, left: `${VIEW_INSET.left}px` } });
 </script>
 
 <!-- A small card of controls on the canvas, with the surface shadow (section 6). -->
-<Panel position="bottom-left" data-graph-controls class="flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-surface">
+<Panel position="top-left" data-graph-controls class="flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-surface">
   <IconButton label="Zoom in" onclick={() => flow.zoomIn()}><ZoomInIcon /></IconButton>
   <IconButton label="Zoom out" onclick={() => flow.zoomOut()}><ZoomOutIcon /></IconButton>
   <IconButton label="Fit the whole workflow" onclick={fit}><MaximizeIcon /></IconButton>
