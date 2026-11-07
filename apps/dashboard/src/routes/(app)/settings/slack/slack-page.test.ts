@@ -133,6 +133,19 @@ describe('Slack page', () => {
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Disconnect Slack']);
   });
 
+  it('says on screen, beside Save, that the test message is in the channel', async () => {
+    renderPage(connected(), { 'POST /v1/slack/test': () => Response.json({ posted: true, problem: null }) });
+
+    await fireEvent.pointerDown(await screen.findByRole('button', { name: 'More actions' }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Send test message' }));
+
+    // The status line in the form's footer, not a screen-reader-only announcement: a sighted person sees it too.
+    const line = await screen.findByText('The test message is in the channel.');
+    expect(line).toBeVisible();
+    expect(line.closest('form')).not.toBeNull();
+    expect(line).toHaveAttribute('role', 'status');
+  });
+
   it('keeps Disconnect in the More menu, behind a dialog', async () => {
     renderPage(connected(), { 'DELETE /v1/slack': () => new Response(null, { status: 204 }) });
 

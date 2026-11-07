@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BookmarkIcon from '~icons/lucide/bookmark';
   import BookmarkXIcon from '~icons/lucide/bookmark-x';
   import MailIcon from '~icons/lucide/mail';
   import PencilIcon from '~icons/lucide/pencil';
@@ -250,13 +251,15 @@
         <p class="sr-only" role="status">Loading saved candidates…</p>
       {:else if shown.length === 0}
         <Empty.Root class="gap-3 p-6">
-          <Empty.Description>
-            {filtering
-              ? 'Nobody in saved candidates matches these filters.'
-              : 'Nobody has been saved yet. Open a candidate and choose Save candidate in Move to stage.'}
-          </Empty.Description>
           {#if filtering}
+            <Empty.Description>Nobody in saved candidates matches these filters.</Empty.Description>
             <Button variant="outline" size="lg" onclick={() => ((search = ''), (tagFilter = []), (jobFilter = []))}>Clear filters</Button>
+          {:else}
+            <Empty.Header>
+              <Empty.Media variant="icon"><BookmarkIcon /></Empty.Media>
+              <Empty.Title>Nobody saved yet</Empty.Title>
+              <Empty.Description>Open a candidate and choose Save candidate in Move to stage.</Empty.Description>
+            </Empty.Header>
           {/if}
         </Empty.Root>
       {:else if sidebar.isMobile}

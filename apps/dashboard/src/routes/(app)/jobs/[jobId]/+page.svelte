@@ -173,7 +173,7 @@
   {#if job.isError && !detail}
     <HeaderBand title={notFound ? 'Job not found' : 'Job'} />
     <div class="w-full px-4 py-6 md:px-6">
-      <Panel title={notFound ? 'Details' : 'Could not load the job'}>
+      <Panel label="Job">
         {#if notFound}
           <Empty.Root>
             <Empty.Header>
@@ -190,12 +190,23 @@
     <!-- Skeletons of the header band and the work area (E1). -->
     <div aria-hidden="true" class="border-b border-border bg-card">
       <div class="flex w-full flex-col gap-4 px-4 py-5 md:px-6">
-        <Skeleton class="h-9 w-full max-w-80" />
-        <Skeleton class="h-10 w-full max-w-120" />
+        <div class="flex items-center justify-between gap-4">
+          <Skeleton class="h-9 w-full max-w-80" />
+          <Skeleton class="h-9 w-full max-w-96 max-md:hidden" />
+        </div>
+        <div class="flex flex-wrap gap-x-8 gap-y-3">
+          {#each [0, 1, 2, 3] as fact (fact)}<Skeleton class="h-10 w-28" />{/each}
+        </div>
+        <Skeleton class="h-8 w-full max-w-64" />
       </div>
     </div>
-    <div aria-hidden="true" class="flex w-full px-4 py-6 md:px-6">
-      <Skeleton class="h-80 w-full rounded-panel" />
+    <div aria-hidden="true" class="w-full px-4 py-6 md:px-6">
+      <div class="flex flex-col rounded-panel border border-border bg-card shadow-surface">
+        <div class="flex h-14 items-center border-b border-border px-4.5"><Skeleton class="h-5 w-32" /></div>
+        <div class="flex flex-col gap-3 p-4">
+          {#each [0, 1, 2, 3, 4] as row (row)}<Skeleton class="h-12 w-full" />{/each}
+        </div>
+      </div>
     </div>
     <p class="sr-only" role="status">Loading the job…</p>
   {:else}

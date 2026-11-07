@@ -25,6 +25,7 @@
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
   import StatusBadge from '#lib/components/status-badge.svelte';
+  import UsersIcon from '~icons/lucide/users';
   import { keptInMindLabel, stageLabel } from '#lib/talent-pool.js';
   import { createTableSort, tableSortOptions, type TableSortState } from '#lib/table-sort.svelte.js';
 
@@ -37,6 +38,7 @@
     extraColumns = [],
     activeId = $bindable(null),
     selectedIds = $bindable([]),
+    emptyTitle,
     emptyText = 'No candidates yet.',
     onclearfilters,
     filters,
@@ -64,6 +66,8 @@
     activeId?: string | null;
     /** Rows ticked with X or their checkbox. */
     selectedIds?: string[];
+    /** When given, the empty state is an icon, this title and `emptyText` as its one line; a filtered table gives none. */
+    emptyTitle?: string;
     emptyText?: string;
     /** While the page filters the rows: the empty state's one action (E1). */
     onclearfilters?: () => void;
@@ -352,7 +356,15 @@
 
 {#snippet empty()}
   <Empty.Root class="gap-3 p-6">
-    <Empty.Description>{emptyText}</Empty.Description>
+    {#if emptyTitle}
+      <Empty.Header>
+        <Empty.Media variant="icon"><UsersIcon /></Empty.Media>
+        <Empty.Title>{emptyTitle}</Empty.Title>
+        <Empty.Description>{emptyText}</Empty.Description>
+      </Empty.Header>
+    {:else}
+      <Empty.Description>{emptyText}</Empty.Description>
+    {/if}
     {#if onclearfilters}
       <Button variant="outline" size="lg" onclick={onclearfilters}>Clear filters</Button>
     {/if}

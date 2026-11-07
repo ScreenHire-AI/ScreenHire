@@ -3,8 +3,8 @@
   import { neighbour, type StepNode } from '#lib/workflow-graph.js';
 
   // The graph's keyboard path (design system section 17, WCAG 2.1.1): on a focused node the arrow keys, Home and End move
-  // to another node in reading order, and whatever takes the focus, a node or a button in one, is panned into view and
-  // out from under the zoom toolbar.
+  // to another node, and whatever takes the focus is panned into view and out from under the zoom toolbar. A node's
+  // control (its button, or its box when it cannot be pressed) is the one thing in it that takes the focus.
   // Svelte Flow's own pan on focus covers only the node itself, so it is off and this does both. It must sit inside
   // SvelteFlow, whose context useSvelteFlow reads; `root` is the element around the graph. The browser scrolls a clipped
   // box to show what Tab focuses, which would shift the canvas under Svelte Flow's own pan, so that scroll is undone and
@@ -13,18 +13,19 @@
 
   const flow = useSvelteFlow();
   const nodeOf = (target: EventTarget | null) => (target instanceof HTMLElement ? target.closest<HTMLElement>('.svelte-flow__node') : null);
+  const controlOf = (node: HTMLElement | null) => node?.querySelector<HTMLElement>('button, [tabindex="0"]') ?? null;
 
   $effect(() => {
     if (!root) return;
     const element: HTMLElement = root;
 
     function onkeydown(event: KeyboardEvent) {
-      const node = event.target instanceof HTMLElement && event.target.classList.contains('svelte-flow__node') ? event.target : null;
-      if (!node?.dataset.id) return;
+      const node = nodeOf(event.target);
+      if (!node?.dataset.id || event.target !== controlOf(node)) return;
       const next = neighbour(nodes(), node.dataset.id, event.key);
       if (next === null) return;
       event.preventDefault();
-      element.querySelector<HTMLElement>(`.svelte-flow__node[data-id="${CSS.escape(next)}"]`)?.focus();
+      controlOf(element.querySelector<HTMLElement>(`.svelte-flow__node[data-id="${CSS.escape(next)}"]`))?.focus();
     }
 
     function unscroll(from: EventTarget | null) {

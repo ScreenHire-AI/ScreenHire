@@ -162,19 +162,30 @@
           </Empty.Root>
         </Panel>
       {:else}
-        <Panel title="Could not load the job"><QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} inset /></Panel>
+        <Panel label="Workflow"><QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} inset /></Panel>
       {/if}
     </div>
   {:else if !detail || !draft.workflow}
     <div aria-hidden="true">
       <div class="border-b border-border bg-card">
-        <div class="flex flex-col gap-4 px-4 pt-5 md:px-6">
-          <Skeleton class="h-9 w-80 max-w-full" />
-          <Skeleton class="h-8 w-96 max-w-full" />
+        <div class="flex flex-col gap-4 px-4 py-5 md:px-6">
+          <div class="flex items-center justify-between gap-4">
+            <Skeleton class="h-9 w-full max-w-120" />
+            <Skeleton class="h-9 w-40 max-md:hidden" />
+          </div>
+          <div class="flex flex-wrap gap-x-8 gap-y-3">
+            {#each [0, 1, 2] as fact (fact)}<Skeleton class="h-10 w-28" />{/each}
+          </div>
+          <Skeleton class="h-8 w-full max-w-96" />
         </div>
       </div>
       <div class={workArea}>
-        <Skeleton class="h-96 w-full rounded-panel" />
+        <div class="flex flex-col rounded-panel border border-border bg-card shadow-surface">
+          <div class="flex h-14 items-center border-b border-border px-4.5"><Skeleton class="h-5 w-32" /></div>
+          <div class="flex flex-col gap-3 p-4">
+            {#each [0, 1, 2, 3, 4] as row (row)}<Skeleton class="h-12 w-full" />{/each}
+          </div>
+        </div>
       </div>
     </div>
     <p class="sr-only" role="status">Loading the workflow…</p>
@@ -232,7 +243,7 @@
         {#if readonly}
           <WorkflowSummary workflow={draft.workflow} errors={draft.errors} {tab} />
         {:else}
-          <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} {tab} />
+          <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} bind:tab />
         {/if}
       </div>
     </Tabs.Root>

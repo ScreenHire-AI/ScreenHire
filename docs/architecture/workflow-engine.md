@@ -65,6 +65,9 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/step-node.svelte
   - resource: apps/dashboard/src/lib/components/workflow/graph-keys.svelte
   - resource: apps/dashboard/src/lib/components/workflow/graph-controls.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/graph-fit.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/graph-light.svelte.ts
+  - resource: apps/dashboard/src/lib/components/workflow/routed-edge.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-editor.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-flow.svelte
@@ -211,28 +214,52 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   has no stage (an arriving application, the verification checks, a manual run, any stage's time limit) sit in a "Workflow
   automations" panel under the stages. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
-- **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`): a
-  "Whole workflow" lane and the stages along the top, one row per automation from trigger to conditions to actions,
-  edges from the lane or stage it fires on and to the stage it moves into. It stays a projection: no node position is
-  stored, because a stored layout would change the definition and every save of a job's workflow is a new version. The
-  layout is automatic, each row as tall as its tallest node can be, so nodes never overlap. It opens at full size from
-  the top left, where reading order starts: fitted to the pane, a node's buttons would fall under the 24px target size
-  (WCAG 2.5.8), so fitting is the zoom controls' choice. The first column starts right of the zoom toolbar, and a
-  node that takes the focus under the toolbar is panned out from under it. The graph edits the same
-  draft as the Pipeline view, through the same form:
-  - a lane or stage node's "Add automation" adds one there (`addAutomation`) and opens its form at the name;
-  - every automation node's Edit opens that automation's form, the drawer's own `automation-form.svelte`, at the
-    node's part (its trigger, its conditions or that action), so every trigger, condition and action the form offers,
-    the questionnaire and time-limit ones included, is built from the graph;
-  - a trigger node's Remove takes the automation out (`removeAutomation`);
-  - a "move to a stage" action points at its stage through the form's Stage field, or by drawing a link from the
-    action to a stage (`connect`), which is a pointer shortcut only.
-
-  Every node is a tab stop with the focus ring, Tab reaches the buttons in it, and the arrow keys, Home and End move
-  between nodes in reading order (`neighbour`); whatever takes the focus is panned into view. A validation message
-  shows on the node its path names, an automation's own messages on its trigger node, as it does on the form control.
-  Closing the form returns the focus to the graph. On a phone the graph is for reading, with no buttons, and says to
-  edit in Pipeline. A version that cannot be edited draws the same graph with no buttons.
+- **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`). The
+  stages run left to right as the backbone, after a "Whole workflow" lane that is not part of the pipeline (no line
+  joins it to Stage 1). Each lane or stage has its automations beneath it, one column each, read down as When (the
+  trigger), If (its conditions, when it has any) and Then (one node per action). It stays a projection: no position is
+  stored, because a stored layout would change the definition and every save of a job's workflow is a new version.
+  - **Layout.** Computed in `toGraph` with no layout library, because it is a grid of bands and columns rather than a
+    general graph: a band is as wide as its automations' columns, every node has a fixed size, so every position and
+    every line is exact, and nothing is measured. The lines are orthogonal and carry their own path in the edge's
+    `data.points`, drawn by `routed-edge.svelte` with rounded corners and an arrowhead in a token colour, so the flow
+    runs one way (down an automation, right along the stages). The unit tests check that no two nodes overlap and that
+    no line runs through a node, at 20 stages and 50 automations as at 3.
+  - **Lines.** A stage links to the next with a line to the right. A lane or stage links to each of its automations
+    through a trunk under it. A move to a stage has a path of its own: out of the action's right side, up the gap beside
+    its column, along a lane above the stages (lanes are shared by moves that do not overlap) and down into the target
+    stage, labelled "Moves to", the only words a line carries. A line crosses another where it must, never a node.
+  - **Nodes.** Each kind has its own look and icon (When, If, Then, and the lane and stage headers). With the editor the
+    whole node is one button, so it is the node's only tab stop: an automation's node opens its form (the drawer's own
+    `automation-form.svelte`) at the node's part (its trigger, its conditions or that action), so every trigger,
+    condition and action the form offers is built from the graph; a lane or stage opens its automations' drawer. A
+    version that cannot be edited, and a phone, draw the same nodes as a focusable box with no buttons, and the phone
+    says to edit in Pipeline.
+  - **Plus buttons.** Where a thing would go there is a plus, only while editing and once the workflow has an
+    automation: under each lane or stage for a new automation (`addAutomation`), on the line between a trigger and its
+    first action for a first condition (`addCondition`), and under the last action for another action (`addAction`).
+    Each opens the form at what it added. A workflow with no automations says what an automation is and offers one
+    button, "Add an automation", which adds one to the whole workflow.
+  - **Paths.** Hovering or focusing a node lights its path (`pathOf`): an automation's chain with the stage it fires on
+    and the stage it moves into, or a stage's automations and the moves into it. The rest quietens by its edge and its
+    line alone, so text keeps its contrast, and nothing moves for someone who prefers reduced motion. Simulate's
+    "Show this path in the graph" lights the path its test took (`testedPath`: all of an automation that would run, up
+    to the conditions of one that did not hold, only the trigger of one that was skipped) until Clear or the next
+    change to the workflow.
+  - **View.** The first view (`firstView`) fits the whole workflow, centred, when that takes a zoom of 0.5 or more
+    (`firstViewMinZoom`: a 48px plus is then a 24px target; 0.92 where a finger edits, so it stays 44px). A fitted view
+    is an overview: node text is 12px at full size and scales with the canvas. A workflow that would need less starts at
+    full size at the top left, where the lane and the first stage are, and pans and zooms from there (the wheel or
+    trackpad pans, the controls zoom and fit). The toolbar, at the canvas's top left, has Fit to show everything.
+  - **Keyboard.** Nodes are listed in reading order, a band at a time, which is the Tab order. The arrow keys move along
+    a column (Up, Down) and across to the nearest column (Left, Right), Home and End go to the first and last
+    (`neighbour`); whatever takes the focus is panned into view and out from under the toolbar. Crossing the phone's width swaps a
+    node's button for its box, and the focus stays on the node (`focusGraphNode`). Closing a form returns
+    the focus to the node that opened it.
+  - **Links.** A "move to a stage" action also points at its stage by drawing a link from its right edge to a stage, a
+    pointer shortcut for the form's Stage field (`connect`), never the only way (WCAG 2.5.7).
+  - A validation message shows on the node its path names, an automation's own messages on its trigger node, as it does
+    on the form control. Removing an automation is the Remove in its form.
 - **Questionnaire:** the apply form and each follow-up questionnaire, chosen with toggles, in the form builder
   (`#lib/components/form-builder.svelte`, design system section 11): a row per question that opens to edit, with its
   answer kind from the answer menu, Duplicate, Delete, Required and a grip to reorder. The kinds a question takes
