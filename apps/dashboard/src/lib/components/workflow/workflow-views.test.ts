@@ -636,6 +636,25 @@ describe('workflow graph in the builder', () => {
     expect(box.className).toContain('focus-visible:ring-2');
   });
 
+  it('keeps the focus on a node when crossing the phone width swaps its button for its box, and back', async () => {
+    const viewport = stubViewport(1440);
+    renderViews('editor', 'graph');
+    const button = node('When Tag screened');
+    button.focus();
+
+    // A browser sends the focus away as it removes the control; jsdom does not, so the test does.
+    button.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    viewport.resize(390);
+
+    const box = await within(graph()).findByRole('group', { name: 'When: Tag screened' });
+    await vi.waitFor(() => expect(box).toHaveFocus());
+
+    box.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    viewport.resize(1440);
+
+    await vi.waitFor(() => expect(node('When Tag screened')).toHaveFocus());
+  });
+
   it('is for reading on a phone, where editing stays in the Pipeline view', () => {
     stubViewport(390);
     renderViews('editor', 'graph');

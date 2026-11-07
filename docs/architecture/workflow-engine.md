@@ -251,7 +251,8 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     trackpad pans, the controls zoom and fit). The toolbar, at the canvas's top left, has Fit to show everything.
   - **Keyboard.** Nodes are listed in reading order, a band at a time, which is the Tab order. The arrow keys move along
     a column (Up, Down) and across to the nearest column (Left, Right), Home and End go to the first and last
-    (`neighbour`); whatever takes the focus is panned into view and out from under the toolbar. Closing a form returns
+    (`neighbour`); whatever takes the focus is panned into view and out from under the toolbar. Crossing the phone's width swaps a
+    node's button for its box, and the focus stays on the node (`focusGraphNode`). Closing a form returns
     the focus to the node that opened it.
   - **Links.** A "move to a stage" action also points at its stage by drawing a link from its right edge to a stage, a
     pointer shortcut for the form's Stage field (`connect`), never the only way (WCAG 2.5.7).

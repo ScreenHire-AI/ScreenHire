@@ -356,7 +356,9 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-graph-problem-1440");
 
-        // Pressing it opens the same form at that action.
+        // A full-page screenshot can shrink the page for a moment, past the phone's width and back, which swaps the node's
+        // button for its box. The focus stays on the node. Pressing it opens the same form at that action.
+        await Expect(action).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Enter");
         await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Action 1" })).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Tab");

@@ -2,14 +2,14 @@
   import type { DefinitionError, EvaluationOutcome, HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { Background, Panel, SvelteFlow, type Edge } from '@xyflow/svelte';
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
   import '@xyflow/svelte/dist/style.css';
   import { Button } from '#lib/components/ui/button/index.js';
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { emailTemplateNames } from '#lib/workflow.js';
-  import { VIEW_INSET, canConnect, pathOf, testedPath, toGraph, type StepNode } from '#lib/workflow-graph.js';
+  import { VIEW_INSET, canConnect, focusGraphNode, pathOf, testedPath, toGraph, type StepNode } from '#lib/workflow-graph.js';
   import GraphControls from './graph-controls.svelte';
   import GraphFit from './graph-fit.svelte';
   import GraphKeys from './graph-keys.svelte';
@@ -105,6 +105,16 @@
   });
 
   const nodeOf = (target: EventTarget | null) => (target instanceof HTMLElement ? target.closest<HTMLElement>('.svelte-flow__node')?.dataset.id : undefined);
+
+  // Crossing the phone's width swaps every node's button for its box, or back, which takes the focused control away. The
+  // focus stays on that node rather than falling to the page.
+  async function onfocusout(event: FocusEvent) {
+    focused = null;
+    const id = nodeOf(event.target);
+    if (!id || event.relatedTarget || !root) return;
+    await tick();
+    if (!(event.target as Element).isConnected && document.activeElement === document.body) focusGraphNode(root, id);
+  }
 </script>
 
 {#if actions && phone.current}
@@ -121,7 +131,7 @@
   bind:this={root}
   class="h-[max(560px,70svh)] overflow-hidden rounded-b-panel"
   onfocusin={(event) => (focused = nodeOf(event.target) ?? null)}
-  onfocusout={() => (focused = null)}
+  {onfocusout}
 >
   <SvelteFlow
     bind:nodes

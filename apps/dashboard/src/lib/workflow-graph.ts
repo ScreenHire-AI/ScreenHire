@@ -708,6 +708,13 @@ export function neighbour(nodes: readonly StepNode[], id: string, key: string): 
   return candidates.reduce((best, node) => (Math.abs(node.data.depth - depth) < Math.abs(best.data.depth - depth) ? node : best)).id;
 }
 
+/** Puts the focus on a node's one control, its button or its box. Says whether the node was there to focus. */
+export function focusGraphNode(root: ParentNode, id: string): boolean {
+  const control = root.querySelector(`.svelte-flow__node[data-id="${CSS.escape(id)}"]`)?.querySelector<HTMLElement>('button, [tabindex="0"]');
+  control?.focus();
+  return Boolean(control);
+}
+
 /** Adds a new automation to a stage's lane, or the whole workflow's (null), as the Pipeline view's drawer does. */
 export function addAutomation(workflow: HiringWorkflow, stageId: string | null): { workflow: HiringWorkflow; id: string } {
   const automation = newAutomation(workflow, stageId);

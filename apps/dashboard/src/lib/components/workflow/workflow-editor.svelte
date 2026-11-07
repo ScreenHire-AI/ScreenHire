@@ -6,7 +6,7 @@
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { laneOf, removeAt } from '#lib/workflow.js';
-  import { LANE_NODE, addAction, addAutomation, addCondition, connect, definitionStamp, stageNode, triggerNode } from '#lib/workflow-graph.js';
+  import { LANE_NODE, addAction, addAutomation, addCondition, connect, definitionStamp, focusGraphNode, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
   import PipelineView from './pipeline-view.svelte';
   import ProblemsPanel from './problems-panel.svelte';
@@ -114,13 +114,6 @@
     returnTo = { node: triggerNode(automationId), opener: null };
   }
 
-  function focusNode(id: string): boolean {
-    const node = document.querySelector(`.svelte-flow__node[data-id="${CSS.escape(id)}"]`);
-    const control = node?.querySelector<HTMLElement>('button, [tabindex="0"]');
-    control?.focus();
-    return Boolean(control);
-  }
-
   function onOpenAutoFocus(event: Event) {
     const target = focusPath ? document.querySelector(`[data-focus="${CSS.escape(focusPath)}"]`) : null;
     if (!(target instanceof HTMLElement)) return;
@@ -133,7 +126,7 @@
     focusPath = null;
     returnTo = null;
     if (!back || (back.opener?.isConnected && back.opener !== document.body)) return;
-    if (focusNode(back.node)) event.preventDefault();
+    if (focusGraphNode(document, back.node)) event.preventDefault();
   }
 
   function openLane(stageId: string | null) {
