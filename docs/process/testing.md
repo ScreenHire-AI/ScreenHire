@@ -269,7 +269,7 @@ stack of its own with the demo's data on (`MarketingDemoFixture`, `ScreenHire:De
 as Avery Quinn and takes each screen: both verification panels, a job's pipeline in light and dark, a candidate's activity
 and messages, the candidates list, the candidate's own page, a workflow's stages and automations, the interview booking
 page, Integrations, a template's stages, the branding editor, Reports and the branded careers page. Each screen has a full
-picture (`name.png`) and a narrow crop (`name-phone.png`) that a page can show at phone width.
+picture (`name.png`) and a picture of the same screen laid out at phone width (`name-phone.png`), for a page to show on a phone.
 
 - **Run it after changing a screen the marketing site shows**, with `UPDATE_MARKETING_SCREENSHOTS=1` as above, then open
   the images and commit them. It runs in a collection of its own (`MarketingScreenshotsRun`), after the parallel tests,
@@ -277,7 +277,7 @@ picture (`name.png`) and a narrow crop (`name-phone.png`) that a page can show a
 - **Without the variable** the test still opens every screen and takes every picture, into `TestResults/marketing-screenshots`
   beside the test assembly, and fails if a committed image is missing or over 600 KB. It compares no pixels: dates and
   "x minutes ago" differ on every run.
-- **Same picture every run:** a 1440 by 900 window (1600 wide for the pipeline and the candidates list, taller for the activity, workflow and reports) at twice the pixels, reduced motion, the fonts loaded, `en-US` and
+- **Same picture every run:** a 1440 by 900 window (1600 wide for the pipeline and the candidates list, taller for the activity, workflow and reports; 430 by 900 for the phone picture) at twice the pixels, reduced motion, the fonts loaded, `en-US` and
   `Europe/London`, no hover, focus ring, toast or caret. The verification panels hide the support code under each reason, which
   the public site does not show.
 - **Data:** Brightwater Studio and its fictional people. The test adds what the demo lacks for one candidate (an email

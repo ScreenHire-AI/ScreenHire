@@ -315,10 +315,9 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         });
 
     // A dashboard page with its heading shown and nothing still loading.
-    private async Task<IPage> OpenDashboardAsync(IBrowserContext context, string pathAndQuery, string heading, int width = Width, int height = Height)
+    private async Task<IPage> OpenDashboardAsync(IBrowserContext context, string pathAndQuery, string heading)
     {
         var page = await context.NewPageAsync();
-        await page.SetViewportSizeAsync(width, height);
         var response = await page.GotoAsync(DashboardUrl(pathAndQuery));
         response!.Ok.Should().BeTrue("GET {0} returned HTTP {1}", pathAndQuery, response.Status);
         await Expect(page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync(heading);
@@ -464,45 +463,32 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
             HttpStatusCode.Created);
     }
 
-    // The link in the newest "Pick a time" email to the candidate the interview was offered to.
-    private async Task<string> InterviewLinkAsync(string address)
+    // The link in a "Pick a time" email to the candidate the interview was offered to.
+    private Task<string> InterviewLinkAsync(string address) =>
+        LinkInEmailAsync(address, subject => subject.Contains("Pick a time", StringComparison.Ordinal), InterviewLink());
+
+    private Task<string> PortalLinkAsync() =>
+        LinkInEmailAsync(JoelsEmail, subject => subject.StartsWith("Your link to your applications at ", StringComparison.Ordinal), PortalLink());
+
+    // Waits up to a minute for an email to this address whose subject matches, and returns the first link in it.
+    private async Task<string> LinkInEmailAsync(string address, Func<string, bool> subject, Regex link)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(60);
         while (DateTimeOffset.UtcNow < deadline)
         {
-            var link = (await Fixture.Mailpit.MessagesAsync(address, Ct))
-                .Where(m => m.Subject.Contains("Pick a time", StringComparison.Ordinal))
-                .Select(m => InterviewLink().Match(m.Text))
-                .FirstOrDefault(match => match.Success);
-            if (link is not null)
+            var match = (await Fixture.Mailpit.MessagesAsync(address, Ct))
+                .Where(m => subject(m.Subject))
+                .Select(m => link.Match(m.Text))
+                .FirstOrDefault(m => m.Success);
+            if (match is not null)
             {
-                return link.Value;
+                return match.Value;
             }
 
             await Task.Delay(250, Ct);
         }
 
-        throw new TimeoutException($"The interview invitation never reached {address}.");
-    }
-
-    private async Task<string> PortalLinkAsync()
-    {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(60);
-        while (DateTimeOffset.UtcNow < deadline)
-        {
-            var link = (await Fixture.Mailpit.MessagesAsync(JoelsEmail, Ct))
-                .Where(m => m.Subject.StartsWith("Your link to your applications at ", StringComparison.Ordinal))
-                .Select(m => PortalLink().Match(m.Text))
-                .FirstOrDefault(match => match.Success);
-            if (link is not null)
-            {
-                return link.Value;
-            }
-
-            await Task.Delay(250, Ct);
-        }
-
-        throw new TimeoutException("The portal link never reached the candidate.");
+        throw new TimeoutException($"The email with the link never reached {address}.");
     }
 
     // Brightwater's brand as a studio would set it: a second colour, a heading font and a logo, saved in the editor.
@@ -574,18 +560,8 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         }
     }
 
-    private static string ProductDirectory()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "ScreenHire.slnx")))
-            {
-                return Path.Combine(directory.FullName, "apps", "marketing", "src", "assets", "product");
-            }
-        }
-
-        throw new InvalidOperationException($"Could not find ScreenHire.slnx above {AppContext.BaseDirectory}.");
-    }
+    private static string ProductDirectory() =>
+        Path.Combine(E2EFixture.RepositoryRoot(), "apps", "marketing", "src", "assets", "product");
 
     [GeneratedRegex(@"https?://\S+/interviews/(?<token>[A-Za-z0-9_-]+)")]
     private static partial Regex InterviewLink();
