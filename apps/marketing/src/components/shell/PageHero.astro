@@ -15,12 +15,16 @@ interface Props {
 }
 
 const { title, lead } = Astro.props;
+// A headline of a sentence or more at the display size fills the first screen (Impeccable's oversized-h1 rule found two
+// at 54 and 69 characters), so one over this length takes the section size. Design system section 22.4.
+const LONG_TITLE = 40;
+const titleSize = title.length > LONG_TITLE ? 'text-section' : 'text-display';
 const { signUp } = appLinks(PUBLIC_APP_URL, pages.pricing.path);
 const hasSlot = Astro.slots.has('default');
 ---
 
 <DarkBand labelledby="hero-title" class="flex flex-col gap-10 md:gap-12">
-  <h1 id="hero-title" class="max-w-5xl font-display text-display text-balance">{title}</h1>
+  <h1 id="hero-title" class:list={['max-w-5xl font-display text-balance', titleSize]}>{title}</h1>
   <div class="flex flex-wrap items-start gap-x-16 gap-y-10">
     <div class="flex min-w-0 flex-[1_1_24rem] flex-col gap-6">
       <p class="max-w-measure text-xl text-pretty">{lead}</p>

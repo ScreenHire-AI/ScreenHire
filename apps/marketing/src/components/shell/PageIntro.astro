@@ -6,15 +6,17 @@ interface Props {
   title: string;
   lead?: string;
   tone?: 'page' | 'dark';
+  /** The next section is on the white page too, so its own top space is the gap and this adds none. */
+  joined?: boolean;
 }
 
-const { title, lead, tone = 'page' } = Astro.props;
+const { title, lead, tone = 'page', joined = false } = Astro.props;
 // Whole class names, so Tailwind finds them.
 const tones = { page: 'bg-page text-foreground', dark: 'dark bg-background text-foreground' };
 ---
 
 <div class={tones[tone]}>
-  <header class="mx-auto flex max-w-site flex-col gap-4 px-4 pt-8 pb-12 md:px-6 md:pt-12 md:pb-16 lg:px-8 xl:pb-20">
+  <header class:list={['mx-auto flex max-w-site flex-col gap-4 px-4 pt-8 md:px-6 md:pt-12 lg:px-8', !joined && 'pb-12 md:pb-16 xl:pb-20']}>
     <h1 class="max-w-4xl font-display text-section text-balance">{title}</h1>
     {lead && <p class="max-w-measure text-xl text-pretty">{lead}</p>}
     <slot />

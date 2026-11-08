@@ -1,12 +1,12 @@
 ---
 type: Reference
 title: "Roadmap"
-description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (rebuilding the marketing site), later items, and what must exist before real customers."
+description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next, later items, and what must exist before real customers."
 tags: [roadmap, planning]
 ---
 # Roadmap
 
-What comes after the MVP, in order. What is already built is in the [MVP status](status.md). Snapshot 2026-10-25;
+What comes after the MVP, in order. What is already built is in the [MVP status](status.md). Snapshot 2026-11-08;
 each item names the doc that designs it. Board workflows carry the detail.
 
 ## Done since the MVP
@@ -36,12 +36,11 @@ each item names the doc that designs it. Board workflows carry the detail.
 | Page audits (roadmap item 11): every dashboard, careers and marketing page checked against the [design system](design/design-system.md) and for usability, and fixed, then a second pass for the states and widths the first one skipped | "Production polish: page audits, per-board postings, data requests and hosting readiness" | #91 to #93, #95, #97, #105, #110 |
 | Edit a job posting for one board (roadmap item 12), so a board that refuses a job can be fixed without changing the others ([job distribution](architecture/job-distribution.md)) | "Production polish: page audits, per-board postings, data requests and hosting readiness" | #94 |
 | The owner's review of the fourth build: a stage flow for a workflow's stages, one file upload with drag and drop, interview reminders and new times for a booked interview, webhook endpoint history, OAuth sign-in for the MCP server (ADR-0028), a Candidates switch and settings as three areas, the workflow graph rebuilt, Branding on one screen, Simulate as a guided test, an organization's own AI key and model, and billing (ADR-0029) | "Owner review of the fourth build, and the roadmap's open items" | #99, #100, #102 to #104, #107 to #109, #111 to #114 |
+| Marketing site rebuilt in direction B + C (roadmap item 15): design rules and a shared shell ([design system](design/design-system.md) section 22, ADR-0030), the [messaging](design/marketing-site.md) as five selling points told as pain, promise and proof with sourced numbers, a home page that tells them in order, pricing read from the plan catalogue with every feature on every plan, a product overview and one page per selling point with screenshots captured from the demo data, and compare, hiring-AI laws, blog and 404 on the same shell; then an audit of every page at 390 to 1920 px, a design review, Impeccable's detector and Lighthouse, and fixes | "Marketing site: direction B + C" | #118 to #123, and the audit task |
 
 ## Next
 
-| # | Work | Workflow | Why now |
-|---|---|---|---|
-| 15 | Rebuild the marketing site: rules for marketing pages in the [design system](design/design-system.md), and pages that show the real product and what it does today | "Marketing site: direction B + C": the rules, the messaging doc and the shared shell first, then the home, pricing, product and compare pages | The home and product pages never mention Slack, interview scheduling, reports, scorecards, the candidate portal or the MCP server, they show no picture of the product, and the home page shows a price placeholder |
+Nothing is queued. The owner picks the next workflow from "Later" and "Before real customers" below.
 
 ## Later
 

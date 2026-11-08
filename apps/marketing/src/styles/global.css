@@ -10,6 +10,13 @@
   --sh-font-data: var(--font-jetbrains);
 }
 
+/* A paragraph stops at 60ch on the marketing site. In Hanken Grotesk 72ch ran to about 90 characters a line, past the 75
+   that reads well (Impeccable's line-length rule found it on seven pages); 60ch is about 75. The careers pages keep the
+   token's 72ch. */
+@theme {
+  --container-measure: 60ch;
+}
+
 @layer base {
   html {
     background: var(--background);
@@ -22,34 +29,20 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-}
 
-/* The small line above a page's title or a card's heading: sentence case in the body face, never capitals or the code
-   font (design-system W2). */
-@layer components {
-  .kicker {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    line-height: 1.25rem;
-    color: var(--muted-foreground);
-  }
-}
-
-/* Buttons: 44px high with an 8px radius, a filled primary and an outlined secondary (design system sections 5 and 10). */
-@layer components {
-  .button-primary {
-    @apply inline-flex h-11 items-center justify-center rounded-lg bg-primary px-5 font-semibold text-primary-foreground no-underline hover:bg-primary/90;
-  }
-
-  .button-secondary {
-    @apply inline-flex h-11 items-center justify-center rounded-lg border border-input bg-card px-5 font-semibold text-foreground no-underline hover:border-primary;
+  /* Pull a last-line single word down beside the one above it (Impeccable's straggler advisory). */
+  p,
+  li,
+  dd,
+  blockquote {
+    text-wrap: pretty;
   }
 }
 
 /* Long-form Markdown (law tracker entries, blog posts). Tokens only. */
 @layer components {
   .prose {
-    max-width: 68ch;
+    max-width: 60ch;
     font-size: var(--text-base);
     line-height: 1.7;
     color: var(--secondary-foreground);
@@ -73,6 +66,11 @@
       font-size: var(--text-xl);
       font-weight: 700;
       color: var(--foreground);
+    }
+
+    /* The first heading starts level with the column beside it, not 2em below it. */
+    & > :first-child {
+      margin-top: 0;
     }
 
     & a {

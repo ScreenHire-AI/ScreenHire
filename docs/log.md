@@ -2,6 +2,8 @@
 
 ## 2026-11-08
 
+**The marketing site is audited and roadmap item 15 is done.** Every page was checked at 390, 768, 1024, 1440 and 1920 px: no sideways scroll or clipped text, the menus and links work with JavaScript off, focus shows in the dark, white and warm bands, and mobile LCP is under 1.8 s with CLS under 0.05 on all 20 pages in the sitemap. The `design-review` agent read screenshots of each page kind and found only small things (a repeated section shape on the real-people page, a dead `.kicker` rule, double padding under a white intro). Impeccable's detector (4.7.0, Apache-2.0, run once with `npx`, nothing installed) found no problem in the source and, on the rendered pages, two display headlines of 54 and 69 characters, lines of about 90 characters at the 72ch measure and unbalanced columns on the law pages. A headline over 40 characters now takes the section size, the measure is 60ch, and the law pages' key dates stay beside the article. Markdown pages no longer turn straight quotes curly, one phone image was recompressed because the built-your-way hero missed the LCP budget by 7 ms, and `llms.txt` now describes the five selling points. Copy was read against the messaging doc: no fluff words, reason codes or scores, every number sourced, and the footer still says the product is in development.
+
 **The marketing site has its rules, its messaging and a shared shell.** The design system gains section 22 (dark, white and warm
 bands with contrast checked from the tokens, display sizes per breakpoint, the product frame, a selling point, and what
 never decorates a page) and a Public pages group in the review checklist, with checks taken from Vercel's Web Interface

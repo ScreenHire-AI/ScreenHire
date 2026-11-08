@@ -175,6 +175,13 @@ describe('PageIntro', () => {
     const dark = await render(PageIntro, { title: 'A title', tone: 'dark' });
     expect(dark).toMatch(/class="dark /);
   });
+
+  it('drops its bottom space when joined to a white section, which has its own', async () => {
+    const header = (html: string) => /<header[^>]*class="([^"]*)"/.exec(html)![1]!;
+    expect(header(await render(PageIntro, { title: 'A title' }))).toContain('pb-12');
+    expect(header(await render(PageIntro, { title: 'A title', joined: true }))).not.toContain('pb-');
+    expect(header(await render(PageIntro, { title: 'A title', tone: 'dark' }))).toContain('pb-12');
+  });
 });
 
 describe('ClosingBand', () => {
@@ -195,6 +202,15 @@ describe('PageHero', () => {
     expect(html).toContain('Start free trial');
     expect(html).toContain(`href="${pages.pricing.path}"`);
     expect(html).not.toContain('kicker');
+  });
+
+  it('sets a headline of more than 40 characters at the section size, so a sentence does not fill the first screen', async () => {
+    const h1 = (html: string) => /<h1[^>]*class="([^"]*)"/.exec(html)![1]!;
+    const long = await render(PageHero, { title: "Know it's a real person before you book the interview.", lead: 'A lead.' });
+    expect(h1(long)).toContain('text-section');
+    expect(h1(long)).not.toContain('text-display');
+    const short = await render(PageHero, { title: 'Automate anything', lead: 'A lead.' });
+    expect(h1(short)).toContain('text-display');
   });
 });
 

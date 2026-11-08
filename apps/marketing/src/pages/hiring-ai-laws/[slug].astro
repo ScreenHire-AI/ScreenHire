@@ -42,7 +42,7 @@ const jsonLd = [
   ]}
   jsonLd={jsonLd}
 >
-  <PageIntro title={title} lead={description}>
+  <PageIntro joined title={title} lead={description}>
     <dl class="mt-2 flex flex-wrap gap-x-12 gap-y-3 text-base tabular-nums">
       <div>
         <dt class="font-bold">Where</dt>
@@ -56,11 +56,11 @@ const jsonLd = [
     <NotLegalAdvice lastReviewed={lastReviewed} />
   </PageIntro>
 
-  <Section class="grid gap-x-16 gap-y-12 lg:grid-cols-[minmax(0,68ch)_minmax(16rem,22rem)]">
+  <Section class="grid gap-x-16 gap-y-12 lg:grid-cols-[minmax(0,60ch)_minmax(16rem,22rem)]">
     <article class="prose min-w-0">
       <Content />
     </article>
-    <aside aria-labelledby="dates-title" class="flex min-w-0 flex-col gap-4 self-start tabular-nums">
+    <aside aria-labelledby="dates-title" class="flex min-w-0 flex-col gap-4 self-start tabular-nums lg:sticky lg:top-8">
       <h2 id="dates-title" class="font-display text-2xl font-bold text-balance">Key dates</h2>
       <p class="font-semibold">{law.data.status}</p>
       <ol class="flex flex-col">

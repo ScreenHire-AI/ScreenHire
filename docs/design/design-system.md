@@ -1186,7 +1186,7 @@ so markup never holds a pixel size:
 | `text-figure` | 40 / 40 | 48 / 48 | 52 / 52 | 800 | A sourced number |
 | `text-price` | 28 / 28 | 32 / 32 | 32 / 32 | 800 | A plan's price |
 
-A lead is `text-xl`, body `text-base`, small text and sources `text-sm`, captions `text-xs`. A figure takes
+A headline of more than 40 characters is set at `text-section` even where the table says `text-display` (`PageHero` does it by itself): at 76px a full sentence fills the first screen. A lead is `text-xl`, body `text-base`, small text and sources `text-sm`, captions `text-xs`. A figure takes
 `tabular-nums` (W11). Text never goes under 12px, and the root size is the browser's.
 
 ### 22.5 Space and width
@@ -1195,7 +1195,7 @@ A lead is `text-xl`, body `text-base`, small text and sources `text-sm`, caption
   xl:py-28`, built into `Section`). Between a heading and its words 16px (`gap-4`), between blocks 40px (`gap-10`),
   between columns 64px (`gap-x-16`).
 - The content column is `max-w-site` (1240px) and centred, with gutters of 16px on a phone, 24px from `md` and 32px
-  from `lg`. Bands run edge to edge. A paragraph stops at 72 characters (`max-w-measure`).
+  from `lg`. Bands run edge to edge. A paragraph stops at 60ch (`max-w-measure`, set in the marketing stylesheet), which is about 75 characters a line in Hanken Grotesk; the token's 72ch ran to about 90.
 - Radius is the brand's: 8px for buttons (`rounded-lg`), 12px for the product frame (`rounded-panel`), full for chips and
   avatars. Spacing sits on the 4px grid (section 4.4).
 
