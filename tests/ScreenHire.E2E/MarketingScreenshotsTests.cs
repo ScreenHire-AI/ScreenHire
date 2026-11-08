@@ -132,8 +132,9 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
                 Phone: new(Height: 2600, From: page => Entry(page, "Candidate replied"), To: page => Entry(page, "Good detail on the billing ledger"))),
 
             // 4. The candidates list with stage and last activity.
-            // The list runs past the window, so the picture ends after the last row the window shows whole.
-            new("candidates", DashboardUrl("/candidates"), "Candidates", PrepareCandidatesAsync, Width: WideWidth, WideTo: CaptureEnd, WideMargin: 0),
+            // The list runs past the window, so both pictures end after the last row the window shows whole.
+            new("candidates", DashboardUrl("/candidates"), "Candidates", PrepareCandidatesAsync, Width: WideWidth, WideTo: CaptureEnd, WideMargin: 0,
+                Phone: new(To: CaptureEnd)),
 
             // 5. The candidate's own page, from the link in the email they ask for.
             new("candidate-portal", portalLink, "Your applications", PreparePortalAsync, Public: true),
