@@ -16,6 +16,8 @@ sources:
   - resource: .github/workflows/ci.yml
   - resource: .github/actions/setup/action.yml
   - resource: scripts/test-shard.mjs
+  - resource: scripts/tested-tree.mjs
+  - resource: .github/actions/tested-tree/action.yml
 ---
 # Testing
 
@@ -335,12 +337,13 @@ should not be there. The budget stays with Lighthouse.
 ## Continuous integration
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs the gate's suites on GitHub's hosted Linux runners
-for every pull request to `main`, every push to `main`, and on demand (`workflow_dispatch`). A newer push to the same
-branch cancels the run before it. CI is the board's gate (ADR-0020): `/pull-request` in the Testing column pushes
+for every pull request to `main`, every push to `main` (one whose tree a pull request passed skips its tests, below),
+and on demand (`workflow_dispatch`). A newer push to the same branch cancels the run before it. CI is the board's gate (ADR-0020): `/pull-request` in the Testing column pushes
 once and waits for `Gate`, and `/merge-pull-request` merges only when `Gate` passed on the PR's head. A pull request
 run tests `refs/pull/<n>/merge`, the head merged with `main` as it was when the run started, so Merge does not run it
-again when `main` moves; the run on every push to `main` is the backstop for two green branches that break each
-other, and the next task whose CI fails on a red `main` fixes it in its own branch.
+again when `main` moves. The run on a push to `main` is the backstop for two green branches that break each other, and
+the next task whose CI fails on a red `main` fixes it in its own branch. It does not run when the pushed tree is one a
+pull request already passed ([A push to main that is already tested](#a-push-to-main-that-is-already-tested)).
 
 The runners have 4 cores and each long suite is CPU-bound there, so the long suites run as matrix shards on separate
 runners. Every matrix sets `fail-fast: false`, so one shard's failure never hides
@@ -348,13 +351,54 @@ another's.
 
 | Job | Runs | Timeout |
 |---|---|---|
+| `tested-tree` | On a push only: `scripts/tested-tree.mjs` asks whether the pushed tree is the tree of a merged PR's head with `Gate` green on it. Its answer skips every job below. It reads checks and pull requests, nothing else. Kangentic's copy of this job took 10 to 12 s on its last five pushes to `main` | 5 min |
 | `checks` | `pnpm verify:dotnet`, `pnpm verify:contract`, `pnpm check`, `pnpm -r build`, Vitest for every package but the dashboard, and `dotnet test --project tests/ScreenHire.UnitTests`. Every step runs even when an earlier one failed, and the last step fails the job if any did, so a run reports every broken check at once | 20 min |
 | `vitest` (2 shards) | The dashboard's Vitest suite with Vitest's own `--shard`. No .NET | 15 min |
 | `integration` (8 shards) | `tests/ScreenHire.IntegrationTests` on the runner's Docker Engine, one AppHost per shard | 25 min |
 | `e2e` (8 shards) | `pnpm -r build`, then `tests/ScreenHire.E2E` with Playwright's Chromium, one AppHost per shard | 25 min |
 | `infra` | `dotnet aspire publish` writes the Azure Bicep from the AppHost's publish model (`apps/apphost/AzurePublish.cs`) and `diff -r` compares it with the committed `infra/`. Provisions nothing, logs in to nothing, reads no secret ([deploy](../operations/deploy.md)) | 15 min |
 | `lighthouse` | `pnpm verify:lighthouse` on the marketing build, only when the change touches `apps/marketing`, `packages/plans`, `packages/ui`, `pnpm-lock.yaml` or `tools/lighthouse` (otherwise a notice says so). It installs `tools/lighthouse` in its own step. Report-only: a budget miss is a warning, the job stays green, and it is not in the gate, because shared runners have no LCP baseline yet | 20 min |
-| `gate` (`Gate`) | Nothing but a check that `checks`, `infra` and every shard of `vitest`, `integration` and `e2e` succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass. The board's skills read it by name on the PR's head. Branch protection on `main` did not require it as of 2026-10-31 (an owner action), so the skills check it themselves | 5 min |
+| `gate` (`Gate`) | Nothing but a check that `checks`, `infra` and every shard of `vitest`, `integration` and `e2e` succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass, except a job `tested-tree` skipped on purpose. The board's skills read it by name on the PR's head. Branch protection on `main` did not require it as of 2026-10-31 (an owner action), so the skills check it themselves | 5 min |
+
+### A push to main that is already tested
+
+A pull request that lands by squash puts on `main` the files its head had, when `main` had not moved since the head
+was built. In that case a second run tests the tree a green `Gate` already tested, and can only find a flake. ScreenHire
+does not require a branch to be up to date and squashes, so the check is the trees themselves, not the branch's age:
+
+1. The `tested-tree` job asks GitHub for the pull requests that contain the pushed commit, and takes the merged ones
+   into `main`.
+2. It compares the pushed commit's tree with each such head's tree. A different tree stops the check.
+3. It requires every check on that head to have completed without failing, and a `Gate` that GitHub Actions posted and
+   that succeeded.
+
+Only then is `tested` true. Every other job in `ci.yml` is skipped, and `Gate` accepts a skipped job only in that case,
+so the push still shows a green `Gate`. In every other case everything runs: a squash of a branch that was behind `main`
+(a new tree), a direct push, a manual run, a check still running, an API error, and `commits/<sha>/pulls` not yet listing
+the PR right after the merge. The job prints which of these it found (`[tested-tree] running the tests: <reason>`).
+`scripts/tested-tree.mjs` holds the decision and `TestedTreeTests` covers each way the answer must stay no. Every other
+job on a push now starts after this one.
+
+The measured reason (the overnight run of 2026-11-07, 07:00 to 12:00 UTC): 48 run attempts and 1,056 jobs, at most 40
+running at once, which looks like the account's limit, so two runs nearly fill it and a third queues. Jobs waited 1,368
+minutes against 3,102 running; a pull request run took 13 to 14 minutes at the peak and about 5 alone. The 15 pushes to
+`main` used 865 job-minutes, 28% of the night, and 8 of them carried a tree a pull request had passed. Run by hand
+against GitHub's API afterwards, the script skips those 8, `bbe200b` among them, and runs the other 7.
+
+What this costs: `main` no longer gets a second look at a flake on a tree that is already green. One of those 8
+(`bbe200b`, 10:19) failed on `main` after passing on its pull request, on the OAuth retention overlap that task #117
+fixed. With the skip, that failure would not have shown on `main`, and the race would still have been in the code, so it
+would have shown on the next pull request run that contains the code, where the rerun-once policy and the flake history
+above catch it. What the push run exists for survives: two green branches that break each other always produce a tree
+no pull request ran, so that push runs in full (ADR-0020, decision 12).
+
+A skipped push also leaves less behind. Lighthouse does not report on it, and it uploads no `durations-*` artifacts. It
+saves no caches either, and pull request runs restore theirs from `main`. After a dependency bump lands by skip, each
+pull request run restores an older cache or none until the next push that runs in full.
+`gh workflow run CI --ref main` refills them sooner.
+
+The Testing column is not capped for now. A cap moves the wait from CI's queue to the board's, and agents there also
+run local checks. Measure the queue again after the next large run before changing shards.
 
 xUnit and Microsoft Testing Platform have no shard option, so [`scripts/test-shard.mjs`](../../scripts/test-shard.mjs)
 splits a .NET test project by class:
@@ -368,8 +412,9 @@ A class stays whole because a class fixture can boot a stack of its own (`Develo
 class fails rather than run everything. After a build, `node scripts/test-shard.mjs tests/ScreenHire.E2E 2 8` prints
 what CI's second end-to-end shard runs.
 
-Every Aspire shard writes xUnit's CTRF report (`TestResults/*.ctrf.json`, uploaded as `durations-<suite>-<shard>` on
-every run) and prints its 15 slowest tests. When the shards drift apart, refresh the measurements from a green run:
+Every Aspire shard writes xUnit's CTRF report (`TestResults/*.ctrf.json`, uploaded as `durations-<suite>-<shard>`) and
+prints its 15 slowest tests. When the shards drift apart, refresh the measurements from a green run whose shards ran. A
+push that skipped its tests uploads none:
 
 ```
 gh run download <run-id> -p "durations-*" -D TestResults/durations

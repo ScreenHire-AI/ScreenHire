@@ -10,7 +10,7 @@ subsystem.
 
 | Path | What |
 |---|---|
-| `.github` | GitHub Actions: `workflows/ci.yml` (the gate's suites on Linux, and the `infra` job that regenerates the Azure Bicep) and the shared toolchain setup, `actions/setup` |
+| `.github` | GitHub Actions: `workflows/ci.yml` (the gate's suites on Linux, the `infra` job that regenerates the Azure Bicep, and the `tested-tree` job that skips a push to `main` whose tree a PR already passed), the shared toolchain setup, `actions/setup`, and `actions/tested-tree`, which runs `scripts/tested-tree.mjs` |
 | `infra` | The Azure Bicep that `dotnet aspire publish` generates from the AppHost's publish model (`apps/apphost/AzurePublish.cs`), with `azure.yaml` at the root for `azd`. Generated: never edit it, regenerate it ([`docs/operations/deploy.md`](docs/operations/deploy.md)) |
 | `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally; in publish mode (`dotnet aspire publish`) it builds the Azure model in `AzurePublish.cs` |
 | `apps/migrator` | Console app run for a deployment, with the database owner's login: applies the EF migrations, gives `screenhire_app` its login and creates Wolverine's tables. The API and worker never hold that login |
@@ -100,7 +100,8 @@ subsystem.
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.
 - **The gate is CI** (ADR-0020): GitHub Actions (`.github/workflows/ci.yml`) runs every suite on Linux for each pull
-  request and push to `main`, behind one check, `Gate`
+  request and push to `main`, behind one check, `Gate`; a push whose tree a PR already passed skips its tests
+  (`scripts/tested-tree.mjs`)
   ([`docs/process/testing.md`](docs/process/testing.md#continuous-integration)). Testing waits for it and Merge
   requires it on the PR's head. Locally, `pnpm verify:fast` (`verify:dotnet` with warnings as errors,
   `verify:contract` for API-contract drift, `pnpm check`) plus the tests the branch added or changed is the check

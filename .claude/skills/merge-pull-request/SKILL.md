@@ -9,9 +9,9 @@ head. This skill lands it on `origin/main`. Kangentic cuts every new worktree fr
 dependents start when it reaches Done, so `PR: merged` must mean the code really is on `origin/main`.
 
 A pull request run tests `refs/pull/<n>/merge`: the head merged with `main` as it was when the run started. So a PR
-whose `Gate` passed still merges when `main` has moved since; CI does not run again. CI on every push to `main` is the
+whose `Gate` passed still merges when `main` has moved since; CI does not run again. CI on a push to `main` is the
 backstop for anything two green branches break together, and the next task whose CI fails on it fixes it (ADR-0020).
-Only a conflict needs a new run.
+That run skips its tests only on a tree a PR already passed (decision 12). Only a conflict needs a new run.
 
 Fix small problems here and merge. Do not hand them back.
 

@@ -69,7 +69,10 @@ rounds. After three failed rounds, go to Step 9b without pushing.
 
 ## Step 6: Open the PR and link it
 
-1. Write the body to `.kangentic/PR_BODY.tmp` with the Write tool. The folder is ignored by git. Sections:
+1. Run `git rev-parse --show-toplevel` and call its output `<worktree>`. Write the body to the absolute path
+   `<worktree>/.kangentic/PR_BODY.tmp` with the Write tool. The folder is ignored by git. Never use a relative path
+   here: the Write tool resolves one against the project root, and that is the root checkout, not this worktree.
+   Sections:
    - `## What`: the change and the components it touches.
    - `## Why`: the task (`#<number> <title>`) and the docs or ADRs it implements.
    - `## How`: the approach and the trade-offs worth a reviewer's attention.
@@ -78,8 +81,8 @@ rounds. After three failed rounds, go to Step 9b without pushing.
    - `## Tests`: the local checks from Step 4 and the tests this task added; CI "running" for now (Step 8 fills it
      in).
    - The footer `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
-2. `gh pr create --base <base> --head <type>/<slug> --title "<conventional title>" --body-file .kangentic/PR_BODY.tmp`.
-   If the PR already exists, `gh pr edit <pr> --body-file .kangentic/PR_BODY.tmp` instead. Opening the PR starts the
+2. `gh pr create --base <base> --head <type>/<slug> --title "<conventional title>" --body-file "<worktree>/.kangentic/PR_BODY.tmp"`.
+   If the PR already exists, `gh pr edit <pr> --body-file "<worktree>/.kangentic/PR_BODY.tmp"` instead. Opening the PR starts the
    CI run (a branch push without a PR starts none). Editing the body starts nothing.
 3. Link it: `kangentic_get_current_task` (this directory and branch), then `kangentic_update_task` with `prUrl` and
    `prNumber`. The PR head differs from the local branch by design, so this link is the only connection. Retry if it
@@ -138,7 +141,7 @@ After the third round still fails, go to Step 9b.
    failures with each page's numbers. With no `lighthouse:` lines the job skipped the run: no marketing change.
 3. Update the body's `## Tests` section: the CI run's URL, `Gate` passed on `<head sha>`, the jobs, the Lighthouse
    result ("N pages within budget", the misses, or "not run: no marketing change"; report-only either way), any
-   flake from a rerun, and the local checks. `gh pr edit <pr> --body-file .kangentic/PR_BODY.tmp`. This starts no
+   flake from a rerun, and the local checks. `gh pr edit <pr> --body-file "<worktree>/.kangentic/PR_BODY.tmp"`. This starts no
    CI run.
 
 ## Step 9: Report
