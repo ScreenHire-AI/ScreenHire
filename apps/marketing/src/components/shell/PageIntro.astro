@@ -6,7 +6,10 @@ interface Props {
   title: string;
   lead?: string;
   tone?: 'page' | 'dark';
-  /** The next section is on the white page too, so its own top space is the gap and this adds none. */
+  /**
+   * The next section is on the white page too, so its own top space is the gap and this adds none. Only for the page
+   * tone followed by a page-tone `Section`: before a band the text would meet the band's edge.
+   */
   joined?: boolean;
 }
 

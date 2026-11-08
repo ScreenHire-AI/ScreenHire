@@ -42,7 +42,7 @@
 /* Long-form Markdown (law tracker entries, blog posts). Tokens only. */
 @layer components {
   .prose {
-    max-width: 60ch;
+    max-width: var(--container-measure);
     font-size: var(--text-base);
     line-height: 1.7;
     color: var(--secondary-foreground);

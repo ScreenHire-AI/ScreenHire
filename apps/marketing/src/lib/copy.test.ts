@@ -46,17 +46,20 @@ describe('marketing copy', () => {
 });
 
 describe('typography', () => {
-  it('renders Markdown pages with straight quotes, as the hand-written pages have (writing-style rule)', () => {
-    // smartypants is off in astro.config.mjs; a built page is checked by the audit, this guards the setting.
-    const config = readFileSync(fileURLToPath(new URL('../../astro.config.mjs', import.meta.url)), 'utf8');
-    expect(config).toMatch(/smartPunctuation:\s*false/);
+  it('renders Markdown pages with straight quotes, as the hand-written pages have (writing-style rule)', async () => {
+    // The site's own Markdown processor from astro.config.mjs, so a misnamed option or a dropped processor fails here.
+    const { default: config } = await import('../../astro.config.mjs');
+    const renderer = await config.markdown!.processor!.createRenderer({ syntaxHighlight: false });
+    const { code } = await renderer.render('"Real people," she said. It\'s the team\'s call.');
+    expect(code).toContain('"Real people," she said. It\'s the team\'s call.');
+    expect(code).not.toMatch(/[‘’“”]|&[lr][sd]quo;/);
   });
 
-  it('keeps the paragraph measure at 60ch and the law pages\' text column to match', () => {
+  it('keeps the paragraph measure at 60ch, and long-form text and the law pages\' column on that token', () => {
     const styles = readFileSync(join(src, 'styles/global.css'), 'utf8');
     expect(styles).toMatch(/--container-measure:\s*60ch/);
-    expect(styles).toMatch(/\.prose\s*\{[^}]*max-width:\s*60ch/);
+    expect(styles).toMatch(/\.prose\s*\{[^}]*max-width:\s*var\(--container-measure\)/);
     const law = readFileSync(join(src, 'pages/hiring-ai-laws/[slug].astro'), 'utf8');
-    expect(law).toContain('minmax(0,60ch)');
+    expect(law).toContain('minmax(0,var(--container-measure))');
   });
 });

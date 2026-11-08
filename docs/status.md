@@ -14,8 +14,8 @@ collaboration and communication" workflow (PRs #39 to #42, and the docs restruct
 builder" workflow (PRs #44, #45 and the editable graph) and the "Design system v0.3, the review's features, and roles
 with job access" workflow (PRs #47 to #58 and the remaining screens), the "After the owner's review" workflow (PRs #61
 to #74), the "Owner review of the second build" workflow (PRs #80 to #89), the "Production polish" workflow
-(PRs #91 to #98) the "Owner review of the fourth build" workflow (PRs #99 to #114) and the "Marketing site: direction B + C" workflow (PRs #118 to #123, and the audit task). The whole product
-runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
+(PRs #91 to #98), the "Owner review of the fourth build" workflow (PRs #99 to #114) and the "Marketing site:
+direction B + C" workflow (PRs #118 to #123, and the audit task). The whole product runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
 `pnpm verify` (`tests/ScreenHire.E2E/AcceptanceJourneyTests.cs`) walks it end to end: sign in, a job from a template,
 publish to the careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their
 levels and evidence, a move sends the stage-change email, and closing takes the job down everywhere. Nothing is hosted

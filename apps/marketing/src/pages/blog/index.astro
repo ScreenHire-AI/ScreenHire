@@ -43,15 +43,7 @@ const blog = {
             </time>
             <div class="min-w-0">
               <h3 class:list={['font-display text-balance', index === 0 ? 'text-section' : 'text-2xl font-bold']}>
-                <a
-                  href={`${path}${post.id}/`}
-                  class:list={[
-                    'text-foreground underline-offset-4 hover:decoration-2',
-                    // The large first title is a list item in a list of links, so it is not underlined until hovered or
-                    // focused (design system 22.3); the smaller ones keep the underline that says they are links.
-                    index === 0 ? 'no-underline hover:underline focus-visible:underline' : 'underline',
-                  ]}
-                >
+                <a href={`${path}${post.id}/`} class="text-foreground underline underline-offset-4 hover:decoration-2">
                   {post.data.title}
                 </a>
               </h3>
