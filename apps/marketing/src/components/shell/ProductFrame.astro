@@ -28,7 +28,7 @@ if (src && !alt) throw new Error('ProductFrame: a screenshot needs alt text that
 
 const loading = priority ? 'eager' : 'lazy';
 const fetchpriority = priority ? 'high' : 'auto';
-const image = 'block h-auto w-full object-top';
+const image = 'h-auto w-full object-top';
 ---
 
 <div class:list={['light overflow-hidden rounded-panel border border-border bg-card text-card-foreground shadow-surface', className]}>
@@ -44,7 +44,7 @@ const image = 'block h-auto w-full object-top';
           sizes={sizes}
           loading={loading}
           fetchpriority={fetchpriority}
-          class={phone ? `hidden md:block ${image}` : image}
+          class={phone ? `hidden md:block ${image}` : `block ${image}`}
         />
         {phone && (
           <Picture
@@ -56,7 +56,7 @@ const image = 'block h-auto w-full object-top';
             sizes="100vw"
             loading={loading}
             fetchpriority={fetchpriority}
-            class={`md:hidden ${image}`}
+            class={`block md:hidden ${image}`}
           />
         )}
       </>

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-// The home page's own rules (docs/design/marketing-site.md, design system section 22). It reads its words, prices and
-// numbers from lib/features.ts and the plan catalogue, so the page file itself holds none.
+// The home page's own rules (docs/design/marketing-site.md, design system section 22). It reads its prices, job limits
+// and trial length from the plan catalogue and its sourced numbers from lib/features.ts, so the page file writes none.
+// These tests read the page's source, so the order test is tied to the names index.astro gives the five points.
 const home = readFileSync(new URL('../pages/index.astro', import.meta.url), 'utf8');
 
 describe('home page', () => {

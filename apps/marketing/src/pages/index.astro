@@ -3,11 +3,9 @@
 // numbers, the five selling points in the owner's order, pricing, questions and the close. Its words come from
 // lib/features.ts, its prices from the plan catalogue, and its pictures from the captured screenshots. The hero's bold
 // element is ApplicantPair (markup), not the captured flagged panel, which names the kinds of signal a check uses. The
-// team's activity is markup too, and the workflow screenshot is left out: the captured activity and workflow screens show
-// a matching card, a rejection-review automation and a verification tag, which the site does not show.
+// team's activity and the candidate's page are markup too. The workflow screenshot is left out, because the captured
+// activity and workflow screens show a matching card, a rejection-review automation and a verification tag.
 import { PUBLIC_APP_URL } from 'astro:env/server';
-import portal from '../assets/product/candidate-portal.png';
-import portalPhone from '../assets/product/candidate-portal-phone.png';
 import templateStages from '../assets/product/template-stages.png';
 import templateStagesPhone from '../assets/product/template-stages-phone.png';
 import ApplicantPair from '../components/shell/ApplicantPair.astro';
@@ -57,7 +55,7 @@ const faqs: Faq[] = [
   },
 ];
 
-// What the team sees on a candidate: fictional, and each line is something the dashboard records (docs/status.md).
+// What the team sees on a candidate. It is fictional, and each line is something the dashboard records (docs/status.md).
 const activity = [
   { when: 'Today 09:12', what: 'Hannah replied: "Thursday at 10 works for me."' },
   { when: 'Yesterday', what: 'Avery emailed the interview times.' },
@@ -65,7 +63,18 @@ const activity = [
   { when: 'Monday 14:30', what: 'Applied from your careers page.' },
 ];
 
+// The same candidate on her own page: the four steps a candidate sees (docs/architecture/candidate-portal.md). It is
+// markup rather than the captured portal, which draws too small to read beside the activity list.
+const steps: { name: string; state: 'done' | 'current' | 'next' }[] = [
+  { name: 'Applied', state: 'done' },
+  { name: 'In review', state: 'done' },
+  { name: 'Interview', state: 'current' },
+  { name: 'Offer', state: 'next' },
+];
+
 const link = 'text-primary underline underline-offset-4 hover:decoration-2';
+// A link on a line of its own is a 44px target on touch (design system F4), as the header and footer links are.
+const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-h-11`;
 ---
 
 <BaseLayout title={title} description={description} headerTone="dark" jsonLd={[softwareApplication(description, site, pricedOffers(plans)), faqPage(faqs)]}>
@@ -77,7 +86,7 @@ const link = 'text-primary underline underline-offset-4 hover:decoration-2';
         <CtaLink href={signUp} size="lg">Start free trial</CtaLink>
         <CtaLink href={pages.pricing.path} variant="secondary" size="lg">See pricing</CtaLink>
       </div>
-      {fromPrice && <p class="text-muted-foreground">From <span class="tabular-nums">{fromPrice}</span>&nbsp;a month for your whole team.</p>}
+      {fromPrice && <p class="text-lg">From <span class="tabular-nums">{fromPrice}</span>&nbsp;a month for your whole team.</p>}
     </div>
     <div class="min-w-0 flex-[1_1_30rem]"><ApplicantPair /></div>
   </DarkBand>
@@ -97,7 +106,7 @@ const link = 'text-primary underline underline-offset-4 hover:decoration-2';
           </p>
         )
       }
-      <p><a href={pages.detection.path} class={link}>How detection works</a></p>
+      <p><a href={pages.detection.path} class={standalone}>How detection works</a></p>
     </Fragment>
     <div class="grid gap-x-10 gap-y-8 sm:grid-cols-2">
       <div class="flex flex-col gap-3">
@@ -148,13 +157,27 @@ const link = 'text-primary underline underline-offset-4 hover:decoration-2';
         </figure>
         <figure class="flex min-w-0 flex-[2_1_20rem] flex-col gap-3">
           <figcaption class="text-xl font-bold">What the candidate sees</figcaption>
-          <ProductFrame
-            src={portal}
-            phone={portalPhone}
-            sizes="(min-width: 64rem) 30rem, 100vw"
-            alt="The candidate's own page: the job they applied for, four steps (Applied, In review, Interview, Offer) with In review marked as the current one, and a link to read and answer their messages."
-            class="max-h-96 md:max-h-60"
-          />
+          <ProductFrame>
+            <div class="flex flex-col gap-5 px-5 py-5">
+              <p class="font-display text-xl font-semibold">Your applications</p>
+              <p class="font-bold">Product Designer</p>
+              <ol aria-label="Where Hannah stands" class="grid grid-cols-2 gap-x-6 gap-y-3">
+                {
+                  steps.map((step) => (
+                    <li aria-current={step.state === 'current' ? 'step' : undefined} class:list={['flex items-center gap-2', step.state === 'current' ? 'font-bold' : step.state === 'next' && 'text-muted-foreground']}>
+                      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:list={['size-5 shrink-0', step.state === 'done' ? 'text-status-clear-mark' : 'text-foreground']}>
+                        <circle cx="12" cy="12" r="10" />
+                        {step.state === 'done' && <path d="m16 9-5.5 5.5L8 12" />}
+                        {step.state === 'current' && <circle cx="12" cy="12" r="4" fill="currentColor" />}
+                      </svg>
+                      {step.name}
+                    </li>
+                  ))
+                }
+              </ol>
+              <p class="text-muted-foreground">Her messages with your team are on this page too, and she can reply.</p>
+            </div>
+          </ProductFrame>
         </figure>
       </div>
       <p class="text-sm text-muted-foreground">Sample candidate. The people and the company here are fictional.</p>
@@ -191,28 +214,28 @@ const link = 'text-primary underline underline-offset-4 hover:decoration-2';
   </SellingPoint>
 
   <SellingPoint point={integrationsPoint!} tone="band">
-    <dl class="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
+    <dl class="grid border-b border-border sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
       {
         integrations.map((integration) => (
           <>
-            <dt class="border-t border-border py-4 pr-4 font-bold">{integration.name}</dt>
-            <dd class="border-t border-border py-4 text-pretty text-secondary-foreground">{integration.does}</dd>
+            <dt class="border-t border-border pt-4 font-bold sm:pr-4 sm:pb-4">{integration.name}</dt>
+            <dd class="pt-1 pb-4 text-pretty text-secondary-foreground sm:border-t sm:border-border sm:pt-4">{integration.does}</dd>
           </>
         ))
       }
     </dl>
   </SellingPoint>
 
-  <SellingPoint point={builtYourWay!}>
+  <SellingPoint point={builtYourWay!} layout="stacked">
     <Fragment slot="words">
-      <p><a href={pages.compare.path} class={link}>See how other tools price it</a></p>
+      <p><a href={pages.compare.path} class={standalone}>See how other tools price it</a></p>
     </Fragment>
     <ProductFrame
       src={templateStages}
       phone={templateStagesPhone}
-      sizes="(min-width: 80rem) 44rem, 100vw"
+      sizes="(min-width: 80rem) 74rem, 100vw"
       alt="A hiring template in ScreenHire: its stages in order from Applied, each with a name, a kind and a time limit, and the email or scorecard that goes with it."
-      class="max-h-128"
+      class="max-h-200 md:max-h-160"
     />
   </SellingPoint>
 
@@ -229,7 +252,7 @@ const link = 'text-primary underline underline-offset-4 hover:decoration-2';
         <ul class="flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
           {notPaidExtra.map((item) => <li>{item}</li>)}
         </ul>
-        <p class="text-pretty text-muted-foreground">
+        <p class="text-pretty">
           Some tools charge for these as seats, add-ons or a higher plan.
           <a href={pages.compare.path} class="text-foreground underline underline-offset-4 hover:decoration-2">See how we compare</a>, with sources and dates.
         </p>

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
@@ -133,23 +134,25 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
         faq.GetProperty("mainEntity").EnumerateArray().Select(question => question.GetProperty("name").GetString()).Should().Equal(visible);
     }
 
-    [Fact]
-    public async Task Home_page_screenshots_have_a_size_and_alt_text_and_only_the_layout_for_the_width_loads()
+    [Theory]
+    [InlineData(1440, false)]
+    [InlineData(390, true)]
+    public async Task Home_page_screenshots_have_a_size_and_alt_text_and_only_the_layout_for_the_width_loads(int width, bool phone)
     {
-        var images = new List<string>();
+        var requests = new ConcurrentQueue<string>();
         Page.Request += (_, request) =>
         {
             if (request.ResourceType == "image")
             {
-                images.Add(request.Url);
+                requests.Enqueue(request.Url);
             }
         };
-        await Page.SetViewportSizeAsync(1440, 900);
+        await Page.SetViewportSizeAsync(width, 900);
         await GoToAsync(Marketing, "/");
 
         // Every screenshot is a picture with an explicit size, alt text and an AVIF source ahead of its fallback.
         var pictures = Page.Locator("main picture");
-        (await pictures.CountAsync()).Should().Be(4, "two screenshots, each with a wide and a phone layout");
+        (await pictures.CountAsync()).Should().Be(2, "the template screenshot, with a wide and a phone layout");
         foreach (var picture in await pictures.AllAsync())
         {
             var image = picture.Locator("img");
@@ -159,15 +162,23 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
             (await picture.Locator("source").First.GetAttributeAsync("type")).Should().Be("image/avif");
         }
 
-        // Scroll through the page so every lazy picture that is shown loads; a hidden one never does.
-        for (var y = 0; y < 9000; y += 600)
-        {
-            await Page.EvaluateAsync($"() => window.scrollTo(0, {y})");
-            await Page.WaitForTimeoutAsync(100);
-        }
-
+        // Bring the shown layout into view so its lazy picture loads, and wait until it has; the hidden one never loads.
+        var shown = Page.Locator("main picture img:visible");
+        await Expect(shown).ToHaveCountAsync(1);
+        await shown.ScrollIntoViewIfNeededAsync();
+        await Expect(shown).ToHaveJSPropertyAsync("complete", true);
+        (await shown.EvaluateAsync<int>("image => image.naturalWidth")).Should().BePositive();
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        images.Should().Contain(url => url.Contains("candidate-portal.")).And.NotContain(url => url.Contains("-phone."));
+
+        var images = requests.ToList();
+        if (phone)
+        {
+            images.Should().Contain(url => url.Contains("template-stages-phone.")).And.NotContain(url => url.Contains("template-stages."));
+        }
+        else
+        {
+            images.Should().Contain(url => url.Contains("template-stages.")).And.NotContain(url => url.Contains("-phone."));
+        }
     }
 
     [Theory]
