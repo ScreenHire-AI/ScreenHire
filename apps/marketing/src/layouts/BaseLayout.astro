@@ -41,12 +41,13 @@ const bodyFont = fontData['--font-hanken']?.[0]?.src[0]?.url;
   <body class="min-h-screen bg-page text-foreground">
     <a
       href="#main"
-      class="sr-only rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
+      class="sr-only rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50"
       >Skip to content</a
     >
     <SiteHeader tone={headerTone} />
     {
       breadcrumbs && (
+        <div class={headerTone === 'dark' ? 'dark bg-background text-foreground' : 'bg-page'}>
         <nav aria-label="Breadcrumb" class="mx-auto max-w-site px-4 md:px-6 lg:px-8">
           <ol class="flex flex-wrap gap-x-2 text-sm text-muted-foreground">
             <li>
@@ -66,6 +67,7 @@ const bodyFont = fontData['--font-hanken']?.[0]?.src[0]?.url;
             ))}
           </ol>
         </nav>
+        </div>
       )
     }
     <main id="main">

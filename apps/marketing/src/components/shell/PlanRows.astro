@@ -33,11 +33,11 @@ function price(plan: Plan): string {
             {plan.name}
             {trialPlan === plan.name && <span class="ml-2 font-sans text-base font-medium text-muted-foreground">(your trial)</span>}
           </span>
-          <span class="text-muted-foreground">{plan.activeJobs}</span>
+          <span class="tabular-nums text-muted-foreground">{plan.activeJobs}</span>
         </div>
-        <span class="font-display text-price tabular-nums">
+        <span class="font-display text-price tabular-nums whitespace-nowrap">
           {price(plan)}
-          {hasPrice(plan) && <span class="ml-1 font-sans text-base font-normal text-muted-foreground">a month</span>}
+          {hasPrice(plan) && <span class="font-sans text-base font-normal text-muted-foreground">&nbsp;a month</span>}
         </span>
       </li>
     ))

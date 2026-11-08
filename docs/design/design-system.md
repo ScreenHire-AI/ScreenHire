@@ -1232,7 +1232,7 @@ pricing say the same thing.
 
 `CtaLink` is a solid link with an 8px radius, 44px high (52px at `size="lg"`), never a pill. `primary` is the foreground
 colour, `indigo` is the brand colour for a light band, `secondary` is an outline in `muted-foreground`. One primary call
-to action a band. This amends the 8px button rule in 4.4 for marketing pages: `.button-primary` and `.button-secondary`
+to action a band, not counting the header's Start free trial, which is the same action as the hero's. This amends the 8px button rule in 4.4 for marketing pages: `.button-primary` and `.button-secondary`
 stay only for pages not yet restyled.
 
 ### 22.10 The shell and the other components

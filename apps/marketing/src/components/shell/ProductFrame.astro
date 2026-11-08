@@ -15,6 +15,7 @@ interface Props {
 }
 
 const { src, alt = '', priority = false, class: className } = Astro.props;
+if (src && !alt) throw new Error('ProductFrame: a screenshot needs alt text that says what it shows (design system F7).');
 ---
 
 <div class:list={['light overflow-hidden rounded-panel border border-border bg-card text-card-foreground shadow-surface', className]}>

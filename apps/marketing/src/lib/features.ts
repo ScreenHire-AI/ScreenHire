@@ -31,6 +31,7 @@ export interface SellingPointData {
   pagePath: string;
 }
 
+// The Ashby URL still has "2023" in its slug, but the page is the 2026 Talent Trends Report (docs/research/pain-points.md).
 export const sources = {
   ashby: {
     label: 'Ashby, Talent Trends Report, 2026',
