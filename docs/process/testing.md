@@ -277,9 +277,14 @@ picture (`name.png`) and a picture of the same screen laid out at phone width (`
 - **Without the variable** the test still opens every screen and takes every picture, into `TestResults/marketing-screenshots`
   beside the test assembly, and fails if a committed image is missing or over 600 KB. It compares no pixels: dates and
   "x minutes ago" differ on every run.
-- **Same picture every run:** a 1440 by 900 window (1600 wide for the pipeline and the candidates list, taller for the activity, workflow and reports; 430 by 900 for the phone picture) at twice the pixels, reduced motion, the fonts loaded, `en-US` and
-  `Europe/London`, no hover, focus ring, toast or caret. The verification panels hide the support code under each reason, which
+- **Same picture every run:** a 1440 by 900 window (1920 wide for the pipeline, 1600 for the candidates list, taller for the activity, template, workflow and reports; 430 wide for the phone picture) at twice the pixels, reduced motion, the fonts loaded, `en-US` and
+  `Europe/London`, no hover, focus ring, toast or caret, and no strip reserved for a scrollbar at the right (the test
+  fails if the page keeps one or scrolls sideways). The verification panels hide the support code under each reason, which
   the public site does not show.
+- **Phone pictures end between elements.** Where the window as it opens would cut a screen, its phone picture runs from
+  one element to another in a tall window: the pipeline shows one stage and its cards, the flagged verification panel ends
+  after its speed reason and that reason's counter-evidence, the activity runs from the reply to the first note, and the
+  reports picture leaves out the table of open jobs between the cards and the trend.
 - **Data:** Brightwater Studio and its fictional people. The test adds what the demo lacks for one candidate (an email
   answered, an interview offered and booked) and moves three applicants so the pipeline has people in several stages.
 

@@ -38,6 +38,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
     private const int Width = 1440;
     private const int Height = 900;
     private const int WideWidth = 1600;
+    private const int PipelineWidth = 1920; // all six columns of the board, the closed stages' column included
 
     // Phone width: the pictures a page shows on a phone are the screens laid out for one, not a crop of the wide screen,
     // whose text would be cut mid-word.
@@ -113,21 +114,33 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         // The booking page is taken from a second interview offer, left open: the first is booked, for the activity.
         var bookingLink = await InterviewLinkAsync(OtherEmail) + "?tz=Europe%2FLondon";
 
+        // Where the phone pictures stop: between elements, never through the middle of one.
+        static ILocator Stage4(IPage page) => page.GetByRole(AriaRole.Group, new() { Name = "Stage 4:" });
+        static ILocator Entry(IPage page, string text) => page.Locator("main ol[aria-label] > li").Filter(new() { HasText = text });
+        static ILocator Reason(IPage page, string text) => page.Locator("[data-assessment=authenticity] li[data-check]").Filter(new() { HasText = text });
+
         var screens = new List<Screen>
         {
-            // 1. Two applications to the same job, each panel on its own.
+            // 1. Two applications to the same job, each panel on its own. The flagged one ends its phone picture after the speed
+            // reason, whose counter-evidence is the farm's passed bot challenge.
             new("verification-clear", DashboardUrl($"/applications/{IdOf("Robin Ashby")}?tab=verification"), "Robin Ashby",
-                page => PrepareVerificationAsync(page, null, []), page => page.Locator("[data-assessment=authenticity]")),
+                page => PrepareVerificationAsync(page, null, [], counterEvidence: false), page => page.Locator("[data-assessment=authenticity]")),
             new("verification-flagged", DashboardUrl($"/applications/{IdOf("Morgan Hale")}?tab=verification"), "Morgan Hale",
-                page => PrepareVerificationAsync(page, "ID_DUPLICATE_IN_ORG", ["NET_DATACENTER_IP", "ID_DUPLICATE_IN_ORG"]),
-                page => page.Locator("[data-assessment=authenticity]")),
+                page => PrepareVerificationAsync(page, "ID_DUPLICATE_IN_ORG", ["NET_DATACENTER_IP", "ID_DUPLICATE_IN_ORG", "AUTO_SUBMIT_VELOCITY"], counterEvidence: true),
+                page => page.Locator("[data-assessment=authenticity]"),
+                Phone: new(Height: 3600, From: page => page.Locator("[data-assessment=authenticity]"), To: page => Reason(page, "Completed faster than a person could"))),
 
-            // 2. The job's pipeline, light and dark.
-            new("pipeline", DashboardUrl($"/jobs/{jobId}"), "Senior .NET Engineer", PreparePipelineAsync, Width: WideWidth),
-            new("pipeline-dark", DashboardUrl($"/jobs/{jobId}"), "Senior .NET Engineer", PreparePipelineAsync, Width: WideWidth, Scheme: ColorScheme.Dark),
+            // 2. The job's pipeline, light and dark. On a phone, one stage and its cards.
+            new("pipeline", DashboardUrl($"/jobs/{jobId}"), "Senior .NET Engineer", PreparePipelineAsync, Width: PipelineWidth,
+                Phone: new(Only: page => page.Locator("[data-stage-column]").First)),
+            new("pipeline-dark", DashboardUrl($"/jobs/{jobId}"), "Senior .NET Engineer", PreparePipelineAsync, Width: PipelineWidth, Scheme: ColorScheme.Dark,
+                Phone: new(Only: page => page.Locator("[data-stage-column]").First)),
 
-            // 3. An application's page: its activity, with the reply and the booked interview.
-            new("candidate-activity", DashboardUrl($"/applications/{joel}?tab=activity"), "Joel Mensah", PrepareActivityAsync, Height: 1400),
+            // 3. An application's page: its activity, with the reply and the booked interview. The full picture ends on the last entry;
+            // the phone picture runs from the reply to the first note.
+            new("candidate-activity", DashboardUrl($"/applications/{joel}?tab=activity"), "Joel Mensah", PrepareActivityAsync, Height: 2400,
+                WideTo: page => page.Locator("main ol[aria-label] > li").Last,
+                Phone: new(Height: 2600, From: page => Entry(page, "Candidate replied"), To: page => Entry(page, "Good detail on the billing ledger"))),
 
             // 4. The candidates list with stage and last activity.
             new("candidates", DashboardUrl("/candidates"), "Candidates", PrepareNoPendingChipsAsync, Width: WideWidth),
@@ -136,8 +149,10 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
             new("candidate-portal", portalLink, "Your applications", PreparePortalAsync, Public: true),
 
             // 6. A workflow's stages and automations, in the pipeline view (the graph's phone layout is read-only and too small to read).
+            // On a phone, the stages down to the fourth, with their automations.
             new("workflow", DashboardUrl($"/jobs/{jobId}/workflow"), "workflow",
-                page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Workflow automations" })).ToBeVisibleAsync(), Height: 1480),
+                page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Workflow automations" })).ToBeVisibleAsync(), Height: 1480,
+                Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Stages"), To: Stage4)),
 
             // 7. The candidate's interview booking page, before they pick a time.
             new("interview-booking", bookingLink, "Pick a time for your interview", _ => Task.CompletedTask, Public: true),
@@ -146,12 +161,21 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
             new("integrations", DashboardUrl("/settings/integrations"), "Integrations",
                 page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Directory" })).ToBeVisibleAsync()),
 
-            // 9. A hiring template with its own stage names, and the branding editor.
-            new("template-stages", templateUrl, "Brightwater engineering", _ => Task.CompletedTask),
-            new("branding", DashboardUrl("/settings/branding"), "Branding", page => Expect(page.GetByText(UploadedImageSize)).ToBeVisibleAsync(Slow)),
+            // 9. A hiring template with its own stage names, and the branding editor. On a phone, the template from its title down to
+            // the fourth stage, and the editor's colours, font and logo.
+            new("template-stages", templateUrl, "Brightwater engineering", _ => Task.CompletedTask, Height: 1300, WideTo: Stage4, WideMargin: 4,
+                Phone: new(Height: 1800, To: Stage4)),
+            new("branding", DashboardUrl("/settings/branding"), "Branding", page => Expect(page.GetByText(UploadedImageSize)).ToBeVisibleAsync(Slow),
+                Phone: new(Height: 2800, Margin: 10, From: page => PanelTitled(page, "Colours").First, To: page => PanelTitled(page, "Images"))),
 
-            // 10. Reports: the headline cards and the trend.
-            new("reports", DashboardUrl("/reports"), "Reports", _ => Task.CompletedTask, Height: 1300),
+            // 10. Reports: the headline cards and the trend. On a phone the cards and the trend, with the table of open jobs between them out.
+            new("reports", DashboardUrl("/reports"), "Reports", _ => Task.CompletedTask, Height: 1400, WideTo: page => PanelTitled(page, "Applications and hires by week"),
+                Phone: new(
+                    Height: 3000,
+                    Margin: 10,
+                    Prepare: page => PanelTitled(page, "Open jobs").EvaluateAsync("panel => { panel.style.display = 'none'; }"),
+                    From: page => page.GetByText("Median time to hire").Locator("xpath=ancestor::div[contains(@class,'rounded-panel')][1]/.."),
+                    To: page => PanelTitled(page, "Applications and hires by week"))),
 
             // 11. A branded careers page.
             new("careers", CareersUrl(""), "Open roles at", _ => Task.CompletedTask, Public: true),
@@ -174,7 +198,8 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
     }
 
     // One screen: where it is, the heading that says it has loaded, what to do before the picture, and the part of the page
-    // to take (the whole window when there is none). The width and height are the window's for the full picture.
+    // to take (the whole window when there is none). The width and height are the window's for the full picture; WideTo ends
+    // the full picture at the bottom of an element, after a window tall enough to hold it.
     private sealed record Screen(
         string Name,
         string Url,
@@ -184,37 +209,121 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         bool Public = false,
         int Width = MarketingScreenshotsTests.Width,
         int Height = MarketingScreenshotsTests.Height,
-        ColorScheme Scheme = ColorScheme.Light);
+        ColorScheme Scheme = ColorScheme.Light,
+        Func<IPage, ILocator>? WideTo = null,
+        Phone? Phone = null,
+        int WideMargin = 24);
+
+    // The phone picture of a screen when the window as it opens would cut it. Only takes one element alone. Otherwise the picture
+    // runs from the top of From (the top of the page when there is none) to the bottom of To, across the window, in a window tall
+    // enough to hold it, so it ends between elements. Margin adds room around a panel for its shadow; a list entry has its own.
+    private sealed record Phone(
+        int Height = MarketingScreenshotsTests.PhoneHeight,
+        Func<IPage, Task>? Prepare = null,
+        Func<IPage, ILocator>? From = null,
+        Func<IPage, ILocator>? To = null,
+        Func<IPage, ILocator>? Only = null,
+        int Margin = 0);
 
     // Each screen twice: in the laptop window, and at phone width, where the page lays itself out for a phone.
     private static async Task CaptureAsync(Screen screen, IBrowserContext context, Action<string, byte[]> save)
     {
         foreach (var phone in new[] { false, true })
         {
+            var layout = phone ? screen.Phone : null;
             var page = await context.NewPageAsync();
-            await page.SetViewportSizeAsync(phone ? PhoneWidth : screen.Width, phone ? PhoneHeight : screen.Height);
+            await page.SetViewportSizeAsync(phone ? PhoneWidth : screen.Width, phone ? layout?.Height ?? PhoneHeight : screen.Height);
             var response = await page.GotoAsync(screen.Url);
             response!.Ok.Should().BeTrue("GET {0} returned HTTP {1}", screen.Name, response.Status);
             await Expect(page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync(screen.Heading);
             await Expect(page.Locator("main [data-slot=skeleton]")).ToHaveCountAsync(0);
             await screen.Prepare(page);
+            if (layout?.Prepare is { } prepare)
+            {
+                await prepare(page);
+            }
+
             if (phone)
             {
                 await HideBottomBarAsync(page);
             }
 
+            await HideScrollbarsAsync(page, screen.Public);
             await ReadyAsync(page);
-            var target = screen.Target?.Invoke(page);
-            await (target is null ? Task.CompletedTask : Expect(target).ToBeVisibleAsync());
-            var png = target is null ? await page.ScreenshotAsync(PageOptions())
-                : phone ? await TopOfAsync(page, target)
-                : await target.ScreenshotAsync(Options());
+            var png = phone ? await PhonePictureAsync(page, screen, layout) : await WidePictureAsync(page, screen);
             save(phone ? $"{screen.Name}-phone" : screen.Name, png);
             await page.CloseAsync();
         }
     }
 
-    private static async Task PrepareVerificationAsync(IPage page, string? signal, string[] expand)
+    private static async Task<byte[]> WidePictureAsync(IPage page, Screen screen)
+    {
+        if (screen.WideTo?.Invoke(page) is { } to)
+        {
+            var box = await BoxAsync(to);
+            return await page.ScreenshotAsync(Clipped(0, 0, page.ViewportSize!.Width, Math.Min(box.Y + box.Height + screen.WideMargin, page.ViewportSize.Height)));
+        }
+
+        if (screen.Target?.Invoke(page) is { } target)
+        {
+            await Expect(target).ToBeVisibleAsync();
+            return await target.ScreenshotAsync(Options());
+        }
+
+        return await page.ScreenshotAsync(PageOptions());
+    }
+
+    private static async Task<byte[]> PhonePictureAsync(IPage page, Screen screen, Phone? layout)
+    {
+        if (layout?.Only?.Invoke(page) is { } only)
+        {
+            await Expect(only).ToBeVisibleAsync();
+            return await only.ScreenshotAsync(Options());
+        }
+
+        if (layout?.To?.Invoke(page) is { } to)
+        {
+            var top = layout.From?.Invoke(page) is { } from ? Math.Max((await BoxAsync(from)).Y - layout.Margin, 0) : 0;
+            var box = await BoxAsync(to);
+            var end = Math.Min(box.Y + box.Height + layout.Margin, page.ViewportSize!.Height);
+            return await page.ScreenshotAsync(Clipped(0, top, page.ViewportSize.Width, end - top));
+        }
+
+        if (screen.Target?.Invoke(page) is { } target)
+        {
+            await Expect(target).ToBeVisibleAsync();
+            return await TopOfAsync(page, target);
+        }
+
+        return await page.ScreenshotAsync(PageOptions());
+    }
+
+    private static async Task<LocatorBoundingBoxResult> BoxAsync(ILocator element)
+    {
+        await Expect(element).ToBeVisibleAsync();
+        return await element.BoundingBoxAsync() ?? throw new InvalidOperationException("The element has no box.");
+    }
+
+    private static PageScreenshotOptions Clipped(double x, double y, double width, double height) =>
+        new() { Type = ScreenshotType.Png, Animations = ScreenshotAnimations.Disabled, Caret = ScreenshotCaret.Hide, Clip = new() { X = (float)x, Y = (float)y, Width = (float)width, Height = (float)height } };
+
+    // The dashboard keeps room for a scrollbar on the right (scrollbar-gutter), which the screenshot draws as an empty strip
+    // beside its header. The pictures show the page without one, and the check says so: no gutter and no sideways scroll. The
+    // careers pages' strict content security policy has no inline style, and they keep no gutter.
+    private static async Task HideScrollbarsAsync(IPage page, bool isPublic)
+    {
+        if (!isPublic)
+        {
+            await page.AddStyleTagAsync(new() { Content = "html, body, * { scrollbar-width: none !important; scrollbar-gutter: auto !important; }" });
+        }
+
+        var measured = await page.EvaluateAsync<double[]>(
+            "() => [innerWidth - document.documentElement.clientWidth, document.documentElement.scrollWidth - document.documentElement.clientWidth]");
+        measured[0].Should().Be(0, "no strip is reserved for a scrollbar at the right of {0}", page.Url);
+        measured[1].Should().BeLessThanOrEqualTo(0, "{0} does not scroll sideways", page.Url);
+    }
+
+    private static async Task PrepareVerificationAsync(IPage page, string? signal, string[] expand, bool counterEvidence)
     {
         var panel = page.Locator("[data-assessment=authenticity]");
         await Expect(panel.Locator("[data-summary]")).ToBeVisibleAsync(Slow);
@@ -241,6 +350,10 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
             }
             """);
         (await panel.InnerTextAsync()).Should().NotContain("Code ", "reason codes stay out of the picture");
+        if (counterEvidence)
+        {
+            (await panel.InnerTextAsync()).Should().Contain("Counter-evidence", "the flagged panel shows the other side of its speed reason");
+        }
     }
 
     private static async Task PreparePipelineAsync(IPage page)
@@ -342,6 +455,9 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         };
         return await page.ScreenshotAsync(new() { Type = ScreenshotType.Png, Animations = ScreenshotAnimations.Disabled, Caret = ScreenshotCaret.Hide, Clip = clip });
     }
+
+    private static ILocator PanelTitled(IPage page, string title) =>
+        page.Locator("section[data-slot=panel]").Filter(new() { Has = page.GetByRole(AriaRole.Heading, new() { Name = title, Exact = true }) });
 
     // On a phone the page's action bar (Move to stage) sticks to the bottom of the window and covers the last line.
     private static async Task HideBottomBarAsync(IPage page) =>

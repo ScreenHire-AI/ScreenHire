@@ -188,7 +188,9 @@ internal sealed partial class DevelopmentDemo(
         foreach (var applicant in SyntheticApplicants.All)
         {
             applicants += await TryAsync(
-                () => ApplyAsync(SyntheticApplicantsJobSlug, applicant, moves: [], ApplicationSource.CareersSite, daysAgo: 0, keepForFutureRoles: false, stoppingToken),
+                () => ApplyAsync(
+                    SyntheticApplicantsJobSlug, applicant, moves: [], ApplicationSource.CareersSite, daysAgo: 0, keepForFutureRoles: false, stoppingToken,
+                    botCheck: PassesBotChallenge(applicant)),
                 stoppingToken) ? 1 : 0;
         }
 
@@ -964,12 +966,17 @@ internal sealed partial class DevelopmentDemo(
         }
     }
 
+    // The application farm is run by people at a keyboard, so its browsers pass the bot challenge, and its "completed faster than a
+    // person could" reason shows that as counter-evidence. The bot does not pass, and the others have no such reason.
+    private static BotCheckResult PassesBotChallenge(SyntheticApplicant applicant) =>
+        SyntheticApplicants.ApplicationFarm.Contains(applicant) ? BotCheckResult.Passed : BotCheckResult.NotChecked;
+
     // Submits one applicant through the careers submission path, then makes `moves` in order as Brightwater's Owner.
     // `daysAgo` dates the submission that many days before now, for Reports' history. False when they had already
     // applied or the job is not open.
     private async Task<bool> ApplyAsync(
         string jobSlug, SyntheticApplicant applicant, IReadOnlyList<DemoMove> moves, ApplicationSource source, int daysAgo, bool keepForFutureRoles,
-        CancellationToken cancellationToken, string? sourceSite = null, string? sourceBoard = null)
+        CancellationToken cancellationToken, string? sourceSite = null, string? sourceBoard = null, BotCheckResult botCheck = BotCheckResult.NotChecked)
     {
         await using var scope = scopes.CreateAsyncScope();
         if (await BeginAsync(scope, cancellationToken) is not { } step)
@@ -994,7 +1001,7 @@ internal sealed partial class DevelopmentDemo(
             [new ApplicationAnswer(resumeQuestion.Id, upload.UploadId.ToString()), .. applicant.Answers],
             PrivacyNoticeVersion,
             applicant.HoneypotFilled,
-            BotCheckResult.NotChecked,
+            botCheck,
             keepForFutureRoles ? new FutureRolesConsent(submittedAt) : null,
             sourceSite,
             sourceBoard);
