@@ -7,7 +7,7 @@ namespace ScreenHire.E2E;
 /// what ships rather than dev servers with injected scripts, plus one headless Chromium shared by the assembly.
 /// URLs come from Aspire (random ports) and Aspire stops everything it started when the assembly finishes.
 /// </summary>
-public sealed class E2EFixture : AppHostFixture
+public class E2EFixture : AppHostFixture
 {
     // What `pnpm -r build` leaves behind for the AppHost to serve in Built mode.
     private static readonly string[] BuildOutputs =
@@ -56,6 +56,8 @@ public sealed class E2EFixture : AppHostFixture
             // Stop the AppHost and its containers even if the browser fails to close.
             await base.DisposeAsync();
         }
+
+        GC.SuppressFinalize(this);
     }
 
     // The first sign-in on a fresh stack costs more than any later one, and only the stack can pay that once. On a quiet
@@ -130,7 +132,7 @@ public sealed class E2EFixture : AppHostFixture
         }
     }
 
-    private static string RepositoryRoot()
+    internal static string RepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
