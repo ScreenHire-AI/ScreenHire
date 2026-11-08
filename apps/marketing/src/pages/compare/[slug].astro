@@ -107,7 +107,7 @@ const point = (id: string) => sellingPoints.find((candidate) => candidate.id ===
     </div>
   </Section>
 
-  <SourceList sources={data.sources} title={`Sources for ${data.competitor}`} tone="band" />
+  <SourceList sources={data.sources} title={`Sources for ${data.competitor}`} />
 
   {data.faqs.length > 0 && <QuestionsList faqs={data.faqs} />}
 

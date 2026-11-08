@@ -1,18 +1,15 @@
 ---
 // Numbered sources, so a claim can cite "[2]" and a reader can check it. Each source has an anchor (`source-2`) that a
-// claim's reference links to. A tighter band than `Section`: sources are reference, not a pitch.
+// claim's reference links to. The warm band, tighter than `Section`: sources are reference, not a pitch.
 interface Props {
   sources: { label: string; url: string }[];
   title?: string;
-  tone?: 'page' | 'band';
 }
 
-const { sources, title = 'Sources', tone = 'page' } = Astro.props;
-// Whole class names, so Tailwind finds them.
-const tones = { page: 'bg-page text-foreground', band: 'bg-background text-foreground' };
+const { sources, title = 'Sources' } = Astro.props;
 ---
 
-<section aria-labelledby="sources-title" class={tones[tone]}>
+<section aria-labelledby="sources-title" class="bg-background text-foreground">
   <div class="mx-auto flex max-w-site flex-wrap gap-x-16 gap-y-6 px-4 py-12 md:px-6 md:py-16 lg:px-8">
     <h2 id="sources-title" class="flex-1 basis-64 font-display text-2xl font-bold text-balance">{title}</h2>
     <ol class="flex min-w-0 flex-[3_1_36rem] list-decimal flex-col gap-2 pl-6 text-base marker:text-muted-foreground">

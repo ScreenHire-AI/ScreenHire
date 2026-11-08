@@ -47,7 +47,7 @@ rows:
       text: 'Match AI scores each CV from 1 to 10. Starter includes 25 scorings a month, Growth 50 and Pro 100. The Plus+ add-on costs £40 or $50 a month and raises that to 1,000. Sending a rejection email to low scorers automatically is a Plus+ feature on Pro.'
       sources: [1, 3]
       asOf: '2026-11-08'
-    ours: 'No candidate gets a score. The AI consistency check is on every plan, with your own key and model if you prefer, and a check never rejects anyone.'
+    ours: 'No candidate gets an AI score. The AI consistency check is on every plan, with your own key and model if you prefer, and a check never rejects anyone.'
   - topic: 'Job boards'
     theirs:
       text: 'Its job board article lists 27 entries, some of them premium versions of the same board.'

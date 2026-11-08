@@ -1,6 +1,9 @@
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
+import { PUBLIC_APP_URL } from 'astro:env/server';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { appLinks } from '../../lib/app-links';
 import { levels } from '../../lib/features';
+import { pages } from '../../lib/pages';
 import { buildPlans } from '../../lib/pricing';
 import ApplicantPair from './ApplicantPair.astro';
 import ClosingBand from './ClosingBand.astro';
@@ -135,8 +138,10 @@ describe('PageIntro', () => {
 });
 
 describe('ClosingBand', () => {
-  it('sends the call to action to the pricing page when no dashboard address is configured, unless told where', async () => {
-    expect(await render(ClosingBand, { title: 'Close.' })).toContain('href="/pricing/"');
+  it('sends the call to action where the header sends Start free trial, unless told where', async () => {
+    // The sign-up address, or the pricing page when no dashboard address is configured.
+    const signUp = appLinks(PUBLIC_APP_URL, pages.pricing.path).signUp;
+    expect(await render(ClosingBand, { title: 'Close.' })).toContain(`href="${signUp}"`);
     expect(await render(ClosingBand, { title: 'Close.', href: '/x/' })).toContain('href="/x/"');
   });
 });

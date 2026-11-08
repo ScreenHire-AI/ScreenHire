@@ -6,18 +6,16 @@ interface Props {
   title: string;
   lead?: string;
   tone?: 'page' | 'dark';
-  /** Extra classes for the h1, for a title that must be wider than the default. */
-  class?: string;
 }
 
-const { title, lead, tone = 'page', class: className } = Astro.props;
+const { title, lead, tone = 'page' } = Astro.props;
 // Whole class names, so Tailwind finds them.
 const tones = { page: 'bg-page text-foreground', dark: 'dark bg-background text-foreground' };
 ---
 
 <div class={tones[tone]}>
   <header class="mx-auto flex max-w-site flex-col gap-4 px-4 pt-8 pb-12 md:px-6 md:pt-12 md:pb-16 lg:px-8 xl:pb-20">
-    <h1 class:list={['max-w-4xl font-display text-section text-balance', className]}>{title}</h1>
+    <h1 class="max-w-4xl font-display text-section text-balance">{title}</h1>
     {lead && <p class="max-w-measure text-xl text-pretty">{lead}</p>}
     <slot />
   </header>

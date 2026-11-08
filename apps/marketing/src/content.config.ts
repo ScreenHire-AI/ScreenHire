@@ -78,6 +78,14 @@ const comparisons = defineCollection({
     whenScreenHireFits: z.array(z.string()).min(1),
     sources: z.array(source).min(1),
     faqs: z.array(faq).default([]),
+  }).superRefine((data, context) => {
+    // A claim cites sources by their place in `sources`, so a number past the end is a claim without a source.
+    const claims = [...data.leftOpen.map((item) => item.theirs), ...data.rows.map((row) => row.theirs)];
+    for (const claim of claims) {
+      for (const n of claim.sources.filter((n) => n > data.sources.length)) {
+        context.addIssue({ code: 'custom', message: `"${claim.text}" cites source ${n}, but the page lists ${data.sources.length}.` });
+      }
+    }
   }),
 });
 
