@@ -1,0 +1,29 @@
+---
+// The real product, shown big and sharp (design system section 22): an image of the dashboard, or markup built from the
+// same components, framed with one edge and nothing else. It always draws in the light theme, also inside a dark band,
+// because that is how the product looks. An image takes its width and height from the file, so the page does not shift.
+import { Image } from 'astro:assets';
+
+interface Props {
+  /** A screenshot imported from src/assets. Leave it out to frame the default slot instead. */
+  src?: ImageMetadata;
+  /** What the screenshot shows, for someone who cannot see it. */
+  alt?: string;
+  /** Marks the one image that is the page's largest paint. */
+  priority?: boolean;
+  class?: string;
+}
+
+const { src, alt = '', priority = false, class: className } = Astro.props;
+if (src && !alt) throw new Error('ProductFrame: a screenshot needs alt text that says what it shows (design system F7).');
+---
+
+<div class:list={['light overflow-hidden rounded-panel border border-border bg-card text-card-foreground shadow-surface', className]}>
+  {
+    src ? (
+      <Image src={src} alt={alt} widths={[640, 960, 1280, 1920]} sizes="(min-width: 80rem) 40rem, 100vw" loading={priority ? 'eager' : 'lazy'} fetchpriority={priority ? 'high' : 'auto'} class="block h-auto w-full" />
+    ) : (
+      <slot />
+    )
+  }
+</div>

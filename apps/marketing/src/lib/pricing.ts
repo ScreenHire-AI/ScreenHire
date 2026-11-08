@@ -1,4 +1,5 @@
 import { catalogPlans, type CataloguePlan } from '@screenhire/plans';
+import { everyPlanIncludes } from './features';
 import type { PricedOffer } from './seo';
 
 // Prices and limits are the owner's decision and live in the plan catalogue (packages/plans), which the API reads too.
@@ -51,14 +52,8 @@ export function buildPlans(catalogue: CataloguePlan[]): Plan[] {
 
 export const plans: Plan[] = buildPlans(catalogPlans);
 
-/** What every plan includes. Each line describes the product as designed (docs/architecture). */
-export const includedInEveryPlan = [
-  'Unlimited users',
-  'Applicant verification with evidence, counter-evidence and a suggested next step',
-  'Careers page and posting to Google for Jobs',
-  'Hiring workflows built from reusable templates',
-  'The public API',
-];
+/** What every plan includes: the shared list in features.ts, which home, product and pricing all read. */
+export const includedInEveryPlan = everyPlanIncludes;
 
 export function hasPrice(plan: Plan): boolean {
   return /^\d+(\.\d{1,2})?$/.test(plan.monthlyPrice);

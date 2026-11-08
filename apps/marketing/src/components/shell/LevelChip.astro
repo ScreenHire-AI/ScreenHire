@@ -1,0 +1,16 @@
+---
+// A verification level as the dashboard shows it: the same label, icon and colour (design system T1, section 3.2). The
+// labels and tones are in `levels` (lib/features.ts), so a page cannot reword a level.
+import StatusBadge from '../StatusBadge.astro';
+import { levels, type LevelKey } from '../../lib/features';
+
+interface Props {
+  level: LevelKey;
+  class?: string;
+}
+
+const { level, class: className } = Astro.props;
+const { label, status } = levels[level];
+---
+
+<StatusBadge status={status} label={label} class={className} />

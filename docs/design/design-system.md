@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "ScreenHire design system"
-description: "The one source of truth for every screen: principles, the review checklist the design-review agent enforces by ID, colour and status icons, type, layers, page templates, screen sizes, components, words, dates, icons, shortcuts, verification UI, employer branding, and what v0.3 changed on each screen."
+description: "The one source of truth for every screen: principles, the review checklist the design-review agent enforces by ID, colour and status icons, type, layers, page templates, screen sizes, components, words, dates, icons, shortcuts, verification UI, employer branding, the marketing site's bands, type and rules, and what v0.3 changed on each screen."
 tags: [design-system, ui, checklist]
 sources:
   - resource: packages/ui/src/tokens.css
@@ -58,6 +58,22 @@ sources:
   - resource: apps/marketing/src/components/StatusBadge.astro
   - resource: apps/careers/src/lib/public-style.test.ts
   - resource: apps/marketing/src/styles/global.css
+  - resource: apps/marketing/src/layouts/BaseLayout.astro
+  - resource: apps/marketing/src/lib/features.ts
+  - resource: apps/marketing/src/lib/contrast.test.ts
+  - resource: apps/marketing/src/components/shell/SiteHeader.astro
+  - resource: apps/marketing/src/components/shell/SiteFooter.astro
+  - resource: apps/marketing/src/components/shell/CtaLink.astro
+  - resource: apps/marketing/src/components/shell/Section.astro
+  - resource: apps/marketing/src/components/shell/DarkBand.astro
+  - resource: apps/marketing/src/components/shell/SellingPoint.astro
+  - resource: apps/marketing/src/components/shell/ProductFrame.astro
+  - resource: apps/marketing/src/components/shell/ApplicantPair.astro
+  - resource: apps/marketing/src/components/shell/LevelChip.astro
+  - resource: apps/marketing/src/components/shell/SourcedNumber.astro
+  - resource: apps/marketing/src/components/shell/PlanRows.astro
+  - resource: apps/marketing/src/components/shell/QuestionsList.astro
+  - resource: apps/marketing/src/components/shell/ClosingBand.astro
 ---
 # ScreenHire design system
 
@@ -66,8 +82,8 @@ sources:
 > [ADR-0016](../adr/0016-design-system-v0-3-review-amendments.md). Visual reference: the
 > owner's "ScreenHire design v0.3 review" canvas; where it and this file differ, this file wins. The dashboard is
 > built to v0.3: every screen, and every component in section 11 with its example in the style guide. The careers and
-> marketing pages are built to it too, as sections 4.3 and 4.4 describe. Section 21 records what v0.3 changed on each
-> screen.
+> marketing pages are built to it too, as sections 4.3 and 4.4 describe, and the marketing site has its own rules in
+> section 22 ([ADR-0030](../adr/0030-marketing-site-direction.md)). Section 21 records what v0.3 changed on each screen.
 
 This file is the one source of truth for how ScreenHire looks, reads and behaves on screen. CLAUDE.md, the rules in
 `.claude/rules/`, the page skills and the `design-review` agent point here and do not restate it. To change the
@@ -77,7 +93,8 @@ design, change this file (and its ADR when a decision changes); everything else 
 (section 1), the review checklist where it applies, colour (section 3.4), the radii and spacing of section 5, layers
 (section 6), words (section 12) and employer branding (section 18), and keep their own type scale (section 4.3), their
 own page widths (S6 is the dashboard's: a careers page is one centred reading column) and the public-page rule
-(`.claude/rules/astro-public.md`).
+(`.claude/rules/astro-public.md`). The marketing site follows section 22 for its bands, type, space and the checklist's
+Public pages group, and [the marketing messaging doc](marketing-site.md) for what it says.
 
 ## 1. Principles
 
@@ -286,6 +303,35 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **X1** WCAG 2.2 AA: visible focus ring, labels on inputs, landmarks and headings, text contrast at least 4.5:1, and
   a non-drag alternative for every drag (section 17).
 
+**Public pages** (marketing pages, section 22. W11, F7 and X2 to X4 hold for careers pages too)
+
+- **M1** Boldness is spent in one place. The real product, shown big and sharp, is the one memorable element on a page, and
+  the home page opens with the real-versus-flagged applicants, not a generic dashboard. Everything around it stays quiet.
+- **M2** No gradient washes and no purple-to-blue gradients.
+- **M3** No small label above every heading and no icon tile above every heading.
+- **M4** No identical card grid with one radius and one shadow, and no card inside a card. A layout follows its content: a
+  list, a sentence, a table, the product frame.
+- **M5** No meta strings joined with middle dots (W3) and no all-caps labels (W2).
+- **M6** No numbered 01 / 02 markers. Structure (a border, a number, a label) appears only when it carries information.
+- **M7** At most one deliberate motion moment a page, none with reduced motion, and no fade-up on every section.
+- **M8** A transition names its properties. Never `transition-all`.
+- **M9** No one word in a headline set apart by colour, italic or bold.
+- **M10** No grey text on a coloured band and no bright single accent on a near-black band. Each band's text, links, focus
+  ring and chips keep the ratios in the section 22 table.
+- **M11** Every number has a source the page links, with its year. No testimonial, customer logo or award, and no claim for
+  a feature that is not built.
+- **M12** Copy follows `docs/design/marketing-site.md`: none of its AI fluff words, AI named only where it is a feature, no
+  reason code, rule name, threshold, score or percentage of AI, and never that ScreenHire rejects anyone.
+- **W11** Prices, counts and every figure in a comparison use `tabular-nums`. Headings take `text-balance`, so none ends on
+  one word, and a number and its unit, or the name ScreenHire, never break across lines (a no-break space).
+- **F7** Every image has `width`, `height` and `alt` (empty for a decorative one), loads lazily below the fold, and the one
+  hero image has `fetchpriority="high"`. The product frame takes its size from the file.
+- **X2** A public page starts with a skip link to `main` that shows on focus, and a sticky header never covers a focused
+  control or an anchor's target (`scroll-padding-top`).
+- **X3** Focus uses `:focus-visible`. `outline: none` appears only beside a ring that replaces it.
+- **X4** A decorative icon is `aria-hidden`, an icon that carries meaning has its text beside it (T1), and the viewport
+  never disables zoom.
+
 ## 3. Colour
 
 Semantic names are the API; raw values live only in `packages/ui` (`tokens.css`, mapped in `theme.css`) and reach
@@ -433,14 +479,14 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 Titles take the employer's heading font where one is set (section 18), otherwise Bricolage Grotesque. Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
 `text-candidate-input` and `text-candidate-hint` in `packages/ui`. A form of several pages shows `PageProgress`
 (`packages/ui/src/questions`) above its fields: a bar of one segment per step, then "Step 2 of 4" and "9 of 24
-answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing display goes up to 64px (the home page's title is 60px, `text-6xl`). The dashboard's
+answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing type is section 22.4. The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
 A careers page's `h1` is `font-display text-candidate-title` (30 / 36, weight 700, -0.02em), so every title takes the
 employer's heading font. A `Panel` title is `font-display text-heading` (16 / 24), and only the privacy notice keeps its
 title in the body font (section 18). A card's or step's title is `font-display text-panel-title` (20 / 28), and a reading
 line is `text-candidate-body`. Careers markup uses no Tailwind size
-(`text-sm`, `text-lg`, `text-xl`, `text-3xl`). Marketing titles use Tailwind's scale in this order: the `h1` at
+(`text-sm`, `text-lg`, `text-xl`, `text-3xl`). Until section 22 restyles a marketing page, its titles use Tailwind's scale in this order: the `h1` at
 `text-4xl` (`text-5xl` on the home page) and `sm:text-6xl`, a section's `h2` at `text-3xl` (`text-4xl` on the home page), a
 band's `h2` at `text-2xl`, a card's `h3` at `text-xl`, a home page step at `text-lg`, a lead at `text-xl`, body at
 `text-base`, small text at `text-sm` and captions at `text-xs`.
@@ -453,7 +499,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - Nothing under 12px, and no pixel font size in markup: use `text-candidate-body` (15px) and `text-candidate-hint`
   (13px) on careers pages, and Tailwind's scale on marketing pages.
 - No capitals and no code font for ordinary words. A small line above a title or a card's heading is a kicker
-  (`.kicker` on marketing pages): sentence case, body face, 14px. The code font is for codes only: reason codes, a
+  (`.kicker` on marketing pages not yet restyled; section 22 retires it, M3): sentence case, body face, 14px. The code font is for codes only: reason codes, a
   notice version.
 - No cursor class on a component. Buttons, summaries, selects and switch labels get the hand from `theme.css` (A10).
 - A kicker adds to the breadcrumb and never repeats it (W7): a page whose kicker would be its own name has none.
@@ -477,7 +523,8 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   title inside a 56px header. Careers pages draw one with `Panel.astro` (`title` and `id`, or only a screen-reader
   `label`, an `action` slot for a Change button, a `footer` slot) in the neutral candidate tokens, so employer colours
   never restyle it. Its title takes the employer's heading font, except in the privacy notice (`neutral`). A job card on the board, `Notice` and the error summary take the same surface and shadow. Marketing
-  cards are `rounded-panel border border-border bg-card shadow-surface`. A list of reasons inside a panel is an inset
+  cards are `rounded-panel border border-border bg-card shadow-surface` until section 22 restyles the page, which draws bands, lists
+  and the product frame instead. A list of reasons inside a panel is an inset
   (`bg-secondary`, no edge). The shared question controls stay unpanelled in their form. `public-style.test.ts` fails on
   a panel without the shadow.
 - Employer colours sit on the page background and on the white panel, and the contrast check covers both
@@ -487,7 +534,8 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   label in 12px semibold, or `quiet` for a calm state in a list (T3), the same as the dashboard's. A page never builds
   its own chip from `bg-status-*`. Careers pages show no status badge: each page names its state in its title and in
   `Notice`, and the verification result is never shown to a candidate.
-- A marketing button is `.button-primary` (filled) or `.button-secondary` (outline), 44px high with an 8px radius. A
+- A marketing button is `.button-primary` (filled) or `.button-secondary` (outline), 44px high with an 8px radius, until
+  section 22 restyles the page: it uses `CtaLink` (22.9). A
   careers button is `.button-primary` or `.button-secondary` in the careers stylesheet, the same size, filled with the
   employer's brand colour.
 - A careers form with steps has one row of buttons: the primary button first in the document and at the right on a wide
@@ -1041,3 +1089,173 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   switch and each rotation of its secret) beside Secret rotated (T6).
 - **MCP server:** the values any MCP client needs (this deployment's server URL, the transport, the header), the
   key's access, the tools as pills, one generic config and a link to API keys. Never one client's setup steps.
+
+## 22. Marketing pages
+
+The marketing site (`apps/marketing`, ADR-0030) follows principles 1 and 9, sections 5 and 12, the checklist's Public pages
+group (M1 to M12, W11, F7, X2 to X4) and this section. Where this section and 4.3 or 4.4 differ for a marketing page,
+this section wins; 4.3 and 4.4 still describe the careers pages and the marketing pages not yet restyled. What the site
+says is `docs/design/marketing-site.md`.
+
+### 22.1 Where the rules come from
+
+The target is the owner's "B + C, second pass" board: a dark hero band, a white page, the real product as the one bold
+element, and nothing that reads as a generated page. The never-list and the one-bold-element rule draw on Anthropic's
+frontend-design skill (github.com/anthropics/skills, Apache-2.0) and on Impeccable's anti-pattern rules
+(github.com/pbakaus/impeccable, Apache-2.0). X2 to X4, W11 and F7 come from Vercel's Web Interface Guidelines
+(github.com/vercel-labs/web-interface-guidelines, MIT), keeping the rules that apply to a static page with no forms. The
+rules are written here in our own words. No third-party design skill is installed in the repository, and the
+`design-review` agent enforces them (ADR-0030).
+
+### 22.2 Spend boldness in one place
+
+The real product, shown big and sharp, is the memorable element, and everything around it stays quiet. The home page
+opens with the most characteristic thing in hiring: two applicants for the same job, one with no concerns and one with a
+verification suggested, with its why, what speaks for the candidate and the next step (`ApplicantPair`). It is never a
+generic dashboard. Structure (a border, a number, a label) appears only where it carries information.
+
+Never, as decoration:
+
+- identical card grids with one radius and one shadow, and a card inside a card;
+- an icon tile above every heading, or a small label above every heading (the kicker);
+- a gradient wash, or any purple-to-blue gradient;
+- one word in a headline set apart by colour, italic or bold;
+- all-caps labels, meta strings joined with middle dots, or numbered 01 / 02 markers;
+- a fade-up on every section;
+- grey text on a coloured band, or a bright single accent on a near-black page.
+
+### 22.3 Bands
+
+A page is a stack of full-bleed bands with the content column inside each. A band is `Section` (`tone`), and a dark one
+is `DarkBand`.
+
+| Band | Classes | Used for |
+|---|---|---|
+| White page | `bg-page text-foreground` | Most sections, and the header on a page with no dark hero |
+| Warm band | `bg-background text-foreground` | An alternate section, between two white ones. Never a whole page, never two in a row |
+| Dark band | `dark bg-background text-foreground` | The hero (with the header over it, `headerTone="dark"`), pricing, the close and the footer |
+
+- `.dark` re-themes every token inside it, so a component never names a band. Text, borders, rings and chips take the
+  band's tokens by themselves. Never nest a dark band in a dark band.
+- The product frame is always the light theme (`light` on `ProductFrame`), also inside a dark band, because that is how
+  the product looks. The status chips inside it are the dashboard's, in their light colours.
+- Call-to-action buttons are the foreground colour (`bg-foreground text-background`): light on a dark band and ink on a
+  light one, with no per-band class. The brand indigo (`bg-primary`) is for a light band only.
+- Text is `foreground` for reading and headings, `muted-foreground` for sources and captions, and never lighter than
+  that. Links in text are underlined: `primary` on a light band and `foreground` on a dark one. The header, the phone
+  menu, the footer and the breadcrumb are lists of links, so they are not underlined until hovered or current, and they
+  never turn `primary`, which a dark band does not use for links. Focus is the 2px `ring` outline
+  with a 2px offset, which each band's tokens colour.
+
+Contrast, computed from `tokens.css` by `apps/marketing/src/lib/contrast.test.ts` (text needs 4.5:1, a focus ring or the
+edge of an outline button 3:1):
+
+| Pair | White page | Warm band | Dark band |
+|---|---|---|---|
+| `foreground` on the band | 17.2 | 15.8 | 15.5 |
+| `muted-foreground` on the band | 6.8 | 6.3 | 7.0 |
+| `primary` (the link on light bands) | 7.9 | 7.3 | 7.5 (not used for links) |
+| `accent-foreground` | 12.0 | 11.0 | 11.6 |
+| `ring` on the band | 7.9 | 7.3 | 7.5 |
+| Call to action, `background` on `foreground` | 15.8 | 15.8 | 15.5 |
+
+| Status chip (light theme, on the product frame) | Label on its fill | Icon on its fill |
+|---|---|---|
+| No concerns | 6.7 | 4.7 |
+| Review suggested | 7.0 | 3.0 |
+| Verification suggested | 6.0 | 4.3 |
+| Some signs of AI help | 10.2 | 10.2 |
+
+### 22.4 Type
+
+Bricolage Grotesque (`font-display`) for headlines, Hanken Grotesk for everything else. Headlines are short and plain,
+set with `text-balance`. The display sizes are tokens that step up at `md` (48rem) and `xl` (80rem), like `page-title`,
+so markup never holds a pixel size:
+
+| Token | Phone | md | xl | Weight | Use |
+|---|---|---|---|---|---|
+| `text-display` | 40 / 40 | 56 / 56 | 76 / 76 | 800, -0.025em | The `h1` of the home page and of a selling-point page |
+| `text-section` | 32 / 34 | 40 / 42 | 52 / 55 | 800, -0.015em | A section's `h2`, the closing band, and the `h1` of compare, laws and blog pages |
+| `text-band` | 32 / 34 | 44 / 46 | 44 / 46 | 800, -0.015em | The heading beside a list, such as Questions |
+| `text-figure` | 40 / 40 | 48 / 48 | 52 / 52 | 800 | A sourced number |
+| `text-price` | 28 / 28 | 32 / 32 | 32 / 32 | 800 | A plan's price |
+
+A lead is `text-xl`, body `text-base`, small text and sources `text-sm`, captions `text-xs`. A figure takes
+`tabular-nums` (W11). Text never goes under 12px, and the root size is the browser's.
+
+### 22.5 Space and width
+
+- A section has 64px of space above and below on a phone, 96px from `md`, and 112px from `xl` (`py-16 md:py-24
+  xl:py-28`, built into `Section`). Between a heading and its words 16px (`gap-4`), between blocks 40px (`gap-10`),
+  between columns 64px (`gap-x-16`).
+- The content column is `max-w-site` (1240px) and centred, with gutters of 16px on a phone, 24px from `md` and 32px
+  from `lg`. Bands run edge to edge. A paragraph stops at 72 characters (`max-w-measure`).
+- Radius is the brand's: 8px for buttons (`rounded-lg`), 12px for the product frame (`rounded-panel`), full for chips and
+  avatars. Spacing sits on the 4px grid (section 4.4).
+
+### 22.6 From 390px to 1920px (S9)
+
+- A phone is one column with the header's links in a `details` menu, which needs no script (X2). From `md` the links
+  are in the bar. Sections that sit side by side wrap by content (`flex-wrap` with a basis, or grid `auto-fit`), so no
+  breakpoint hides anything.
+- Nothing is a fixed width, and nothing scrolls sideways at 390px. The hero's two applicants stack, with the second
+  indented from `sm`.
+- From 1280px the content stops growing at 1240px and the bands carry on to the edge of the window, up to 1920px and
+  beyond. The display type is the only thing that grows past `lg`.
+- Anything that can grow is a list, not a row of tiles: integrations are a `dl`, plans are rows, questions are a list. A
+  twentieth integration is one more row. A set that cannot grow (the four chips, the three examples) may sit side by side.
+
+### 22.7 The product frame
+
+`ProductFrame` shows the real product, as an image of the dashboard (`src`, with its size taken from the file, so the page
+does not shift) or as markup built from the same components. One 1px edge, the 12px radius and the surface shadow, nothing
+else: no browser chrome, no tilt, no glow, no second shadow. It is the light theme in any band. A caption says the people
+are fictional ("Sample applicants. A person on your team decides."). The site shows levels, in plain words, and never a
+reason code, a rule name, a threshold, a score or a percentage of AI.
+
+### 22.8 A selling point
+
+`SellingPoint` is one section: the buyer's pain, our promise, then the proof, in that order, with the product or a list
+beside or under it. The layout changes with the content, so neighbouring sections never repeat one shape:
+
+| Point | Proof is shown as |
+|---|---|
+| Real people | Two lists side by side: what you see and what ScreenHire never does |
+| Never guessing | The team's activity beside the candidate's own page, in a stacked layout |
+| Automate anything | One automation written out as When, If, Then, then three examples from one step to a whole process |
+| Integrations | A plain list of what each one does |
+| Built your way | A hiring template with its own stages |
+
+The pain may carry a sourced number (`SourcedNumber`: the number, what it says and a link to where it comes from). A
+pain with no verified number has none. Selling points come from `apps/marketing/src/lib/features.ts`, so home, product and
+pricing say the same thing.
+
+### 22.9 Calls to action
+
+`CtaLink` is a solid link with an 8px radius, 44px high (52px at `size="lg"`), never a pill. `primary` is the foreground
+colour, `indigo` is the brand colour for a light band, `secondary` is an outline in `muted-foreground`. One primary call
+to action a band, not counting the header's Start free trial, which is the same action as the hero's. This amends the 8px button rule in 4.4 for marketing pages: `.button-primary` and `.button-secondary`
+stay only for pages not yet restyled.
+
+### 22.10 The shell and the other components
+
+| Component | Job |
+|---|---|
+| `SiteHeader` | The brand, the links, Sign in and Start free trial. `tone` is `dark` over a dark hero and `light` elsewhere. Below `md` a `details` menu holds the same links |
+| `SiteFooter` | A dark band: links, RSS, the in-development note |
+| `Section`, `DarkBand` | A full-bleed band with the content column inside |
+| `SellingPoint` | One selling point (22.8) |
+| `ProductFrame`, `ApplicantPair` | The real product (22.7), and the hero's real-versus-flagged pair |
+| `LevelChip` | The dashboard's four labels and icons: No concerns, Review suggested, Verification suggested, Some signs of AI help |
+| `SourcedNumber` | A number with its claim and source link |
+| `PlanRows` | The plans as rows, read from the plan catalogue (`packages/plans`) |
+| `QuestionsList` | Questions as a list with rules between them |
+| `ClosingBand` | The dark band that ends a page |
+| `CtaLink` | The call to action (22.9) |
+
+A status on a marketing page is `LevelChip` (or `StatusBadge` for a state), never a chip built from `bg-status-*` (T1).
+
+### 22.11 Motion
+
+At most one deliberate moment on a page, and none when the person asks for reduced motion (`motion-safe:`). No fade-up on
+every section, no looping animation, and a transition lists its properties.

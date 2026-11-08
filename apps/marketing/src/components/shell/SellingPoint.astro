@@ -1,0 +1,41 @@
+---
+// One selling point as a section (design system section 22): the buyer's pain, our promise, then the proof. The default
+// slot holds the proof, shaped to its content (two lists, the activity beside the candidate's page, a sentence with
+// examples, a plain list, a template); without it the section lists `point.proof`. The page picks the layout so
+// that neighbouring sections do not repeat one shape.
+import type { SellingPointData } from '../../lib/features';
+import Section from './Section.astro';
+
+interface Props {
+  point: SellingPointData;
+  /** `split` puts the words beside the proof from lg up, `stacked` puts the proof under them. */
+  layout?: 'split' | 'stacked';
+  tone?: 'page' | 'band';
+}
+
+const { point, layout = 'split', tone = 'page' } = Astro.props;
+const hasProof = Astro.slots.has('default');
+const columns = layout === 'split' ? 'grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]' : 'flex flex-col gap-10';
+---
+
+<Section tone={tone} id={point.id} labelledby={`${point.id}-title`} class={columns}>
+  <div class="flex min-w-0 flex-col gap-4">
+    <h2 id={`${point.id}-title`} class="font-display text-section text-balance">{point.title}</h2>
+    <p class="max-w-measure text-pretty text-secondary-foreground">{point.pain}</p>
+    <p class="max-w-measure text-pretty">{point.promise}</p>
+    <slot name="words" />
+  </div>
+  <div class="min-w-0">
+    {
+      hasProof ? (
+        <slot />
+      ) : (
+        <ul class="flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
+          {point.proof.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</Section>
