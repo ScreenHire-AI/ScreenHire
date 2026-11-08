@@ -222,6 +222,11 @@ describe('RuledList', () => {
     expect(html).toContain('Email');
     expect(html).toContain('Replies stay on the candidate.');
   });
+
+  it('stops a detail at the paragraph measure, so a full-width list keeps a readable line', async () => {
+    const html = await render(RuledList, { items: [{ term: 'Email', detail: 'Replies stay on the candidate.' }] });
+    expect(/<dd[^>]*class="([^"]*)"/.exec(html)![1]).toContain('max-w-measure');
+  });
 });
 
 describe('ProofList', () => {
