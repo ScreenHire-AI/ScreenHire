@@ -557,7 +557,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 | Panel header | 56px (52px on phones), 16 to 18px side padding |
 | Sidebar | 248px; icon rail 64px |
 | Top bar | 56px |
-| Content widths | Pages fill the window: a page's content container has no max-width. Long paragraphs stop at 72ch (`max-w-measure`) and forms at 688px (`max-w-form`). If a layout needs a limit, the element gets a max-width, never the page |
+| Content widths | Pages fill the window: a page's content container has no max-width. Long paragraphs stop at 72ch (`max-w-measure`, 60ch on the marketing site, 22.5) and forms at 688px (`max-w-form`). If a layout needs a limit, the element gets a max-width, never the page |
 | Board columns | 296px; an empty stage shrinks to 188px, and the stages that end a candidacy (Hired, Rejected, Withdrawn) share one 188px Closed column that counts each; each of its rows (and Saved) with someone in it is a button with a chevron (A9) that opens in place to that stage's candidates as plain cards linking to the candidate, collapsed to start |
 
 ## 6. Layers

@@ -43,7 +43,7 @@ Your prompt gives a diff range (for example `origin/main...HEAD`) or `all`, and 
    | S1 | `<fieldset disabled>` or disabled inputs used to show read-only data |
    | K1 | `<kbd>` outside a tooltip, menu or the shortcuts dialog; a footer of shortcut hints |
    | S4 | a card or panel inside another card or panel (summary cards on a panel's summary band are allowed, section 6) |
-   | S6 | `max-w-page`, `page-wide` or another max-width on a page's content container (pages fill the window); a long paragraph with no 72ch measure |
+   | S6 | `max-w-page`, `page-wide` or another max-width on a page's content container (pages fill the window); a long paragraph with no `max-w-measure` (72ch, 60ch on marketing pages) |
    | F2 | fixed widths on content elements (not menus, graph nodes or board columns); no `@container` where a component's layout changes with its width |
    | T5 | dates formatted by hand or with a fixed locale (`toLocaleDateString('en-GB')`, format strings) |
    | I1 | icons from anything but Lucide through `~icons/lucide/<name>` (an `@lucide/svelte` import is wrong too); text characters or emoji used as icons |
