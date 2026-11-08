@@ -7,6 +7,7 @@ import ApplicantPair from '../../components/shell/ApplicantPair.astro';
 import ClosingBand from '../../components/shell/ClosingBand.astro';
 import LevelChip from '../../components/shell/LevelChip.astro';
 import PageHero from '../../components/shell/PageHero.astro';
+import ProofList from '../../components/shell/ProofList.astro';
 import QuestionsList from '../../components/shell/QuestionsList.astro';
 import RuledList from '../../components/shell/RuledList.astro';
 import Section from '../../components/shell/Section.astro';
@@ -47,7 +48,7 @@ const fair = [
 
 const faqs: Faq[] = [
   {
-    question: 'Does ScreenHire reject applicants because of a check?',
+    question: 'Can a check reject an applicant?',
     answer: 'No. A check never rejects anyone. A person on your team decides, and a workflow that tries to reject on a check is refused when you save it.',
   },
   {
@@ -128,15 +129,11 @@ const faqs: Faq[] = [
     <div class="grid min-w-0 flex-[1_1_28rem] grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] content-start gap-x-12 gap-y-8">
       <div>
         <h3 class="text-xl font-bold">What you see</h3>
-        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
-          {youSee.map((item) => <li>{item}</li>)}
-        </ul>
+        <ProofList class="mt-3" items={youSee} />
       </div>
       <div>
         <h3 class="text-xl font-bold">What ScreenHire never does</h3>
-        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
-          {never.map((item) => <li>{item}</li>)}
-        </ul>
+        <ProofList class="mt-3" items={never} />
       </div>
     </div>
   </Section>

@@ -40,7 +40,7 @@ const link = 'inline-flex min-h-8 items-center text-foreground no-underline hove
             <details class="group relative">
               <summary class:list={[link, 'list-none gap-1 [&::-webkit-details-marker]:hidden', current.startsWith(pages.product.path) && 'underline']}>
                 Product
-                <svg aria-hidden="true" viewBox="0 0 12 12" class="size-3 transition-transform group-open:rotate-180"><path d="M2 4.5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+                <svg aria-hidden="true" viewBox="0 0 12 12" class="size-3 group-open:rotate-180 motion-safe:transition-transform"><path d="M2 4.5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
               </summary>
               <ul class="absolute top-full left-0 z-20 mt-2 flex min-w-64 flex-col rounded-panel border border-border bg-background p-2 shadow-overlay">
                 {productNav.map((item) => (

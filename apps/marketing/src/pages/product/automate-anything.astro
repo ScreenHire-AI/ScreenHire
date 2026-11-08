@@ -6,6 +6,7 @@ import workflow from '../../assets/product/workflow.png';
 import ClosingBand from '../../components/shell/ClosingBand.astro';
 import PageHero from '../../components/shell/PageHero.astro';
 import ProductFrame from '../../components/shell/ProductFrame.astro';
+import ProofList from '../../components/shell/ProofList.astro';
 import QuestionsList from '../../components/shell/QuestionsList.astro';
 import RuledList from '../../components/shell/RuledList.astro';
 import Section from '../../components/shell/Section.astro';
@@ -113,11 +114,11 @@ const faqs: Faq[] = [
     <div class="grid grid-cols-[repeat(auto-fit,minmax(18rem,1fr))] gap-x-16 gap-y-10">
       <div>
         <h3 class="text-xl font-bold">It can start when</h3>
-        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">{triggers.map((item) => <li class="text-pretty">{item}</li>)}</ul>
+        <ProofList class="mt-3" items={triggers} />
       </div>
       <div>
         <h3 class="text-xl font-bold">It can then</h3>
-        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">{actions.map((item) => <li class="text-pretty">{item}</li>)}</ul>
+        <ProofList class="mt-3" items={actions} />
       </div>
     </div>
   </Section>
