@@ -39,9 +39,36 @@ public sealed class CandidatePortalTests
     [InlineData(StageKind.Offer, 3)]
     public void An_open_application_sits_on_one_of_four_fixed_steps_by_the_kind_of_its_stage(StageKind kind, int step)
     {
-        var funnel = CandidateFunnel.For(Application(), Stage(kind));
+        var funnel = CandidateFunnel.For(Application(), Stage(kind), [Stage(kind)]);
 
         funnel.Should().Be(new CandidateFunnel(step, FunnelEnd.None));
+    }
+
+    [Theory]
+    [InlineData("screening", 1)]
+    [InlineData("technical", 2)]
+    [InlineData("take-home", 2)]
+    [InlineData("team", 2)]
+    [InlineData("final-review", 2)]
+    [InlineData("offer", 3)]
+    [InlineData("background", 3)]
+    public void Any_other_stage_takes_the_step_of_the_last_interview_or_offer_before_it_so_the_steps_never_go_back(string stageId, int step)
+    {
+        // A decision is the team's move from the last interview to an offer, or to the end; it is not a stage to wait in.
+        WorkflowStage[] stages =
+        [
+            new("applied", "Applied", StageKind.Applied),
+            new("screening", "Phone screen", StageKind.Screening),
+            new("technical", "Technical interview", StageKind.Interview),
+            new("take-home", "Take-home", StageKind.Assessment),
+            new("team", "Team interview", StageKind.Interview),
+            new("final-review", "Final review", StageKind.Custom),
+            new("offer", "Offer", StageKind.Offer),
+            new("background", "Background check", StageKind.Custom),
+            new("hired", "Hired", StageKind.Hired),
+        ];
+
+        CandidateFunnel.For(Application(), stages.Single(s => s.Id == stageId), stages).Should().Be(new CandidateFunnel(step, FunnelEnd.None));
     }
 
     [Theory]
@@ -50,13 +77,13 @@ public sealed class CandidatePortalTests
     [InlineData(StageKind.Withdrawn, FunnelEnd.Withdrawn)]
     public void An_application_in_an_ending_stage_has_ended_and_no_step_is_current(StageKind kind, FunnelEnd ended)
     {
-        CandidateFunnel.For(Application(), Stage(kind)).Should().Be(new CandidateFunnel(null, ended));
+        CandidateFunnel.For(Application(), Stage(kind), [Stage(kind)]).Should().Be(new CandidateFunnel(null, ended));
     }
 
     [Fact]
     public void A_stage_the_employer_removed_reads_as_in_review()
     {
-        CandidateFunnel.For(Application(), stage: null).Should().Be(new CandidateFunnel(1, FunnelEnd.None));
+        CandidateFunnel.For(Application(), stage: null, [Stage(StageKind.Interview)]).Should().Be(new CandidateFunnel(1, FunnelEnd.None));
     }
 
     [Fact]
@@ -64,7 +91,7 @@ public sealed class CandidatePortalTests
     {
         var application = Application(keepInMind: true);
 
-        CandidateFunnel.For(application, Stage(StageKind.Screening)).Should().Be(new CandidateFunnel(null, FunnelEnd.NotMovingForward));
+        CandidateFunnel.For(application, Stage(StageKind.Screening), [Stage(StageKind.Screening)]).Should().Be(new CandidateFunnel(null, FunnelEnd.NotMovingForward));
     }
 
     [Fact]
@@ -72,13 +99,13 @@ public sealed class CandidatePortalTests
     {
         var application = Application(keepInMind: true);
 
-        CandidateFunnel.For(application, Stage(StageKind.Withdrawn)).Ended.Should().Be(FunnelEnd.Withdrawn);
+        CandidateFunnel.For(application, Stage(StageKind.Withdrawn), [Stage(StageKind.Withdrawn)]).Ended.Should().Be(FunnelEnd.Withdrawn);
     }
 
     [Fact]
     public void The_four_steps_are_fixed_and_carry_no_employer_wording()
     {
-        CandidateFunnel.Steps.Should().Equal("Applied", "In review", "Interview", "Decision");
+        CandidateFunnel.Steps.Should().Equal("Applied", "In review", "Interview", "Offer");
     }
 
     // The signed link ------------------------------------------------------------------------------------------------

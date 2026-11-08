@@ -2,6 +2,12 @@
 
 ## 2026-11-07
 
+**The candidate's page names its fourth step Offer.** It was Decision, shown only at an Offer stage, but a decision is the
+team's move from the last interview to an offer or to the end. A stage that is not Applied, Interview or Offer now takes the
+step of the last Interview or Offer stage before it, so a take-home between interviews or a final review no longer sends a
+candidate back to In review (ADR-0027, amended). The Reports cards keep each change pill under its number, in the same
+place on every card, and the roadmap's next item is rebuilding the marketing site.
+
 **CI skips a push to `main` whose tree a pull request already passed, and the PR body has one path.** The overnight run
 spent 28% of its job-minutes on pushes to `main`, and 8 of 15 carried a tree a PR run had passed, while two overlapping runs
 filled the account's 40 running jobs. A `tested-tree` job now compares the pushed tree with the merged PR's head and, when

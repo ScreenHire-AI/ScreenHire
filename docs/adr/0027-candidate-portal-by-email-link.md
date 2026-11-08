@@ -6,7 +6,7 @@ tags: [adr, candidates, careers, email, privacy]
 ---
 # ADR-0027: The candidate portal is a page reached by an emailed link, with no account
 
-- **Status:** Accepted (2026-11-07)
+- **Status:** Accepted (2026-11-07), amended (2026-11-07)
 - **Deciders:** Owner
 - **Detail:** [candidate portal](../architecture/candidate-portal.md)
 
@@ -33,8 +33,11 @@ and collect nothing about the browser, and every tenant row sits behind row-leve
 3. **Every email to a candidate ends with a link to their page.** The line is ScreenHire's fixed wording, added at send time and
    never to the copy the team keeps, because the link opens the page and so goes to the candidate alone. The link lives 14 days;
    every new email carries a fresh one.
-4. **Four fixed steps for every job.** Applied, In review, Interview, Decision, mapped from the stage's kind, and an ended
-   state of Hired, Not moving forward or Withdrawn. Never the employer's stage names, how many stages there are, a rating, a
+4. **Four fixed steps for every job.** Applied, In review, Interview, Offer, mapped from the stage's kind, and an ended
+   state of Hired, Not moving forward or Withdrawn. Amended 2026-11-07: the fourth step was Decision, shown only at an Offer
+   stage. A decision is the team's move from the last interview to an offer or to the end, not a stage to wait in, so the
+   step is named for where that move leads. A stage of another kind takes the step of the last Interview or Offer stage
+   before it, so the steps never go back when an assessment or a holding stage follows an interview. Never the employer's stage names, how many stages there are, a rating, a
    scorecard, a note or anything about verification. A saved candidate reads as Not moving forward, with no mention of a list.
 5. **A reply from the page is an emailed reply.** It goes through the same ingest (`InboundEmailIngest`): one reply row, one
    entry in Activity, attachments kept and scanned, the sender told. Both channels answer the same sent email, so they are one

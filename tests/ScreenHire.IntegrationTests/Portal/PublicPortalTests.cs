@@ -146,7 +146,7 @@ public sealed partial class PublicPortalTests(AppHostFixture fixture)
         var token = Signer().Issue(world.OrganizationId, world.CandidateId);
 
         var applied = await ApplicationOfAsync(client, world, token);
-        applied.GetProperty("funnel").GetProperty("steps").EnumerateArray().Select(s => s.GetString()).Should().Equal("Applied", "In review", "Interview", "Decision");
+        applied.GetProperty("funnel").GetProperty("steps").EnumerateArray().Select(s => s.GetString()).Should().Equal("Applied", "In review", "Interview", "Offer");
         applied.GetProperty("funnel").GetProperty("current").GetInt32().Should().Be(0);
         applied.GetProperty("funnel").GetProperty("ended").GetString().Should().Be("None");
         applied.GetProperty("jobTitle").GetString().Should().Be("Platform Engineer");
@@ -163,7 +163,7 @@ public sealed partial class PublicPortalTests(AppHostFixture fixture)
                     || name.Contains("verif", StringComparison.OrdinalIgnoreCase) || name.Contains("tag", StringComparison.OrdinalIgnoreCase)
                     || name.Contains("workflow", StringComparison.OrdinalIgnoreCase),
                 "the page carries no stage, rating, scorecard, note, tag or verification field");
-            raw.Should().NotContain("Screening").And.NotContain("Offer", "the employer's own stage names stay with the employer");
+            raw.Should().NotContain("Screening", "the employer's own stage names stay with the employer; Offer is also a step's name");
         }
 
         await MoveAsync(world, "rejected");

@@ -73,7 +73,7 @@ describe('linkOutcome and replyOutcome', () => {
 });
 
 describe('stepStates', () => {
-  const steps = ['Applied', 'In review', 'Interview', 'Decision'];
+  const steps = ['Applied', 'In review', 'Interview', 'Offer'];
 
   it('marks the steps before the current one done, the current one, and the rest upcoming', () => {
     expect(stepStates(steps, 2).map((step) => step.state)).toEqual(['done', 'done', 'current', 'upcoming']);
