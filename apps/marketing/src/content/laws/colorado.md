@@ -50,8 +50,8 @@ If a tool ranks, scores or recommends applicants and that output materially infl
 
 ## How ScreenHire is designed around it
 
-- Verification levels never reject anyone, and each comes with evidence a reviewer can weigh, so human review is real rather than a formality.
-- Every action on an application is logged, and every level records the version of the rules that produced it.
+- A check never rejects anyone, and each level comes with evidence a reviewer can weigh, so human review is real rather than a formality.
+- Every action on an application is logged, and every level records the version of the check that produced it.
 - Candidate-facing notice comes before collection.
 
 ## Still unclear

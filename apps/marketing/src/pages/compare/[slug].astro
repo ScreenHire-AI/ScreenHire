@@ -1,12 +1,16 @@
 ---
 // The comparison page template: every /compare/<id>/ page renders a `comparisons` entry, so adding "Breezy vs
-// ScreenHire" means adding one YAML file with its sources.
+// ScreenHire" means adding one YAML file whose every claim has its sources and the date it was read.
 import type { GetStaticPaths } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
-import Faqs from '../../components/Faqs.astro';
-import PageHeader from '../../components/PageHeader.astro';
+import Claim from '../../components/Claim.astro';
 import SourceList from '../../components/SourceList.astro';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import PageIntro from '../../components/shell/PageIntro.astro';
+import QuestionsList from '../../components/shell/QuestionsList.astro';
+import Section from '../../components/shell/Section.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sellingPoints } from '../../lib/features';
 import { pages } from '../../lib/pages';
 import { faqPage, formatDate } from '../../lib/seo';
 
@@ -22,84 +26,90 @@ interface Props {
 const { comparison } = Astro.props;
 const data = comparison.data;
 const path = `${pages.compare.path}${comparison.id}/`;
+// The most recent day any claim was read, for the line under the title.
+const lastRead = [...data.leftOpen.map((item) => item.theirs.asOf), ...data.rows.map((row) => row.theirs.asOf)].sort().at(-1)!;
+const point = (id: string) => sellingPoints.find((candidate) => candidate.id === id)!;
 ---
 
 <BaseLayout
   title={data.title}
   description={data.description}
+  headerTone="dark"
   breadcrumbs={[
     { name: pages.compare.label, path: pages.compare.path },
     { name: `${data.competitor} alternative`, path },
   ]}
   jsonLd={data.faqs.length > 0 ? [faqPage(data.faqs)] : []}
 >
-  <PageHeader kicker={`ScreenHire and ${data.competitor}`} title={data.heading} lead={data.intro} />
-
-  <section aria-labelledby="table-title" class="mx-auto max-w-6xl px-6 pb-10">
-    <h2 id="table-title" class="font-display text-3xl font-bold tracking-tight">Side by side</h2>
-    <p class="mt-2 text-sm text-muted-foreground">
-      {data.competitor} facts as published on its own pages on <time datetime={data.asOf}>{formatDate(data.asOf)}</time>. Plans and
-      features change, so check the sources below.
+  <PageIntro tone="dark" title={data.heading} lead={data.intro}>
+    <p class="text-sm text-muted-foreground">
+      {data.competitor} facts last read on <time datetime={lastRead}>{formatDate(lastRead)}</time>. Plans change, so check the sources.
     </p>
-    <div class="mt-5 overflow-x-auto rounded-panel border border-border bg-card shadow-surface">
-      <table class="w-full min-w-[640px] border-collapse text-left text-base">
-        <caption class="sr-only">{data.competitor} compared with ScreenHire</caption>
-        <thead>
-          <tr class="border-b border-border text-sm font-semibold text-muted-foreground">
-            <th scope="col" class="w-1/5 px-4 py-3">Topic</th>
-            <th scope="col" class="px-4 py-3">{data.competitor}</th>
-            <th scope="col" class="px-4 py-3">ScreenHire</th>
-          </tr>
-        </thead>
-        <tbody>
-          {
-            data.rows.map((row) => (
-              <tr class="border-b border-border-subtle align-top last:border-b-0">
-                <th scope="row" class="px-4 py-3 font-semibold">
-                  {row.topic}
-                </th>
-                <td class="px-4 py-3 text-secondary-foreground">{row.competitor}</td>
-                <td class="px-4 py-3 text-secondary-foreground">{row.screenhire}</td>
-              </tr>
-            ))
-          }
-        </tbody>
-      </table>
-    </div>
-  </section>
+  </PageIntro>
 
-  <section aria-labelledby="fit-title" class="mx-auto max-w-6xl px-6 py-10">
-    <h2 id="fit-title" class="font-display text-3xl font-bold tracking-tight">Which fits your team</h2>
-    <div class="mt-5 grid gap-4 md:grid-cols-2">
-      <div class="rounded-panel border border-border bg-card shadow-surface p-6">
-        <h3 class="font-display text-xl font-bold">{data.competitor} may suit you if</h3>
-        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 text-secondary-foreground">
-          {data.whenCompetitorFits.map((item) => <li>{item}</li>)}
+  <Section labelledby="open-title" class="flex flex-col gap-10">
+    <h2 id="open-title" class="max-w-3xl font-display text-section text-balance">What {data.competitor} leaves open</h2>
+    <ul class="flex flex-col tabular-nums">
+      {
+        data.leftOpen.map((item) => (
+          <li class="grid gap-x-16 gap-y-6 border-t border-border py-10 first:border-t-0 first:pt-0 md:grid-cols-2">
+            <h3 class="max-w-3xl font-display text-2xl font-bold text-balance md:col-span-2">{point(item.point).title}</h3>
+            <div class="min-w-0">
+              <p class="font-bold">{data.competitor}</p>
+              <div class="mt-2"><Claim text={item.theirs.text} sources={item.theirs.sources} asOf={item.theirs.asOf} /></div>
+            </div>
+            <div class="min-w-0">
+              <p class="font-bold">ScreenHire</p>
+              <p class="mt-2 text-pretty">{point(item.point).promise} {item.ours}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+
+  <Section tone="band" labelledby="table-title" class="flex flex-col gap-10">
+    <h2 id="table-title" class="max-w-3xl font-display text-section text-balance">Side by side</h2>
+    <ul class="flex flex-col tabular-nums">
+      {
+        data.rows.map((row) => (
+          <li class="grid gap-x-16 gap-y-4 border-t border-border py-6 last:border-b md:grid-cols-[10rem_minmax(0,1fr)_minmax(0,1fr)]">
+            <h3 class="text-xl font-bold">{row.topic}</h3>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-muted-foreground">{data.competitor}</p>
+              <div class="mt-1"><Claim text={row.theirs.text} sources={row.theirs.sources} asOf={row.theirs.asOf} /></div>
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-muted-foreground">ScreenHire</p>
+              <p class="mt-1 text-pretty">{row.ours}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+
+  <Section labelledby="fit-title" class="flex flex-col gap-10">
+    <h2 id="fit-title" class="max-w-3xl font-display text-section text-balance">Which fits your team</h2>
+    <div class="grid gap-x-16 gap-y-10 md:grid-cols-2">
+      <div>
+        <h3 class="text-xl font-bold">{data.competitor} may suit you if</h3>
+        <ul class="mt-4 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
+          {data.whenCompetitorFits.map((item) => <li class="text-pretty">{item}</li>)}
         </ul>
       </div>
-      <div class="rounded-panel border border-border bg-card shadow-surface p-6">
-        <h3 class="font-display text-xl font-bold">ScreenHire may suit you if</h3>
-        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 text-secondary-foreground">
-          {data.whenScreenHireFits.map((item) => <li>{item}</li>)}
+      <div>
+        <h3 class="text-xl font-bold">ScreenHire may suit you if</h3>
+        <ul class="mt-4 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
+          {data.whenScreenHireFits.map((item) => <li class="text-pretty">{item}</li>)}
         </ul>
       </div>
     </div>
-  </section>
+  </Section>
 
-  <div class="mx-auto max-w-6xl px-6 py-6">
-    <SourceList sources={data.sources} title={`Sources for ${data.competitor}`} />
-  </div>
+  <SourceList sources={data.sources} title={`Sources for ${data.competitor}`} tone="band" />
 
-  {data.faqs.length > 0 && <Faqs faqs={data.faqs} />}
+  {data.faqs.length > 0 && <QuestionsList faqs={data.faqs} />}
 
-  <section aria-labelledby="cta-title" class="mx-auto max-w-6xl px-6 pb-16">
-    <div class="flex flex-wrap items-center justify-between gap-5 rounded-panel border border-border bg-card shadow-surface p-8">
-      <h2 id="cta-title" class="font-display text-2xl font-bold tracking-tight">See what ScreenHire checks, and what it never does.</h2>
-      <a
-        href={pages.detection.path}
-        class="button-primary"
-        >How detection works</a
-      >
-    </div>
-  </section>
+  <ClosingBand title="Try ScreenHire on your next hire." />
 </BaseLayout>

@@ -1,6 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import SampleVerificationCard from '../components/SampleVerificationCard.astro';
+import ApplicantPair from '../components/shell/ApplicantPair.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { pages } from '../lib/pages';
 import { plans, pricedOffers, startingPrice } from '../lib/pricing';
@@ -64,7 +64,7 @@ const steps = [
         <li>Evidence, never auto-rejection on a verification flag</li>
       </ul>
     </div>
-    <SampleVerificationCard />
+    <div class="min-w-0 flex-1 basis-[440px]"><ApplicantPair /></div>
   </section>
 
   <section aria-label="Our principle" class="bg-foreground text-background">

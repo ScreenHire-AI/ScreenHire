@@ -45,8 +45,8 @@ The ICO's 2024 audit of AI recruitment tools found vendors classing themselves a
 
 ## How ScreenHire is designed around it
 
-- Verification signals never make a hiring decision. Verification levels can route, tag, assign or suggest an identity check, and workflows that would reject on verification signals are refused.
-- Each flag shows its evidence and counter-evidence, so the reviewer weighs something real rather than accepting a score.
+- A check never makes a hiring decision. It suggests a next step, and a person decides.
+- Each flag shows its evidence and what speaks for the candidate, so the reviewer weighs something real rather than accepting a score.
 - Candidate-facing notice comes before collection, and the design includes a "why we asked you to verify" page and a way to ask for human review.
 
 ## Still unclear

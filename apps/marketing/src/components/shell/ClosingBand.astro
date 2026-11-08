@@ -1,15 +1,19 @@
 ---
-// The dark band that closes a page: one sentence and one call to action (design system section 22).
+// The dark band that closes a page: one sentence and one call to action (design system section 22). Without an `href` it
+// goes where the header's Start free trial goes, so a page never builds the sign-up address itself.
+import { PUBLIC_APP_URL } from 'astro:env/server';
+import { appLinks } from '../../lib/app-links';
+import { pages } from '../../lib/pages';
 import CtaLink from './CtaLink.astro';
 import DarkBand from './DarkBand.astro';
 
 interface Props {
   title: string;
-  href: string;
+  href?: string;
   label?: string;
 }
 
-const { title, href, label = 'Start free trial' } = Astro.props;
+const { title, href = appLinks(PUBLIC_APP_URL, pages.pricing.path).signUp, label = 'Start free trial' } = Astro.props;
 ---
 
 <DarkBand labelledby="closing-title" class="flex flex-wrap items-center justify-between gap-x-12 gap-y-8">

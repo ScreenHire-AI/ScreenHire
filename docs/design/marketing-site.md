@@ -8,7 +8,8 @@ sources:
   - resource: apps/marketing/src/lib/pages.ts
   - resource: apps/marketing/src/lib/features.test.ts
   - resource: apps/marketing/src/lib/copy.test.ts
-  - resource: apps/marketing/src/components/SampleVerificationCard.astro
+  - resource: apps/marketing/src/lib/market.ts
+  - resource: apps/marketing/src/content/comparisons/gohire-alternative.yaml
   - resource: apps/marketing/src/components/shell/ApplicantPair.astro
 ---
 # Marketing site messaging

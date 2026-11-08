@@ -42,9 +42,9 @@ In December 2025 the State Comptroller found DCWP's enforcement ineffective [2].
 
 ## How ScreenHire is designed around it
 
-- Verification levels never reject anyone, and a person decides. That is meant to keep verification checks from substantially assisting a hiring decision, but whether a flag counts as an AEDT is unsettled (see below).
+- A check never rejects anyone, and a person decides. That is meant to keep verification checks from substantially assisting a hiring decision, but whether a flag counts as an AEDT is unsettled (see below).
 - We plan to run yearly bias audits in the style of Local Law 144 on our own flag rates.
-- Every level records the version of the rules that produced it, so an audit can be reproduced.
+- Every level records the version of the check that produced it, so an audit can be reproduced.
 
 ## Still unclear
 

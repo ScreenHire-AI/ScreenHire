@@ -2,10 +2,11 @@ import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { levels } from '../../lib/features';
 import { buildPlans } from '../../lib/pricing';
-import SampleVerificationCard from '../SampleVerificationCard.astro';
 import ApplicantPair from './ApplicantPair.astro';
+import ClosingBand from './ClosingBand.astro';
 import CtaLink from './CtaLink.astro';
 import LevelChip from './LevelChip.astro';
+import PageIntro from './PageIntro.astro';
 import PlanRows from './PlanRows.astro';
 import QuestionsList from './QuestionsList.astro';
 import SiteFooter from './SiteFooter.astro';
@@ -84,10 +85,8 @@ describe('ApplicantPair', () => {
   });
 
   it('says what kind of thing a check looks at, never which signals it uses (docs/design/marketing-site.md)', async () => {
-    for (const component of [ApplicantPair, SampleVerificationCard]) {
-      const html = await render(component);
-      expect(html).not.toMatch(/(?:hosting|data ?cent(?:er|re)|VoIP|internet line|disposable|proxy|VPN|network|threshold|near-identical)/i);
-    }
+    const html = await render(ApplicantPair);
+    expect(html).not.toMatch(/\b(?:hosting|data ?cent(?:er|re)|VoIP|internet line|disposable|proxy|VPN|network|threshold|near-identical)\b/i);
   });
 });
 
@@ -120,5 +119,24 @@ describe('QuestionsList', () => {
     const html = await render(QuestionsList, { faqs: [{ question: 'Is it fair?', answer: 'Yes.' }] });
     expect(html).toContain('Is it fair?');
     expect(html).not.toContain('application/ld+json');
+  });
+});
+
+describe('PageIntro', () => {
+  it('has the one h1 on the white page, or on the dark band for a page that sells', async () => {
+    const light = await render(PageIntro, { title: 'A title', lead: 'A lead.' });
+    expect(light).toContain('<h1');
+    expect(light).toContain('text-section');
+    expect(light).toContain('bg-page');
+    expect(light).not.toContain('kicker');
+    const dark = await render(PageIntro, { title: 'A title', tone: 'dark' });
+    expect(dark).toMatch(/class="dark /);
+  });
+});
+
+describe('ClosingBand', () => {
+  it('sends the call to action to the pricing page when no dashboard address is configured, unless told where', async () => {
+    expect(await render(ClosingBand, { title: 'Close.' })).toContain('href="/pricing/"');
+    expect(await render(ClosingBand, { title: 'Close.', href: '/x/' })).toContain('href="/x/"');
   });
 });

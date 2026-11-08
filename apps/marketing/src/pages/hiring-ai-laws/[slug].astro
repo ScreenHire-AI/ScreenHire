@@ -1,10 +1,12 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import { getCollection, render, type CollectionEntry } from 'astro:content';
-import Faqs from '../../components/Faqs.astro';
 import NotLegalAdvice from '../../components/NotLegalAdvice.astro';
-import PageHeader from '../../components/PageHeader.astro';
 import SourceList from '../../components/SourceList.astro';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import PageIntro from '../../components/shell/PageIntro.astro';
+import QuestionsList from '../../components/shell/QuestionsList.astro';
+import Section from '../../components/shell/Section.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { pages } from '../../lib/pages';
 import { article, faqPage, formatDate } from '../../lib/seo';
@@ -20,9 +22,9 @@ interface Props {
 
 const { law } = Astro.props;
 const { Content } = await render(law);
-const site = Astro.site ?? new URL(Astro.url.origin);
 const path = `${pages.laws.path}${law.id}/`;
 const { title, description, faqs, published, lastReviewed } = law.data;
+const site = Astro.site ?? new URL(Astro.url.origin);
 
 const jsonLd = [
   article({ type: 'Article', headline: title, description, path, datePublished: published, dateModified: lastReviewed }, site),
@@ -40,40 +42,49 @@ const jsonLd = [
   ]}
   jsonLd={jsonLd}
 >
-  <PageHeader kicker={law.data.jurisdiction} title={title} lead={description}>
-    <p class="text-sm text-muted-foreground">
-      Last reviewed <time datetime={lastReviewed}>{formatDate(lastReviewed)}</time>
-    </p>
-  </PageHeader>
+  <PageIntro title={title} lead={description}>
+    <dl class="mt-2 flex flex-wrap gap-x-12 gap-y-3 text-base tabular-nums">
+      <div>
+        <dt class="font-bold">Where</dt>
+        <dd class="text-muted-foreground">{law.data.jurisdiction}</dd>
+      </div>
+      <div>
+        <dt class="font-bold">Last reviewed</dt>
+        <dd class="text-muted-foreground"><time datetime={lastReviewed}>{formatDate(lastReviewed)}</time></dd>
+      </div>
+    </dl>
+  </PageIntro>
 
-  <div class="mx-auto grid max-w-6xl gap-10 px-6 pb-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-    <article class="prose">
+  <div class="bg-page text-foreground">
+    <div class="mx-auto max-w-site px-4 md:px-6 lg:px-8">
+      <NotLegalAdvice lastReviewed={lastReviewed} />
+    </div>
+  </div>
+
+  <Section class="grid gap-x-16 gap-y-12 lg:grid-cols-[minmax(0,68ch)_minmax(16rem,22rem)] lg:justify-between">
+    <article class="prose min-w-0">
       <Content />
     </article>
-    <aside aria-labelledby="dates-title" class="flex flex-col gap-4 self-start rounded-panel border border-border bg-card shadow-surface p-5">
-      <h2 id="dates-title" class="font-display text-xl font-bold">Key dates</h2>
-      <p class="text-sm font-semibold">{law.data.status}</p>
-      <ol class="flex flex-col gap-3">
+    <aside aria-labelledby="dates-title" class="flex min-w-0 flex-col gap-4 self-start tabular-nums">
+      <h2 id="dates-title" class="font-display text-2xl font-bold">Key dates</h2>
+      <p class="font-semibold">{law.data.status}</p>
+      <ol class="flex flex-col">
         {
           law.data.keyDates.map((item) => (
-            <li class="flex flex-col gap-1 border-t border-border-subtle pt-3 text-sm">
-              <span class="font-semibold text-muted-foreground">{item.date}</span>
-              <span class="text-secondary-foreground">{item.event}</span>
+            <li class="flex flex-col gap-1 border-t border-border py-3 last:border-b">
+              <span class="font-semibold">{item.date}</span>
+              <span class="text-pretty text-muted-foreground">{item.event}</span>
             </li>
           ))
         }
       </ol>
+      <a href={pages.laws.path} class="mt-2 font-semibold text-primary underline underline-offset-4 hover:decoration-2">All laws in the tracker</a>
     </aside>
-  </div>
+  </Section>
 
-  <div class="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-6">
-    <NotLegalAdvice lastReviewed={lastReviewed} />
-    <SourceList sources={law.data.sources} />
-  </div>
+  <SourceList sources={law.data.sources} tone="band" />
 
-  {faqs.length > 0 && <Faqs faqs={faqs} />}
+  {faqs.length > 0 && <QuestionsList faqs={faqs} />}
 
-  <nav aria-label="More from the tracker" class="mx-auto max-w-6xl px-6 pb-16">
-    <a href={pages.laws.path} class="font-semibold text-primary underline-offset-2 hover:underline">All laws in the tracker</a>
-  </nav>
+  <ClosingBand title="Hire with a person in charge of every decision." />
 </BaseLayout>

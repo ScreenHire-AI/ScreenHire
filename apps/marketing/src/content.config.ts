@@ -42,8 +42,17 @@ const blog = defineCollection({
   }),
 });
 
-// Comparison pages (/compare/<id>/) are data rendered by one template, so "X alternative" pages stay consistent and
-// every claim carries a source.
+// Comparison pages (/compare/<id>/) are data rendered by one template, so "X alternative" pages stay consistent. Every
+// claim about the competitor is a `claim`: its words, the numbers of the `sources` it rests on, and the date those pages
+// were read. A claim without a source or a date does not build.
+const claim = z.object({
+  text: z.string(),
+  /** 1-based positions in the page's `sources` list. */
+  sources: z.array(z.number().int().positive()).min(1),
+  /** The date the competitor's own pages were read for this claim. */
+  asOf: isoDate,
+});
+
 const comparisons = defineCollection({
   loader: glob({ pattern: '**/*.yaml', base: './src/content/comparisons' }),
   schema: z.object({
@@ -52,10 +61,19 @@ const comparisons = defineCollection({
     description: z.string().max(160),
     heading: z.string(),
     intro: z.string(),
-    /** The date the competitor facts were taken from their pages. */
-    asOf: isoDate,
-    /** The competitor column states only what `sources` say, as of `asOf`. */
-    rows: z.array(z.object({ topic: z.string(), competitor: z.string(), screenhire: z.string() })).min(1),
+    /** What the competitor leaves open, led by one of the five selling points (lib/features.ts). */
+    leftOpen: z
+      .array(
+        z.object({
+          point: z.enum(['real-people', 'never-guessing', 'automate-anything', 'integrations', 'built-your-way']),
+          theirs: claim,
+          /** What ScreenHire adds to the selling point's promise on this topic. */
+          ours: z.string(),
+        }),
+      )
+      .min(1),
+    /** The other topics, side by side. */
+    rows: z.array(z.object({ topic: z.string(), theirs: claim, ours: z.string() })).min(1),
     whenCompetitorFits: z.array(z.string()).min(1),
     whenScreenHireFits: z.array(z.string()).min(1),
     sources: z.array(source).min(1),
