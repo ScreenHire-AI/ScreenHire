@@ -8,7 +8,7 @@ argument-hint: [path - what the page is for]
 The marketing site is static (no adapter in `apps/marketing/astro.config.mjs`) and SEO-first. Every page goes through
 `BaseLayout`, which renders `src/components/Seo.astro` (canonical, hreflang, Open Graph, one JSON-LD `@graph`). Read
 `.claude/rules/astro-public.md` first. Start from the shell components in `src/components/shell` (`Section`, `DarkBand`, `SellingPoint`, `ProductFrame`,
-`SourcedNumber`, `PlanRows`, `QuestionsList`, `ClosingBand`, `CtaLink`), and read its words from
+`SourcedNumber`, `PlanRows`, `QuestionsList`, `ClosingBand`, `PageIntro`, `CtaLink`), and read its words from
 `docs/design/marketing-site.md` and `src/lib/features.ts`. How the page looks follows `docs/design/design-system.md`
 section 22 and the Public pages group of its review checklist (section 2); check the page against both before you
 finish. A page with a dark hero passes `headerTone="dark"` to `BaseLayout`.

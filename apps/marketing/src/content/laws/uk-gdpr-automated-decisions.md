@@ -28,25 +28,25 @@ faqs:
 
 ## What it is
 
-The Data (Use and Access) Act 2025 replaced the UK GDPR's rule on automated decisions with four new articles, 22A to 22D, in force since **5 February 2026** [1][2].
+The Data (Use and Access) Act 2025 replaced the UK GDPR's rule on automated decisions with four new articles, 22A to 22D, in force since **5 February 2026** [[1]](#source-1)[[2]](#source-2).
 
-- **Article 22A** defines the terms. A decision is solely automated where there is "no meaningful human involvement in the taking of the decision", and it is significant if it has a legal or similarly significant effect on the person [1].
-- **Article 22B** limits solely automated significant decisions based on special category data, such as health data, to narrow cases [1].
-- **Article 22C** sets the safeguards that apply when a significant decision is solely automated [1].
-- **Article 22D** lets the Secretary of State define, by regulations, when human involvement is meaningful and add to the safeguards, but not amend Article 22C [1].
+- **Article 22A** defines the terms. A decision is solely automated where there is "no meaningful human involvement in the taking of the decision", and it is significant if it has a legal or similarly significant effect on the person [[1]](#source-1).
+- **Article 22B** limits solely automated significant decisions based on special category data, such as health data, to narrow cases [[1]](#source-1).
+- **Article 22C** sets the safeguards that apply when a significant decision is solely automated [[1]](#source-1).
+- **Article 22D** lets the Secretary of State define, by regulations, when human involvement is meaningful and add to the safeguards, but not amend Article 22C [[1]](#source-1).
 
 ## What it means if you use software to screen applicants
 
-Rejecting an applicant is likely to have a significant effect on them. If software makes that decision with no meaningful human involvement, you must inform the applicant and let them make representations, obtain human intervention and contest the decision [1]. The test is whether the human involvement is meaningful, so a review that only confirms a tool's output may not be enough.
+Rejecting an applicant is likely to have a significant effect on them. If software makes that decision with no meaningful human involvement, you must inform the applicant and let them make representations, obtain human intervention and contest the decision [[1]](#source-1). The test is whether the human involvement is meaningful, so a review that only confirms a tool's output may not be enough.
 
-Separately, the UK cookie rules (PECR Schedule A1, paragraph 4(2)(c)) now exempt access to a device that is strictly necessary to prevent or detect fraud [2][3].
+Separately, the UK cookie rules (PECR Schedule A1, paragraph 4(2)(c)) now exempt access to a device that is strictly necessary to prevent or detect fraud [[2]](#source-2)[[3]](#source-3).
 
-The ICO's 2024 audit of AI recruitment tools found vendors classing themselves as processors when they were acting as controllers [4].
+The ICO's 2024 audit of AI recruitment tools found vendors classing themselves as processors when they were acting as controllers [[4]](#source-4).
 
 ## How ScreenHire is designed around it
 
-- Verification signals never make a hiring decision. Verification levels can route, tag, assign or suggest an identity check, and workflows that would reject on verification signals are refused.
-- Each flag shows its evidence and counter-evidence, so the reviewer weighs something real rather than accepting a score.
+- A check never makes a hiring decision. It suggests a next step, and a person decides.
+- Each flag shows its evidence and what speaks for the candidate, so the reviewer weighs something real rather than accepting a score.
 - Candidate-facing notice comes before collection, and the design includes a "why we asked you to verify" page and a way to ask for human review.
 
 ## Still unclear

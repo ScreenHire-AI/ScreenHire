@@ -26,25 +26,25 @@ faqs:
 
 ## What it is
 
-New York City's Local Law 144 covers automated employment decision tools (AEDTs) used to screen candidates or employees for jobs in the city. The Department of Consumer and Worker Protection (DCWP) has enforced it since **5 July 2023** [1].
+New York City's Local Law 144 covers automated employment decision tools (AEDTs) used to screen candidates or employees for jobs in the city. The Department of Consumer and Worker Protection (DCWP) has enforced it since **5 July 2023** [[1]](#source-1).
 
 Before using an AEDT, an employer or employment agency must:
 
-- have the tool audited for bias within one year of its use [1];
-- make a summary of the audit results publicly available [1];
-- give notice to candidates and employees 10 business days before the tool is used [1].
+- have the tool audited for bias within one year of its use [[1]](#source-1);
+- make a summary of the audit results publicly available [[1]](#source-1);
+- give notice to candidates and employees 10 business days before the tool is used [[1]](#source-1).
 
 ## What it means if you use software to screen applicants
 
 If a tool scores, ranks or filters candidates and that output drives who moves forward, plan for the audit, the published summary and the notice.
 
-In December 2025 the State Comptroller found DCWP's enforcement ineffective [2]. Expect enforcement to tighten rather than relax.
+In December 2025 the State Comptroller found DCWP's enforcement ineffective [[2]](#source-2). Expect enforcement to tighten rather than relax.
 
 ## How ScreenHire is designed around it
 
-- Verification levels never reject anyone, and a person decides. That is meant to keep verification checks from substantially assisting a hiring decision, but whether a flag counts as an AEDT is unsettled (see below).
+- A check never rejects anyone, and a person decides. That is meant to keep verification checks from substantially assisting a hiring decision, but whether a flag counts as an AEDT is unsettled (see below).
 - We plan to run yearly bias audits in the style of Local Law 144 on our own flag rates.
-- Every level records the version of the rules that produced it, so an audit can be reproduced.
+- Every level records the version of the check that produced it, so an audit can be reproduced.
 
 ## Still unclear
 

@@ -1,0 +1,22 @@
+---
+// The top of an inner page (compare, laws, blog, 404): the page's one h1, a lead and a slot for facts such as dates. It sits
+// on the white page, or on the dark band for a page that sells (the header takes `headerTone="dark"` to match). The
+// selling pages open with the home hero; this is the quieter opening for everything else (design system section 22).
+interface Props {
+  title: string;
+  lead?: string;
+  tone?: 'page' | 'dark';
+}
+
+const { title, lead, tone = 'page' } = Astro.props;
+// Whole class names, so Tailwind finds them.
+const tones = { page: 'bg-page text-foreground', dark: 'dark bg-background text-foreground' };
+---
+
+<div class={tones[tone]}>
+  <header class="mx-auto flex max-w-site flex-col gap-4 px-4 pt-8 pb-12 md:px-6 md:pt-12 md:pb-16 lg:px-8 xl:pb-20">
+    <h1 class="max-w-4xl font-display text-section text-balance">{title}</h1>
+    {lead && <p class="max-w-measure text-xl text-pretty">{lead}</p>}
+    <slot />
+  </header>
+</div>

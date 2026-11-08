@@ -34,9 +34,9 @@ faqs:
 
 Illinois has three laws that matter for hiring software.
 
-- **HB 3773** amends the Illinois Human Rights Act. Since **1 January 2026** it has covered employers' use of AI in employment decisions, including a ban on using zip codes as a proxy for protected characteristics. IDHR proposed notice rules on 15 May 2026 and withdrew them on 2 June 2026. The statute applies regardless [1].
+- **HB 3773** amends the Illinois Human Rights Act. Since **1 January 2026** it has covered employers' use of AI in employment decisions, including a ban on using zip codes as a proxy for protected characteristics. IDHR proposed notice rules on 15 May 2026 and withdrew them on 2 June 2026. The statute applies regardless [[1]](#source-1).
 - **The Artificial Intelligence Video Interview Act** covers employers that use AI to analyse video interviews. Our research records duties to give notice, explain how the AI works, get consent, limit sharing and delete videos within 30 days of a request. We have not re-checked these details against the statute text, so read the act itself before relying on them.
-- **The Biometric Information Privacy Act (BIPA)** covers biometric identifiers such as face geometry and voiceprints. Collecting them requires a written release and a public retention schedule. Courts have applied it to matching an ID photo with a selfie [3] and to voiceprints [4].
+- **The Biometric Information Privacy Act (BIPA)** covers biometric identifiers such as face geometry and voiceprints. Collecting them requires a written release and a public retention schedule. Courts have applied it to matching an ID photo with a selfie [[3]](#source-3) and to voiceprints [[4]](#source-4).
 
 ## What it means if you use software to screen applicants
 
@@ -46,7 +46,7 @@ Illinois has three laws that matter for hiring software.
 
 ## How ScreenHire is designed around it
 
-- Location is used only as a mismatch between where the applicant says they are and the country or region their connection comes from. It is never a zip code and never a reason on its own.
+- Where an applicant is based is never a zip code and never a reason on its own.
 - This release has no biometrics at all: no face, voice or ID-document checks.
 - When optional ID verification arrives in a later release, the plan is to store pass or fail only, delete images within days, collect a BIPA release first and always offer a live check with a person instead.
 - No emotion or personality inference from video, ever.

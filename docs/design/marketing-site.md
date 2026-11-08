@@ -1,14 +1,19 @@
 ---
 type: Design
 title: "Marketing site messaging"
-description: "What the marketing site sells and how it says it: who it is for, the five selling points as pain, promise and proof with their sourced numbers, the home hero, the voice and copy rules, the page map, and what may be claimed and what is never said."
+description: "What the marketing site sells and how it says it: who it is for, the five selling points as pain, promise and proof with their sourced numbers, the home hero, the voice and copy rules, the page map, the compare pages (a source and a date on every competitor claim), and what may be claimed and what is never said."
 tags: [marketing, messaging, copy, design]
 sources:
   - resource: apps/marketing/src/lib/features.ts
   - resource: apps/marketing/src/lib/pages.ts
   - resource: apps/marketing/src/lib/features.test.ts
   - resource: apps/marketing/src/lib/copy.test.ts
-  - resource: apps/marketing/src/components/SampleVerificationCard.astro
+  - resource: apps/marketing/src/lib/market.ts
+  - resource: apps/marketing/src/lib/compare-content.test.ts
+  - resource: apps/marketing/src/lib/public-copy.test.ts
+  - resource: apps/marketing/src/content.config.ts
+  - resource: apps/marketing/src/pages/compare/[slug].astro
+  - resource: apps/marketing/src/content/comparisons/gohire-alternative.yaml
   - resource: apps/marketing/src/components/shell/ApplicantPair.astro
 ---
 # Marketing site messaging
@@ -177,6 +182,19 @@ decides. That a candidate is told what is collected before they start, and can s
 | Compare | `/compare/` | Sourced, dated, factual comparisons |
 | Hiring-AI laws | `/hiring-ai-laws/` | The law tracker, with dates and sources |
 | Blog | `/blog/` | Notes on applicant fraud, AI in hiring and a fair process |
+
+## Compare pages
+
+A compare page names the competitor and is built from `content/comparisons/<id>.yaml`, which the build checks. Every claim
+about the competitor has the numbers of the sources it rests on and the day those pages were read (`Claim`); a claim
+without them, or citing a number past the page's source list, does not build (`content.config.ts`). It leads with the pains the competitor
+leaves open, each told by one of the five selling points from `features.ts` (its title and promise are not retyped), then
+the other topics side by side, then which fits which team. Say what a page lists, never what it lacks beyond "lists no".
+The market block on `/compare/` is `lib/market.ts`: what other vendors' own pages say about seat prices, fraud checks sold
+apart and AI sold apart, each with its page and the day it was read.
+
+On 2026-11-08 GoHire's pages supported the fraud and automation pains only. Per-seat pricing does not apply (GoHire has
+unlimited users, so the page says so), and no claim is made about an API (see "What is never said").
 
 `pages.ts` is the registry of paths, titles and descriptions. A page that is not in it has no sitemap line, no share
 image and no `llms.txt` entry.

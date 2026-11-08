@@ -74,6 +74,9 @@ sources:
   - resource: apps/marketing/src/components/shell/PlanRows.astro
   - resource: apps/marketing/src/components/shell/QuestionsList.astro
   - resource: apps/marketing/src/components/shell/ClosingBand.astro
+  - resource: apps/marketing/src/components/shell/PageIntro.astro
+  - resource: apps/marketing/src/components/Claim.astro
+  - resource: apps/marketing/src/components/SourceList.astro
 ---
 # ScreenHire design system
 
@@ -1250,8 +1253,11 @@ stay only for pages not yet restyled.
 | `SourcedNumber` | A number with its claim and source link |
 | `PlanRows` | The plans as rows, read from the plan catalogue (`packages/plans`) |
 | `QuestionsList` | Questions as a list with rules between them |
-| `ClosingBand` | The dark band that ends a page |
+| `ClosingBand` | The dark band that ends a page. Without an `href` its call to action goes where the header's Start free trial goes |
+| `PageIntro` | The opening of a compare, law, blog or 404 page: the `h1` at `text-section`, a lead and a slot for dates or a notice. White, or `tone="dark"` for a page that sells, with the header's `headerTone="dark"` |
 | `CtaLink` | The call to action (22.9) |
+
+A claim about a competitor is `Claim`: the words, the numbers of the sources it rests on (linked to `SourceList`'s anchors) and the day the vendor's pages were read. A compare page shows no claim without them. Index pages take a different shape each: compare a heading beside a ruled list, laws a ruled table, blog a date column and a larger first post.
 
 A status on a marketing page is `LevelChip` (or `StatusBadge` for a state), never a chip built from `bg-status-*` (T1).
 

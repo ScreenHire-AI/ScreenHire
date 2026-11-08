@@ -1,33 +1,72 @@
 ---
 import { getCollection } from 'astro:content';
-import PageHeader from '../../components/PageHeader.astro';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import PageIntro from '../../components/shell/PageIntro.astro';
+import Section from '../../components/shell/Section.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { marketPains } from '../../lib/market';
 import { pages } from '../../lib/pages';
+import { formatDate } from '../../lib/seo';
 
 const { title, description, path, label } = pages.compare;
 const comparisons = (await getCollection('comparisons')).sort((a, b) => a.data.competitor.localeCompare(b.data.competitor));
+const lastRead = marketPains.flatMap((pain) => pain.facts.map((fact) => fact.asOf)).sort().at(-1)!;
 ---
 
 <BaseLayout title={title} description={description} breadcrumbs={[{ name: label, path }]}>
-  <PageHeader
+  <PageIntro
     title="ScreenHire and other applicant trackers."
-    lead="Factual comparisons built from each vendor's own pages, dated and sourced, so you can check every claim."
+    lead="Factual comparisons built from each vendor's own pages. Every claim has its source and the day we read it, so you can check it."
   />
-  <section aria-labelledby="list-title" class="mx-auto max-w-6xl px-6 pb-16">
-    <h2 id="list-title" class="sr-only">Comparisons</h2>
-    <ul class="grid gap-4 md:grid-cols-2">
+
+  <Section labelledby="list-title" class="flex flex-wrap gap-x-16 gap-y-8">
+    <h2 id="list-title" class="flex-1 basis-64 font-display text-band text-balance">Side by side</h2>
+    <ul class="flex min-w-0 flex-[3_1_36rem] flex-col">
       {
         comparisons.map((comparison) => (
-          <li class="flex flex-col gap-2 rounded-panel border border-border bg-card shadow-surface p-6">
-            <h3 class="font-display text-xl font-bold">
-              <a href={`${path}${comparison.id}/`} class="text-foreground no-underline hover:text-primary">
+          <li class="border-t border-border py-6 last:border-b">
+            <h3 class="font-display text-2xl font-bold text-balance">
+              <a href={`${path}${comparison.id}/`} class="text-foreground underline underline-offset-4 hover:decoration-2">
                 {comparison.data.competitor} alternative
               </a>
             </h3>
-            <p class="text-secondary-foreground">{comparison.data.description}</p>
+            <p class="mt-2 max-w-measure text-pretty text-muted-foreground">{comparison.data.description}</p>
           </li>
         ))
       }
     </ul>
-  </section>
+  </Section>
+
+  <Section tone="band" labelledby="market-title" class="flex flex-col gap-10">
+    <div class="flex max-w-3xl flex-col gap-4">
+      <h2 id="market-title" class="font-display text-section text-balance">What the rest of the market charges and sells</h2>
+      <p class="text-xl text-pretty">
+        From each vendor's own pages, read on <time datetime={lastRead}>{formatDate(lastRead)}</time>. Plans change, so follow the links.
+      </p>
+    </div>
+    <ul class="flex flex-col tabular-nums">
+      {
+        marketPains.map((group) => (
+          <li class="grid gap-x-16 gap-y-6 border-t border-border py-8 last:border-b md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+            <h3 class="font-display text-2xl font-bold text-balance">{group.pain}</h3>
+            <div class="flex min-w-0 flex-col gap-5">
+              <ul class="flex flex-col gap-4">
+                {group.facts.map((fact) => (
+                  <li>
+                    <p class="text-pretty"><span class="font-bold">{fact.vendor}</span> {fact.fact}</p>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                      <a href={fact.source.href} rel="noopener" class="text-foreground underline underline-offset-4 hover:decoration-2">{fact.source.label}</a>, read <time datetime={fact.asOf}>{formatDate(fact.asOf)}</time>.
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <p class="text-pretty"><span class="font-bold">ScreenHire</span> {group.answer}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+
+  <ClosingBand title="Try ScreenHire on your next hire." />
 </BaseLayout>

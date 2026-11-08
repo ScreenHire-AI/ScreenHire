@@ -1,9 +1,12 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import { render, type CollectionEntry } from 'astro:content';
-import PageHeader from '../../components/PageHeader.astro';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import PageIntro from '../../components/shell/PageIntro.astro';
+import Section from '../../components/shell/Section.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { publishedPosts } from '../../lib/blog';
+import { hero } from '../../lib/features';
 import { pages } from '../../lib/pages';
 import { article, formatDate } from '../../lib/seo';
 
@@ -33,15 +36,18 @@ const { title, description, published, updated } = post.data;
   ]}
   jsonLd={[article({ type: 'BlogPosting', headline: title, description, path, datePublished: published, dateModified: updated }, site)]}
 >
-  <PageHeader title={title} lead={description}>
-    <p class="text-sm text-muted-foreground">
+  <PageIntro title={title} lead={description}>
+    <p class="text-base text-muted-foreground">
       By the ScreenHire team on <time datetime={published}>{formatDate(published)}</time>.
       {updated && <> Updated <time datetime={updated}>{formatDate(updated)}</time>.</>}
     </p>
-  </PageHeader>
-  <div class="mx-auto max-w-6xl px-6 pb-16">
+  </PageIntro>
+
+  <Section label="Post">
     <article class="prose">
       <Content />
     </article>
-  </div>
+  </Section>
+
+  <ClosingBand title={hero.headline} />
 </BaseLayout>
