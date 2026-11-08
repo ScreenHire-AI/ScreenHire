@@ -35,8 +35,9 @@ Built for small hiring teams. Simple to use. Every feature on every plan. Plain 
 ScreenHire's answer, which is how it is billed (ADR-0029): unlimited users, every feature on every plan, a price set by
 how many jobs are open at once, and a closed job costs nothing. The AI consistency check is included on every plan, and an
 organization may bring its own key and model. Nothing is metered. The numbers live only in `packages/plans/plans.json`;
-until the pricing task sets them the site shows the placeholder. Working numbers (not final): Starter $79 with 3 open jobs,
-Growth $149 with 10, Unlimited $249, and a 14-day trial on Growth.
+until the pricing task sets them the site shows the placeholder. Copy never writes a price or a job limit itself: it
+reads them from the catalogue (`catalogPlans`), as `PlanRows` does. The trial is 14 days on Growth
+(`docs/architecture/billing.md`).
 
 ## The five selling points
 
@@ -58,7 +59,7 @@ In this order. Each is told as the buyer's pain, then our promise, then the proo
 
 - **Pain.** Nobody knows who spoke to a candidate last, and candidates are left without an answer.
 - **Promise.** Your team always knows where each candidate is and what was said last, and so does the candidate.
-- **Proof.** The pipeline, activity and when a candidate was last contacted. Two-way email kept on the application. Notes
+- **Proof.** The pipeline, and on each candidate their activity and when they were last contacted. Two-way email kept on the application. Notes
   and tasks with mentions. The candidate's own page with its four steps (Applied, In review, Interview, Offer) and their
   messages. Reports.
 - **Shown as.** The team's activity beside the candidate's own page.
@@ -142,13 +143,16 @@ Name only triggers and actions that exist, as above. The examples on the site ar
 ## What may be claimed
 
 That checks happen on every application. What kind of thing they look at, in plain words: contact details that do not
-match each other, an answer sent with other applications, a network in a different country from the one given. That
+match each other, an answer sent with other applications. That
 each result is a level with its evidence, what speaks for the candidate and a suggested next step, and that a person
 decides. That a candidate is told what is collected before they start, and can see where they stand.
 
 ## What is never said
 
 - Reason codes, rule names, thresholds, or how a check is computed.
+- Which signals a check uses: a kind of network, phone line or email address, a count of matching answers, or what
+  counts against someone. The repository is public until launch, and a page that lists them tells a bad actor what to
+  avoid.
 - A numeric score, or a percentage of AI-written text.
 - That ScreenHire rejects anyone, or that a check can. (A knockout question the team opts into is not a check.)
 - That ScreenHire reads faces, voices, feelings, honesty or personality, or looks people up on social media or LinkedIn.

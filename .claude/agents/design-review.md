@@ -49,14 +49,14 @@ Your prompt gives a diff range (for example `origin/main...HEAD`) or `all`, and 
    | I1 | icons from anything but Lucide through `~icons/lucide/<name>` (an `@lucide/svelte` import is wrong too); text characters or emoji used as icons |
    | L1 | `font-mono`, a pill or a `Badge` other than a status badge inside a table cell; a second line under a row's name |
    | A5 | a link (`<a>`, `href`) whose handler opens a sheet, menu or dialog; `goto(` in a button's handler |
-| M2 | `bg-gradient`, `bg-linear`, `linear-gradient(`, `radial-gradient(` in marketing files |
-| M3 | the `kicker` class; an icon tile (`grid size-* place-items-center` with an icon) above a heading |
-| M5, M6 | `·` or `&middot;` between facts; `>01<` style markers; `uppercase` |
-| M7, M8 | `animate-`, `fade-up`, `@keyframes` without `motion-safe`; `transition-all` |
-| M9 | an `<em>`, `<strong>`, `<span class="text-` or `italic` inside an `h1` or `h2` |
-| M10 | `bg-primary` or `text-primary` inside a `dark` band (`DarkBand`, `Section tone="dark"`); `text-muted-foreground` on a coloured background |
-| M11, M12 | a number with no source link beside it; the AI fluff words and reason codes in `docs/design/marketing-site.md`; "rejects" with ScreenHire as the subject |
-| W11, F7, X2 to X4 | a price or figure without `tabular-nums`; `<img` or `<Image` without `width`, `height` or `alt`; `outline-none` or `outline: none` with no replacement ring; `user-scalable=no` |
+   | M2 | `bg-gradient`, `bg-linear`, `linear-gradient(`, `radial-gradient(` in marketing files |
+   | M3 | the `kicker` class; an icon tile (`grid size-* place-items-center` with an icon) above a heading |
+   | M5, M6 | `·` or `&middot;` between facts; `>01<` style markers; `uppercase` |
+   | M7, M8 | `animate-`, `fade-up`, `@keyframes` without `motion-safe`; `transition-all` |
+   | M9 | an `<em>`, `<strong>`, `<span class="text-` or `italic` inside an `h1` or `h2` |
+   | M10 | `bg-primary` or `text-primary` inside a `dark` band (`DarkBand`, `Section tone="dark"`); `text-muted-foreground` on a coloured background |
+   | M11, M12 | a number with no source link beside it; the AI fluff words and reason codes in `docs/design/marketing-site.md`; "rejects" with ScreenHire as the subject |
+   | W11, F7, X2 to X4 | a price or figure without `tabular-nums`; `<img` or `<Image` without `width`, `height` or `alt`; `outline-none` or `outline: none` with no replacement ring; `user-scalable=no` |
 
    Then read each changed page against the rest of the checklist: the template and header band (S1, S2, S7), panels and
    their titles (S3), actions, links and buttons (A1 to A8), status first and quiet calm states (T1 to T4), Last

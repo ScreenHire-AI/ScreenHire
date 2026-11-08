@@ -20,8 +20,14 @@ const link = 'inline-flex min-h-8 items-center text-foreground no-underline hove
 ---
 
 <div class={tones[tone]}>
+  {/* Inside the band, so the link and its focus ring take the band's tokens: ink on a light page, light on a dark one. */}
+  <a
+    href="#main"
+    class="sr-only rounded-lg bg-foreground px-4 py-2 font-semibold text-background no-underline focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50"
+    >Skip to content</a
+  >
   <header class="relative mx-auto flex max-w-site items-center gap-x-8 px-4 py-4 md:px-6 md:py-6 lg:px-8">
-    <a href="/" class="flex items-center gap-3 text-foreground no-underline">
+    <a href="/" class="flex items-center gap-3 text-foreground no-underline pointer-coarse:min-h-11">
       <span aria-hidden="true" class="grid size-8 place-items-center rounded-lg bg-foreground font-display text-lg font-extrabold text-background">S</span>
       <span class="font-display text-xl font-bold tracking-tight">ScreenHire</span>
     </a>

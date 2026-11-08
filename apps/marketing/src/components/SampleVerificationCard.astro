@@ -4,13 +4,9 @@
 // system section 3.2).
 import StatusBadge from './StatusBadge.astro';
 
-const evidence = [
-  'Applied from a hosting-provider network, not a home or mobile connection.',
-  'Says they live in Leeds, UK. The network is in Germany.',
-  'Uses an address from a disposable email service.',
-  'Answer 2 is near-identical to 4 other applications for this job.',
-];
-const boards = ['Google for Jobs', 'Careers page', '3 job boards'];
+// Kinds of thing a check looks at, in the plain words docs/design/marketing-site.md allows, never the signals themselves.
+const evidence = ['The contact details they gave do not match each other.', 'One answer is the same text sent with other applications for this job.'];
+const boards = ['Google for Jobs', 'Careers page'];
 ---
 
 <figure class="flex min-w-0 flex-1 basis-[440px] flex-col gap-3">
@@ -30,11 +26,11 @@ const boards = ['Google for Jobs', 'Careers page', '3 job boards'];
         ))
       }
       <li class="mt-1 border-l-2 border-border pl-3 text-sm">
-        <span class="font-semibold">Counter-evidence:</span> the phone number is a UK mobile, not a VoIP line.
+        <span class="font-semibold">Counter-evidence:</span> their work history matches the portfolio they sent.
       </li>
     </ul>
     <p class="border-t border-border-subtle bg-muted px-4 py-3 text-sm text-secondary-foreground">
-      Network, identity and answer signals point the same way, and one detail points against them.
+      Two details do not add up, and one speaks for them. A person on your team decides.
       <span class="mt-1 block font-semibold text-foreground">Suggested next step: a short video call before the portfolio review.</span>
     </p>
   </div>

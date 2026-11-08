@@ -1142,7 +1142,9 @@ is `DarkBand`.
 - Call-to-action buttons are the foreground colour (`bg-foreground text-background`): light on a dark band and ink on a
   light one, with no per-band class. The brand indigo (`bg-primary`) is for a light band only.
 - Text is `foreground` for reading and headings, `muted-foreground` for sources and captions, and never lighter than
-  that. Links are underlined: `primary` on a light band and `foreground` on a dark one. Focus is the 2px `ring` outline
+  that. Links in text are underlined: `primary` on a light band and `foreground` on a dark one. The header, the phone
+  menu, the footer and the breadcrumb are lists of links, so they are not underlined until hovered or current, and they
+  never turn `primary`, which a dark band does not use for links. Focus is the 2px `ring` outline
   with a 2px offset, which each band's tokens colour.
 
 Contrast, computed from `tokens.css` by `apps/marketing/src/lib/contrast.test.ts` (text needs 4.5:1, a focus ring or the

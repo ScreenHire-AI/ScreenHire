@@ -39,11 +39,6 @@ const bodyFont = fontData['--font-hanken']?.[0]?.src[0]?.url;
     <Analytics />
   </head>
   <body class="min-h-screen bg-page text-foreground">
-    <a
-      href="#main"
-      class="sr-only rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50"
-      >Skip to content</a
-    >
     <SiteHeader tone={headerTone} />
     {
       breadcrumbs && (
@@ -51,7 +46,7 @@ const bodyFont = fontData['--font-hanken']?.[0]?.src[0]?.url;
         <nav aria-label="Breadcrumb" class="mx-auto max-w-site px-4 md:px-6 lg:px-8">
           <ol class="flex flex-wrap gap-x-2 text-sm text-muted-foreground">
             <li>
-              <a href="/" class="inline-flex min-h-6 items-center text-muted-foreground hover:text-primary pointer-coarse:min-h-11">Home</a>
+              <a href="/" class="inline-flex min-h-6 items-center text-muted-foreground hover:text-foreground hover:underline pointer-coarse:min-h-11">Home</a>
             </li>
             {breadcrumbs.map((crumb, index) => (
               <li class="flex gap-x-2">
@@ -59,7 +54,7 @@ const bodyFont = fontData['--font-hanken']?.[0]?.src[0]?.url;
                 {index === breadcrumbs.length - 1 ? (
                   <span aria-current="page">{crumb.name}</span>
                 ) : (
-                  <a href={crumb.path} class="inline-flex min-h-6 items-center text-muted-foreground hover:text-primary pointer-coarse:min-h-11">
+                  <a href={crumb.path} class="inline-flex min-h-6 items-center text-muted-foreground hover:text-foreground hover:underline pointer-coarse:min-h-11">
                     {crumb.name}
                   </a>
                 )}

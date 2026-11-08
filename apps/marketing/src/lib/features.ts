@@ -72,7 +72,7 @@ export const sellingPoints: SellingPointData[] = [
     pain: 'Nobody knows who spoke to a candidate last, and candidates are left without an answer.',
     promise: 'Your team always knows where each candidate is and what was said last, and so does the candidate.',
     proof: [
-      'The pipeline, with activity and when each candidate was last contacted',
+      'The pipeline, and on each candidate their activity and when they were last contacted',
       'Email you send and the replies you get, kept on the application',
       'Notes and tasks on the candidate, with mentions',
       'The candidate\'s own page: four steps (Applied, In review, Interview, Offer) and your messages',
