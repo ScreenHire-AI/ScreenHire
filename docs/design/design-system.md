@@ -1248,7 +1248,7 @@ stay only for pages not yet restyled.
 | `ProductFrame`, `ApplicantPair` | The real product (22.7), and the hero's real-versus-flagged pair |
 | `LevelChip` | The dashboard's four labels and icons: No concerns, Review suggested, Verification suggested, Some signs of AI help |
 | `SourcedNumber` | A number with its claim and source link |
-| `PlanRows` | The plans as rows, read from the plan catalogue (`packages/plans`) |
+| `PlanRows` | The plans as rows, read from the plan catalogue (`packages/plans`): name and open-job limit, then the price. A plan with no price shows no amount, and one with no limit shows none |
 | `QuestionsList` | Questions as a list with rules between them |
 | `ClosingBand` | The dark band that ends a page |
 | `CtaLink` | The call to action (22.9) |
