@@ -1,11 +1,13 @@
 ---
 type: Guide
 title: "Testing"
-description: "Which test tier proves what (xUnit, Vitest, Aspire integration, Playwright), running one test and a branch's own tests, the shared AppHostFixture, isolating data by organization, golden files, the marketing JS and Lighthouse checks, CI on GitHub Actions as the board's gate and how to read a failed run, the flake policy and its history, and gate time locally and in CI."
+description: "Which test tier proves what (xUnit, Vitest, Aspire integration, Playwright), running one test and a branch's own tests, the shared AppHostFixture, isolating data by organization, golden files, the marketing site's product screenshots, the marketing JS and Lighthouse checks, CI on GitHub Actions as the board's gate and how to read a failed run, the flake policy and its history, and gate time locally and in CI."
 tags: [testing, xunit, playwright, vitest]
 sources:
   - resource: tests/ScreenHire.Testing/AppHostFixture.cs
   - resource: tests/ScreenHire.E2E/E2EFixture.cs
+  - resource: tests/ScreenHire.E2E/MarketingDemoFixture.cs
+  - resource: tests/ScreenHire.E2E/MarketingScreenshotsTests.cs
   - resource: tests/ScreenHire.Testing/ScheduledMessages.cs
   - resource: apps/marketing/scripts/check-dist.mjs
   - resource: apps/marketing/scripts/lighthouse.mjs
@@ -248,14 +250,38 @@ markers and the device check never reach the API, and the bot uses Playwright's 
 
 ### Golden files
 
-Two unit tests compare output with files in the repository, and fail with the command that rewrites them:
+Two unit tests compare output with files in the repository, and fail with the command that rewrites them. A third, end-to-end
+test writes the marketing site's product pictures and only checks that they exist:
 
 | Test | File | Rewrite with |
 |---|---|---|
 | `RealtimeContractTests` | `packages/realtime/contract/events.json` | `UPDATE_REALTIME_CONTRACT=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*RealtimeContractTests"` |
 | `VerificationGoldenTests` | `tests/ScreenHire.UnitTests/Verification/Golden/*.json` | `UPDATE_VERIFICATION_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*VerificationGoldenTests"` |
+| `MarketingScreenshotsTests` | `apps/marketing/src/assets/product/*.png` | `UPDATE_MARKETING_SCREENSHOTS=1 dotnet test --project tests/ScreenHire.E2E --filter-class "*MarketingScreenshotsTests"` |
 
-Read the diff before committing a rewrite: it is the review of what changed for a person reading the output.
+Read the diff before committing a rewrite: it is the review of what changed for a person reading the output. For the
+pictures that means opening them.
+
+### Marketing screenshots
+
+The marketing site shows the real product, so its pictures are captured, not drawn. `MarketingScreenshotsTests` boots a
+stack of its own with the demo's data on (`MarketingDemoFixture`, `ScreenHire:Demo=true`, the production builds), signs in
+as Avery Quinn and takes each screen: both verification panels, a job's pipeline in light and dark, a candidate's activity
+and messages, the candidates list, the candidate's own page, a workflow's stages and automations, the interview booking
+page, Integrations, a template's stages, the branding editor, Reports and the branded careers page. Each screen has a full
+picture (`name.png`) and a narrow crop (`name-phone.png`) that a page can show at phone width.
+
+- **Run it after changing a screen the marketing site shows**, with `UPDATE_MARKETING_SCREENSHOTS=1` as above, then open
+  the images and commit them. It runs in a collection of its own (`MarketingScreenshotsRun`), after the parallel tests,
+  because the demo's startup burst loads the worker.
+- **Without the variable** the test still opens every screen and takes every picture, into `TestResults/marketing-screenshots`
+  beside the test assembly, and fails if a committed image is missing or over 600 KB. It compares no pixels: dates and
+  "x minutes ago" differ on every run.
+- **Same picture every run:** a 1440 by 900 window (1600 wide for the pipeline and the candidates list, taller for the activity, workflow and reports) at twice the pixels, reduced motion, the fonts loaded, `en-US` and
+  `Europe/London`, no hover, focus ring, toast or caret. The verification panels hide the support code under each reason, which
+  the public site does not show.
+- **Data:** Brightwater Studio and its fictional people. The test adds what the demo lacks for one candidate (an email
+  answered, an interview offered and booked) and moves three applicants so the pipeline has people in several stages.
 
 ## Marketing site checks
 

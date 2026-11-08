@@ -60,10 +60,13 @@ internal static class DemoCandidates
             "eli-thompson", "Eli", "Thompson", "eli.thompson@example.org", "+44 131 496 0366", "192.0.2.36", 9,
             "Eli Thompson\nJunior frontend engineer, two years. Built the web shop for a small bakery chain.",
             FrontendAnswers("less_than_3", "side_projects", "yes", "https://eli-thompson.example.org/bakery-shop", "Two weeks"))),
-        new(SeniorDotnetEngineer, [new("screening"), new("technical", "Take-home exercise sent; due Friday.")], Person(
+        // Applied nine days ago and moved on over the week, so his Activity reads as a hiring in progress, not as one that began a
+        // minute ago.
+        new(SeniorDotnetEngineer, [new("screening", DaysAgo: 7), new("technical", "Take-home exercise sent; due Friday.", 3)], Person(
             "joel-mensah", "Joel", "Mensah", "joel.mensah@example.org", "+44 20 7946 0377", "192.0.2.37", 14,
             "Joel Mensah\nBackend engineer, five years of C# and SQL Server, moving to Postgres.\nI look after a billing service.",
-            EngineerAnswers("three_to_five", "https://joel-mensah.example.org/billing-ledger", "Four weeks"))),
+            EngineerAnswers("three_to_five", "https://joel-mensah.example.org/billing-ledger", "Four weeks")),
+            AppliedDaysAgo: 9),
         // Support Engineer's hiring happened over the weeks before the demo, so Reports has a history to count: when each
         // applied and each move, in days before the demo starts. The job is closed, so no time limit runs on them.
         new(SupportEngineer,

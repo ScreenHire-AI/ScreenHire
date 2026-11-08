@@ -131,6 +131,10 @@ subsystem.
 - After changing a verification analyzer, the signal catalogue or the ruleset: `UPDATE_VERIFICATION_GOLDEN=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*VerificationGoldenTests"`
   rewrites the synthetic applicants' golden files; review the diff, and bump `VerificationRuleset.Version` for a rule change
   ([`docs/architecture/verification-engine.md`](docs/architecture/verification-engine.md) §10).
+- After changing a screen the marketing site shows: `UPDATE_MARKETING_SCREENSHOTS=1 dotnet test --project tests/ScreenHire.E2E --filter-class "*MarketingScreenshotsTests"`
+  rewrites the product pictures in `apps/marketing/src/assets/product` from the demo data (it boots its own demo stack and needs
+  `pnpm -r build` first); open the images, then commit them. Without the variable it still boots the stack and takes every picture (into `TestResults`), and only checks that
+  the committed ones exist and fit 600 KB ([`docs/process/testing.md`](docs/process/testing.md#marketing-screenshots)).
 - Migrations: `dotnet ef migrations add <Name> --project src/ScreenHire.Infrastructure --startup-project src/ScreenHire.Infrastructure --output-dir Persistence/Migrations`.
 
 ## Board pipeline (Kangentic)
