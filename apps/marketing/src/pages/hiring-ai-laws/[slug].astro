@@ -53,20 +53,15 @@ const jsonLd = [
         <dd class="text-muted-foreground"><time datetime={lastReviewed}>{formatDate(lastReviewed)}</time></dd>
       </div>
     </dl>
+    <NotLegalAdvice lastReviewed={lastReviewed} />
   </PageIntro>
-
-  <div class="bg-page text-foreground">
-    <div class="mx-auto max-w-site px-4 md:px-6 lg:px-8">
-      <NotLegalAdvice lastReviewed={lastReviewed} />
-    </div>
-  </div>
 
   <Section class="grid gap-x-16 gap-y-12 lg:grid-cols-[minmax(0,68ch)_minmax(16rem,22rem)] lg:justify-between">
     <article class="prose min-w-0">
       <Content />
     </article>
     <aside aria-labelledby="dates-title" class="flex min-w-0 flex-col gap-4 self-start tabular-nums">
-      <h2 id="dates-title" class="font-display text-2xl font-bold">Key dates</h2>
+      <h2 id="dates-title" class="font-display text-2xl font-bold text-balance">Key dates</h2>
       <p class="font-semibold">{law.data.status}</p>
       <ol class="flex flex-col">
         {

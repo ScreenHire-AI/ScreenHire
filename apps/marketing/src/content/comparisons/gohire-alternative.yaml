@@ -22,7 +22,7 @@ leftOpen:
       text: 'The Pro plan lists Automated Stage Actions. The Starter and Growth plans do not. A rule can send an email, add a note or send a questionnaire when a candidate moves from one stage to another.'
       sources: [1, 5]
       asOf: '2026-11-08'
-    ours: 'Every plan has them.'
+    ours: 'Automations are on every plan.'
 rows:
   - topic: 'Price'
     theirs:

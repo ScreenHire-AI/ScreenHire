@@ -42,7 +42,7 @@ const blog = {
               {formatDate(post.data.published)}
             </time>
             <div class="min-w-0">
-              <h3 class:list={['font-display font-bold text-balance', index === 0 ? 'text-band' : 'text-2xl']}>
+              <h3 class:list={['font-display text-balance', index === 0 ? 'text-section' : 'text-2xl font-bold']}>
                 <a href={`${path}${post.id}/`} class="text-foreground underline underline-offset-4 hover:decoration-2">
                   {post.data.title}
                 </a>

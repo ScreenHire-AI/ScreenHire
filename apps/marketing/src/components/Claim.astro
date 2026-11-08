@@ -20,7 +20,7 @@ const { text, sources, asOf } = Astro.props;
     sources.map((n, index) => (
       <>
         {index > 0 && ', '}
-        <a href={`#source-${n}`} aria-label={`Source ${n}`} class="text-foreground underline underline-offset-4">[{n}]</a>
+        <a href={`#source-${n}`} aria-label={`Source ${n}`} class="inline-flex min-h-6 min-w-6 items-center justify-center text-foreground underline underline-offset-4 pointer-coarse:min-h-11 pointer-coarse:min-w-11">{n}</a>
       </>
     ))
   }

@@ -41,7 +41,7 @@ const collectionPage = {
     <ul class="flex flex-col tabular-nums">
       {
         laws.map((law) => (
-          <li class="grid items-baseline gap-x-12 gap-y-2 border-t border-border py-6 last:border-b md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_9rem]">
+          <li class="grid items-baseline gap-x-12 gap-y-2 border-t border-border py-6 last:border-b md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_12rem]">
             <div class="min-w-0">
               <h3 class="font-display text-2xl font-bold text-balance">
                 <a href={`${path}${law.id}/`} class="text-foreground underline underline-offset-4 hover:decoration-2">{law.data.name}</a>

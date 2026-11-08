@@ -48,7 +48,7 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
 - **Tokens only.** Marketing uses the Warm Grid tokens (`bg-page`, `bg-background`, `text-foreground`, `text-display`);
   careers uses the candidate tokens (`bg-candidate-background`, `bg-candidate-cta`). No hex values.
 - **A marketing page starts from the shell** in `apps/marketing/src/components/shell` (`Section`, `DarkBand`,
-  `SellingPoint`, `ProductFrame`, `LevelChip`, `SourcedNumber`, `PlanRows`, `QuestionsList`, `ClosingBand`, `CtaLink`) and
+  `SellingPoint`, `ProductFrame`, `LevelChip`, `SourcedNumber`, `PlanRows`, `QuestionsList`, `ClosingBand`, `PageIntro`, `CtaLink`) and
   takes its selling points, figures and plan list from `src/lib/features.ts`. Its copy comes from
   `docs/design/marketing-site.md`: pain, promise, proof; every number sourced; no AI fluff; never a reason code, score
   or the claim that ScreenHire rejects anyone. A page with a dark hero passes `headerTone="dark"` to `BaseLayout`. A

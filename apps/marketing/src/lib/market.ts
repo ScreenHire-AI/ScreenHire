@@ -54,7 +54,7 @@ export const marketPains: MarketPain[] = [
     facts: [
       {
         vendor: 'Gem',
-        fact: 'Sells fraud detection as checks the customer must purchase. No price is published.',
+        fact: 'Sells fraud detection as checks the customer must purchase.',
         source: { label: 'Gem help centre, fraud detection agent overview', href: 'https://help.gem.com/databases/gem-help-center/fraud-detection-agent-overview' },
         asOf: '2026-11-08',
       },

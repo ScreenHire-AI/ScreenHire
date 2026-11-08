@@ -73,8 +73,8 @@ const point = (id: string) => sellingPoints.find((candidate) => candidate.id ===
     <ul class="flex flex-col tabular-nums">
       {
         data.rows.map((row) => (
-          <li class="grid gap-x-16 gap-y-4 border-t border-border py-6 last:border-b md:grid-cols-[10rem_minmax(0,1fr)_minmax(0,1fr)]">
-            <h3 class="text-xl font-bold">{row.topic}</h3>
+          <li class="grid gap-x-16 gap-y-4 border-t border-border py-6 last:border-b md:grid-cols-2 lg:grid-cols-[10rem_minmax(0,1fr)_minmax(0,1fr)]">
+            <h3 class="text-xl font-bold text-balance md:col-span-2 lg:col-span-1">{row.topic}</h3>
             <div class="min-w-0">
               <p class="text-sm font-semibold text-muted-foreground">{data.competitor}</p>
               <div class="mt-1"><Claim text={row.theirs.text} sources={row.theirs.sources} asOf={row.theirs.asOf} /></div>
@@ -93,13 +93,13 @@ const point = (id: string) => sellingPoints.find((candidate) => candidate.id ===
     <h2 id="fit-title" class="max-w-3xl font-display text-section text-balance">Which fits your team</h2>
     <div class="grid gap-x-16 gap-y-10 md:grid-cols-2">
       <div>
-        <h3 class="text-xl font-bold">{data.competitor} may suit you if</h3>
+        <h3 class="text-xl font-bold text-balance">{data.competitor} may suit you if</h3>
         <ul class="mt-4 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
           {data.whenCompetitorFits.map((item) => <li class="text-pretty">{item}</li>)}
         </ul>
       </div>
       <div>
-        <h3 class="text-xl font-bold">ScreenHire may suit you if</h3>
+        <h3 class="text-xl font-bold text-balance">ScreenHire may suit you if</h3>
         <ul class="mt-4 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
           {data.whenScreenHireFits.map((item) => <li class="text-pretty">{item}</li>)}
         </ul>
