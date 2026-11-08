@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { automation, everyPlanIncludes, hero, includedByTopic, integrations, notPaidExtra, pricingNotes, sellingPoints } from './features';
+import { automation, hero, includedByTopic, integrations, notPaidExtra, pricingNotes, sellingPoints } from './features';
 
 // The site's own words. The same rules are in docs/design/marketing-site.md (copy rules) and CLAUDE.md (non-negotiables 1 to 3).
 const bannedWords = ['AI-powered', 'supercharge', 'revolutionize', 'seamless', 'unlock', 'effortless', 'next-generation'];
-const words = JSON.stringify({ sellingPoints, hero, everyPlanIncludes, includedByTopic, notPaidExtra, pricingNotes, integrations, automation });
+const words = JSON.stringify({ sellingPoints, hero, includedByTopic, notPaidExtra, pricingNotes, integrations, automation });
 
 describe('selling points', () => {
   it("are the owner's five, in order", () => {

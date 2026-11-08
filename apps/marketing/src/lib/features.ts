@@ -169,18 +169,6 @@ export const hero = {
     'ScreenHire is the hiring tool for small teams. It checks every applicant, keeps your team and your candidates up to date, and does the busywork for you. One price, everything included.',
 };
 
-/** What every plan includes. Plans differ only in how many jobs are open at once. */
-export const everyPlanIncludes = [
-  'Unlimited users',
-  'A check on every applicant, with the evidence and a suggested next step',
-  'The AI consistency check, with your own key and model if you prefer',
-  'Automations, with a test before they go live',
-  'Email, Google and Outlook calendars and Slack',
-  'The API, webhooks and AI assistants through MCP',
-  'Your careers site and posting to Google for Jobs',
-  'Hiring templates, questionnaires and scorecards',
-];
-
 /** What every plan includes, grouped by the five selling points and the candidate's side. Each line is a built feature (docs/status.md). */
 export const includedByTopic: { id: string; title: string; items: string[] }[] = [
   {
