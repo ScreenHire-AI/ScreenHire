@@ -36,7 +36,7 @@ const { title, description, published, updated } = post.data;
   ]}
   jsonLd={[article({ type: 'BlogPosting', headline: title, description, path, datePublished: published, dateModified: updated }, site)]}
 >
-  <PageIntro title={title} lead={description}>
+  <PageIntro joined title={title} lead={description}>
     <p class="text-base text-muted-foreground">
       By the ScreenHire team on <time datetime={published}>{formatDate(published)}</time>.
       {updated && <> Updated <time datetime={updated}>{formatDate(updated)}</time>.</>}

@@ -28,7 +28,7 @@ const wideAvif = src ? await getImage({ src, widths: [640, 960, 1280, 1920], for
 const wide = src ? await getImage({ src, widths: [640, 960, 1280, 1920], format: 'webp' }) : undefined;
 const phoneSources = phoneSrc
   ? [
-      { type: 'image/avif', image: await getImage({ src: phoneSrc, widths: [430, 640], format: 'avif', quality: 50 }) },
+      { type: 'image/avif', image: await getImage({ src: phoneSrc, widths: [430, 640], format: 'avif', quality: 40 }) },
       { type: 'image/webp', image: await getImage({ src: phoneSrc, widths: [430, 640], format: 'webp', quality: 50 }) },
     ]
   : [];

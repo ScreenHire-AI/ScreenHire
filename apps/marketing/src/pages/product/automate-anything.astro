@@ -83,15 +83,15 @@ const faqs: Faq[] = [
     </figure>
   </PageHero>
 
-  <Section labelledby="when-title" class="flex flex-wrap gap-x-16 gap-y-10">
-    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+  <Section labelledby="when-title" class="flex flex-col gap-10">
+    <div class="flex max-w-measure flex-col gap-4">
       <h2 id="when-title" class="font-display text-section text-balance">When, if, then. From one reminder to a whole process.</h2>
       <p class="max-w-measure text-pretty text-secondary-foreground">
         Each automation is built in a form: a trigger, an optional condition on the answers a candidate gave or where the
         application came from, and what happens. It is not free text, and nothing guesses.
       </p>
     </div>
-    <RuledList class="flex-[1_1_28rem]" items={automation.examples.map((example) => ({ term: example.scope, detail: example.text }))} />
+    <RuledList items={automation.examples.map((example) => ({ term: example.scope, detail: example.text }))} />
   </Section>
 
   <Section tone="band" labelledby="stages-title" class="flex flex-wrap items-center gap-x-16 gap-y-10">

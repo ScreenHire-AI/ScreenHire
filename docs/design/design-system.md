@@ -505,7 +505,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - Nothing under 12px, and no pixel font size in markup: use `text-candidate-body` (15px) and `text-candidate-hint`
   (13px) on careers pages, and Tailwind's scale on marketing pages.
 - No capitals and no code font for ordinary words. A small line above a title or a card's heading is a kicker
-  (`.kicker` on marketing pages not yet restyled; section 22 retires it, M3): sentence case, body face, 14px. The code font is for codes only: reason codes, a
+  (marketing pages have none since section 22, M3): sentence case, body face, 14px. The code font is for codes only: reason codes, a
   notice version.
 - No cursor class on a component. Buttons, summaries, selects and switch labels get the hand from `theme.css` (A10).
 - A kicker adds to the breadcrumb and never repeats it (W7): a page whose kicker would be its own name has none.
@@ -540,9 +540,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   label in 12px semibold, or `quiet` for a calm state in a list (T3), the same as the dashboard's. A page never builds
   its own chip from `bg-status-*`. Careers pages show no status badge: each page names its state in its title and in
   `Notice`, and the verification result is never shown to a candidate.
-- A marketing button is `.button-primary` (filled) or `.button-secondary` (outline), 44px high with an 8px radius, until
-  section 22 restyles the page: it uses `CtaLink` (22.9). A
-  careers button is `.button-primary` or `.button-secondary` in the careers stylesheet, the same size, filled with the
+- A marketing call to action is `CtaLink` (22.9), 44px high with an 8px radius. A careers button is `.button-primary` or `.button-secondary` in the careers stylesheet, the same size, filled with the
   employer's brand colour.
 - A careers form with steps has one row of buttons: the primary button first in the document and at the right on a wide
   screen, Back beside it, and Save and finish later at the left. A page with one action leaves it at the left, under its
@@ -559,7 +557,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 | Panel header | 56px (52px on phones), 16 to 18px side padding |
 | Sidebar | 248px; icon rail 64px |
 | Top bar | 56px |
-| Content widths | Pages fill the window: a page's content container has no max-width. Long paragraphs stop at 72ch (`max-w-measure`) and forms at 688px (`max-w-form`). If a layout needs a limit, the element gets a max-width, never the page |
+| Content widths | Pages fill the window: a page's content container has no max-width. Long paragraphs stop at 72ch (`max-w-measure`, 60ch on the marketing site, 22.5) and forms at 688px (`max-w-form`). If a layout needs a limit, the element gets a max-width, never the page |
 | Board columns | 296px; an empty stage shrinks to 188px, and the stages that end a candidacy (Hired, Rejected, Withdrawn) share one 188px Closed column that counts each; each of its rows (and Saved) with someone in it is a button with a chevron (A9) that opens in place to that stage's candidates as plain cards linking to the candidate, collapsed to start |
 
 ## 6. Layers
@@ -1180,11 +1178,14 @@ so markup never holds a pixel size:
 
 | Token | Phone | md | xl | Weight | Use |
 |---|---|---|---|---|---|
-| `text-display` | 40 / 40 | 56 / 56 | 76 / 76 | 800, -0.025em | The `h1` of the home page and of a selling-point page |
+| `text-display` | 40 / 40 | 56 / 56 | 76 / 76 | 800, -0.025em | The `h1` of the home page and of a selling-point page, up to 40 characters; a longer one takes `text-section` |
 | `text-section` | 32 / 34 | 40 / 42 | 52 / 55 | 800, -0.015em | A section's `h2`, the closing band, and the `h1` of the pricing, compare, laws and blog pages |
 | `text-band` | 32 / 34 | 44 / 46 | 44 / 46 | 800, -0.015em | The heading beside a list, such as Questions |
 | `text-figure` | 40 / 40 | 48 / 48 | 52 / 52 | 800 | A sourced number |
 | `text-price` | 28 / 28 | 32 / 32 | 32 / 32 | 800 | A plan's price |
+
+At 76px a headline of a full sentence fills the first screen, so `PageHero` sets one over 40 characters at
+`text-section` by itself (`LONG_TITLE` in `PageHero.astro`).
 
 A lead is `text-xl`, body `text-base`, small text and sources `text-sm`, captions `text-xs`. A figure takes
 `tabular-nums` (W11). Text never goes under 12px, and the root size is the browser's.
@@ -1195,7 +1196,9 @@ A lead is `text-xl`, body `text-base`, small text and sources `text-sm`, caption
   xl:py-28`, built into `Section`). Between a heading and its words 16px (`gap-4`), between blocks 40px (`gap-10`),
   between columns 64px (`gap-x-16`).
 - The content column is `max-w-site` (1240px) and centred, with gutters of 16px on a phone, 24px from `md` and 32px
-  from `lg`. Bands run edge to edge. A paragraph stops at 72 characters (`max-w-measure`).
+  from `lg`. Bands run edge to edge. A paragraph stops at 60ch, about 75 characters a line in Hanken Grotesk: the
+  marketing stylesheet sets `--container-measure` to 60ch, so `max-w-measure` and long-form text follow it there, where
+  the token's 72ch ran to about 90. The dashboard and careers pages keep 72ch.
 - Radius is the brand's: 8px for buttons (`rounded-lg`), 12px for the product frame (`rounded-panel`), full for chips and
   avatars. Spacing sits on the 4px grid (section 4.4).
 
@@ -1244,8 +1247,7 @@ pricing say the same thing.
 
 `CtaLink` is a solid link with an 8px radius, 44px high (52px at `size="lg"`), never a pill. `primary` is the foreground
 colour, `indigo` is the brand colour for a light band, `secondary` is an outline in `muted-foreground`. One primary call
-to action a band, not counting the header's Start free trial, which is the same action as the hero's. This amends the 8px button rule in 4.4 for marketing pages: `.button-primary` and `.button-secondary`
-stay only for pages not yet restyled.
+to action a band, not counting the header's Start free trial, which is the same action as the hero's. The marketing site has no `.button-*` classes.
 
 ### 22.10 The shell and the other components
 
@@ -1256,7 +1258,7 @@ stay only for pages not yet restyled.
 | `Section`, `DarkBand` | A full-bleed band with the content column inside |
 | `SellingPoint` | One selling point (22.8) |
 | `ProductFrame`, `ApplicantPair` | The real product (22.7), and the hero's real-versus-flagged pair. A screenshot takes a `phoneSrc`, the same screen at phone width, which a phone downloads instead of the wide picture |
-| `PageHero` | The dark band that opens a product page: the `h1` at `text-display` across the full width, then the lead and call to action beside the page's one bold element (a screenshot, the applicant pair, a sentence). The page passes `headerTone="dark"` |
+| `PageHero` | The dark band that opens a product page: the `h1` at `text-display` (`text-section` past 40 characters) across the full width, then the lead and call to action beside the page's one bold element (a screenshot, the applicant pair, a sentence). The page passes `headerTone="dark"` |
 | `RuledList`, `ProofList` | A `dl` of terms and what each does with a rule between rows, which grows by a row and never by a tile (22.6); and a plain bulleted list: a selling point's proof points beside a picture, or any short list on a product page |
 | `LevelChip` | The dashboard's four labels and icons: No concerns, Review suggested, Verification suggested, Some signs of AI help |
 | `SourcedNumber` | A number with its claim and source link |

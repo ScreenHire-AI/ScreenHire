@@ -1,3 +1,4 @@
+import { satteri } from '@astrojs/markdown-satteri';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, envField, fontProviders } from 'astro/config';
@@ -50,6 +51,9 @@ export default defineConfig({
   // The old how-detection-works page is now the real-people product page. A static build writes a redirect page for it,
   // which the sitemap and llms.txt leave out.
   redirects: { '/how-detection-works/': '/product/real-people/' },
+  // Straight quotes everywhere: the hand-written pages use them, and Markdown's smart quotes made the blog and the law
+  // pages the only curly ones (writing-style rule).
+  markdown: { processor: satteri({ features: { smartPunctuation: false } }) },
   integrations: [
     sitemap({
       serialize: (item) => ({ ...item, links: hreflangs.map((lang) => ({ lang, url: item.url })) }),

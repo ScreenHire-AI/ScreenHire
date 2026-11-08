@@ -2,6 +2,22 @@
 
 ## 2026-11-08
 
+**The marketing site is audited and roadmap item 15 is done.** Every page was checked at 390, 768, 1024, 1440 and 1920
+px: no sideways scroll or clipped text at any of the 105 page and width combinations, the phone menu opens from its
+summary with no script on the page, focus shows in the dark, white and warm bands, and mobile LCP is under 1.8 s with
+CLS under 0.05 on all 20 pages in the sitemap. The `design-review` agent read screenshots of every page kind twice and
+found only small things (a repeated section shape on two product pages, a dead `.kicker` rule, double padding under a
+white intro). Impeccable's detector (4.7.0, Apache-2.0, run once with `npx`, nothing installed) found nothing in the
+source and, on the rendered pages, two display headlines of 54 and 69 characters, lines of about 90 characters at the
+72ch measure and unbalanced columns on the law pages. A headline over 40 characters now takes the section size, the
+marketing measure is 60ch, and the law pages' key dates stay beside the article. Markdown pages no longer turn straight
+quotes curly, one phone image was recompressed because the built-your-way hero missed the LCP budget by 7 ms, and
+`llms.txt` now describes the five selling points. The built text was scanned for the messaging doc's banned words,
+reason codes, scores and dashes (none), the product pages' claims were read against `docs/status.md`, the JSON-LD was
+parsed on every page (its offers equal the plan catalogue, its FAQs are the visible questions), and 33 of the 36 outside
+source links answer 200 while three law-firm and legislature sites refuse automated requests. The footer still says the
+product is in development.
+
 **The marketing site has its rules, its messaging and a shared shell.** The design system gains section 22 (dark, white and warm
 bands with contrast checked from the tokens, display sizes per breakpoint, the product frame, a selling point, and what
 never decorates a page) and a Public pages group in the review checklist, with checks taken from Vercel's Web Interface

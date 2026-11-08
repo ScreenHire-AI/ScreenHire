@@ -19,8 +19,15 @@ ScreenHire is in development. This file and the site describe the product as des
 - Applicant verification at the application stage, in two separate assessments: authenticity (is this a real,
   unique person?) and AI assistance (are there signs of AI help?). Each is a level with its evidence, counter-evidence
   and a suggested next step, never a numeric score.
+- A pipeline that shows where each candidate is and who spoke to them last, with two-way email kept on the application,
+  notes, tasks, reports, and a page where each candidate sees their own steps and messages.
+- Automations on every stage and on a whole workflow, tested on a sample application first, and interview scheduling
+  against members' calendars.
 - One-click posting to a careers page, Google for Jobs and job boards, and one-click removal with per-board status.
 - A public API and webhooks, Slack, Google and Outlook calendars, and an MCP server for AI assistants.
+- Stages, questionnaires, scorecards, email templates and branding that a team sets up its own way, with roles and
+  access to each job.
+- Pricing by how many jobs are open at once, with unlimited users and every feature on every plan.
 
 ## Principles
 
