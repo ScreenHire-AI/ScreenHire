@@ -37,7 +37,7 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 
 | ADR | Status |
 |---|---|
-| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0018 to 0024, 0029, 0030 | Accepted |
+| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0018 to 0025, 0029, 0030 | Accepted |
 | 0007 | Accepted, the Email row amended by 0022 (SendGrid through the Azure Marketplace; ACS Email stays a possible sender) |
 | 0003 | Accepted, Lighthouse enforcement amended by 0020 (report-only in CI until calibrated on the runners) |
 | 0004 | Accepted, terminology amended by 0019 (integrity is called verification) |
