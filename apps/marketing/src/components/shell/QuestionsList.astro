@@ -1,0 +1,29 @@
+---
+// Questions as a plain list (design system section 22): the heading at the left, each question and its answer at the
+// right, divided by rules. It renders no structured data. A page that wants FAQPage JSON-LD passes `faqPage(faqs)` to
+// BaseLayout with the same list, so the data matches what readers see.
+import type { Faq } from '../../lib/seo';
+import Section from './Section.astro';
+
+interface Props {
+  faqs: Faq[];
+  title?: string;
+  tone?: 'page' | 'band';
+}
+
+const { faqs, title = 'Questions', tone = 'page' } = Astro.props;
+---
+
+<Section tone={tone} labelledby="questions-title" class="flex flex-wrap gap-x-16 gap-y-8">
+  <h2 id="questions-title" class="flex-1 basis-64 font-display text-band text-balance">{title}</h2>
+  <div class="flex min-w-0 flex-[3_1_36rem] flex-col">
+    {
+      faqs.map((faq) => (
+        <div class="border-t border-border py-5 last:border-b">
+          <h3 class="text-xl font-bold text-balance">{faq.question}</h3>
+          <p class="mt-2 max-w-measure text-pretty text-secondary-foreground">{faq.answer}</p>
+        </div>
+      ))
+    }
+  </div>
+</Section>

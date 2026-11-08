@@ -1,0 +1,27 @@
+---
+// A full-bleed band with the content column inside it (design system section 22). `page` is the white page, `band` the
+// warm alternate band, `dark` the dark band (the dark tokens through `.dark`). The name comes from `labelledby` (the id of
+// the section's heading) or `label`.
+interface Props {
+  tone?: 'page' | 'band' | 'dark';
+  id?: string;
+  labelledby?: string;
+  label?: string;
+  /** Classes for the inner column, for the layout the section needs (flex, grid). */
+  class?: string;
+}
+
+const { tone = 'page', id, labelledby, label, class: className } = Astro.props;
+// Whole class names, so Tailwind finds them.
+const tones = {
+  page: 'bg-page text-foreground',
+  band: 'bg-background text-foreground',
+  dark: 'dark bg-background text-foreground',
+};
+---
+
+<section id={id} aria-labelledby={labelledby} aria-label={label} class={tones[tone]}>
+  <div class:list={['mx-auto max-w-site px-4 py-16 md:px-6 md:py-24 lg:px-8 xl:py-28', className]}>
+    <slot />
+  </div>
+</section>

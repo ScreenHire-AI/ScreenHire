@@ -15,6 +15,14 @@
   /* The page title is the one size that steps down on phones; theme.css maps it to `text-page-title`. */
   --sh-page-title-size: 1.5rem;
   --sh-page-title-leading: 1.875rem;
+
+  /* Marketing display sizes (design system section 22). Each steps up at md (48rem) and the first three again at xl
+     (80rem); theme.css maps them to `text-display`, `text-section`, `text-band`, `text-figure` and `text-price`. */
+  --sh-display-size: 2.5rem;
+  --sh-section-size: 2rem;
+  --sh-band-size: 2rem;
+  --sh-figure-size: 2.5rem;
+  --sh-price-size: 1.75rem;
 }
 
 /* `.light` lets a box show the light theme inside a dark page, as the style guide does (section 3.3). */
@@ -26,6 +34,9 @@
   /* Recruiter app — light */
   --background: #f7f5f0;
   --foreground: #1c1b19;
+  /* The marketing page itself (section 22): white, with `background` as the warm alternate band and `.dark` as the dark
+     band. */
+  --page: #ffffff;
   --card: #ffffff;
   --card-foreground: #1c1b19;
   --popover: #ffffff;
@@ -102,6 +113,19 @@
   :root {
     --sh-page-title-size: 1.75rem;
     --sh-page-title-leading: 2.125rem;
+    --sh-display-size: 3.5rem;
+    --sh-section-size: 2.5rem;
+    --sh-band-size: 2.75rem;
+    --sh-figure-size: 3rem;
+    --sh-price-size: 2rem;
+  }
+}
+
+@media (width >= 80rem) {
+  :root {
+    --sh-display-size: 4.75rem;
+    --sh-section-size: 3.25rem;
+    --sh-figure-size: 3.25rem;
   }
 }
 
@@ -109,6 +133,7 @@
   color-scheme: dark;
   --background: #141311;
   --foreground: #edeae4;
+  --page: #141311;
   --card: #1c1b18;
   --card-foreground: #edeae4;
   --popover: #1c1b18;

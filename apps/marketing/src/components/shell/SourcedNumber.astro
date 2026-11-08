@@ -1,0 +1,21 @@
+---
+// A number, what it says and where it comes from (design system section 22). A number on a page always has a source the
+// reader can open. The figure is read as one phrase ("291 applications for every hire"), so it is not set apart for
+// assistive technology.
+import type { SourcedFigure } from '../../lib/features';
+
+interface Props {
+  figure: SourcedFigure;
+  class?: string;
+}
+
+const { figure, class: className } = Astro.props;
+---
+
+<div class={className}>
+  <p class="font-display text-figure tabular-nums">{figure.value}</p>
+  <p class="mt-2 text-balance">{figure.claim}</p>
+  <p class="mt-2 text-sm text-muted-foreground">
+    Source: <a href={figure.source.href} class="text-foreground underline underline-offset-4 hover:text-primary">{figure.source.label}</a>
+  </p>
+</div>

@@ -1,0 +1,58 @@
+---
+// The site header (design system section 22). `tone="dark"` sits over a dark hero band, `light` is the default. From md
+// the links are in the bar. Below md they are in a details menu, which needs no JavaScript: both read the same
+// `mainNav`, and a closed details keeps its links out of the page for everyone.
+import { PUBLIC_APP_URL } from 'astro:env/server';
+import { appLinks } from '../../lib/app-links';
+import { mainNav, pages } from '../../lib/pages';
+import CtaLink from './CtaLink.astro';
+
+interface Props {
+  tone?: 'dark' | 'light';
+}
+
+const { tone = 'light' } = Astro.props;
+const current = Astro.url.pathname;
+const isCurrent = (path: string) => current === path || (path !== '/' && current.startsWith(path));
+const { signIn: signInUrl, signUp: signUpUrl } = appLinks(PUBLIC_APP_URL, pages.pricing.path);
+const tones = { dark: 'dark bg-background text-foreground', light: 'bg-page text-foreground' };
+const link = 'inline-flex min-h-8 items-center text-foreground no-underline hover:underline aria-[current=page]:underline underline-offset-4 pointer-coarse:min-h-11';
+---
+
+<div class={tones[tone]}>
+  <header class="relative mx-auto flex max-w-site items-center gap-x-8 px-4 py-4 md:px-6 md:py-6 lg:px-8">
+    <a href="/" class="flex items-center gap-3 text-foreground no-underline">
+      <span aria-hidden="true" class="grid size-8 place-items-center rounded-lg bg-foreground font-display text-lg font-extrabold text-background">S</span>
+      <span class="font-display text-xl font-bold tracking-tight">ScreenHire</span>
+    </a>
+    <nav aria-label="Main" class="hidden flex-1 flex-wrap gap-x-6 text-base font-semibold md:flex">
+      {
+        mainNav.map((page) => (
+          <a href={page.path} aria-current={isCurrent(page.path) ? 'page' : undefined} class={link}>
+            {page.label}
+          </a>
+        ))
+      }
+    </nav>
+    <div class="ml-auto flex items-center gap-x-4">
+      {signInUrl && <div class="hidden md:block"><a href={signInUrl} class:list={[link, 'font-semibold']}>Sign in</a></div>}
+      <div class="hidden sm:block"><CtaLink href={signUpUrl} class="whitespace-nowrap">Start free trial</CtaLink></div>
+      <details class="md:hidden">
+        <summary class="inline-flex h-11 list-none items-center rounded-lg border border-muted-foreground px-4 font-semibold text-foreground [&::-webkit-details-marker]:hidden">Menu</summary>
+        <div class="absolute inset-x-0 top-full z-10 border-t border-border bg-background px-4 pt-2 pb-6 shadow-overlay">
+          <nav aria-label="Main menu" class="flex flex-col text-lg font-semibold">
+            {
+              mainNav.map((page) => (
+                <a href={page.path} aria-current={isCurrent(page.path) ? 'page' : undefined} class:list={[link, 'min-h-11']}>
+                  {page.label}
+                </a>
+              ))
+            }
+            {signInUrl && <a href={signInUrl} class:list={[link, 'min-h-11']}>Sign in</a>}
+          </nav>
+          <div class="mt-4 sm:hidden"><CtaLink href={signUpUrl} class="w-full">Start free trial</CtaLink></div>
+        </div>
+      </details>
+    </div>
+  </header>
+</div>

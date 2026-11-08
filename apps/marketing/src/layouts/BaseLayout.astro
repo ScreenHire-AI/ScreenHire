@@ -1,10 +1,9 @@
 ---
 import { Font, fontData } from 'astro:assets';
-import { PUBLIC_APP_URL } from 'astro:env/server';
 import Analytics from '../components/Analytics.astro';
 import Seo from '../components/Seo.astro';
-import { appLinks } from '../lib/app-links';
-import { footerNav, mainNav, pages } from '../lib/pages';
+import SiteFooter from '../components/shell/SiteFooter.astro';
+import SiteHeader from '../components/shell/SiteHeader.astro';
 import { breadcrumbList, type Crumb, type JsonLd } from '../lib/seo';
 import '../styles/global.css';
 
@@ -16,16 +15,15 @@ interface Props {
   breadcrumbs?: Crumb[];
   ogType?: 'website' | 'article';
   noindex?: boolean;
+  /** `dark` when the page opens with a dark hero band that the header sits on (design system section 22). */
+  headerTone?: 'dark' | 'light';
 }
 
-const { title, description, jsonLd = [], breadcrumbs, ogType, noindex } = Astro.props;
+const { title, description, jsonLd = [], breadcrumbs, ogType, noindex, headerTone = 'light' } = Astro.props;
 const site = Astro.site ?? new URL(Astro.url.origin);
 const graph = breadcrumbs ? [breadcrumbList(breadcrumbs, site), ...jsonLd] : jsonLd;
-const current = Astro.url.pathname;
-const isCurrent = (path: string) => current === path || (path !== '/' && current.startsWith(path));
 // Preload only the latin body font (the first variant in astro.config.mjs); latin-ext downloads when a page needs it.
 const bodyFont = fontData['--font-hanken']?.[0]?.src[0]?.url;
-const { signIn: signInUrl, signUp: signUpUrl } = appLinks(PUBLIC_APP_URL, pages.pricing.path);
 ---
 
 <!doctype html>
@@ -40,48 +38,16 @@ const { signIn: signInUrl, signUp: signUpUrl } = appLinks(PUBLIC_APP_URL, pages.
     <Seo title={title} description={description} jsonLd={graph} ogType={ogType} noindex={noindex} />
     <Analytics />
   </head>
-  <body class="min-h-screen bg-background text-foreground">
+  <body class="min-h-screen bg-page text-foreground">
     <a
       href="#main"
       class="sr-only rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
       >Skip to content</a
     >
-    {/* On a phone the name and the Start free button share the first row and the links wrap below them; from md up it is
-        one row: name, links, then the buttons at the right. */}
-    <header class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-5">
-      <a href="/" class="order-1 flex items-center gap-3 text-foreground no-underline">
-        <span
-          aria-hidden="true"
-          class="grid size-8 place-items-center rounded-lg bg-foreground font-display text-lg font-extrabold text-background"
-          >S</span
-        >
-        <span class="font-display text-xl font-bold tracking-tight">ScreenHire</span>
-      </a>
-      <nav aria-label="Main" class="order-3 flex w-full flex-wrap gap-x-6 text-base font-semibold md:order-2 md:w-auto">
-        {
-          mainNav.map((page) => (
-            <a
-              href={page.path}
-              aria-current={isCurrent(page.path) ? 'page' : undefined}
-              class="inline-flex min-h-8 items-center text-secondary-foreground no-underline hover:text-primary aria-[current=page]:text-primary pointer-coarse:min-h-11"
-            >
-              {page.label}
-            </a>
-          ))
-        }
-      </nav>
-      <div class="order-2 ml-auto flex items-center gap-3 md:order-3">
-        {signInUrl && <a href={signInUrl} class="inline-flex min-h-11 items-center px-2 font-semibold text-foreground no-underline hover:text-primary">Sign in</a>}
-        <a
-          href={signUpUrl}
-          class="button-primary"
-          >Start free</a
-        >
-      </div>
-    </header>
+    <SiteHeader tone={headerTone} />
     {
       breadcrumbs && (
-        <nav aria-label="Breadcrumb" class="mx-auto max-w-6xl px-6">
+        <nav aria-label="Breadcrumb" class="mx-auto max-w-site px-4 md:px-6 lg:px-8">
           <ol class="flex flex-wrap gap-x-2 text-sm text-muted-foreground">
             <li>
               <a href="/" class="inline-flex min-h-6 items-center text-muted-foreground hover:text-primary pointer-coarse:min-h-11">Home</a>
@@ -105,24 +71,6 @@ const { signIn: signInUrl, signUp: signUpUrl } = appLinks(PUBLIC_APP_URL, pages.
     <main id="main">
       <slot />
     </main>
-    <footer class="border-t border-border">
-      <div class="mx-auto flex max-w-6xl flex-wrap items-start justify-between gap-6 px-6 py-12 text-sm text-muted-foreground">
-        <span class="font-display text-lg font-bold text-foreground">ScreenHire</span>
-        <nav aria-label="Footer" class="flex flex-wrap gap-x-6 gap-y-2">
-          {
-            footerNav.map((page) => (
-              <a href={page.path} class="inline-flex min-h-6 items-center text-muted-foreground hover:text-primary pointer-coarse:min-h-11">
-                {page.label}
-              </a>
-            ))
-          }
-          <a href="/rss.xml" class="inline-flex min-h-6 items-center text-muted-foreground hover:text-primary pointer-coarse:min-h-11">RSS</a>
-        </nav>
-        <div class="flex flex-col gap-1">
-          <span>© {new Date().getUTCFullYear()} ScreenHire</span>
-          <span>ScreenHire is in development. Product pages describe it as designed.</span>
-        </div>
-      </div>
-    </footer>
+    <SiteFooter />
   </body>
 </html>

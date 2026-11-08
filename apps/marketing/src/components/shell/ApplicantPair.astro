@@ -1,0 +1,41 @@
+---
+// The hero's real-versus-flagged pair (design system section 22): two applicants for the same job, one with no concerns
+// and one with a verification suggested, its why, what speaks for the candidate and the next step. Fictional people. The
+// site never shows reason codes, rule names or how a check is computed (docs/design/marketing-site.md).
+import LevelChip from './LevelChip.astro';
+import ProductFrame from './ProductFrame.astro';
+
+const job = 'Senior .NET Engineer, applied this morning';
+---
+
+<div role="group" aria-label="Two applicants for the same job, as ScreenHire shows them" class="flex min-w-0 flex-col gap-4">
+  <ProductFrame class="max-w-xl">
+    <div class="flex flex-wrap items-center gap-4 px-5 py-5">
+      <span aria-hidden="true" class="grid size-10 place-items-center rounded-full bg-accent font-bold text-accent-foreground">PR</span>
+      <div class="min-w-0 flex-1 basis-48">
+        <p class="font-bold">Priya Raman</p>
+        <p class="text-sm text-muted-foreground">{job}</p>
+      </div>
+      <LevelChip level="noConcerns" />
+    </div>
+  </ProductFrame>
+  <ProductFrame class="sm:ml-12">
+    <div class="flex flex-wrap items-center gap-4 border-b border-border-subtle px-5 py-5">
+      <span aria-hidden="true" class="grid size-10 place-items-center rounded-full bg-accent font-bold text-accent-foreground">AM</span>
+      <div class="min-w-0 flex-1 basis-48">
+        <p class="font-bold">Alex Morgan</p>
+        <p class="text-sm text-muted-foreground">{job}</p>
+      </div>
+      <LevelChip level="verificationSuggested" />
+    </div>
+    <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3 px-5 py-5 text-base">
+      <dt class="font-bold">Why</dt>
+      <dd>The network they applied from is in a different country from the one they gave. One answer is the same text sent with other applications this week.</dd>
+      <dt class="font-bold">But also</dt>
+      <dd>Their phone number is a mobile number, not an internet line.</dd>
+      <dt class="font-bold">Next step</dt>
+      <dd>A short video call before the technical interview.</dd>
+    </dl>
+    <p class="bg-secondary px-5 py-3 text-sm text-secondary-foreground">Sample applicants. A person on your team decides.</p>
+  </ProductFrame>
+</div>

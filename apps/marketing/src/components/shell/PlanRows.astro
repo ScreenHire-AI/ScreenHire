@@ -1,0 +1,45 @@
+---
+// The plans as rows, not cards (design system section 22): name and open-job limit on the left, the monthly price on the
+// right. It reads the plan catalogue (packages/plans) through `buildPlans`, so a number set there shows here; until it is
+// set the row shows the pricing placeholder. Built for a dark band, and right on a light one too.
+import { hasPrice, plans as catalogue, type Plan } from '../../lib/pricing';
+
+interface Props {
+  plans?: Plan[];
+  /** The plan the free trial starts on, named in its row. */
+  trialPlan?: string;
+  class?: string;
+}
+
+const { plans = catalogue, trialPlan, class: className } = Astro.props;
+
+function price(plan: Plan): string {
+  if (!hasPrice(plan)) return plan.monthlyPrice;
+  const amount = Number(plan.monthlyPrice);
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: plan.priceCurrency,
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+  }).format(amount);
+}
+---
+
+<ul aria-label="Plans" class:list={['flex flex-col', className]}>
+  {
+    plans.map((plan) => (
+      <li class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-t border-border py-5 last:border-b">
+        <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <span class="font-display text-xl font-bold">
+            {plan.name}
+            {trialPlan === plan.name && <span class="ml-2 font-sans text-base font-medium text-muted-foreground">(your trial)</span>}
+          </span>
+          <span class="text-muted-foreground">{plan.activeJobs}</span>
+        </div>
+        <span class="font-display text-price tabular-nums">
+          {price(plan)}
+          {hasPrice(plan) && <span class="ml-1 font-sans text-base font-normal text-muted-foreground">a month</span>}
+        </span>
+      </li>
+    ))
+  }
+</ul>

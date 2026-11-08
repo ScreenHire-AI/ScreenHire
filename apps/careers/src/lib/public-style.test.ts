@@ -32,7 +32,12 @@ describe('public page markup', () => {
   it('reads the pages it guards', () => {
     expect(markup.length).toBeGreaterThan(40);
     expect(markup.map((file) => file.path)).toEqual(
-      expect.arrayContaining(['apps/careers/src/layouts/CareersLayout.astro', 'apps/marketing/src/layouts/BaseLayout.astro', 'packages/ui/src/questions/FileField.svelte']),
+      expect.arrayContaining([
+        'apps/careers/src/layouts/CareersLayout.astro',
+        'apps/marketing/src/layouts/BaseLayout.astro',
+        'apps/marketing/src/components/shell/SiteHeader.astro',
+        'packages/ui/src/questions/FileField.svelte',
+      ]),
     );
   });
 
@@ -41,10 +46,7 @@ describe('public page markup', () => {
   });
 
   it('keeps the code font for codes (W2): a reason code and the notice version', () => {
-    expect(offenders(/\bfont-mono\b/g).sort()).toEqual([
-      'apps/careers/src/pages/[organization]/privacy.astro',
-      'apps/marketing/src/components/SampleVerificationCard.astro',
-    ]);
+    expect(offenders(/\bfont-mono\b/g).sort()).toEqual(['apps/careers/src/pages/[organization]/privacy.astro']);
   });
 
   it('sets no pixel text size (W1): the tokens and the scale keep everything at 12px or more', () => {
@@ -100,11 +102,46 @@ describe('public page markup', () => {
 
   it('sizes text in the stylesheets from the scale (section 4.3): no fixed rem or pixel font size', () => {
     for (const stylesheet of ['../styles/global.css', '../../../marketing/src/styles/global.css', '../../../../packages/ui/src/questions.css']) {
-      expect(readFileSync(fileURLToPath(new URL(stylesheet, import.meta.url)), 'utf8')).not.toMatch(/font-size:s*[d.]+(?:rem|px)/);
+      expect(readFileSync(fileURLToPath(new URL(stylesheet, import.meta.url)), 'utf8')).not.toMatch(/font-size:\s*[\d.]+(?:rem|px)/);
     }
   });
 
   it('leaves the cursor to the theme (A10): no cursor class on a component', () => {
     expect(offenders(/\bcursor-(?:pointer|default|not-allowed)\b/g)).toEqual([]);
   });
+
+  it('keeps the generated-page tells out of marketing markup (design system section 22, M1 to M8)', () => {
+    // Pages and components written before the marketing rules are listed in LEGACY until their task restyles them. A file
+    // that no longer offends must leave the list, so it only ever shrinks and a restyled page cannot slip back.
+    const legacy = new Set<string>(LEGACY);
+    const marketing = markup.filter((file) => file.path.startsWith('apps/marketing/'));
+    const tellsIn = (text: string) => Object.entries(tells).filter(([, pattern]) => pattern.test(text)).map(([name]) => name);
+    const fresh = marketing.filter((file) => !legacy.has(file.path)).map((file) => [file.path, tellsIn(file.text)] as const).filter(([, found]) => found.length > 0);
+    expect(fresh).toEqual([]);
+    const clean = marketing.filter((file) => legacy.has(file.path) && tellsIn(file.text).length === 0).map((file) => file.path);
+    expect(clean, 'remove these from LEGACY: they no longer offend').toEqual([]);
+    expect([...legacy].filter((path) => !marketing.some((file) => file.path === path)), 'LEGACY names a file that is gone').toEqual([]);
+  });
 });
+
+// The tells of a generated page that section 22 bans as decoration, as far as a search can prove them. An icon tile above
+// every heading, cards inside cards and a bright accent on a dark band are left to the design-review agent.
+const tells: Record<string, RegExp> = {
+  'a gradient (M2)': /\bbg-(?:gradient|linear|radial|conic)-|(?:linear|radial|conic)-gradient\(/,
+  'a kicker above a heading (M3)': /\bkicker\b/,
+  'a middle dot between facts (M5)': /·|&middot;|&#183;/,
+  'a numbered 01 / 02 marker (M6)': />\s*0[1-9]\s*</,
+  'a fade-up or a looping animation (M7)': /\banimate-[a-z]|\bfade-(?:up|in)\b|@keyframes/,
+  'transition-all (M8)': /\btransition-all\b/,
+};
+
+// Each page task (home, product and selling points, compare, laws) removes its files from this list when it drops the kicker.
+const LEGACY: string[] = [
+  'apps/marketing/src/components/PageHeader.astro',
+  'apps/marketing/src/pages/compare/[slug].astro',
+  'apps/marketing/src/pages/hiring-ai-laws/[slug].astro',
+  'apps/marketing/src/pages/hiring-ai-laws/index.astro',
+  'apps/marketing/src/pages/how-detection-works.astro',
+  'apps/marketing/src/pages/index.astro',
+  'apps/marketing/src/pages/product.astro',
+];

@@ -25,6 +25,8 @@ const forbidden: [string, RegExp][] = [
   ['a percentage of AI-written text', /\d+\s*%\s*(of\s+\w+\s+)?AI/i],
   ['a numeric fraud score', /\b(fraud|risk)\s*(score|risk)?\s*[:=]\s*\d/i],
   ['an unscoped "never rejected automatically" claim', /nothing is rejected automatically|never rejects candidates automatically/i],
+  // The copy rules in docs/design/marketing-site.md: the word AI appears only where it names a feature, and none of these.
+  ['an AI fluff word', /\bAI-powered\b|\bsupercharg\w*|\brevolutioni[sz]\w*|\bseamless\w*|\bunlock\w*|\beffortless\w*|\bnext-generation\b/i],
 ];
 
 describe('marketing copy', () => {

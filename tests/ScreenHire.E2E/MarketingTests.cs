@@ -60,6 +60,27 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
         await ExpectNoAccessibilityViolationsAsync();
     }
 
+    [Fact]
+    public async Task Header_menu_opens_on_a_phone_without_javascript_and_the_bar_shows_from_md()
+    {
+        var scriptRequests = RecordScriptRequests();
+        await Page.SetViewportSizeAsync(390, 844);
+
+        await GoToAsync(Marketing, "/pricing/");
+
+        var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main menu" });
+        await Expect(menu).ToBeHiddenAsync();
+        await Page.Locator("header summary").ClickAsync();
+        await Expect(menu).ToBeVisibleAsync();
+        await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Pricing" })).ToHaveAttributeAsync("aria-current", "page");
+        await ExpectNoAccessibilityViolationsAsync();
+
+        await Page.SetViewportSizeAsync(1440, 900);
+        await Expect(Page.Locator("header summary")).ToBeHiddenAsync();
+        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main", Exact = true })).ToBeVisibleAsync();
+        scriptRequests.Should().BeEmpty();
+    }
+
     [Theory]
     [MemberData(nameof(Pages))]
     public async Task Page_has_complete_seo_and_no_javascript(string path, string[] expectedTypes)

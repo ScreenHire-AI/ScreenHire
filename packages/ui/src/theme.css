@@ -45,10 +45,32 @@
   --text-candidate-title--font-weight: 700;
   --text-candidate-title--letter-spacing: -0.02em;
 
+  /* Marketing display sizes (section 22): stepped by breakpoint in tokens.css, always with `font-display`. */
+  --text-display: var(--sh-display-size);
+  --text-display--line-height: 1;
+  --text-display--font-weight: 800;
+  --text-display--letter-spacing: -0.025em;
+  --text-section: var(--sh-section-size);
+  --text-section--line-height: 1.05;
+  --text-section--font-weight: 800;
+  --text-section--letter-spacing: -0.015em;
+  --text-band: var(--sh-band-size);
+  --text-band--line-height: 1.05;
+  --text-band--font-weight: 800;
+  --text-band--letter-spacing: -0.015em;
+  --text-figure: var(--sh-figure-size);
+  --text-figure--line-height: 1;
+  --text-figure--font-weight: 800;
+  --text-price: var(--sh-price-size);
+  --text-price--line-height: 1;
+  --text-price--font-weight: 800;
+
   /* Widths (section 5). Pages fill the window and have none. `max-w-measure` stops a long paragraph at 72 characters,
      and `max-w-form` is the 688px form column. */
   --container-measure: 72ch;
   --container-form: 43rem;
+  /* Marketing content column (section 22): 1240px, centred inside full-bleed bands. */
+  --container-site: 77.5rem;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -65,6 +87,7 @@
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-page: var(--page);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);

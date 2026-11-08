@@ -1,0 +1,30 @@
+---
+// The call to action (design system section 22): a link that looks like a button, 8px radius, solid. `primary` is the
+// foreground colour, so it is light on a dark band and ink on a light one with no per-band class. `indigo` is the brand
+// colour for light bands only (a bright accent on a near-black band is banned). `secondary` is an outline.
+interface Props {
+  href: string;
+  variant?: 'primary' | 'indigo' | 'secondary';
+  size?: 'md' | 'lg';
+  class?: string;
+}
+
+const { href, variant = 'primary', size = 'md', class: className } = Astro.props;
+// Whole class names, so Tailwind finds them.
+const variants = {
+  primary: 'bg-foreground text-background hover:bg-foreground/90',
+  indigo: 'bg-primary text-primary-foreground hover:bg-primary/90',
+  secondary: 'border border-muted-foreground text-foreground hover:bg-secondary',
+};
+const sizes = {
+  md: 'h-11 px-5',
+  lg: 'h-13 px-6 text-lg',
+};
+---
+
+<a
+  href={href}
+  class:list={['inline-flex items-center justify-center rounded-lg font-semibold no-underline', variants[variant], sizes[size], className]}
+>
+  <slot />
+</a>

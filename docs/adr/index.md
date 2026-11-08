@@ -31,12 +31,13 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0027: The candidate portal is a page reached by an emailed link, with no account](0027-candidate-portal-by-email-link.md) - A candidate sees their applications, a generic four-step status, anything waiting and their messages on a careers page opened by a signed, time-limited emailed link, with no account or password; a reply from the page and a reply by email share one ingest and one thread, and every email to a candidate ends with the link.
 * [ADR-0028: OAuth sign-in for the MCP server](0028-oauth-sign-in-for-the-mcp-server.md) - The MCP server also accepts OAuth access tokens, so a client that signs in only with OAuth, such as a claude.ai custom connector, can connect: an authorization server on the API (discovery, dynamic client registration, authorization code with PKCE, rotating refresh tokens), a consent page in the dashboard, a connection that is a key row holding the same scopes as an API key, opaque hashed tokens that work on the MCP endpoint only, written by hand rather than with OpenIddict because its tables sit outside row-level security.
 * [ADR-0029: Billing, plans and the free trial](0029-billing.md) - How an organization pays and what a plan allows: plans are configuration over a shared packages/plans catalogue, Stripe sits behind IBillingProvider with a local sandbox and is called over plain HTTP with a pinned API version, billing is off and limits nothing until configured, a trial starts at sign-up, only opening a draft job is ever refused (402), the open-job count is organization-wide under a per-organization lock, a signed webhook names its organization in metadata and applies once, and only an Owner sees any of it.
+* [ADR-0030: Marketing site direction](0030-marketing-site-direction.md) - How the marketing site looks and what it sells: five selling points in the owner's order told as pain, promise and proof, dark and white bands with the real product as the one bold element, a ban on generated-page decoration, the rules written in the design system and enforced by its review agent, and no third-party design skill installed.
 
 ## Status
 
 | ADR | Status |
 |---|---|
-| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0018 to 0024, 0029 | Accepted |
+| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0018 to 0024, 0029, 0030 | Accepted |
 | 0007 | Accepted, the Email row amended by 0022 (SendGrid through the Azure Marketplace; ACS Email stays a possible sender) |
 | 0003 | Accepted, Lighthouse enforcement amended by 0020 (report-only in CI until calibrated on the runners) |
 | 0004 | Accepted, terminology amended by 0019 (integrity is called verification) |

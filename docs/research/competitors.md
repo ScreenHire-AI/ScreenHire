@@ -124,6 +124,12 @@ Gartner exact wording (403; via HR Dive); Workday fraud signals; ID.me shipped s
 Ashby/Workday integration dates; Truely (likely discontinued), Polygraf, Sherlock, Mercor; all accuracy figures are
 vendor claims; currency on Workable/Breezy/JazzHR; Honorlock, Ropes, Crosscheck not researched.
 
+Re-read on 2026-11-08 for the marketing site (see [pain points](pain-points.md)): GoHire's "no event triggers" is wrong
+(its help article says stage actions fire when a candidate moves stage), and "Pro-only" and "no public API" are not
+confirmed. SmartRecruiters' $14,995, Zoho's $25 per recruiter and Gem's $1.80 per check are not on the vendor pages.
+Ashby's 291 applications per hire is in its 2026 report, without the "about 100 in 2021" comparison. Do not copy these
+lines onto a marketing page.
+
 ## Sources
 
 1. https://gohire.io/pricing ; https://help.gohire.io/en/articles/7920630-how-much-is-gohire ; https://help.gohire.io/en/articles/12358433-boost-your-hiring-power-with-the-plus-plan ; https://help.gohire.io/en/articles/3385844 ; https://help.gohire.io/en/articles/6837442 ; https://help.gohire.io/en/articles/8009831

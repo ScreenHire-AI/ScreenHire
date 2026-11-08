@@ -41,7 +41,7 @@ each item names the doc that designs it. Board workflows carry the detail.
 
 | # | Work | Workflow | Why now |
 |---|---|---|---|
-| 15 | Rebuild the marketing site: rules for marketing pages in the [design system](design/design-system.md), and pages that show the real product and what it does today | Not planned yet | The home and product pages never mention Slack, interview scheduling, reports, scorecards, the candidate portal or the MCP server, they show no picture of the product, and the home page shows a price placeholder |
+| 15 | Rebuild the marketing site: rules for marketing pages in the [design system](design/design-system.md), and pages that show the real product and what it does today | "Marketing site: direction B + C": the rules, the messaging doc and the shared shell first, then the home, pricing, product and compare pages | The home and product pages never mention Slack, interview scheduling, reports, scorecards, the candidate portal or the MCP server, they show no picture of the product, and the home page shows a price placeholder |
 
 ## Later
 
