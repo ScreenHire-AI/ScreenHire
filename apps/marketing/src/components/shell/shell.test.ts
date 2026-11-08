@@ -3,15 +3,19 @@ import { PUBLIC_APP_URL } from 'astro:env/server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { appLinks } from '../../lib/app-links';
 import { levels } from '../../lib/features';
-import { pages } from '../../lib/pages';
+import { pages, productNav } from '../../lib/pages';
 import { buildPlans } from '../../lib/pricing';
 import ApplicantPair from './ApplicantPair.astro';
 import ClosingBand from './ClosingBand.astro';
 import CtaLink from './CtaLink.astro';
 import LevelChip from './LevelChip.astro';
+import PageHero from './PageHero.astro';
 import PageIntro from './PageIntro.astro';
 import PlanRows from './PlanRows.astro';
+import ProductFrame from './ProductFrame.astro';
+import ProofList from './ProofList.astro';
 import QuestionsList from './QuestionsList.astro';
+import RuledList from './RuledList.astro';
 import SiteFooter from './SiteFooter.astro';
 import SiteHeader from './SiteHeader.astro';
 import SourcedNumber from './SourcedNumber.astro';
@@ -50,6 +54,25 @@ describe('SiteHeader', () => {
   it('marks the current page in both lists', async () => {
     const html = await render(SiteHeader);
     expect(html.match(/aria-current="page"/g)).toHaveLength(2);
+  });
+
+  it('lists the overview and every product page under Product, in the bar and in the phone menu', async () => {
+    const html = await render(SiteHeader);
+    const bar = html.match(/<nav aria-label="Main"[\s\S]*?<\/nav>/)![0];
+    const menu = html.match(/<nav aria-label="Main menu"[\s\S]*?<\/nav>/)![0];
+    for (const page of productNav) {
+      expect(bar, page.path).toContain(`href="${page.path}"`);
+      expect(menu, page.path).toContain(`href="${page.path}"`);
+    }
+    expect(productNav.map((page) => page.path)).toEqual([
+      '/product/',
+      '/product/real-people/',
+      '/product/never-guessing/',
+      '/product/automate-anything/',
+      '/product/integrations/',
+      '/product/built-your-way/',
+      '/product/careers-site/',
+    ]);
   });
 
   it('puts the dark tokens on a dark header only', async () => {
@@ -158,5 +181,47 @@ describe('ClosingBand', () => {
     const signUp = appLinks(PUBLIC_APP_URL, pages.pricing.path).signUp;
     expect(await render(ClosingBand, { title: 'Close.' })).toContain(`href="${signUp}"`);
     expect(await render(ClosingBand, { title: 'Close.', href: '/x/' })).toContain('href="/x/"');
+  });
+});
+
+describe('PageHero', () => {
+  it('has the one h1 at the display size on the dark band, with the call to action and a link to pricing', async () => {
+    const html = await render(PageHero, { title: 'A title', lead: 'A lead.' });
+    expect(html.match(/<h1/g)).toHaveLength(1);
+    expect(html).toContain('text-display');
+    expect(html).toMatch(/class="dark /);
+    expect(html).toContain('Start free trial');
+    expect(html).toContain(`href="${pages.pricing.path}"`);
+    expect(html).not.toContain('kicker');
+  });
+});
+
+describe('RuledList', () => {
+  it('reads each term with its detail in a description list', async () => {
+    const html = await render(RuledList, { items: [{ term: 'Email', detail: 'Replies stay on the candidate.' }] });
+    expect(html).toContain('<dl');
+    expect(html).toContain('<dt');
+    expect(html).toContain('Email');
+    expect(html).toContain('Replies stay on the candidate.');
+  });
+});
+
+describe('ProofList', () => {
+  it('lists each proof point', async () => {
+    const html = await render(ProofList, { items: ['A check on every application', 'A person decides'] });
+    expect(html.match(/<li/g)).toHaveLength(2);
+  });
+});
+
+describe('ProductFrame', () => {
+  it('frames markup in the light theme with one edge', async () => {
+    const html = await render(ProductFrame);
+    expect(html).toContain('light ');
+    expect(html).toContain('rounded-panel');
+  });
+
+  it('refuses a screenshot without alt text (F7)', async () => {
+    const src = { src: '/x.png', width: 100, height: 50, format: 'png' };
+    await expect(render(ProductFrame, { src })).rejects.toThrow(/alt text/);
   });
 });

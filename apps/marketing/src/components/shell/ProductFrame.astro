@@ -2,26 +2,57 @@
 // The real product, shown big and sharp (design system section 22): an image of the dashboard, or markup built from the
 // same components, framed with one edge and nothing else. It always draws in the light theme, also inside a dark band,
 // because that is how the product looks. An image takes its width and height from the file, so the page does not shift.
-import { Image } from 'astro:assets';
+// A `phoneSrc` is the same screen laid out at phone width: a phone downloads that one and never the wide picture.
+import { getImage } from 'astro:assets';
 
 interface Props {
   /** A screenshot imported from src/assets. Leave it out to frame the default slot instead. */
   src?: ImageMetadata;
+  /** The same screen at phone width, shown below md. */
+  phoneSrc?: ImageMetadata;
   /** What the screenshot shows, for someone who cannot see it. */
   alt?: string;
   /** Marks the one image that is the page's largest paint. */
   priority?: boolean;
+  /** The width the picture takes from md up, for the browser to pick a file size. Defaults to the whole column. */
+  sizes?: string;
   class?: string;
 }
 
-const { src, alt = '', priority = false, class: className } = Astro.props;
+const { src, phoneSrc, alt = '', priority = false, sizes = '(min-width: 80rem) 77rem, 100vw', class: className } = Astro.props;
 if (src && !alt) throw new Error('ProductFrame: a screenshot needs alt text that says what it shows (design system F7).');
+
+const wide = src ? await getImage({ src, widths: [640, 960, 1280, 1920], format: 'webp' }) : undefined;
+const phone = phoneSrc ? await getImage({ src: phoneSrc, widths: [430, 640], format: 'webp', quality: 50 }) : undefined;
 ---
 
 <div class:list={['light overflow-hidden rounded-panel border border-border bg-card text-card-foreground shadow-surface', className]}>
   {
-    src ? (
-      <Image src={src} alt={alt} widths={[640, 960, 1280, 1920]} sizes="(min-width: 80rem) 40rem, 100vw" loading={priority ? 'eager' : 'lazy'} fetchpriority={priority ? 'high' : 'auto'} class="block h-auto w-full" />
+    wide ? (
+      <picture>
+        {phone && (
+          <source
+            media="(max-width: 47.99rem)"
+            srcset={phone.srcSet.attribute}
+            sizes="100vw"
+            type="image/webp"
+            width={phone.attributes.width}
+            height={phone.attributes.height}
+          />
+        )}
+        <img
+          src={wide.src}
+          srcset={wide.srcSet.attribute}
+          sizes={`(max-width: 47.99rem) 100vw, ${sizes}`}
+          width={wide.attributes.width}
+          height={wide.attributes.height}
+          alt={alt}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          fetchpriority={priority ? 'high' : 'auto'}
+          class="block h-auto w-full"
+        />
+      </picture>
     ) : (
       <slot />
     )

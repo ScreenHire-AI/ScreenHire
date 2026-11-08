@@ -1,7 +1,8 @@
 // What the marketing site says it sells, in one place. Home, product and pricing all read this module, and
 // docs/design/marketing-site.md is the prose version: change both together. Every claim names a feature that is built
 // today (docs/status.md, Built), every number has a source the page links to (docs/research/pain-points.md and
-// competitors.md hold the sources and the date each was read), and nothing here names a reason code, a rule or a score.
+// competitors.md hold the sources and the date each was read), and nothing here says how a check works or gives a score
+// (public-copy.test.ts guards it).
 
 export interface Source {
   label: string;
@@ -16,7 +17,7 @@ export interface SourcedFigure {
 }
 
 export interface SellingPointData {
-  id: 'real-people' | 'never-guessing' | 'automate-anything' | 'integrations' | 'built-your-way';
+  id: 'real-people' | 'never-guessing' | 'automate-anything' | 'integrations' | 'built-your-way' | 'careers-site';
   /** The section heading, in the buyer's words. */
   title: string;
   /** The buyer's pain. */
@@ -64,7 +65,7 @@ export const sellingPoints: SellingPointData[] = [
       { value: '31%', claim: 'of US managers involved in hiring say they interviewed a candidate who turned out to be using a fake identity.', source: sources.checkr },
       { value: '1 in 4', claim: 'candidate profiles worldwide could be fake by 2028, Gartner predicts.', source: sources.gartner },
     ],
-    pagePath: '/product/#real-people',
+    pagePath: '/product/real-people/',
   },
   {
     id: 'never-guessing',
@@ -79,7 +80,7 @@ export const sellingPoints: SellingPointData[] = [
       'Reports on your funnel, time to hire and sources',
     ],
     figures: [],
-    pagePath: '/product/#never-guessing',
+    pagePath: '/product/never-guessing/',
   },
   {
     id: 'automate-anything',
@@ -94,7 +95,7 @@ export const sellingPoints: SellingPointData[] = [
       'Guardrails: a check never rejects anyone',
     ],
     figures: [],
-    pagePath: '/product/#automate-anything',
+    pagePath: '/product/automate-anything/',
   },
   {
     id: 'integrations',
@@ -109,7 +110,7 @@ export const sellingPoints: SellingPointData[] = [
       'AI assistants through MCP',
     ],
     figures: [],
-    pagePath: '/product/#integrations',
+    pagePath: '/product/integrations/',
   },
   {
     id: 'built-your-way',
@@ -125,9 +126,28 @@ export const sellingPoints: SellingPointData[] = [
       'Your own AI key and model for the consistency check',
     ],
     figures: [],
-    pagePath: '/product/#built-your-way',
+    pagePath: '/product/built-your-way/',
   },
 ];
+
+/**
+ * The candidate's side, told as the same pain, promise and proof. It is not one of the owner's five selling points, so it
+ * is not in `sellingPoints`; the product overview and the careers-site page read it.
+ */
+export const careersSite: SellingPointData = {
+  id: 'careers-site',
+  title: 'Post once. Take it down once.',
+  pain: 'A job goes on your site, then on each board by hand, and coming down means doing it all again.',
+  promise: 'Publish to your careers site, Google for Jobs and the job boards in one step, and close it the same way. Candidates are told what is checked before they apply.',
+  proof: [
+    'A careers site with your branding, and the apply form on your own site from one line of embed code',
+    'Google for Jobs and job-board feeds, each board showing its own status',
+    'Edit a posting for one board without changing the job or any other board',
+    'A notice before an application starts, and a switch for assistive technology that is never held against anyone',
+  ],
+  figures: [],
+  pagePath: '/product/careers-site/',
+};
 
 /** The integrations as a plain list of what each does (the integrations section). */
 export const integrations: { name: string; does: string }[] = [

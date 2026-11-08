@@ -1,0 +1,26 @@
+---
+// A plain list of things and what each does (design system section 22.6): the term at the left, the words at the right,
+// a rule between rows. It grows by a row, never by a tile. A `dl` so assistive technology reads term and detail together.
+interface Item {
+  term: string;
+  detail: string;
+}
+
+interface Props {
+  items: Item[];
+  class?: string;
+}
+
+const { items, class: className } = Astro.props;
+---
+
+<dl class:list={['min-w-0', className]}>
+  {
+    items.map((item) => (
+      <div class="flex flex-wrap gap-x-8 gap-y-1 border-t border-border py-4 last:border-b">
+        <dt class="flex-[0_0_11rem] font-bold">{item.term}</dt>
+        <dd class="min-w-0 flex-[1_1_20rem] text-pretty text-secondary-foreground">{item.detail}</dd>
+      </div>
+    ))
+  }
+</dl>

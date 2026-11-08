@@ -1,0 +1,118 @@
+---
+import brandingPhone from '../../assets/product/branding-phone.png';
+import branding from '../../assets/product/branding.png';
+import careersPhone from '../../assets/product/careers-phone.png';
+import careers from '../../assets/product/careers.png';
+import templatePhone from '../../assets/product/template-stages-phone.png';
+import template from '../../assets/product/template-stages.png';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import PageHero from '../../components/shell/PageHero.astro';
+import ProductFrame from '../../components/shell/ProductFrame.astro';
+import QuestionsList from '../../components/shell/QuestionsList.astro';
+import RuledList from '../../components/shell/RuledList.astro';
+import Section from '../../components/shell/Section.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sellingPoints } from '../../lib/features';
+import { pages } from '../../lib/pages';
+import { faqPage, type Faq } from '../../lib/seo';
+
+const { title, description, path, label } = pages.builtYourWay;
+const point = sellingPoints.find((item) => item.id === 'built-your-way')!;
+
+// Each line is a feature in docs/status.md, Built (templates, scorecards, email, settings and branding, roles and permissions,
+// the verification settings, the careers site).
+const yours = [
+  { term: 'Questionnaires', detail: 'Ask what you need to know, in sections. The apply form shows one section a page, and a candidate can save it and finish later from an emailed link.' },
+  { term: 'Scorecards', detail: 'Build a library of scorecards with your own questions and a required recommendation. Each stage picks one, and a reviewer fills it in or you ask a teammate for it.' },
+  { term: 'Email templates', detail: 'Write the subject and message in your own words, with the candidate and job names dropped in. Preview it, and send yourself a test.' },
+  { term: 'Your own AI key', detail: 'The AI consistency check is included. Use your own key and model if you prefer.' },
+];
+
+const access = [
+  { term: 'Roles', detail: 'Every member has a role, and the server checks what the role allows on every action.' },
+  { term: 'Job access', detail: 'Give a person access to the jobs they work on, and they see only those, in the lists and in the reports.' },
+  { term: 'Custom roles', detail: 'Copy a built-in role, change what it can do, and give it a name that fits your team. Nobody can hand out more than their own role has.' },
+  { term: 'History', detail: 'Every change to a template, a job, a custom role or an organization setting is recorded, with who made it and when.' },
+];
+
+const faqs: Faq[] = [
+  {
+    question: 'Do I have to build a template from scratch?',
+    answer: 'No. Start from one of the built-in templates and change what you need, or copy one of your own.',
+  },
+  {
+    question: 'If I change a template, do my open jobs change?',
+    answer: 'No. A job keeps the version it started from, and you choose when to apply a newer one.',
+  },
+  {
+    question: 'Can candidates see my colours and logo?',
+    answer: 'Yes. Your careers site carries your name, logo, colour and font, and candidates see it before they apply.',
+  },
+  {
+    question: 'Can I change the stages for one job?',
+    answer: 'Yes. A job copies its template, so you can change its stages, questions and automations without touching the template or any other job.',
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbs={[{ name: pages.product.label, path: pages.product.path }, { name: label, path }]}
+  headerTone="dark"
+  jsonLd={[faqPage(faqs)]}
+>
+  <PageHero title={point.title} lead={`${point.pain} ${point.promise}`}>
+    <ProductFrame
+      src={template}
+      phoneSrc={templatePhone}
+      alt="A hiring template's stages, each with the email, questionnaire or scorecard that goes with it."
+      sizes="(min-width: 80rem) 40rem, 100vw"
+      priority
+    />
+  </PageHero>
+
+  <Section labelledby="templates-title" class="flex flex-wrap gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+      <h2 id="templates-title" class="font-display text-section text-balance">Start from a template. Change anything.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        A hiring template bundles the stages, questions, scorecards, automations and posting defaults for a kind of role. Use
+        one of ours or build your own, and tailor it for each job.
+      </p>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        Templates are versioned. A job copies a version, and you choose when to apply a newer one, so a job that is already
+        open never changes under you.
+      </p>
+    </div>
+    <RuledList class="flex-[1_1_28rem]" items={yours} />
+  </Section>
+
+  <Section tone="band" labelledby="brand-title" class="flex flex-col gap-10">
+    <div class="flex max-w-measure flex-col gap-4">
+      <h2 id="brand-title" class="font-display text-section text-balance">It looks like your company.</h2>
+      <p class="text-pretty text-secondary-foreground">
+        Add your logo, brand colour and font in the branding editor, and your careers site takes them on, with a preview before
+        you save.
+      </p>
+    </div>
+    <div class="flex flex-wrap items-start gap-5">
+      <ProductFrame class="min-w-0 flex-[2_1_22rem]" src={branding} phoneSrc={brandingPhone} alt="The branding editor, with the logo, colour and font choices and a preview." sizes="(min-width: 80rem) 36rem, 100vw" />
+      <ProductFrame class="min-w-0 flex-[3_1_26rem]" src={careers} phoneSrc={careersPhone} alt="A company's branded careers site with its open roles." sizes="(min-width: 80rem) 44rem, 100vw" />
+    </div>
+  </Section>
+
+  <Section labelledby="access-title" class="flex flex-wrap gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+      <h2 id="access-title" class="font-display text-section text-balance">Who sees what is up to you.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        Hiring involves people who should not see everything. Roles and job access decide who sees which jobs and what they can
+        do with them.
+      </p>
+    </div>
+    <RuledList class="flex-[1_1_28rem]" items={access} />
+  </Section>
+
+  <QuestionsList faqs={faqs} tone="band" />
+
+  <ClosingBand title="Start from a template this afternoon." />
+</BaseLayout>
