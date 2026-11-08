@@ -38,7 +38,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
     private const int Width = 1440;
     private const int Height = 900;
     private const int WideWidth = 1600;
-    private const int PipelineWidth = 1920; // all six columns of the board, the closed stages' column included
+    private const int PipelineWidth = 1980; // all six columns of the board whole, the closed stages' column included (checked)
 
     // Phone width: the pictures a page shows on a phone are the screens laid out for one, not a crop of the wide screen,
     // whose text would be cut mid-word.
@@ -60,21 +60,10 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         var update = Environment.GetEnvironmentVariable(UpdateVariable) == "1";
         var directory = update ? ProductDirectory() : Path.Combine(AppContext.BaseDirectory, "TestResults", "marketing-screenshots");
         Directory.CreateDirectory(directory);
-        var written = new List<string>();
 
-        void Save(string name, byte[] png)
-        {
-            // What is committed is held to the budget below. A fresh capture is held to it only when it is about to be committed,
-            // because Chromium's text rendering differs between Windows and the Linux runners by a few percent.
-            if (update)
-            {
-                png.Length.Should().BeLessThan(MaxBytes, "{0}.png must stay under 600 KB; shrink the window", name);
-            }
-
-            File.WriteAllBytes(Path.Combine(directory, $"{name}.png"), png);
-            written.Add(name);
-            TestContext.Current.TestOutputHelper?.WriteLine($"{name}.png {png.Length / 1024} KB");
-        }
+        // The pictures are written only once every screen has been taken, so a run that fails part way leaves the committed set whole.
+        var taken = new Dictionary<string, byte[]>();
+        void Save(string name, byte[] png) => taken.Add(name, png);
 
         using var avery = new ApiSession(Fixture);
         await avery.SignInWithDevSsoAsync(OwnerSubject, Ct);
@@ -143,7 +132,8 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
                 Phone: new(Height: 2600, From: page => Entry(page, "Candidate replied"), To: page => Entry(page, "Good detail on the billing ledger"))),
 
             // 4. The candidates list with stage and last activity.
-            new("candidates", DashboardUrl("/candidates"), "Candidates", PrepareNoPendingChipsAsync, Width: WideWidth),
+            // The list runs past the window, so the picture ends after the last row the window shows whole.
+            new("candidates", DashboardUrl("/candidates"), "Candidates", PrepareCandidatesAsync, Width: WideWidth, WideTo: CaptureEnd, WideMargin: 0),
 
             // 5. The candidate's own page, from the link in the email they ask for.
             new("candidate-portal", portalLink, "Your applications", PreparePortalAsync, Public: true),
@@ -154,8 +144,11 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
                 page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Workflow automations" })).ToBeVisibleAsync(), Height: 1480,
                 Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Stages"), To: Stage4)),
 
-            // 7. The candidate's interview booking page, before they pick a time.
-            new("interview-booking", bookingLink, "Pick a time for your interview", _ => Task.CompletedTask, Public: true),
+            // 7. The candidate's interview booking page, before they pick a time. Both pictures end after the second day of times;
+            // the window is tall enough for two whole days when the run starts early and today has times all day.
+            new("interview-booking", bookingLink, "Pick a time for your interview", _ => Task.CompletedTask, Public: true, Height: 1150,
+                WideTo: page => page.Locator("main fieldset").Nth(1), WideMargin: 12,
+                Phone: new(Height: 2400, Margin: 12, To: page => page.Locator("main fieldset").Nth(1))),
 
             // 8. The Integrations directory.
             new("integrations", DashboardUrl("/settings/integrations"), "Integrations",
@@ -169,7 +162,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
                 Phone: new(Height: 2800, Margin: 10, From: page => PanelTitled(page, "Colours").First, To: page => PanelTitled(page, "Images"))),
 
             // 10. Reports: the headline cards and the trend. On a phone the cards and the trend, with the table of open jobs between them out.
-            new("reports", DashboardUrl("/reports"), "Reports", _ => Task.CompletedTask, Height: 1400, WideTo: page => PanelTitled(page, "Applications and hires by week"),
+            new("reports", DashboardUrl("/reports"), "Reports", PrepareReportsAsync, Height: 1400, WideTo: page => PanelTitled(page, "Applications and hires by week"), WideMargin: 4,
                 Phone: new(
                     Height: 3000,
                     Margin: 10,
@@ -187,7 +180,23 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
 
         // Every screen has its full picture and its phone picture, and what is committed is there and within budget.
         var expected = screens.SelectMany(screen => new[] { screen.Name, $"{screen.Name}-phone" }).Order().ToList();
-        written.Order().Should().Equal(expected, "every screen takes its picture and its phone picture");
+        taken.Keys.Order().Should().Equal(expected, "every screen takes its picture and its phone picture");
+        foreach (var (name, png) in taken)
+        {
+            // What is committed is held to the budget below. A fresh capture is held to it only when it is about to be committed,
+            // because Chromium's text rendering differs between Windows and the Linux runners by a few percent.
+            if (update)
+            {
+                png.Length.Should().BeLessThan(MaxBytes, "{0}.png must stay under 600 KB; shrink the window", name);
+            }
+        }
+
+        foreach (var (name, png) in taken)
+        {
+            await File.WriteAllBytesAsync(Path.Combine(directory, $"{name}.png"), png, Ct);
+            TestContext.Current.TestOutputHelper?.WriteLine($"{name}.png {png.Length / 1024} KB");
+        }
+
         foreach (var name in expected)
         {
             var committed = new FileInfo(Path.Combine(ProductDirectory(), $"{name}.png"));
@@ -362,6 +371,14 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         await page.GetByRole(AriaRole.Button, new() { Name = "Board", Exact = true }).ClickAsync();
         await Expect(page.GetByRole(AriaRole.Link, new() { Name = "Joel Mensah" }).First).ToBeVisibleAsync();
         await Expect(page.Locator("[data-verification-chip][data-level='pending']")).ToHaveCountAsync(0);
+
+        // The board scrolls inside its own box, which the page's own check does not see. In the laptop window every column is
+        // whole; on a phone the picture is one column on its own.
+        if (page.ViewportSize!.Width > PhoneWidth)
+        {
+            var overflow = await page.Locator("[data-pipeline-board]").EvaluateAsync<double>("board => board.scrollWidth - board.clientWidth");
+            overflow.Should().BeLessThanOrEqualTo(0, "every column of the board is whole; widen PipelineWidth");
+        }
     }
 
     private static async Task PrepareActivityAsync(IPage page)
@@ -370,8 +387,40 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         await Expect(page.GetByText(new Regex("[Ii]nterview (booked|scheduled)")).First).ToBeVisibleAsync(Slow);
     }
 
-    private static Task PrepareNoPendingChipsAsync(IPage page) =>
-        Expect(page.Locator("[data-verification-chip][data-level='pending']")).ToHaveCountAsync(0);
+    // Every organization's applicants are on the list, the other jobs' included, so the wait is for the whole list: its rows are
+    // in, and no chip is still pending once the demo's analysis has drained.
+    private static async Task PrepareCandidatesAsync(IPage page)
+    {
+        // A table in the laptop window, a list on a phone.
+        const string rows = "main tbody tr, main ul[aria-label] > li";
+        await Expect(page.Locator(rows).Filter(new() { HasText = "Joel Mensah" })).ToHaveCountAsync(1, new() { Timeout = 60_000 });
+        await Expect(page.Locator("[data-verification-chip][data-level='pending']")).ToHaveCountAsync(0, new() { Timeout = 60_000 });
+        await MarkLastWholeAsync(page, rows);
+    }
+
+    private static async Task PrepareReportsAsync(IPage page) =>
+        await Expect(page.GetByText(new Regex(@"^Week of .+ applications"))).ToBeVisibleAsync(Slow);
+
+    private static ILocator CaptureEnd(IPage page) => page.Locator("[data-capture-end]");
+
+    // Marks the last element of a list that the window shows whole, so a picture can end below it instead of through the next.
+    // A list inside a scrolling box is cut by the box, which can end above the window's bottom.
+    private static async Task MarkLastWholeAsync(IPage page, string selector) =>
+        await page.EvaluateAsync(
+            """
+            selector => {
+              const shown = element => {
+                let bottom = innerHeight;
+                for (let box = element.parentElement; box; box = box.parentElement) {
+                  if (getComputedStyle(box).overflowY !== 'visible') bottom = Math.min(bottom, box.getBoundingClientRect().bottom);
+                }
+                return element.getBoundingClientRect().bottom <= bottom;
+              };
+              const whole = [...document.querySelectorAll(selector)].filter(shown);
+              whole.at(-1)?.setAttribute('data-capture-end', '');
+            }
+            """,
+            selector);
 
     private static async Task PreparePortalAsync(IPage page) =>
         await Expect(page.GetByRole(AriaRole.List, new() { Name = "Where your application is" }).GetByRole(AriaRole.Listitem)).ToHaveCountAsync(4);

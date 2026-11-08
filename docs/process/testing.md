@@ -267,7 +267,7 @@ pictures that means opening them.
 The marketing site shows the real product, so its pictures are captured, not drawn. `MarketingScreenshotsTests` boots a
 stack of its own with the demo's data on (`MarketingDemoFixture`, `ScreenHire:Demo=true`, the production builds), signs in
 as Avery Quinn and takes each screen: both verification panels, a job's pipeline in light and dark, a candidate's activity
-and messages, the candidates list, the candidate's own page, a workflow's stages and automations, the interview booking
+with its emails and the reply, the candidates list, the candidate's own page, a workflow's stages and automations, the interview booking
 page, Integrations, a template's stages, the branding editor, Reports and the branded careers page. Each screen has a full
 picture (`name.png`) and a picture of the same screen laid out at phone width (`name-phone.png`), for a page to show on a phone.
 
@@ -277,7 +277,7 @@ picture (`name.png`) and a picture of the same screen laid out at phone width (`
 - **Without the variable** the test still opens every screen and takes every picture, into `TestResults/marketing-screenshots`
   beside the test assembly, and fails if a committed image is missing or over 600 KB. It compares no pixels: dates and
   "x minutes ago" differ on every run.
-- **Same picture every run:** a 1440 by 900 window (1920 wide for the pipeline, 1600 for the candidates list, taller for the activity, template, workflow and reports; 430 wide for the phone picture) at twice the pixels, reduced motion, the fonts loaded, `en-US` and
+- **Same picture every run:** a 1440 by 900 window (1980 wide for the pipeline, 1600 for the candidates list, taller for the activity, template, workflow and reports; 430 wide for the phone picture) at twice the pixels, reduced motion, the fonts loaded, `en-US` and
   `Europe/London`, no hover, focus ring, toast or caret, and no strip reserved for a scrollbar at the right (the test
   fails if the page keeps one or scrolls sideways). The verification panels hide the support code under each reason, which
   the public site does not show.
