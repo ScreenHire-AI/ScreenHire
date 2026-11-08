@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 // The public site says that checks happen and what they look at in plain words, never how they work (owner's decision,
 // docs/design/marketing-site.md, "What is never said"). This guards the pages and content restyled so far: collection content, the
 // compare, law and blog pages, the product pages (the real-people page is the one that says how checks work), the shell
-// components, llms.txt, the 404 page and the market facts. Home is guarded when its task restyles it.
+// components, llms.txt, the 404 page, the market facts, the selling points and the page registry. Home is guarded when its
+// task restyles it.
 const src = fileURLToPath(new URL('..', import.meta.url));
 
 function files(directory: string): string[] {
@@ -27,6 +28,8 @@ const guarded = [
   join(src, 'pages/llms.txt.ts'),
   join(src, 'pages/404.astro'),
   join(src, 'lib/market.ts'),
+  join(src, 'lib/features.ts'),
+  join(src, 'lib/pages.ts'),
 ].map((path) => ({ path: relative(src, path).split('\\').join('/'), text: readFileSync(path, 'utf8') }));
 
 // Words that describe how a check works: a reason code or rule name, a threshold, or the kind of network, phone line, email

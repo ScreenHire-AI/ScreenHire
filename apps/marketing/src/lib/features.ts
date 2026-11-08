@@ -1,7 +1,8 @@
 // What the marketing site says it sells, in one place. Home, product and pricing all read this module, and
 // docs/design/marketing-site.md is the prose version: change both together. Every claim names a feature that is built
 // today (docs/status.md, Built), every number has a source the page links to (docs/research/pain-points.md and
-// competitors.md hold the sources and the date each was read), and nothing here names a reason code, a rule or a score.
+// competitors.md hold the sources and the date each was read), and nothing here says how a check works or gives a score
+// (public-copy.test.ts guards it).
 
 export interface Source {
   label: string;
