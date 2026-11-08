@@ -79,15 +79,15 @@ const faqs: Faq[] = [
     <RuledList class="flex-[1_1_28rem]" items={posting} />
   </Section>
 
-  <Section tone="band" labelledby="notice-title" class="flex flex-wrap gap-x-16 gap-y-10">
-    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+  <Section tone="band" labelledby="notice-title" class="flex flex-col gap-10">
+    <div class="flex max-w-measure flex-col gap-4">
       <h2 id="notice-title" class="font-display text-section text-balance">Candidates are told before they apply.</h2>
-      <p class="max-w-measure text-pretty text-secondary-foreground">
+      <p class="text-pretty text-secondary-foreground">
         The people you want to hire notice how they are treated. A clear notice, and a switch for assistive technology, are part
         of the product, and your careers site does both for you.
       </p>
     </div>
-    <RuledList class="flex-[1_1_28rem]" items={notice} />
+    <RuledList items={notice} />
   </Section>
 
   <QuestionsList faqs={faqs} />

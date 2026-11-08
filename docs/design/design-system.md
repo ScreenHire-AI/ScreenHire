@@ -1253,7 +1253,7 @@ stay only for pages not yet restyled.
 | `SellingPoint` | One selling point (22.8) |
 | `ProductFrame`, `ApplicantPair` | The real product (22.7), and the hero's real-versus-flagged pair. A screenshot takes a `phoneSrc`, the same screen at phone width, which a phone downloads instead of the wide picture |
 | `PageHero` | The dark band that opens a product page: the `h1` at `text-display` across the full width, then the lead and call to action beside the page's one bold element (a screenshot, the applicant pair, a sentence). The page passes `headerTone="dark"` |
-| `RuledList`, `ProofList` | A `dl` of terms and what each does with a rule between rows, which grows by a row and never by a tile (22.6); and a selling point's proof points as a bulleted list beside a picture |
+| `RuledList`, `ProofList` | A `dl` of terms and what each does with a rule between rows, which grows by a row and never by a tile (22.6); and a plain bulleted list: a selling point's proof points beside a picture, or any short list on a product page |
 | `LevelChip` | The dashboard's four labels and icons: No concerns, Review suggested, Verification suggested, Some signs of AI help |
 | `SourcedNumber` | A number with its claim and source link |
 | `PlanRows` | The plans as rows, read from the plan catalogue (`packages/plans`): name and open-job limit, then the price. A plan with no price shows no amount, and one with no limit shows none |

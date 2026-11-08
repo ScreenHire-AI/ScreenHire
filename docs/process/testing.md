@@ -297,7 +297,7 @@ The marketing site's SEO and performance budgets (ADR-0003) are checked at three
 
 | Check | Where | Runs in |
 |---|---|---|
-| Unique titles and descriptions in the page registry, JSON-LD builders, pricing placeholders | Vitest, `apps/marketing/src/lib/*.test.ts` | `pnpm -r --if-present test` |
+| Unique titles and descriptions in the page registry, JSON-LD builders, pricing placeholders; the build scripts' own logic | Vitest, `apps/marketing/src/lib/*.test.ts` and `apps/marketing/scripts/*.test.mjs` | `pnpm -r --if-present test` |
 | At most 15 KB of brotli JS per page (JSON-LD excluded), no broken internal links or Open Graph images, a body-font preload on every page (a redirect page excepted) | `apps/marketing/scripts/check-dist.mjs`, after `astro build` | `pnpm -r build` |
 | Mobile LCP under 1.8 s, CLS under 0.05, JS bytes, on every page in the sitemap | `apps/marketing/scripts/lighthouse.mjs` (Lighthouse on Astro's preview server) | `verify:lighthouse`, run by CI's report-only `lighthouse` job for a change to `apps/marketing`, `packages/plans`, `packages/ui`, `pnpm-lock.yaml` or `tools/lighthouse`, with the result reported by `/pull-request`; by hand while working on a page; not in `pnpm verify` |
 | Unique title, description and canonical; hreflang; Open Graph image; JSON-LD types per page; no script but JSON-LD; axe; no sideways scroll at 390px; 404 | `tests/ScreenHire.E2E/MarketingTests.cs` | `verify:test` |
