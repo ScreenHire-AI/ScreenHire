@@ -76,6 +76,7 @@ sources:
   - resource: apps/marketing/src/components/shell/ClosingBand.astro
   - resource: apps/marketing/src/components/shell/PageIntro.astro
   - resource: apps/marketing/src/components/Claim.astro
+  - resource: apps/marketing/src/components/SourceList.astro
 ---
 # ScreenHire design system
 

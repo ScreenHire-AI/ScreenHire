@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Marketing site messaging"
-description: "What the marketing site sells and how it says it: who it is for, the five selling points as pain, promise and proof with their sourced numbers, the home hero, the voice and copy rules, the page map, and what may be claimed and what is never said."
+description: "What the marketing site sells and how it says it: who it is for, the five selling points as pain, promise and proof with their sourced numbers, the home hero, the voice and copy rules, the page map, the compare pages (a source and a date on every competitor claim), and what may be claimed and what is never said."
 tags: [marketing, messaging, copy, design]
 sources:
   - resource: apps/marketing/src/lib/features.ts
@@ -9,6 +9,10 @@ sources:
   - resource: apps/marketing/src/lib/features.test.ts
   - resource: apps/marketing/src/lib/copy.test.ts
   - resource: apps/marketing/src/lib/market.ts
+  - resource: apps/marketing/src/lib/compare-content.test.ts
+  - resource: apps/marketing/src/lib/public-copy.test.ts
+  - resource: apps/marketing/src/content.config.ts
+  - resource: apps/marketing/src/pages/compare/[slug].astro
   - resource: apps/marketing/src/content/comparisons/gohire-alternative.yaml
   - resource: apps/marketing/src/components/shell/ApplicantPair.astro
 ---
