@@ -36,10 +36,10 @@ faqs:
 
 California regulates automated hiring tools from two directions.
 
-- **The CPPA regulations** under the California Consumer Privacy Act give people rights to access information about, and opt out of, a business's use of automated decisionmaking technology (ADMT), and require certain businesses to carry out risk assessments [1]. The rules took effect on **1 January 2026**. ADMT compliance is due by **1 January 2027** and risk assessments by 31 December 2027 [1][2]. Systematic observation of job applicants is one of the activities that needs a risk assessment [2].
-- **The Civil Rights Council regulations** under the Fair Employment and Housing Act (FEHA) took effect on **1 October 2025**. They make clear that an automated-decision system can break anti-discrimination law if it harms applicants or employees because of a protected characteristic, that AI assessments asking about disability may be unlawful medical inquiries, and that automated-decision data must be kept for at least four years [3].
+- **The CPPA regulations** under the California Consumer Privacy Act give people rights to access information about, and opt out of, a business's use of automated decisionmaking technology (ADMT), and require certain businesses to carry out risk assessments [[1]](#source-1). The rules took effect on **1 January 2026**. ADMT compliance is due by **1 January 2027** and risk assessments by 31 December 2027 [[1]](#source-1)[[2]](#source-2). Systematic observation of job applicants is one of the activities that needs a risk assessment [[2]](#source-2).
+- **The Civil Rights Council regulations** under the Fair Employment and Housing Act (FEHA) took effect on **1 October 2025**. They make clear that an automated-decision system can break anti-discrimination law if it harms applicants or employees because of a protected characteristic, that AI assessments asking about disability may be unlawful medical inquiries, and that automated-decision data must be kept for at least four years [[3]](#source-3).
 
-Separately, SB 690 (signed 30 September 2026) removed private pen-register claims over websites. Wiretap claims under section 631 of the California Invasion of Privacy Act, for example over session replay or keystroke capture, remain [4].
+Separately, SB 690 (signed 30 September 2026) removed private pen-register claims over websites. Wiretap claims under section 631 of the California Invasion of Privacy Act, for example over session replay or keystroke capture, remain [[4]](#source-4).
 
 ## What it means if you use software to screen applicants
 

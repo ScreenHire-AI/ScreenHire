@@ -36,13 +36,13 @@ faqs:
 
 The EU AI Act regulates AI systems by the risk they pose. Some practices are banned outright. Systems in sensitive areas, recruitment among them, are "high-risk" and carry duties for the companies that build them (providers) and the companies that use them (deployers).
 
-In July 2026 the EU adopted amendments, known as the Digital Omnibus, that moved the start date for high-risk duties under Annex III to **2 December 2027** [1][2]. The bans in Article 5 were not relaxed and have applied since 2 February 2025. The AI-literacy duty in Article 4 was softened to "support" [1][2].
+In July 2026 the EU adopted amendments, known as the Digital Omnibus, that moved the start date for high-risk duties under Annex III to **2 December 2027** [[1]](#source-1)[[2]](#source-2). The bans in Article 5 were not relaxed and have applied since 2 February 2025. The AI-literacy duty in Article 4 was softened to "support" [[1]](#source-1)[[2]](#source-2).
 
 ## What it means if you use software to screen applicants
 
 - **Recruitment is high-risk.** Annex III, point 4(a) covers AI used to recruit or select people. A system that profiles applicants cannot rely on the Article 6(3) exemption.
-- **Emotion recognition is banned in hiring.** Article 5(1)(f) prohibits inferring emotions in the workplace, and the Commission's guidelines include recruitment [3][4]. The AI Act's definition of biometric data has no identification test, so the ban can reach typing patterns used to infer emotion.
-- **Physical states are outside the ban.** The Commission guidelines treat physical states, such as fatigue, as outside "emotion" [3].
+- **Emotion recognition is banned in hiring.** Article 5(1)(f) prohibits inferring emotions in the workplace, and the Commission's guidelines include recruitment [[3]](#source-3)[[4]](#source-4). The AI Act's definition of biometric data has no identification test, so the ban can reach typing patterns used to infer emotion.
+- **Physical states are outside the ban.** The Commission guidelines treat physical states, such as fatigue, as outside "emotion" [[3]](#source-3).
 
 ## How ScreenHire is designed around it
 
@@ -54,4 +54,4 @@ In July 2026 the EU adopted amendments, known as the Digital Omnibus, that moved
 ## Still unclear
 
 - Whether session-level bot and automation detection can fall outside Annex III. The Commission's guidance on Article 6 has not settled it.
-- Whether "intentions" fall under the Article 5(1)(f) ban. The Dutch data protection authority reads it broadly, and detecting off-screen gaze is a borderline case [3].
+- Whether "intentions" fall under the Article 5(1)(f) ban. The Dutch data protection authority reads it broadly, and detecting off-screen gaze is a borderline case [[3]](#source-3).
