@@ -1247,7 +1247,7 @@ stay only for pages not yet restyled.
 
 | Component | Job |
 |---|---|
-| `SiteHeader` | The brand, the links, Sign in and Start free trial. `tone` is `dark` over a dark hero and `light` elsewhere. Below `md` a `details` menu holds the same links |
+| `SiteHeader` | The brand, the links, Sign in and Start free trial. `tone` is `dark` over a dark hero and `light` elsewhere. Product is a native `details` menu of the overview and the six product pages (`productNav`), so it opens and closes with its summary only: it does not close on Escape or an outside click, because that would need script. Below `md` a `details` menu holds the same links, with the product pages nested under Product |
 | `SiteFooter` | A dark band: links, RSS, the in-development note |
 | `Section`, `DarkBand` | A full-bleed band with the content column inside |
 | `SellingPoint` | One selling point (22.8) |
