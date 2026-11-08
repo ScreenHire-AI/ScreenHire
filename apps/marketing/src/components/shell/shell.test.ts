@@ -2,6 +2,7 @@ import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { levels } from '../../lib/features';
 import { buildPlans } from '../../lib/pricing';
+import SampleVerificationCard from '../SampleVerificationCard.astro';
 import ApplicantPair from './ApplicantPair.astro';
 import CtaLink from './CtaLink.astro';
 import LevelChip from './LevelChip.astro';
@@ -80,6 +81,13 @@ describe('ApplicantPair', () => {
     }
     expect(html).not.toMatch(/\b[A-Z]{2,}(?:_[A-Z]+)+\b/);
     expect(html).not.toMatch(/score|%/i);
+  });
+
+  it('says what kind of thing a check looks at, never which signals it uses (docs/design/marketing-site.md)', async () => {
+    for (const component of [ApplicantPair, SampleVerificationCard]) {
+      const html = await render(component);
+      expect(html).not.toMatch(/(?:hosting|data ?cent(?:er|re)|VoIP|internet line|disposable|proxy|VPN|network|threshold|near-identical)/i);
+    }
   });
 });
 

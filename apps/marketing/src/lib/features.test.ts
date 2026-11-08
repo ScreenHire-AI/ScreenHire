@@ -36,8 +36,8 @@ describe("the site's words", () => {
     for (const word of bannedWords) expect(words.toLowerCase(), word).not.toContain(word.toLowerCase());
   });
 
-  it('use no em-dash, en-dash or curly quote', () => {
-    expect(words).not.toMatch(/[\u2013\u2014\u2018\u2019\u201C\u201D]/);
+  it('use no em-dash, en-dash, curly quote or middle dot between facts (M5)', () => {
+    expect(words).not.toMatch(/[\u00B7\u2013\u2014\u2018\u2019\u201C\u201D]/);
   });
 
   it('show no reason code, score or percentage of AI, and never say ScreenHire rejects', () => {
