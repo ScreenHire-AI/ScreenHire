@@ -2,26 +2,64 @@
 // The real product, shown big and sharp (design system section 22): an image of the dashboard, or markup built from the
 // same components, framed with one edge and nothing else. It always draws in the light theme, also inside a dark band,
 // because that is how the product looks. An image takes its width and height from the file, so the page does not shift.
-import { Image } from 'astro:assets';
+//
+// A screenshot goes through astro:assets as AVIF with a WebP fallback. `phone` is the same screen laid out for a phone
+// (`name-phone.png`): a second picture with its own dimensions, shown below md while the wide one is hidden. Two pictures
+// rather than one `<source media>`, because the two crops have different aspect ratios and a single `<img>` would shift the
+// page when the phone crop loaded. A hidden lazy picture is never fetched.
+import { Picture } from 'astro:assets';
 
 interface Props {
   /** A screenshot imported from src/assets. Leave it out to frame the default slot instead. */
   src?: ImageMetadata;
+  /** The same screen laid out for a phone, shown below md. */
+  phone?: ImageMetadata;
   /** What the screenshot shows, for someone who cannot see it. */
   alt?: string;
   /** Marks the one image that is the page's largest paint. */
   priority?: boolean;
+  /** The `sizes` of the wide picture: how wide it draws at each window width. */
+  sizes?: string;
   class?: string;
 }
 
-const { src, alt = '', priority = false, class: className } = Astro.props;
+const { src, phone, alt = '', priority = false, sizes = '(min-width: 80rem) 40rem, 100vw', class: className } = Astro.props;
 if (src && !alt) throw new Error('ProductFrame: a screenshot needs alt text that says what it shows (design system F7).');
+
+const loading = priority ? 'eager' : 'lazy';
+const fetchpriority = priority ? 'high' : 'auto';
+const image = 'block h-auto w-full object-top';
 ---
 
 <div class:list={['light overflow-hidden rounded-panel border border-border bg-card text-card-foreground shadow-surface', className]}>
   {
     src ? (
-      <Image src={src} alt={alt} widths={[640, 960, 1280, 1920]} sizes="(min-width: 80rem) 40rem, 100vw" loading={priority ? 'eager' : 'lazy'} fetchpriority={priority ? 'high' : 'auto'} class="block h-auto w-full" />
+      <>
+        <Picture
+          src={src}
+          alt={alt}
+          formats={['avif', 'webp']}
+          fallbackFormat="webp"
+          widths={[640, 960, 1280, 1920]}
+          sizes={sizes}
+          loading={loading}
+          fetchpriority={fetchpriority}
+          class={phone ? `hidden md:block ${image}` : image}
+        />
+        {phone && (
+          <Picture
+            src={phone}
+            alt={alt}
+            formats={['avif', 'webp']}
+            fallbackFormat="webp"
+            widths={[430, 860]}
+            sizes="100vw"
+            loading={loading}
+            fetchpriority={fetchpriority}
+            class={`md:hidden ${image}`}
+          />
+        )}
+      </>
     ) : (
       <slot />
     )

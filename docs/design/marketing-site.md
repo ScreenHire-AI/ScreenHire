@@ -17,6 +17,8 @@ sources:
   - resource: apps/marketing/src/pages/compare/[slug].astro
   - resource: apps/marketing/src/content/comparisons/gohire-alternative.yaml
   - resource: apps/marketing/src/components/shell/ApplicantPair.astro
+  - resource: apps/marketing/src/components/shell/ProductFrame.astro
+  - resource: apps/marketing/src/pages/index.astro
 ---
 # Marketing site messaging
 
@@ -134,8 +136,18 @@ Name only triggers and actions that exist, as above. The examples on the site ar
 - **Under them.** The price from `packages/plans`, or nothing while no plan has one, and "No card to start" only if
   billing starts that way.
 - **The one bold element.** Two applicants for the same job: one with no concerns, one with a verification suggested, with
-  why, but also, the next step, and "A person on your team decides."
+  why, but also, the next step, and "A person on your team decides." It is the `ApplicantPair` markup, not the captured
+  verification panels: the flagged panel names the kinds of signal a check uses and shows the ruleset version, which this
+  doc's "What is never said" rules out while the repository is public. Re-capture or crop it before any public page uses it.
 - **Under the hero.** Three sourced numbers (point 1).
+- **The rest of the page**, in order: the five points (real people with the market gap, never guessing with the team's
+  activity beside the candidate's page, automate anything with the sentence, three examples and the workflow, integrations as a
+  list, built your way with the template), pricing on a dark band, four questions (does it reject people, is it fair, how long
+  is setup, what happens when the trial ends) and the close. The market lines on home are the dated ones in `pricingNotes`
+  (`topic` names the point that quotes one). The screenshots go through `ProductFrame`: AVIF with a WebP fallback, a phone
+  layout below `md`, and an explicit size, so the page does not shift. Home uses the candidate's own page and the template
+  screenshots. The team's activity is markup, and the captured activity and workflow screens stay off public pages: they
+  show a "matching applications" card, a rejection-review automation and a verification tag. Re-capture or crop them first.
 
 ## Voice and copy rules
 

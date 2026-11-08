@@ -1216,6 +1216,10 @@ else: no browser chrome, no tilt, no glow, no second shadow. It is the light the
 are fictional ("Sample applicants. A person on your team decides."). The site shows levels, in plain words, and never a
 reason code, a rule name, a threshold, a score or a percentage of AI.
 
+An image is served as AVIF with a WebP fallback. Its `phone` prop adds the screen laid out for a phone as a second picture with
+its own size, shown below `md` while the wide one is hidden (a hidden lazy picture is never fetched), so neither crop shifts
+the page. A frame that would run long takes a `max-h-*` class and shows the top of the screen.
+
 ### 22.8 A selling point
 
 `SellingPoint` is one section: the buyer's pain, our promise, then the proof, in that order, with the product or a list

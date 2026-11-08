@@ -5,12 +5,15 @@ import { appLinks } from '../../lib/app-links';
 import { levels } from '../../lib/features';
 import { pages } from '../../lib/pages';
 import { buildPlans } from '../../lib/pricing';
+import portal from '../../assets/product/candidate-portal.png';
+import portalPhone from '../../assets/product/candidate-portal-phone.png';
 import ApplicantPair from './ApplicantPair.astro';
 import ClosingBand from './ClosingBand.astro';
 import CtaLink from './CtaLink.astro';
 import LevelChip from './LevelChip.astro';
 import PageIntro from './PageIntro.astro';
 import PlanRows from './PlanRows.astro';
+import ProductFrame from './ProductFrame.astro';
 import QuestionsList from './QuestionsList.astro';
 import SiteFooter from './SiteFooter.astro';
 import SiteHeader from './SiteHeader.astro';
@@ -158,5 +161,42 @@ describe('ClosingBand', () => {
     const signUp = appLinks(PUBLIC_APP_URL, pages.pricing.path).signUp;
     expect(await render(ClosingBand, { title: 'Close.' })).toContain(`href="${signUp}"`);
     expect(await render(ClosingBand, { title: 'Close.', href: '/x/' })).toContain('href="/x/"');
+  });
+});
+
+describe('ProductFrame', () => {
+  const alt = 'The candidate page.';
+
+  it('draws a screenshot as AVIF with a WebP fallback, with its size taken from the file', async () => {
+    const html = await render(ProductFrame, { src: portal, alt });
+    expect(html).toContain('type="image/avif"');
+    expect(html).toContain('type="image/webp"');
+    expect(html).toMatch(/<img[^>]* width="\d+"/);
+    expect(html).toMatch(/<img[^>]* height="\d+"/);
+    expect(html).toContain(`alt="${alt}"`);
+    expect(html).toMatch(/class="light /);
+  });
+
+  it('loads lazily, and eagerly with high priority only for the one hero image', async () => {
+    const lazy = await render(ProductFrame, { src: portal, alt });
+    expect(lazy).toContain('loading="lazy"');
+    expect(lazy).not.toContain('fetchpriority="high"');
+    const hero = await render(ProductFrame, { src: portal, alt, priority: true });
+    expect(hero).toContain('loading="eager"');
+    expect(hero).toContain('fetchpriority="high"');
+  });
+
+  it('adds the phone layout as a second picture with its own size, shown below md while the wide one is hidden', async () => {
+    const html = await render(ProductFrame, { src: portal, phone: portalPhone, alt });
+    expect(html.match(/<picture/g)).toHaveLength(2);
+    expect(html).toContain('hidden md:block');
+    expect(html).toContain('md:hidden');
+    const sizes = [...html.matchAll(/<img[^>]* width="(\d+)"[^>]* height="(\d+)"/g)].map((match) => `${match[1]}x${match[2]}`);
+    expect(new Set(sizes).size).toBe(2);
+  });
+
+  it('refuses a screenshot without alt text, and frames its slot when it has none', async () => {
+    await expect(render(ProductFrame, { src: portal })).rejects.toThrow(/alt text/);
+    expect(await render(ProductFrame)).not.toContain('<picture');
   });
 });

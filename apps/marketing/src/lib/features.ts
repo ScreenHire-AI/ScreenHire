@@ -224,13 +224,14 @@ export const includedByTopic: { id: string; title: string; items: string[] }[] =
  * it says; each source was read on the date in its label (docs/research/competitors.md, "Pricing pages re-read on
  * 2026-11-08"). Word these as what the page lists, never as what a vendor lacks.
  */
-export const pricingNotes: { ours: string; elsewhere: string; source: Source }[] = [
+export const pricingNotes: { ours: string; elsewhere: string; source: Source; topic?: SellingPointData['id'] }[] = [
   {
     ours: 'Another seat. Your whole team is included.',
     elsewhere: 'Manatal lists $15\u00A0per user per month on its Professional plan, billed yearly.',
     source: { label: 'Manatal pricing page, read 8 November 2026', href: 'https://www.manatal.com/pricing' },
   },
   {
+    topic: 'real-people',
     ours: 'Fraud and bot checks, or the AI that helps with them.',
     elsewhere: 'Gem sells fraud detection as checks you purchase separately.',
     source: {
@@ -239,6 +240,7 @@ export const pricingNotes: { ours: string; elsewhere: string; source: Source }[]
     },
   },
   {
+    topic: 'automate-anything',
     ours: 'Automation, the API or webhooks.',
     elsewhere: 'GoHire lists Automated Stage Actions on its Pro plan.',
     source: { label: 'GoHire pricing page, read 8 November 2026', href: 'https://gohire.io/pricing' },

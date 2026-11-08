@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 // The public site says that checks happen and what they look at in plain words, never how they work (owner's decision,
 // docs/design/marketing-site.md, "What is never said"). This guards the pages and content restyled so far: collection content, the
-// compare, law and blog pages, the 404 page and the market facts. Product, how-detection-works and home are guarded as their
-// tasks restyle them.
+// compare, law and blog pages, the 404 page, the home page with its hero pair, and the market facts. Product and
+// how-detection-works are guarded as their tasks restyle them.
 const src = fileURLToPath(new URL('..', import.meta.url));
 
 function files(directory: string): string[] {
@@ -23,6 +23,8 @@ const guarded = [
   ...files(join(src, 'pages/hiring-ai-laws')),
   ...files(join(src, 'pages/blog')),
   join(src, 'pages/404.astro'),
+  join(src, 'pages/index.astro'),
+  join(src, 'components/shell/ApplicantPair.astro'),
   join(src, 'lib/market.ts'),
 ].map((path) => ({ path: relative(src, path).split('\\').join('/'), text: readFileSync(path, 'utf8') }));
 

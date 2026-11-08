@@ -1,160 +1,243 @@
 ---
-import { getCollection } from 'astro:content';
+// The home page, in direction B + C (design system section 22, docs/design/marketing-site.md): a dark hero, three sourced
+// numbers, the five selling points in the owner's order, pricing, questions and the close. Its words come from
+// lib/features.ts, its prices from the plan catalogue, and its pictures from the captured screenshots. The hero's bold
+// element is ApplicantPair (markup), not the captured flagged panel, which names the kinds of signal a check uses. The
+// team's activity is markup too, and the workflow screenshot is left out: the captured activity and workflow screens show
+// a matching card, a rejection-review automation and a verification tag, which the site does not show.
+import { PUBLIC_APP_URL } from 'astro:env/server';
+import portal from '../assets/product/candidate-portal.png';
+import portalPhone from '../assets/product/candidate-portal-phone.png';
+import templateStages from '../assets/product/template-stages.png';
+import templateStagesPhone from '../assets/product/template-stages-phone.png';
 import ApplicantPair from '../components/shell/ApplicantPair.astro';
+import ClosingBand from '../components/shell/ClosingBand.astro';
+import CtaLink from '../components/shell/CtaLink.astro';
+import DarkBand from '../components/shell/DarkBand.astro';
+import LevelChip from '../components/shell/LevelChip.astro';
+import PlanRows from '../components/shell/PlanRows.astro';
+import ProductFrame from '../components/shell/ProductFrame.astro';
+import QuestionsList from '../components/shell/QuestionsList.astro';
+import Section from '../components/shell/Section.astro';
+import SellingPoint from '../components/shell/SellingPoint.astro';
+import SourcedNumber from '../components/shell/SourcedNumber.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { appLinks } from '../lib/app-links';
+import { automation, hero, integrations, notPaidExtra, pricingNotes, sellingPoints } from '../lib/features';
 import { pages } from '../lib/pages';
-import { plans, pricedOffers, startingPrice } from '../lib/pricing';
-import { softwareApplication } from '../lib/seo';
+import { plans, pricedOffers, startingPrice, trialPlan } from '../lib/pricing';
+import { faqPage, softwareApplication, type Faq } from '../lib/seo';
 
 const { title, description } = pages.home;
 const site = Astro.site ?? new URL(Astro.url.origin);
+const { signUp } = appLinks(PUBLIC_APP_URL, pages.pricing.path);
 const fromPrice = startingPrice(plans);
-const laws = (await getCollection('laws')).sort((a, b) => a.data.order - b.data.order);
 
-const features = [
+const [realPeople, neverGuessing, automate, integrationsPoint, builtYourWay] = sellingPoints;
+const marketNote = (topic: string) => pricingNotes.find((note) => note.topic === topic);
+const fraudNote = marketNote('real-people');
+const automationNote = marketNote('automate-anything');
+
+const faqs: Faq[] = [
   {
-    kicker: 'Verification',
-    title: 'Evidence, not verdicts',
-    body: "Every flag shows what was observed, why it matters and what counts in the candidate's favour. Your team decides. Verification signals never reject anyone.",
+    question: 'Does ScreenHire reject people for me?',
+    answer: 'Never on a check. A flag asks for a closer look, and a person on your team makes every decision.',
   },
   {
-    kicker: 'Distribution',
-    title: 'Post everywhere. Remove everywhere.',
-    body: 'Publish to your careers page, Google for Jobs and job boards in one click, and take it all down in one click, with honest status for every board.',
+    question: 'Is it fair to candidates?',
+    answer: 'Candidates are told what is collected before they start. Nothing reads faces, voices or feelings, and they can see where they stand.',
   },
   {
-    kicker: 'Workflows',
-    title: 'A workflow for every role',
-    body: 'Build templates once, with stages, questions, automations and verification steps, then tailor them per job. Everything is available through our API.',
+    question: 'How long does setup take?',
+    answer: 'Start from a ready-made hiring template, add your branding and post your first job. There is nothing to install.',
+  },
+  {
+    question: 'What happens when the trial ends?',
+    answer: 'Choose a plan to keep opening jobs. Nothing is deleted, and open jobs stay open.',
   },
 ];
 
-const steps = [
-  { title: 'Candidates apply in minutes', body: 'A fast, mobile-first page with a plain-language privacy note.' },
-  { title: 'Signals, gathered with notice', body: 'Network, identity, behaviour and content checks. Never emotion recognition, and no biometrics in this release.' },
-  { title: 'Your team decides', body: "Review evidence, ask for verification only when it's warranted, and keep a full audit trail." },
+// What the team sees on a candidate: fictional, and each line is something the dashboard records (docs/status.md).
+const activity = [
+  { when: 'Today 09:12', what: 'Hannah replied: "Thursday at 10 works for me."' },
+  { when: 'Yesterday', what: 'Avery emailed the interview times.' },
+  { when: 'Yesterday', what: 'Jordan moved her to Interview with a note: "Strong portfolio."' },
+  { when: 'Monday 14:30', what: 'Applied from your careers page.' },
 ];
+
+const link = 'text-primary underline underline-offset-4 hover:decoration-2';
 ---
 
-<BaseLayout title={title} description={description} jsonLd={[softwareApplication(description, site, pricedOffers(plans))]}>
-  <section aria-labelledby="hero-title" class="mx-auto flex max-w-6xl flex-wrap items-center gap-12 px-6 pt-14 pb-16">
-    <div class="flex min-w-0 flex-1 basis-[480px] flex-col gap-5">
-      <p class="kicker">Applicant verification and applicant tracking</p>
-      <h1 id="hero-title" class="font-display text-5xl leading-[0.98] font-extrabold tracking-[-0.035em] sm:text-6xl">
-        Know who's really applying.
-      </h1>
-      <p class="max-w-xl text-xl leading-relaxed text-secondary-foreground">
-        ScreenHire is the hiring platform that spots bots, impersonators and copy-paste applications, with evidence your team
-        can read and a process candidates can trust.
-      </p>
-      <div class="mt-1 flex flex-wrap gap-3">
-        <a
-          href={pages.pricing.path}
-          class="button-primary"
-          >Start hiring free</a
-        >
-        <a
-          href={pages.detection.path}
-          class="button-secondary"
-          >See how detection works</a
-        >
+<BaseLayout title={title} description={description} headerTone="dark" jsonLd={[softwareApplication(description, site, pricedOffers(plans)), faqPage(faqs)]}>
+  <DarkBand labelledby="hero-title" class="flex flex-wrap items-center gap-x-16 gap-y-12">
+    <div class="flex min-w-0 flex-[1_1_26rem] flex-col items-start gap-6">
+      <h1 id="hero-title" class="font-display text-display text-balance">{hero.headline}</h1>
+      <p class="max-w-xl text-xl text-pretty">{hero.subline}</p>
+      <div class="flex flex-wrap items-center gap-3">
+        <CtaLink href={signUp} size="lg">Start free trial</CtaLink>
+        <CtaLink href={pages.pricing.path} variant="secondary" size="lg">See pricing</CtaLink>
       </div>
-      <ul class="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted-foreground">
-        <li>No credit card</li>
-        <li>Designed for GDPR and the EU AI Act</li>
-        <li>Evidence, never auto-rejection on a verification flag</li>
-      </ul>
+      {fromPrice && <p class="text-muted-foreground">From <span class="tabular-nums">{fromPrice}</span>&nbsp;a month for your whole team.</p>}
     </div>
-    <div class="min-w-0 flex-1 basis-[440px]"><ApplicantPair /></div>
-  </section>
+    <div class="min-w-0 flex-[1_1_30rem]"><ApplicantPair /></div>
+  </DarkBand>
 
-  <section aria-label="Our principle" class="bg-foreground text-background">
-    <div class="mx-auto flex max-w-6xl flex-wrap items-baseline gap-x-6 gap-y-2 px-6 py-8">
-      <p class="flex-1 basis-[520px] font-display text-3xl leading-tight font-bold tracking-[-0.015em]">
-        A person decides. Every flag arrives with its evidence, the counter-evidence and a suggested next step.
-      </p>
-      <a href={pages.detection.path} class="inline-flex min-h-11 items-center text-sm font-semibold text-background underline underline-offset-4">How detection works</a>
-    </div>
-  </section>
+  <Section tone="band" label="Why it matters" class="grid gap-x-16 gap-y-10 md:grid-cols-3">
+    {realPeople!.figures.map((figure) => <SourcedNumber figure={figure} />)}
+  </Section>
 
-  <section aria-labelledby="features-title" class="mx-auto flex max-w-6xl flex-col gap-8 px-6 pt-18 pb-10">
-    <h2 id="features-title" class="max-w-2xl font-display text-4xl leading-tight font-bold tracking-tight">
-      Everything a small team needs to hire real people, fast.
-    </h2>
-    <div class="grid gap-4 md:grid-cols-3">
+  <SellingPoint point={realPeople!}>
+    <Fragment slot="words">
+      <p class="max-w-measure text-pretty">Fraud checks are on every plan, not an extra.</p>
       {
-        features.map((feature) => (
-          <article class="flex flex-col gap-3 rounded-panel border border-border bg-card shadow-surface p-6">
-            <span class="kicker">{feature.kicker}</span>
-            <h3 class="font-display text-xl font-bold">{feature.title}</h3>
-            <p class="text-secondary-foreground">{feature.body}</p>
-          </article>
-        ))
+        fraudNote && (
+          <p class="max-w-measure text-pretty text-secondary-foreground">
+            {fraudNote.elsewhere}{' '}
+            <a href={fraudNote.source.href} rel="noopener" class={link}>{fraudNote.source.label}</a>.
+          </p>
+        )
       }
-    </div>
-  </section>
-
-  <section aria-labelledby="how-title" class="mx-auto flex max-w-6xl flex-wrap gap-8 px-6 pt-8 pb-14">
-    <div class="flex flex-1 basis-[320px] flex-col gap-3">
-      <h2 id="how-title" class="font-display text-4xl leading-tight font-bold tracking-tight">Fair to candidates. Clear for recruiters.</h2>
-      <p class="text-secondary-foreground">
-        Candidates see exactly what we look at before they start, and can switch off typing signals if they use assistive
-        technology. Recruiters get reasons, not scores.
-      </p>
-    </div>
-    <ol class="grid flex-2 basis-[560px] gap-4 sm:grid-cols-3">
-      {
-        steps.map((step, index) => (
-          <li class="flex flex-col gap-2 border-t-2 border-foreground pt-3">
-            <span class="kicker">Step {index + 1}</span>
-            <span class="text-lg font-bold">{step.title}</span>
-            <span class="text-base text-secondary-foreground">{step.body}</span>
-          </li>
-        ))
-      }
-    </ol>
-  </section>
-
-  <section aria-labelledby="law-title" class="mx-auto mb-16 max-w-6xl px-6">
-    <div class="flex flex-wrap items-center justify-between gap-5 rounded-panel border border-border bg-card shadow-surface p-8">
-      <div class="flex flex-1 basis-[420px] flex-col gap-3">
-        <h2 id="law-title" class="font-display text-3xl font-bold tracking-tight">Built for the laws you hire under</h2>
-        <ul class="flex flex-wrap gap-2" aria-label="Laws in the tracker">
-          {
-            laws.map((law) => (
-              <li>
-                <a
-                  href={`${pages.laws.path}${law.id}/`}
-                  class="inline-block rounded-full bg-secondary px-3 py-1 text-sm font-semibold text-secondary-foreground no-underline hover:text-primary"
-                >
-                  {law.data.name}
-                </a>
-              </li>
-            ))
-          }
+      <p><a href={pages.detection.path} class={link}>How detection works</a></p>
+    </Fragment>
+    <div class="grid gap-x-10 gap-y-8 sm:grid-cols-2">
+      <div class="flex flex-col gap-3">
+        <h3 class="text-xl font-bold">What you see</h3>
+        <ul class="flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
+          <li>A level for every applicant</li>
+          <li>The evidence behind it</li>
+          <li>What speaks for them</li>
+          <li>A suggested next step</li>
+        </ul>
+        <ul aria-label="Levels you may see" class="mt-2 flex flex-wrap gap-2">
+          <li><LevelChip level="noConcerns" /></li>
+          <li><LevelChip level="reviewSuggested" /></li>
+          <li><LevelChip level="verificationSuggested" /></li>
+          <li><LevelChip level="someSignsOfAiHelp" /></li>
         </ul>
       </div>
-      <a
-        href={pages.laws.path}
-        class="button-secondary"
-        >Read the hiring-AI law tracker</a
-      >
-    </div>
-  </section>
-
-  <section aria-labelledby="price-title" class="border-y border-candidate-border bg-candidate-background">
-    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-6 py-12">
-      <div class="flex flex-col gap-2">
-        <h2 id="price-title" class="font-display text-4xl leading-tight font-bold tracking-tight text-candidate-foreground">
-          Simple pricing for small teams.
-        </h2>
-        <p class="text-lg text-candidate-muted-foreground">{fromPrice ? `From ${fromPrice} a month. Unlimited users.` : 'Unlimited users.'}</p>
+      <div class="flex flex-col gap-3">
+        <h3 class="text-xl font-bold">What ScreenHire never does</h3>
+        <ul class="flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
+          <li>Reject anyone on a check</li>
+          <li>Give a score or a percentage</li>
+          <li>Read faces, voices or feelings</li>
+          <li>Look people up on social media</li>
+        </ul>
       </div>
-      <a
-        href={pages.pricing.path}
-        class="inline-flex h-11 items-center rounded-lg bg-candidate-cta px-5 font-semibold text-candidate-cta-foreground no-underline"
-        >See pricing</a
-      >
     </div>
-  </section>
+  </SellingPoint>
+
+  <SellingPoint point={neverGuessing!} layout="stacked" tone="band">
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-wrap gap-x-8 gap-y-10">
+        <figure class="flex min-w-0 flex-[3_1_28rem] flex-col gap-3">
+          <figcaption class="text-xl font-bold">What your team sees</figcaption>
+          <ProductFrame>
+            <p class="border-b border-border-subtle px-5 py-4 font-bold">Hannah Brooks, Product Designer</p>
+            <ol class="flex flex-col px-5 pb-3">
+              {
+                activity.map((entry) => (
+                  <li class="flex flex-wrap gap-x-4 gap-y-1 border-b border-border-subtle py-3 last:border-b-0">
+                    <span class="flex-[0_1_7rem] text-muted-foreground">{entry.when}</span>
+                    <span class="min-w-0 flex-[1_1_14rem] text-pretty">{entry.what}</span>
+                  </li>
+                ))
+              }
+            </ol>
+          </ProductFrame>
+        </figure>
+        <figure class="flex min-w-0 flex-[2_1_20rem] flex-col gap-3">
+          <figcaption class="text-xl font-bold">What the candidate sees</figcaption>
+          <ProductFrame
+            src={portal}
+            phone={portalPhone}
+            sizes="(min-width: 64rem) 30rem, 100vw"
+            alt="The candidate's own page: the job they applied for, four steps (Applied, In review, Interview, Offer) with In review marked as the current one, and a link to read and answer their messages."
+            class="max-h-96 md:max-h-60"
+          />
+        </figure>
+      </div>
+      <p class="text-sm text-muted-foreground">Sample candidate. The people and the company here are fictional.</p>
+    </div>
+  </SellingPoint>
+
+  <SellingPoint point={automate!}>
+    <Fragment slot="words">
+      <p class="max-w-measure text-pretty">Each automation reads as When, If, Then. Test it on a sample application before it goes live. Every plan has all of it.</p>
+      {
+        automationNote && (
+          <p class="max-w-measure text-pretty text-secondary-foreground">
+            {automationNote.elsewhere}{' '}
+            <a href={automationNote.source.href} rel="noopener" class={link}>{automationNote.source.label}</a>.
+          </p>
+        )
+      }
+    </Fragment>
+    <div class="flex flex-col gap-8">
+      <p class="dark rounded-panel bg-background px-6 py-6 font-display text-2xl font-semibold text-balance text-foreground md:px-8 md:py-7 md:text-3xl">
+        {automation.sentence}
+      </p>
+      <ul class="flex flex-col">
+        {
+          automation.examples.map((example) => (
+            <li class="flex flex-wrap gap-x-6 gap-y-1 border-t border-border py-4 last:border-b">
+              <span class="flex-[0_1_11rem] font-bold">{example.scope}</span>
+              <span class="min-w-0 flex-[1_1_16rem] text-pretty">{example.text}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </SellingPoint>
+
+  <SellingPoint point={integrationsPoint!} tone="band">
+    <dl class="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
+      {
+        integrations.map((integration) => (
+          <>
+            <dt class="border-t border-border py-4 pr-4 font-bold">{integration.name}</dt>
+            <dd class="border-t border-border py-4 text-pretty text-secondary-foreground">{integration.does}</dd>
+          </>
+        ))
+      }
+    </dl>
+  </SellingPoint>
+
+  <SellingPoint point={builtYourWay!}>
+    <Fragment slot="words">
+      <p><a href={pages.compare.path} class={link}>See how other tools price it</a></p>
+    </Fragment>
+    <ProductFrame
+      src={templateStages}
+      phone={templateStagesPhone}
+      sizes="(min-width: 80rem) 44rem, 100vw"
+      alt="A hiring template in ScreenHire: its stages in order from Applied, each with a name, a kind and a time limit, and the email or scorecard that goes with it."
+      class="max-h-128"
+    />
+  </SellingPoint>
+
+  <DarkBand labelledby="pricing-title" id="pricing" class="flex flex-wrap gap-x-16 gap-y-12">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col items-start gap-4">
+      <h2 id="pricing-title" class="font-display text-section text-balance">One price for your whole team. Everything included.</h2>
+      <p class="max-w-measure text-xl text-pretty">Plans differ only in how many jobs you have open at once. Jobs already open stay open if you reach the limit.</p>
+      <CtaLink href={signUp} size="lg" class="mt-4">Start free trial</CtaLink>
+    </div>
+    <div class="flex min-w-0 flex-[1_1_28rem] flex-col gap-10">
+      <PlanRows trialPlan={trialPlan} />
+      <div class="flex flex-col gap-3">
+        <h3 class="text-xl font-bold">What you will not pay extra for</h3>
+        <ul class="flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
+          {notPaidExtra.map((item) => <li>{item}</li>)}
+        </ul>
+        <p class="text-pretty text-muted-foreground">
+          Some tools charge for these as seats, add-ons or a higher plan.
+          <a href={pages.compare.path} class="text-foreground underline underline-offset-4 hover:decoration-2">See how we compare</a>, with sources and dates.
+        </p>
+      </div>
+    </div>
+  </DarkBand>
+
+  <QuestionsList faqs={faqs} />
+
+  <ClosingBand title="Spend your interviews on real candidates." href={signUp} />
 </BaseLayout>

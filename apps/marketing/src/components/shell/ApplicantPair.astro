@@ -1,8 +1,7 @@
 ---
 // The hero's real-versus-flagged pair (design system section 22): two applicants for the same job, one with no concerns
 // and one with a verification suggested, its why, what speaks for the candidate and the next step. Fictional people. The
-// site never shows reason codes, rule names, which signals a check uses or how it is computed
-// (docs/design/marketing-site.md).
+// site never shows how a check works or which signals it uses (docs/design/marketing-site.md, "What is never said").
 import LevelChip from './LevelChip.astro';
 import ProductFrame from './ProductFrame.astro';
 
@@ -31,7 +30,7 @@ const job = 'Senior .NET Engineer, applied this morning';
     </div>
     <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 px-5 py-5 text-base">
       <dt class="font-bold">Why</dt>
-      <dd>The contact details they gave do not match each other. One answer is the same text sent with other applications this week.</dd>
+      <dd>The contact details they gave do not match each other. One answer is the same text sent with other applications.</dd>
       <dt class="font-bold">But also</dt>
       <dd>Other details on the application speak for them, and they are shown beside the concerns.</dd>
       <dt class="font-bold">Next step</dt>
