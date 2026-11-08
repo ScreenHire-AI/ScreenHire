@@ -32,9 +32,9 @@ faqs:
 
 ## What it is
 
-Colorado's first AI law, SB 24-205, never took effect. It was replaced by **SB 26-189**, "Automated Decision-Making Technology", signed on 14 May 2026, with duties applying from **1 January 2027** [1][2]. The Attorney General must adopt rules on the post-decision disclosures by then [1]. xAI, joined by the US Department of Justice, filed a challenge to the earlier law in April 2026 [3].
+Colorado's first AI law, SB 24-205, never took effect. It was replaced by **SB 26-189**, "Automated Decision-Making Technology", signed on 14 May 2026, with duties applying from **1 January 2027** [[1]](#source-1)[[2]](#source-2). The Attorney General must adopt rules on the post-decision disclosures by then [[1]](#source-1). xAI, joined by the US Department of Justice, filed a challenge to the earlier law in April 2026 [[3]](#source-3).
 
-Employment is one of the decisions the law covers. According to the legislature's bill summary [1] and Venable's analysis [2], an employer whose automated decision-making technology "materially influences" a decision about selection for a job must:
+Employment is one of the decisions the law covers. According to the legislature's bill summary [[1]](#source-1) and Venable's analysis [[2]](#source-2), an employer whose automated decision-making technology "materially influences" a decision about selection for a job must:
 
 - give applicants clear and conspicuous notice at the point of interaction;
 - after an adverse outcome, explain within 30 days, in plain language, the decision and the technology's role in it;
@@ -42,7 +42,7 @@ Employment is one of the decisions the law covers. According to the legislature'
 - on request after an adverse outcome, offer "meaningful human review and reconsideration", which Venable reads as limited to what is commercially reasonable, by a reviewer with authority to change the decision;
 - keep records of compliance for at least three years.
 
-The Attorney General enforces the law under the Colorado Consumer Protection Act, where a violation is a deceptive trade practice. Until 1 January 2030 the Attorney General must first give 60 days' notice and a chance to cure. There is no private right of action, though existing discrimination claims are unaffected [1][2].
+The Attorney General enforces the law under the Colorado Consumer Protection Act, where a violation is a deceptive trade practice. Until 1 January 2030 the Attorney General must first give 60 days' notice and a chance to cure. There is no private right of action, though existing discrimination claims are unaffected [[1]](#source-1)[[2]](#source-2).
 
 ## What it means if you use software to screen applicants
 
@@ -50,8 +50,8 @@ If a tool ranks, scores or recommends applicants and that output materially infl
 
 ## How ScreenHire is designed around it
 
-- Verification levels never reject anyone, and each comes with evidence a reviewer can weigh, so human review is real rather than a formality.
-- Every action on an application is logged, and every level records the version of the rules that produced it.
+- A check never rejects anyone, and each level comes with evidence a reviewer can weigh, so human review is real rather than a formality.
+- Every action on an application is logged, and every level records the version of the check that produced it.
 - Candidate-facing notice comes before collection.
 
 ## Still unclear

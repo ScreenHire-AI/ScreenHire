@@ -1,0 +1,15 @@
+---
+// A dark band: `Section` in the dark tokens. Used for the hero, pricing and the close.
+import Section from './Section.astro';
+
+interface Props {
+  id?: string;
+  labelledby?: string;
+  label?: string;
+  class?: string;
+}
+
+const props = Astro.props;
+---
+
+<Section tone="dark" {...props}><slot /></Section>

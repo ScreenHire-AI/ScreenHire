@@ -1,5 +1,18 @@
 # Log
 
+## 2026-11-08
+
+**The marketing site has its rules, its messaging and a shared shell.** The design system gains section 22 (dark, white and warm
+bands with contrast checked from the tokens, display sizes per breakpoint, the product frame, a selling point, and what
+never decorates a page) and a Public pages group in the review checklist, with checks taken from Vercel's Web Interface
+Guidelines. [Marketing site messaging](design/marketing-site.md) holds the five selling points as pain, promise and proof,
+and [pain points](research/pain-points.md) the sourced numbers. Only the real-people numbers could be read at their source:
+Ashby's 291 applications per hire has no "up from 100 in 2021" in the report, and no figure for candidates left without an
+answer, recruiter admin time or tool integration verified, so the site states none. The shell (header with a menu that needs
+no script, dark footer, call to action, bands, selling point, product frame, level chips, plan rows, questions, closing
+band) is in `apps/marketing`, and `public-style.test.ts` bans the generated-page tells outside a legacy list that the page
+tasks empty (ADR-0030).
+
 ## 2026-11-07
 
 **The candidate's page names its fourth step Offer.** It was Decision, shown only at an Offer stage, but a decision is the

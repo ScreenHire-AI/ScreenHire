@@ -124,6 +124,29 @@ Gartner exact wording (403; via HR Dive); Workday fraud signals; ID.me shipped s
 Ashby/Workday integration dates; Truely (likely discontinued), Polygraf, Sherlock, Mercor; all accuracy figures are
 vendor claims; currency on Workable/Breezy/JazzHR; Honorlock, Ropes, Crosscheck not researched.
 
+Re-read on 2026-11-08 for the marketing site (see [pain points](pain-points.md)): GoHire's "no event triggers" is wrong
+(its help article says stage actions fire when a candidate moves stage), and "Pro-only" and "no public API" are not
+confirmed. SmartRecruiters' $14,995, Zoho's $25 per recruiter and Gem's $1.80 per check are not on the vendor pages.
+Ashby's 291 applications per hire is in its 2026 report, without the "about 100 in 2021" comparison. Do not copy these
+lines onto a marketing page.
+
+## Pricing pages re-read on 2026-11-08
+
+The pricing page of the marketing site quotes these four lines, each with a link and this date. They say what a vendor's own
+page lists that day and nothing about what it lacks.
+
+- **Manatal** (https://www.manatal.com/pricing): "$15/per user per month" on Professional, billed yearly; $19 on the monthly
+  plan. The 10-18 row gave $15 without the billing period.
+- **Gem** (https://help.gem.com/databases/gem-help-center/fraud-detection-agent-overview): the fraud detection agent page
+  says "Your team must have purchased fraud detection checks" and sends a team to its account manager to buy more. The
+  pricing page lists the agent under "Add what you need", without a price.
+- **GoHire** (https://gohire.io/pricing): the FAQ says "An active job is any job you are actively recruiting for, either
+  active or closed", and "You can archive any job to stop getting charged whilst retaining your data". The page lists
+  "Automated Stage Actions" in Pro's features and not in Starter's or Growth's. Its help article on what a plan costs
+  (https://help.gohire.io/en/articles/7920630-how-much-is-gohire) gave USD prices of $99 for Starter, $199 for Growth and
+  $299 for Pro that day, where the 10-18 row above has only pounds for Growth and Pro. Re-read before copying a GoHire price
+  onto a page.
+
 ## Sources
 
 1. https://gohire.io/pricing ; https://help.gohire.io/en/articles/7920630-how-much-is-gohire ; https://help.gohire.io/en/articles/12358433-boost-your-hiring-power-with-the-plus-plan ; https://help.gohire.io/en/articles/3385844 ; https://help.gohire.io/en/articles/6837442 ; https://help.gohire.io/en/articles/8009831

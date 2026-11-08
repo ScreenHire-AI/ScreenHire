@@ -1,0 +1,26 @@
+---
+// The footer, a dark band (design system section 22). The same links as before, with the in-development note.
+import { footerNav } from '../../lib/pages';
+
+const link = 'inline-flex min-h-6 items-center text-muted-foreground no-underline hover:text-foreground hover:underline pointer-coarse:min-h-11';
+---
+
+<footer class="dark border-t border-border bg-background text-foreground">
+  <div class="mx-auto flex max-w-site flex-wrap items-start justify-between gap-x-8 gap-y-6 px-4 py-12 text-base text-muted-foreground md:px-6 lg:px-8">
+    <span class="font-display text-lg font-bold text-foreground">ScreenHire</span>
+    <nav aria-label="Footer" class="flex flex-wrap gap-x-6 gap-y-2">
+      {
+        footerNav.map((page) => (
+          <a href={page.path} class={link}>
+            {page.label}
+          </a>
+        ))
+      }
+      <a href="/rss.xml" class={link}>RSS</a>
+    </nav>
+    <div class="flex flex-col gap-1">
+      <span>© {new Date().getUTCFullYear()} ScreenHire</span>
+      <span>ScreenHire is in development. Product pages describe it as designed.</span>
+    </div>
+  </div>
+</footer>

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 // Guards for the product non-negotiables in marketing copy (CLAUDE.md 1 and 2, ADR-0004): no number presented as a
 // fraud or AI verdict, no claim that rejection never happens at all (knockout questions can reject; verification signals
-// never do), and no pricing placeholder outside the pricing data.
+// never do), and no pricing placeholder anywhere (an unpriced plan shows its name and limit and no amount).
 const src = fileURLToPath(new URL('..', import.meta.url));
 
 function files(directory: string): string[] {
@@ -25,6 +25,8 @@ const forbidden: [string, RegExp][] = [
   ['a percentage of AI-written text', /\d+\s*%\s*(of\s+\w+\s+)?AI/i],
   ['a numeric fraud score', /\b(fraud|risk)\s*(score|risk)?\s*[:=]\s*\d/i],
   ['an unscoped "never rejected automatically" claim', /nothing is rejected automatically|never rejects candidates automatically/i],
+  // The copy rules in docs/design/marketing-site.md: the word AI appears only where it names a feature, and none of these.
+  ['an AI fluff word', /\bAI-powered\b|\bsupercharg\w*|\brevolutioni[sz]\w*|\bseamless\w*|\bunlock\w*|\beffortless\w*|\bnext-generation\b/i],
 ];
 
 describe('marketing copy', () => {
@@ -33,8 +35,8 @@ describe('marketing copy', () => {
     expect(hits).toEqual([]);
   });
 
-  it('keeps [YOUR ...] placeholders in the pricing data only', () => {
-    const hits = copy.filter((file) => /\[YOUR [A-Z]+\]/.test(file.text) && file.path !== 'lib/pricing.ts').map((file) => file.path);
+  it('never shows a [YOUR ...] placeholder, in pricing or anywhere else', () => {
+    const hits = copy.filter((file) => /\[YOUR [A-Z]+\]/.test(file.text)).map((file) => file.path);
     expect(hits).toEqual([]);
   });
 

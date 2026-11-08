@@ -1,31 +1,30 @@
 ---
-import PageHeader from '../components/PageHeader.astro';
+import PageIntro from '../components/shell/PageIntro.astro';
+import Section from '../components/shell/Section.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { hero } from '../lib/features';
 import { mainNav, notFound } from '../lib/pages';
+
+const links = [{ path: '/', label: 'Home', description: hero.headline }, ...mainNav];
 ---
 
 <BaseLayout title={notFound.title} description={notFound.description} noindex>
-  <PageHeader title="We couldn't find that page." lead={notFound.description} />
-  <section aria-labelledby="try-title" class="mx-auto max-w-6xl px-6 pb-16">
-    <h2 id="try-title" class="font-display text-2xl font-bold tracking-tight">Try one of these</h2>
-    <ul class="mt-4 flex flex-wrap gap-2">
-      <li>
-        <a href="/" class="inline-block rounded-full border border-input bg-card px-3 py-2 font-semibold text-foreground no-underline hover:border-primary"
-          >Home</a
-        >
-      </li>
+  <PageIntro title="We couldn't find that page." lead={notFound.description} />
+  <Section tone="band" labelledby="try-title" class="flex flex-col gap-8">
+    <h2 id="try-title" class="font-display text-band text-balance">Try one of these</h2>
+    <ul class="flex max-w-3xl flex-col">
       {
-        mainNav.map((page) => (
-          <li>
+        links.map((page) => (
+          <li class="border-t border-border py-4 last:border-b">
             <a
               href={page.path}
-              class="inline-block rounded-full border border-input bg-card px-3 py-2 font-semibold text-foreground no-underline hover:border-primary"
+              class="inline-flex min-h-8 items-center text-xl font-bold text-foreground underline underline-offset-4 hover:decoration-2 pointer-coarse:min-h-11"
+              >{page.label}</a
             >
-              {page.label}
-            </a>
+            <p class="mt-1 text-pretty text-muted-foreground">{page.description}</p>
           </li>
         ))
       }
     </ul>
-  </section>
+  </Section>
 </BaseLayout>

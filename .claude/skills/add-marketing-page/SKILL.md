@@ -7,9 +7,11 @@ argument-hint: [path - what the page is for]
 
 The marketing site is static (no adapter in `apps/marketing/astro.config.mjs`) and SEO-first. Every page goes through
 `BaseLayout`, which renders `src/components/Seo.astro` (canonical, hreflang, Open Graph, one JSON-LD `@graph`). Read
-`.claude/rules/astro-public.md` first. `src/pages/pricing.astro` is the reference page. How the page looks and reads
-follows `docs/design/design-system.md` (the sections that rule lists); check it against the review checklist
-(section 2) before you finish.
+`.claude/rules/astro-public.md` first. Start from the shell components in `src/components/shell` (`Section`, `DarkBand`, `SellingPoint`, `ProductFrame`,
+`SourcedNumber`, `PlanRows`, `QuestionsList`, `ClosingBand`, `PageIntro`, `CtaLink`), and read its words from
+`docs/design/marketing-site.md` and `src/lib/features.ts`. How the page looks follows `docs/design/design-system.md`
+section 22 and the Public pages group of its review checklist (section 2); check the page against both before you
+finish. A page with a dark hero passes `headerTone="dark"` to `BaseLayout`.
 
 **Page:** $ARGUMENTS
 
@@ -28,20 +30,24 @@ Register it in `apps/marketing/src/lib/pages.ts` (path with a trailing slash, ti
 
 ```astro
 ---
-import PageHeader from '../components/PageHeader.astro';
+import ClosingBand from '../components/shell/ClosingBand.astro';
+import Section from '../components/shell/Section.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { PUBLIC_APP_URL } from 'astro:env/server';
+import { appLinks } from '../lib/app-links';
 import { pages } from '../lib/pages';
 import { faqPage, type Faq } from '../lib/seo';
 
 const { title, description, path, label } = pages.security;
+const { signUp } = appLinks(PUBLIC_APP_URL, path);
 const faqs: Faq[] = [{ question: '...', answer: '...' }];
 ---
 
 <BaseLayout title={title} description={description} breadcrumbs={[{ name: label, path }]} jsonLd={[faqPage(faqs)]}>
-  <PageHeader kicker="Security" title="..." lead="..." />
-  <section aria-labelledby="first-title" class="mx-auto max-w-6xl px-6 py-10">
-    <h2 id="first-title" class="font-display text-3xl font-bold tracking-tight">...</h2>
-  </section>
+  <Section labelledby="first-title">
+    <h1 id="first-title" class="font-display text-section text-balance">...</h1>
+  </Section>
+  <ClosingBand title="..." href={signUp} />
 </BaseLayout>
 ```
 
@@ -50,10 +56,12 @@ const faqs: Faq[] = [{ question: '...', answer: '...' }];
 - `breadcrumbs` renders the visible trail and the `BreadcrumbList` JSON-LD. `jsonLd` takes the other page-specific
   nodes, built with `src/lib/seo.ts` (`faqPage`, `article`, `softwareApplication`). `Seo.astro` adds
   `Organization` and `WebSite`; do not repeat them. If you render `faqPage(faqs)`, render `<Faqs faqs={faqs} />`
-  too, so the structured data matches what readers see.
+  too (or `QuestionsList`, which writes no JSON-LD of its own), so the structured data matches what readers see.
 - Never write a host into a link or JSON-LD: build absolute URLs with `absoluteUrl(path, Astro.site)` (`SITE_URL`).
-- One `h1` (from `PageHeader`), then `h2` and `h3` in order. Sections get `aria-labelledby`.
-- Warm Grid tokens only (`bg-background`, `text-foreground`, `text-secondary-foreground`, `bg-primary`). No hex.
+- One `h1`, then `h2` and `h3` in order. No kicker above a heading, and no gradient, middle dot, numbered marker or
+  fade-up (design system M1 to M12; `public-style.test.ts` fails on them). Sections get `aria-labelledby`.
+- Tokens only (`bg-page`, `bg-background`, `text-foreground`, `text-display`, `text-section`). No hex, no pixel size.
+- Every number has a source the page links (`SourcedNumber`), taken from `features.ts` or `docs/research/pain-points.md`.
 - No client JavaScript. The only `<script>` is the JSON-LD from `Seo.astro` (plus the opt-in analytics in
   `Analytics.astro`, off by default; see `.claude/rules/astro-public.md`).
 - Claims about the product follow the non-negotiables and describe the product as `docs/architecture` designs it.

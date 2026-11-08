@@ -1,11 +1,16 @@
 ---
 import { PUBLIC_APP_URL } from 'astro:env/server';
-import Faqs from '../components/Faqs.astro';
-import PageHeader from '../components/PageHeader.astro';
+import ClosingBand from '../components/shell/ClosingBand.astro';
+import CtaLink from '../components/shell/CtaLink.astro';
+import DarkBand from '../components/shell/DarkBand.astro';
+import PlanRows from '../components/shell/PlanRows.astro';
+import QuestionsList from '../components/shell/QuestionsList.astro';
+import Section from '../components/shell/Section.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { appLinks } from '../lib/app-links';
+import { includedByTopic, pricingNotes } from '../lib/features';
 import { pages } from '../lib/pages';
-import { hasPrice, includedInEveryPlan, plans, pricedOffers } from '../lib/pricing';
+import { plans, pricedOffers, trialPlan } from '../lib/pricing';
 import { faqPage, softwareApplication, type Faq } from '../lib/seo';
 
 const { title, description, path, label } = pages.pricing;
@@ -15,17 +20,24 @@ const startUrl = appLinks(PUBLIC_APP_URL, '#included').signUp;
 
 const faqs: Faq[] = [
   {
-    question: 'Do I pay per user?',
-    answer: 'No. Every plan includes unlimited users, so the whole hiring team can review applications.',
+    question: 'What counts as an open job?',
+    answer: 'A published one. Drafts and closed jobs never count.',
   },
   {
-    question: 'Is applicant verification an add-on?',
-    answer:
-      'No. Applicant verification, with its evidence and suggested next steps, is part of every plan.',
+    question: 'What happens at the limit?',
+    answer: 'Open jobs stay open and everything keeps working. Close a job or change plan before you open another.',
   },
   {
-    question: 'Do I need a credit card to start?',
-    answer: 'No. You can start without one.',
+    question: 'What happens after the trial?',
+    answer: 'Nothing is deleted, and open jobs stay open. Choose a plan to keep opening jobs.',
+  },
+  {
+    question: 'Can I change or cancel?',
+    answer: "Any time. Your organization's Owner changes or cancels the plan from Billing. A cancelled plan runs to the end of the period you paid for.",
+  },
+  {
+    question: 'How many users can I add?',
+    answer: 'As many as you like. Every plan has unlimited users.',
   },
 ];
 ---
@@ -34,65 +46,68 @@ const faqs: Faq[] = [
   title={title}
   description={description}
   breadcrumbs={[{ name: label, path }]}
+  headerTone="dark"
   jsonLd={[softwareApplication(description, site, pricedOffers(plans)), faqPage(faqs)]}
 >
-  <PageHeader
-    title="Simple pricing for small teams."
-    lead="One monthly price per plan, unlimited users, and applicant verification included. No credit card to start."
-  />
+  <DarkBand labelledby="pricing-title" class="flex flex-wrap gap-x-16 gap-y-12">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col items-start gap-4">
+      <h1 id="pricing-title" class="font-display text-section text-balance">One price for your whole team. Everything included.</h1>
+      <p class="max-w-measure text-xl text-pretty">
+        Plans differ only in how many jobs you have open at once. Jobs already open stay open if you reach the limit.
+      </p>
+      <CtaLink href={startUrl} size="lg" class="mt-4">Start free trial</CtaLink>
+    </div>
+    <div class="min-w-0 flex-[1_1_28rem]">
+      <PlanRows trialPlan={trialPlan} />
+    </div>
+  </DarkBand>
 
-  <section aria-labelledby="plans-title" class="mx-auto max-w-6xl px-6 pb-10">
-    <h2 id="plans-title" class="sr-only">Plans</h2>
-    {/* Each card spans the same four rows (name and summary, price, limits, button), so a summary that wraps in one card does
-        not push its price out of line with the others. */}
-    <ul class="grid gap-4 md:grid-cols-3 md:grid-rows-[repeat(4,auto)]">
+  <Section id="included" labelledby="included-title" class="flex flex-wrap gap-x-16 gap-y-8">
+    <div class="flex flex-[1_1_16rem] flex-col gap-4">
+      <h2 id="included-title" class="font-display text-band text-balance">Every plan includes</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">Unlimited users, and every feature below.</p>
+    </div>
+    <div class="flex min-w-0 flex-[3_1_36rem] flex-col">
       {
-        plans.map((plan) => (
-          <li
-            class:list={[
-              'flex flex-col gap-4 rounded-panel border bg-card p-6 shadow-surface md:row-span-4 md:grid md:grid-rows-subgrid',
-              plan.highlighted ? 'border-primary' : 'border-border',
-            ]}
-          >
-            <div class="flex flex-col gap-1">
-              <h3 class="font-display text-xl font-bold">{plan.name}</h3>
-              <p class="text-secondary-foreground">{plan.summary}</p>
-            </div>
-            <p class="flex items-baseline gap-2">
-              <span class="font-display text-4xl font-extrabold tracking-tight">
-                {hasPrice(plan) ? `$${plan.monthlyPrice}` : plan.monthlyPrice}
+        includedByTopic.map((topic) => (
+          <div class="flex flex-wrap gap-x-8 gap-y-2 border-t border-border py-5 last:border-b">
+            <h3 class="flex-[1_1_12rem] text-xl font-bold text-balance">{topic.title}</h3>
+            <ul class="flex min-w-0 flex-[2_1_20rem] flex-col gap-2 text-secondary-foreground">
+              {topic.items.map((item) => (
+                <li class="max-w-measure text-pretty">{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </Section>
+
+  <Section tone="band" labelledby="not-extra-title" class="flex flex-col gap-10">
+    <div class="flex max-w-measure flex-col gap-4">
+      <h2 id="not-extra-title" class="font-display text-section text-balance">What you will not pay extra for</h2>
+      <p class="text-pretty text-secondary-foreground">
+        Here is what three vendors' own pages list today, with the date we read each one.
+      </p>
+    </div>
+    <ul class="flex flex-col">
+      {
+        pricingNotes.map((note) => (
+          <li class="flex flex-wrap gap-x-16 gap-y-2 border-t border-border py-5 last:border-b">
+            <p class="flex-[1_1_20rem] text-xl font-bold text-balance">{note.ours}</p>
+            <p class="max-w-measure flex-[1_1_24rem] text-pretty tabular-nums text-secondary-foreground">
+              {note.elsewhere}
+              <span class="mt-1 block text-sm text-muted-foreground">
+                Source: <a href={note.source.href} rel="noopener" class="inline-flex min-h-6 items-center text-primary underline underline-offset-4 hover:decoration-2 pointer-coarse:min-h-11">{note.source.label}</a>
               </span>
-              <span class="text-muted-foreground">a month</span>
             </p>
-            <p class="text-sm text-muted-foreground">{plan.activeJobs}, unlimited users</p>
-            <a
-              href={startUrl}
-              class:list={[
-                'mt-auto',
-                plan.highlighted ? 'button-primary' : 'button-secondary',
-              ]}
-            >
-              Start free<span class="sr-only"> on {plan.name}</span>
-            </a>
           </li>
         ))
       }
     </ul>
-  </section>
+  </Section>
 
-  <section id="included" aria-labelledby="included-title" class="mx-auto max-w-6xl px-6 py-10">
-    <h2 id="included-title" class="font-display text-3xl font-bold tracking-tight">Included in every plan</h2>
-    <ul class="mt-5 grid gap-3 md:grid-cols-2">
-      {
-        includedInEveryPlan.map((item) => (
-          <li class="flex items-start gap-3 text-secondary-foreground">
-            <span aria-hidden="true" class="mt-2 size-2 shrink-0 rounded-full bg-primary" />
-            {item}
-          </li>
-        ))
-      }
-    </ul>
-  </section>
+  <QuestionsList faqs={faqs} title="Questions about plans" />
 
-  <Faqs faqs={faqs} />
+  <ClosingBand title="Spend your interviews on real candidates." href={startUrl} />
 </BaseLayout>

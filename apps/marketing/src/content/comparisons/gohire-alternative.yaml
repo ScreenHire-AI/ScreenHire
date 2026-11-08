@@ -1,59 +1,84 @@
-# Facts about GoHire come from docs/research/competitors.md, source [1]: the six GoHire pages below, fetched 2026-10-18. Review ratings are left
-# out because that research could not verify them. Keep the tone factual: describe, cite, never disparage.
+# Every claim about GoHire carries the numbers of the sources it rests on and the date its pages were read (docs/research/competitors.md
+# and pain-points.md hold the research). GoHire's pricing page and help articles were read again on 2026-11-08 for this page. Say what
+# the page lists, never what it lacks beyond "lists no": the research could not confirm that GoHire has no API, so this page makes no
+# claim about one. Keep the tone factual: describe, cite, never disparage.
 competitor: GoHire
 title: 'GoHire alternative for small teams | ScreenHire'
-description: 'How ScreenHire compares with GoHire on pricing, AI, automation, job posting and applicant fraud checks, with sources for every GoHire fact.'
-heading: 'A GoHire alternative with applicant verification built in.'
+description: 'How ScreenHire compares with GoHire on fraud checks, automation, AI, price and closed jobs, with a source and a date for every GoHire fact.'
+heading: 'A GoHire alternative with a check on every applicant.'
 intro: >-
-  GoHire is a simple applicant tracking system for small teams, with multiposting to job boards and unlimited users.
-  ScreenHire is for the same teams, and adds checks for bots, impersonators and copy-paste applications that explain
-  every flag in plain language. Here is how they compare, based on GoHire's own pages.
-asOf: '2026-10-18'
+  GoHire is a simple applicant tracking system for small teams, with unlimited users and posting to many job boards.
+  ScreenHire is for the same teams. It checks every applicant, and automation, the API and webhooks are on every plan.
+  Everything below about GoHire comes from GoHire's own pages, with the date we read each one.
+leftOpen:
+  - point: real-people
+    theirs:
+      text: 'Its pricing page and the five help articles under Sources list no fraud or fake-applicant check.'
+      sources: [1, 2, 3, 4, 5, 6]
+      asOf: '2026-11-08'
+    ours: 'The check is on every plan. It is not an add-on.'
+  - point: automate-anything
+    theirs:
+      text: 'The Pro plan lists Automated Stage Actions. The Starter and Growth plans do not. A rule can send an email, add a note or send a questionnaire when a candidate moves from one stage to another.'
+      sources: [1, 5]
+      asOf: '2026-11-08'
+    ours: 'Automations are on every plan.'
 rows:
-  - topic: 'Entry price'
-    competitor: '£89 or $99 a month for 3 active jobs. Growth is £149 a month for 10 jobs, and Pro is £249 a month for unlimited jobs.'
-    screenhire: 'Monthly plans. See the pricing page.'
+  - topic: 'Price'
+    theirs:
+      text: 'Starter is £89 or $99 a month for 3 active jobs. Growth is £149 or $199 for 10. Pro is £249 or $299 for unlimited active jobs.'
+      sources: [1, 2]
+      asOf: '2026-11-08'
+    ours: 'One price, set by how many jobs are open at once. The pricing page has the plans.'
+  - topic: 'Closed jobs'
+    theirs:
+      text: 'Its pricing page says an active job is "any job you are actively recruiting for, either active or closed", and that you can archive a job to stop being charged.'
+      sources: [1]
+      asOf: '2026-11-08'
+    ours: 'A closed job costs nothing. Only open jobs count.'
   - topic: 'Users'
-    competitor: 'Unlimited users on every plan.'
-    screenhire: 'Unlimited users on every plan.'
+    theirs:
+      text: 'Unlimited users on every plan.'
+      sources: [1]
+      asOf: '2026-11-08'
+    ours: 'Unlimited users on every plan. Your whole team is included, as it is at GoHire.'
   - topic: 'AI'
-    competitor: '"Match AI" scores CVs from 1 to 10 and writes summaries, in the Plus+ add-on at £40 a month. Automatic rejection by score needs Pro and Plus+.'
-    screenhire: 'No candidate scores. AI assistance is reported as information, never as a reason to reject.'
-  - topic: 'Applicant fraud and AI-applicant checks'
-    competitor: 'None documented.'
-    screenhire: 'Built in: network, identity, automation, behaviour and content signals, each with evidence, counter-evidence and a suggested next step.'
-  - topic: 'Automation'
-    competitor: 'Stage actions on Pro: send an email, add a note, send a questionnaire. No event triggers or knockout filters documented.'
-    screenhire: 'Event-driven automations in versioned hiring templates, including knockout questions.'
-  - topic: 'Public API'
-    competitor: 'None documented.'
-    screenhire: 'Everything in the dashboard is available through the public API.'
-  - topic: 'Job posting'
-    competitor: 'Posting to 27 job boards. A closed job counts as an active, billable job until it is archived.'
-    screenhire: 'Careers page and Google for Jobs, plus job boards, with per-board status and an estimated removal time per board when you close a job.'
+    theirs:
+      text: 'Match AI scores each CV from 1 to 10. Starter includes 25 scorings a month, Growth 50 and Pro 100. The Plus+ add-on costs £40 or $50 a month and raises that to 1,000. Sending a rejection email to low scorers automatically is a Plus+ feature on Pro.'
+      sources: [1, 3]
+      asOf: '2026-11-08'
+    ours: 'No candidate gets an AI score. The AI consistency check is on every plan, with your own key and model if you prefer, and a check never rejects anyone.'
+  - topic: 'Job boards'
+    theirs:
+      text: 'Its job board article lists 27 entries, some of them premium versions of the same board.'
+      sources: [4]
+      asOf: '2026-11-08'
+    ours: 'Your careers site and Google for Jobs on every plan.'
 whenCompetitorFits:
   - 'You want posting to a long list of job boards today.'
-  - 'You want AI that scores and summarises CVs.'
-  - 'You are not seeing bot, impersonator or copy-paste applications.'
+  - 'You want AI that scores CVs from 1 to 10.'
+  - 'Fake and copy-paste applications are not a problem for your roles.'
 whenScreenHireFits:
-  - 'Your open roles attract bots, impersonators or mass copy-paste applications.'
-  - 'You want each flag explained in plain language, with a person making the decision.'
-  - 'You want event-driven automations and a public API on every plan.'
+  - 'Bots, impersonators or copy-paste applications waste your team''s time.'
+  - 'You want a level for each applicant, with the evidence and a suggested next step, and a person who decides.'
+  - 'You want automations, the API and webhooks without moving up a plan.'
 sources:
-  - label: 'GoHire pricing'
+  - label: 'GoHire pricing page'
     url: 'https://gohire.io/pricing'
   - label: 'GoHire help centre, "How much is GoHire?"'
     url: 'https://help.gohire.io/en/articles/7920630-how-much-is-gohire'
   - label: 'GoHire help centre, "Boost your hiring power with the Plus plan"'
     url: 'https://help.gohire.io/en/articles/12358433-boost-your-hiring-power-with-the-plus-plan'
-  - label: 'GoHire help centre, article 3385844'
-    url: 'https://help.gohire.io/en/articles/3385844'
-  - label: 'GoHire help centre, article 6837442'
-    url: 'https://help.gohire.io/en/articles/6837442'
-  - label: 'GoHire help centre, article 8009831'
-    url: 'https://help.gohire.io/en/articles/8009831'
+  - label: 'GoHire help centre, "What job boards does GoHire integrate with?"'
+    url: 'https://help.gohire.io/en/articles/3385844-what-job-boards-does-gohire-integrate-with'
+  - label: 'GoHire help centre, "Automated stage actions"'
+    url: 'https://help.gohire.io/en/articles/6837442-automated-stage-actions'
+  - label: 'GoHire help centre, "Can we filter candidates based on their answers to our screening questions?"'
+    url: 'https://help.gohire.io/en/articles/8009831-can-we-filter-candidates-based-on-their-answers-to-our-screening-questions-e-g-location'
 faqs:
   - question: 'Does GoHire have applicant fraud detection?'
-    answer: 'The GoHire pricing and help pages listed under Sources document no fraud or AI-applicant checks as of 18 October 2026.'
-  - question: 'Is ScreenHire priced per user like some ATSs?'
-    answer: 'No. Like GoHire, every ScreenHire plan includes unlimited users.'
+    answer: 'Its pricing page and the five help articles under Sources list none, as of 8 November 2026. Plans change, so check its pages before you decide.'
+  - question: 'Do I pay per user?'
+    answer: 'No. Every ScreenHire plan has unlimited users. GoHire also has unlimited users on every plan.'
+  - question: 'Does a closed job cost anything?'
+    answer: 'Not on ScreenHire. Only open jobs count toward your plan. GoHire counts a closed job until you archive it, according to its pricing page.'

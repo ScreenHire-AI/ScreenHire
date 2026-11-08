@@ -5,7 +5,7 @@
 import StatusIcon from './StatusIcon.astro';
 
 interface Props {
-  status: 'done' | 'review' | 'verification' | 'open';
+  status: 'done' | 'review' | 'verification' | 'open' | 'ai';
   label: string;
   quiet?: boolean;
   class?: string;
@@ -18,6 +18,7 @@ const tones = {
   open: { fill: 'bg-status-clear-soft text-status-clear', mark: 'text-status-clear-mark' },
   review: { fill: 'bg-status-review-soft text-status-review', mark: 'text-status-review-mark' },
   verification: { fill: 'bg-status-verify-soft text-status-verify', mark: 'text-status-verify-mark' },
+  ai: { fill: 'bg-status-ai-soft text-status-ai', mark: 'text-status-ai-mark' },
 };
 const tone = tones[status];
 ---

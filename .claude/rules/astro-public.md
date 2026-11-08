@@ -13,8 +13,9 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
 ## The rule
 
 - **Design system.** `docs/design/design-system.md` is the one source of truth for how these pages look and read:
-  its principles (section 1), its review checklist where it applies (section 2), candidate colours (3.4), candidate
-  type (4.3), words (12) and employer branding (18).
+  its principles (section 1), its review checklist where it applies (section 2, with the Public pages group for
+  marketing), candidate colours (3.4), candidate type (4.3), words (12), employer branding (18) and, for the marketing
+  site, section 22 (bands, type, space, the product frame, what never decorates a page).
 - **No client JavaScript by default.** Astro components and native HTML (`<details>`, `<dialog>`, forms that post).
   A Svelte island (`client:visible`, `client:idle`) only where the page needs behaviour HTML cannot give, and the
   PR says why. The one island today is the apply form's `FileField.svelte` (direct-to-storage upload, from
@@ -44,8 +45,15 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
 - **Domains are configuration.** Marketing uses `Astro.site` (from `SITE_URL`); careers reads `API_URL`, and tenant
   hosts come from environment configuration when they are needed. Never write a `screenhire.*` host into a page
   (ADR-0003).
-- **Tokens only.** Marketing uses the Warm Grid tokens (`bg-background`, `text-primary`); careers uses the candidate
-  tokens (`bg-candidate-background`, `bg-candidate-cta`). No hex values.
+- **Tokens only.** Marketing uses the Warm Grid tokens (`bg-page`, `bg-background`, `text-foreground`, `text-display`);
+  careers uses the candidate tokens (`bg-candidate-background`, `bg-candidate-cta`). No hex values.
+- **A marketing page starts from the shell** in `apps/marketing/src/components/shell` (`Section`, `DarkBand`,
+  `SellingPoint`, `ProductFrame`, `LevelChip`, `SourcedNumber`, `PlanRows`, `QuestionsList`, `ClosingBand`, `PageIntro`, `CtaLink`) and
+  takes its selling points, figures and plan list from `src/lib/features.ts`. Its copy comes from
+  `docs/design/marketing-site.md`: pain, promise, proof; every number sourced; no AI fluff; never a reason code, score
+  or the claim that ScreenHire rejects anyone. A page with a dark hero passes `headerTone="dark"` to `BaseLayout`. A
+  marketing file that decorates (a gradient, a kicker, a middle dot, a numbered marker, a fade-up) fails
+  `public-style.test.ts` unless it is on its legacy list, which each page task shrinks.
 - **Notice before collection.** Browsing a careers or marketing page collects server and security logs only. No
   analytics beacons, fingerprinting or form telemetry before an application starts and the notice is shown, and no
   third-party script tags at all.

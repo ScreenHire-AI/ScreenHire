@@ -9,10 +9,8 @@ interface Props {
 const { lastReviewed } = Astro.props;
 ---
 
-<aside aria-label="Not legal advice" class="flex flex-col gap-1 rounded-panel border border-input bg-secondary px-5 py-4 text-secondary-foreground">
-  <p class="flex items-center gap-2 font-bold">
-    Not legal advice
-  </p>
+<aside aria-label="Not legal advice" class="flex max-w-measure flex-col gap-1 rounded-panel border border-input bg-secondary px-5 py-4 text-secondary-foreground">
+  <p class="font-bold text-foreground">Not legal advice</p>
   <p class="text-base">
     This is a plain-language summary to help you ask the right questions. It is not legal advice and may be out of date.
     Check the sources and talk to a lawyer about your own situation.{

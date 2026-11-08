@@ -1,5 +1,6 @@
 ---
-// Numbered sources, so a claim can cite "[2]" and a reader can check it.
+// Numbered sources, so a claim can cite "[2]" and a reader can check it. Each source has an anchor (`source-2`) that a
+// claim's reference links to. The warm band, tighter than `Section`: sources are reference, not a pitch.
 interface Props {
   sources: { label: string; url: string }[];
   title?: string;
@@ -8,17 +9,19 @@ interface Props {
 const { sources, title = 'Sources' } = Astro.props;
 ---
 
-<section aria-labelledby="sources-title" class="flex flex-col gap-3">
-  <h2 id="sources-title" class="font-display text-2xl font-bold tracking-tight">{title}</h2>
-  <ol class="flex list-decimal flex-col gap-2 pl-6 text-sm text-secondary-foreground marker:text-muted-foreground">
-    {
-      sources.map((source, index) => (
-        <li id={`source-${index + 1}`}>
-          <a href={source.url} rel="noopener" class="text-primary underline-offset-2 hover:underline">
-            {source.label}
-          </a>
-        </li>
-      ))
-    }
-  </ol>
+<section aria-labelledby="sources-title" class="bg-background text-foreground">
+  <div class="mx-auto flex max-w-site flex-wrap gap-x-16 gap-y-6 px-4 py-12 md:px-6 md:py-16 lg:px-8">
+    <h2 id="sources-title" class="flex-1 basis-64 font-display text-2xl font-bold text-balance">{title}</h2>
+    <ol class="flex min-w-0 flex-[3_1_36rem] list-decimal flex-col gap-2 pl-6 text-base marker:text-muted-foreground">
+      {
+        sources.map((source, index) => (
+          <li id={`source-${index + 1}`} class="pl-2">
+            <a href={source.url} rel="noopener" class="break-words text-primary underline underline-offset-4 hover:decoration-2">
+              {source.label}
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
 </section>

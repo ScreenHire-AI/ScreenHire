@@ -1,0 +1,27 @@
+---
+// A statement about a competitor, with the numbers of the sources it rests on and the date those pages were read. A
+// compare page uses this for every claim about a vendor, so none appears without a source and a date (docs/design/marketing-site.md).
+import { formatDate } from '../lib/seo';
+
+interface Props {
+  text: string;
+  /** 1-based positions in the page's source list, which `SourceList` anchors as `source-<n>`. */
+  sources: number[];
+  asOf: string;
+}
+
+const { text, sources, asOf } = Astro.props;
+---
+
+<p class="text-pretty">{text}</p>
+<p class="mt-2 text-sm text-muted-foreground">
+  Read <time datetime={asOf}>{formatDate(asOf)}</time>. Source{sources.length > 1 ? 's' : ''}{' '}
+  {
+    sources.map((n, index) => (
+      <>
+        {index > 0 && ', '}
+        <a href={`#source-${n}`} aria-label={`Source ${n}`} class="inline-flex min-h-6 min-w-6 items-center justify-center text-foreground underline underline-offset-4 pointer-coarse:min-h-11 pointer-coarse:min-w-11">{n}</a>
+      </>
+    ))
+  }
+</p>
