@@ -199,7 +199,8 @@ describe('PageHero', () => {
     expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).toContain('text-display');
     expect(html).toMatch(/class="dark /);
-    expect(html).toContain('Start free trial');
+    // The trial's length comes from the catalogue (packages/plans/trial.json).
+    expect(html).toContain('Start your free 14-day trial');
     expect(html).toContain(`href="${pages.pricing.path}"`);
     expect(html).not.toContain('kicker');
   });

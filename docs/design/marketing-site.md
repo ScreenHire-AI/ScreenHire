@@ -78,10 +78,9 @@ In this order. Each is told as the buyer's pain, then our promise, then the proo
   and tasks with mentions. The candidate's own page with its four steps (Applied, In review, Interview, Offer) and their
   messages. Reports.
 - **Shown as.** The team's activity beside the candidate's own page.
-- **Numbers.** None yet. No figure for candidates left without an answer could be read at its source on 2026-11-08
-  (Monster's 2024 poll and Fast Company's 2025 report returned HTTP 403, Greenhouse's 2025 release has no such figure, and
-  CareerBuilder's 75% is from 2013). The site states no number here until one is verified in
-  [pain points](../research/pain-points.md).
+- **Numbers.** 59% of US workers say they rarely hear back after applying for a job, and 33% say they never do (Monster
+  poll of more than 1,400 US workers, November 2024; verified on 2026-11-08 in [pain points](../research/pain-points.md)).
+  Recheck it in November 2026. No sourced figure for recruiters' time lost chasing status exists yet, so the site claims none.
 
 ### 3. Automate anything
 
@@ -138,9 +137,9 @@ Name only triggers and actions that exist, as above. The examples on the site ar
 - **Under them.** The price from `packages/plans`, or nothing while no plan has one, and "No card to start" only if
   billing starts that way.
 - **The one bold element.** Two applicants for the same job: one with no concerns, one with a verification suggested, with
-  why, but also, the next step, and "A person on your team decides." It is the `ApplicantPair` markup, not the captured
-  verification panels. The flagged panel names the kinds of signal a check uses and shows the ruleset version, which this
-  doc's "What is never said" rules out while the repository is public. Re-capture or crop it before any public page uses it.
+  why, but also, the next step, and "A person on your team decides." It is the `ApplicantPair` markup. The dashboard's
+  verification panel names the kinds of signal a check uses and shows the ruleset version, which this doc's "What is never
+  said" rules out, so it is never captured for the site.
 - **Under the hero.** Three sourced numbers (point 1).
 - **The rest of the page**, in order: the five points (real people with the market gap, never guessing with the team's
   activity beside the candidate's page, automate anything with the sentence and three examples, integrations as a
@@ -239,8 +238,7 @@ static build keeps a redirect page for it and the sitemap and `llms.txt` leave i
 
 The real-people page is where "What may be claimed" and "What is never said" meet. Its screenshots exclude the
 verification panels: the dashboard's evidence panel names the kind of network, the shared details and the ruleset version,
-which the site never says, so `verification-flagged.png` and `verification-clear.png` are not used on a page and the
-evidence is shown with the shell's `ApplicantPair`. `public-copy.test.ts` guards every product page for the words that
+which the site never says, so it is never captured, and the evidence is shown with the shell's `ApplicantPair`. `public-copy.test.ts` guards every product page for the words that
 describe how a check works.
 
 `pages.ts` is the registry of paths, titles and descriptions. A page that is not in it has no sitemap line, no share

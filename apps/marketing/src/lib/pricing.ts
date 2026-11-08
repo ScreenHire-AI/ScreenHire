@@ -1,4 +1,4 @@
-import { catalogPlans, type CataloguePlan } from '@screenhire/plans';
+import { catalogPlans, trial, type CataloguePlan } from '@screenhire/plans';
 import type { PricedOffer } from './seo';
 
 // Prices and limits live in the plan catalogue (packages/plans), which the API reads too. They are working values the
@@ -23,11 +23,13 @@ const copyByKey: Record<string, { summary: string; highlighted?: boolean }> = {
   unlimited: { summary: 'For a team that is always hiring.' },
 };
 
-/**
- * The plan the free trial starts on. It is Growth because billing's `Trial:Plan` defaults to it (ADR-0029); the catalogue
- * does not hold the trial, so the site names the plan and never a trial length.
- */
-export const trialPlan = 'Growth';
+/** The plan the free trial starts on, by name: the catalogue's trial plan (packages/plans/trial.json, which billing reads too). */
+export const trialPlan = catalogPlans.find((plan) => plan.key === trial.plan)?.name ?? '';
+
+/** The label of a call to action that starts the trial, with its length when the catalogue gives one. */
+export function trialLabel(days: number = trial.days): string {
+  return days > 0 ? `Start your free ${days}-day trial` : 'Start free trial';
+}
 
 function priceText(monthlyPrice: number | null): string {
   if (monthlyPrice === null) return '';
@@ -66,8 +68,20 @@ export function pricedOffers(allPlans: Plan[]): PricedOffer[] {
   return allPlans.filter(hasPrice).map((plan) => ({ name: plan.name, price: plan.monthlyPrice, priceCurrency: plan.priceCurrency }));
 }
 
+/** A plan's monthly price in its own currency ("$79", "€149.50"). */
+export function formatPrice(plan: Plan): string {
+  const amount = Number(plan.monthlyPrice);
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: plan.priceCurrency,
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+  }).format(amount);
+}
+
 /** The lowest set price, for "From $X a month", or an empty string while no plan has a price (a caller then leaves the line out). */
 export function startingPrice(allPlans: Plan[]): string {
-  const priced = allPlans.filter(hasPrice).map((plan) => Number(plan.monthlyPrice));
-  return priced.length === 0 ? '' : `$${Math.min(...priced)}`;
+  const priced = allPlans.filter(hasPrice);
+  if (priced.length === 0) return '';
+  const lowest = priced.reduce((low, plan) => (Number(plan.monthlyPrice) < Number(low.monthlyPrice) ? plan : low));
+  return formatPrice(lowest);
 }

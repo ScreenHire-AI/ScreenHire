@@ -622,7 +622,9 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await GoToAsync("dashboard", "/settings/team");
         var organization = Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true });
-        await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(["General", "Team", "Roles", "Data requests"]);
+        // Billing is on in the test stacks, so an Owner's menu ends with it once the shell's billing query answers. Waiting for
+        // that list, not the one before the answer, is what keeps this from depending on which comes first.
+        await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(["General", "Team", "Roles", "Data requests", "Billing"]);
         await Expect(organization.GetByRole(AriaRole.Link, new() { Name = "Branding" })).ToHaveCountAsync(0);
         var team = await FrameAsync();
 

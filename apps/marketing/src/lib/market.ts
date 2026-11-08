@@ -29,13 +29,13 @@ export const marketPains: MarketPain[] = [
     facts: [
       {
         vendor: 'Ashby',
-        fact: 'Starts at $400 a month, for companies of up to 100 employees.',
+        fact: 'From $400 a month, for companies of up to 100 employees. Ashby offers 10% off for a yearly commitment and does not say which term the $400 is.',
         source: { label: 'Ashby pricing page', href: 'https://www.ashbyhq.com/pricing' },
         asOf: '2026-11-08',
       },
       {
         vendor: 'Workable',
-        fact: 'Starts at $299 a month, for companies of 1 to 20 employees.',
+        fact: 'From $299 a month, shown as $3,588 a year, for companies of 1 to 20 employees. Paying yearly saves 20%, so a month at a time costs more.',
         source: { label: 'Workable pricing page', href: 'https://www.workable.com/pricing' },
         asOf: '2026-11-08',
       },

@@ -16,13 +16,13 @@ So ScreenHire shows a level instead: **No concerns**, **Review suggested** or **
 
 Using AI to polish a cover letter is not fraud. Many genuine candidates do it, and some employers welcome it. A tool that blends "used AI" with "is not who they say they are" punishes the first group for the second group's behaviour.
 
-We keep two separate assessments. **Authenticity** asks whether this is a real, unique person who is who they claim to be. **AI assistance** asks how much of the content looks generated, and it is shown as information, judged against the AI policy you set for each job.
+We keep two separate assessments. **Authenticity** asks whether this is a real, unique person who is who they claim to be. **AI assistance** asks whether parts of the content look generated, and it is shown as information, judged against the AI policy you set for each job.
 
 ## Detectors are not judges
 
 AI-text detectors are unreliable, and a 2023 study found them biased against people writing in a second language ([Liang et al., "GPT detectors are biased against non-native English writers"](https://arxiv.org/abs/2304.02819)). A "% AI-written" figure dresses a guess up as a measurement. We show what a reviewer can check for themselves, in plain words, and never a percentage.
 
-Some checks look at how a form is filled in, and they get the same caution. Dictation software, screen readers and autofill can make an honest applicant look unusual. Applicants can switch those checks off before they start, with no negative inference.
+Some checks use signals from the application form, and they get the same caution. Dictation software, screen readers and autofill can make an honest applicant look unusual. Applicants can switch those checks off before they start, with no negative inference.
 
 ## The law points the same way
 
@@ -32,7 +32,7 @@ A level with evidence gives the reviewer something real to review. A score invit
 
 ## What this means in practice
 
-- A check never rejects anyone. A level can route an application, tag it, assign it or suggest an identity check, and ScreenHire refuses a workflow that would reject on one.
+- A check never rejects anyone. A level can route an application, tag it, assign it or suggest a short video call, and ScreenHire refuses a workflow that would reject on one.
 - Every result records the version of the check that produced it, so we can explain it and test for bias.
 
 For what we look at, in plain words, and what we never do, read [how checks work](/product/real-people/).

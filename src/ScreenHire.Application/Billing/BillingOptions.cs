@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
@@ -52,11 +53,34 @@ public sealed class BillingSandboxOptions
 
 public sealed class BillingTrialOptions
 {
-    /// <summary>How long a new organization's trial lasts, in days. Zero means no trial.</summary>
-    public int Days { get; set; } = 14;
+    /// <summary>How long a new organization's trial lasts, in days. Zero means no trial. Defaults to packages/plans/trial.json.</summary>
+    public int Days { get; set; } = TrialDefaults.Shipped.Days;
 
-    /// <summary>The plan whose limit applies during the trial: a key of the catalogue.</summary>
-    public string Plan { get; set; } = "growth";
+    /// <summary>The plan whose limit applies during the trial: a key of the catalogue. Defaults to packages/plans/trial.json.</summary>
+    public string Plan { get; set; } = TrialDefaults.Shipped.Plan;
+}
+
+/// <summary>
+/// The trial as the catalogue ships it (packages/plans/trial.json, embedded), the file the marketing site reads to say how long
+/// the trial is. Configuration (<see cref="BillingTrialOptions"/>) overrides it for the API alone, so a host that changes the
+/// length changes the file too, or the site states a different trial from the one an organization gets.
+/// </summary>
+public sealed record TrialDefaults(int Days, string Plan)
+{
+    private const string ResourceName = "trial.json";
+
+    // Before Shipped: static fields initialize in the order they are written.
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    public static TrialDefaults Shipped { get; } = Load();
+
+    private static TrialDefaults Load()
+    {
+        using var stream = typeof(TrialDefaults).Assembly.GetManifestResourceStream(ResourceName)
+            ?? throw new InvalidOperationException($"The embedded {ResourceName} (packages/plans/trial.json) is missing.");
+        return JsonSerializer.Deserialize<TrialDefaults>(stream, Json)
+            ?? throw new InvalidOperationException($"The embedded {ResourceName} is empty.");
+    }
 }
 
 /// <summary>One plan's settings. Every field is optional: a null keeps the catalogue's value.</summary>

@@ -25,7 +25,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { appLinks } from '../lib/app-links';
 import { automation, hero, integrations, notPaidExtra, pricingNotes, sellingPoints } from '../lib/features';
 import { pages } from '../lib/pages';
-import { plans, pricedOffers, startingPrice, trialPlan } from '../lib/pricing';
+import { plans, pricedOffers, startingPrice, trialLabel, trialPlan } from '../lib/pricing';
 import { faqPage, softwareApplication, type Faq } from '../lib/seo';
 
 const { title, description } = pages.home;
@@ -85,7 +85,7 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
       <h1 id="hero-title" class="font-display text-display text-balance">{hero.headline}</h1>
       <p class="max-w-xl text-xl text-pretty">{hero.subline}</p>
       <div class="flex flex-wrap items-center gap-3">
-        <CtaLink href={signUp} size="lg">Start free trial</CtaLink>
+        <CtaLink href={signUp} size="lg">{trialLabel()}</CtaLink>
         <CtaLink href={pages.pricing.path} variant="secondary" size="lg">See pricing</CtaLink>
       </div>
       {fromPrice && <p class="text-lg">From <span class="tabular-nums">{fromPrice}</span>&nbsp;a month for your whole team.</p>}
@@ -114,7 +114,7 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
       <div class="flex flex-col gap-3">
         <h3 class="text-xl font-bold">What you see</h3>
         <ProofList items={['A level for every applicant', 'The evidence behind it', 'What speaks for them', 'A suggested next step']} />
-        <ul aria-label="Levels you may see" class="mt-2 flex flex-wrap gap-2">
+        <ul aria-label="Levels you may see" class="mt-2 flex flex-col items-start gap-2">
           <li><LevelChip level="noConcerns" /></li>
           <li><LevelChip level="reviewSuggested" /></li>
           <li><LevelChip level="verificationSuggested" /></li>
@@ -129,6 +129,7 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
   </SellingPoint>
 
   <SellingPoint point={neverGuessing!} layout="stacked" tone="band">
+    {neverGuessing!.figures.map((figure) => <SourcedNumber slot="words" figure={figure} class="mt-4 max-w-measure" />)}
     <div class="flex flex-col gap-4">
       <div class="flex flex-wrap gap-x-8 gap-y-10">
         <figure class="flex min-w-0 flex-[3_1_28rem] flex-col gap-3">
@@ -226,7 +227,7 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
     <div class="flex min-w-0 flex-[1_1_22rem] flex-col items-start gap-4">
       <h2 id="pricing-title" class="font-display text-section text-balance">One price for your whole team. Everything included.</h2>
       <p class="max-w-measure text-xl text-pretty">Plans differ only in how many jobs you have open at once. Jobs already open stay open if you reach the limit.</p>
-      <CtaLink href={signUp} size="lg" class="mt-4">Start free trial</CtaLink>
+      <CtaLink href={signUp} size="lg" class="mt-4">{trialLabel()}</CtaLink>
     </div>
     <div class="flex min-w-0 flex-[1_1_28rem] flex-col gap-10">
       <PlanRows trialPlan={trialPlan} />
@@ -236,7 +237,7 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
           {notPaidExtra.map((item) => <li>{item}</li>)}
         </ul>
         <p class="text-pretty">
-          Some tools charge for these as seats, add-ons or a higher plan.
+          Some tools charge for these as seats, add-ons or a higher plan.{' '}
           <a href={pages.compare.path} class="text-foreground underline underline-offset-4 hover:decoration-2">See how we compare</a>, with sources and dates.
         </p>
       </div>
