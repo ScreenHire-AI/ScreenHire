@@ -103,8 +103,8 @@ Wording and limits.
   OnDemand focus group of 53 European in-house recruiters found almost two hours a day went on admin (2015)".
 - JobSync and Talent Board: a global survey of nearly 250 recruiters and talent acquisition and HR professionals,
   released 5 Oct 2022 by a vendor and a non-profit, survey dates not stated. Four years old, so quote it with "2022".
-- GoHire, what the pages say on 2026-11-08: the pricing card for Pro lists "Automated Stage Actions" and the Growth card
-  does not. The comparison table's plan markers did not come through, and the help article does not name a plan, so
+- GoHire, what the pages say on 2026-11-08: the pricing card for Pro lists "Automated Stage Actions" and the Starter and
+  Growth cards do not (Starter re-read for the compare page the same day). The comparison table's plan markers did not come through, and the help article does not name a plan, so
   "Pro-only" is not proven, only "Pro includes it". The help article says rules (send email, add note, send
   questionnaire, "etc") run "automatically" when a candidate is moved into a stage. That is a trigger on stage change,
   so `competitors.md`'s "no event triggers" is too strong. Say "stage actions that run when a candidate moves stage".
@@ -171,6 +171,8 @@ Pain: per-seat charges, AI and fraud checks sold as extras, and billing for jobs
 | Zoho Recruit charges $25 per recruiter per month | $25 | Zoho Recruit, pricing page | 2026 | https://www.zoho.com/recruit/pricing.html | 2026-11-08 | Not verified |
 | GoHire sells its AI as a paid add-on, Plus+, at about $50 (GBP 40) a month | $50 or GBP 40 a month, or $500 or GBP 400 a year | GoHire help centre, "Boost your hiring power with the Plus plan" | 2026 | https://help.gohire.io/en/articles/12358433-boost-your-hiring-power-with-the-plus-plan | 2026-11-08 | Verified |
 | At GoHire, a closed job still counts as an active job until it is archived | n/a | GoHire, pricing page FAQ | 2026 | https://gohire.io/pricing | 2026-11-08 | Verified |
+| GoHire's AI Candidate Matching allows 25 a month on Starter, 50 on Growth and 100 on Pro, or 1,000 with Plus+ | 25, 50, 100; 1,000 with Plus+ | GoHire, pricing page, "What's included" table, "Usage (per month)" | 2026 | https://gohire.io/pricing | 2026-11-08 | Verified |
+| GoHire's job board article lists 27 entries, four of them premium versions of a board also listed (Indeed, LinkedIn, Adzuna, Jobrapido) | 27 entries | GoHire help centre, "What job boards does GoHire integrate with?" (dated 6 Mar 2026) | 2026 | https://help.gohire.io/en/articles/3385844-what-job-boards-does-gohire-integrate-with | 2026-11-08 | Verified |
 | Gem sells fraud detection as checks the customer must purchase | no price published | Gem, help centre "Fraud detection agent overview" | 2026 | https://help.gem.com/databases/gem-help-center/fraud-detection-agent-overview | 2026-11-08 | Verified |
 | Greenhouse's identity verification is available only on its Plus and Pro tiers | n/a | Greenhouse support, "Greenhouse identity verification overview" (updated 6 Feb 2026) | 2026 | https://support.greenhouse.io/hc/en-us/articles/40966215931291 | 2026-11-08 | Verified |
 
