@@ -1,55 +1,29 @@
-using System.Text.Json;
+using Microsoft.Extensions.Options;
+using ScreenHire.Application.Billing;
 
 namespace ScreenHire.Testing;
 
-/// <summary>A plan as <c>packages/plans/plans.json</c> ships it.</summary>
-public sealed record ShippedPlan(string Key, string Name, decimal? MonthlyPrice, int? ActiveJobs, bool Unlimited)
-{
-    /// <summary>The most jobs that may be open at once, or null for no limit.</summary>
-    public int? Limit => Unlimited ? null : ActiveJobs;
-
-    /// <summary>The limit, for a test that must reach it. Throws when the plan has none.</summary>
-    public int RequiredLimit => Limit ?? throw new InvalidOperationException($"The {Key} plan has no limit in plans.json.");
-}
-
 /// <summary>
-/// The plans the test stacks run with. The stacks pin nothing, so they sell what the catalogue ships, and a test that needs a
-/// price or a limit reads it here: the owner may change a working number without editing a test.
+/// The plans the test stacks sell. The stacks pin no plan override, so they sell the catalogue's defaults
+/// (<c>packages/plans/plans.json</c>), read here through the same <see cref="PlanCatalogue"/> the API uses. A test that needs
+/// a price or a limit reads it here, so the owner may change a working number without editing a test.
 /// </summary>
 public static class ShippedPlans
 {
-    private static readonly Lazy<IReadOnlyDictionary<string, ShippedPlan>> Plans = new(Load);
+    private static readonly PlanCatalogue Catalogue = new(Options.Create(new BillingOptions()));
 
-    public static ShippedPlan Starter => Plans.Value["starter"];
+    public static Plan Starter => Shipped("starter");
 
-    public static ShippedPlan Growth => Plans.Value["growth"];
+    public static Plan Growth => Shipped("growth");
 
-    public static ShippedPlan Unlimited => Plans.Value["unlimited"];
+    public static Plan Unlimited => Shipped("unlimited");
 
-    private static Dictionary<string, ShippedPlan> Load()
+    extension(Plan plan)
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "ScreenHire.slnx")))
-        {
-            directory = directory.Parent;
-        }
-
-        var path = directory is null
-            ? throw new InvalidOperationException($"No ScreenHire.slnx above {AppContext.BaseDirectory}.")
-            : Path.Combine(directory.FullName, "packages", "plans", "plans.json");
-        using var document = JsonDocument.Parse(File.ReadAllText(path));
-        return document.RootElement.EnumerateObject().ToDictionary(
-            property => property.Name,
-            property => new ShippedPlan(
-                property.Name,
-                property.Value.GetProperty("name").GetString()!,
-                Number(property.Value, "monthlyPrice", element => element.GetDecimal()),
-                Number(property.Value, "activeJobs", element => element.GetInt32()),
-                property.Value.GetProperty("unlimited").GetBoolean()),
-            StringComparer.OrdinalIgnoreCase);
+        /// <summary>The plan's limit, for a test that must reach it. Throws when the plan has none.</summary>
+        public int RequiredLimit => plan.Limit ?? throw new InvalidOperationException($"The {plan.Key} plan has no limit in plans.json.");
     }
 
-    private static T? Number<T>(JsonElement plan, string name, Func<JsonElement, T> read)
-        where T : struct =>
-        plan.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? read(value) : null;
+    private static Plan Shipped(string key) =>
+        Catalogue.Find(key) ?? throw new InvalidOperationException($"plans.json has no {key} plan.");
 }

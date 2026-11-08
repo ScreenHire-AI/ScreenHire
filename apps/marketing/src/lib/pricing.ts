@@ -1,5 +1,4 @@
 import { catalogPlans, type CataloguePlan } from '@screenhire/plans';
-import { everyPlanIncludes } from './features';
 import type { PricedOffer } from './seo';
 
 // Prices and limits live in the plan catalogue (packages/plans), which the API reads too. They are working values the
@@ -58,9 +57,6 @@ export function buildPlans(catalogue: CataloguePlan[]): Plan[] {
 }
 
 export const plans: Plan[] = buildPlans(catalogPlans);
-
-/** What every plan includes: the shared list in features.ts, which home, product and pricing all read. */
-export const includedInEveryPlan = everyPlanIncludes;
 
 export function hasPrice(plan: Plan): boolean {
   return /^\d+(\.\d{1,2})?$/.test(plan.monthlyPrice);
