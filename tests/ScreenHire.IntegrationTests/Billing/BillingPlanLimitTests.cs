@@ -6,8 +6,8 @@ namespace ScreenHire.IntegrationTests.Billing;
 
 /// <summary>
 /// The plan's active job limit at <c>POST /v1/jobs/{id}/publish</c> (ADR-0029). Only opening a draft counts, against the
-/// jobs open across the whole organization; an open job stays open and readable whatever happens to the plan. The test
-/// stack pins Starter at 1 open job.
+/// jobs open across the whole organization; an open job stays open and readable whatever happens to the plan. The tests
+/// fill the Starter plan's limit from <see cref="ShippedPlans"/>, so a changed working number needs no edit here.
 /// </summary>
 public sealed class BillingPlanLimitTests(AppHostFixture fixture)
 {
@@ -17,6 +17,20 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static async Task<Guid> NewJobAsync(Tenant tenant, string title) => (await tenant.CreateJobAsync(Samples.RemoteJob(title))).Id();
+
+    /// <summary>Opens <paramref name="count"/> jobs and returns the first, which a test closes or reads.</summary>
+    private static async Task<Guid> OpenJobsAsync(Tenant tenant, int count)
+    {
+        var first = Guid.Empty;
+        for (var i = 1; i <= count; i++)
+        {
+            var job = await NewJobAsync(tenant, $"Open role {i}");
+            await tenant.PublishJobAsync(job);
+            first = first == Guid.Empty ? job : first;
+        }
+
+        return first;
+    }
 
     private static async Task<ApiResult> TryPublishAsync(Tenant tenant, Guid jobId) => await tenant.PostAsync($"/v1/jobs/{jobId}/publish");
 
@@ -33,7 +47,7 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
         var billing = await owner.BillingAsync();
         billing.Text("state").Should().Be("Trialing");
         billing.At("openJobs").GetInt32().Should().Be(1);
-        billing.At("activeJobLimit").GetInt32().Should().Be(50);
+        billing.At("activeJobLimit").GetInt32().Should().Be(ShippedPlans.Growth.RequiredLimit);
     }
 
     [Fact]
@@ -41,21 +55,21 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         await fixture.SubscribeAsync(owner, "starter");
-        var first = await NewJobAsync(owner, "Platform Engineer");
+        var limit = ShippedPlans.Starter.RequiredLimit;
+        var first = await OpenJobsAsync(owner, limit);
         var second = await NewJobAsync(owner, "Payroll Specialist");
-        await owner.PublishJobAsync(first);
 
         var refused = (await TryPublishAsync(owner, second)).Expect(HttpStatusCode.PaymentRequired);
 
         refused.Text("type").Should().Be(PlanLimit);
         refused.Text("title").Should().Be("Plan limit reached");
-        refused.Text("detail").Should().Contain("allows 1 open job").And.Contain("1 is open").And.Contain("stay open");
+        refused.Text("detail").Should().Contain($"allows {limit} open job").And.Contain($"{limit} {(limit == 1 ? "is" : "are")} open").And.Contain("stay open");
         (await StatusOfAsync(owner, first)).Should().Be("Open");
         (await StatusOfAsync(owner, second)).Should().Be("Draft", "a refused publish changes nothing");
-        (await owner.GetAsync("/v1/jobs")).Expect(HttpStatusCode.OK).Count().Should().Be(2);
+        (await owner.GetAsync("/v1/jobs")).Expect(HttpStatusCode.OK).Count().Should().Be(limit + 1);
         var billing = await owner.BillingAsync();
-        billing.At("openJobs").GetInt32().Should().Be(1);
-        billing.At("activeJobLimit").GetInt32().Should().Be(1);
+        billing.At("openJobs").GetInt32().Should().Be(limit);
+        billing.At("activeJobLimit").GetInt32().Should().Be(limit);
     }
 
     [Fact]
@@ -63,8 +77,7 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         await fixture.SubscribeAsync(owner, "starter");
-        var job = await NewJobAsync(owner, "Platform Engineer");
-        await owner.PublishJobAsync(job);
+        var job = await OpenJobsAsync(owner, ShippedPlans.Starter.RequiredLimit);
 
         var again = await owner.PublishJobAsync(job);
 
@@ -76,9 +89,8 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         await fixture.SubscribeAsync(owner, "starter");
-        var first = await NewJobAsync(owner, "Platform Engineer");
+        var first = await OpenJobsAsync(owner, ShippedPlans.Starter.RequiredLimit);
         var second = await NewJobAsync(owner, "Payroll Specialist");
-        await owner.PublishJobAsync(first);
         (await TryPublishAsync(owner, second)).Expect(HttpStatusCode.PaymentRequired);
 
         await owner.CloseJobAsync(first);
@@ -93,8 +105,8 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         await fixture.SubscribeAsync(owner, "starter");
-        var ownersJob = await NewJobAsync(owner, "Platform Engineer");
-        await owner.PublishJobAsync(ownersJob);
+        var limit = ShippedPlans.Starter.RequiredLimit;
+        await OpenJobsAsync(owner, limit);
         using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter", jobAccess: "HiringTeamOnly");
         var theirs = await NewJobAsync(recruiter, "Payroll Specialist");
         (await recruiter.GetAsync("/v1/jobs")).Expect(HttpStatusCode.OK).Count().Should().Be(1, "the owner's job is hidden from them");
@@ -102,7 +114,7 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
         var refused = (await TryPublishAsync(recruiter, theirs)).Expect(HttpStatusCode.PaymentRequired);
 
         refused.Text("type").Should().Be(PlanLimit);
-        refused.Text("detail").Should().Contain("1 is open", "the hidden job counts");
+        refused.Text("detail").Should().Contain($"{limit} {(limit == 1 ? "is" : "are")} open", "the hidden jobs count");
         (await StatusOfAsync(recruiter, theirs)).Should().Be("Draft");
     }
 
@@ -111,9 +123,8 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         await fixture.SubscribeAsync(owner, "starter");
-        var open = await NewJobAsync(owner, "Platform Engineer");
+        var open = await OpenJobsAsync(owner, 1);
         var draft = await NewJobAsync(owner, "Payroll Specialist");
-        await owner.PublishJobAsync(open);
         var slug = (await owner.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK).Text("slug");
         var jobSlug = (await owner.GetAsync($"/v1/jobs/{open}")).Text("slug");
         await fixture.CancelSubscriptionAsync(owner);
@@ -142,8 +153,7 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         await fixture.SubscribeAsync(owner, "starter");
-        var job = await NewJobAsync(owner, "Platform Engineer");
-        await owner.PublishJobAsync(job);
+        var job = await OpenJobsAsync(owner, 1);
         await fixture.CancelSubscriptionAsync(owner);
 
         var again = await owner.PublishJobAsync(job);
@@ -171,13 +181,11 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
         using var owner = await fixture.SignedInWithOrganizationAsync();
         await fixture.SubscribeAsync(owner, "unlimited");
 
-        foreach (var title in new[] { "Platform Engineer", "Payroll Specialist", "Data Engineer" })
-        {
-            await owner.PublishJobAsync(await NewJobAsync(owner, title));
-        }
+        var count = ShippedPlans.Starter.RequiredLimit + 1;
+        await OpenJobsAsync(owner, count);
 
         var billing = await owner.BillingAsync();
-        billing.At("openJobs").GetInt32().Should().Be(3);
+        billing.At("openJobs").GetInt32().Should().Be(count);
         billing.At("activeJobLimit").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
@@ -187,7 +195,8 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
         using var full = await fixture.SignedInWithOrganizationAsync();
         using var other = await fixture.SignedInWithOrganizationAsync();
         await fixture.SubscribeAsync(full, "starter");
-        await full.PublishJobAsync(await NewJobAsync(full, "Platform Engineer"));
+        var limit = ShippedPlans.Starter.RequiredLimit;
+        await OpenJobsAsync(full, limit);
         (await TryPublishAsync(full, await NewJobAsync(full, "Payroll Specialist"))).Expect(HttpStatusCode.PaymentRequired);
         await fixture.SubscribeAsync(other, "starter");
         await fixture.CancelSubscriptionAsync(other);
@@ -197,7 +206,7 @@ public sealed class BillingPlanLimitTests(AppHostFixture fixture)
 
         published.Text("status").Should().Be("Open");
         (await TryPublishAsync(other, await NewJobAsync(other, "Support Lead"))).Expect(HttpStatusCode.PaymentRequired).Text("type").Should().Be(SubscriptionEnded);
-        (await full.BillingAsync()).At("openJobs").GetInt32().Should().Be(1);
+        (await full.BillingAsync()).At("openJobs").GetInt32().Should().Be(limit);
         (await trial.BillingAsync()).At("openJobs").GetInt32().Should().Be(1);
     }
 }

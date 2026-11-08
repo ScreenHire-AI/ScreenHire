@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { automation, everyPlanIncludes, hero, integrations, notPaidExtra, sellingPoints } from './features';
+import { automation, everyPlanIncludes, hero, includedByTopic, integrations, notPaidExtra, pricingNotes, sellingPoints } from './features';
 
 // The site's own words. The same rules are in docs/design/marketing-site.md (copy rules) and CLAUDE.md (non-negotiables 1 to 3).
 const bannedWords = ['AI-powered', 'supercharge', 'revolutionize', 'seamless', 'unlock', 'effortless', 'next-generation'];
-const words = JSON.stringify({ sellingPoints, hero, everyPlanIncludes, notPaidExtra, integrations, automation });
+const words = JSON.stringify({ sellingPoints, hero, everyPlanIncludes, includedByTopic, notPaidExtra, pricingNotes, integrations, automation });
 
 describe('selling points', () => {
   it("are the owner's five, in order", () => {
@@ -54,5 +54,25 @@ describe("the site's words", () => {
   it('write the automation example as When, If, then what happens', () => {
     expect(automation.sentence).toMatch(/^When .*, if .*,? .+\.$/);
     expect(automation.examples.map((example) => example.scope)).toEqual(['One step', 'A few steps', 'Your whole process']);
+  });
+});
+
+describe('pricing page words', () => {
+  it('group what every plan includes by the five selling points, then the careers site', () => {
+    expect(includedByTopic.map((topic) => topic.id)).toEqual([...sellingPoints.map((point) => point.id), 'careers-site']);
+    for (const topic of includedByTopic) expect(topic.items.length, topic.id).toBeGreaterThan(0);
+  });
+
+  it('source every line about the market with a link and the date it was read', () => {
+    expect(pricingNotes.map((note) => note.ours)).toEqual(notPaidExtra);
+    for (const note of pricingNotes) {
+      expect(note.source.href).toMatch(/^https:\/\//);
+      expect(note.source.label).toMatch(/read \d{1,2} \w+ 20\d\d$/);
+    }
+  });
+
+  it('say what a page lists, never that a vendor lacks something it has not been shown to lack', () => {
+    const elsewhere = pricingNotes.map((note) => note.elsewhere).join(' ');
+    expect(elsewhere).not.toMatch(/\b(?:no API|has no|lacks|does not (?:have|offer))\b/i);
   });
 });

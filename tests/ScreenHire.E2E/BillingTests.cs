@@ -5,9 +5,9 @@ using System.Text.Json;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// Settings > Billing in a real browser, against the local sandbox payment provider and the plans the test stack pins
-/// (docs/architecture/billing.md, ADR-0029): Starter allows 1 open job at $29 a month, Growth (the trial's plan) 50 at $99,
-/// Unlimited costs $199. An Owner sees the free trial and the three plans, chooses one through the sandbox's checkout and comes
+/// Settings > Billing in a real browser, against the local sandbox payment provider and the plans the catalogue ships
+/// (docs/architecture/billing.md, ADR-0029, read through <see cref="ShippedPlans"/>): Starter, Growth (the trial's plan)
+/// and Unlimited. An Owner sees the free trial and the three plans, chooses one through the sandbox's checkout and comes
 /// back subscribed; a publish past the plan's limit is refused with a notice that links to Billing; a Recruiter cannot open the
 /// page. Each test signs in as a new person with a new organization, which starts on its own 14-day trial.
 /// </summary>
@@ -46,17 +46,17 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         var plan = Page.GetByRole(AriaRole.Region, new() { Name = "Plan", Exact = true });
         await Expect(plan).ToContainTextAsync("Growth");
         await Expect(plan).ToContainTextAsync("Trial ends");
-        await Expect(plan).ToContainTextAsync("0 of 50");
+        await Expect(plan).ToContainTextAsync($"0 of {ShippedPlans.Growth.RequiredLimit}");
 
         var plans = Page.GetByRole(AriaRole.Region, new() { Name = "Plans", Exact = true });
         await Expect(plans).ToContainTextAsync("Starter");
-        await Expect(plans).ToContainTextAsync("$29 a month");
-        await Expect(plans).ToContainTextAsync("Up to 1 open job");
+        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Starter.MonthlyPrice:0.##} a month");
+        await Expect(plans).ToContainTextAsync($"Up to {Jobs(ShippedPlans.Starter.RequiredLimit)}");
         await Expect(plans).ToContainTextAsync("Growth");
-        await Expect(plans).ToContainTextAsync("$99 a month");
-        await Expect(plans).ToContainTextAsync("Up to 50 open jobs");
+        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Growth.MonthlyPrice:0.##} a month");
+        await Expect(plans).ToContainTextAsync($"Up to {Jobs(ShippedPlans.Growth.RequiredLimit)}");
         await Expect(plans).ToContainTextAsync("Unlimited");
-        await Expect(plans).ToContainTextAsync("$199 a month");
+        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Unlimited.MonthlyPrice:0.##} a month");
         await Expect(plans).ToContainTextAsync("Unlimited open jobs");
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(3);
         await ExpectNoAccessibilityViolationsAsync();
@@ -68,7 +68,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(band.GetByRole(AriaRole.Button, new() { Name = "Manage billing" })).ToBeVisibleAsync();
         await Expect(plan).ToContainTextAsync("Starter");
         await Expect(plan).ToContainTextAsync("Next payment");
-        await Expect(plan).ToContainTextAsync("0 of 1");
+        await Expect(plan).ToContainTextAsync($"0 of {ShippedPlans.Starter.RequiredLimit}");
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-1440");
@@ -78,6 +78,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
     public async Task A_publish_past_the_plans_limit_shows_the_plan_message_and_a_link_to_Billing()
     {
         var owner = ApiSession.NewEmail("e2e-billing-limit");
+        var limit = ShippedPlans.Starter.RequiredLimit;
         Guid first;
         Guid second;
         using (var session = new ApiSession(Fixture))
@@ -85,7 +86,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
             await session.SignInWithDevSsoAsync(owner, Ct);
             await session.OnboardAsync(Ct);
 
-            // Starter allows one open job: subscribe the way the dashboard does, by starting a checkout and following its link.
+            // Fill the Starter plan's open jobs: subscribe the way the dashboard does, by starting a checkout and following its link.
             using var checkout = await session.PostAsync("/v1/organization/billing/checkout", new { plan = "starter" }, Ct);
             checkout.StatusCode.Should().Be(HttpStatusCode.OK, await checkout.Content.ReadAsStringAsync(Ct));
             var link = (await checkout.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("url").GetString()!;
@@ -93,10 +94,16 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
             using var activated = await browser.GetAsync(new Uri(session.BaseAddress, link), Ct);
             activated.StatusCode.Should().Be(HttpStatusCode.Redirect);
 
-            first = await CreateJobAsync(session, "Platform Engineer");
+            first = Guid.Empty;
+            for (var i = 1; i <= limit; i++)
+            {
+                var job = await CreateJobAsync(session, $"Platform Engineer {i}");
+                using var published = await session.PostAsync($"/v1/jobs/{job}/publish", new { }, Ct);
+                published.StatusCode.Should().Be(HttpStatusCode.OK, await published.Content.ReadAsStringAsync(Ct));
+                first = first == Guid.Empty ? job : first;
+            }
+
             second = await CreateJobAsync(session, "Design Engineer");
-            using var published = await session.PostAsync($"/v1/jobs/{first}/publish", new { }, Ct);
-            published.StatusCode.Should().Be(HttpStatusCode.OK, await published.Content.ReadAsStringAsync(Ct));
         }
 
         await Page.SetViewportSizeAsync(1440, 1000);
@@ -105,7 +112,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to") }).ClickAsync();
 
         var notice = Page.Locator("[data-slot=notice]");
-        await Expect(notice).ToContainTextAsync("Your plan allows 1 open job and 1 is open.");
+        await Expect(notice).ToContainTextAsync($"Your plan allows {Jobs(limit)} and {limit} {(limit == 1 ? "is" : "are")} open.");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-plan-limit-1440");
 
@@ -120,7 +127,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await notice.GetByRole(AriaRole.Link, new() { Name = "Upgrade plan" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Billing");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Plan", Exact = true })).ToContainTextAsync("1 of 1");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Plan", Exact = true })).ToContainTextAsync($"{limit} of {limit}");
     }
 
     [Fact]
@@ -155,6 +162,8 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Manage billing" })).ToHaveCountAsync(0);
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(0);
     }
+
+    private static string Jobs(int count) => count == 1 ? "1 open job" : $"{count} open jobs";
 
     private static async Task<Guid> CreateJobAsync(ApiSession session, string title)
     {

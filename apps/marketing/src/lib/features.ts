@@ -181,10 +181,86 @@ export const everyPlanIncludes = [
   'Hiring templates, questionnaires and scorecards',
 ];
 
-/** What the pricing section says you will not pay extra for. */
-export const notPaidExtra = [
-  'Another seat. Your whole team is included.',
-  'Fraud and bot checks, or the AI that helps with them.',
-  'Automation, the API or webhooks.',
-  'A job you have closed. Only open jobs count.',
+/** What every plan includes, grouped by the five selling points and the candidate's side. Each line is a built feature (docs/status.md). */
+export const includedByTopic: { id: string; title: string; items: string[] }[] = [
+  {
+    id: 'real-people',
+    title: 'Real people',
+    items: [
+      'A check on every application',
+      'A level for every applicant, with the evidence, what speaks for them and a suggested next step',
+      'The AI consistency check, with your own key and model if you prefer',
+    ],
+  },
+  {
+    id: 'never-guessing',
+    title: 'Never guessing',
+    items: [
+      "The pipeline, with each candidate's activity and when they were last contacted",
+      'Email you send and the replies you get, kept on the application',
+      'Notes and tasks with mentions, and reports on your funnel',
+      'A page of their own for every candidate',
+    ],
+  },
+  {
+    id: 'automate-anything',
+    title: 'Automate anything',
+    items: [
+      'Automations on every stage and on the whole workflow, tested on a sample application before they go live',
+      'Follow-up questions and interview scheduling',
+    ],
+  },
+  {
+    id: 'integrations',
+    title: 'Integrations',
+    items: ['Google and Outlook calendars, and Slack', 'The API and webhooks', 'AI assistants through MCP'],
+  },
+  {
+    id: 'built-your-way',
+    title: 'Built your way',
+    items: ['Hiring templates, questionnaires and scorecards', 'Email templates and your branding', 'Roles, and access to each job'],
+  },
+  {
+    id: 'careers-site',
+    title: 'Careers site and job posting',
+    items: [
+      'A careers site for your company, with the notice before any candidate applies',
+      'The apply form on your own site, from one line of embed code',
+      'Posting to Google for Jobs and job-board feeds, and taking a job down everywhere in one click',
+    ],
+  },
 ];
+
+/**
+ * What you will not pay extra for, and what one page of the market says today. `elsewhere` names the page and says only what
+ * it says; each source was read on the date in its label (docs/research/competitors.md, "Pricing pages re-read on
+ * 2026-11-08"). Word these as what the page lists, never as what a vendor lacks.
+ */
+export const pricingNotes: { ours: string; elsewhere: string; source: Source }[] = [
+  {
+    ours: 'Another seat. Your whole team is included.',
+    elsewhere: 'Manatal lists $15\u00A0per user per month on its Professional plan, billed yearly.',
+    source: { label: 'Manatal pricing page, read 8 November 2026', href: 'https://www.manatal.com/pricing' },
+  },
+  {
+    ours: 'Fraud and bot checks, or the AI that helps with them.',
+    elsewhere: 'Gem sells fraud detection as checks you purchase separately.',
+    source: {
+      label: 'Gem help center, read 8 November 2026',
+      href: 'https://help.gem.com/databases/gem-help-center/fraud-detection-agent-overview',
+    },
+  },
+  {
+    ours: 'Automation, the API or webhooks.',
+    elsewhere: 'GoHire lists Automated Stage Actions on its Pro plan.',
+    source: { label: 'GoHire pricing page, read 8 November 2026', href: 'https://gohire.io/pricing' },
+  },
+  {
+    ours: 'A job you have closed. Only open jobs count.',
+    elsewhere: 'GoHire counts a closed job as an active one, and says to archive it to stop being charged.',
+    source: { label: 'GoHire pricing page, read 8 November 2026', href: 'https://gohire.io/pricing' },
+  },
+];
+
+/** What the pricing section says you will not pay extra for. */
+export const notPaidExtra = pricingNotes.map((note) => note.ours);

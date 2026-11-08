@@ -92,17 +92,32 @@ describe('ApplicantPair', () => {
 });
 
 describe('PlanRows', () => {
-  it('shows the placeholder until the catalogue has a price, then the price with its limit', async () => {
-    expect(await render(PlanRows)).toContain('[YOUR PRICE]');
+  it('shows the price with its limit, "any number" for the unlimited plan, and no amount for a plan without a price', async () => {
     const priced = buildPlans([
       { key: 'starter', name: 'Starter', order: 1, monthlyPrice: 79, currency: 'USD', activeJobs: 3, unlimited: false, stripePriceId: null },
       { key: 'unlimited', name: 'Unlimited', order: 2, monthlyPrice: 249, currency: 'USD', activeJobs: null, unlimited: true, stripePriceId: null },
     ]);
     const html = await render(PlanRows, { plans: priced });
     expect(html).toContain('$79');
-    expect(html).toContain('3 active jobs');
-    expect(html).toContain('Unlimited active jobs');
-    expect(html).not.toContain('[YOUR PRICE]');
+    expect(html).toContain('3\u00A0open jobs');
+    expect(html).toContain('Any number of open jobs');
+    expect(html).toContain('$249');
+
+    const unpriced = buildPlans([
+      { key: 'starter', name: 'Starter', order: 1, monthlyPrice: null, currency: 'USD', activeJobs: 3, unlimited: false, stripePriceId: null },
+      { key: 'growth', name: 'Growth', order: 2, monthlyPrice: null, currency: 'USD', activeJobs: null, unlimited: false, stripePriceId: null },
+    ]);
+    const bare = await render(PlanRows, { plans: unpriced });
+    expect(bare).toContain('Starter');
+    expect(bare).toContain('3\u00A0open jobs');
+    expect(bare).toContain('Growth');
+    expect(bare).not.toMatch(/\$|a month|\[YOUR/);
+  });
+
+  it('shows the real catalogue with no placeholder, and names the trial plan', async () => {
+    const html = await render(PlanRows, { trialPlan: 'Growth' });
+    expect(html).not.toContain('[YOUR');
+    expect(html).toContain('(your trial)');
   });
 });
 

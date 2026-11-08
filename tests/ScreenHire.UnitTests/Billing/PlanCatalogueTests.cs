@@ -5,8 +5,9 @@ using ScreenHire.Application.Billing;
 namespace ScreenHire.UnitTests.Billing;
 
 /// <summary>
-/// The plans on sale: <c>packages/plans/plans.json</c> ships no price and no limit (the owner sets them), and
-/// <c>ScreenHire:Billing:Plans</c> overrides any field of any plan.
+/// The plans on sale: <c>packages/plans/plans.json</c> ships working prices and open-job limits (the owner confirms them
+/// before launch) and no Stripe price (the owner creates those), and <c>ScreenHire:Billing:Plans</c> overrides any field of
+/// any plan.
 /// </summary>
 public sealed class PlanCatalogueTests
 {
@@ -25,16 +26,25 @@ public sealed class PlanCatalogueTests
     }
 
     [Fact]
-    public void The_shipped_plans_set_no_price_no_limit_and_no_stripe_price()
+    public void The_shipped_plans_set_a_price_and_a_limit_but_no_stripe_price()
     {
         foreach (var plan in Catalogue().Plans)
         {
-            plan.MonthlyPrice.Should().BeNull(plan.Key);
-            plan.ActiveJobs.Should().BeNull(plan.Key);
-            plan.StripePriceId.Should().BeNull(plan.Key);
-            plan.Limit.Should().BeNull($"{plan.Key} is not limited by a number nobody chose");
+            plan.MonthlyPrice.Should().BePositive(plan.Key);
+            plan.StripePriceId.Should().BeNull($"{plan.Key}: the owner creates the Stripe prices");
             plan.Currency.Should().Be("USD");
         }
+    }
+
+    [Fact]
+    public void The_limited_plans_have_a_limit_that_grows_with_the_price_and_the_unlimited_plan_has_none()
+    {
+        var plans = Catalogue().Plans;
+
+        plans.Where(p => !p.Unlimited).Should().OnlyContain(p => p.Limit > 0);
+        plans.Where(p => p.Unlimited).Should().OnlyContain(p => p.Limit == null);
+        plans.Select(p => p.MonthlyPrice).Should().BeInAscendingOrder();
+        plans.Where(p => !p.Unlimited).Select(p => p.Limit).Should().BeInAscendingOrder();
     }
 
     [Fact]
@@ -50,12 +60,12 @@ public sealed class PlanCatalogueTests
     [Fact]
     public void An_override_changes_only_the_fields_it_sets()
     {
-        var starter = Catalogue(With("starter", new PlanOptions { ActiveJobs = 3 })).Find("starter")!;
+        var starter = Catalogue(With("starter", new PlanOptions { ActiveJobs = 7 })).Find("starter")!;
 
-        starter.ActiveJobs.Should().Be(3);
-        starter.Limit.Should().Be(3);
+        starter.ActiveJobs.Should().Be(7);
+        starter.Limit.Should().Be(7);
         starter.Name.Should().Be("Starter");
-        starter.MonthlyPrice.Should().BeNull();
+        starter.MonthlyPrice.Should().Be(Catalogue().Find("starter")!.MonthlyPrice, "an override of the limit leaves the shipped price alone");
         starter.Currency.Should().Be("USD");
         starter.Order.Should().Be(1);
         starter.Unlimited.Should().BeFalse();

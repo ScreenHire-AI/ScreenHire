@@ -6,6 +6,8 @@ tags: [marketing, messaging, copy, design]
 sources:
   - resource: apps/marketing/src/lib/features.ts
   - resource: apps/marketing/src/lib/pages.ts
+  - resource: apps/marketing/src/lib/pricing.ts
+  - resource: apps/marketing/src/pages/pricing.astro
   - resource: apps/marketing/src/lib/features.test.ts
   - resource: apps/marketing/src/lib/copy.test.ts
   - resource: apps/marketing/src/components/SampleVerificationCard.astro
@@ -36,10 +38,12 @@ Built for small hiring teams. Simple to use. Every feature on every plan. Plain 
 
 ScreenHire's answer, which is how it is billed (ADR-0029): unlimited users, every feature on every plan, a price set by
 how many jobs are open at once, and a closed job costs nothing. The AI consistency check is included on every plan, and an
-organization may bring its own key and model. Nothing is metered. The numbers live only in `packages/plans/plans.json`;
-until the pricing task sets them the site shows the placeholder. Copy never writes a price or a job limit itself: it
-reads them from the catalogue (`catalogPlans`), as `PlanRows` does. The trial is 14 days on Growth
-(`docs/architecture/billing.md`).
+organization may bring its own key and model. Nothing is metered. The numbers live only in `packages/plans/plans.json`
+(Starter $79 and 3 open jobs, Growth $149 and 10, Unlimited $249, working values the owner confirms before launch). Copy
+never writes a price or a job limit itself: it reads them from the catalogue (`catalogPlans`), as `PlanRows` does. A plan
+the catalogue gives no price shows its name and limit and no amount, and no placeholder text ever reaches a page. The
+trial starts on Growth (`docs/architecture/billing.md`); the catalogue does not hold the trial's length, so the site
+names the trial plan and never says how many days.
 
 ## The five selling points
 
@@ -122,7 +126,7 @@ Name only triggers and actions that exist, as above. The examples on the site ar
 - **Subline.** ScreenHire is the hiring tool for small teams. It checks every applicant, keeps your team and your
   candidates up to date, and does the busywork for you. One price, everything included.
 - **Calls to action.** Start free trial, and See pricing.
-- **Under them.** The price from `packages/plans`, or nothing while it is a placeholder, and "No card to start" only if
+- **Under them.** The price from `packages/plans`, or nothing while no plan has one, and "No card to start" only if
   billing starts that way.
 - **The one bold element.** Two applicants for the same job: one with no concerns, one with a verification suggested, with
   why, but also, the next step, and "A person on your team decides."
@@ -164,6 +168,19 @@ decides. That a candidate is told what is collected before they start, and can s
   Actions" on Pro, and nothing proves an API is absent. Word the comparison as what the page lists ("a closed job counts
   toward the limit until it is archived", "Gem sells fraud detection as checks you purchase separately"), with its date.
 - Prices, limits or a trial length that `packages/plans` does not hold.
+
+## The pricing page
+
+The target is the pricing band of the owner's "B + C, second pass" board, with the contents of the "Packages 1" board. In
+order: a dark band with the headline ("One price for your whole team. Everything included."), one sentence on the limit,
+the call to action and the three plans as rows, Growth marked as the trial; "Every plan includes", grouped by the five
+selling points plus the careers site and job posting (`includedByTopic`); "What you will not pay extra for", each line
+with what one vendor's own page says today and a link (`pricingNotes`); five questions (what counts as an open job, what
+happens at the limit and after the trial, changing and cancelling, how many users); and the close. FAQ JSON-LD matches the
+questions and the offers match the priced plans.
+
+Each market line says what a page lists, with the page's name and the date it was read, in `competitors.md` under
+"Pricing pages re-read on 2026-11-08". Re-read a page and update its date before changing a line.
 
 ## Page map
 
