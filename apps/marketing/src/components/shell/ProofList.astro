@@ -1,0 +1,14 @@
+---
+// The proof points of a selling point as a plain bulleted list (design system section 22.8). `SellingPoint` draws the same
+// list itself when it has no proof slot; a page that puts a picture in that slot uses this beside the words.
+interface Props {
+  items: string[];
+  class?: string;
+}
+
+const { items, class: className } = Astro.props;
+---
+
+<ul class:list={['flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground', className]}>
+  {items.map((item) => <li class="text-pretty">{item}</li>)}
+</ul>

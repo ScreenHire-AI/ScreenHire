@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 // The public site says that checks happen and what they look at in plain words, never how they work (owner's decision,
 // docs/design/marketing-site.md, "What is never said"). This guards the pages and content restyled so far: collection content, the
-// compare, law and blog pages, the 404 page and the market facts. Product, how-detection-works and home are guarded as their
-// tasks restyle them.
+// compare, law and blog pages, the product pages (the real-people page is the one that says how checks work), the shell
+// components, llms.txt, the 404 page and the market facts. Home is guarded when its task restyles it.
 const src = fileURLToPath(new URL('..', import.meta.url));
 
 function files(directory: string): string[] {
@@ -22,6 +22,9 @@ const guarded = [
   ...files(join(src, 'pages/compare')),
   ...files(join(src, 'pages/hiring-ai-laws')),
   ...files(join(src, 'pages/blog')),
+  ...files(join(src, 'pages/product')),
+  ...files(join(src, 'components/shell')),
+  join(src, 'pages/llms.txt.ts'),
   join(src, 'pages/404.astro'),
   join(src, 'lib/market.ts'),
 ].map((path) => ({ path: relative(src, path).split('\\').join('/'), text: readFileSync(path, 'utf8') }));
@@ -40,7 +43,15 @@ const how: [string, RegExp][] = [
 describe('public copy', () => {
   it('reads the files it guards', () => {
     expect(guarded.map((file) => file.path)).toEqual(
-      expect.arrayContaining(['content/blog/why-no-fraud-score.md', 'content/laws/eu-ai-act.md', 'pages/404.astro', 'pages/compare/[slug].astro']),
+      expect.arrayContaining([
+        'content/blog/why-no-fraud-score.md',
+        'content/laws/eu-ai-act.md',
+        'pages/404.astro',
+        'pages/compare/[slug].astro',
+        'pages/product/real-people.astro',
+        'pages/product/index.astro',
+        'pages/llms.txt.ts',
+      ]),
     );
   });
 

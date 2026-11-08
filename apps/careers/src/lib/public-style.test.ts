@@ -137,8 +137,5 @@ const tells: Record<string, RegExp> = {
 
 // Each page task (home, product and selling points, compare, laws) removes its files from this list when it drops the kicker.
 const LEGACY: string[] = [
-  'apps/marketing/src/components/PageHeader.astro',
-  'apps/marketing/src/pages/how-detection-works.astro',
   'apps/marketing/src/pages/index.astro',
-  'apps/marketing/src/pages/product.astro',
 ];

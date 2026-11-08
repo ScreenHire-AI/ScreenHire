@@ -4,7 +4,7 @@
 // `mainNav`, and a closed details keeps its links out of the page for everyone.
 import { PUBLIC_APP_URL } from 'astro:env/server';
 import { appLinks } from '../../lib/app-links';
-import { mainNav, pages } from '../../lib/pages';
+import { mainNav, pages, productNav } from '../../lib/pages';
 import CtaLink from './CtaLink.astro';
 
 interface Props {
@@ -14,6 +14,8 @@ interface Props {
 const { tone = 'light' } = Astro.props;
 const current = Astro.url.pathname;
 const isCurrent = (path: string) => current === path || (path !== '/' && current.startsWith(path));
+// Product is a menu of the overview and the page for each selling point. The overview is current only on its own path.
+const isSection = (path: string) => current === path;
 const { signIn: signInUrl, signUp: signUpUrl } = appLinks(PUBLIC_APP_URL, pages.pricing.path);
 const tones = { dark: 'dark bg-background text-foreground', light: 'bg-page text-foreground' };
 const link = 'inline-flex min-h-8 items-center text-foreground no-underline hover:underline aria-[current=page]:underline underline-offset-4 pointer-coarse:min-h-11';
@@ -33,11 +35,29 @@ const link = 'inline-flex min-h-8 items-center text-foreground no-underline hove
     </a>
     <nav aria-label="Main" class="hidden flex-1 flex-wrap gap-x-6 text-base font-semibold md:flex">
       {
-        mainNav.map((page) => (
-          <a href={page.path} aria-current={isCurrent(page.path) ? 'page' : undefined} class={link}>
-            {page.label}
-          </a>
-        ))
+        mainNav.map((page) =>
+          page === pages.product ? (
+            <details class="group relative">
+              <summary class:list={[link, 'list-none gap-1 [&::-webkit-details-marker]:hidden', current.startsWith(pages.product.path) && 'underline']}>
+                Product
+                <svg aria-hidden="true" viewBox="0 0 12 12" class="size-3 transition-transform group-open:rotate-180"><path d="M2 4.5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+              </summary>
+              <ul class="absolute top-full left-0 z-20 mt-2 flex min-w-64 flex-col rounded-panel border border-border bg-background p-2 shadow-overlay">
+                {productNav.map((item) => (
+                  <li>
+                    <a href={item.path} aria-current={isSection(item.path) ? 'page' : undefined} class:list={[link, 'w-full px-3']}>
+                      {item === pages.product ? 'Overview' : item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : (
+            <a href={page.path} aria-current={isCurrent(page.path) ? 'page' : undefined} class={link}>
+              {page.label}
+            </a>
+          ),
+        )
       }
     </nav>
     <div class="ml-auto flex items-center gap-x-4">
@@ -48,11 +68,28 @@ const link = 'inline-flex min-h-8 items-center text-foreground no-underline hove
         <div class="absolute inset-x-0 top-full z-10 border-t border-border bg-background px-4 pt-2 pb-6 shadow-overlay">
           <nav aria-label="Main menu" class="flex flex-col text-lg font-semibold">
             {
-              mainNav.map((page) => (
-                <a href={page.path} aria-current={isCurrent(page.path) ? 'page' : undefined} class:list={[link, 'min-h-11']}>
-                  {page.label}
-                </a>
-              ))
+              mainNav.map((page) =>
+                page === pages.product ? (
+                  <>
+                    <a href={page.path} aria-current={isSection(page.path) ? 'page' : undefined} class:list={[link, 'min-h-11']}>
+                      {page.label}
+                    </a>
+                    <ul class="flex flex-col">
+                      {productNav.slice(1).map((item) => (
+                        <li>
+                          <a href={item.path} aria-current={isSection(item.path) ? 'page' : undefined} class:list={[link, 'min-h-11 w-full pl-4 text-base font-normal']}>
+                            {item.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <a href={page.path} aria-current={isCurrent(page.path) ? 'page' : undefined} class:list={[link, 'min-h-11']}>
+                    {page.label}
+                  </a>
+                ),
+              )
             }
             {signInUrl && <a href={signInUrl} class:list={[link, 'min-h-11']}>Sign in</a>}
           </nav>

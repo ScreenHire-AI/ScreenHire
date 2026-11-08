@@ -76,6 +76,16 @@ describe('checkDist', () => {
     expect(checkDist(dist, origin).failures).toEqual(['/index.html: preloads no font (check the fonts in astro.config.mjs)']);
   });
 
+  it('does not ask a redirect page to preload a font', () => {
+    build({
+      'index.html': page(jsonLd + fontPreload, '<a href="/new/">New</a>'),
+      'new/index.html': page(jsonLd + fontPreload),
+      'old/index.html': '<!doctype html><title>Redirecting to: /new/</title><meta http-equiv="refresh" content="0;url=/new/"><body><a href="/new/">Redirecting</a></body>',
+      '_astro/fonts/a.woff2': 'font',
+    });
+    expect(checkDist(dist, origin).failures).toEqual([]);
+  });
+
   it('reports a page over the JavaScript budget', () => {
     // Random bytes do not compress, so the brotli size stays above the budget.
     const script = Buffer.from(Array.from({ length: JS_BUDGET_BYTES * 2 }, () => Math.floor(Math.random() * 256))).toString('base64');

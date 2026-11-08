@@ -1,0 +1,127 @@
+---
+import integrationsPhone from '../../assets/product/integrations-phone.png';
+import integrationsPicture from '../../assets/product/integrations.png';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import PageHero from '../../components/shell/PageHero.astro';
+import ProductFrame from '../../components/shell/ProductFrame.astro';
+import QuestionsList from '../../components/shell/QuestionsList.astro';
+import RuledList from '../../components/shell/RuledList.astro';
+import Section from '../../components/shell/Section.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sellingPoints } from '../../lib/features';
+import { pages } from '../../lib/pages';
+import { faqPage, type Faq } from '../../lib/seo';
+
+const { title, description, path, label } = pages.integrations;
+const point = sellingPoints.find((item) => item.id === 'integrations')!;
+
+// Each line is a feature in docs/status.md, Built (email and replies, interview scheduling, Slack, API access, webhook
+// subscriptions, the MCP server, the verification settings).
+const each = [
+  {
+    term: 'Email',
+    detail:
+      'Send from ScreenHire with your own templates, to one candidate or a selection. Replies land on the candidate, attachments included. An Owner or Admin can add your own sending domain.',
+  },
+  {
+    term: 'Calendars',
+    detail:
+      'Each interviewer connects their own Google or Outlook calendar. Candidates pick a time that is free for everyone on the panel, you get one calendar event each with a Meet or Teams link, and nobody is double-booked.',
+  },
+  {
+    term: 'Slack',
+    detail:
+      'Pick a channel and what it hears about: a new application, a candidate moved, an automation that failed, a job published. Each person links their own account to get mentions and tasks as direct messages.',
+  },
+  {
+    term: 'API and webhooks',
+    detail:
+      'Read and change jobs, applications, candidates, templates and reports with an API key you can limit to read-only. Webhooks send a signed message when something happens, and retry if your server is down.',
+  },
+  {
+    term: 'AI assistants',
+    detail:
+      'Connect an assistant such as Claude through MCP. It can find jobs and candidates, read an application, add notes, tags and tasks, move a candidate and read a hiring report.',
+  },
+  {
+    term: 'Your own AI key',
+    detail: 'The AI consistency check is included. If you would rather use your own key and model, add them in settings.',
+  },
+];
+
+const api = [
+  'Keys are shown once, can be read-only or read and write, have a rate limit of their own, and can be revoked',
+  'Jobs, applications, candidates, templates and reports are in the API',
+  'Each key page says how to call the API and links the reference',
+];
+const webhooks = [
+  'Each endpoint has its own secret, shown once and rotatable',
+  'Deliveries are signed, retried with a growing delay and kept in a log you can read',
+  'A delivery can be replayed, and an endpoint that keeps failing is switched off for you',
+];
+
+const faqs: Faq[] = [
+  {
+    question: 'Are the API, webhooks and MCP on every plan?',
+    answer: 'Yes. Every plan has every integration.',
+  },
+  {
+    question: 'What can an AI assistant not do?',
+    answer: 'A read-only key sees only the reads. An assistant can read the results of the checks only with a key an Owner has given that access. Every such read is logged, and a result is never a reason to reject.',
+  },
+  {
+    question: 'Does Slack show what ScreenHire found about a candidate?',
+    answer: 'No. Slack messages name the candidate and the job and link to them. They never carry a level or its evidence.',
+  },
+  {
+    question: 'Can a candidate answer an email from ScreenHire?',
+    answer: 'Yes. They can reply to the email or from their own page, and the reply lands on their application.',
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbs={[{ name: pages.product.label, path: pages.product.path }, { name: label, path }]}
+  headerTone="dark"
+  jsonLd={[faqPage(faqs)]}
+>
+  <PageHero title={point.title} lead={`${point.pain} ${point.promise}`}>
+    <ProductFrame
+      src={integrationsPicture}
+      phoneSrc={integrationsPhone}
+      alt="The Integrations directory in settings, listing each integration and whether it is connected."
+      sizes="(min-width: 80rem) 40rem, 100vw"
+      priority
+    />
+  </PageHero>
+
+  <Section labelledby="each-title" class="flex flex-wrap gap-x-16 gap-y-10">
+    <h2 id="each-title" class="flex-[1_1_16rem] font-display text-band text-balance">What each one does.</h2>
+    <RuledList class="flex-[3_1_36rem]" items={each} />
+  </Section>
+
+  <Section tone="band" labelledby="build-title" class="flex flex-col gap-10">
+    <div class="flex max-w-measure flex-col gap-4">
+      <h2 id="build-title" class="font-display text-section text-balance">Build on ScreenHire.</h2>
+      <p class="text-pretty text-secondary-foreground">
+        If a tool does not have an integration, the API and webhooks are on every plan, with no extra fee.
+      </p>
+    </div>
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(20rem,1fr))] gap-x-16 gap-y-10">
+      <div>
+        <h3 class="text-xl font-bold">The API</h3>
+        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">{api.map((item) => <li class="text-pretty">{item}</li>)}</ul>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold">Webhooks</h3>
+        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">{webhooks.map((item) => <li class="text-pretty">{item}</li>)}</ul>
+      </div>
+    </div>
+  </Section>
+
+  <QuestionsList faqs={faqs} />
+
+  <ClosingBand title="Keep the tools you already use." />
+</BaseLayout>

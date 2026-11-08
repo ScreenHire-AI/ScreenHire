@@ -1,0 +1,144 @@
+---
+import bookingPhone from '../../assets/product/interview-booking-phone.png';
+import booking from '../../assets/product/interview-booking.png';
+import workflowPhone from '../../assets/product/workflow-phone.png';
+import workflow from '../../assets/product/workflow.png';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import PageHero from '../../components/shell/PageHero.astro';
+import ProductFrame from '../../components/shell/ProductFrame.astro';
+import QuestionsList from '../../components/shell/QuestionsList.astro';
+import RuledList from '../../components/shell/RuledList.astro';
+import Section from '../../components/shell/Section.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { automation, sellingPoints } from '../../lib/features';
+import { pages } from '../../lib/pages';
+import { faqPage, type Faq } from '../../lib/seo';
+
+const { title, description, path, label } = pages.automateAnything;
+const point = sellingPoints.find((item) => item.id === 'automate-anything')!;
+
+// The triggers and actions that exist (docs/design/marketing-site.md, "Automate anything"; docs/architecture/workflow-engine.md).
+// Name nothing else here.
+const triggers = [
+  'An application arrives',
+  'A candidate enters a stage',
+  'A candidate leaves a stage',
+  'A candidate has waited a set time in a stage',
+  "A stage's time limit passes",
+  'A scorecard comes in',
+  'A follow-up questionnaire is answered',
+  'An interview is booked',
+  'Someone presses Run',
+];
+const actions = [
+  'Email the candidate',
+  'Move them to a stage',
+  'Tag them',
+  'Give a teammate, or the team, a review task',
+  'Remind or notify the team',
+  'Create a task',
+  'Send follow-up questions',
+  'Offer interview times',
+  'Call a webhook',
+];
+
+const hands = [
+  { term: 'Follow-up questions', detail: 'Send a questionnaire to the candidate by a link that expires. It works without JavaScript, and answering it can start the next automation.' },
+  { term: 'Scorecards', detail: 'Ask a teammate for a scorecard. It shows up as a task for them and is done when they submit it.' },
+  { term: 'Interview times', detail: 'Offer times that are free for every interviewer on their Google or Outlook calendar. The candidate picks one on a page that needs no account, and can move or cancel it from the same link.' },
+];
+
+const faqs: Faq[] = [
+  {
+    question: 'Do I need to write code or a long prompt?',
+    answer: 'No. An automation is a short form: when this happens, if this is true, do this. Nothing reads a sentence and guesses what you meant.',
+  },
+  {
+    question: 'Are automations limited on any plan?',
+    answer: 'No. Every plan has every automation, on every stage and on the whole workflow.',
+  },
+  {
+    question: 'Can an automation reject a candidate because of a check?',
+    answer: 'No. An automation can tag a candidate or ask the team to review when a check finishes, and a workflow that tries to reject on one is refused when you save it.',
+  },
+  {
+    question: 'Can I see what an automation will do before it runs on real candidates?',
+    answer: 'Yes. Run it on a sample application first, and a problem in the workflow shows on the step that has it before you save.',
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbs={[{ name: pages.product.label, path: pages.product.path }, { name: label, path }]}
+  headerTone="dark"
+  jsonLd={[faqPage(faqs)]}
+>
+  <PageHero title={point.title} lead={`${point.pain} ${point.promise}`}>
+    <figure class="flex flex-col gap-4">
+      <blockquote class="rounded-panel border border-border p-6 font-display text-2xl text-balance md:p-8 md:text-3xl">{automation.sentence}</blockquote>
+      <figcaption class="max-w-measure text-sm text-muted-foreground">One automation, written the way you would explain it to a new hire.</figcaption>
+    </figure>
+  </PageHero>
+
+  <Section labelledby="when-title" class="flex flex-wrap gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+      <h2 id="when-title" class="font-display text-section text-balance">When, if, then. From one reminder to a whole process.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        Each automation is built in a form: a trigger, an optional condition on the answers a candidate gave or where the
+        application came from, and what happens. It is not free text, and nothing guesses.
+      </p>
+    </div>
+    <RuledList class="flex-[1_1_28rem]" items={automation.examples.map((example) => ({ term: example.scope, detail: example.text }))} />
+  </Section>
+
+  <Section tone="band" labelledby="stages-title" class="flex flex-wrap items-center gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_20rem] flex-col gap-4">
+      <h2 id="stages-title" class="font-display text-section text-balance">On any stage, or on the whole workflow.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        Add an automation to a stage or to the workflow as a whole, in the pipeline view or on the graph. Both edit the same
+        draft.
+      </p>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        Before it goes live, run it on a sample application and see what it would do. A problem shows on the step that has it
+        before you save.
+      </p>
+    </div>
+    <ProductFrame class="flex-[1_1_32rem]" src={workflow} phoneSrc={workflowPhone} alt="A job's workflow: its stages with their time limits, and the automations that run on them." sizes="(min-width: 80rem) 44rem, 100vw" />
+  </Section>
+
+  <Section labelledby="parts-title" class="flex flex-col gap-10">
+    <h2 id="parts-title" class="max-w-3xl font-display text-section text-balance">Everything an automation can start from, and do.</h2>
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(18rem,1fr))] gap-x-16 gap-y-10">
+      <div>
+        <h3 class="text-xl font-bold">It can start when</h3>
+        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">{triggers.map((item) => <li class="text-pretty">{item}</li>)}</ul>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold">It can then</h3>
+        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">{actions.map((item) => <li class="text-pretty">{item}</li>)}</ul>
+      </div>
+    </div>
+  </Section>
+
+  <Section tone="band" labelledby="hands-title" class="flex flex-wrap items-start gap-x-16 gap-y-10">
+    <ProductFrame class="flex-[1_1_28rem] lg:order-first" src={booking} phoneSrc={bookingPhone} alt="A candidate's page for picking an interview time, with the days and times that are free." sizes="(min-width: 80rem) 40rem, 100vw" />
+    <div class="flex min-w-0 flex-[1_1_24rem] flex-col gap-6">
+      <h2 id="hands-title" class="font-display text-section text-balance">The follow-ups nobody wants to do by hand.</h2>
+      <RuledList items={hands} />
+    </div>
+  </Section>
+
+  <Section labelledby="guardrails-title" class="flex flex-wrap gap-x-16 gap-y-6">
+    <h2 id="guardrails-title" class="flex-[1_1_22rem] font-display text-band text-balance">A check never rejects anyone.</h2>
+    <p class="max-w-measure flex-[2_1_26rem] text-pretty text-secondary-foreground">
+      An automation can tag a candidate or ask your team to review when a check finishes. It cannot reject on one, and a
+      workflow that tries is refused when you save it. A person decides.
+    </p>
+  </Section>
+
+  <QuestionsList faqs={faqs} tone="band" />
+
+  <ClosingBand title="Let ScreenHire do the same thing the same way every time." />
+</BaseLayout>

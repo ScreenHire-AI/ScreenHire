@@ -2,7 +2,7 @@
 //  - JavaScript budget: at most 15 KB of brotli-compressed JS per page, counting script files and inline scripts.
 //    JSON-LD is data, not JavaScript, and does not count.
 //  - Internal links: every same-site href and src, and every og:image, points at a file the build produced.
-//  - Fonts: every page preloads its body font. A misconfigured font family only warns at build time, then shifts
+//  - Fonts: every page preloads its body font, except a redirect page (a meta refresh), which draws nothing. A misconfigured font family only warns at build time, then shifts
 //    layout when the fallback swaps (CLS).
 // Deterministic and fast (no browser); the Lighthouse run in scripts/lighthouse.mjs covers LCP and CLS.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -92,7 +92,8 @@ export function checkDist(distDir, siteOrigin) {
       failures.push(`${page}: ${jsBytes} bytes of brotli JavaScript, over the ${JS_BUDGET_BYTES}-byte budget`);
     }
 
-    if (!/<link rel="preload"[^>]*as="font"/i.test(html)) {
+    const isRedirect = /<meta http-equiv="refresh"/i.test(html);
+    if (!isRedirect && !/<link rel="preload"[^>]*as="font"/i.test(html)) {
       failures.push(`${page}: preloads no font (check the fonts in astro.config.mjs)`);
     }
 

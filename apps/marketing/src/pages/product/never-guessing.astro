@@ -1,0 +1,128 @@
+---
+import activityPhone from '../../assets/product/candidate-activity-phone.png';
+import activity from '../../assets/product/candidate-activity.png';
+import candidatesPhone from '../../assets/product/candidates-phone.png';
+import candidates from '../../assets/product/candidates.png';
+import portalPhone from '../../assets/product/candidate-portal-phone.png';
+import portal from '../../assets/product/candidate-portal.png';
+import pipelinePhone from '../../assets/product/pipeline-phone.png';
+import pipeline from '../../assets/product/pipeline.png';
+import reportsPhone from '../../assets/product/reports-phone.png';
+import reports from '../../assets/product/reports.png';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import PageHero from '../../components/shell/PageHero.astro';
+import ProductFrame from '../../components/shell/ProductFrame.astro';
+import QuestionsList from '../../components/shell/QuestionsList.astro';
+import RuledList from '../../components/shell/RuledList.astro';
+import Section from '../../components/shell/Section.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sellingPoints } from '../../lib/features';
+import { pages } from '../../lib/pages';
+import { faqPage, type Faq } from '../../lib/seo';
+
+const { title, description, path, label } = pages.neverGuessing;
+const point = sellingPoints.find((item) => item.id === 'never-guessing')!;
+
+// Each line is a feature in docs/status.md, Built (collaboration, email and replies, saved candidates, candidate portal, reports).
+const onTheRecord = [
+  { term: 'Activity', detail: 'Every move, email, reply and note in one timeline, newest first.' },
+  { term: 'Last contacted', detail: 'When the candidate last heard from you, on the candidate and in the list, so nobody writes twice or not at all.' },
+  { term: 'Email', detail: 'What you send and the replies you get stay on the application, attachments included.' },
+  { term: 'Notes and tasks', detail: 'Notes your team can edit and mention each other in, and tasks that land on the right person.' },
+  { term: 'Saved views', detail: 'To review, Overdue, New today and the other lists your team keeps, each with its count.' },
+];
+
+const candidateSees = ['Where their application stands: Applied, In review, Interview or Offer', 'The messages from your team, and a box to answer them'];
+const candidateNeverSees = ['Your stage names', 'A rating or a note', 'Anything about the checks'];
+
+const faqs: Faq[] = [
+  {
+    question: 'Can a candidate see my notes or their rating?',
+    answer: 'No. Their page shows four steps and your messages. It never shows stage names, a rating, a note or anything about the checks.',
+  },
+  {
+    question: 'What happens when a candidate replies to an email?',
+    answer: 'The reply lands on their application, with any attachments, and your team sees it in the activity.',
+  },
+  {
+    question: 'Does a candidate need an account?',
+    answer: 'No. They ask for a link to their page with the address they applied with, and the link works for 14 days.',
+  },
+  {
+    question: 'Can I limit who sees a job?',
+    answer: 'Yes. Roles and job access decide who sees which jobs, and the reports only count the jobs a person can see.',
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbs={[{ name: pages.product.label, path: pages.product.path }, { name: label, path }]}
+  headerTone="dark"
+  jsonLd={[faqPage(faqs)]}
+>
+  <PageHero title={point.title} lead={`${point.pain} ${point.promise}`}>
+    <ProductFrame
+      src={pipeline}
+      phoneSrc={pipelinePhone}
+      alt="A job's pipeline, with each candidate's card in the stage they have reached."
+      sizes="(min-width: 80rem) 40rem, 100vw"
+      priority
+    />
+  </PageHero>
+
+  <Section labelledby="both-title" class="flex flex-col gap-10">
+    <div class="flex flex-wrap items-end gap-x-16 gap-y-6">
+      <h2 id="both-title" class="flex-[1_1_28rem] font-display text-section text-balance">What your team sees, and what the candidate sees.</h2>
+      <p class="max-w-measure flex-[1_1_22rem] text-pretty text-secondary-foreground">
+        Every move, email, reply and note sits on the candidate's record, with when they last heard from you. Candidates get a page
+        of their own with where they are and your messages, so they stop chasing you too.
+      </p>
+    </div>
+    <div class="flex flex-wrap items-start gap-5">
+      <figure class="min-w-0 flex-[3_1_28rem]">
+        <ProductFrame src={activity} phoneSrc={activityPhone} alt="A candidate's activity: the interview times the team emailed, the candidate's reply and the team's notes." sizes="(min-width: 80rem) 46rem, 100vw" />
+        <figcaption class="mt-3 max-w-measure text-sm text-muted-foreground">The team's side. Sample candidate, Brightwater Studio.</figcaption>
+      </figure>
+      <figure class="min-w-0 flex-[2_1_20rem]">
+        <ProductFrame src={portal} phoneSrc={portalPhone} alt="The candidate's own page: their application, its four steps and a link to the team's messages." sizes="(min-width: 80rem) 32rem, 100vw" />
+        <figcaption class="mt-3 max-w-measure text-sm text-muted-foreground">The candidate's side, on your branded careers site.</figcaption>
+      </figure>
+    </div>
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-x-16 gap-y-8">
+      <div>
+        <h3 class="text-xl font-bold">A candidate sees</h3>
+        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">{candidateSees.map((item) => <li class="text-pretty">{item}</li>)}</ul>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold">A candidate never sees</h3>
+        <ul class="mt-3 flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">{candidateNeverSees.map((item) => <li class="text-pretty">{item}</li>)}</ul>
+      </div>
+    </div>
+  </Section>
+
+  <Section tone="band" labelledby="record-title" class="flex flex-wrap items-start gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_24rem] flex-col gap-6">
+      <h2 id="record-title" class="font-display text-section text-balance">Everything about a candidate is on their record.</h2>
+      <RuledList items={onTheRecord} />
+    </div>
+    <ProductFrame class="flex-[1_1_28rem]" src={candidates} phoneSrc={candidatesPhone} alt="The Candidates list with search, tags, rating and when each candidate was last contacted." sizes="(min-width: 80rem) 44rem, 100vw" />
+  </Section>
+
+  <Section labelledby="reports-title" class="flex flex-wrap items-center gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+      <h2 id="reports-title" class="font-display text-section text-balance">See how hiring is going without asking anyone.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        Reports are open to every member. Pick a date range and the jobs you care about, and see the funnel by stage, the median
+        time to hire, and where applications and hires come from. Each chart has a table view, and job access narrows the numbers
+        to the jobs a person can see.
+      </p>
+    </div>
+    <ProductFrame class="flex-[1_1_30rem] lg:order-first" src={reports} phoneSrc={reportsPhone} alt="The Reports page: the hiring funnel, time to hire, and applications and hires by source." sizes="(min-width: 80rem) 44rem, 100vw" />
+  </Section>
+
+  <QuestionsList faqs={faqs} tone="band" />
+
+  <ClosingBand title="Know where every candidate stands." />
+</BaseLayout>

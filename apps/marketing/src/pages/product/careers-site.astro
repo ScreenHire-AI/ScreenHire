@@ -1,0 +1,96 @@
+---
+import careersPhone from '../../assets/product/careers-phone.png';
+import careers from '../../assets/product/careers.png';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import PageHero from '../../components/shell/PageHero.astro';
+import ProductFrame from '../../components/shell/ProductFrame.astro';
+import QuestionsList from '../../components/shell/QuestionsList.astro';
+import RuledList from '../../components/shell/RuledList.astro';
+import Section from '../../components/shell/Section.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { careersSite } from '../../lib/features';
+import { pages } from '../../lib/pages';
+import { faqPage, type Faq } from '../../lib/seo';
+
+const { title, description, path, label } = pages.careersSite;
+
+// Each line is a feature in docs/status.md, Built (careers site, careers widget, distribution, candidate portal).
+const posting = [
+  { term: 'Your careers site', detail: 'Every job you publish has a page on your careers site, with your branding. It is light enough to load quickly on a phone, and applying works as a plain web form.' },
+  { term: 'On your own site', detail: 'Show the job list and the apply form inside your own website with one line of embed code. You choose which sites may show it.' },
+  { term: 'Google for Jobs', detail: 'Each job carries the markup Google reads, and a closed job returns a page that says it is gone, so Google is told it has ended.' },
+  { term: 'Job boards', detail: 'Publish to the boards you choose in one step. Each shows its own status. A board that refreshes on a schedule shows when the job is expected to come down, never a false "removed".' },
+  { term: 'One board only', detail: 'If a board needs a different title or a longer description, edit the posting for that board. The job and every other board stay as they are.' },
+  { term: 'Taking it down', detail: 'One close takes the job off your careers site and asks every board to remove it.' },
+];
+
+const notice = [
+  { term: 'Before they start', detail: 'A candidate reads in plain words what is collected and why before the application begins. Browsing your careers page collects only the logs any website keeps.' },
+  { term: 'Assistive technology', detail: 'A candidate who uses it can switch a setting off before they start, and it is never held against them.' },
+  { term: 'Finish later', detail: 'They can save an application and finish it from an emailed link. The form shows one section a page, with "Step 2 of 4".' },
+  { term: 'Where they stand', detail: 'Afterwards they have a page of their own, where they can see their application, answer your messages and pick an interview time if one is waiting.' },
+];
+
+const faqs: Faq[] = [
+  {
+    question: 'Do candidates need an account to apply?',
+    answer: 'No. They fill in a web form that works even with JavaScript turned off.',
+  },
+  {
+    question: 'Can I put the apply form on my own website?',
+    answer: 'Yes. Paste one line of embed code. The form runs in a frame, and only the sites you allow can show it.',
+  },
+  {
+    question: 'What does a candidate see about the checks?',
+    answer: 'A notice, before they start, that says what is collected and why. They never see a result.',
+  },
+  {
+    question: 'Does closing a job take it down everywhere?',
+    answer: 'It closes on your careers site and goes to every board together. Each board shows its own status until it has taken the job down.',
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbs={[{ name: pages.product.label, path: pages.product.path }, { name: label, path }]}
+  headerTone="dark"
+  jsonLd={[faqPage(faqs)]}
+>
+  <PageHero title={careersSite.title} lead={`${careersSite.pain} ${careersSite.promise}`}>
+    <ProductFrame
+      src={careers}
+      phoneSrc={careersPhone}
+      alt="A company's branded careers site with its open roles."
+      sizes="(min-width: 80rem) 40rem, 100vw"
+      priority
+    />
+  </PageHero>
+
+  <Section labelledby="posting-title" class="flex flex-wrap gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+      <h2 id="posting-title" class="font-display text-section text-balance">Publish once, and see where it stands.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        One step posts a job to your careers site, Google for Jobs and the boards you pick. Honest status for each, so you know
+        what is live and what is on its way down.
+      </p>
+    </div>
+    <RuledList class="flex-[1_1_28rem]" items={posting} />
+  </Section>
+
+  <Section tone="band" labelledby="notice-title" class="flex flex-wrap gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+      <h2 id="notice-title" class="font-display text-section text-balance">Candidates are told before they apply.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        The people you want to hire notice how they are treated. A clear notice, and a switch for assistive technology, are part
+        of the product, and your careers site does both for you.
+      </p>
+    </div>
+    <RuledList class="flex-[1_1_28rem]" items={notice} />
+  </Section>
+
+  <QuestionsList faqs={faqs} />
+
+  <ClosingBand title="Post your first job this afternoon." />
+</BaseLayout>

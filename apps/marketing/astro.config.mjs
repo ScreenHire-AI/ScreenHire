@@ -47,6 +47,9 @@ export default defineConfig({
   devToolbar: { enabled: false },
   // Directory-style URLs with a trailing slash everywhere, so canonical, og:url, hreflang and the sitemap agree.
   trailingSlash: 'always',
+  // The old how-detection-works page is now the real-people product page. A static build writes a redirect page for it,
+  // which the sitemap and llms.txt leave out.
+  redirects: { '/how-detection-works/': '/product/real-people/' },
   integrations: [
     sitemap({
       serialize: (item) => ({ ...item, links: hreflangs.map((lang) => ({ lang, url: item.url })) }),
