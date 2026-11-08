@@ -57,12 +57,16 @@ Pain: a candidate applies and hears nothing, and the recruiter cannot say who la
 
 | Claim as the site may state it | Number | Publisher and title | Year | URL | Fetched | Status |
 |---|---|---|---|---|---|---|
-| 59% of US workers say they rarely hear back after applying, and 33% say they never do | 59% and 33% | Monster, "The Great Job Search Struggle: Nearly All Workers Are Hunting for New Roles and Getting Ghosted" (2024 poll) | 2024 | https://www.monster.com/career-advice/research/job-search-fatigue-poll-2024 | 2026-11-08 (HTTP 403) | Not verified |
+| 59% of US workers say they rarely hear back after applying, and 33% say they never do | 59% and 33% | Monster, "The Great Job Search Struggle: Nearly All Workers Are Hunting for New Roles and Getting Ghosted" (2024 poll) | 2024 | https://www.monster.com/career-advice/research/job-search-fatigue-poll-2024 | 2026-11-08 (read in a browser) | Verified |
 | 75% of job applicants never heard back from the employer | 75% | CareerBuilder survey of 3,900 US workers, read in HR Reporter, "Three-quarters of job applicants don't hear back from employers: Survey" | 2013 (21 Feb) | https://www.hrreporter.com/news/hr-news/three-quarters-of-job-applicants-dont-hear-back-from-employers-survey/284874 | 2026-11-08 | Not verified |
 | Recruiters lose time to status chasing, or do not know who last contacted a candidate | none found | none | none | none | 2026-11-08 | Not verified |
 
 Wording and limits.
 
+- Monster, verified on 2026-11-08 in a browser, where the poll page reads: "The majority of workers, 59%, say they rarely
+  hear back after submitting applications, and one-third (33%) say they never do", from "a poll conducted by Monster in
+  November 2024 among more than 1,400 U.S." workers. The site states it that way. Recheck it in November 2026, when the
+  poll is two years old. The note from before it was verified follows.
 - Monster: both Monster pages that carry the figure (the poll page and the 2025 WorkWatch report page) returned HTTP
   403, so I could not read the numbers. Two web searches returned excerpts that quote the page as "59% rarely hear back
   and 33% never", a Monster poll run in November 2024 among "more than 1,400 U.S. workers". That is the search tool
@@ -206,7 +210,6 @@ Wording and limits.
 
 - Gartner's own press release as the page that states "1 in 4 candidate profiles fake by 2028" (HTTP 403). Usable only
   as "reported by HR Dive".
-- Monster 2024 poll, 59% rarely and 33% never hear back (HTTP 403 on both Monster pages; search excerpts only).
 - CareerBuilder 75% never hear back (read only in a 2013 HR Reporter article, over 13 years old, field dates not
   given). Do not use.
 - Any sourced figure for recruiters losing time to status chasing, or not knowing who last contacted a candidate.

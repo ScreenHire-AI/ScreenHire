@@ -97,11 +97,10 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
         (await Page.Locator("main section[id]").EvaluateAllAsync<string[]>("sections => sections.map(s => s.id)"))
             .Should().Equal("real-people", "never-guessing", "automate-anything", "integrations", "built-your-way", "pricing");
 
-        // The hero asks for the trial and names no length, and the secondary link goes to pricing.
+        // The hero asks for the trial and says how long it is (packages/plans/trial.json), and the secondary link goes to pricing.
         var hero = Page.Locator("#hero-title").Locator("xpath=ancestor::section");
-        await Expect(hero.GetByRole(AriaRole.Link, new() { Name = "Start free trial" })).ToBeVisibleAsync();
+        await Expect(hero.GetByRole(AriaRole.Link, new() { Name = "Start your free 14-day trial" })).ToBeVisibleAsync();
         await Expect(hero.GetByRole(AriaRole.Link, new() { Name = "See pricing" })).ToHaveAttributeAsync("href", "/pricing/");
-        (await hero.InnerTextAsync()).Should().NotMatchRegex(@"\d+-day");
         await Expect(hero).ToContainTextAsync("for your whole team");
     }
 

@@ -4,6 +4,7 @@
 import { PUBLIC_APP_URL } from 'astro:env/server';
 import { appLinks } from '../../lib/app-links';
 import { pages } from '../../lib/pages';
+import { trialLabel } from '../../lib/pricing';
 import CtaLink from './CtaLink.astro';
 import DarkBand from './DarkBand.astro';
 
@@ -13,7 +14,7 @@ interface Props {
   label?: string;
 }
 
-const { title, href = appLinks(PUBLIC_APP_URL, pages.pricing.path).signUp, label = 'Start free trial' } = Astro.props;
+const { title, href = appLinks(PUBLIC_APP_URL, pages.pricing.path).signUp, label = trialLabel() } = Astro.props;
 ---
 
 <DarkBand labelledby="closing-title" class="flex flex-wrap items-center justify-between gap-x-12 gap-y-8">

@@ -34,8 +34,9 @@ tags: [research, competitors, positioning]
 
 ### GoHire in depth
 
-- **Automation:** Pro-only "stage actions" (send email, add note, send questionnaire). **No event triggers, no knockout
-  filters, no public API** [1].
+- **Automation:** Pro-only "stage actions" (send email, add note, send questionnaire) [1]. Corrected on 2026-11-08: stage
+  actions do fire when a candidate moves stage, so "no event triggers" was wrong, and "Pro-only" and "no public API" could
+  not be confirmed (see the note under Sources and [pain points](pain-points.md)). Do not repeat any of the three.
 - **Posting:** 27 boards. Pain points ScreenHire can fix: a closed job still counts as an active, billable job until
   archived; LinkedIn premium posting needs the customer's own Recruiter contract; Indeed sponsorship billed separately.
 - **Reviews** (snippets only): Capterra 4.5 (153) — praise simple UI, support, multiposting; complaints about slowness,

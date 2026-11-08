@@ -1,5 +1,14 @@
 # Log
 
+## 2026-11-09
+
+**The audit of the marketing rebuild, fixed.** The workflow picture on the product pages no longer shows a rejection
+review, and the picture of a flagged check, which showed check details the site never states, is gone from the repository.
+The never-guessing pain has its number (Monster's 2024 poll: 59% of US workers rarely hear back after applying, 33%
+never), read at its source. The site says the trial lasts 14 days, from `packages/plans/trial.json`, which billing now
+reads as its default too. Competitor prices say what their pages say about the billing term, the law pages state the law's
+duties instead of our plans, and a Settings test that depended on the billing query's timing waits for the final menu.
+
 ## 2026-11-08
 
 **The marketing site is audited and roadmap item 15 is done.** Every page was checked at 390, 768, 1024, 1440 and 1920

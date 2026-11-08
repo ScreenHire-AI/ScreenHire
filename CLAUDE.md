@@ -23,7 +23,7 @@ subsystem.
 | `packages/api-client` | Orval-generated TS fetch client, TanStack Query hooks (`./svelte-query`) and Zod schemas (do not edit `src/generated`) |
 | `packages/telemetry` | Framework-free form telemetry for the apply flow: per-field counts only (never key values, timings per key or content), automation markers, the device fingerprint, `sendBeacon` snapshots; under 5 KB brotli, checked by its `build` |
 | `packages/realtime` | SignalR client for live updates: reconnect and re-subscribe, a runes connection-state store, Zod schemas per tenant event (checked against `contract/events.json`), cache invalidation by event type |
-| `packages/plans` | The plan catalogue, `plans.json`: each plan's name, monthly price, active job limit and Stripe price id, as shared defaults. The API embeds it, the marketing pricing page reads it (`catalogPlans`), and `ScreenHire:Billing:Plans:<key>:*` overrides any field ([`docs/architecture/billing.md`](docs/architecture/billing.md)) |
+| `packages/plans` | The plan catalogue, `plans.json`: each plan's name, monthly price, active job limit and Stripe price id, and the free trial, `trial.json` (days and plan), as shared defaults. The API embeds both, the marketing site reads both (`catalogPlans`, `trial`), and `ScreenHire:Billing:Plans:<key>:*` and `Trial:*` override them for the API ([`docs/architecture/billing.md`](docs/architecture/billing.md)) |
 | `src/ScreenHire.Application` | Message contracts (`ITenantMessage`, `ITenantEvent`), Wolverine handlers and the shared messaging setup; referenced by API and worker |
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
@@ -81,8 +81,8 @@ subsystem.
   `slack-client-secret` parameter, or `Sandbox:Enabled` for the local sandbox workspace; off in `pnpm dev`, on in the
   test stacks) goes to the API and worker alike; see [`docs/architecture/slack.md`](docs/architecture/slack.md).
   `ScreenHire:Billing:*` (plans, the free trial and job limits: Stripe with the `stripe-secret-key` and `stripe-webhook-secret`
-  parameters once `Stripe:Enabled=true`, or `Sandbox:Enabled` for the local fake, on in `pnpm dev` and the test stacks; `Trial:Days`,
-  `Trial:Plan` and `Plans:<key>:*` over `packages/plans/plans.json`; hidden and limiting nothing when neither) goes to the API; see
+  parameters once `Stripe:Enabled=true`, or `Sandbox:Enabled` for the local fake, on in `pnpm dev` and the test stacks; `Trial:Days`
+  and `Trial:Plan` over `packages/plans/trial.json`, and `Plans:<key>:*` over `packages/plans/plans.json`; hidden and limiting nothing when neither) goes to the API; see
   [`docs/architecture/billing.md`](docs/architecture/billing.md).
   `ScreenHire:Email:*` (Mailpit sends unless `SendGrid:Enabled=true` with the `sendgrid-api-key` secret; `ReplyDomain` is the host
   replies arrive on and `SendGrid:EventWebhookPublicKey` checks SendGrid's signed events; `email-reply-key` and

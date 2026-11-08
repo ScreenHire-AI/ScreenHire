@@ -3,7 +3,7 @@
 // right. It reads the plan catalogue (packages/plans) through `buildPlans`, so a number set there shows here. A plan with
 // no price shows its name and limit and no amount, and a plan with no limit shows none. Built for a dark band, and right
 // on a light one too.
-import { hasPrice, plans as catalogue, type Plan } from '../../lib/pricing';
+import { formatPrice, hasPrice, plans as catalogue, type Plan } from '../../lib/pricing';
 
 interface Props {
   plans?: Plan[];
@@ -14,14 +14,7 @@ interface Props {
 
 const { plans = catalogue, trialPlan, class: className } = Astro.props;
 
-function price(plan: Plan): string {
-  const amount = Number(plan.monthlyPrice);
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: plan.priceCurrency,
-    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
-  }).format(amount);
-}
+const price = formatPrice;
 ---
 
 <ul aria-label="Plans" class:list={['flex flex-col', className]}>

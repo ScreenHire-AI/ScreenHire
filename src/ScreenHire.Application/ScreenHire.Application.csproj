@@ -15,6 +15,7 @@
   <ItemGroup>
     <!-- The plan catalogue the marketing pricing page reads too (docs/architecture/billing.md): defaults for ScreenHire:Billing:Plans. -->
     <EmbeddedResource Include="..\..\packages\plans\plans.json" LogicalName="plans.json" />
+    <EmbeddedResource Include="..\..\packages\plans\trial.json" LogicalName="trial.json" />
   </ItemGroup>
 
   <ItemGroup>

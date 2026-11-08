@@ -46,6 +46,10 @@ export const sources = {
     label: 'Gartner forecast, as reported by HR Dive, 2025',
     href: 'https://www.hrdive.com/news/fake-job-candidates-ai/757126/',
   },
+  monster: {
+    label: 'Monster poll of more than 1,400 US workers, November 2024',
+    href: 'https://www.monster.com/career-advice/research/job-search-fatigue-poll-2024',
+  },
 } satisfies Record<string, Source>;
 
 export const sellingPoints: SellingPointData[] = [
@@ -79,7 +83,9 @@ export const sellingPoints: SellingPointData[] = [
       'The candidate\'s own page: four steps (Applied, In review, Interview, Offer) and your messages',
       'Reports on your funnel, time to hire and sources',
     ],
-    figures: [],
+    figures: [
+      { value: '59%', claim: 'of US workers say they rarely hear back after applying for a job, and 33% say they never do.', source: sources.monster },
+    ],
     pagePath: '/product/never-guessing/',
   },
   {

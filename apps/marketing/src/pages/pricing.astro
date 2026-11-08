@@ -10,7 +10,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { appLinks } from '../lib/app-links';
 import { includedByTopic, pricingNotes } from '../lib/features';
 import { pages } from '../lib/pages';
-import { plans, pricedOffers, trialPlan } from '../lib/pricing';
+import { plans, pricedOffers, trialLabel, trialPlan } from '../lib/pricing';
 import { faqPage, softwareApplication, type Faq } from '../lib/seo';
 
 const { title, description, path, label } = pages.pricing;
@@ -55,7 +55,7 @@ const faqs: Faq[] = [
       <p class="max-w-measure text-xl text-pretty">
         Plans differ only in how many jobs you have open at once. Jobs already open stay open if you reach the limit.
       </p>
-      <CtaLink href={startUrl} size="lg" class="mt-4">Start free trial</CtaLink>
+      <CtaLink href={startUrl} size="lg" class="mt-4">{trialLabel()}</CtaLink>
     </div>
     <div class="min-w-0 flex-[1_1_28rem]">
       <PlanRows trialPlan={trialPlan} />

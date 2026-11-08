@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Infrastructure.Tenancy;
@@ -91,6 +92,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         await MoveAsync(avery, IdOf("Alex Reed"), "screening");
 
         await JoelsHistoryAsync(avery, joel);
+        var showcaseJobId = await WorkflowShowcaseAsync(avery);
 
         await using var light = await CaptureContextAsync(state, ColorScheme.Light);
         await using var dark = await CaptureContextAsync(state, ColorScheme.Dark);
@@ -106,19 +108,9 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         // Where the phone pictures stop: between elements, never through the middle of one.
         static ILocator Stage4(IPage page) => page.GetByRole(AriaRole.Group, new() { Name = "Stage 4:" });
         static ILocator Entry(IPage page, string text) => page.Locator("main ol[aria-label] > li").Filter(new() { HasText = text });
-        static ILocator Reason(IPage page, string text) => page.Locator("[data-assessment=authenticity] li[data-check]").Filter(new() { HasText = text });
 
         var screens = new List<Screen>
         {
-            // 1. Two applications to the same job, each panel on its own. The flagged one ends its phone picture after the speed
-            // reason, whose counter-evidence is the farm's passed bot challenge.
-            new("verification-clear", DashboardUrl($"/applications/{IdOf("Robin Ashby")}?tab=verification"), "Robin Ashby",
-                page => PrepareVerificationAsync(page, null, [], counterEvidence: false), page => page.Locator("[data-assessment=authenticity]")),
-            new("verification-flagged", DashboardUrl($"/applications/{IdOf("Morgan Hale")}?tab=verification"), "Morgan Hale",
-                page => PrepareVerificationAsync(page, "ID_DUPLICATE_IN_ORG", ["NET_DATACENTER_IP", "ID_DUPLICATE_IN_ORG", "AUTO_SUBMIT_VELOCITY"], counterEvidence: true),
-                page => page.Locator("[data-assessment=authenticity]"),
-                Phone: new(Height: 3600, From: page => page.Locator("[data-assessment=authenticity]"), To: page => Reason(page, "Completed faster than a person could"))),
-
             // 2. The job's pipeline, light and dark. On a phone, one stage and its cards.
             new("pipeline", DashboardUrl($"/jobs/{jobId}"), "Senior .NET Engineer", PreparePipelineAsync, Width: PipelineWidth,
                 Phone: new(Only: page => page.Locator("[data-stage-column]").First)),
@@ -139,9 +131,12 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
             // 5. The candidate's own page, from the link in the email they ask for.
             new("candidate-portal", portalLink, "Your applications", PreparePortalAsync, Public: true),
 
-            // 6. A workflow's stages and automations, in the pipeline view (the graph's phone layout is read-only and too small to read).
+            // 6. A workflow's stages and automations, in the pipeline view. It is the product designer job's, given automations
+            // from a thank-you email to a reminder when Screening runs late (WorkflowShowcaseAsync); the engineer job's queues an
+            // answer for rejection review, which a page that says nothing is rejected on a check must not show.
+            // The pipeline view (the graph's phone layout is read-only and too small to read).
             // On a phone, the stages down to the fourth, with their automations.
-            new("workflow", DashboardUrl($"/jobs/{jobId}/workflow"), "workflow",
+            new("workflow", DashboardUrl($"/jobs/{showcaseJobId}/workflow"), "workflow",
                 page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Workflow automations" })).ToBeVisibleAsync(), Height: 1480,
                 Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Stages"), To: Stage4)),
 
@@ -331,39 +326,6 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
             "() => [innerWidth - document.documentElement.clientWidth, document.documentElement.scrollWidth - document.documentElement.clientWidth]");
         measured[0].Should().Be(0, "no strip is reserved for a scrollbar at the right of {0}", page.Url);
         measured[1].Should().BeLessThanOrEqualTo(0, "{0} does not scroll sideways", page.Url);
-    }
-
-    private static async Task PrepareVerificationAsync(IPage page, string? signal, string[] expand, bool counterEvidence)
-    {
-        var panel = page.Locator("[data-assessment=authenticity]");
-        await Expect(panel.Locator("[data-summary]")).ToBeVisibleAsync(Slow);
-        if (signal is not null)
-        {
-            await Expect(panel.Locator($"[data-signal='{signal}']")).ToBeVisibleAsync(Slow);
-        }
-
-        // The public site shows the plain evidence, not the support code under each reason.
-        await page.AddStyleTagAsync(new() { Content = "[data-signal] p:has(> span.font-mono) { display: none !important; }" });
-        foreach (var code in expand)
-        {
-            await panel.Locator($"[data-signal='{code}'] summary").ClickAsync();
-            await Expect(panel.Locator($"[data-signal='{code}'] details")).ToHaveAttributeAsync("open", "");
-        }
-
-        // "Source: configured ranges" is how the local stack finds networks; a real deployment shows nothing like it.
-        await panel.EvaluateAsync(
-            """
-            root => {
-              for (const element of root.querySelectorAll('*')) {
-                if (element.children.length === 0 && element.textContent.trim() === 'Source') element.parentElement.style.display = 'none';
-              }
-            }
-            """);
-        (await panel.InnerTextAsync()).Should().NotContain("Code ", "reason codes stay out of the picture");
-        if (counterEvidence)
-        {
-            (await panel.InnerTextAsync()).Should().Contain("Counter-evidence", "the flagged panel shows the other side of its speed reason");
-        }
     }
 
     private static async Task PreparePipelineAsync(IPage page)
@@ -570,6 +532,51 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
             }
             """);
         await page.Mouse.MoveAsync(0, 0);
+    }
+
+    // The product designer job, with the demo's three candidate emails and two more automations: a reminder when an application
+    // waits past Screening's time limit, and a task when someone reaches Interview. Every one passes the validator, and none
+    // queues anything for rejection.
+    private static async Task<Guid> WorkflowShowcaseAsync(ApiSession avery)
+    {
+        var jobs = await ReadAsync(await avery.Client.GetAsync("/v1/jobs", Ct), HttpStatusCode.OK);
+        var jobId = jobs.EnumerateArray().Single(j => j.GetProperty("slug").GetString() == "senior-product-designer").GetProperty("id").GetGuid();
+        var detail = JsonNode.Parse((await ReadAsync(await avery.Client.GetAsync($"/v1/jobs/{jobId}", Ct), HttpStatusCode.OK)).GetRawText())!;
+        var workflow = detail["workflow"]!.DeepClone().AsObject();
+        var automations = workflow["automations"]!.AsArray();
+        automations.Add(JsonNode.Parse(
+            """
+            {
+              "id": "screening-reminder",
+              "name": "Remind the team when Screening runs late",
+              "trigger": { "type": "SlaBreached", "stageId": "screening" },
+              "actions": [
+                { "type": "NotifyTeam", "note": "This candidate has waited past the Screening time limit." },
+                { "type": "CreateTask", "note": "Reply to this candidate today." }
+              ]
+            }
+            """));
+        automations.Add(JsonNode.Parse(
+            """
+            {
+              "id": "interview-prep",
+              "name": "Get the panel ready",
+              "trigger": { "type": "StageEntered", "stageId": "interview" },
+              "actions": [{ "type": "CreateTask", "note": "Send the panel the portfolio before the interview." }]
+            }
+            """));
+        foreach (var automation in automations)
+        {
+            var actions = automation!["actions"]!.AsArray().Select(a => a!["type"]!.GetValue<string>());
+            actions.Should().NotContain(["QueueForRejectionReview", "Reject"], "the picture sits beside \"nothing is rejected on a check\"");
+        }
+
+        using var saved = await avery.PutAsync(
+            $"/v1/jobs/{jobId}/workflow",
+            new JsonObject { ["workflow"] = workflow, ["expectedWorkflowVersion"] = detail["workflowVersion"]!.GetValue<int>() },
+            Ct);
+        saved.StatusCode.Should().Be(HttpStatusCode.OK, await saved.Content.ReadAsStringAsync(Ct));
+        return jobId;
     }
 
     private static async Task MoveAsync(ApiSession session, Guid applicationId, string stage)

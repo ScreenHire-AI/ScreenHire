@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CataloguePlan } from '@screenhire/plans';
-import { buildPlans, hasPrice, plans, pricedOffers, startingPrice, trialPlan, type Plan } from './pricing';
+import { buildPlans, hasPrice, plans, pricedOffers, startingPrice, trialLabel, trialPlan, type Plan } from './pricing';
 
 const plan = (name: string, monthlyPrice: string): Plan => ({ name, monthlyPrice, priceCurrency: 'USD', activeJobs: '', summary: '' });
 
@@ -20,6 +20,8 @@ describe('pricing', () => {
     expect(plans.map((p) => p.name)).toEqual(['Starter', 'Growth', 'Unlimited']);
     expect(plans.filter((p) => p.highlighted).map((p) => p.name)).toEqual(['Growth']);
     expect(trialPlan).toBe('Growth');
+    expect(trialLabel()).toBe('Start your free 14-day trial');
+    expect(trialLabel(0)).toBe('Start free trial');
   });
 
   it('never lets a placeholder reach a page', () => {
@@ -69,13 +71,14 @@ describe('pricing', () => {
         { name: 'Growth', price: '149.50', priceCurrency: 'EUR' },
         { name: 'Unlimited', price: '399', priceCurrency: 'EUR' },
       ]);
-      expect(startingPrice(built)).toBe('$49');
+      // In the catalogue's own currency, not a dollar sign whatever it holds.
+      expect(startingPrice(built)).toBe('\u20AC49');
     });
 
     it('keeps an unpriced plan out of the offers and ignores a limit on an unlimited plan', () => {
       const built = buildPlans([entry('starter', 1, null, 3), entry('growth', 2, 99, 5), entry('unlimited', 3, null, 7, true)]);
       expect(pricedOffers(built).map((o) => o.name)).toEqual(['Growth']);
-      expect(startingPrice(built)).toBe('$99');
+      expect(startingPrice(built)).toBe('€99');
       expect(built[0].monthlyPrice).toBe('');
       expect(built[2].activeJobs).toBe('Any number of open jobs');
     });

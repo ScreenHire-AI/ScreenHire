@@ -16,6 +16,7 @@ import ProofList from '../../components/shell/ProofList.astro';
 import QuestionsList from '../../components/shell/QuestionsList.astro';
 import RuledList from '../../components/shell/RuledList.astro';
 import Section from '../../components/shell/Section.astro';
+import SourcedNumber from '../../components/shell/SourcedNumber.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { sellingPoints } from '../../lib/features';
 import { pages } from '../../lib/pages';
@@ -72,6 +73,10 @@ const faqs: Faq[] = [
       priority
     />
   </PageHero>
+
+  <Section label="Why it matters" class="flex flex-col gap-10">
+    {point.figures.map((figure) => <SourcedNumber figure={figure} class="max-w-measure" />)}
+  </Section>
 
   <Section labelledby="both-title" class="flex flex-col gap-10">
     <div class="flex flex-wrap items-end gap-x-16 gap-y-6">

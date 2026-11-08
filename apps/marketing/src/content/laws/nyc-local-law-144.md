@@ -43,7 +43,7 @@ In December 2025 the State Comptroller found DCWP's enforcement ineffective [[2]
 ## How ScreenHire is designed around it
 
 - A check never rejects anyone, and a person decides. That is meant to keep verification checks from substantially assisting a hiring decision, but whether a flag counts as an AEDT is unsettled (see below).
-- We plan to run yearly bias audits in the style of Local Law 144 on our own flag rates.
+- Where a tool counts as an AEDT, the yearly audit, its published summary and the notice are the employer's duties under the law.
 - Every level records the version of the check that produced it, so an audit can be reproduced.
 
 ## Still unclear

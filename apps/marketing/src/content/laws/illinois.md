@@ -48,7 +48,6 @@ Illinois has three laws that matter for hiring software.
 
 - Where an applicant is based is never a zip code and never a reason on its own.
 - This release has no biometrics at all: no face, voice or ID-document checks.
-- When optional ID verification arrives in a later release, the plan is to store pass or fail only, delete images within days, collect a BIPA release first and always offer a live check with a person instead.
 - No emotion or personality inference from video, ever.
 
 ## Still unclear
