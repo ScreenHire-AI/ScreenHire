@@ -139,6 +139,5 @@ const tells: Record<string, RegExp> = {
 const LEGACY: string[] = [
   'apps/marketing/src/components/PageHeader.astro',
   'apps/marketing/src/pages/how-detection-works.astro',
-  'apps/marketing/src/pages/index.astro',
   'apps/marketing/src/pages/product.astro',
 ];
