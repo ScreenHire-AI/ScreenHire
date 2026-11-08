@@ -2,7 +2,8 @@
 // The real product, shown big and sharp (design system section 22): an image of the dashboard, or markup built from the
 // same components, framed with one edge and nothing else. It always draws in the light theme, also inside a dark band,
 // because that is how the product looks. An image takes its width and height from the file, so the page does not shift.
-// A `phoneSrc` is the same screen laid out at phone width: a phone downloads that one and never the wide picture.
+// A `phoneSrc` is the same screen laid out at phone width: a phone downloads that one and never the wide picture. Both
+// are served as AVIF with a WebP fallback, through astro:assets.
 import { getImage } from 'astro:assets';
 
 interface Props {
@@ -22,28 +23,37 @@ interface Props {
 const { src, phoneSrc, alt = '', priority = false, sizes = '(min-width: 80rem) 77rem, 100vw', class: className } = Astro.props;
 if (src && !alt) throw new Error('ProductFrame: a screenshot needs alt text that says what it shows (design system F7).');
 
+// AVIF first, so a browser that reads it takes the smaller file; the WebP is the fallback and the `<img>` itself.
+const wideAvif = src ? await getImage({ src, widths: [640, 960, 1280, 1920], format: 'avif' }) : undefined;
 const wide = src ? await getImage({ src, widths: [640, 960, 1280, 1920], format: 'webp' }) : undefined;
-const phone = phoneSrc ? await getImage({ src: phoneSrc, widths: [430, 640], format: 'webp', quality: 50 }) : undefined;
+const phoneSources = phoneSrc
+  ? [
+      { type: 'image/avif', image: await getImage({ src: phoneSrc, widths: [430, 640], format: 'avif', quality: 50 }) },
+      { type: 'image/webp', image: await getImage({ src: phoneSrc, widths: [430, 640], format: 'webp', quality: 50 }) },
+    ]
+  : [];
+const wideSizes = `(max-width: 47.99rem) 100vw, ${sizes}`;
 ---
 
 <div class:list={['light overflow-hidden rounded-panel border border-border bg-card text-card-foreground shadow-surface', className]}>
   {
-    wide ? (
+    wide && wideAvif ? (
       <picture>
-        {phone && (
+        {phoneSources.map(({ type, image }) => (
           <source
             media="(max-width: 47.99rem)"
-            srcset={phone.srcSet.attribute}
+            srcset={image.srcSet.attribute}
             sizes="100vw"
-            type="image/webp"
-            width={phone.attributes.width}
-            height={phone.attributes.height}
+            type={type}
+            width={image.attributes.width}
+            height={image.attributes.height}
           />
-        )}
+        ))}
+        <source srcset={wideAvif.srcSet.attribute} sizes={wideSizes} type="image/avif" />
         <img
           src={wide.src}
           srcset={wide.srcSet.attribute}
-          sizes={`(max-width: 47.99rem) 100vw, ${sizes}`}
+          sizes={wideSizes}
           width={wide.attributes.width}
           height={wide.attributes.height}
           alt={alt}

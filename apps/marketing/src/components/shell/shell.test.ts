@@ -5,6 +5,8 @@ import { appLinks } from '../../lib/app-links';
 import { levels } from '../../lib/features';
 import { pages, productNav } from '../../lib/pages';
 import { buildPlans } from '../../lib/pricing';
+import portal from '../../assets/product/candidate-portal.png';
+import portalPhone from '../../assets/product/candidate-portal-phone.png';
 import ApplicantPair from './ApplicantPair.astro';
 import ClosingBand from './ClosingBand.astro';
 import CtaLink from './CtaLink.astro';
@@ -214,14 +216,46 @@ describe('ProofList', () => {
 });
 
 describe('ProductFrame', () => {
+  const alt = 'The candidate page.';
+
   it('frames markup in the light theme with one edge', async () => {
     const html = await render(ProductFrame);
     expect(html).toContain('light ');
     expect(html).toContain('rounded-panel');
+    expect(html).not.toContain('<picture');
+  });
+
+  it('draws a screenshot as AVIF with a WebP fallback, with its size taken from the file', async () => {
+    const html = await render(ProductFrame, { src: portal, alt });
+    expect(html).toMatch(/<source[^>]* type="image\/avif"/);
+    expect(html).toMatch(/<img[^>]* src="[^"]+f=webp"/);
+    expect(html).toMatch(/<img[^>]* width="\d+"/);
+    expect(html).toMatch(/<img[^>]* height="\d+"/);
+    expect(html).toContain(`alt="${alt}"`);
+  });
+
+  it('loads lazily, and eagerly with high priority only for the one hero image', async () => {
+    const lazy = await render(ProductFrame, { src: portal, alt });
+    expect(lazy).toContain('loading="lazy"');
+    expect(lazy).not.toContain('fetchpriority="high"');
+    const hero = await render(ProductFrame, { src: portal, alt, priority: true });
+    expect(hero).toContain('loading="eager"');
+    expect(hero).toContain('fetchpriority="high"');
+  });
+
+  it('adds the phone layout as AVIF and WebP sources with their own size, taken below md', async () => {
+    const html = await render(ProductFrame, { src: portal, phoneSrc: portalPhone, alt });
+    const phone = [...html.matchAll(/<source[^>]* media="\(max-width: 47\.99rem\)"[^>]*>/g)].map((match) => match[0]);
+    expect(phone).toHaveLength(2);
+    expect(phone.join('')).toMatch(/image\/avif/);
+    expect(phone.join('')).toMatch(/image\/webp/);
+    for (const source of phone) {
+      expect(source).toMatch(/width="\d+"/);
+      expect(source).toMatch(/height="\d+"/);
+    }
   });
 
   it('refuses a screenshot without alt text (F7)', async () => {
-    const src = { src: '/x.png', width: 100, height: 50, format: 'png' };
-    await expect(render(ProductFrame, { src })).rejects.toThrow(/alt text/);
+    await expect(render(ProductFrame, { src: portal })).rejects.toThrow(/alt text/);
   });
 });

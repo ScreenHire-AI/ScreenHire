@@ -16,9 +16,9 @@ export const pages = {
   home: {
     path: '/',
     label: 'Home',
-    title: "ScreenHire: know who's really applying",
+    title: 'ScreenHire: interview real people, not bots',
     description:
-      'An applicant tracking system for small teams that spots bots, impersonators and copy-paste applications, and explains every flag in plain language.',
+      'The hiring tool for small teams. It checks every applicant, keeps your team and candidates up to date, and automates the busywork. One price.',
   },
   product: {
     path: '/product/',

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
@@ -71,9 +72,145 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
 
         await GoToAsync(Marketing, "/");
 
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Know who's really applying.");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Interview real people, not bots.");
         (await ScriptTypesAsync()).Should().NotBeEmpty("the page carries JSON-LD").And.OnlyContain(type => type == "application/ld+json");
         scriptRequests.Should().BeEmpty();
+        await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    [Fact]
+    public async Task Home_page_tells_the_five_selling_points_in_order_between_the_hero_and_the_close()
+    {
+        await GoToAsync(Marketing, "/");
+
+        var headings = await Page.Locator("main h2").AllInnerTextsAsync();
+        headings.Select(heading => heading.Trim()).Should().Equal(
+            "Know it's a real person before you book the interview.",
+            "Nobody has to ask where things stand.",
+            "If your team does it by hand, ScreenHire can do it for you.",
+            "Works with the tools you already use.",
+            "Set it up the way your team hires.",
+            "One price for your whole team. Everything included.",
+            "Questions",
+            "Spend your interviews on real candidates.");
+
+        (await Page.Locator("main section[id]").EvaluateAllAsync<string[]>("sections => sections.map(s => s.id)"))
+            .Should().Equal("real-people", "never-guessing", "automate-anything", "integrations", "built-your-way", "pricing");
+
+        // The hero asks for the trial and names no length, and the secondary link goes to pricing.
+        var hero = Page.Locator("#hero-title").Locator("xpath=ancestor::section");
+        await Expect(hero.GetByRole(AriaRole.Link, new() { Name = "Start free trial" })).ToBeVisibleAsync();
+        await Expect(hero.GetByRole(AriaRole.Link, new() { Name = "See pricing" })).ToHaveAttributeAsync("href", "/pricing/");
+        (await hero.InnerTextAsync()).Should().NotMatchRegex(@"\d+-day");
+        await Expect(hero).ToContainTextAsync("for your whole team");
+    }
+
+    [Fact]
+    public async Task Home_page_gives_every_number_a_source_and_every_market_line_a_dated_source()
+    {
+        await GoToAsync(Marketing, "/");
+
+        var numbers = Page.GetByRole(AriaRole.Region, new() { Name = "Why it matters" });
+        var sources = numbers.GetByRole(AriaRole.Link);
+        (await sources.CountAsync()).Should().Be(3);
+        foreach (var href in await sources.EvaluateAllAsync<string[]>("links => links.map(l => l.href)"))
+        {
+            new Uri(href).Scheme.Should().Be("https");
+        }
+
+        foreach (var section in new[] { "real-people", "automate-anything" })
+        {
+            await Expect(Page.Locator($"#{section}").GetByRole(AriaRole.Link, new() { NameRegex = ReadOnRegex() })).ToHaveCountAsync(1);
+        }
+    }
+
+    [Fact]
+    public async Task Home_page_shows_the_same_plans_as_the_pricing_page()
+    {
+        await GoToAsync(Marketing, "/");
+        var home = await Page.GetByRole(AriaRole.List, new() { Name = "Plans" }).Locator("li").AllInnerTextsAsync();
+
+        await GoToAsync(Marketing, "/pricing/");
+        var pricing = await Page.GetByRole(AriaRole.List, new() { Name = "Plans" }).Locator("li").AllInnerTextsAsync();
+
+        home.Should().NotBeEmpty().And.Equal(pricing, "both read the plan catalogue");
+        home.Should().OnlyContain(row => row.Contains("open job") || row.Contains("Any number"), "every row names its limit");
+    }
+
+    [Fact]
+    public async Task Home_page_questions_match_their_structured_data()
+    {
+        await GoToAsync(Marketing, "/");
+
+        var visible = (await Page.Locator("#questions-title").Locator("xpath=following-sibling::div//h3").AllInnerTextsAsync()).Select(question => question.Trim()).ToList();
+        visible.Should().HaveCount(4);
+
+        var block = await Page.Locator("script[type='application/ld+json']").First.TextContentAsync();
+        using var document = JsonDocument.Parse(block!);
+        var faq = document.RootElement.GetProperty("@graph").EnumerateArray().Single(node => node.GetProperty("@type").GetString() == "FAQPage");
+        faq.GetProperty("mainEntity").EnumerateArray().Select(question => question.GetProperty("name").GetString()).Should().Equal(visible);
+    }
+
+    [Theory]
+    [InlineData(1440, false)]
+    [InlineData(390, true)]
+    public async Task Home_page_screenshots_have_a_size_and_alt_text_and_only_the_layout_for_the_width_loads(int width, bool phone)
+    {
+        var requests = new ConcurrentQueue<string>();
+        Page.Request += (_, request) =>
+        {
+            if (request.ResourceType == "image")
+            {
+                requests.Enqueue(request.Url);
+            }
+        };
+        await Page.SetViewportSizeAsync(width, 900);
+        await GoToAsync(Marketing, "/");
+
+        // Every screenshot is a picture with an explicit size, alt text and AVIF sources ahead of its WebP fallback.
+        var pictures = Page.Locator("main picture");
+        (await pictures.CountAsync()).Should().Be(1, "the template screenshot, with a phone layout as a source");
+        foreach (var picture in await pictures.AllAsync())
+        {
+            var image = picture.Locator("img");
+            (await image.GetAttributeAsync("width")).Should().NotBeNullOrEmpty();
+            (await image.GetAttributeAsync("height")).Should().NotBeNullOrEmpty();
+            (await image.GetAttributeAsync("alt")).Should().NotBeNullOrWhiteSpace();
+            (await picture.Locator("source").First.GetAttributeAsync("type")).Should().Be("image/avif");
+        }
+
+        // Bring the shown layout into view so its lazy picture loads, and wait until it has; the other layout is never requested.
+        var shown = Page.Locator("main picture img:visible");
+        await Expect(shown).ToHaveCountAsync(1);
+        await shown.ScrollIntoViewIfNeededAsync();
+        await Expect(shown).ToHaveJSPropertyAsync("complete", true);
+        (await shown.EvaluateAsync<int>("image => image.naturalWidth")).Should().BePositive();
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        var images = requests.ToList();
+        if (phone)
+        {
+            images.Should().Contain(url => url.Contains("template-stages-phone.")).And.NotContain(url => url.Contains("template-stages."));
+        }
+        else
+        {
+            images.Should().Contain(url => url.Contains("template-stages.")).And.NotContain(url => url.Contains("-phone."));
+        }
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(768)]
+    [InlineData(1024)]
+    [InlineData(1440)]
+    [InlineData(1920)]
+    public async Task Home_page_fits_and_passes_axe_at_every_width(int width)
+    {
+        await Page.SetViewportSizeAsync(width, 900);
+        await GoToAsync(Marketing, "/");
+
+        (await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth"))
+            .Should().Be(0, "the home page must fit {0}px without scrolling sideways", width);
         await ExpectNoAccessibilityViolationsAsync();
     }
 
@@ -347,6 +484,9 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
                 break;
         }
     }
+
+    [GeneratedRegex(@"read \d{1,2} \w+ 20\d\d$")]
+    private static partial Regex ReadOnRegex();
 
     [GeneratedRegex("<loc>([^<]+)</loc>")]
     private static partial Regex LocRegex();
