@@ -33,10 +33,14 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Region("Applications and hires by week")).ToBeVisibleAsync();
         await Expect(Region("Open jobs")).ToContainTextAsync("No open jobs");
 
-        // The headline numbers say how far they moved from the 30 days before, in words and never a status colour.
+        // The headline numbers say how far they moved from the 30 days before, in words and never a status colour, and every
+        // card keeps that pill in one place, under the value, however wide the value is.
         var headline = Page.GetByRole(AriaRole.Group, new() { Name = "Headline numbers" });
         await Expect(headline).ToContainTextAsync("Applications");
         await Expect(headline).ToContainTextAsync("2 more than before");
+        var pillOffsets = await headline.Locator("[data-report-change]").EvaluateAllAsync<double[]>(
+            "pills => pills.map(pill => Math.round(pill.getBoundingClientRect().left - pill.closest('[data-slot=report-stat]').getBoundingClientRect().left))");
+        pillOffsets.Distinct().Should().ContainSingle("the pill starts at the same place on every card");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-reports-1440");
 

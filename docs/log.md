@@ -2,6 +2,12 @@
 
 ## 2026-11-07
 
+**The candidate's page names its fourth step Offer.** It was Decision, shown only at an Offer stage, but a decision is the
+team's move from the last interview to an offer or to the end. A stage that is not Applied, Interview or Offer now takes the
+step of the last Interview or Offer stage before it, so a take-home between interviews or a final review no longer sends a
+candidate back to In review (ADR-0027, amended). The Reports cards keep each change pill under its number, in the same
+place on every card, and the roadmap's next item is rebuilding the marketing site.
+
 **The audit of the overnight run's fixes.** The workflow graph opens at full size, because fitting a workflow took its text
 down to 6px; Fit still shows the whole of it. End stages stand apart with no arrows into them, because Hired does not lead
 to Rejected. The privacy page no longer says what the checks look at or what the AI model compares, and the notice version

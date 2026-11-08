@@ -202,7 +202,7 @@ internal static class PublicPortalEndpoints
             var application = row.Application;
             var job = row.Job;
             var stage = job.Workflow.FindStage(application.CurrentStageId);
-            var funnel = CandidateFunnel.For(application, stage);
+            var funnel = CandidateFunnel.For(application, stage, job.Workflow.Stages);
             var waiting = new List<PublicPortalWaiting>();
             if (!application.HasEnded(stage))
             {

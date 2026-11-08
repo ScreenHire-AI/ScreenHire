@@ -30,15 +30,17 @@ public enum FunnelEnd
 public sealed record CandidateFunnel(int? Current, FunnelEnd Ended)
 {
     /// <summary>The four steps, in order.</summary>
-    public static readonly IReadOnlyList<string> Steps = ["Applied", "In review", "Interview", "Decision"];
+    public static readonly IReadOnlyList<string> Steps = ["Applied", "In review", "Interview", "Offer"];
 
     /// <summary>
     /// The funnel for <paramref name="application"/> in <paramref name="stage"/>, the job's stage with the application's
-    /// current id (null when the employer removed it since).
+    /// current id (null when the employer removed it since), in a workflow whose stages are <paramref name="stages"/>, in
+    /// pipeline order.
     /// </summary>
-    public static CandidateFunnel For(JobApplication application, WorkflowStage? stage)
+    public static CandidateFunnel For(JobApplication application, WorkflowStage? stage, IReadOnlyList<WorkflowStage> stages)
     {
         ArgumentNullException.ThrowIfNull(application);
+        ArgumentNullException.ThrowIfNull(stages);
 
         // The stage decides first: a Withdrawn application that was once kept in mind is still Withdrawn.
         switch (stage?.Kind)
@@ -56,14 +58,39 @@ public sealed record CandidateFunnel(int? Current, FunnelEnd Ended)
             return new(null, FunnelEnd.NotMovingForward);
         }
 
-        return new(
-            stage?.Kind switch
+        return new(StepOf(stage, stages), FunnelEnd.None);
+    }
+
+    // Applied, Interview and Offer stages are their own steps. A decision is a move, not a place: the team moves an application
+    // from its last interview to an offer or ends it. So any other open stage takes the step of the last Interview or Offer
+    // stage before it in the pipeline: a take-home between two interviews stays Interview, a holding stage after the last
+    // interview stays Interview until the team decides, and a check after the offer stays Offer. With neither before it, or
+    // for a stage the employer has since removed, it is In review. The step never goes back unless the team moves it back.
+    private static int StepOf(WorkflowStage? stage, IReadOnlyList<WorkflowStage> stages)
+    {
+        switch (stage?.Kind)
+        {
+            case null:
+                return 1;
+            case StageKind.Applied:
+                return 0;
+            case StageKind.Interview:
+                return 2;
+            case StageKind.Offer:
+                return 3;
+        }
+
+        var step = 1;
+        foreach (var earlier in stages.TakeWhile(s => s.Id != stage.Id))
+        {
+            step = earlier.Kind switch
             {
-                StageKind.Applied => 0,
-                StageKind.Interview => 2,
+                StageKind.Interview => Math.Max(step, 2),
                 StageKind.Offer => 3,
-                _ => 1, // Screening, Assessment, Verification, Custom, and a stage that no longer exists
-            },
-            FunnelEnd.None);
+                _ => step,
+            };
+        }
+
+        return step;
     }
 }

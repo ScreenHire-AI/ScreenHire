@@ -69,7 +69,7 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
         await Expect(steps).ToHaveCountAsync(4);
         await Expect(steps.First).ToHaveAttributeAsync("aria-current", "step");
         await Expect(Page.GetByText("No messages yet.")).ToBeVisibleAsync();
-        (await Page.ContentAsync()).Should().NotContain("Screening").And.NotContain("Offer", "the employer's own stage names never reach the page");
+        (await Page.ContentAsync()).Should().NotContain("Screening", "the employer's own stage names never reach the page");
         (await Page.Locator("script:not([type='application/ld+json'])").CountAsync()).Should().Be(0, "the page ships no JavaScript");
         await ExpectNoAccessibilityViolationsAsync();
 

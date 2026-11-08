@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: "Roadmap"
-description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes later, and what must exist before real customers."
+description: "The order of work after the MVP: what each finished workflow delivered and in which PRs, what comes next (rebuilding the marketing site), later items, and what must exist before real customers."
 tags: [roadmap, planning]
 ---
 # Roadmap
@@ -39,7 +39,9 @@ each item names the doc that designs it. Board workflows carry the detail.
 
 ## Next
 
-Nothing is queued. The next workflow comes from [Later](#later) and [Before real customers](#before-real-customers).
+| # | Work | Workflow | Why now |
+|---|---|---|---|
+| 15 | Rebuild the marketing site: rules for marketing pages in the [design system](design/design-system.md), and pages that show the real product and what it does today | Not planned yet | The home and product pages never mention Slack, interview scheduling, reports, scorecards, the candidate portal or the MCP server, they show no picture of the product, and the home page shows a price placeholder |
 
 ## Later
 

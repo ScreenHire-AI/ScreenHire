@@ -96,18 +96,25 @@ a draft and no application cannot sign in to the portal: their draft email alrea
 
 ### The funnel
 
-Four fixed steps for every job: **Applied, In review, Interview, Decision**, mapped from the stage's kind by
-`CandidateFunnel.For`:
+Four fixed steps for every job: **Applied, In review, Interview, Offer**, mapped from the stage's kind and its place in
+the pipeline by `CandidateFunnel.For`:
 
-| Stage kind | Shows |
+| Stage | Shows |
 |---|---|
 | Applied | Applied |
-| Screening, Assessment, Verification, Custom, or a stage the employer has since removed | In review |
 | Interview | Interview |
-| Offer | Decision |
+| Offer | Offer |
+| Screening, Assessment, Verification or Custom | The step of the last Interview or Offer stage before it in the pipeline, or In review when there is none |
+| A stage the employer has since removed | In review |
 | Hired | Hired (ended) |
 | Rejected | Not moving forward (ended) |
 | Withdrawn | Withdrawn (ended) |
+
+A decision is a move, not a stage: the team moves an application from its last interview to an offer, or ends it. So a
+take-home between two interviews shows Interview, a holding stage after the last interview (a "Final review") shows
+Interview until the team decides, and a check after the offer shows Offer. The step never goes back unless the team moves
+the application back. Offer shows as soon as the team moves an application there, so a team moves it when it extends the
+offer, as a rejection shows the moment it is made.
 
 An application the team kept in mind for future roles reads as Not moving forward, with no word about a list or a reason. An
 ending stage decides first, so a withdrawn application that was once saved is still Withdrawn. Once an application has ended
