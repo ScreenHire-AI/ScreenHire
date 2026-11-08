@@ -28,6 +28,8 @@ about payment may reach it. A payment problem must not lock a team out of candid
 1. **Plans are configuration, and `packages/plans/plans.json` holds the defaults.** Each plan has a key, a name, an
    order, a monthly price, a currency, an active job limit, an "unlimited" flag and a Stripe price id. The file ships
    with all three plans (Starter, Growth, Unlimited) and no numbers, because the numbers are the owner's call.
+   (Update 2026-11-07: the owner chose "every feature on every plan, priced by open jobs", and the file now ships working
+   numbers: Starter $79 with 3 open jobs, Growth $149 with 10, Unlimited $249. The owner confirms them before launch.)
    The API embeds the file, `ScreenHire:Billing:Plans:<key>:*` overrides any field, and the marketing pricing page reads
    the same file through `@screenhire/plans`, so the page and the product cannot disagree. A plan with no limit set limits
    nothing: a job count nobody chose is never enforced.

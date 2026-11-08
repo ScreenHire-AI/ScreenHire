@@ -10,7 +10,7 @@ namespace ScreenHire.IntegrationTests.Billing;
 /// <c>/v1/organization/billing</c> against the local sandbox provider (docs/architecture/billing.md, ADR-0029): a new
 /// organization trials for 14 days on the Growth plan's limit, the Owner alone reads and changes billing, the sandbox's
 /// checkout page activates a plan and its portal page cancels it, and one organization never sees another's account. The
-/// test stack pins Starter at 1 job and 29, Growth (the trial's plan) at 50 and 99, and Unlimited at 199.
+/// test stack sells the plans <c>packages/plans/plans.json</c> ships, which the tests read through <see cref="ShippedPlans"/>.
 /// </summary>
 public sealed class BillingTests(AppHostFixture fixture)
 {
@@ -27,7 +27,7 @@ public sealed class BillingTests(AppHostFixture fixture)
         billing.At("sandbox").GetBoolean().Should().BeTrue();
         billing.Text("state").Should().Be("Trialing");
         billing.Text("currentPlan.key").Should().Be("growth");
-        billing.At("activeJobLimit").GetInt32().Should().Be(50);
+        billing.At("activeJobLimit").GetInt32().Should().Be(ShippedPlans.Growth.RequiredLimit);
         billing.At("openJobs").GetInt32().Should().Be(0);
         billing.At("trialEndsAt").GetDateTimeOffset().Should()
             .BeCloseTo(DateTimeOffset.UtcNow.AddDays(14), TimeSpan.FromHours(1));
@@ -38,11 +38,11 @@ public sealed class BillingTests(AppHostFixture fixture)
 
         var plans = billing.At("plans").EnumerateArray().ToDictionary(p => p.GetProperty("key").GetString()!);
         plans.Keys.Should().Equal("starter", "growth", "unlimited");
-        plans["starter"].GetProperty("monthlyPrice").GetDecimal().Should().Be(29m);
-        plans["starter"].GetProperty("activeJobs").GetInt32().Should().Be(1);
-        plans["growth"].GetProperty("monthlyPrice").GetDecimal().Should().Be(99m);
-        plans["growth"].GetProperty("activeJobs").GetInt32().Should().Be(50);
-        plans["unlimited"].GetProperty("monthlyPrice").GetDecimal().Should().Be(199m);
+        plans["starter"].GetProperty("monthlyPrice").GetDecimal().Should().Be(ShippedPlans.Starter.MonthlyPrice);
+        plans["starter"].GetProperty("activeJobs").GetInt32().Should().Be(ShippedPlans.Starter.RequiredLimit);
+        plans["growth"].GetProperty("monthlyPrice").GetDecimal().Should().Be(ShippedPlans.Growth.MonthlyPrice);
+        plans["growth"].GetProperty("activeJobs").GetInt32().Should().Be(ShippedPlans.Growth.RequiredLimit);
+        plans["unlimited"].GetProperty("monthlyPrice").GetDecimal().Should().Be(ShippedPlans.Unlimited.MonthlyPrice);
         plans["unlimited"].GetProperty("unlimited").GetBoolean().Should().BeTrue();
         plans["unlimited"].GetProperty("activeJobs").ValueKind.Should().Be(JsonValueKind.Null);
         plans.Values.Should().OnlyContain(p => p.GetProperty("canSubscribe").GetBoolean(), "the sandbox can start any plan");
@@ -110,10 +110,10 @@ public sealed class BillingTests(AppHostFixture fixture)
         var billing = await owner.BillingAsync();
         billing.Text("state").Should().Be("Active");
         billing.Text("currentPlan.key").Should().Be("starter");
-        billing.At("activeJobLimit").GetInt32().Should().Be(1);
+        billing.At("activeJobLimit").GetInt32().Should().Be(ShippedPlans.Starter.RequiredLimit);
         billing.At("trialEndsAt").ValueKind.Should().Be(JsonValueKind.Null);
         billing.At("nextPaymentAt").GetDateTimeOffset().Should().BeCloseTo(DateTimeOffset.UtcNow.AddMonths(1), TimeSpan.FromHours(1));
-        billing.At("nextPaymentAmount").GetDecimal().Should().Be(29m);
+        billing.At("nextPaymentAmount").GetDecimal().Should().Be(ShippedPlans.Starter.MonthlyPrice);
         billing.At("cancelsAtPeriodEnd").GetBoolean().Should().BeFalse();
         billing.At("canManage").GetBoolean().Should().BeTrue();
     }

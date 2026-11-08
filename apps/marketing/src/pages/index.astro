@@ -8,6 +8,7 @@ import { softwareApplication } from '../lib/seo';
 
 const { title, description } = pages.home;
 const site = Astro.site ?? new URL(Astro.url.origin);
+const fromPrice = startingPrice(plans);
 const laws = (await getCollection('laws')).sort((a, b) => a.data.order - b.data.order);
 
 const features = [
@@ -147,7 +148,7 @@ const steps = [
         <h2 id="price-title" class="font-display text-4xl leading-tight font-bold tracking-tight text-candidate-foreground">
           Simple pricing for small teams.
         </h2>
-        <p class="text-lg text-candidate-muted-foreground">From {startingPrice(plans)} a month. Unlimited users.</p>
+        <p class="text-lg text-candidate-muted-foreground">{fromPrice ? `From ${fromPrice} a month. Unlimited users.` : 'Unlimited users.'}</p>
       </div>
       <a
         href={pages.pricing.path}

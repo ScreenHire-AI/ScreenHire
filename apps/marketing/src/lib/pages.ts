@@ -39,7 +39,7 @@ export const pages = {
     label: 'Pricing',
     title: 'Pricing for small hiring teams | ScreenHire',
     description:
-      'Simple monthly plans with unlimited users and applicant verification included. No credit card to start.',
+      'One monthly price by how many jobs you have open. Unlimited users, and every feature on every plan, including the applicant checks.',
   },
   laws: {
     path: '/hiring-ai-laws/',

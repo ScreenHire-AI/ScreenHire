@@ -2,25 +2,25 @@
   "starter": {
     "name": "Starter",
     "order": 1,
-    "monthlyPrice": null,
+    "monthlyPrice": 79,
     "currency": "USD",
-    "activeJobs": null,
+    "activeJobs": 3,
     "unlimited": false,
     "stripePriceId": null
   },
   "growth": {
     "name": "Growth",
     "order": 2,
-    "monthlyPrice": null,
+    "monthlyPrice": 149,
     "currency": "USD",
-    "activeJobs": null,
+    "activeJobs": 10,
     "unlimited": false,
     "stripePriceId": null
   },
   "unlimited": {
     "name": "Unlimited",
     "order": 3,
-    "monthlyPrice": null,
+    "monthlyPrice": 249,
     "currency": "USD",
     "activeJobs": null,
     "unlimited": true,

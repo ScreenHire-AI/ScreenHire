@@ -63,12 +63,16 @@ resolves; with billing off, nothing reads or writes a billing row. The worker ha
 ## Plans and the shared catalogue
 
 `packages/plans/plans.json` holds three plans: `starter`, `growth` and `unlimited`, each with a name, an order, a monthly
-price, a currency, an active job limit, an `unlimited` flag and a `stripePriceId`. The shipped file has no prices, no
-limits and no price ids: they are the owner's decisions (see [status](../status.md#owner-actions)). Two readers share it:
+price, a currency, an active job limit, an `unlimited` flag and a `stripePriceId`. The shipped file has working numbers
+(2026-11-07, "every feature on every plan, priced by open jobs"): Starter $79 a month with 3 open jobs, Growth $149 with 10
+(the trial's plan) and Unlimited $249 with no limit, all in USD, and no Stripe price ids. They are working values the owner
+confirms before launch, and the owner creates the Stripe prices (see [status](../status.md#owner-actions)). Dev, the test
+stacks and the dashboard's Billing page all run on these numbers, and the tests read them rather than repeat them. Two readers
+share it:
 
 - The API embeds it (`PlanCatalogue`) and merges any `Plans:<key>:*` override over it at read time.
-- The marketing site reads it through `@screenhire/plans` (`catalogPlans`), and `apps/marketing/src/lib/pricing.ts` builds the pricing page from it, so the page shows the same numbers; a plan with no price shows the placeholder.
-  A plan with no price keeps its placeholder there, and the page's words (summary, highlight) stay in the site.
+- The marketing site reads it through `@screenhire/plans` (`catalogPlans`), and `apps/marketing/src/lib/pricing.ts` builds the pricing page from it, so the page shows the same numbers; a plan with no price shows its name and limit and no amount.
+  The page's words (summary, highlight) stay in the site.
 
 A plan's limit is `ActiveJobs`, or none when `Unlimited` is true. A plan with neither limits nothing: a job count nobody
 chose is never enforced. A plan can be subscribed to in Stripe mode only when it has a `StripePriceId` (`canSubscribe`);
@@ -228,7 +232,7 @@ owner.
 | Test | Proves |
 |---|---|
 | `BillingOptionsTests` (unit) | the mode from the keys and the sandbox switch, Stripe winning when both are set, the 14-day Growth trial defaults, the sandbox refused outside Development and allowed in it, a negative trial or an unknown trial plan refused while billing is on |
-| `PlanCatalogueTests` (unit) | the shipped file has exactly Starter, Growth and Unlimited with no price, limit or Stripe price, an override changes only the fields it sets, a blank Stripe price keeps the catalogue's, an unlimited plan has no limit, lookup by key, the trial plan |
+| `PlanCatalogueTests` (unit) | the shipped file has exactly Starter, Growth and Unlimited with a price on each, a limit that grows with the price (none on Unlimited) and no Stripe price, an override changes only the fields it sets, a blank Stripe price keeps the catalogue's, an unlimited plan has no limit, lookup by key, the trial plan |
 | `EntitlementTests` (unit) | the trial's last moment, a subscription deciding the state, the plan in force, the publish decision for each state and limit, a trial that ran out told apart from a subscription that ended, an event applying only what it carries and an older one changing nothing |
 | `BillingProblemsTests` (unit) | the 402 problems: type, title and a detail that names the numbers, the singular, that open jobs stay open, and a trial that ran out never mentioning a subscription |
 | `StripeSignatureTests` (unit) | a good signature, another secret, a changed body or timestamp, the five-minute window both ways, a malformed header without throwing, several `v1` values |
@@ -243,8 +247,8 @@ owner.
 | `billing-page.test.ts`, `jobs-page.test.ts`, `distribution-panel.test.ts`, `job-page.test.ts`, `query.test.ts`, `settings.test.ts` (Vitest) | the page in each state, the notice and its link for an owner and anyone else at each place a draft opens, the 402 read as a plan problem, the settings entry hidden without a provider |
 | `RolePermissionsTests` (unit) | Manage billing is an Owner-only permission and its routes join the route table |
 
-The test stacks pin the limits, because the shipped plans set none: Starter 1 job, Growth (the trial's plan) 50 and
-Unlimited none, with prices set so the page shows them (`AppHostFixture`).
+The test stacks pin nothing: they sell the plans in `plans.json`, and a test that needs a price or a limit reads it through
+`ShippedPlans` (`tests/ScreenHire.Testing`), so a changed working number needs no test edit.
 
 ## Not built
 

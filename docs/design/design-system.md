@@ -1178,7 +1178,7 @@ so markup never holds a pixel size:
 | Token | Phone | md | xl | Weight | Use |
 |---|---|---|---|---|---|
 | `text-display` | 40 / 40 | 56 / 56 | 76 / 76 | 800, -0.025em | The `h1` of the home page and of a selling-point page |
-| `text-section` | 32 / 34 | 40 / 42 | 52 / 55 | 800, -0.015em | A section's `h2`, the closing band, and the `h1` of compare, laws and blog pages |
+| `text-section` | 32 / 34 | 40 / 42 | 52 / 55 | 800, -0.015em | A section's `h2`, the closing band, and the `h1` of the pricing, compare, laws and blog pages |
 | `text-band` | 32 / 34 | 44 / 46 | 44 / 46 | 800, -0.015em | The heading beside a list, such as Questions |
 | `text-figure` | 40 / 40 | 48 / 48 | 52 / 52 | 800 | A sourced number |
 | `text-price` | 28 / 28 | 32 / 32 | 32 / 32 | 800 | A plan's price |
@@ -1251,7 +1251,7 @@ stay only for pages not yet restyled.
 | `ProductFrame`, `ApplicantPair` | The real product (22.7), and the hero's real-versus-flagged pair |
 | `LevelChip` | The dashboard's four labels and icons: No concerns, Review suggested, Verification suggested, Some signs of AI help |
 | `SourcedNumber` | A number with its claim and source link |
-| `PlanRows` | The plans as rows, read from the plan catalogue (`packages/plans`) |
+| `PlanRows` | The plans as rows, read from the plan catalogue (`packages/plans`): name and open-job limit, then the price. A plan with no price shows no amount, and one with no limit shows none |
 | `QuestionsList` | Questions as a list with rules between them |
 | `ClosingBand` | The dark band that ends a page. Without an `href` its call to action goes where the header's Start free trial goes |
 | `PageIntro` | The opening of a compare, law, blog or 404 page: the `h1` at `text-section`, a lead and a slot for dates or a notice. White, or `tone="dark"` for a page that sells, with the header's `headerTone="dark"` |
