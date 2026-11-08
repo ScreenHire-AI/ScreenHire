@@ -1,0 +1,181 @@
+---
+// Real people, and the page that says how checks work. It says that checks happen, what kind of thing they look at in
+// plain words, that evidence and counter-evidence are shown and a person decides, and what ScreenHire never does. It never
+// shows how a check is built or what it measures (docs/design/marketing-site.md, "What is never said"; public-copy.test.ts
+// guards it).
+import ApplicantPair from '../../components/shell/ApplicantPair.astro';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import LevelChip from '../../components/shell/LevelChip.astro';
+import PageHero from '../../components/shell/PageHero.astro';
+import ProofList from '../../components/shell/ProofList.astro';
+import QuestionsList from '../../components/shell/QuestionsList.astro';
+import RuledList from '../../components/shell/RuledList.astro';
+import Section from '../../components/shell/Section.astro';
+import SourcedNumber from '../../components/shell/SourcedNumber.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sellingPoints, type LevelKey } from '../../lib/features';
+import { marketPains } from '../../lib/market';
+import { pages } from '../../lib/pages';
+import { faqPage, formatDate, type Faq } from '../../lib/seo';
+
+const { title, description, path, label } = pages.realPeople;
+const point = sellingPoints.find((item) => item.id === 'real-people')!;
+const fraudSoldApart = marketPains.find((pain) => pain.id === 'fraud-sold-apart')!;
+
+const levels: { level: LevelKey; meaning: string }[] = [
+  { level: 'noConcerns', meaning: 'Nothing unusual in the checks that ran. No action needed.' },
+  { level: 'reviewSuggested', meaning: 'Something is worth a second look. Read the evidence before you decide.' },
+  { level: 'verificationSuggested', meaning: 'Confirm the candidate is who they say they are before you spend interview time, for example on a short video call.' },
+  { level: 'someSignsOfAiHelp', meaning: 'Parts of the application look written with AI help. This is information, judged against the AI policy you set for the job.' },
+];
+
+const youSee = ['A level for every applicant', 'The evidence behind it', 'What speaks for the candidate', 'A suggested next step'];
+const never = [
+  'Reject anyone because of a check',
+  'Give a score, or a percentage of AI',
+  'Read faces, voices or feelings, or guess at honesty or personality',
+  'Use biometrics',
+  'Look people up on LinkedIn or social media',
+  'Hold the use of assistive technology against a candidate',
+];
+
+const fair = [
+  { term: 'Told first', detail: 'A candidate sees what is collected before they start an application, and can see where they stand on their own page.' },
+  { term: 'Assistive technology', detail: 'A candidate who uses it can switch a setting off before they start. Using it is never held against them.' },
+  { term: 'AI help is information', detail: 'Many people who use AI on an application are real candidates polishing their writing. Signs of AI help are a separate result, judged against the policy you set for each job.' },
+  { term: 'Checks make mistakes', detail: 'So the evidence is shown next to what speaks for the candidate, a person reviews it, and every action is logged.' },
+];
+
+const faqs: Faq[] = [
+  {
+    question: 'Can a check reject an applicant?',
+    answer: 'No. A check never rejects anyone. A person on your team decides, and a workflow that tries to reject on a check is refused when you save it.',
+  },
+  {
+    question: 'Does ScreenHire detect applications written with AI?',
+    answer: 'It can show signs of AI help, as information. It never gives a score or a percentage, and each job can allow AI help, allow it with disclosure, or ask applicants not to use it.',
+  },
+  {
+    question: 'What if a candidate uses a screen reader or dictation?',
+    answer: 'They can switch a setting off before they start, and it is never held against them.',
+  },
+  {
+    question: 'When does ScreenHire start collecting data about an applicant?',
+    answer: 'When they start an application, and only after they have seen the notice. Browsing a careers page creates only the server and security logs that any website keeps.',
+  },
+  {
+    question: 'Is a result a score?',
+    answer: 'No. Each result is a level with its evidence, what speaks for the candidate and a suggested next step. There is no number.',
+  },
+  {
+    question: 'Does ScreenHire read faces, voices or feelings?',
+    answer: 'No. This release has no biometric checks at all, and nothing infers emotion, honesty or personality. It never looks people up on LinkedIn or social media.',
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbs={[{ name: pages.product.label, path: pages.product.path }, { name: label, path }]}
+  headerTone="dark"
+  jsonLd={[faqPage(faqs)]}
+>
+  <PageHero title={point.title} lead={`${point.pain} ${point.promise} A person on your team decides.`}>
+    <ApplicantPair />
+  </PageHero>
+
+  <Section label="Why it matters" class="flex flex-col gap-10">
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-x-16 gap-y-10">
+      {point.figures.map((figure) => <SourcedNumber figure={figure} />)}
+    </div>
+    <p class="max-w-measure text-pretty text-secondary-foreground">
+      The first number is workload, not fraud. The second is what managers say they have seen. The third is a forecast.
+    </p>
+  </Section>
+
+  <Section tone="band" labelledby="levels-title" class="flex flex-wrap gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+      <h2 id="levels-title" class="font-display text-section text-balance">Every application is checked as it arrives.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        A check looks for things that do not add up, such as contact details that do not match each other, or an answer that was
+        sent with other applications. What it finds comes back as a level.
+      </p>
+    </div>
+    <dl class="min-w-0 flex-[1_1_28rem]">
+      {
+        levels.map((item) => (
+          <div class="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-t border-border py-4 last:border-b">
+            <dt class="flex-[0_0_14rem]"><LevelChip level={item.level} /></dt>
+            <dd class="min-w-0 flex-[1_1_16rem] text-pretty text-secondary-foreground">{item.meaning}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </Section>
+
+  <Section labelledby="decides-title" class="flex flex-wrap gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+      <h2 id="decides-title" class="font-display text-section text-balance">A level is not a verdict. A person decides.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        Each level comes with its evidence and its counter-evidence, what speaks for the candidate, so you can see both sides
+        before you spend an hour.
+        Then your team decides what to do. Nothing is ever rejected on a check.
+      </p>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        Fraud checks are not an add-on or an enterprise contract here. They are on every plan.
+      </p>
+    </div>
+    <div class="grid min-w-0 flex-[1_1_28rem] grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] content-start gap-x-12 gap-y-8">
+      <div>
+        <h3 class="text-xl font-bold">What you see</h3>
+        <ProofList class="mt-3" items={youSee} />
+      </div>
+      <div>
+        <h3 class="text-xl font-bold">What ScreenHire never does</h3>
+        <ProofList class="mt-3" items={never} />
+      </div>
+    </div>
+  </Section>
+
+  <Section tone="band" labelledby="fair-title" class="flex flex-wrap gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
+      <h2 id="fair-title" class="font-display text-section text-balance">Fair to candidates.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        A check can get someone wrong, and that person often has the least power in a hiring process. Four things keep that in
+        mind. The laws behind them are in the <a href={pages.laws.path} class="text-primary underline underline-offset-4 hover:decoration-2">hiring-AI law tracker</a>.
+      </p>
+    </div>
+    <RuledList class="flex-[2_1_28rem]" items={fair} />
+  </Section>
+
+  <Section labelledby="market-title" class="flex flex-col gap-10">
+    <div class="flex max-w-measure flex-col gap-4">
+      <h2 id="market-title" class="font-display text-section text-balance">{fraudSoldApart.pain}</h2>
+      <p class="text-pretty text-secondary-foreground">
+        What two vendors' own pages say today, with the date we read each one. {fraudSoldApart.answer}
+      </p>
+    </div>
+    <ul class="flex flex-col">
+      {
+        fraudSoldApart.facts.map((fact) => (
+          <li class="flex flex-wrap gap-x-16 gap-y-2 border-t border-border py-5 last:border-b">
+            <p class="flex-[0_0_10rem] text-xl font-bold">{fact.vendor}</p>
+            <p class="max-w-measure flex-[1_1_24rem] text-pretty text-secondary-foreground">
+              {fact.fact}
+              <span class="mt-1 block text-sm text-muted-foreground">
+                Source:{' '}
+                <a href={fact.source.href} rel="noopener" class="inline-flex min-h-6 items-center text-primary underline underline-offset-4 hover:decoration-2 pointer-coarse:min-h-11">{fact.source.label}</a>
+                , read <time datetime={fact.asOf}>{formatDate(fact.asOf)}</time>
+              </span>
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+
+  <QuestionsList faqs={faqs} tone="band" />
+
+  <ClosingBand title="Spend your interviews on real candidates." />
+</BaseLayout>

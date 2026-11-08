@@ -2,64 +2,67 @@
 // The real product, shown big and sharp (design system section 22): an image of the dashboard, or markup built from the
 // same components, framed with one edge and nothing else. It always draws in the light theme, also inside a dark band,
 // because that is how the product looks. An image takes its width and height from the file, so the page does not shift.
-//
-// A screenshot goes through astro:assets as AVIF with a WebP fallback. `phone` is the same screen laid out for a phone
-// (`name-phone.png`): a second picture with its own dimensions, shown below md while the wide one is hidden. Two pictures
-// rather than one `<source media>`, because the two crops have different aspect ratios and a single `<img>` would shift the
-// page when the phone crop loaded. A hidden lazy picture is never fetched.
-import { Picture } from 'astro:assets';
+// A `phoneSrc` is the same screen laid out at phone width: a phone downloads that one and never the wide picture. Both
+// are served as AVIF with a WebP fallback, through astro:assets.
+import { getImage } from 'astro:assets';
 
 interface Props {
   /** A screenshot imported from src/assets. Leave it out to frame the default slot instead. */
   src?: ImageMetadata;
-  /** The same screen laid out for a phone, shown below md. */
-  phone?: ImageMetadata;
+  /** The same screen at phone width, shown below md. */
+  phoneSrc?: ImageMetadata;
   /** What the screenshot shows, for someone who cannot see it. */
   alt?: string;
   /** Marks the one image that is the page's largest paint. */
   priority?: boolean;
-  /** The `sizes` of the wide picture: how wide it draws at each window width. */
+  /** The width the picture takes from md up, for the browser to pick a file size. Defaults to the whole column. */
   sizes?: string;
   class?: string;
 }
 
-const { src, phone, alt = '', priority = false, sizes = '(min-width: 80rem) 40rem, 100vw', class: className } = Astro.props;
+const { src, phoneSrc, alt = '', priority = false, sizes = '(min-width: 80rem) 77rem, 100vw', class: className } = Astro.props;
 if (src && !alt) throw new Error('ProductFrame: a screenshot needs alt text that says what it shows (design system F7).');
 
-const loading = priority ? 'eager' : 'lazy';
-const fetchpriority = priority ? 'high' : 'auto';
-const image = 'h-auto w-full object-top';
+// AVIF first, so a browser that reads it takes the smaller file; the WebP is the fallback and the `<img>` itself.
+const wideAvif = src ? await getImage({ src, widths: [640, 960, 1280, 1920], format: 'avif' }) : undefined;
+const wide = src ? await getImage({ src, widths: [640, 960, 1280, 1920], format: 'webp' }) : undefined;
+const phoneSources = phoneSrc
+  ? [
+      { type: 'image/avif', image: await getImage({ src: phoneSrc, widths: [430, 640], format: 'avif', quality: 50 }) },
+      { type: 'image/webp', image: await getImage({ src: phoneSrc, widths: [430, 640], format: 'webp', quality: 50 }) },
+    ]
+  : [];
+const wideSizes = `(max-width: 47.99rem) 100vw, ${sizes}`;
 ---
 
 <div class:list={['light overflow-hidden rounded-panel border border-border bg-card text-card-foreground shadow-surface', className]}>
   {
-    src ? (
-      <>
-        <Picture
-          src={src}
-          alt={alt}
-          formats={['avif', 'webp']}
-          fallbackFormat="webp"
-          widths={[640, 960, 1280, 1920]}
-          sizes={sizes}
-          loading={loading}
-          fetchpriority={fetchpriority}
-          class={phone ? `hidden md:block ${image}` : `block ${image}`}
-        />
-        {phone && (
-          <Picture
-            src={phone}
-            alt={alt}
-            formats={['avif', 'webp']}
-            fallbackFormat="webp"
-            widths={[430, 860]}
+    wide && wideAvif ? (
+      <picture>
+        {phoneSources.map(({ type, image }) => (
+          <source
+            media="(max-width: 47.99rem)"
+            srcset={image.srcSet.attribute}
             sizes="100vw"
-            loading={loading}
-            fetchpriority={fetchpriority}
-            class={`block md:hidden ${image}`}
+            type={type}
+            width={image.attributes.width}
+            height={image.attributes.height}
           />
-        )}
-      </>
+        ))}
+        <source srcset={wideAvif.srcSet.attribute} sizes={wideSizes} type="image/avif" />
+        <img
+          src={wide.src}
+          srcset={wide.srcSet.attribute}
+          sizes={wideSizes}
+          width={wide.attributes.width}
+          height={wide.attributes.height}
+          alt={alt}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          fetchpriority={priority ? 'high' : 'auto'}
+          class="block h-auto w-full"
+        />
+      </picture>
     ) : (
       <slot />
     )

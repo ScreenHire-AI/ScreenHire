@@ -20,6 +20,7 @@ sources:
   - resource: apps/marketing/src/components/shell/ProductFrame.astro
   - resource: apps/marketing/src/pages/index.astro
   - resource: apps/marketing/src/lib/home-page.test.ts
+  - resource: apps/marketing/src/pages/product/real-people.astro
 ---
 # Marketing site messaging
 
@@ -147,10 +148,10 @@ Name only triggers and actions that exist, as above. The examples on the site ar
   is setup, what happens when the trial ends) and the close. The market lines on home are the dated ones in `pricingNotes`
   (`topic` names the point that quotes one). The screenshots go through `ProductFrame`: AVIF with a WebP fallback, a phone
   layout below `md`, and an explicit size, so the page does not shift. Home uses one screenshot, the template, at the full
-  width of the page so its text can be read. The team's activity and the candidate's own page are markup. The captured
-  portal is a whole wide page whose steps draw too small to read in half a row. The captured activity and workflow screens
-  stay off public pages. They show a "matching applications" card, a rejection-review automation and a verification tag.
-  Re-capture or crop them first, and the workflow can join automate anything then.
+  width of the page so its text can be read. The team's activity and the candidate's own page are markup, because the
+  captured portal is a whole wide page whose steps draw too small to read in half a row. Home also leaves out the captured activity and workflow screens: they show a
+  "matching applications" card, a rejection-review automation and a verification tag. Re-capture or crop them before home
+  uses them, and the workflow can join automate anything then.
 
 ## Voice and copy rules
 
@@ -207,9 +208,13 @@ Each market line says what a page lists, with the page's name and the date it wa
 | Page | Path | Job |
 |---|---|---|
 | Home | `/` | The hero, three sourced numbers, the five points in order, pricing, questions, the close |
-| Product | `/product/` | What ScreenHire does, one section per point |
-| One page per selling point | decided by the page task (`/product/#id` until then) | The point told in full, with its screenshot |
-| Careers site and job posting | decided by the page task | The candidate's side: the careers page, the notice first, applying, posting to Google for Jobs |
+| Product | `/product/` | What ScreenHire does: one band per selling point, each with its pain, promise, proof, a screenshot and a link to its page, then the careers site |
+| Real people | `/product/real-people/` | The selling point and the page that says how checks work: that they happen, what kind of thing they look at, evidence and counter-evidence, a person decides, what is never done. `/how-detection-works/` redirects here |
+| Never guessing | `/product/never-guessing/` | The pipeline, the activity and last contacted, email on the application, notes and tasks, saved views, the candidate's own page, reports |
+| Automate anything | `/product/automate-anything/` | When, If, Then, the triggers and actions that exist, follow-up questions, scorecard requests, interview times, testing first, the guardrail |
+| Integrations | `/product/integrations/` | Email, calendars, Slack, the API and webhooks, AI assistants through MCP, your own AI key |
+| Built your way | `/product/built-your-way/` | Hiring templates, questionnaires, scorecards, email templates, branding, roles and job access |
+| Careers site and job posting | `/product/careers-site/` | The candidate's side: the careers site, the widget, Google for Jobs and job boards, a posting edited for one board, the notice first |
 | Pricing | `/pricing/` | The plans as rows, what is included, what you will not pay extra for |
 | Compare | `/compare/` | Sourced, dated, factual comparisons |
 | Hiring-AI laws | `/hiring-ai-laws/` | The law tracker, with dates and sources |
@@ -227,6 +232,16 @@ apart and AI sold apart, each with its page and the day it was read.
 
 On 2026-11-08 GoHire's pages supported the fraud and automation pains only. Per-seat pricing does not apply (GoHire has
 unlimited users, so the page says so), and no claim is made about an API (see "What is never said").
+
+The paths follow the selling-point ids in `features.ts` (`pagePath`). The header lists the overview and the six pages under
+Product, and so do the phone menu and the footer. The old `/how-detection-works/` is an Astro `redirects` entry, so the
+static build keeps a redirect page for it and the sitemap and `llms.txt` leave it out.
+
+The real-people page is where "What may be claimed" and "What is never said" meet. Its screenshots exclude the
+verification panels: the dashboard's evidence panel names the kind of network, the shared details and the ruleset version,
+which the site never says, so `verification-flagged.png` and `verification-clear.png` are not used on a page and the
+evidence is shown with the shell's `ApplicantPair`. `public-copy.test.ts` guards every product page for the words that
+describe how a check works.
 
 `pages.ts` is the registry of paths, titles and descriptions. A page that is not in it has no sitemap line, no share
 image and no `llms.txt` entry.

@@ -21,7 +21,12 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
     [
         ("/", ["SoftwareApplication"]),
         ("/product/", ["BreadcrumbList", "SoftwareApplication"]),
-        ("/how-detection-works/", ["BreadcrumbList", "FAQPage"]),
+        ("/product/real-people/", ["BreadcrumbList", "FAQPage"]),
+        ("/product/never-guessing/", ["BreadcrumbList", "FAQPage"]),
+        ("/product/automate-anything/", ["BreadcrumbList", "FAQPage"]),
+        ("/product/integrations/", ["BreadcrumbList", "FAQPage"]),
+        ("/product/built-your-way/", ["BreadcrumbList", "FAQPage"]),
+        ("/product/careers-site/", ["BreadcrumbList", "FAQPage"]),
         ("/pricing/", ["BreadcrumbList", "SoftwareApplication", "FAQPage"]),
         ("/hiring-ai-laws/", ["BreadcrumbList", "CollectionPage"]),
         ("/hiring-ai-laws/eu-ai-act/", ["BreadcrumbList", "Article", "FAQPage"]),
@@ -37,6 +42,18 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
     ];
 
     public static TheoryData<string, string[]> Pages => new(IndexablePages.Select(page => (page.Path, page.Types)));
+
+    /// <summary>The product overview and the page for each selling point, then the careers site page.</summary>
+    public static TheoryData<string> ProductPages =>
+    [
+        "/product/",
+        "/product/real-people/",
+        "/product/never-guessing/",
+        "/product/automate-anything/",
+        "/product/integrations/",
+        "/product/built-your-way/",
+        "/product/careers-site/",
+    ];
 
     public static TheoryData<string> LawEntries =>
     [
@@ -150,9 +167,9 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
         await Page.SetViewportSizeAsync(width, 900);
         await GoToAsync(Marketing, "/");
 
-        // Every screenshot is a picture with an explicit size, alt text and an AVIF source ahead of its fallback.
+        // Every screenshot is a picture with an explicit size, alt text and AVIF sources ahead of its WebP fallback.
         var pictures = Page.Locator("main picture");
-        (await pictures.CountAsync()).Should().Be(2, "the template screenshot, with a wide and a phone layout");
+        (await pictures.CountAsync()).Should().Be(1, "the template screenshot, with a phone layout as a source");
         foreach (var picture in await pictures.AllAsync())
         {
             var image = picture.Locator("img");
@@ -162,7 +179,7 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
             (await picture.Locator("source").First.GetAttributeAsync("type")).Should().Be("image/avif");
         }
 
-        // Bring the shown layout into view so its lazy picture loads, and wait until it has; the hidden one never loads.
+        // Bring the shown layout into view so its lazy picture loads, and wait until it has; the other layout is never requested.
         var shown = Page.Locator("main picture img:visible");
         await Expect(shown).ToHaveCountAsync(1);
         await shown.ScrollIntoViewIfNeededAsync();
@@ -207,13 +224,13 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
 
         var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main menu" });
         await Expect(menu).ToBeHiddenAsync();
-        await Page.Locator("header summary").ClickAsync();
+        await Page.Locator("header summary", new() { HasText = "Menu" }).ClickAsync();
         await Expect(menu).ToBeVisibleAsync();
         await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Pricing" })).ToHaveAttributeAsync("aria-current", "page");
         await ExpectNoAccessibilityViolationsAsync();
 
         await Page.SetViewportSizeAsync(1440, 900);
-        await Expect(Page.Locator("header summary")).ToBeHiddenAsync();
+        await Expect(Page.Locator("header summary", new() { HasText = "Menu" })).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main", Exact = true })).ToBeVisibleAsync();
         scriptRequests.Should().BeEmpty();
     }
@@ -253,6 +270,52 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
         await Page.SetViewportSizeAsync(390, 844);
         var overflow = await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
         overflow.Should().Be(0, "{0} must fit a 390px-wide phone without scrolling sideways", path);
+    }
+
+    [Theory]
+    [MemberData(nameof(ProductPages))]
+    public async Task Product_page_has_one_h1_links_to_pricing_passes_axe_and_fits_every_width(string path)
+    {
+        await GoToAsync(Marketing, path);
+
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveCountAsync(1);
+        await Expect(Page.Locator("main a[href='/pricing/']").First).ToBeVisibleAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+
+        foreach (var width in new[] { 390, 768, 1280, 1920 })
+        {
+            await Page.SetViewportSizeAsync(width, 900);
+            var overflow = await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
+            overflow.Should().Be(0, "{0} must fit {1}px without scrolling sideways", path, width);
+        }
+    }
+
+    [Fact]
+    public async Task Product_menu_opens_without_javascript_and_lists_every_product_page()
+    {
+        var scriptRequests = RecordScriptRequests();
+        await Page.SetViewportSizeAsync(1440, 900);
+        await GoToAsync(Marketing, "/pricing/");
+
+        var bar = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main", Exact = true });
+        var links = bar.GetByRole(AriaRole.Link);
+        await Expect(links.Filter(new() { HasText = "Overview" })).ToBeHiddenAsync();
+        await bar.Locator("summary", new() { HasText = "Product" }).ClickAsync();
+        foreach (var name in new[] { "Overview", "How checks work", "Never guessing", "Automate anything", "Integrations", "Built your way", "Careers site" })
+        {
+            await Expect(links.Filter(new() { HasText = name })).ToBeVisibleAsync();
+        }
+
+        scriptRequests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Old_detection_address_lands_on_how_checks_work()
+    {
+        await GoToAsync(Marketing, "/how-detection-works/");
+
+        await Page.WaitForURLAsync("**/product/real-people/");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Know it's a real person before you book the interview.");
     }
 
     [Fact]

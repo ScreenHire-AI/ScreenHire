@@ -33,7 +33,7 @@ describe('home page', () => {
     expect(home).not.toMatch(/<(?:img|Image|Picture)\b/);
     const screenshots = home.match(/<ProductFrame\b[^>]*\bsrc=/gs) ?? [];
     expect(screenshots.length).toBeGreaterThan(0);
-    expect(home.match(/<ProductFrame\b[^>]*\bphone=/gs)).toHaveLength(screenshots.length);
+    expect(home.match(/<ProductFrame\b[^>]*\bphoneSrc=/gs)).toHaveLength(screenshots.length);
   });
 
   it('leaves out the captured activity and workflow screens, which show a matching card, a rejection review and a verification tag', () => {

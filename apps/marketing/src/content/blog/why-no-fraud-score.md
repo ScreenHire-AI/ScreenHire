@@ -35,4 +35,4 @@ A level with evidence gives the reviewer something real to review. A score invit
 - A check never rejects anyone. A level can route an application, tag it, assign it or suggest an identity check, and ScreenHire refuses a workflow that would reject on one.
 - Every result records the version of the check that produced it, so we can explain it and test for bias.
 
-For what we look at, in plain words, and what we never do, read [how detection works](/how-detection-works/).
+For what we look at, in plain words, and what we never do, read [how checks work](/product/real-people/).

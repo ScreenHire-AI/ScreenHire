@@ -8,18 +8,23 @@ import Section from './Section.astro';
 
 interface Props {
   point: SellingPointData;
-  /** `split` puts the words beside the proof from lg up, `stacked` puts the proof under them. */
-  layout?: 'split' | 'stacked';
+  /** `split` puts the words beside the proof from lg up, `reverse` puts the proof first, `stacked` puts the proof under them. */
+  layout?: 'split' | 'reverse' | 'stacked';
   tone?: 'page' | 'band';
 }
 
 const { point, layout = 'split', tone = 'page' } = Astro.props;
 const hasProof = Astro.slots.has('default');
-const columns = layout === 'split' ? 'grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]' : 'flex flex-col gap-10';
+// Whole class names, so Tailwind finds them.
+const columns = {
+  split: 'grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]',
+  reverse: 'grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]',
+  stacked: 'flex flex-col gap-10',
+}[layout];
 ---
 
 <Section tone={tone} id={point.id} labelledby={`${point.id}-title`} class={columns}>
-  <div class="flex min-w-0 flex-col gap-4">
+  <div class:list={['flex min-w-0 flex-col gap-4', layout === 'reverse' && 'lg:order-2']}>
     <h2 id={`${point.id}-title`} class="font-display text-section text-balance">{point.title}</h2>
     <p class="max-w-measure text-pretty text-secondary-foreground">{point.pain}</p>
     <p class="max-w-measure text-pretty">{point.promise}</p>

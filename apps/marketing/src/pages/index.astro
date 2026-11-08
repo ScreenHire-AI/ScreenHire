@@ -14,8 +14,10 @@ import CtaLink from '../components/shell/CtaLink.astro';
 import DarkBand from '../components/shell/DarkBand.astro';
 import LevelChip from '../components/shell/LevelChip.astro';
 import PlanRows from '../components/shell/PlanRows.astro';
+import ProofList from '../components/shell/ProofList.astro';
 import ProductFrame from '../components/shell/ProductFrame.astro';
 import QuestionsList from '../components/shell/QuestionsList.astro';
+import RuledList from '../components/shell/RuledList.astro';
 import Section from '../components/shell/Section.astro';
 import SellingPoint from '../components/shell/SellingPoint.astro';
 import SourcedNumber from '../components/shell/SourcedNumber.astro';
@@ -106,17 +108,12 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
           </p>
         )
       }
-      <p><a href={pages.detection.path} class={standalone}>How detection works</a></p>
+      <p><a href={realPeople!.pagePath} class={standalone}>{pages.realPeople.label}</a></p>
     </Fragment>
     <div class="grid gap-x-10 gap-y-8 sm:grid-cols-2">
       <div class="flex flex-col gap-3">
         <h3 class="text-xl font-bold">What you see</h3>
-        <ul class="flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
-          <li>A level for every applicant</li>
-          <li>The evidence behind it</li>
-          <li>What speaks for them</li>
-          <li>A suggested next step</li>
-        </ul>
+        <ProofList items={['A level for every applicant', 'The evidence behind it', 'What speaks for them', 'A suggested next step']} />
         <ul aria-label="Levels you may see" class="mt-2 flex flex-wrap gap-2">
           <li><LevelChip level="noConcerns" /></li>
           <li><LevelChip level="reviewSuggested" /></li>
@@ -126,12 +123,7 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
       </div>
       <div class="flex flex-col gap-3">
         <h3 class="text-xl font-bold">What ScreenHire never does</h3>
-        <ul class="flex list-disc flex-col gap-2 pl-5 marker:text-muted-foreground">
-          <li>Reject anyone on a check</li>
-          <li>Give a score or a percentage</li>
-          <li>Read faces, voices or feelings</li>
-          <li>Look people up on social media</li>
-        </ul>
+        <ProofList items={['Reject anyone on a check', 'Give a score or a percentage', 'Read faces, voices or feelings', 'Look people up on social media']} />
       </div>
     </div>
   </SellingPoint>
@@ -214,16 +206,7 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
   </SellingPoint>
 
   <SellingPoint point={integrationsPoint!} tone="band">
-    <dl class="grid border-b border-border sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
-      {
-        integrations.map((integration) => (
-          <>
-            <dt class="border-t border-border pt-4 font-bold sm:pr-4 sm:pb-4">{integration.name}</dt>
-            <dd class="pt-1 pb-4 text-pretty text-secondary-foreground sm:border-t sm:border-border sm:pt-4">{integration.does}</dd>
-          </>
-        ))
-      }
-    </dl>
+    <RuledList items={integrations.map((integration) => ({ term: integration.name, detail: integration.does }))} />
   </SellingPoint>
 
   <SellingPoint point={builtYourWay!} layout="stacked">
@@ -232,7 +215,7 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
     </Fragment>
     <ProductFrame
       src={templateStages}
-      phone={templateStagesPhone}
+      phoneSrc={templateStagesPhone}
       sizes="(min-width: 80rem) 74rem, 100vw"
       alt="A hiring template in ScreenHire: its stages in order from Applied, each with a name, a kind and a time limit, and the email or scorecard that goes with it."
       class="max-h-200 md:max-h-160"

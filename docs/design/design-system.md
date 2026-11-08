@@ -75,6 +75,9 @@ sources:
   - resource: apps/marketing/src/components/shell/QuestionsList.astro
   - resource: apps/marketing/src/components/shell/ClosingBand.astro
   - resource: apps/marketing/src/components/shell/PageIntro.astro
+  - resource: apps/marketing/src/components/shell/PageHero.astro
+  - resource: apps/marketing/src/components/shell/RuledList.astro
+  - resource: apps/marketing/src/components/shell/ProofList.astro
   - resource: apps/marketing/src/components/Claim.astro
   - resource: apps/marketing/src/components/SourceList.astro
 ---
@@ -1216,13 +1219,13 @@ else: no browser chrome, no tilt, no glow, no second shadow. It is the light the
 are fictional ("Sample applicants. A person on your team decides."). The site shows levels, in plain words, and never a
 reason code, a rule name, a threshold, a score or a percentage of AI.
 
-An image is served as AVIF with a WebP fallback. Its `phone` prop adds the screen laid out for a phone as a second picture with
-its own size, shown below `md` while the wide one is hidden (a hidden lazy picture is never fetched), so neither crop shifts
-the page. A frame that would run long takes a `max-h-*` class and shows the top of the screen.
+An image is served as AVIF with a WebP fallback. Its `phoneSrc` adds the screen laid out for a phone as sources taken below
+`md`, with their own size, so a phone downloads that file and never the wide one. A frame that would run long takes a
+`max-h-*` class and shows the top of the screen.
 
 ### 22.8 A selling point
 
-`SellingPoint` is one section: the buyer's pain, our promise, then the proof, in that order, with the product or a list
+`SellingPoint` (`layout` `split`, `reverse` with the picture first from `lg`, or `stacked`) is one section: the buyer's pain, our promise, then the proof, in that order, with the product or a list
 beside or under it. The layout changes with the content, so neighbouring sections never repeat one shape:
 
 | Point | Proof is shown as |
@@ -1248,11 +1251,13 @@ stay only for pages not yet restyled.
 
 | Component | Job |
 |---|---|
-| `SiteHeader` | The brand, the links, Sign in and Start free trial. `tone` is `dark` over a dark hero and `light` elsewhere. Below `md` a `details` menu holds the same links |
+| `SiteHeader` | The brand, the links, Sign in and Start free trial. `tone` is `dark` over a dark hero and `light` elsewhere. Product is a native `details` menu of the overview and the six product pages (`productNav`), so it opens and closes with its summary only: it does not close on Escape or an outside click, because that would need script. Below `md` a `details` menu holds the same links, with the product pages nested under Product |
 | `SiteFooter` | A dark band: links, RSS, the in-development note |
 | `Section`, `DarkBand` | A full-bleed band with the content column inside |
 | `SellingPoint` | One selling point (22.8) |
-| `ProductFrame`, `ApplicantPair` | The real product (22.7), and the hero's real-versus-flagged pair |
+| `ProductFrame`, `ApplicantPair` | The real product (22.7), and the hero's real-versus-flagged pair. A screenshot takes a `phoneSrc`, the same screen at phone width, which a phone downloads instead of the wide picture |
+| `PageHero` | The dark band that opens a product page: the `h1` at `text-display` across the full width, then the lead and call to action beside the page's one bold element (a screenshot, the applicant pair, a sentence). The page passes `headerTone="dark"` |
+| `RuledList`, `ProofList` | A `dl` of terms and what each does with a rule between rows, which grows by a row and never by a tile (22.6); and a plain bulleted list: a selling point's proof points beside a picture, or any short list on a product page |
 | `LevelChip` | The dashboard's four labels and icons: No concerns, Review suggested, Verification suggested, Some signs of AI help |
 | `SourcedNumber` | A number with its claim and source link |
 | `PlanRows` | The plans as rows, read from the plan catalogue (`packages/plans`): name and open-job limit, then the price. A plan with no price shows no amount, and one with no limit shows none |

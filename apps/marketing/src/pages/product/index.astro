@@ -1,0 +1,159 @@
+---
+import activityPhone from '../../assets/product/candidate-activity-phone.png';
+import activity from '../../assets/product/candidate-activity.png';
+import careersPhone from '../../assets/product/careers-phone.png';
+import careers from '../../assets/product/careers.png';
+import integrationsPhone from '../../assets/product/integrations-phone.png';
+import integrationsPicture from '../../assets/product/integrations.png';
+import portalPhone from '../../assets/product/candidate-portal-phone.png';
+import portal from '../../assets/product/candidate-portal.png';
+import pipelinePhone from '../../assets/product/pipeline-phone.png';
+import pipeline from '../../assets/product/pipeline.png';
+import templatePhone from '../../assets/product/template-stages-phone.png';
+import template from '../../assets/product/template-stages.png';
+import workflowPhone from '../../assets/product/workflow-phone.png';
+import workflow from '../../assets/product/workflow.png';
+import ClosingBand from '../../components/shell/ClosingBand.astro';
+import PageHero from '../../components/shell/PageHero.astro';
+import ProductFrame from '../../components/shell/ProductFrame.astro';
+import ProofList from '../../components/shell/ProofList.astro';
+import RuledList from '../../components/shell/RuledList.astro';
+import SellingPoint from '../../components/shell/SellingPoint.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { careersSite, integrations, sellingPoints } from '../../lib/features';
+import { pages, productNav } from '../../lib/pages';
+import { plans, pricedOffers } from '../../lib/pricing';
+import { softwareApplication } from '../../lib/seo';
+
+const { title, description, path, label } = pages.product;
+const site = Astro.site ?? new URL(Astro.url.origin);
+
+const [realPeople, neverGuessing, automate, integrationsPoint, builtYourWay] = sellingPoints;
+// The hero's list pairs each product page with the title of its point by path, so reordering either list cannot mismatch them.
+const titleByPath = Object.fromEntries([...sellingPoints, careersSite].map((point) => [point.pagePath, point.title]));
+// What each link says, so a screen reader's list of links tells them apart.
+const linkText = {
+  'real-people': 'See how checks work',
+  'never-guessing': 'See what your team and candidates see',
+  'automate-anything': 'See what you can automate',
+  integrations: 'See every integration',
+  'built-your-way': 'See how you set it up',
+  'careers-site': 'See the careers site and job posting',
+} as const;
+const link = 'inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 hover:decoration-2';
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  breadcrumbs={[{ name: label, path }]}
+  headerTone="dark"
+  jsonLd={[softwareApplication(description, site, pricedOffers(plans))]}
+>
+  <PageHero
+    title="Everything a small team needs, from the first applicant to the offer."
+    lead="What a small hiring team needs, and where each part lives in the product. Every feature is on every plan."
+  >
+    <nav aria-label="Product pages">
+      <ul class="flex flex-col">
+        {
+          productNav.slice(1).map((page) => (
+            <li class="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-t border-border py-4 last:border-b">
+              <a href={page.path} class="flex-[0_0_12rem] font-bold text-foreground underline underline-offset-4 hover:decoration-2">
+                {page.label}
+              </a>
+              <span class="min-w-0 flex-[1_1_14rem] text-pretty text-muted-foreground">{titleByPath[page.path]}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </PageHero>
+
+  <SellingPoint point={realPeople!} layout="split">
+    <ProductFrame
+      src={pipeline}
+      phoneSrc={pipelinePhone}
+      alt="A job's pipeline with every candidate's level on their card: No concerns, Review suggested or Verification suggested."
+      sizes="(min-width: 80rem) 44rem, 100vw"
+    />
+    <Fragment slot="words">
+      <ProofList items={realPeople!.proof} />
+      <a href={pages.realPeople.path} class={link}>{linkText['real-people']}</a>
+    </Fragment>
+  </SellingPoint>
+
+  <SellingPoint point={neverGuessing!} layout="stacked" tone="band">
+    <div class="flex flex-wrap items-start gap-5">
+      <ProductFrame
+        class="min-w-0 flex-[3_1_26rem]"
+        src={activity}
+        phoneSrc={activityPhone}
+        alt="A candidate's activity: the interview times the team emailed, the candidate's reply and the team's notes."
+        sizes="(min-width: 80rem) 44rem, 100vw"
+      />
+      <ProductFrame
+        class="min-w-0 flex-[2_1_20rem]"
+        src={portal}
+        phoneSrc={portalPhone}
+        alt="The candidate's own page: their application, its four steps and the team's messages."
+        sizes="(min-width: 80rem) 32rem, 100vw"
+      />
+    </div>
+    <Fragment slot="words">
+      <ProofList items={neverGuessing!.proof} />
+      <a href={pages.neverGuessing.path} class={link}>{linkText['never-guessing']}</a>
+    </Fragment>
+  </SellingPoint>
+
+  <SellingPoint point={automate!} layout="reverse">
+    <ProductFrame
+      src={workflow}
+      phoneSrc={workflowPhone}
+      alt="A job's workflow: its stages with their time limits, and the automations that run on them."
+      sizes="(min-width: 80rem) 44rem, 100vw"
+    />
+    <Fragment slot="words">
+      <ProofList items={automate!.proof} />
+      <a href={pages.automateAnything.path} class={link}>{linkText['automate-anything']}</a>
+    </Fragment>
+  </SellingPoint>
+
+  <SellingPoint point={integrationsPoint!} layout="stacked" tone="band">
+    <div class="flex flex-col gap-10">
+      <RuledList items={integrations.map((item) => ({ term: item.name, detail: item.does }))} />
+      <ProductFrame src={integrationsPicture} phoneSrc={integrationsPhone} alt="The Integrations directory, with each integration and whether it is connected." />
+    </div>
+    <Fragment slot="words">
+      <a href={pages.integrations.path} class={link}>{linkText.integrations}</a>
+    </Fragment>
+  </SellingPoint>
+
+  <SellingPoint point={builtYourWay!} layout="split">
+    <ProductFrame
+      src={template}
+      phoneSrc={templatePhone}
+      alt="A hiring template's stages, each with the email, questionnaire or scorecard that goes with it."
+      sizes="(min-width: 80rem) 44rem, 100vw"
+    />
+    <Fragment slot="words">
+      <ProofList items={builtYourWay!.proof} />
+      <a href={pages.builtYourWay.path} class={link}>{linkText['built-your-way']}</a>
+    </Fragment>
+  </SellingPoint>
+
+  <SellingPoint point={careersSite} layout="reverse" tone="band">
+    <ProductFrame
+      src={careers}
+      phoneSrc={careersPhone}
+      alt="A company's branded careers site with its open roles."
+      sizes="(min-width: 80rem) 44rem, 100vw"
+    />
+    <Fragment slot="words">
+      <ProofList items={careersSite.proof} />
+      <a href={pages.careersSite.path} class={link}>{linkText['careers-site']}</a>
+    </Fragment>
+  </SellingPoint>
+
+  <ClosingBand title="Try ScreenHire on your next job." />
+</BaseLayout>

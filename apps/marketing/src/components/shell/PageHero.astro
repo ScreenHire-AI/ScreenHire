@@ -1,0 +1,34 @@
+---
+// The dark band that opens a product page (design system section 22): the page's one h1 at `text-display`, a lead, a
+// call to action and, in the default slot, the one bold thing the page shows. The page passes `headerTone="dark"` to
+// BaseLayout so the header sits on the band. The headline runs the full width, so a long one stays at two or three lines;
+// the lead and the slot sit beside each other under it when there is room.
+import { PUBLIC_APP_URL } from 'astro:env/server';
+import { appLinks } from '../../lib/app-links';
+import { pages } from '../../lib/pages';
+import CtaLink from './CtaLink.astro';
+import DarkBand from './DarkBand.astro';
+
+interface Props {
+  title: string;
+  lead: string;
+}
+
+const { title, lead } = Astro.props;
+const { signUp } = appLinks(PUBLIC_APP_URL, pages.pricing.path);
+const hasSlot = Astro.slots.has('default');
+---
+
+<DarkBand labelledby="hero-title" class="flex flex-col gap-10 md:gap-12">
+  <h1 id="hero-title" class="max-w-5xl font-display text-display text-balance">{title}</h1>
+  <div class="flex flex-wrap items-start gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_24rem] flex-col gap-6">
+      <p class="max-w-measure text-xl text-pretty">{lead}</p>
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <CtaLink href={signUp} size="lg">Start free trial</CtaLink>
+        <a href={pages.pricing.path} class="inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-4 hover:decoration-2">See pricing</a>
+      </div>
+    </div>
+    {hasSlot && <div class="min-w-0 flex-[1_1_32rem]"><slot /></div>}
+  </div>
+</DarkBand>

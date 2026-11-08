@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { automation, hero, includedByTopic, integrations, notPaidExtra, pricingNotes, sellingPoints } from './features';
+import { automation, careersSite, hero, includedByTopic, integrations, notPaidExtra, pricingNotes, sellingPoints } from './features';
 
 // The site's own words. The same rules are in docs/design/marketing-site.md (copy rules) and CLAUDE.md (non-negotiables 1 to 3).
 const bannedWords = ['AI-powered', 'supercharge', 'revolutionize', 'seamless', 'unlock', 'effortless', 'next-generation'];
-const words = JSON.stringify({ sellingPoints, hero, includedByTopic, notPaidExtra, pricingNotes, integrations, automation });
+const words = JSON.stringify({ sellingPoints, careersSite, hero, includedByTopic, notPaidExtra, pricingNotes, integrations, automation });
 
 describe('selling points', () => {
   it("are the owner's five, in order", () => {
@@ -16,7 +16,7 @@ describe('selling points', () => {
       expect(point.pain.length).toBeGreaterThan(0);
       expect(point.promise.length).toBeGreaterThan(0);
       expect(point.proof.length).toBeGreaterThan(0);
-      expect(point.pagePath).toMatch(/^\/[a-z0-9-]+\/(#[a-z-]+)?$/);
+      expect(point.pagePath).toBe(`/product/${point.id}/`);
     }
   });
 
