@@ -34,16 +34,17 @@ public sealed class PasskeyAuthenticator(string relyingPartyId, string origin, b
 
     /// <summary>
     /// The registration ceremony: the browser's <c>credential.toJSON()</c> for the API's creation options. Pass
-    /// <paramref name="originOverride"/> to answer from a different origin.
+    /// <paramref name="originOverride"/> to answer from a different origin, and <paramref name="userVerified"/> false to
+    /// answer as a security key that was only touched, with no PIN or biometric check.
     /// </summary>
-    public string Register(string creationOptionsJson, string? originOverride = null)
+    public string Register(string creationOptionsJson, string? originOverride = null, bool userVerified = true)
     {
         using var options = JsonDocument.Parse(creationOptionsJson);
         var root = options.RootElement;
         userHandle = Base64Url.DecodeFromChars(root.GetProperty("user").GetProperty("id").GetString()!);
 
         var clientData = ClientData("webauthn.create", root.GetProperty("challenge").GetString()!, originOverride ?? origin);
-        var authenticatorData = AuthenticatorData(UserPresent | UserVerified | AttestedCredentialData, attested: true);
+        var authenticatorData = AuthenticatorData((byte)(Flags(userVerified) | AttestedCredentialData), attested: true);
         var attestationObject = Cbor.Map(
             ("fmt", Cbor.Text("none")),
             ("attStmt", Cbor.EmptyMap),
@@ -67,14 +68,15 @@ public sealed class PasskeyAuthenticator(string relyingPartyId, string origin, b
 
     /// <summary>
     /// The sign-in ceremony: the browser's <c>credential.toJSON()</c> for the API's request options. The signature covers
-    /// the authenticator data and the client data hash; <paramref name="corruptSignature"/> flips a byte of it.
+    /// the authenticator data and the client data hash; <paramref name="corruptSignature"/> flips a byte of it, and
+    /// <paramref name="userVerified"/> false leaves the user-verified flag unset.
     /// </summary>
-    public string Assert(string requestOptionsJson, string? originOverride = null, bool corruptSignature = false)
+    public string Assert(string requestOptionsJson, string? originOverride = null, bool corruptSignature = false, bool userVerified = true)
     {
         using var options = JsonDocument.Parse(requestOptionsJson);
         var clientData = ClientData("webauthn.get", options.RootElement.GetProperty("challenge").GetString()!, originOverride ?? origin);
         signCount++;
-        var authenticatorData = AuthenticatorData(UserPresent | UserVerified, attested: false);
+        var authenticatorData = AuthenticatorData(Flags(userVerified), attested: false);
         var signature = key.SignData(
             [.. authenticatorData, .. SHA256.HashData(clientData)], HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence);
         if (corruptSignature)
@@ -100,6 +102,8 @@ public sealed class PasskeyAuthenticator(string relyingPartyId, string origin, b
     }
 
     public void Dispose() => key.Dispose();
+
+    private static byte Flags(bool userVerified) => userVerified ? (byte)(UserPresent | UserVerified) : UserPresent;
 
     private static byte[] ClientData(string type, string challenge, string origin) =>
         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { type, challenge, origin, crossOrigin = false }));

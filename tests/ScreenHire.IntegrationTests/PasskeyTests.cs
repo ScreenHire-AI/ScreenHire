@@ -122,7 +122,8 @@ public sealed class PasskeyTests(AppHostFixture fixture)
         using var accepted = await browser.PostAsync(SignIn, new { credentialJson = answer }, Forwarded(address), cancellationToken);
         accepted.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // The challenge was used up, so the same answer sent again (here, from a browser that never asked) gets nothing.
+        // The challenge lives in the asking browser's cookie, so the same answer sent from a browser that never asked finds
+        // no ceremony and gets nothing.
         using var thief = new ApiSession(fixture);
         using var replayed = await thief.PostAsync(SignIn, new { credentialJson = answer }, Forwarded(NewAddress()), cancellationToken);
         replayed.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -135,6 +136,32 @@ public sealed class PasskeyTests(AppHostFixture fixture)
         using var elsewhere = await thief.PostAsync(
             SignIn, new { credentialJson = authenticator.Assert(askedOptions) }, Forwarded(NewAddress()), cancellationToken);
         elsewhere.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task An_authenticator_that_did_not_verify_the_person_neither_registers_nor_signs_in()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var session = await SignedInAsync(cancellationToken);
+
+        // Registration: a security key that was only touched, with no PIN or biometric check, is refused.
+        using var touchedOnly = NewAuthenticator(session);
+        var registerOptions = await OptionsAsync(session, RegisterOptions, null, cancellationToken);
+        using var registered = await session.PostAsync(
+            Register, new { credentialJson = touchedOnly.Register(registerOptions, userVerified: false), name = "Key" }, cancellationToken);
+        registered.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await ListAsync(session, cancellationToken)).GetProperty("passkeys").GetArrayLength().Should().Be(0);
+
+        // Sign-in: a passkey registered with verification, answering once without it, is refused.
+        using var authenticator = NewAuthenticator(session);
+        await RegisterAsync(session, authenticator, "Laptop", cancellationToken);
+        using var browser = new ApiSession(fixture);
+        var address = NewAddress();
+        var signInOptions = await OptionsAsync(browser, SignInOptions, address, cancellationToken);
+        using var signedIn = await browser.PostAsync(
+            SignIn, new { credentialJson = authenticator.Assert(signInOptions, userVerified: false) }, Forwarded(address), cancellationToken);
+        signedIn.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await browser.CurrentUserAsync(cancellationToken)).Should().BeNull();
     }
 
     [Fact]
@@ -168,7 +195,7 @@ public sealed class PasskeyTests(AppHostFixture fixture)
         var options = await OptionsAsync(attacker, RegisterOptions, null, cancellationToken);
         using var response = await attacker.PostAsync(Register, new { credentialJson = forged.Register(options), name = "Mine" }, cancellationToken);
 
-        response.StatusCode.Should().NotBe(HttpStatusCode.OK, "a credential id is registered once, to one person");
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, "a credential id is registered once, to one person");
         (await ListAsync(attacker, cancellationToken)).GetProperty("passkeys").GetArrayLength().Should().Be(0);
         var kept = (await ListAsync(victim, cancellationToken)).GetProperty("passkeys").EnumerateArray().Should().ContainSingle().Subject;
         kept.GetProperty("name").GetString().Should().Be("Victim's");
@@ -196,6 +223,20 @@ public sealed class PasskeyTests(AppHostFixture fixture)
         await OptionsAsync(session, RegisterOptions, null, cancellationToken);
         using var registration = await session.PostAsync(Register, new { credentialJson = "{" }, cancellationToken);
         registration.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task An_oversized_body_is_refused_before_it_is_read()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var browser = new ApiSession(fixture);
+        var address = NewAddress();
+        await OptionsAsync(browser, SignInOptions, address, cancellationToken);
+
+        using var response = await browser.PostAsync(
+            SignIn, new { credentialJson = new string('a', 100_000) }, Forwarded(address), cancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.RequestEntityTooLarge);
     }
 
     [Fact]
