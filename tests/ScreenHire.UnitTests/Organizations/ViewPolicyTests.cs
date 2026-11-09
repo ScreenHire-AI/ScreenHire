@@ -138,7 +138,7 @@ public sealed partial class ViewPolicyTests
     {
         BuiltInViews.Exists("needs-review").Should().BeTrue();
         BuiltInViews.Exists("made-up").Should().BeFalse();
-        BuiltInViews.Ids.Should().OnlyHaveUniqueItems().And.HaveCount(6);
+        BuiltInViews.Ids.Should().OnlyHaveUniqueItems().And.HaveCount(8);
     }
 
     [Fact]

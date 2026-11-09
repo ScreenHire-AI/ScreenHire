@@ -140,6 +140,44 @@ describe('sending domain page', () => {
     expect(screen.getByText('hiring@example.com')).toBeInTheDocument();
   });
 
+  it('shows a clear all-good state when the domain is verified and every record is found', async () => {
+    const verified = domain({ status: 'Verified', verifiedAt: '2026-11-01T11:00:00+00:00', records: records.map((record) => ({ ...record, state: 'Matches' })) });
+    renderPage({ available: true, sandbox: false, domain: verified });
+
+    expect(await screen.findByText(/Every record is in place./)).toHaveTextContent('ScreenHire checks again every day and tells the Owners if it stops.');
+    // One quiet line: the instructions and the records are out of the way, and Check records is still there.
+    expect(screen.queryByText(/Add these records where your domain is managed/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'DKIM key 1' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Check records' })).toBeInTheDocument();
+    await expectNoAxeViolations();
+
+    // The records are one press away.
+    const show = screen.getByRole('button', { name: 'Show records' });
+    expect(show).toHaveAttribute('aria-expanded', 'false');
+    // The button names the list it opens, and the list is there while hidden.
+    const list = document.getElementById(show.getAttribute('aria-controls') ?? '');
+    expect(list).not.toBeNull();
+    expect(list).not.toBeVisible();
+    await fireEvent.click(show);
+    expect(screen.getByRole('button', { name: 'Hide records' })).toHaveAttribute('aria-expanded', 'true');
+    expect(list).toBeVisible();
+    expect(screen.getAllByText('Found')).toHaveLength(3);
+  });
+
+  it('does not promise the daily check in the sandbox, whose DNS is not looked at on its own', async () => {
+    const verified = domain({ status: 'Verified', verifiedAt: '2026-11-01T11:00:00+00:00', records: records.map((record) => ({ ...record, state: 'Matches' })) });
+    renderPage({ available: true, sandbox: true, domain: verified });
+
+    expect(await screen.findByText(/Every record is in place./)).not.toHaveTextContent('checks again every day');
+  });
+
+  it('keeps the instructions, and no all-good line, while a record is still missing', async () => {
+    renderPage({ available: true, sandbox: false, domain: domain() });
+
+    expect(await screen.findByText(/Add these records where your domain is managed/)).toBeInTheDocument();
+    expect(screen.queryByText(/Every record is in place/)).not.toBeInTheDocument();
+  });
+
   it('shows the email provider\'s reason when the records are in place but it has not confirmed the domain', async () => {
     renderPage({
       available: true,

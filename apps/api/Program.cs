@@ -167,6 +167,7 @@ app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
 app.MapTeamEndpoints();
 app.MapNotificationSettingsEndpoints();
+app.MapNotificationEndpoints();
 app.MapViewEndpoints();
 app.MapHiringTeamEndpoints();
 app.MapRoleEndpoints();

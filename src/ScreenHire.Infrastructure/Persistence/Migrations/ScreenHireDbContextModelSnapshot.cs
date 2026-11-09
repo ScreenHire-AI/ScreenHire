@@ -2178,6 +2178,72 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("job_versions", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Notifications.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DismissedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dismissed_at");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("link");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notifications");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_notifications_user_id");
+
+                    b.HasIndex("OrganizationId", "UserId", "CreatedAt")
+                        .HasDatabaseName("ix_notifications_organization_id_user_id_created_at");
+
+                    b.HasIndex("OrganizationId", "UserId", "Kind", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notifications_organization_id_user_id_kind_key");
+
+                    b.ToTable("notifications", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Organizations.ApiKey", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2898,6 +2964,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("VerificationLostAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verification_lost_at");
 
                     b.Property<DateTimeOffset?>("VerifiedAt")
                         .HasColumnType("timestamp with time zone")
@@ -5401,6 +5471,23 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_job_versions_jobs_organization_id_job_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Notifications.Notification", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notifications_organizations_organization_id");
+
+                    b.HasOne("ScreenHire.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_notifications_users_user_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Organizations.ApiKey", b =>

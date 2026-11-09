@@ -69,7 +69,7 @@ internal sealed class HiringTools(
         [Description("How many applications to return, 1 to 50.")] int? limit = null,
         CancellationToken cancellationToken = default)
     {
-        var applications = await ApplicationReads.ListAsync(user, tenant, db, new(jobId, Search(text), Limit(limit)), cancellationToken);
+        var applications = await ApplicationReads.ListAsync(user, tenant, db, time, new(jobId, Search(text), Limit(limit)), cancellationToken);
         return new([.. applications.Select(a => a.ToMcp())]);
     }
 

@@ -43,6 +43,16 @@ public sealed partial class SendingDomain : ITenantOwned
     /// <summary>What the provider said when it last refused to verify the domain, in its own short words. Null when it did not.</summary>
     public string? ProviderMessage { get; private set; }
 
+    /// <summary>
+    /// When the daily re-check found a verified domain failing twice in a row, and told the Owners. Null while the domain is
+    /// healthy or was never verified. It lives here, not in the notifications, so dismissing or purging those cannot stop the
+    /// check from noticing the recovery (docs/architecture/notifications.md). A passing check clears it.
+    /// </summary>
+    public DateTimeOffset? VerificationLostAt { get; private set; }
+
+    /// <summary>Whether the Owners were told this domain stopped verifying, and the domain has not recovered since.</summary>
+    public bool HasLostVerification => VerificationLostAt is not null;
+
     /// <summary>The address mail comes from once the domain is verified.</summary>
     public string FromAddress => $"{FromLocalPart}@{Domain}";
 
@@ -82,6 +92,23 @@ public sealed partial class SendingDomain : ITenantOwned
             Status = SendingDomainStatus.Pending;
             VerifiedAt = null;
         }
+
+        if (providerConfirmed)
+        {
+            VerificationLostAt = null;
+        }
+    }
+
+    /// <summary>Records that the Owners were told the verified domain stopped verifying. Returns whether it changed.</summary>
+    public bool MarkVerificationLost(DateTimeOffset now)
+    {
+        if (VerificationLostAt is not null)
+        {
+            return false;
+        }
+
+        VerificationLostAt = now;
+        return true;
     }
 
     /// <summary>

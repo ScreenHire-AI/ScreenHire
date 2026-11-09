@@ -17,6 +17,7 @@ using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Privacy;
 using ScreenHire.Domain.Scheduling;
 using ScreenHire.Domain.Slack;
+using ScreenHire.Domain.Notifications;
 using ScreenHire.Domain.Views;
 using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Webhooks;
@@ -162,6 +163,8 @@ public sealed class ScreenHireDbContext
     public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
 
     public DbSet<SavedFilterView> SavedFilterViews => Set<SavedFilterView>();
+
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     public DbSet<ScorecardTemplate> ScorecardTemplates => Set<ScorecardTemplate>();
 
