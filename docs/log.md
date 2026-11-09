@@ -8,7 +8,8 @@ row in an append-only ledger with the provider's own request id, tokens and cost
 with their provider's dashboard ([AI usage](architecture/ai-usage.md)). Owners and Admins see the usage, the call list and a CSV on
 the Verification page. An Owner sets a monthly budget (alerts at 50%, 80% and 100%) and a hard cap that pauses only the AI-based
 checks, a spike is flagged each morning, and the candidate's tab says when the AI checks were paused. The built-in key's margin is
-`ScreenHire:Billing:Ai:Margin` (0.20). The old token budget on the settings is replaced by these two limits.
+`ScreenHire:Billing:Ai:Margin` (0.20). The old token budget on the settings is replaced by these two limits. An organization that
+had its 80% alert this month may get it once more after the deploy, because the old month claim is not carried over.
 
 **A notifications bell, a Jobs overview, a daily email domain check.** The setup steps moved from the top of Jobs into a bell in
 the top bar, next to alerts the server keeps per person ([notifications](architecture/notifications.md)). Jobs shows four

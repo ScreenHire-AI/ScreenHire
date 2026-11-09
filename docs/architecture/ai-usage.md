@@ -119,7 +119,8 @@ rest of Verification cannot change spend controls. The month is the UTC calendar
 ## Who sees it
 
 `ViewAiUsage` (Owners and Admins; an Owner may also put it in a custom role, as with Edit settings) reads usage, the call list and
-the CSV. The settings read, which every member has, leaves out the limits, what was used and the own key's prices for anyone
+the CSV. It needs All jobs, as API keys and webhooks do (`RolePermissions.NeedsAllJobs`): the ledger lists every job's calls, so a
+member on Only jobs they're on is refused, and the settings read leaves usage out for them too. The settings read, which every member has, leaves out the limits, what was used and the own key's prices for anyone
 without it. Usage is never about a candidate and never shows a score.
 
 | Route | Permission |
@@ -128,6 +129,9 @@ without it. Usage is never about a candidate and never shows a score.
 | `GET /v1/organization/ai-usage/calls` | View AI usage: the calls, newest first, paged by the id of the last one (`before`), filtered by dates, key, provider, model, outcome, check and application |
 | `GET /v1/organization/ai-usage/calls/export` | View AI usage: the same calls as a CSV (RFC 4180, a byte order mark, formula-looking cells neutralised), at most 50,000 rows, said in the file when cut |
 | `PUT /v1/organization/ai-usage/limits` | Manage billing: the unit, the budget and the cap |
+
+The call list is newest first by design (it pages by a server cursor), and the by-model table is ordered by cost, so neither has
+sortable headers.
 
 ## Retention
 

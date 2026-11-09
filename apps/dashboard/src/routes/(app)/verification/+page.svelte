@@ -384,7 +384,7 @@
                 <p id="model-source-label" class="text-body font-medium">Which model checks consistency</p>
                 <div role="radiogroup" aria-labelledby="model-source-label" class="grid gap-2 sm:grid-cols-2">
                   <ChoiceCard name="modelSource" value="Included" bind:group={$form.modelSource} onchange={endpointChanged} title="ScreenHire's included model" description="Billed at the provider's price plus a margin." />
-                  <ChoiceCard name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} title="Your own key" description="Anthropic, OpenAI, OpenRouter, Azure OpenAI, Google Gemini or any OpenAI-compatible endpoint." />
+                  <ChoiceCard name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} title="Your own key" description="A key from your own AI provider." />
                 </div>
               </div>
 
@@ -492,23 +492,22 @@
                 </div>
                 <p class="text-muted-foreground">Saving a changed key, provider, address or model tests it first.</p>
 
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-4">
                   <Field.Field data-invalid={$errors.ownKeyInputPrice ? true : undefined}>
                     <Field.Label for="own-input-price">Input price <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
                     <Input id="own-input-price" name="ownKeyInputPrice" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.ownKeyInputPrice} aria-invalid={$errors.ownKeyInputPrice ? 'true' : undefined} />
+                    <Field.Description>US dollars per million tokens.</Field.Description>
                     <Field.Error errors={message($errors.ownKeyInputPrice)} />
                   </Field.Field>
                   <Field.Field data-invalid={$errors.ownKeyOutputPrice ? true : undefined}>
                     <Field.Label for="own-output-price">Output price <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
                     <Input id="own-output-price" name="ownKeyOutputPrice" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.ownKeyOutputPrice} aria-invalid={$errors.ownKeyOutputPrice ? 'true' : undefined} />
+                    <Field.Description>US dollars per million tokens.</Field.Description>
                     <Field.Error errors={message($errors.ownKeyOutputPrice)} />
                   </Field.Field>
                 </div>
-                <p class="text-muted-foreground">Dollars per million tokens, as your provider charges you. With them the usage below shows what each call cost; without them it shows tokens only.</p>
               {:else}
-                <p class="text-muted-foreground">
-                  ScreenHire pays the provider and bills you for what the checks use, at the provider's price plus a margin. Set a monthly budget to be warned, or a cap to pause the AI checks, under Monthly limits below.
-                </p>
+                <p class="text-muted-foreground">ScreenHire pays the provider and bills you for what the checks use, at the provider's price plus a margin.</p>
               {/if}
             </div>
           </Panel>

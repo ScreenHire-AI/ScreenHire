@@ -4,6 +4,7 @@
   import Self from '#lib/components/ai-usage-call-page.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
+  import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
@@ -24,13 +25,13 @@
 {#if calls.isError && !page}
   <tbody>
     <tr>
-      <td colspan={8} class="p-4"><QueryError message={describeError(calls.error, 'Could not load the calls')} onretry={() => calls.refetch()} inset /></td>
+      <td colspan={9} class="p-4"><QueryError message={describeError(calls.error, 'Could not load the calls')} onretry={() => calls.refetch()} inset /></td>
     </tr>
   </tbody>
 {:else if !page}
   <tbody>
     <tr>
-      <td colspan={8} class="p-4">
+      <td colspan={9} class="p-4">
         <div aria-hidden="true" class="flex flex-col gap-2"><Skeleton class="h-10 w-full" /><Skeleton class="h-10 w-full" /></div>
         <p class="sr-only" role="status">Loading the calls…</p>
       </td>
@@ -40,23 +41,21 @@
   <Table.Body>
     {#each page.calls as call (call.id)}
       <Table.Row>
-        <Table.Cell class="whitespace-nowrap tabular-nums"><time datetime={call.occurredAt}>{formatDateTime(call.occurredAt)}</time></Table.Cell>
-        <Table.Cell>{checkLabels[call.check] ?? call.check}</Table.Cell>
-        <Table.Cell>
-          <span class="block">{call.model}</span>
-          <span class="block text-muted-foreground">{call.provider}, {keySourceLabels[call.keySource]}</span>
-        </Table.Cell>
-        <Table.Cell class="font-mono text-caption break-all">{call.providerRequestId ?? 'None sent'}</Table.Cell>
-        <Table.Cell class="text-right tabular-nums">{formatTokens(call.inputTokens)}</Table.Cell>
-        <Table.Cell class="text-right tabular-nums">{formatTokens(call.outputTokens)}</Table.Cell>
-        <Table.Cell class="text-right tabular-nums">{formatCost(call.cost)}</Table.Cell>
+        <Table.Cell class="whitespace-nowrap tabular-nums"><time datetime={call.occurredAt} title={formatDateTime(call.occurredAt)}>{formatDateTime(call.occurredAt)}</time></Table.Cell>
+        <Table.Cell class="whitespace-nowrap">{checkLabels[call.check] ?? call.check}</Table.Cell>
+        <Table.Cell><TruncatedText text={call.model} class="max-w-48" /></Table.Cell>
+        <Table.Cell class="whitespace-nowrap">{keySourceLabels[call.keySource]}</Table.Cell>
+        <Table.Cell>{#if call.providerRequestId}<TruncatedText text={call.providerRequestId} class="max-w-48" />{:else}<span class="sr-only">No request id sent</span>{/if}</Table.Cell>
+        <Table.Cell class="text-right tabular-nums">{formatTokens(call.inputTokens)}{#if call.inputTokens === null}<span class="sr-only">Not reported</span>{/if}</Table.Cell>
+        <Table.Cell class="text-right tabular-nums">{formatTokens(call.outputTokens)}{#if call.outputTokens === null}<span class="sr-only">Not reported</span>{/if}</Table.Cell>
+        <Table.Cell class="text-right tabular-nums">{#if call.cost === null}<span class="sr-only">Unknown cost</span>{:else}{formatCost(call.cost)}{/if}</Table.Cell>
         <Table.Cell>
           <StatusBadge status={call.outcome === 'Ok' ? 'done' : 'needsFixes'} label={outcomeLabels[call.outcome]} quiet={call.outcome === 'Ok'} />
         </Table.Cell>
       </Table.Row>
     {:else}
       {#if !before}
-        <Table.Row><Table.Cell colspan={8} class="text-muted-foreground">No model calls in this range.</Table.Cell></Table.Row>
+        <Table.Row><Table.Cell colspan={9} class="text-muted-foreground">No model calls in this range.</Table.Cell></Table.Row>
       {/if}
     {/each}
   </Table.Body>
@@ -66,7 +65,7 @@
     {:else}
       <tbody>
         <tr>
-          <td colspan={8} class="p-4 text-center"><Button variant="outline" size="lg" onclick={() => (more = true)}>Show more</Button></td>
+          <td colspan={9} class="p-4 text-center"><Button variant="outline" size="lg" onclick={() => (more = true)}>Show more</Button></td>
         </tr>
       </tbody>
     {/if}

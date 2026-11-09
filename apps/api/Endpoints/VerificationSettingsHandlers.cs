@@ -33,7 +33,7 @@ internal static class VerificationSettingsHandlers
         TimeProvider time, CancellationToken cancellationToken)
     {
         var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        var permissions = await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken);
+        var permissions = UsagePermissions(await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken), tenant);
         return TypedResults.Ok(await ToResponseAsync(db, settings, verification.Value, services, slack, time.GetUtcNow(), permissions, cancellationToken));
     }
 
@@ -70,7 +70,7 @@ internal static class VerificationSettingsHandlers
         }
 
         var now = time.GetUtcNow();
-        var permissions = await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken);
+        var permissions = UsagePermissions(await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken), tenant);
         if (settings is null)
         {
             settings = new VerificationSettings { OrganizationId = organizationId };
@@ -94,6 +94,10 @@ internal static class VerificationSettingsHandlers
 
         return TypedResults.Ok(await ToResponseAsync(db, settings, verification.Value, services, slack, now, permissions, cancellationToken));
     }
+
+    // Usage covers every job's calls, so a member on Only jobs they're on does not see it, whatever their role holds (as for keys and webhooks).
+    private static IReadOnlySet<Permission> UsagePermissions(IReadOnlySet<Permission> permissions, ITenantContext tenant) =>
+        tenant.SeesAllJobs ? permissions : new HashSet<Permission>(permissions.Where(p => p != Permission.ViewAiUsage));
 
     public static async Task<Results<Ok<VerificationModelList>, ValidationProblem>> ListModels(
         VerificationModelRequest request, ScreenHireDbContext db, OrganizationModels models, LlmKeys keys, CancellationToken cancellationToken)

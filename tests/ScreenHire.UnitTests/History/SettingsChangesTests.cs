@@ -118,7 +118,7 @@ public sealed class SettingsChangesTests
 
         lines.Should().Equal(
             "switched to your own AI key",
-            "set the AI provider to OpenAI-compatible",
+            "set the AI provider to Other (OpenAI-compatible)",
             "set the AI endpoint to acme.example.com",
             "set the AI model to model-one",
             "saved an API key",

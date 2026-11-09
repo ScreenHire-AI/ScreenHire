@@ -132,7 +132,7 @@ public static class RolePermissions
     /// reach the whole organization's jobs, so a member on Only jobs they're on making one would see past their own
     /// limit.
     /// </summary>
-    public static IReadOnlySet<Permission> NeedsAllJobs { get; } = new HashSet<Permission>([Permission.ManageApiKeys, Permission.ManageWebhooks, Permission.ManageIntegrations]);
+    public static IReadOnlySet<Permission> NeedsAllJobs { get; } = new HashSet<Permission>([Permission.ManageApiKeys, Permission.ManageWebhooks, Permission.ManageIntegrations, Permission.ViewAiUsage]);
 
     private static readonly Permission[] Administration =
     [

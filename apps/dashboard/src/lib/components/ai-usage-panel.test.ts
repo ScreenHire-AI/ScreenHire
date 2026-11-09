@@ -88,12 +88,12 @@ afterEach(() => {
 });
 
 describe('AI usage panel', () => {
-  it('shows the month, the budget as used of the amount with where it stands, and says the cap is the default', async () => {
+  it('shows the month, the budget as used of the amount with where it stands, and marks only the limit the Owner set', async () => {
     renderPanel(false);
 
     expect(await screen.findByText('850,000 tokens of 1,000,000 tokens')).toBeInTheDocument();
     expect(screen.getByText('Close')).toBeInTheDocument();
-    expect(screen.getAllByText("ScreenHire's default").length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Set by you')).toHaveLength(1); // the budget is the Owner's; the cap is ScreenHire's default and says nothing
     expect(screen.getByText(/1 call has no known cost/)).toBeInTheDocument();
     await expectNoAxeViolations();
   });

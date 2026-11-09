@@ -77,10 +77,9 @@
   const message = (list: string[] | undefined) => list?.map((item) => ({ message: item }));
 </script>
 
-<form method="POST" use:enhance novalidate aria-label="Monthly AI limits" class="flex flex-col gap-5">
-  <p class="text-muted-foreground">
-    The budget warns you at 50%, 80% and 100% and stops nothing. The cap pauses the AI-based checks until next month or until you raise it;
-    the rule-based checks keep running, and a paused check is never a mark against a candidate.
+<form method="POST" use:enhance novalidate aria-label="Monthly AI limits" class="flex max-w-form flex-col gap-5">
+  <p class="max-w-measure text-muted-foreground">
+    The budget warns you at 50%, 80% and 100%. The cap pauses the AI checks, never the others, and never marks a candidate.
   </p>
 
   <Field.Field data-invalid={$errors.unit ? true : undefined}>
@@ -106,7 +105,7 @@
   </Field.Field>
 
   <div class="flex flex-wrap items-center gap-3">
-    <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save limits</Button>
+    <Button type="submit" variant="outline" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save limits</Button>
     <p role="status" class="text-body empty:hidden">{saved}</p>
     <FailureText message={$errors._errors?.[0] ?? ''} />
   </div>

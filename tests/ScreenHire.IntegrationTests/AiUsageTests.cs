@@ -341,6 +341,27 @@ public sealed class AiUsageTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Another_organization_reads_none_of_this_ones_usage_over_the_API_whatever_ids_it_passes()
+    {
+        using var ours = await fixture.SignedInWithOrganizationAsync();
+        using var theirs = await fixture.SignedInWithOrganizationAsync();
+        var applicationId = await ApplyWithCheckOnAsync(ours);
+        await using var db = await VerificationSupport.TenantDbAsync(fixture, ours.OrganizationId);
+        var rows = await db.AiUsageCalls.AsNoTracking().OrderByDescending(c => c.Id).ToListAsync(Ct);
+        rows.Should().NotBeEmpty();
+
+        (await theirs.GetAsync($"{Usage}/summary")).Expect(HttpStatusCode.OK).At("totals.calls").GetInt32().Should().Be(0);
+        (await theirs.GetAsync($"{Usage}/calls")).Expect(HttpStatusCode.OK).Count("calls").Should().Be(0);
+        (await theirs.GetAsync($"{Usage}/calls?applicationId={applicationId}")).Expect(HttpStatusCode.OK).Count("calls").Should().Be(0, "their view of our application id is empty, not forbidden");
+        (await theirs.GetAsync($"{Usage}/calls?before={rows[0].Id}&limit=200")).Expect(HttpStatusCode.OK).Count("calls").Should().Be(0, "a cursor taken from our list opens nothing of ours");
+        using var export = await theirs.Session.Client.GetAsync($"{Usage}/calls/export?applicationId={applicationId}", Ct);
+        var csv = (await export.Content.ReadAsStringAsync(Ct)).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+        csv.Should().ContainSingle("only the header row").Which.Should().StartWith("id,occurred_at");
+        (await theirs.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["cap"] = 1 })).Expect(HttpStatusCode.OK);
+        (await ours.GetAsync(Settings)).Expect(HttpStatusCode.OK).At("limits.cap").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null, "their cap is theirs");
+    }
+
+    [Fact]
     public async Task Usage_stays_with_its_organization_even_with_the_query_filters_off_and_the_ledger_cannot_be_edited()
     {
         using var ours = await fixture.SignedInWithOrganizationAsync();
@@ -369,6 +390,9 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         await using var edit = await VerificationSupport.TenantDbAsync(fixture, ours.OrganizationId);
         var update = async () => await edit.Database.ExecuteSqlRawAsync("UPDATE ai_usage_calls SET input_tokens = 1", Ct);
         await update.Should().ThrowAsync<Exception>("a recorded call is never edited");
+        await using var editAlerts = await VerificationSupport.TenantDbAsync(fixture, ours.OrganizationId);
+        var updateAlerts = async () => await editAlerts.Database.ExecuteSqlRawAsync("UPDATE ai_usage_alerts SET key = 'x'", Ct);
+        await updateAlerts.Should().ThrowAsync<Exception>("a claim is made once and kept");
     }
 
     // Applies once with the consistency check on, and waits for every analyzer, so the check and its ledger rows are saved.
