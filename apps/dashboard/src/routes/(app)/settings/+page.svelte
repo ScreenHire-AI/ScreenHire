@@ -41,13 +41,17 @@
     </div>
 
     {#if searching}
-      <p role="status" class="text-body text-muted-foreground">{found.length === 1 ? '1 setting' : `${found.length} settings`}</p>
+      <!-- With nothing found the panel below says so, so the count is there only for screen readers (W7). -->
+      <p role="status" class={['text-body text-muted-foreground', found.length === 0 && 'sr-only']}>
+        {found.length === 1 ? '1 setting' : `${found.length} settings`}
+      </p>
+      <!-- One column of short rows, as wide as the field, so each row's group sits near its name. -->
       {#if found.length > 0}
-        <Panel label="Settings that match" flush>
+        <Panel label="Settings that match" flush class="max-w-form">
           <SettingsRows list={found} withGroup {domainMark} />
         </Panel>
       {:else}
-        <Panel label="Settings that match">
+        <Panel label="Settings that match" class="max-w-form">
           <Empty.Root>
             <Empty.Header>
               <Empty.Description>No setting matches "{query.trim()}".</Empty.Description>

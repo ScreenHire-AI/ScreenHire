@@ -71,6 +71,9 @@
             />
           {:else if crumb.href && !last}
             <a href={crumb.href} class="text-muted-foreground no-underline hover:underline pointer-coarse:-my-3.5 pointer-coarse:py-3.5">{crumb.label}</a>
+          {:else if !last}
+            <!-- A level with no page of its own, such as a settings group: plain text, as quiet as the links around it. -->
+            <TruncatedText text={crumb.label} class="text-muted-foreground" />
           {:else}
             <span aria-current={last ? 'page' : undefined} class="min-w-0">
               <TruncatedText text={crumb.label} class="font-bold text-foreground" />

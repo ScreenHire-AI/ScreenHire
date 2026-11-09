@@ -46,6 +46,14 @@ describe('the Settings home', () => {
     }
   });
 
+  it('makes the whole row the link, so a tap on its line opens the setting too (F4)', () => {
+    renderHome();
+    const link = within(panel('Organization')).getByRole('link', { name: 'General' });
+
+    expect(link.closest('li')).toHaveClass('relative');
+    expect(link).toHaveClass('after:absolute', 'after:inset-0');
+  });
+
   it('adds a line under a name only where the name does not explain itself', () => {
     renderHome();
     const rows = (name: string) => within(panel(name)).getAllByRole('listitem');
@@ -100,6 +108,7 @@ describe('the Settings home', () => {
 
       expect(count()).toHaveTextContent('1 setting');
       expect(count()).toHaveAttribute('role', 'status');
+      expect(count()).not.toHaveClass('sr-only');
       const results = screen.getByRole('region', { name: 'Settings that match' });
       expect(linksIn(results)).toEqual(['Branding']);
       expect(results).toHaveTextContent('Careers site');
@@ -139,6 +148,8 @@ describe('the Settings home', () => {
       await type('zzz');
 
       expect(count()).toHaveTextContent('0 settings');
+      // The empty panel says it on screen, so the count is there for screen readers only (W7).
+      expect(count()).toHaveClass('sr-only');
       expect(screen.getByText('No setting matches "zzz".')).toBeInTheDocument();
       expect(screen.queryByRole('link', { name: 'Team' })).toBeNull();
       await expectNoAxeViolations();

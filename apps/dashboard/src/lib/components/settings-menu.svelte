@@ -31,7 +31,9 @@
   let list = $state<HTMLDivElement>();
   // Below lg the row may hide the current entry past its edge: scroll the row, never the page, to centre it. From lg the
   // row is a column that does not scroll, so this changes nothing there.
+  // Email domain's badge arrives with the shell's query and widens its entry, so the row centres again when it does.
   $effect(() => {
+    void domainMark;
     const entry = list?.querySelector(`a[href="${current}"]`)?.parentElement;
     if (list && entry) list.scrollLeft = entry.offsetLeft - (list.clientWidth - entry.offsetWidth) / 2;
   });

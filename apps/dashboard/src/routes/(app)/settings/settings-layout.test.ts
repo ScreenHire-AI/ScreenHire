@@ -51,6 +51,11 @@ describe('settings layout', () => {
     const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
     expect(within(breadcrumb).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
     expect(within(breadcrumb).getByText('Organization')).toBeInTheDocument();
+    // The group has no page of its own: plain muted text, never a link and never as strong as the page's name.
+    expect(within(breadcrumb).queryByRole('link', { name: 'Organization' })).toBeNull();
+    expect(within(breadcrumb).getByText('Organization')).toHaveClass('text-muted-foreground');
+    expect(within(breadcrumb).getByText('Organization')).not.toHaveClass('font-bold');
+    expect(within(breadcrumb).getByText('Team')).toHaveClass('font-bold');
     expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to jobs' })).toHaveAttribute('href', '/');
     await expectNoAxeViolations();

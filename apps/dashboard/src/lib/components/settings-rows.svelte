@@ -21,9 +21,10 @@
 
 <ul class="flex flex-col divide-y divide-border-subtle">
   {#each list as section (section.href)}
-    <li class="flex min-h-12 flex-col justify-center gap-0.5 px-4.5 py-2.5 max-md:px-4">
+    <!-- The name is the link, and it covers the whole row, so the row is the target (F4), as in ListItem. -->
+    <li class="relative flex min-h-12 flex-col justify-center gap-0.5 px-4.5 py-2.5 hover:bg-muted max-md:px-4">
       <div class="flex min-w-0 items-center gap-2">
-        <a href={section.href} class="py-1 font-semibold text-foreground hover:underline pointer-coarse:py-2.5">{section.label}</a>
+        <a href={section.href} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline">{section.label}</a>
         {#if section.href === '/settings/sending-domain' && domainMark}<StatusBadge {...domainMark} />{/if}
         {#if withGroup}<span class="ml-auto shrink-0 text-caption text-muted-foreground">{section.group}</span>{/if}
       </div>
