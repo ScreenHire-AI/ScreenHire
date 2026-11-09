@@ -1298,9 +1298,6 @@ export const CreateJobResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1367,7 +1364,7 @@ export const CreateJobResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1416,7 +1413,12 @@ export const CreateJobResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.')),
+  "aiUse": zod.object({
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
+  "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1505,9 +1507,6 @@ export const GetJobResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1574,7 +1573,7 @@ export const GetJobResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1623,7 +1622,12 @@ export const GetJobResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.')),
+  "aiUse": zod.object({
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
+  "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1735,9 +1739,6 @@ export const UpdateJobResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1804,7 +1805,7 @@ export const UpdateJobResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -1853,7 +1854,12 @@ export const UpdateJobResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.')),
+  "aiUse": zod.object({
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
+  "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1889,6 +1895,219 @@ export const GetJobHistoryResponse = zod.object({
 }).describe('Everything one save changed in the object: who, when, and a line per change.')),
   "nextBefore": zod.uuid().nullable()
 }).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
+
+
+export const SetJobAiUseParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const SetJobAiUseBody = zod.object({
+  "policy": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')])
+}).describe('Sets a job\'s own AI-use policy, or follows the organization\'s again when `policy` is null. It is a route of its own\nrather than a field of UpdateJobRequest, which replaces the posting and would clear it when left out.')
+
+export const setJobAiUseResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const setJobAiUseResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
+export const setJobAiUseResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const setJobAiUseResponseWorkflowAutomationsItemEnabledDefault = true;
+export const setJobAiUseResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const setJobAiUseResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
+export const setJobAiUseResponseLastUpdatedCreatedDefault = false;
+
+export const SetJobAiUseResponse = zod.object({
+  "id": zod.uuid(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "status": zod.enum(['Draft', 'Open', 'Closed']),
+  "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
+  "department": zod.string().nullable(),
+  "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
+  "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
+  "locations": zod.array(zod.object({
+  "city": zod.string().nullable(),
+  "region": zod.string().nullable(),
+  "country": zod.string().nullable()
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+  "applicantLocationRequirements": zod.array(zod.string()),
+  "location": zod.string(),
+  "salary": zod.union([zod.null(),zod.object({
+  "min": zod.number().nullable(),
+  "max": zod.number().nullable(),
+  "currency": zod.string(),
+  "period": zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])
+}).describe('A pay range. At least one of decimal? JobSalary.Min and decimal? JobSalary.Max is set; string JobSalary.Currency is ISO 4217.')]),
+  "validThrough": zod.iso.datetime({"offset":true}).nullable(),
+  "workflow": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "label": zod.string(),
+  "required": zod.boolean().default(setJobAiUseResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish()
+}).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
+  "questionnaire": zod.object({
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(setJobAiUseResponseWorkflowQuestionnaireQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('The screening questions a candidate answers when applying.'),
+  "automations": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "trigger": zod.object({
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'VerificationAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
+  "stageId": zod.string().nullish(),
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
+}),
+  "conditions": zod.union([zod.null(),zod.object({
+  "match": zod.enum(['All', 'Any']),
+  "rules": zod.array(zod.object({
+  "fact": zod.string(),
+  "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "negate": zod.boolean().default(setJobAiUseResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+  "actions": zod.array(zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
+  "enabled": zod.boolean().default(setJobAiUseResponseWorkflowAutomationsItemEnabledDefault),
+  "allowAutoReject": zod.boolean().default(setJobAiUseResponseWorkflowAutomationsItemAllowAutoRejectDefault)
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(setJobAiUseResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+  "workflowVersion": zod.int(),
+  "template": zod.union([zod.null(),zod.object({
+  "templateId": zod.uuid(),
+  "templateName": zod.string(),
+  "versionId": zod.uuid(),
+  "version": zod.int(),
+  "latestPublishedVersion": zod.int().nullable(),
+  "updateAvailable": zod.boolean()
+}).describe('The template version a job\'s workflow was copied from, and whether a newer one is published.')]),
+  "publishedVersion": zod.int(),
+  "hasUnpublishedChanges": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "postings": zod.array(zod.object({
+  "id": zod.uuid(),
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
+  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
+  "jobVersion": zod.int(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "canUnpublish": zod.boolean(),
+  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
+  "issues": zod.array(zod.string()),
+  "lastError": zod.string().nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
+}).describe('One job on one board: where it stands and what is still uncertain.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(setJobAiUseResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "workflowProblems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.')),
+  "aiUse": zod.object({
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
+  "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
+}).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
 export const PublishJobParams = zod.object({
@@ -1980,9 +2199,6 @@ export const PublishJobResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2049,7 +2265,7 @@ export const PublishJobResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -2098,7 +2314,12 @@ export const PublishJobResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.')),
+  "aiUse": zod.object({
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
+  "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2187,9 +2408,6 @@ export const CloseJobResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2256,7 +2474,7 @@ export const CloseJobResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -2305,7 +2523,12 @@ export const CloseJobResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.')),
+  "aiUse": zod.object({
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
+  "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2436,9 +2659,6 @@ export const UpdateJobWorkflowBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2505,7 +2725,7 @@ export const UpdateJobWorkflowBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "expectedWorkflowVersion": zod.int()
 }).describe('Replaces a job\'s workflow with the recruiter\'s edit of it: the job\'s own copy, tailored. `expectedWorkflowVersion`\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\nthan overwriting their change. A stage that still holds applications cannot be removed.')
 
@@ -2590,9 +2810,6 @@ export const UpdateJobWorkflowResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2659,7 +2876,7 @@ export const UpdateJobWorkflowResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -2708,7 +2925,12 @@ export const UpdateJobWorkflowResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.')),
+  "aiUse": zod.object({
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
+  "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2802,9 +3024,6 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2871,7 +3090,7 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
   "template": zod.union([zod.null(),zod.object({
   "templateId": zod.uuid(),
@@ -2920,7 +3139,12 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.')),
+  "aiUse": zod.object({
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
+  "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -3007,9 +3231,6 @@ export const CreateHiringTemplateBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3076,7 +3297,7 @@ export const CreateHiringTemplateBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -3282,9 +3503,6 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3351,7 +3569,7 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -3425,9 +3643,6 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3494,7 +3709,7 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -3581,9 +3796,6 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3650,7 +3862,7 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -3733,9 +3945,6 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3802,7 +4011,7 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -3876,9 +4085,6 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -3945,7 +4151,7 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -4032,9 +4238,6 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -4101,7 +4304,7 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
   "employmentType": zod.union([zod.null(),zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship'])]).optional(),
   "workplaceType": zod.union([zod.null(),zod.enum(['Onsite', 'Hybrid', 'Remote'])]).optional(),
@@ -7998,9 +8201,6 @@ export const ValidateWorkflowBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -8067,7 +8267,7 @@ export const ValidateWorkflowBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.')
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.')
 }).describe('A workflow to check, as the builder holds it before saving.')
 
 export const ValidateWorkflowResponse = zod.object({
@@ -8136,9 +8336,6 @@ export const SimulateWorkflowBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('The screening questions a candidate answers when applying.'),
-  "verificationPolicy": zod.object({
-  "aiUse": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The template\'s verification settings (ADR-0004). Only the AI-use policy exists so far.'),
   "automations": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -8205,7 +8402,7 @@ export const SimulateWorkflowBody = zod.object({
   "questionIds": zod.array(zod.string())
 }).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
-}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "trigger": zod.object({
   "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'VerificationAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
   "stageId": zod.string().nullish(),

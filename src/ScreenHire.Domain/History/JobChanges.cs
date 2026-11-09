@@ -103,6 +103,13 @@ public static class JobChanges
 
         lines.AddRange(DefinitionChanges.Describe(before.Workflow, after.Workflow));
 
+        if (before.AiUseOverride != after.AiUseOverride)
+        {
+            lines.Add(after.AiUseOverride is { } policy
+                ? ChangeLine.Of("set AI use for this job to ", AiUse(policy))
+                : ChangeLine.Plain("made AI use follow the organization's policy"));
+        }
+
         if (before.Status != after.Status)
         {
             lines.Add(after.Status switch

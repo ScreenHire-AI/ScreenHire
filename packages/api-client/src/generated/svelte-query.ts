@@ -209,6 +209,7 @@ import type {
   SendEmailsRequest,
   SendingDomainDetail,
   SentEmail,
+  SetJobAiUseRequest,
   SetSendingDomainRequest,
   SignInMethods,
   SimulateWorkflowRequest,
@@ -6104,6 +6105,131 @@ export function createGetJobHistory<TData = Awaited<ReturnType<typeof getJobHist
 
 
 
+
+export type setJobAiUseResponse200 = {
+  data: JobDetail
+  status: 200
+}
+
+export type setJobAiUseResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type setJobAiUseResponse401 = {
+  data: void
+  status: 401
+}
+
+export type setJobAiUseResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type setJobAiUseResponse404 = {
+  data: void
+  status: 404
+}
+
+export type setJobAiUseResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type setJobAiUseResponse429 = {
+  data: void
+  status: 429
+}
+
+export type setJobAiUseResponseSuccess = (setJobAiUseResponse200) & {
+  headers: Headers;
+};
+export type setJobAiUseResponseError = (setJobAiUseResponse400 | setJobAiUseResponse401 | setJobAiUseResponse403 | setJobAiUseResponse404 | setJobAiUseResponse409 | setJobAiUseResponse429) & {
+  headers: Headers;
+};
+
+export const getSetJobAiUseUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/ai-use`
+}
+
+export const setJobAiUse = async (jobId: string,
+    setJobAiUseRequest: SetJobAiUseRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<setJobAiUseResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<setJobAiUseResponseSuccess>(getSetJobAiUseUrl(jobId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setJobAiUseRequest)
+  }
+);}
+
+
+
+
+
+export const getSetJobAiUseMutationKey = () => ['setJobAiUse'] as const;
+
+export const getSetJobAiUseMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setJobAiUse>>, TError,SetJobAiUseMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof setJobAiUse>>, TError,SetJobAiUseMutationVariables, TContext> => {
+
+const mutationKey = getSetJobAiUseMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setJobAiUse>>, SetJobAiUseMutationVariables> = (props) => {
+          const {jobId,data} = props ?? {};
+
+          return  setJobAiUse(jobId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetJobAiUseMutationResult = NonNullable<Awaited<ReturnType<typeof setJobAiUse>>>
+    export type SetJobAiUseMutationBody = SetJobAiUseRequest
+    export type SetJobAiUseMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SetJobAiUseMutationVariables = {jobId: string;data: SetJobAiUseRequest}
+
+    export const createSetJobAiUse = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setJobAiUse>>, TError,SetJobAiUseMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof setJobAiUse>>,
+        TError,
+        SetJobAiUseMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSetJobAiUseMutationOptions(options?.()) }), queryClient);
+    }
 
 export type publishJobResponse200 = {
   data: JobDetail

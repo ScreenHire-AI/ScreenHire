@@ -47,6 +47,11 @@ internal static class JobEndpoints
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/{jobId:guid}/ai-use", SetJobAiUse).WithName("SetJobAiUse")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditJobs)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{jobId:guid}/publish", PublishJob).WithName("PublishJob")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
@@ -198,11 +203,6 @@ internal static class JobEndpoints
         {
             job.UseTemplate(template, scorecards);
         }
-        else if (await db.VerificationSettings.AsNoTracking().Select(s => (AiUsePolicy?)s.DefaultAiUse).SingleOrDefaultAsync(cancellationToken) is { } aiUse)
-        {
-            // No template: the organization's default AI-use policy (the Verification page). A template carries its own.
-            job.StartWithAiUse(aiUse);
-        }
 
         // The job starts with its template's default hiring team and the person who creates it (ADR-0015), in the same
         // insert: the creator's id is in the row, so even a member on Only jobs they're on sees the job they just made.
@@ -305,6 +305,45 @@ internal static class JobEndpoints
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
             return TypedResults.Problem("Another job took this slug at the same moment; try again.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
+    }
+
+    // The job's own AI-use policy, or none to follow the organization's. Live at once on an open job, because the apply form
+    // reads it per request. It is not posting content, so it freezes no version and raises no JobPublished.
+    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> SetJobAiUse(
+        Guid jobId,
+        SetJobAiUseRequest request,
+        ScreenHireDbContext db,
+        BoardRegistry boards,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (request.Policy is { } policy && !Enum.IsDefined(policy))
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("policy", "Choose one of the listed options."));
+        }
+
+        var job = await db.Jobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
+        if (job is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (job.Status == JobStatus.Closed)
+        {
+            return TypedResults.Problem("A closed job cannot be changed; create a new job instead.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        job.SetAiUseOverride(request.Policy, time.GetUtcNow());
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ChangedMeanwhile();
         }
 
         return TypedResults.Ok((await LoadDetailAsync(db, boards, job.Id, cancellationToken))!);
@@ -780,6 +819,7 @@ internal static class JobEndpoints
                 Latest = db.JobVersions.Where(v => v.JobId == j.Id).OrderByDescending(v => v.Version).Select(v => v.Snapshot).FirstOrDefault(),
                 Template = db.HiringTemplates.Where(t => t.Id == j.SourceTemplateId).Select(t => new { t.Name, t.LatestPublishedVersion }).FirstOrDefault(),
                 Postings = db.JobPostings.Where(p => p.JobId == j.Id).ToList(),
+                OrganizationAiUse = db.VerificationSettings.Select(s => (AiUsePolicy?)s.DefaultAiUse).FirstOrDefault(),
                 LastChange = db.ChangeRecords
                     .Where(r => r.SubjectKind == ChangeSubjectKind.Job && r.SubjectId == subjectId)
                     .OrderByDescending(r => r.Sequence)
@@ -789,7 +829,7 @@ internal static class JobEndpoints
             .SingleOrDefaultAsync(cancellationToken);
 
         return row?.Job.ToDetail(
-            row.Latest, row.Template?.Name, row.Template?.LatestPublishedVersion, row.Postings.ToStatuses(boards, row.Latest), row.LastChange);
+            row.Latest, row.Template?.Name, row.Template?.LatestPublishedVersion, row.Postings.ToStatuses(boards, row.Latest), row.LastChange, row.OrganizationAiUse);
     }
 
     private static async Task<string> FreeSlugAsync(ScreenHireDbContext db, string slug, CancellationToken cancellationToken)

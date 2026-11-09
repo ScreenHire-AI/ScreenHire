@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createGetOrganization, createListTeamMembers } from '@screenhire/api-client/svelte-query';
-  import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
+  import type { AiUsePolicy, DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
   import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
@@ -11,8 +11,9 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import type { Question } from '@screenhire/api-client';
-  import { aiUseLabels, emailTemplateNames, followUpsOf, isTerminal, questionTypeLabels, summarize } from '#lib/workflow.js';
+  import { emailTemplateNames, followUpsOf, isTerminal, questionTypeLabels, summarize } from '#lib/workflow.js';
   import type { WorkflowTab } from '#lib/workflow-tabs.js';
+  import AiUseRow from './ai-use-row.svelte';
   import { rowClass } from './controls.js';
   import JourneyOverview from './journey-overview.svelte';
   import ProblemsPanel from './problems-panel.svelte';
@@ -30,7 +31,15 @@
     errors,
     tab,
     hrefOf,
-  }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; tab: WorkflowTab; hrefOf: (tab: WorkflowTab) => string } = $props();
+    aiUse,
+  }: {
+    workflow: HiringWorkflow;
+    errors: readonly DefinitionError[];
+    tab: WorkflowTab;
+    hrefOf: (tab: WorkflowTab) => string;
+    /** The AI-use policy in force and where to change it, if the person may. Undefined while it loads. */
+    aiUse?: { policy?: AiUsePolicy; href?: string };
+  } = $props();
   // Names an AssignReviewer action's reviewer.
   const team = createListTeamMembers();
 
@@ -148,19 +157,17 @@
     {#if mode === 'preview'}
       <Panel title="Preview">
         <PreviewFrame>
-          <QuestionnairePreview {questions} sections={workflow.questionnaire.sections} {questionsPerPage} />
+          <QuestionnairePreview {questions} sections={workflow.questionnaire.sections} {questionsPerPage} aiUse={aiUse?.policy} />
         </PreviewFrame>
       </Panel>
     {:else}
-      <Panel title="AI use while applying">
-        <p>{aiUseLabels[workflow.verificationPolicy.aiUse]}</p>
-      </Panel>
       <Panel title="Screening questions" count={questions.length}>
         {#if questions.length === 0}
           <p class="text-muted-foreground">No questions. Every form still asks for a resume.</p>
         {:else}
           {@render questionList(questions)}
         {/if}
+        <div class="mt-4"><AiUseRow policy={aiUse?.policy} href={aiUse?.href} /></div>
       </Panel>
       {#each followUps as followUp (followUp.id)}
         <Panel title={`Follow-up: ${followUp.name || followUp.id}`} count={followUp.questions.length}>

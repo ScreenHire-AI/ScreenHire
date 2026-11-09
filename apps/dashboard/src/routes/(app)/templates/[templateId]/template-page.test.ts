@@ -1,8 +1,8 @@
 // A hiring template's draft: Save draft always works, even with problems, and Publish waits until the workflow is valid.
 import type { CurrentUser, DefinitionError, HiringTemplateDetail, HiringTemplateVersionDetail, HiringWorkflow } from '@screenhire/api-client';
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { apiStub, user } from '../../../../test-support/fixtures.js';
+import { apiStub, user, userAs } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -21,7 +21,6 @@ const workflow: HiringWorkflow = {
     { id: 'rejected', name: 'Not progressing', kind: 'Rejected' },
   ],
   questionnaire: { questions: [] },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   // A step with no tag: the API's validator reports it, but a draft may still be saved.
   automations: [{ id: 'tag-screen', name: 'Tag screened', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'AddTag', tag: '' }] }],
 };
@@ -62,6 +61,7 @@ function renderPage() {
       'GET /v1/templates/t-1/hiring-team': () => Response.json([]),
       'GET /v1/template-usage': () => Response.json({ hiring: [], scorecards: [], emails: [] }),
       'GET /v1/organization/members': () => Response.json([]),
+      'GET /v1/organization/verification-settings': () => Response.json({ defaultAiUse: 'NotAllowed' }),
       'GET /v1/scorecard-templates': () => Response.json([]),
       'GET /v1/email-templates': () => Response.json({ templates: [], sendingEnabled: false, variables: [] }),
       'POST /v1/workflows/validate': () => Response.json({ valid: problems.length === 0, errors: problems }),
@@ -95,6 +95,31 @@ afterEach(() => {
   delete (Element.prototype as Partial<Element>).getAnimations;
   vi.unstubAllGlobals();
   goto.mockClear();
+});
+
+describe('template page, the AI-use question', () => {
+  it('shows the organization policy as a locked row on the Questions tab, with a link to change it for someone who may', async () => {
+    pageState.url = new URL('http://dashboard.test/templates/t-1?tab=questions');
+    renderPage();
+
+    const row = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[data-ai-use-row]');
+      expect(found).toHaveTextContent('Policy: Not allowed.');
+      return found!;
+    });
+    expect(row).toHaveTextContent('AI use. Asked by ScreenHire.');
+    expect(within(row).getByRole('link', { name: 'Change policy' })).toHaveAttribute('href', '/verification');
+    expect(screen.queryByRole('combobox', { name: 'AI use while applying' })).toBeNull();
+  });
+
+  it('leaves the link out for a role that cannot change settings (A3)', async () => {
+    pageState.data.user = userAs('Recruiter');
+    pageState.url = new URL('http://dashboard.test/templates/t-1?tab=questions');
+    renderPage();
+
+    await waitFor(() => expect(document.querySelector('[data-ai-use-row]')).toHaveTextContent('Policy: Not allowed.'));
+    expect(screen.queryByRole('link', { name: 'Change policy' })).toBeNull();
+  });
 });
 
 describe('template page, a draft with problems', () => {

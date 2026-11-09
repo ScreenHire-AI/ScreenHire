@@ -111,7 +111,7 @@ public sealed class SettingsChangesTests
             "saved an API key",
             "turned off documents checks",
             "turned off form use checks",
-            "set the default AI use for new jobs to Not allowed",
+            "set the AI use policy to Not allowed",
             "set the device check to Ask for consent",
             "trusted the domain partner.example.com",
             "stopped trusting the domain old.example.com",

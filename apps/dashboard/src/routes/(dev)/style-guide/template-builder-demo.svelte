@@ -32,7 +32,6 @@
     questionnaire: {
       questions: [{ id: 'licence', type: 'YesNo', label: 'Do you hold a driving licence?', required: true, knockout: { disqualifyingAnswer: false } }],
     },
-    verificationPolicy: { aiUse: 'Allowed' },
     automations: [
       { id: 'thanks', name: 'Say thank you', trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [{ type: 'SendEmail', emailTemplate: 'application-received' }] },
       { id: 'tag-trial', name: 'Tag the trial', trigger: { type: 'StageEntered', stageId: 'trial-shift' }, conditions: null, actions: [{ type: 'AddTag', tag: '' }] },

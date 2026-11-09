@@ -40,6 +40,7 @@
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
   import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
+  import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobStatus } from '#lib/job-status.js';
   import { jobsPath } from '#lib/realtime.js';
@@ -75,6 +76,12 @@
   const baseVersion = $derived(Number(draft.source.split(':').at(-1)));
 
   const readonly = $derived(detail?.status === 'Closed');
+  // The AI-use row: the policy this job asks under. It is changed in the job's own settings (or, for the organization's, in
+  // Verification), so the link is left out for someone who may not (A3).
+  const aiUse = $derived({
+    policy: detail?.aiUse.policy,
+    href: detail && !readonly && can(page.data.user, 'EditJobs') ? `/jobs/${detail.id}/edit#ai-use` : undefined,
+  });
   // The sidebar's own phone test (under md), where the primary action moves to the action bar.
   const sidebar = Sidebar.useSidebar();
   // The workflow is part of the job: its Last updated and History are the job's (T6).
@@ -243,7 +250,7 @@
         {/if}
 
         {#if readonly}
-          <WorkflowSummary workflow={draft.workflow} errors={draft.errors} tab={workflowTab.value} hrefOf={(tab) => workflowTab.href(tab)} />
+          <WorkflowSummary workflow={draft.workflow} errors={draft.errors} tab={workflowTab.value} hrefOf={(tab) => workflowTab.href(tab)} {aiUse} />
         {:else}
           <WorkflowEditor
             bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)}
@@ -251,6 +258,7 @@
             checking={draft.checking}
             bind:tab={workflowTab.value}
             hrefOf={(tab) => workflowTab.href(tab)}
+            {aiUse}
           />
         {/if}
       </div>

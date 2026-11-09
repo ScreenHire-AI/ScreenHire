@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Persistence;
@@ -81,7 +81,6 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         five.Text("definition.workflow.automations.1.trigger.type").Should().Be("VerificationAssessed");
         four.Text("definition.workflow.automations.1.trigger.type").Should().Be("VerificationAssessed");
         four.Text("definition.workflow.automations.1.name").Should().Be("Ask a reviewer to look at integrity findings", "a published version keeps its words");
-        five.At("definition.workflow.verificationPolicy").ValueKind.Should().Be(JsonValueKind.Object);
         five.At("definition.workflow.automations.1.conditions.rules").EnumerateArray().Select(r => r.GetProperty("fact").GetString())
             .Should().OnlyContain(fact => fact!.StartsWith("verification.", StringComparison.Ordinal));
     }
