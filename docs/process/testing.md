@@ -309,7 +309,10 @@ run lists every page to fix.
   dialog's controls count. A step that finds the pointer no longer coarse reloads the page first.
 - `theme-contrast.test.ts` (Vitest) computes what axe cannot read from the tokens, in both themes: the focus ring at 3:1,
   status icons at 3:1, status labels at 4.5:1 and the chart colour at 3:1.
-- Each class also walks the list pages of a new, empty organization (`EmptyOrganizationAsync`), which is where the empty states show.
+- Each class also signs a new person in, checks the onboarding page they land on, sets up an organization there and walks
+  its list pages, which is where the empty states show (`EmptyOrganizationAsync`).
+- The walks share one scene, unlike the rule that each test makes its own organization: they open dialogs and sheets but
+  never submit them, so the scene stays as it was built.
 - Each step also measures every text field's edge against what surrounds it, with the colours the browser drew, and fails
   under 3:1 (`CollectFieldEdgesAsync`, WCAG 1.4.11). `FormEdgesTests` does the same for the careers apply page, in the light
   theme and with the dark tokens switched on by a class, and checks that a faint edge is reported.

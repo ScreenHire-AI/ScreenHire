@@ -215,8 +215,8 @@ brackets.
   workspace and a local receiver); and portal replies, the Billing page and the OAuth consent page by hand.
 - Dark mode and phone widths are proven for the dashboard's routes, their first tab lists and its overlays, on one organization
   with a job, three assessed applicants, one of each template, a role, a key, a webhook endpoint and a task, and on a new
-  empty one (`DashboardThemeTests`, `DashboardPhoneTests`, [testing](process/testing.md)). Not reached: the invitation, OAuth
-  consent and onboarding pages (each needs a token or a state the walk does not make); the workflow map with automations
+  empty one, and on the onboarding page (`DashboardThemeTests`, `DashboardPhoneTests`, [testing](process/testing.md)). Not
+  reached: the invitation, OAuth consent and emailed sign-in link pages (each needs a token the walk does not make); the workflow map with automations
   drawn between its stages (the walk's job has none); the four `/preview/*` pages on their own (branding, email, form and
   scorecard: the frames the editors show them in, which axe reads only as part of their page); the scorecard roster and its side sheet with scorecards in them (the
   walk has none); and tabs nested inside a tab. Axe reads text only, so a focus ring, a status icon and a chart colour are
@@ -224,6 +224,9 @@ brackets.
 - The careers and candidate pages have no dark theme: their dark tokens exist (`--candidate-*` under `.dark`) and
   nothing applies the class.
 - A phone has no keyboard and no way to list the shortcuts, so the walk skips that dialog there.
+- `ui/toggle-group` has the separator's old mismatch: its `data-vertical:` and `group-data-horizontal/toggle-group:`
+  classes never match bits-ui's `data-orientation`, so a joined group (`spacing={0}`: the rating answer, the scorecard's
+  recommendation, a stage's time limit) keeps square outer corners and a double border between items.
 - Large lists are proven at 1440 and 390 px up to 26 of each record, 20 webhook endpoints (the limit) and 210 applications
   on one job (`LargeListsTests`). The 26 saved views are checked in the sidebar at 1440 only; the phone's navigation sheet
   that holds them is not opened. The API's list routes still return every row and the dashboard sorts and filters them in
