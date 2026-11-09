@@ -38,6 +38,12 @@ describe('JobCard', () => {
     expect(firstChip).toBeGreaterThan(summary);
   });
 
+  it('leaves the link named by its whole text, since a name that omits visible text fails WCAG 2.5.3', async () => {
+    const html = await render();
+
+    expect(html).not.toContain('aria-label');
+  });
+
   it('clamps the summary to three lines with CSS, not script', async () => {
     const html = await render();
 

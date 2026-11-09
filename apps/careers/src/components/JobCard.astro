@@ -2,7 +2,8 @@
 // A job on the board: its title, the short summary clamped to three lines, then at most three chips (place, type, pay).
 // The clamp is CSS (`line-clamp-3`), so the page ships no script. The card uses the neutral candidate tokens only:
 // employer colours reach a careers page through the brand stylesheet's CTA, brand-text and header tokens, and the
-// card names none of them. Its title takes the employer's heading font like every careers title.
+// card names none of them. Its title takes the employer's heading font like every careers title. The link's name is
+// its whole text, not the title alone: a name that leaves out visible text fails WCAG 2.5.3 (axe label-content-name-mismatch).
 import JobFacts from './JobFacts.astro';
 
 interface Props {
