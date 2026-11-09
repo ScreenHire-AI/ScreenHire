@@ -6,7 +6,7 @@ tags: [roadmap, planning]
 ---
 # Roadmap
 
-What comes after the MVP, in order. What is already built is in the [MVP status](status.md). Snapshot 2026-11-08;
+What comes after the MVP, in order. What is already built is in the [MVP status](status.md). Snapshot 2026-11-09;
 each item names the doc that designs it. Board workflows carry the detail.
 
 ## Done since the MVP
@@ -37,10 +37,115 @@ each item names the doc that designs it. Board workflows carry the detail.
 | Edit a job posting for one board (roadmap item 12), so a board that refuses a job can be fixed without changing the others ([job distribution](architecture/job-distribution.md)) | "Production polish: page audits, per-board postings, data requests and hosting readiness" | #94 |
 | The owner's review of the fourth build: a stage flow for a workflow's stages, one file upload with drag and drop, interview reminders and new times for a booked interview, webhook endpoint history, OAuth sign-in for the MCP server (ADR-0028), a Candidates switch and settings as three areas, the workflow graph rebuilt, Branding on one screen, Simulate as a guided test, an organization's own AI key and model, and billing (ADR-0029) | "Owner review of the fourth build, and the roadmap's open items" | #99, #100, #102 to #104, #107 to #109, #111 to #114 |
 | Marketing site rebuilt in direction B + C (roadmap item 15): design rules and a shared shell ([design system](design/design-system.md) section 22, ADR-0030), the [messaging](design/marketing-site.md) as five selling points told as pain, promise and proof with sourced numbers, a home page that tells them in order, pricing read from the plan catalogue with every feature on every plan, a product overview and one page per selling point with screenshots captured from the demo data, and compare, hiring-AI laws, blog and 404 on the same shell; then an audit of every page at 390 to 1920 px, a design review, Impeccable's detector and Lighthouse, and fixes | "Marketing site: direction B + C" | #118 to #123, and the audit task |
+| Launch readiness: the November redesign (one Settings home with Verification in the sidebar, a template builder with starting points and a live Test tab, the candidate page with one-word verification states, a notifications bell and a Jobs overview, a scorecards roster), built-in AI (provider presets, a usage ledger, budgets, alerts, a cap and the Verification area), billing (trial reminders, plan-change cost, Stripe Tax, AI use charged at the provider's price plus a margin), proof of what had never been walked (dark mode and phone widths on every dashboard route, large lists, the Slack and webhook states), and four design reviews of the first hour, a recruiter's day, setup and the candidate's phone ([design](design/redesign-2026-11.md)) | "Launch readiness: the November redesign, built-in AI, billing and proving the untested states" | #128 to #149 |
 
 ## Next
 
-Nothing is queued. The owner picks the next workflow from "Later" and "Before real customers" below.
+### The owner's review of the launch-readiness build
+
+Four design reviews walked the build as a new team in its first hour, as a recruiter in a working day, as someone
+setting ScreenHire up, and as a candidate on a phone. Each fixed what was contained (#146 to #149) and left the rest
+for the owner. This is that rest, merged, with duplicates removed and ranked. Nothing in it is built. The owner
+picks the items to build, and they become the next workflow. The rest stay here for a later pick, with "Later" and
+"Before real customers" below.
+
+How to read it:
+
+- **Rank** is within a group, by how much the change helps a small team against its size. Number 1 is the best value.
+- **Size**: S is a few files and a test. M is a client and API change, or a flow, with tests. L is a new flow across
+  several screens. S to M is between the two.
+- **Groups** are the five selling points and the candidate's side. "Built your way" also holds the first-hour items
+  (onboarding, invitations, the trial, the first job), because they fit no other selling point.
+- #147 closed with decisions and no proposals list, so its items here come from the alternatives it named for a
+  choice it kept. Where #148 already built part of a #149 proposal, only the rest is listed.
+- A few items need a legal call first. They say so.
+
+**Best value first, across the groups:** make the setup checklist findable (S), check a job before it goes live (M),
+announce a new application (S to M), say what "Open jobs 1 of 10" counts (S), the interview picker on a phone (M) and
+a country shown as a name (S to M).
+
+#### Real people
+
+1. **Budgets in dollars by default.** The AI budget shows tokens until someone opens the Usage tab, and a token count
+   means little to a small team. Default the budget and cap to a dollar figure priced from the deployment's
+   `DefaultMonthlyTokenBudget`. Size S. (#147)
+2. **Say "Information only" once on the Verification tab.** It appears in the map tile and again in the finding row;
+   the redesign says once, in the tooltip. Size S. (#148)
+3. **Make the audit line the page's last line.** "No automated decision has been made..." sits inside the Form use
+   panel and reads as its footer; design system W10 wants it last on the page. Size S. (#148)
+
+#### Never guessing
+
+1. **Announce a new application.** After the first application the only signal is two Jobs tiles ticking up. #148
+   added a Candidates column to the Jobs table; what is left is a toast or a bell line. A candidate has no actor, so
+   teammate-change toasts skip an application today. Size S to M. (#149)
+2. **Small readability fixes in Reports and Jobs.** The change pill reads "up 10" with no unit outside its tooltip, a
+   zero in a bar row ("Hired 0 0%") sits on its own line away from the bars, and the Jobs home's Published and Last
+   updated headers sit about 10 px off their values. Size S for all three. (#148)
+
+#### Automate anything
+
+1. **Name a stage's meeting.** Interview reminders and the booking page say "interview" for a trial shift. A
+   per-stage meeting name fixes the word. It is a backend change. Size S to M. (#147)
+
+#### Integrations
+
+Nothing was proposed. The reviews ran against the local stand-ins, so real Slack, calendars, SendGrid and a claude.ai
+connector are still untested by hand ([MVP status](status.md#known-gaps)).
+
+#### Built your way, and the first hour
+
+1. **Make the setup checklist findable.** It lives only in the bell, which shows an unlabelled count, and the Jobs
+   empty state never mentions it. Label the badge on a new organization ("Setup 5"), point to it from the empty state,
+   or open the bell once after onboarding. Size S. (#149)
+2. **Check a job before it goes live.** Three of the five built-in templates ship fill-in prompts as the description,
+   so a new Owner can publish "Describe the work, the office and the team." to the public careers page, and some boards
+   refuse an on-site job without a city only after publishing. Warn, not block, when Publish is pressed, with a link
+   to Edit details. Size M. (#149)
+3. **Say what "Open jobs 1 of 10" counts.** The tile does not say 10 is the plan's limit. "1 of 10 on your plan",
+   linking to Billing, if it fits a phone tile. Size S. (#149)
+4. **Tell a new Owner about the trial.** Only Billing, the bell near the end and a "0 of 10" tile say there is one, how
+   long it is and that it needs no card. One line on onboarding and a quiet "Trial ends" line in the sidebar footer for
+   Owners. Size S to M. (#149)
+5. **Orient someone who accepts an invitation.** They land on Jobs with no word on their role or who invited them. A
+   one-time line ("You joined Harbour Lane Studio as Recruiter. Jobs you can see are below."). Size S. (#149)
+6. **Fix the careers page setup step.** It ticks only when someone embeds the page or changes questions per page, so
+   a team that keeps the defaults can only dismiss the whole checklist. Drop the step or merge it into Branding; the
+   count goes from five to four, and the tests and docs that say five change with it. Size S. (#149)
+7. **Check the scorecard's 1 to 5 buttons on a phone.** They looked about 36 px, and design system F4 wants 44 px under
+   `pointer: coarse`. A check first, then a fix if it fails. Size S. (#148)
+8. **Ask for a name at onboarding.** A member with no name shows as a truncated email address in Team, and the Email
+   column repeats it. Ask on the onboarding form, prefilled from the identity provider when it has one. Size S to M. (#149)
+9. **Quieter empty states.** An empty Candidates panel shows the whole toolbar (Stage filter, three zero chips, a Save
+   view that looks disabled), and the Invite sheet stacks six two-line cards. Hide the toolbar until there are rows; one
+   line per role and a single "Only some jobs" switch. Size S to M. (#149)
+10. **Starting points for a cafe.** The Trial shift scorecard is not on the Trade role template's stage, and the
+    template's example line is "Plumber, electrician, driver". Wiring the scorecard in and adding a Hospitality
+    starting point each need a data migration. Size S to M. (#147)
+11. **A guided first job.** The first job spans New job, Edit details and the job page, with a different hint at each.
+    One flow from "pick a starting point" through the role's real details to Publish, on the first job only. It would
+    absorb number 2. Size L. (#149)
+
+#### The candidate's side
+
+1. **The interview picker on a phone.** Five days of about 20 times each make the page about 3000 px tall with Book at
+   the bottom. Open one day at a time, as a list of days that open in place or a day select then its times. Size M. (#146)
+2. **Show a country as a name, not a code.** The careers cards and job page, and the dashboard's Location column, show
+   "US" for a job with no city, against design system W8. Format "Leeds, United Kingdom" where the API builds the
+   location text. Size S to M. (#149)
+3. **Dates in the reader's language.** Pages show "November 9, 2026" beside en-GB prices, and emails write "9 December
+   2026" (T5). Take the browser's language in one helper for pages and emails. Size M. (#146)
+4. **Several reply files in the Drop area.** A reply's files are one native input with no name, size or Remove per file
+   (A12). Let `DropArea` take several. Size S to M. (#146)
+5. **Move the device-check consent to the review step.** Notice, assistive switch and consent put about 1000 px before
+   the first field at 390 px. Moving the consent to where the check runs shortens the page but changes consent timing,
+   so it needs a legal call first, and the EU and EEA matter most. The notice and the assistive switch stay
+   before any collection either way. Size M. (#146)
+6. **Promise a person only where it is true.** The footer no longer says a person reads every application, because an
+   eligibility question can end one with no person involved. A scoped line ("A person reviews anything our checks
+   flag") is true by construction. Needs a legal read of the wording. Size S. (#146)
+7. **Suggest a retention period.** The default is "Keep them", which is a legal call. Suggesting a period to a new
+   organization is the alternative #147 named. Size S, after the legal call. (#147)
 
 ## Later
 

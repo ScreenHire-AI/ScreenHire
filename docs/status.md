@@ -8,14 +8,15 @@ sources:
 ---
 # MVP status
 
-Snapshot 2026-11-08, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
+Snapshot 2026-11-09, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
 workflow (PRs #22 to #33), the "Platform: team, API access and webhooks" workflow (PRs #36 to #38) and the "Team,
 collaboration and communication" workflow (PRs #39 to #42, and the docs restructure in ADR-0012), the "Workflow
 builder" workflow (PRs #44, #45 and the editable graph) and the "Design system v0.3, the review's features, and roles
 with job access" workflow (PRs #47 to #58 and the remaining screens), the "After the owner's review" workflow (PRs #61
 to #74), the "Owner review of the second build" workflow (PRs #80 to #89), the "Production polish" workflow
 (PRs #91 to #98), the "Owner review of the fourth build" workflow (PRs #99 to #114) and the "Marketing site:
-direction B + C" workflow (PRs #118 to #123, and the audit task). The whole product runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
+direction B + C" workflow (PRs #118 to #123, and the audit task) and the "Launch readiness" workflow (PRs #128 to #149:
+the November redesign, built-in AI, billing, proof of the dark and phone states, and four design reviews). The whole product runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
 `pnpm verify` (`tests/ScreenHire.E2E/AcceptanceJourneyTests.cs`) walks it end to end: sign in, a job from a template,
 publish to the careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their
 levels and evidence, a move sends the stage-change email, and closing takes the job down everywhere. Nothing is hosted
@@ -27,7 +28,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 
 | Area | What works | PRs |
 |---|---|---|
-| Sign-in and tenancy | Email links, Google, Microsoft and generic OIDC, onboarding, organizations, Postgres row-level security under an app role | #7 |
+| Sign-in and tenancy | Email links, passkeys, Google, Microsoft and generic OIDC, onboarding, organizations, Postgres row-level security under an app role | #7, #131 |
 | Team | Members with roles, email invitations that expire and work once, role changes and removal with the last Owner protected, a membership log, switching between organizations | #38 |
 | Roles and permissions | The server checks permissions, not role names, on every route; custom roles copied from a built-in or custom role, edited on their own page with History, deleted only when nobody has them; nobody gives more access than their own role has; Owner-only permissions stay with Owners; API keys capped by their creator ([ADR-0014](adr/0014-permissions-and-custom-roles.md)) | the custom roles task |
 | API access | Organization API keys on the hiring API (jobs, applications, candidates, templates, reports): read or read and write, shown once, a per-key rate limit, revocable ([ADR-0011](adr/0011-api-keys-for-integrators.md)); a Verification read scope that only an Owner can give opens an application's verification to the key, with every read in the review log ([ADR-0021](adr/0021-verification-read-scope-for-api-keys.md)) | #37 |
@@ -37,6 +38,9 @@ What comes next, in order, is the [roadmap](roadmap.md).
 | Hiring | Jobs with versions, hiring templates (system and your own), candidates, applications, the pipeline | #9 |
 | Reports | A Reports page for every member, over a date range and chosen jobs: the hiring funnel by stage kind with the share that moved on, median time to hire per job and overall, applications and hires by source; each chart has a table view; job access narrows the numbers; no verification data ([Reports](architecture/reports.md)) | the reports task |
 | Workflows | Automations with guardrails (no verification-driven rejection), simulate and validate, transactional email, signed webhooks | #10 |
+| Notifications | A bell in the top bar with alerts the server keeps per person (one row each, live, with a retention); the setup steps live there; Jobs shows four numbers (new this week, not screened, interviews this week, open jobs); the worker looks each sending domain up again every day and tells the Owners when a verified one stops working ([notifications](architecture/notifications.md)) | #137 |
+| Built-in AI | An organization's own model is one of six presets (Anthropic, OpenAI, OpenRouter, Azure OpenAI, Google Gemini, Other); every model call is a row in an append-only ledger with the provider's request id, tokens and cost; an Owner sets a monthly budget (alerts at 50%, 80% and 100%) and a hard cap that pauses only the AI-based checks, and a spike is flagged each morning. Verification is an area of seven tabs (Overview, Activity log, Usage, Checks, Policy, AI model, Notifications) ([AI usage](architecture/ai-usage.md), [verification engine](architecture/verification-engine.md)) | #142, #144 |
+| Template builder | A hiring template has an Overview, stage cards, starting points and a Test tab that tries each stage with steps of its own on sample applications; a new automation starts as "ask the team to review", valid under every trigger ([workflow engine](architecture/workflow-engine.md#4-builder-ux-dashboard)) | #135, #147 |
 | Webhook subscriptions | Organization endpoints for six events, a secret per endpoint (shown once, rotatable), signed deliveries with retries and backoff, a delivery log, replay, automatic disabling, and a history of who changed an endpoint (never its secret) | #36 |
 | Collaboration | Notes on an application and on a stage move, tags with a tag filter, My tasks for the tasks automations and people make (Mine, For the team and Everyone's, each row a link to where the task is done; a to-do or a rejection review is ticked in the candidate's Needs you with Undo for 10 seconds, and a review ("Give your scorecard") or a requested scorecard is done when the scorecard is submitted, in a sheet that opens on the Scorecards tab and offers the next task), a real reviewer in AssignReviewer, a Run button for manual automations, a notification tray, and teammates' changes as toasts that each person picks in a Teammate changes sheet | #40, the remaining screens, roadmap item 10 |
 | Scorecards | A scorecard library (built-ins and your own, with history) whose questions take answer kinds, a stage picking one and each job keeping its copy, a required recommendation; submitting one raises the "reviewer decision" trigger. The Scorecards tab is a sortable roster that opens each scorecard in a side sheet, and a reviewer with their own still to give sees who submitted and when, never what they said. Fill in takes a reached stage's scorecard or any library scorecard, and Ask for one gives a teammate who sees the job a Scorecard task, done when they submit it. Rating questions make the candidate's one-to-five-star rating, shown after a reviewer gives their own and never read by an automation ([workflow engine](architecture/workflow-engine.md#8-the-engine-v1), ADR-0013) | #41, the scorecards v0.3 task, the scorecard requests task |
@@ -213,6 +217,12 @@ brackets.
 - Only automated tests and fakes have exercised these so far: real Stripe, SendGrid, calendars, Azure and a claude.ai
   connector, and real Slack and real webhook receivers (the Slack and webhook states are proven against the sandbox
   workspace and a local receiver); and portal replies, the Billing page and the OAuth consent page by hand.
+- The four design reviews walked the first hour, a recruiter's day, setup and the candidate's phone by hand, in one browser
+  pane, on the demo data and on a new empty organization. With one signed-in person at a time, these were not walked by hand:
+  accepting an invitation as a second user, live updates between two signed-in members, and an application arriving
+  live on an open dashboard (it was confirmed on Jobs only). The interview times a recruiter offers and every keyboard
+  shortcut were not exercised either. The follow-up questionnaire, the saved-candidate pages and the embed widget were
+  read from source on the candidate's side and rest on their own end-to-end classes.
 - Dark mode and phone widths are proven for the dashboard's routes, their first tab lists and its overlays, on one organization
   with a job, three assessed applicants, one of each template, a role, a key, a webhook endpoint and a task, and on a new
   empty one, and on the onboarding page (`DashboardThemeTests`, `DashboardPhoneTests`, [testing](process/testing.md)). Not
@@ -222,7 +232,11 @@ brackets.
   walk has none); and tabs nested inside a tab. Axe reads text only, so a focus ring, a status icon and a chart colour are
   proven from the tokens in both themes (`theme-contrast.test.ts`), not on the page.
 - The careers and candidate pages have no dark theme: their dark tokens exist (`--candidate-*` under `.dark`) and
-  nothing applies the class.
+  nothing applies the class. `CandidatePhoneTests` walks them at 390 px with a touch screen (axe, sideways scroll, clipped
+  text, 44 px targets, field edges), once more with a dark system theme and at 1440 px, so a visitor with a dark
+  preference gets a readable page, not a dark one. It covers the board, a job, the privacy page, the two request pages,
+  every kind of dead link and each step of the apply form. The candidate's own page, an interview picker and a booked
+  interview are not in that walk (they need a signed link), and the interview picker is about 3000 px tall on a phone.
 - A phone has no keyboard and no way to list the shortcuts, so the walk skips that dialog there.
 - `ui/toggle-group` has the separator's old mismatch: its `data-vertical:` and `group-data-horizontal/toggle-group:`
   classes never match bits-ui's `data-orientation`, so a joined group (`spacing={0}`: the rating answer, the scorecard's
@@ -234,5 +248,10 @@ brackets.
   in view and a phone lists 50 at a time; the delivery log of an endpoint (it says it shows the latest 50) and the done tasks are limited by the API.
 - When a Slack post fails in a way a retry cannot fix and the retries run out, the message goes to the dead-letter table
   and the Slack page says nothing about it ([slack](architecture/slack.md)).
+- `WebhookStatesTests.An_endpoint_that_times_out_fails_gives_up_is_turned_off_and_a_rotated_secret_each_say_so_with_a_way_forward`
+  failed in CI three times on branches that changed no webhook code, all in the [flake history](process/testing.md#flake-history)
+  (the last two on the recruiter's-day and setup reviews, #148 and #147). It passed again each time with no change, and its
+  cause is not proven. If it fails a fourth time, read the worker's delivery attempts in the `e2e-results` artifact before
+  changing the wait.
 - With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
   startup (verification-engine.md §10.9). In the browser pane, `/preview` waits for a verification chip before it checks anything live.
