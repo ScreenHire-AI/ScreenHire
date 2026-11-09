@@ -47,4 +47,7 @@ public static class SystemTemplates
     public static readonly Guid HighVolume = new("0199e8a0-0000-7000-8000-000000000005");
 
     public static readonly Guid HighVolumeVersion1 = new("0199e8a0-0000-7000-8000-000000000501");
+
+    /// <summary>Every system template, the ones each organization sees beside its own.</summary>
+    public static IReadOnlyList<Guid> All { get; } = [SoftwareEngineer, HourlyRole, OfficeRole, TradeRole, HighVolume];
 }
