@@ -22,6 +22,8 @@ sources:
   - resource: apps/api/Contracts/AiUsageContracts.cs
   - resource: apps/dashboard/src/lib/components/ai-usage-panel.svelte
   - resource: apps/dashboard/src/lib/components/ai-usage-limits-form.svelte
+  - resource: apps/dashboard/src/lib/components/ai-usage-call-page.svelte
+  - resource: apps/dashboard/src/lib/ai-usage.ts
 ---
 
 # AI usage, budgets and the cap

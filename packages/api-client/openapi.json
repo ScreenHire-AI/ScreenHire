@@ -18159,7 +18159,8 @@
           "InformationOnly",
           "NothingFound",
           "NotChecked",
-          "TurnedOff"
+          "TurnedOff",
+          "Paused"
         ],
         "description": "The one word a group of checks has on the Verification tab."
       },

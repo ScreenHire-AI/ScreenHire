@@ -249,7 +249,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   suggested next step (a callout in the level's colour with the summary under it when the level needs a look, one quiet
   line otherwise) and Dismiss, then AI help as information (its badge, the job's policy as a pill, and for Some and
   Strong signs its summary and next step), then a map of the six groups, each tile with one state: `Found` (counts toward
-  the level), `InformationOnly` (AI help and context that never counts), `NothingFound`, `NotChecked` or `TurnedOff`. Below
+  the level), `InformationOnly` (AI help and context that never counts), `NothingFound`, `NotChecked`, `TurnedOff` or `Paused` (the AI check paused at the organization's cap, with nothing else found; [ai-usage.md](ai-usage.md)). Below
   it is a panel for each group that has findings, each finding expanding to its evidence drawn by kind (§10.1) and
   counter-evidence. The API computes the states (`checkGroups` on the verification view, from the signals, the
   analyzers' run notes and the application's source) and each signal's `group` (from its source analyzer through

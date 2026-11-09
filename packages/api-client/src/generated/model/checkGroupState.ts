@@ -17,4 +17,5 @@ export const CheckGroupState = {
   NothingFound: 'NothingFound',
   NotChecked: 'NotChecked',
   TurnedOff: 'TurnedOff',
+  Paused: 'Paused',
 } as const;

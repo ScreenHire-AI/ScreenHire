@@ -5683,7 +5683,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "checkGroups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
   "found": zod.int(),
   "notes": zod.int(),
   "checked": zod.string(),
@@ -5958,7 +5958,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "checkGroups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
   "found": zod.int(),
   "notes": zod.int(),
   "checked": zod.string(),
@@ -6205,7 +6205,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "checkGroups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
   "found": zod.int(),
   "notes": zod.int(),
   "checked": zod.string(),
@@ -6447,7 +6447,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "checkGroups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
   "found": zod.int(),
   "notes": zod.int(),
   "checked": zod.string(),
@@ -6692,7 +6692,7 @@ export const AddVerificationNoteResponse = zod.object({
   "checkGroups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
   "found": zod.int(),
   "notes": zod.int(),
   "checked": zod.string(),
