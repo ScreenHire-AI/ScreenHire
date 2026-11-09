@@ -153,6 +153,10 @@ import type {
   OrganizationRetention,
   OrganizationSendingDomain,
   OrganizationVerificationSettings,
+  PasskeyList,
+  PasskeyOptions,
+  PasskeySignInRequest,
+  PasskeySummary,
   PendingInvitation,
   PostingCustomization,
   PostingPreview,
@@ -185,6 +189,7 @@ import type {
   PublicTalentPoolStatus,
   PublishJobRequest,
   ReceivedEmail,
+  RegisterPasskeyRequest,
   RemoveApplicationTagParams,
   RemoveFromTalentPoolRequest,
   RequestScorecardRequest,
@@ -1898,6 +1903,565 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getSignOutMutationOptions(options?.()) }), queryClient);
+    }
+
+export type makePasskeySignInOptionsResponse200 = {
+  data: PasskeyOptions
+  status: 200
+}
+
+export type makePasskeySignInOptionsResponseSuccess = (makePasskeySignInOptionsResponse200) & {
+  headers: Headers;
+};
+;
+
+export const getMakePasskeySignInOptionsUrl = () => {
+
+
+
+
+  return `/v1/auth/passkeys/sign-in/options`
+}
+
+export const makePasskeySignInOptions = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<makePasskeySignInOptionsResponseSuccess> => {
+
+  return apiQueryFetch<makePasskeySignInOptionsResponseSuccess>(getMakePasskeySignInOptionsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMakePasskeySignInOptionsMutationKey = () => ['makePasskeySignInOptions'] as const;
+
+export const getMakePasskeySignInOptionsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof makePasskeySignInOptions>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof makePasskeySignInOptions>>, TError,void, TContext> => {
+
+const mutationKey = getMakePasskeySignInOptionsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof makePasskeySignInOptions>>, void> = () => {
+
+
+          return  makePasskeySignInOptions(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MakePasskeySignInOptionsMutationResult = NonNullable<Awaited<ReturnType<typeof makePasskeySignInOptions>>>
+
+    export type MakePasskeySignInOptionsMutationError = ErrorType<unknown>
+
+
+    export const createMakePasskeySignInOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof makePasskeySignInOptions>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof makePasskeySignInOptions>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getMakePasskeySignInOptionsMutationOptions(options?.()) }), queryClient);
+    }
+
+export type signInWithPasskeyResponse204 = {
+  data: void
+  status: 204
+}
+
+export type signInWithPasskeyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type signInWithPasskeyResponseSuccess = (signInWithPasskeyResponse204) & {
+  headers: Headers;
+};
+export type signInWithPasskeyResponseError = (signInWithPasskeyResponse400) & {
+  headers: Headers;
+};
+
+export const getSignInWithPasskeyUrl = () => {
+
+
+
+
+  return `/v1/auth/passkeys/sign-in`
+}
+
+export const signInWithPasskey = async (passkeySignInRequest: PasskeySignInRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<signInWithPasskeyResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<signInWithPasskeyResponseSuccess>(getSignInWithPasskeyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(passkeySignInRequest)
+  }
+);}
+
+
+
+
+
+export const getSignInWithPasskeyMutationKey = () => ['signInWithPasskey'] as const;
+
+export const getSignInWithPasskeyMutationOptions = <TError = ErrorType<HttpValidationProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof signInWithPasskey>>, TError,SignInWithPasskeyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof signInWithPasskey>>, TError,SignInWithPasskeyMutationVariables, TContext> => {
+
+const mutationKey = getSignInWithPasskeyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof signInWithPasskey>>, SignInWithPasskeyMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  signInWithPasskey(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SignInWithPasskeyMutationResult = NonNullable<Awaited<ReturnType<typeof signInWithPasskey>>>
+    export type SignInWithPasskeyMutationBody = PasskeySignInRequest
+    export type SignInWithPasskeyMutationError = ErrorType<HttpValidationProblemDetails>
+    export type SignInWithPasskeyMutationVariables = {data: PasskeySignInRequest}
+
+    export const createSignInWithPasskey = <TError = ErrorType<HttpValidationProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof signInWithPasskey>>, TError,SignInWithPasskeyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof signInWithPasskey>>,
+        TError,
+        SignInWithPasskeyMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSignInWithPasskeyMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listPasskeysResponse200 = {
+  data: PasskeyList
+  status: 200
+}
+
+export type listPasskeysResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listPasskeysResponseSuccess = (listPasskeysResponse200) & {
+  headers: Headers;
+};
+export type listPasskeysResponseError = (listPasskeysResponse401) & {
+  headers: Headers;
+};
+
+export const getListPasskeysUrl = () => {
+
+
+
+
+  return `/v1/auth/passkeys`
+}
+
+export const listPasskeys = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listPasskeysResponseSuccess> => {
+
+  return apiQueryFetch<listPasskeysResponseSuccess>(getListPasskeysUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPasskeysQueryKey = () => {
+    return [
+    'v1','auth','passkeys'
+    ] as const;
+    }
+
+
+export const getListPasskeysQueryOptions = <TData = Awaited<ReturnType<typeof listPasskeys>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listPasskeys>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPasskeysQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPasskeys>>> = ({ signal }) => listPasskeys({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listPasskeys>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListPasskeysQueryResult = NonNullable<Awaited<ReturnType<typeof listPasskeys>>>
+export type ListPasskeysQueryError = ErrorType<void>
+
+
+
+export function createListPasskeys<TData = Awaited<ReturnType<typeof listPasskeys>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listPasskeys>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListPasskeysQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type makePasskeyRegistrationOptionsResponse200 = {
+  data: PasskeyOptions
+  status: 200
+}
+
+export type makePasskeyRegistrationOptionsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type makePasskeyRegistrationOptionsResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type makePasskeyRegistrationOptionsResponseSuccess = (makePasskeyRegistrationOptionsResponse200) & {
+  headers: Headers;
+};
+export type makePasskeyRegistrationOptionsResponseError = (makePasskeyRegistrationOptionsResponse401 | makePasskeyRegistrationOptionsResponse409) & {
+  headers: Headers;
+};
+
+export const getMakePasskeyRegistrationOptionsUrl = () => {
+
+
+
+
+  return `/v1/auth/passkeys/register/options`
+}
+
+export const makePasskeyRegistrationOptions = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<makePasskeyRegistrationOptionsResponseSuccess> => {
+
+  return apiQueryFetch<makePasskeyRegistrationOptionsResponseSuccess>(getMakePasskeyRegistrationOptionsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMakePasskeyRegistrationOptionsMutationKey = () => ['makePasskeyRegistrationOptions'] as const;
+
+export const getMakePasskeyRegistrationOptionsMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof makePasskeyRegistrationOptions>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof makePasskeyRegistrationOptions>>, TError,void, TContext> => {
+
+const mutationKey = getMakePasskeyRegistrationOptionsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof makePasskeyRegistrationOptions>>, void> = () => {
+
+
+          return  makePasskeyRegistrationOptions(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MakePasskeyRegistrationOptionsMutationResult = NonNullable<Awaited<ReturnType<typeof makePasskeyRegistrationOptions>>>
+
+    export type MakePasskeyRegistrationOptionsMutationError = ErrorType<void | ProblemDetails>
+
+
+    export const createMakePasskeyRegistrationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof makePasskeyRegistrationOptions>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof makePasskeyRegistrationOptions>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getMakePasskeyRegistrationOptionsMutationOptions(options?.()) }), queryClient);
+    }
+
+export type registerPasskeyResponse200 = {
+  data: PasskeySummary
+  status: 200
+}
+
+export type registerPasskeyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type registerPasskeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type registerPasskeyResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type registerPasskeyResponseSuccess = (registerPasskeyResponse200) & {
+  headers: Headers;
+};
+export type registerPasskeyResponseError = (registerPasskeyResponse400 | registerPasskeyResponse401 | registerPasskeyResponse409) & {
+  headers: Headers;
+};
+
+export const getRegisterPasskeyUrl = () => {
+
+
+
+
+  return `/v1/auth/passkeys/register`
+}
+
+export const registerPasskey = async (registerPasskeyRequest: RegisterPasskeyRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<registerPasskeyResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<registerPasskeyResponseSuccess>(getRegisterPasskeyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(registerPasskeyRequest)
+  }
+);}
+
+
+
+
+
+export const getRegisterPasskeyMutationKey = () => ['registerPasskey'] as const;
+
+export const getRegisterPasskeyMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof registerPasskey>>, TError,RegisterPasskeyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof registerPasskey>>, TError,RegisterPasskeyMutationVariables, TContext> => {
+
+const mutationKey = getRegisterPasskeyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerPasskey>>, RegisterPasskeyMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  registerPasskey(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterPasskeyMutationResult = NonNullable<Awaited<ReturnType<typeof registerPasskey>>>
+    export type RegisterPasskeyMutationBody = RegisterPasskeyRequest
+    export type RegisterPasskeyMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type RegisterPasskeyMutationVariables = {data: RegisterPasskeyRequest}
+
+    export const createRegisterPasskey = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof registerPasskey>>, TError,RegisterPasskeyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof registerPasskey>>,
+        TError,
+        RegisterPasskeyMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRegisterPasskeyMutationOptions(options?.()) }), queryClient);
+    }
+
+export type removePasskeyResponse204 = {
+  data: void
+  status: 204
+}
+
+export type removePasskeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type removePasskeyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type removePasskeyResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type removePasskeyResponseSuccess = (removePasskeyResponse204) & {
+  headers: Headers;
+};
+export type removePasskeyResponseError = (removePasskeyResponse401 | removePasskeyResponse404 | removePasskeyResponse409) & {
+  headers: Headers;
+};
+
+export const getRemovePasskeyUrl = (passkeyId: string,) => {
+
+
+
+
+  return `/v1/auth/passkeys/${passkeyId}`
+}
+
+export const removePasskey = async (passkeyId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<removePasskeyResponseSuccess> => {
+
+  return apiQueryFetch<removePasskeyResponseSuccess>(getRemovePasskeyUrl(passkeyId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemovePasskeyMutationKey = () => ['removePasskey'] as const;
+
+export const getRemovePasskeyMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removePasskey>>, TError,RemovePasskeyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof removePasskey>>, TError,RemovePasskeyMutationVariables, TContext> => {
+
+const mutationKey = getRemovePasskeyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removePasskey>>, RemovePasskeyMutationVariables> = (props) => {
+          const {passkeyId} = props ?? {};
+
+          return  removePasskey(passkeyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemovePasskeyMutationResult = NonNullable<Awaited<ReturnType<typeof removePasskey>>>
+
+    export type RemovePasskeyMutationError = ErrorType<void | ProblemDetails>
+    export type RemovePasskeyMutationVariables = {passkeyId: string}
+
+    export const createRemovePasskey = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removePasskey>>, TError,RemovePasskeyMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof removePasskey>>,
+        TError,
+        RemovePasskeyMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRemovePasskeyMutationOptions(options?.()) }), queryClient);
     }
 
 export type getPublicOrganizationResponse200 = {

@@ -32,7 +32,9 @@ namespace ScreenHire.Infrastructure.Persistence;
 /// <see cref="Tenant"/>. Job access (ADR-0015) narrows the same two layers: the named filter <see cref="JobScopeFilter"/>
 /// on jobs and everything under them, and the restrictive <c>job_scope</c> policies of migration <c>AddJobAccess</c>.
 /// </summary>
-public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, Guid>, IDataProtectionKeyContext
+public sealed class ScreenHireDbContext
+    : IdentityUserContext<ApplicationUser, Guid, IdentityUserClaim<Guid>, IdentityUserLogin<Guid>, IdentityUserToken<Guid>, ApplicationUserPasskey>,
+        IDataProtectionKeyContext
 {
     /// <summary>The name of the query filter that scopes tenant-owned rows to <see cref="ITenantContext.OrganizationId"/>.</summary>
     public const string TenantFilter = "Tenant";
@@ -246,6 +248,17 @@ public sealed class ScreenHireDbContext : IdentityUserContext<ApplicationUser, G
         builder.Entity<IdentityUserClaim<Guid>>().ToTable("user_claims");
         builder.Entity<IdentityUserLogin<Guid>>().ToTable("user_logins");
         builder.Entity<IdentityUserToken<Guid>>().ToTable("user_tokens");
+        // Mirrors what Identity maps for schema version 3 (see ADR-0008 for why the version itself is not set); compare it
+        // with IdentityUserContext when Identity is upgraded.
+        builder.Entity<ApplicationUserPasskey>(passkey =>
+        {
+            passkey.ToTable("user_passkeys");
+            passkey.HasKey(p => p.CredentialId);
+            passkey.Property(p => p.CredentialId).HasMaxLength(1024); // the WebAuthn limit
+            passkey.OwnsOne(p => p.Data).ToJson();
+            passkey.HasOne<ApplicationUser>().WithMany().HasForeignKey(p => p.UserId).IsRequired().OnDelete(DeleteBehavior.Cascade);
+            passkey.HasIndex(p => p.UserId);
+        });
 
         builder.ApplyConfigurationsFromAssembly(typeof(ScreenHireDbContext).Assembly);
 

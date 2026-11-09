@@ -658,6 +658,227 @@
         }
       }
     },
+    "/v1/auth/passkeys/sign-in/options": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "MakePasskeySignInOptions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptions"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/passkeys/sign-in": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "SignInWithPasskey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeySignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/passkeys": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "ListPasskeys",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/auth/passkeys/register/options": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "MakePasskeyRegistrationOptions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptions"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/auth/passkeys/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "RegisterPasskey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPasskeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeySummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/auth/passkeys/{passkeyId}": {
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "RemovePasskey",
+        "parameters": [
+          {
+            "name": "passkeyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/public/organizations/{organizationSlug}": {
       "get": {
         "tags": [
@@ -20881,6 +21102,79 @@
         },
         "description": "The active seconds on one page of the apply form (`details`, `page-2`, `review`)."
       },
+      "PasskeyList": {
+        "required": [
+          "passkeys",
+          "limit"
+        ],
+        "type": "object",
+        "properties": {
+          "passkeys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasskeySummary"
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The signed-in person's passkeys, newest first, and how many they may keep."
+      },
+      "PasskeyOptions": {
+        "required": [
+          "optionsJson"
+        ],
+        "type": "object",
+        "properties": {
+          "optionsJson": {
+            "type": "string"
+          }
+        },
+        "description": "The WebAuthn options the browser passes to `navigator.credentials.create` or `get`, as the JSON text the\nW3C `PublicKeyCredential*OptionsJSON` shape defines. The browser parses it with\n`PublicKeyCredential.parseCreationOptionsFromJSON` or `parseRequestOptionsFromJSON`."
+      },
+      "PasskeySignInRequest": {
+        "required": [
+          "credentialJson"
+        ],
+        "type": "object",
+        "properties": {
+          "credentialJson": {
+            "type": "string"
+          }
+        },
+        "description": "The browser's answer to a sign-in ceremony: `credential.toJSON()` as text."
+      },
+      "PasskeySummary": {
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "lastUsedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One of the signed-in person's passkeys. `id` is the credential id, base64url."
+      },
       "PendingInvitation": {
         "required": [
           "id",
@@ -22823,6 +23117,24 @@
           "StrongYes"
         ],
         "description": "A reviewer's overall recommendation for the stage. Automations test it as `reviewer.recommendation`."
+      },
+      "RegisterPasskeyRequest": {
+        "required": [
+          "credentialJson"
+        ],
+        "type": "object",
+        "properties": {
+          "credentialJson": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The browser's answer to a registration ceremony, and the name to give the passkey (a device, as the person typed it)."
       },
       "RemoveFromTalentPoolRequest": {
         "type": "object",

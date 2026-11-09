@@ -282,6 +282,54 @@ export const SwitchOrganizationResponse = zod.object({
 export const SignOutResponse = zod.void()
 
 
+export const MakePasskeySignInOptionsResponse = zod.object({
+  "optionsJson": zod.string()
+}).describe('The WebAuthn options the browser passes to `navigator.credentials.create` or `get`, as the JSON text the\nW3C `PublicKeyCredential*OptionsJSON` shape defines. The browser parses it with\n`PublicKeyCredential.parseCreationOptionsFromJSON` or `parseRequestOptionsFromJSON`.')
+
+
+export const SignInWithPasskeyBody = zod.object({
+  "credentialJson": zod.string()
+}).describe('The browser\'s answer to a sign-in ceremony: `credential.toJSON()` as text.')
+
+export const SignInWithPasskeyResponse = zod.void()
+
+
+export const ListPasskeysResponse = zod.object({
+  "passkeys": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One of the signed-in person\'s passkeys. `id` is the credential id, base64url.')),
+  "limit": zod.int()
+}).describe('The signed-in person\'s passkeys, newest first, and how many they may keep.')
+
+
+export const MakePasskeyRegistrationOptionsResponse = zod.object({
+  "optionsJson": zod.string()
+}).describe('The WebAuthn options the browser passes to `navigator.credentials.create` or `get`, as the JSON text the\nW3C `PublicKeyCredential*OptionsJSON` shape defines. The browser parses it with\n`PublicKeyCredential.parseCreationOptionsFromJSON` or `parseRequestOptionsFromJSON`.')
+
+
+export const RegisterPasskeyBody = zod.object({
+  "credentialJson": zod.string(),
+  "name": zod.string().nullish()
+}).describe('The browser\'s answer to a registration ceremony, and the name to give the passkey (a device, as the person typed it).')
+
+export const RegisterPasskeyResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One of the signed-in person\'s passkeys. `id` is the credential id, base64url.')
+
+
+export const RemovePasskeyParams = zod.object({
+  "passkeyId": zod.string()
+})
+
+export const RemovePasskeyResponse = zod.void()
+
+
 export const GetPublicOrganizationParams = zod.object({
   "organizationSlug": zod.string()
 })

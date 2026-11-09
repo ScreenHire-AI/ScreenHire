@@ -166,6 +166,7 @@
       >
         Turn single-key shortcuts {preferences.shortcutsEnabled ? 'off' : 'on'}
       </Command.Item>
+      <Command.Item value="Passkeys" onSelect={() => run(() => goto('/account/passkeys'))}>Manage passkeys</Command.Item>
       <Command.Item value="Sign out" onSelect={() => run(signOutAndRedirect)}>Sign out</Command.Item>
     </Command.Group>
   </Command.List>
