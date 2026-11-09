@@ -21,7 +21,7 @@
   import ScorecardName from './scorecard-name.svelte';
   import TestDrive from './test-drive.svelte';
   import StageFlow from './stage-flow.svelte';
-  import WorkflowGraph from './workflow-graph.svelte';
+  import AutomationsPanel from './automations-panel.svelte';
 
   // A workflow that cannot be edited here (a ScreenHire template, a published version, a closed job's), read as content
   // (design system section 7, read-only view): the same views as the builder, as panes of the page's `Tabs.Root`, with
@@ -124,9 +124,7 @@
 
 <Tabs.Content value="automations">
   <!-- Mounted only while shown, as in the builder: the graph measures its nodes when it mounts. -->
-  <Panel title="Stages and automations" flush>
-    {#if tab === 'automations'}<WorkflowGraph {workflow} {errors} />{/if}
-  </Panel>
+  {#if tab === 'automations'}<AutomationsPanel {workflow} {errors} />{/if}
 </Tabs.Content>
 
 {#snippet questionList(list: readonly Question[])}

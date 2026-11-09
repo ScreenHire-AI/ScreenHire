@@ -19,7 +19,6 @@
     followUpsOf,
     hasTimeLimit,
     interviewFieldLabels,
-    maxInterviewWindowDays,
     newAction,
     newRule,
     operatorLabels,
@@ -32,12 +31,13 @@
     triggerNeedsStage,
     triggerTypes,
   } from '#lib/workflow.js';
+  import { changeTrigger } from '#lib/automation-sentence.js';
   import { sendableTemplates } from '#lib/email.js';
-  import { durationLabel, durations, maxInterviewers, timeZoneOptions, toggleInterviewer } from '#lib/schedule-interview.js';
   import { membersWith } from '#lib/team.js';
   import { getUndo } from '#lib/undo-context.js';
   import { checkboxClass, insetClass, kickerClass, labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
+  import InterviewFields from './interview-fields.svelte';
 
   // One automation: trigger, conditions, actions (workflow-engine.md §2). Every part shows the API validator's messages
   // for its own path, so a guardrail refusal appears on the action it is about. Automations follow each other in the
@@ -68,7 +68,7 @@
   // A reviewer decision fires on the scorecards of one stage, or of any stage when it names none; a passed time limit,
   // likewise, on one stage's limit or any stage's.
   const timed = $derived(automation.trigger.type === 'SlaBreached');
-  const optionalStages = $derived(timed ? workflow.stages.filter(hasTimeLimit) : workflow.stages.filter((stage) => stage.scorecard));
+  const optionalStages = $derived(timed ? workflow.stages.filter(hasTimeLimit) : workflow.stages.filter((stage) => stage.scorecard ?? stage.scorecardTemplateId));
   const factOf = (fact: string) => facts.find((option) => option.fact === fact);
   const rejects = $derived(automation.actions.some((action) => action.type === 'Reject'));
   // A completed questionnaire fires on one follow-up, or any; SendQuestionnaire names one. Without follow-ups, the action
@@ -77,17 +77,7 @@
   const offeredActions = (current: ActionType) =>
     actionsFor(automation.trigger.type, current).filter((type) => type !== 'SendQuestionnaire' || followUps.length > 0 || type === current);
   function setTrigger(type: TriggerType) {
-    const current = automation.trigger.stageId;
-    // A passed time limit keeps the automation's stage when that stage has a limit, so it stays in its lane.
-    const keepsStage = type === 'SlaBreached' && workflow.stages.some((stage) => stage.id === current && hasTimeLimit(stage));
-    const stageId = triggerNeedsStage(type) ? (current ?? workflow.stages[0]?.id ?? '') : keepsStage ? current : undefined;
-    const questionnaireId = triggerMayHaveQuestionnaire(type) ? followUps[0]?.id : undefined;
-    automation.trigger = {
-      type,
-      ...(stageId !== undefined && { stageId }),
-      ...(type === 'TimeElapsed' && { afterHours: automation.trigger.afterHours ?? 48 }),
-      ...(questionnaireId !== undefined && { questionnaireId }),
-    };
+    automation = changeTrigger(automation, workflow, type);
   }
 
   function addRule() {
@@ -327,7 +317,6 @@
         {@const field = actionField[action.type]}
         {@const actionPath = `${path}.actions[${actionIndex}]`}
         {@const interviewPaths = Object.keys(interviewFieldLabels).map((name) => `${actionPath}.${name}`)}
-        {@const at = (name: keyof typeof interviewFieldLabels) => errorsAt(errors, `${actionPath}.${name}`)}
         <!-- The four interview fields show their messages under themselves (F6), so the action's own list holds the rest. -->
         {@const actionErrors = errorsUnder(errors, actionPath).filter((error) => !interviewPaths.includes(error.path)).map((error) => error.message)}
         <div class={insetClass} onfocusout={(event) => leaveStep(event, actionIndex)}>
@@ -407,101 +396,7 @@
             </div>
           </div>
           {#if action.type === 'ScheduleInterview'}
-            {@const chosen = action.interviewerUserIds ?? []}
-            {@const people = team.data?.data ?? []}
-            {@const gone = chosen.filter((id) => !people.some((member) => member.userId === id))}
-            {@const zoneId = action.interviewTimeZone ?? ''}
-            {@const zones = timeZoneOptions(zoneId)}
-            <div class="mt-3 flex flex-col gap-3">
-              <fieldset
-                class="flex min-w-0 flex-col gap-1"
-                aria-describedby={describedBy(`${uid}-action-${actionIndex}-interviewers-hint`, at('interviewerUserIds').length > 0 && `${uid}-action-${actionIndex}-interviewers-errors`)}
-              >
-                <legend class={labelClass}>{interviewFieldLabels.interviewerUserIds}</legend>
-                {#each people as member (member.userId)}
-                  <label class="flex min-w-0 items-center gap-2 py-0.5 pointer-coarse:min-h-11">
-                    <input
-                      type="checkbox"
-                      class={checkboxClass}
-                      checked={chosen.includes(member.userId)}
-                      disabled={!chosen.includes(member.userId) && chosen.length >= maxInterviewers}
-                      onchange={(event) => (action.interviewerUserIds = toggleInterviewer(chosen, member.userId, event.currentTarget.checked))}
-                    />
-                    <span class="min-w-0 break-words">{member.displayName}</span>
-                  </label>
-                {/each}
-                <!-- Someone who left the team stays ticked until the person unticks them, so the form shows what is saved. -->
-                {#each gone as userId (userId)}
-                  <label class="flex min-w-0 items-center gap-2 py-0.5 pointer-coarse:min-h-11">
-                    <input
-                      type="checkbox"
-                      class={checkboxClass}
-                      checked
-                      onchange={(event) => (action.interviewerUserIds = toggleInterviewer(chosen, userId, event.currentTarget.checked))}
-                    />
-                    <span class="min-w-0 break-words text-muted-foreground">{team.isSuccess ? 'No longer on the team' : 'Loading the team…'}</span>
-                  </label>
-                {/each}
-                {#if people.length === 0 && gone.length === 0}
-                  <p class="text-muted-foreground">{team.isPending ? 'Loading the team…' : 'No teammates to choose from.'}</p>
-                {/if}
-                <p id={`${uid}-action-${actionIndex}-interviewers-hint`} class="text-muted-foreground">
-                  The first person you choose sends the invitation. Everyone needs a connected calendar when it runs.
-                </p>
-                <FieldErrors id={`${uid}-action-${actionIndex}-interviewers-errors`} messages={at('interviewerUserIds')} />
-              </fieldset>
-              <div class="grid items-start gap-2 @xl:grid-cols-3">
-                <div class="flex min-w-0 flex-col gap-1">
-                <label class={labelClass}>
-                  {interviewFieldLabels.interviewMinutes}
-                  <select
-                    class={selectClass}
-                    aria-invalid={at('interviewMinutes').length > 0 || undefined}
-                    aria-describedby={describedBy(at('interviewMinutes').length > 0 && `${uid}-action-${actionIndex}-minutes-errors`)}
-                    bind:value={action.interviewMinutes}
-                  >
-                    {#each durations as minutes (minutes)}<option value={minutes}>{durationLabel(minutes)}</option>{/each}
-                    {#if action.interviewMinutes && !(durations as readonly number[]).includes(action.interviewMinutes)}
-                      <option value={action.interviewMinutes}>{action.interviewMinutes} minutes</option>
-                    {/if}
-                  </select>
-                </label>
-                <FieldErrors id={`${uid}-action-${actionIndex}-minutes-errors`} messages={at('interviewMinutes')} />
-                </div>
-                <div class="flex min-w-0 flex-col gap-1">
-                <label class={labelClass}>
-                  {interviewFieldLabels.interviewWindowDays}
-                  <Input
-                    type="number"
-                    min={1}
-                    max={maxInterviewWindowDays}
-                    aria-invalid={at('interviewWindowDays').length > 0 || undefined}
-                    aria-describedby={describedBy(at('interviewWindowDays').length > 0 && `${uid}-action-${actionIndex}-days-errors`)}
-                    bind:value={action.interviewWindowDays}
-                  />
-                </label>
-                <FieldErrors id={`${uid}-action-${actionIndex}-days-errors`} messages={at('interviewWindowDays')} />
-                </div>
-                <div class="flex min-w-0 flex-col gap-1">
-                <label class={labelClass}>
-                  {interviewFieldLabels.interviewTimeZone}
-                  <select
-                    class={selectClass}
-                    aria-invalid={at('interviewTimeZone').length > 0 || undefined}
-                    aria-describedby={describedBy(at('interviewTimeZone').length > 0 && `${uid}-action-${actionIndex}-zone-errors`)}
-                    bind:value={action.interviewTimeZone}
-                  >
-                    {#each zones as zone (zone.value)}<option value={zone.value}>{zone.label}</option>{/each}
-                    {#if zoneId && !zones.some((zone) => zone.value === zoneId)}<option value={zoneId}>{zoneId}</option>{/if}
-                  </select>
-                </label>
-                <FieldErrors id={`${uid}-action-${actionIndex}-zone-errors`} messages={at('interviewTimeZone')} />
-                </div>
-              </div>
-              <p class="text-muted-foreground">
-                The window opens when the automation runs.
-              </p>
-            </div>
+            <InterviewFields bind:action={automation.actions[actionIndex]!} {actionPath} {errors} />
           {/if}
           <!-- What no field of its own holds: the action as a whole. -->
           <FieldErrors id={`${uid}-action-${actionIndex}-errors`} messages={actionErrors} />

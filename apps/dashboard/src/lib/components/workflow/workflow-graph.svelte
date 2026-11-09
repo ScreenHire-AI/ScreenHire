@@ -2,13 +2,12 @@
   import type { DefinitionError, EvaluationOutcome, HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { Background, Panel, SvelteFlow, type Edge } from '@xyflow/svelte';
-  import { tick, untrack } from 'svelte';
+  import { untrack } from 'svelte';
   import '@xyflow/svelte/dist/style.css';
   import { Button } from '#lib/components/ui/button/index.js';
-  import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { emailTemplateNames } from '#lib/workflow.js';
-  import { VIEW_INSET, canConnect, focusGraphNode, pathOf, testedPath, toGraph, type StepNode } from '#lib/workflow-graph.js';
+  import { VIEW_INSET, canConnect, pathOf, testedPath, toGraph, type StepNode } from '#lib/workflow-graph.js';
   import GraphControls from './graph-controls.svelte';
   import GraphFit from './graph-fit.svelte';
   import GraphKeys from './graph-keys.svelte';
@@ -23,8 +22,8 @@
   // automation would go adds one. Hovering or focusing a node lights its path; `tested` lights the path a test took.
   // Every node is a tab stop, and the arrow keys move between nodes (GraphKeys). Nothing needs dragging: the wheel or
   // trackpad pans (panOnScroll), the controls zoom and fit, and a link drawn from a "move to a stage" action to a stage
-  // is only a shortcut for the action's Stage field (WCAG 2.5.7). On a phone the graph is for reading; editing stays in
-  // the Pipeline view. It fills a flush panel.
+  // is only a shortcut for the action's Stage field (WCAG 2.5.7). A phone does not draw the graph: its tab is the List
+  // view, which edits through the same sheets. It fills a flush panel.
   let {
     workflow,
     errors,
@@ -46,8 +45,7 @@
   // The organization's template names, for "Send the ... email".
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
-  const phone = new IsMobile();
-  const editing = $derived(phone.current ? undefined : actions);
+  const editing = $derived(actions);
   const empty = $derived(workflow.automations.length === 0);
   const graph = $derived(toGraph(workflow, { templateNames, errors, editable: Boolean(editing) }));
   // It starts at the top left at full size until GraphFit has the pane's size to fit the workflow to.
@@ -104,20 +102,9 @@
 
   const nodeOf = (target: EventTarget | null) => (target instanceof HTMLElement ? target.closest<HTMLElement>('.svelte-flow__node')?.dataset.id : undefined);
 
-  // Crossing the phone's width swaps every node's button for its box, or back, which takes the focused control away. The
-  // focus stays on that node rather than falling to the page.
-  async function onfocusout(event: FocusEvent) {
-    focused = null;
-    const id = nodeOf(event.target);
-    if (!id || event.relatedTarget || !root) return;
-    await tick();
-    if (!(event.target as Element).isConnected && document.activeElement === document.body) focusGraphNode(root, id);
-  }
+  const onfocusout = () => (focused = null);
 </script>
 
-{#if actions && phone.current}
-  <p class="border-b border-border-subtle px-4 py-2.5 text-muted-foreground">On a phone the graph is for reading. Edit in Pipeline.</p>
-{/if}
 {#if tested && tested.size > 0 && onclear}
   <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle px-4 py-2">
     <p>Showing the path of your last test.</p>

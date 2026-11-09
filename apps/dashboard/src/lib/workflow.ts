@@ -287,11 +287,14 @@ const operatorsByType: Record<FactType, ConditionOperator[]> = {
 
 export const operatorsFor = (type: FactType): ConditionOperator[] => operatorsByType[type];
 
-/** The verification engine's level names (verification-engine.md); levels compare by equality only. */
+/**
+ * The verification engine's level names (verification-engine.md), in the one-word states the dashboard uses (redesign
+ * 2026-11, approved rule 1): Clear, Review, Verify. The stored values do not change. Levels compare by equality only.
+ */
 export const authenticityLevels = [
-  { value: 'NoConcerns', label: 'No concerns' },
-  { value: 'ReviewSuggested', label: 'Review suggested' },
-  { value: 'VerificationRecommended', label: 'Verification suggested' },
+  { value: 'NoConcerns', label: 'Clear' },
+  { value: 'ReviewSuggested', label: 'Review' },
+  { value: 'VerificationRecommended', label: 'Verify' },
 ];
 
 export const aiAssistanceLevels = [
@@ -351,7 +354,7 @@ export function factsFor(workflow: HiringWorkflow, trigger?: TriggerType): FactO
     { fact: 'application.tags', label: 'Tags', type: 'TextList', signal: false },
     { fact: 'application.source', label: 'Source', type: 'Text', signal: false, values: sources },
     { fact: 'application.hoursInStage', label: 'Hours in stage', type: 'Number', signal: false },
-    { fact: 'verification.authenticity', label: 'Verification: authenticity', type: 'Level', signal: true, values: authenticityLevels },
+    { fact: 'verification.authenticity', label: 'Verification', type: 'Level', signal: true, values: authenticityLevels },
     { fact: 'verification.aiAssistance', label: 'Verification: AI assistance', type: 'Level', signal: true, values: aiAssistanceLevels },
     ...(trigger === 'ReviewerDecision'
       ? [
