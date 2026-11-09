@@ -162,7 +162,7 @@ public sealed record ViewDefinition
 public static class BuiltInViews
 {
     public static IReadOnlyList<string> Ids { get; } =
-        ["needs-review", "verification-recommended", "overdue", "new-today", "not-screened", "interviewing"];
+        ["needs-review", "verification-recommended", "overdue", "new-today", "not-screened", "interviewing", "new-this-week", "interviews-this-week"];
 
     public static bool Exists(string id) => Ids.Contains(id);
 }

@@ -26,6 +26,8 @@ export interface Shell {
   live(): ConnectionStatus;
   /** Which optional features this installation has (Slack today); a feature not heard from yet is missing, and counts as off. */
   features(): SettingsFeatures;
+  /** The signed-in person, for the parts of the top bar that depend on what they may do (the notification bell's setup steps). */
+  user(): CurrentUser | null | undefined;
   /** The status the Settings home and menu show beside Email domain while something is left to do; missing when verified or until heard. */
   sendingDomainMark(): SendingDomainMark | undefined;
 }

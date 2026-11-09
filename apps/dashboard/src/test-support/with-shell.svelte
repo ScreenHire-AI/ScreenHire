@@ -26,6 +26,7 @@
     openNotifications: () => {},
     openCalendar: () => openCalendar(),
     live: () => 'connected',
+    user: () => undefined,
     features: () => features,
     sendingDomainMark: () => sendingDomainMark,
   });

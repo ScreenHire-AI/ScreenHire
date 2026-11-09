@@ -57,6 +57,21 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
         return times;
     }
 
+    /// <summary>
+    /// Makes every waiting scheduled message whose body contains <paramref name="bodyContains"/> due now, in this store's schema,
+    /// and returns how many it moved. The host then delivers the message it scheduled, unchanged, as it would at the due time.
+    /// <see cref="ScheduledMessages.ReleaseAsync"/> does this for the running worker's schema.
+    /// </summary>
+    public async Task<int> ReleaseScheduledAsync(string bodyContains, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            $"update {schema}.wolverine_incoming_envelopes set execution_time = now() where status = 'Scheduled' and {BodyMatches}",
+            connection);
+        command.Parameters.AddWithValue("needle", bodyContains);
+        return await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     /// <summary>Handled messages of one type. Only meaningful in a private schema, where every message is the test's own.</summary>
     public async Task<long> CountHandledOfTypeAsync(string messageTypeContains, CancellationToken cancellationToken)
     {

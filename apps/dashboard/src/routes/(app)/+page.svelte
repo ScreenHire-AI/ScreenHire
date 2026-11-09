@@ -5,6 +5,7 @@
   import type { JobStatus, JobSummary } from '@screenhire/api-client';
   import { createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import {
     createColumnHelper,
@@ -24,12 +25,12 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import PlanProblemNotice from '#lib/components/plan-problem-notice.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import JobsOverview from '#lib/components/jobs-overview.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
-  import SetupChecklist from '#lib/components/setup-checklist.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -61,7 +62,21 @@
   const mayEdit = $derived(can(page.data.user, 'EditJobs'));
   const all = $derived(jobs.data?.data ?? []);
   const statuses: JobStatus[] = ['Open', 'Draft', 'Closed'];
-  let statusFilter = $state<JobStatus | null>(null);
+  // The status filter starts from `?status=` and follows it, so an Overview tile (Open jobs) can open the list filtered. A
+  // choice here writes the address back, so the same tile works again afterwards.
+  const statusFromUrl = () => statuses.find((status) => status === page.url.searchParams.get('status')) ?? null;
+  let statusFilter = $state<JobStatus | null>(statusFromUrl());
+  $effect(() => {
+    statusFilter = statusFromUrl();
+  });
+  // Not a navigation: the filter stays on this page, and the address only records it.
+  function chooseStatus(status: JobStatus | null) {
+    statusFilter = status;
+    const url = new URL(page.url.href);
+    if (status) url.searchParams.set('status', status);
+    else url.searchParams.delete('status');
+    void goto(url, { replace: true, reset: false });
+  }
   let search = $state('');
   const countOf = (status: JobStatus) => all.filter((job) => job.status === status).length;
   const shown = $derived.by(() => {
@@ -163,7 +178,7 @@
   }
 
   function clearFilters() {
-    statusFilter = null;
+    chooseStatus(null);
     search = '';
   }
 </script>
@@ -185,7 +200,7 @@
 
   <!-- The content container (S6): the list template's one table panel. -->
   <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
-    <SetupChecklist user={page.data.user} />
+    <JobsOverview jobs={jobs.isError ? null : jobs.data?.data} user={page.data.user} />
     {#if refused}<PlanProblemNotice problem={refused} />{/if}
     <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
       {#snippet tools()}
@@ -198,9 +213,9 @@
         <div class="min-w-0 flex-1 overflow-x-auto">
           <div role="group" aria-label="Status" class="flex w-max gap-1">
             <!-- All's count is the header's (W4). -->
-            <Toggle size="lg" bind:pressed={() => statusFilter === null, () => (statusFilter = null)}>All</Toggle>
+            <Toggle size="lg" bind:pressed={() => statusFilter === null, () => chooseStatus(null)}>All</Toggle>
             {#each statuses as status (status)}
-              <Toggle size="lg" bind:pressed={() => statusFilter === status, () => (statusFilter = status)}>
+              <Toggle size="lg" bind:pressed={() => statusFilter === status, () => chooseStatus(status)}>
                 {jobStatus[status].label}
                 {#if jobs.isSuccess}<Badge variant="count">{countOf(status)}</Badge>{/if}
               </Toggle>

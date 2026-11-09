@@ -178,6 +178,7 @@
     },
     openCalendar: () => (calendarOpen = true),
     live: () => live.connection.status,
+    user: () => data.user,
     // Missing until the answer is in, and for anyone who may not ask: the Settings home marks the domain only while something is left to do.
     sendingDomainMark: () => (sendingDomain.data ? sendingDomainMark(sendingDomain.data.data.domain) : undefined),
     features: () => ({

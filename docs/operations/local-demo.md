@@ -252,7 +252,7 @@ Settings is one item at the bottom of the sidebar. It opens the Settings home, w
 **Organization**, **Careers site** and **Integrations** (Slack where it is set up, MCP server, Webhooks, API keys), with a search box
 ("logo" finds Branding), and a press on a name opens its page, which has its group's menu. Email domain says "Not set up" or
 "Records to add" there until it is verified. **Verification** is its own item above the views. A new
-organization's Owner or Admin also sees **Set up your organization** on Jobs, with a tick for each step the data shows done.
+organization's Owner or Admin also finds **Finish setting up** in the bell at the right of the top bar, with each step still to do linking to its page. The sandbox email domain is not re-checked on its own, so the daily domain check shows only in the tests.
 
 - **Team and Roles.** **Invite** opens a sheet that starts at Viewer and says what each role is for, Interviewer
   included; **Compare roles** opens the table of what each role can do. **Roles** lists the four built-in roles and

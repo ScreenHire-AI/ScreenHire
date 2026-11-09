@@ -2,6 +2,12 @@
 
 ## 2026-11-09
 
+**A notifications bell, a Jobs overview, a daily email domain check.** The setup steps moved from the top of Jobs into a bell in
+the top bar, next to alerts the server keeps per person ([notifications](architecture/notifications.md)). Jobs shows four
+numbers in their place: new this week, not screened, interviews this week and open jobs. The worker looks each sending domain up
+again every day and tells the Owners when a verified one stops working. Any handler can notify a person with
+`RaiseNotification`.
+
 **The audit of the marketing rebuild, fixed.** The workflow picture on the product pages no longer shows a rejection
 review, and the picture of a flagged check, which showed check details the site never states, is gone from the repository.
 The never-guessing pain has its number (Monster's 2024 poll: 59% of US workers rarely hear back after applying, 33%

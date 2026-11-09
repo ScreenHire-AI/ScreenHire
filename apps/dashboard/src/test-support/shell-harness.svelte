@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { CurrentUser, SavedViewSummary } from '@screenhire/api-client';
+  import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
   import { MediaQuery } from 'svelte/reactivity';
   import AppSidebar from '#lib/components/app-sidebar.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
@@ -32,6 +33,9 @@
     openTasks?: number;
   } = $props();
 
+  // The top bar's notification bell reads the notifications and the setup answers. No retries, so a request nobody stubbed fails at once.
+  setQueryClientContext(new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }));
+
   const views = $derived(sidebarViews({ saved, hiddenBuiltIns, jobTitles: {} }));
 
   let shortcutsOpen = $state(false);
@@ -42,6 +46,7 @@
     openNotifications: () => (notificationsOpen = true),
     openCalendar: () => {},
     live: () => 'connected',
+    user: () => user,
     features: () => ({ slack: true }),
     sendingDomainMark: () => undefined,
   });
