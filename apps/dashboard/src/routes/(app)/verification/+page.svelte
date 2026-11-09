@@ -24,7 +24,6 @@
   import ChoiceCard from '#lib/components/choice-card.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import SettingsMenu from '#lib/components/settings-menu.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
@@ -346,7 +345,7 @@
   <title>Verification · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Verification' }]} />
+<TopBar crumbs={[{ label: 'Verification' }]} />
 
 <main class="flex flex-col">
   <HeaderBand title="Verification" oneRow>
@@ -357,7 +356,8 @@
     {/snippet}
   </HeaderBand>
 
-  <SettingsMenu>
+  <!-- The page until the Verification area's own pages replace it: the form's column under the header band. -->
+  <div class="flex w-full min-w-0 flex-col gap-5 px-4 py-6 md:px-6">
     <div class="flex w-full max-w-form flex-col gap-5">
       {#if settings.isError && !detail}
         <Panel title="AI model">
@@ -691,5 +691,5 @@
         </form>
       {/if}
     </div>
-  </SettingsMenu>
+  </div>
 </main>

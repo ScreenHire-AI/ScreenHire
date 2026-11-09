@@ -138,7 +138,7 @@ public static partial class NotifyBudgetThresholdHandler
             return;
         }
 
-        var link = links.Value.Url("/settings/verification");
+        var link = links.Value.Url("/verification");
         var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == message.OrganizationId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
         if (link is null || organization is null)
         {

@@ -3,9 +3,13 @@ import BriefcaseIcon from '~icons/lucide/briefcase';
 import ChartBarIcon from '~icons/lucide/chart-bar';
 import LayoutTemplateIcon from '~icons/lucide/layout-template';
 import ListTodoIcon from '~icons/lucide/list-todo';
+import ShieldCheckIcon from '~icons/lucide/shield-check';
 import UsersIcon from '~icons/lucide/users';
 import type { ConnectionStatus } from '@screenhire/realtime';
+import type { CurrentUser, Permission } from '@screenhire/api-client';
 import { getContext, setContext } from 'svelte';
+import { can } from '#lib/permissions.js';
+import type { SendingDomainMark } from '#lib/sending-domain.js';
 import type { SettingsFeatures } from '#lib/settings.js';
 
 /** What the signed-in shell offers the pages inside it. */
@@ -22,6 +26,8 @@ export interface Shell {
   live(): ConnectionStatus;
   /** Which optional features this installation has (Slack today); a feature not heard from yet is missing, and counts as off. */
   features(): SettingsFeatures;
+  /** The status the Settings home and menu show beside Email domain while something is left to do; missing when verified or until heard. */
+  sendingDomainMark(): SendingDomainMark | undefined;
 }
 
 const key = Symbol('shell');
@@ -46,6 +52,8 @@ export const sections: readonly {
   matches: (path: string) => boolean;
   /** False for a destination that is not its own sidebar item. */
   sidebar?: false;
+  /** The permission that shows it: the sidebar, G chord, Ctrl K and the `?` dialog leave it out for anyone without. */
+  permission?: Permission;
 }[] = [
   { label: 'Jobs', href: '/', key: 'j', icon: BriefcaseIcon, matches: (path) => path === '/' || path.startsWith('/jobs/') },
   {
@@ -61,4 +69,9 @@ export const sections: readonly {
   { label: 'Templates', href: '/templates', key: 't', icon: LayoutTemplateIcon, matches: (path) => path.startsWith('/templates') },
   { label: 'My tasks', href: '/tasks', key: 'm', icon: ListTodoIcon, matches: (path) => path.startsWith('/tasks') },
   { label: 'Reports', href: '/reports', key: 'r', icon: ChartBarIcon, matches: (path) => path.startsWith('/reports') },
+  // How the checks on applicants work and what they found. Its page asks for Edit settings, as the Settings page it was.
+  { label: 'Verification', href: '/verification', key: 'v', icon: ShieldCheckIcon, matches: (path) => path.startsWith('/verification'), permission: 'EditSettings' },
 ];
+
+/** The sections this person may go to: one that needs a permission (Verification) only for a role that has it. */
+export const sectionsFor = (user: CurrentUser | null | undefined) => sections.filter((section) => !section.permission || can(user, section.permission));

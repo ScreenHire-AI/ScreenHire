@@ -7,6 +7,7 @@
   import EyeOffIcon from '~icons/lucide/eye-off';
   import LockIcon from '~icons/lucide/lock';
   import PencilIcon from '~icons/lucide/pencil';
+  import SettingsIcon from '~icons/lucide/settings';
   import Trash2Icon from '~icons/lucide/trash-2';
   import UsersIcon from '~icons/lucide/users';
   import type { Attachment } from 'svelte/attachments';
@@ -18,7 +19,6 @@
   import CalendarAccountSheet from '#lib/components/calendar-account-sheet.svelte';
   import RenameViewDialog from '#lib/components/rename-view-dialog.svelte';
   import SlackAccountSheet from '#lib/components/slack-account-sheet.svelte';
-  import StatusIcon from '#lib/components/status-icon.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Kbd } from '#lib/components/ui/kbd/index.js';
@@ -28,10 +28,10 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import type { SidebarView } from '#lib/sidebar-views.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { settingsAreaOf, visibleSettingsAreas } from '#lib/settings.js';
+  import { settingsHome, visibleSettingsSections } from '#lib/settings.js';
   import { calendarFailure, isCalendarOutcome } from '#lib/calendar.js';
   import { slackFailure } from '#lib/slack.js';
-  import { getShell, sections } from '#lib/shell.js';
+  import { getShell, sectionsFor } from '#lib/shell.js';
   import type { ViewActions } from '#lib/views.svelte.js';
 
   // The app's navigation (design system sections 8 and 9): the full sidebar, the icon rail or the phone sheet, as the
@@ -43,11 +43,12 @@
     slack,
     calendar,
     calendarOpen = $bindable(false),
+    openTasks,
   }: {
     user: CurrentUser | null;
     /**
-     * The Views list: the built-in views the person has not hidden, then the saved ones they see, each with its count
-     * (missing while the list loads), and the built-in ones they hid.
+     * The Views list: the built-in views the person has not hidden, then the saved ones they see, and the built-in ones
+     * they hid. A view has no count (design system I2, T4).
      */
     views: { visible: readonly SidebarView[]; hidden: readonly SidebarView[] };
     /** What the views menus do; without it the rows are plain links. */
@@ -58,6 +59,8 @@
     calendar?: CalendarStatus;
     /** The Calendar sheet is open. The shell opens it for a page that needs the person's calendar connected. */
     calendarOpen?: boolean;
+    /** How many open tasks are the person's own, in the count badge after My tasks; missing while it loads, and nothing at none. */
+    openTasks?: number;
   } = $props();
 
   const sidebar = Sidebar.useSidebar();
@@ -75,7 +78,11 @@
   async function run(work: Promise<string | null>) {
     viewFailure = (await work) ?? '';
   }
-  const settingsAreaItems = $derived(visibleSettingsAreas(user, shell.features()));
+  // One Settings item opens the Settings home for anyone whose role may use a setting; the home lists them. Verification and
+  // the rest of `sections` show for those whose role has the section's permission.
+  const settingsShown = $derived(visibleSettingsSections(user, shell.features()).length > 0);
+  const navSections = $derived(sectionsFor(user).filter((section) => section.sidebar !== false));
+  const settingsActive = $derived(page.url.pathname === settingsHome || page.url.pathname.startsWith(`${settingsHome}/`));
 
   // Each person's own Slack account, in their menu while the organization's workspace is connected (docs/architecture/slack.md).
   const slackConnected = $derived(Boolean(slack?.available && slack.workspace));
@@ -191,8 +198,9 @@
     <nav aria-label="Main" class="flex shrink-0 grow flex-col">
       <Sidebar.Group>
         <Sidebar.Menu>
-          {#each sections.filter((section) => section.sidebar !== false) as section (section.href)}
+          {#each navSections as section (section.href)}
             {@const Icon = section.icon}
+            {@const count = section.href === '/tasks' ? openTasks : undefined}
             <Sidebar.MenuItem>
               <Sidebar.MenuButton
                 isActive={section.matches(page.url.pathname)}
@@ -206,7 +214,10 @@
                 {#snippet child({ props })}
                   <a href={section.href} {...props}>
                     <Icon aria-hidden="true" />
-                    <span class="group-data-[collapsible=icon]:sr-only">{section.label}</span>
+                    <span class="min-w-0 flex-1 truncate group-data-[collapsible=icon]:sr-only">{section.label}</span>
+                    {#if count}
+                      <Badge variant="count" class="group-data-[collapsible=icon]:hidden">{count}</Badge>
+                    {/if}
                   </a>
                 {/snippet}
               </Sidebar.MenuButton>
@@ -227,7 +238,6 @@
             <Sidebar.MenuItem class="group-data-[collapsible=icon]:hidden">
               <Sidebar.MenuButton aria-expanded={showHidden} onclick={() => (showHidden = !showHidden)} class="text-muted-foreground">
                 <span class="min-w-0 flex-1 truncate">Show hidden views</span>
-                <Badge variant="count">{views.hidden.length}</Badge>
                 <ChevronDownIcon aria-hidden="true" class={['transition-transform motion-reduce:transition-none', showHidden && 'rotate-180']} />
               </Sidebar.MenuButton>
             </Sidebar.MenuItem>
@@ -241,30 +251,21 @@
         <FailureText message={viewFailure} class="px-2 group-data-[collapsible=icon]:hidden" />
       </Sidebar.Group>
 
-      {#if settingsAreaItems.length > 0}
-        <!-- Up to three items at the bottom: Organization, Hiring setup and Integrations. Each shows for anyone whose role
-             has a permission for a page in it, and opens the first page they may use. A group's pages share the Settings
-             menu (section 11), and say so to anyone else who opens one by its address. -->
+      {#if settingsShown}
+        <!-- One item at the bottom opens the Settings home, which lists every setting the person's role may use, with search
+             (section 11). A group's pages share the Settings menu and say so to anyone else who opens one by its address. -->
         <Sidebar.Group class="sticky bottom-0 mt-auto bg-sidebar">
           <Sidebar.Menu>
-            {#each settingsAreaItems as area (area.group)}
-              {@const Icon = area.icon}
-              <Sidebar.MenuItem>
-                <Sidebar.MenuButton
-                  isActive={settingsAreaOf(page.url.pathname) === area.group}
-                  tooltipContent={area.label}
-                  tooltipContentProps={tooltipFor(area.group)}
-                  onclick={closeSheet}
-                >
-                  {#snippet child({ props })}
-                    <a href={area.href} {...props}>
-                      <Icon aria-hidden="true" />
-                      <span {@attach truncation(area.group)} class="min-w-0 truncate group-data-[collapsible=icon]:sr-only">{area.label}</span>
-                    </a>
-                  {/snippet}
-                </Sidebar.MenuButton>
-              </Sidebar.MenuItem>
-            {/each}
+            <Sidebar.MenuItem>
+              <Sidebar.MenuButton isActive={settingsActive} tooltipContent="Settings" onclick={closeSheet}>
+                {#snippet child({ props })}
+                  <a href={settingsHome} {...props}>
+                    <SettingsIcon aria-hidden="true" />
+                    <span class="group-data-[collapsible=icon]:sr-only">Settings</span>
+                  </a>
+                {/snippet}
+              </Sidebar.MenuButton>
+            </Sidebar.MenuItem>
           </Sidebar.Menu>
         </Sidebar.Group>
       {/if}
@@ -348,35 +349,28 @@
   <SlackAccountSheet bind:open={slackOpen} status={slack} outcome={slackOutcome} />
 {/if}
 
-<!-- One row of the Views list: the link with its icon, name and count, and for a person who may change it the menu that shows
+<!-- One row of the Views list: the link with its icon and name, and for a person who may change it the menu that shows
      on hover and on focus (A4: the button has a label and a tooltip). A built-in view's menu hides it; a saved view's
      renames, shares or deletes it. A saved view the person cannot change has no menu. -->
 {#snippet viewRow(view: SidebarView, hiddenRow: boolean)}
-  {@const count = view.count}
   {@const saved = view.saved}
   {@const actions = viewActions}
   {@const menu = actions && (view.builtIn || saved?.canEdit)}
   <Sidebar.MenuItem>
     <Sidebar.MenuButton
       isActive={currentView === view.key}
-      tooltipContent={[view.label, view.jobTitle, count === undefined ? undefined : String(count)].filter(Boolean).join(', ')}
+      tooltipContent={[view.label, view.jobTitle].filter(Boolean).join(', ')}
       tooltipContentProps={view.jobTitle ? { hidden: false } : tooltipFor(view.key)}
       onclick={closeSheet}
       class={menu ? 'pr-8 pointer-coarse:pr-12' : undefined}
     >
       {#snippet child({ props })}
         <a href={view.href} {...props}>
-          {#if view.status}
-            <!-- A status view shows that status's icon, in its colour (section 21); other views an ordinary icon. -->
-            <StatusIcon status={view.status} class="size-4 group-data-[collapsible=icon]:size-5" />
-          {:else if view.icon}
+          {#if view.icon}
             {@const Icon = view.icon}
             <Icon aria-hidden="true" />
           {/if}
           <span {@attach truncation(view.key)} class="min-w-0 flex-1 truncate group-data-[collapsible=icon]:sr-only">{view.label}{#if saved?.shared}<span class="sr-only">, shared with the team</span>{/if}</span>
-          {#if count !== undefined}
-            <Badge variant="count" class="group-data-[collapsible=icon]:hidden">{count}</Badge>
-          {/if}
         </a>
       {/snippet}
     </Sidebar.MenuButton>

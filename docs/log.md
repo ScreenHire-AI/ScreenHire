@@ -9,6 +9,12 @@ never), read at its source. The site says the trial lasts 14 days, from `package
 reads as its default too. Competitor prices say what their pages say about the billing term, the law pages state the law's
 duties instead of our plans, and a Settings test that depended on the billing query's timing waits for the final menu.
 
+**One Settings home, Verification in the sidebar.** The sidebar holds the work, Verification and one Settings item that opens
+a Settings home: every setting the role may use, in Organization, Careers site and Integrations, with a "Search settings"
+box that reads names, one-line descriptions and everyday words. Email domain moved under Organization, Hiring setup became
+Careers site, and the Integrations directory is gone. Verification is its own item at `/verification`; the old settings
+addresses redirect. Views lost their status icons and counts, and My tasks gained its count.
+
 ## 2026-11-08
 
 **The marketing site is audited and roadmap item 15 is done.** Every page was checked at 390, 768, 1024, 1440 and 1920

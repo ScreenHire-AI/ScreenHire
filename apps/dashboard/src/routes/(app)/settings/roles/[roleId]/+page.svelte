@@ -59,7 +59,7 @@
   import { applyValidationProblem } from '#lib/forms.js';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { mayAssign, roleKey } from '#lib/settings.js';
+  import { mayAssign, roleKey, settingsCrumbs } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
@@ -218,7 +218,7 @@
   <title>{name} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Organization' }, { label: 'Roles', href: listHref }, { label: name }]} back />
+<TopBar crumbs={settingsCrumbs(listHref, { label: name })} back />
 
 <main class="flex flex-col">
   {#if notFound || (loadError && !ready)}

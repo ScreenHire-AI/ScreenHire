@@ -4,6 +4,7 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -38,12 +39,7 @@
 </svelte:head>
 
 <TopBar
-  crumbs={[
-    { label: 'Integrations', href: '/settings/integrations' },
-    { label: 'Webhooks', href: '/settings/webhooks' },
-    { label: detail?.description ?? detail?.url ?? 'Endpoint', href: endpointHref },
-    { label: 'Edit' },
-  ]}
+  crumbs={settingsCrumbs('/settings/webhooks', { label: detail?.description ?? detail?.url ?? 'Endpoint', href: endpointHref }, { label: 'Edit' })}
   back
 />
 

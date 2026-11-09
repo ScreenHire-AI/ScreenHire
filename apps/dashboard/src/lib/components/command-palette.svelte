@@ -11,8 +11,8 @@
   import { jobStatus } from '#lib/job-status.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { directoryVisible, integrationsHref, visibleSettingsSections } from '#lib/settings.js';
-  import { getShell, sections } from '#lib/shell.js';
+  import { matchesWords, settingsHome, settingsSearchText, visibleSettingsSections } from '#lib/settings.js';
+  import { getShell, sectionsFor } from '#lib/shell.js';
   import { keptInMindLabel } from '#lib/talent-pool.js';
 
   // Ctrl K / ⌘K: jump to a section, a job or a candidate, or run an action. Jobs and candidates come from the server's
@@ -54,6 +54,8 @@
 
   /** Separates what a person can type from the id that keeps two rows with the same words apart. */
   const idMark = '\u001f';
+  /** Ends the value of a Settings row, so `filter` reads the whole of its words. */
+  const settingsMark = '\u001fsettings';
 
   /**
    * The palette's own filter, replacing cmdk's fuzzy one: "sen" matched every Settings page because their values begin
@@ -61,6 +63,9 @@
    * they start with it or a word does. The id after `idMark` is never searched, so two characters cannot hit a guid.
    */
   function filter(value: string, search: string): number {
+    // A Settings row is found the way the Settings home's search finds it: every word typed is somewhere in its name,
+    // description, keywords or group.
+    if (value.endsWith(settingsMark)) return matchesWords(value.slice(0, -settingsMark.length), search) ? 0.9 : 0;
     const words = value.split(idMark)[0].toLowerCase();
     const query = search.trim().toLowerCase();
     if (query === '' || words.startsWith(query)) return 1;
@@ -69,14 +74,9 @@
     return /[\s.@-]/.test(words[at - 1]) ? 0.8 : 0.5;
   }
 
-  // Every Settings page the person may use, and the Integrations directory when one of its integrations is among them.
-  const settingsPages = $derived.by(() => {
-    const pages = visibleSettingsSections(page.data?.user, shell?.features());
-    const directory = directoryVisible(page.data?.user, shell?.features())
-      ? [{ label: 'Integrations', href: integrationsHref, group: 'Integrations' as const }]
-      : [];
-    return [...pages, ...directory];
-  });
+  // Every Settings page the person may use, and the sections they may go to (Verification needs a permission).
+  const settingsPages = $derived(visibleSettingsSections(page.data?.user, shell?.features()));
+  const goTo = $derived(sectionsFor(page.data?.user));
 
   function run(action: () => unknown) {
     open = false;
@@ -129,7 +129,7 @@
       </Command.Group>
     {/if}
     <Command.Group heading="Go to">
-      {#each sections as section (section.href)}
+      {#each goTo as section (section.href)}
         <Command.Item value={`Go to ${section.label}`} onSelect={() => run(() => goto(section.href))}>
           {section.label}
           {#if preferences.shortcutsEnabled}
@@ -137,12 +137,18 @@
           {/if}
         </Command.Item>
       {/each}
+      {#if settingsPages.length > 0}
+        <Command.Item value="Go to Settings" onSelect={() => run(() => goto(settingsHome))}>Settings</Command.Item>
+      {/if}
     </Command.Group>
     {#if settingsPages.length > 0}
       <Command.Group heading="Settings">
-        <!-- The area's name is in each value, so "organization" finds Team and Roles, and "integrations" finds the directory too. -->
+        <!-- The value holds the group's name, the description and the keywords, so "organization" finds Team and Roles and "logo" finds Branding. -->
         {#each settingsPages as setting (setting.href)}
-          <Command.Item value={`${setting.label} ${setting.group} settings`} onSelect={() => run(() => goto(setting.href))}>{setting.label}</Command.Item>
+          <Command.Item value={`${settingsSearchText(setting)}${settingsMark}`} onSelect={() => run(() => goto(setting.href))}>
+            {setting.label}
+            <span class="ml-auto text-caption text-muted-foreground">{setting.group}</span>
+          </Command.Item>
         {/each}
       </Command.Group>
     {/if}

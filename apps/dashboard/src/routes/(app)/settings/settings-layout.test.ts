@@ -1,5 +1,5 @@
 import type { CurrentUser, OrganizationRole } from '@screenhire/api-client';
-import { cleanup, render, screen } from '@testing-library/svelte';
+import { cleanup, render, screen, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
@@ -46,10 +46,45 @@ describe('settings layout', () => {
 
     expect(screen.getByText('Not in your role')).toBeInTheDocument();
     expect(screen.getByText('Your role cannot change team. Ask an owner or admin of your organization.')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Organization' })).toBeInTheDocument();
+    // The refusal is titled with the setting, under the Settings breadcrumb: Settings, the group, the page.
+    expect(screen.getByRole('heading', { level: 1, name: 'Team' })).toBeInTheDocument();
+    const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(breadcrumb).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    expect(within(breadcrumb).getByText('Organization')).toBeInTheDocument();
+    // The group has no page of its own: plain muted text, never a link and never as strong as the page's name.
+    expect(within(breadcrumb).queryByRole('link', { name: 'Organization' })).toBeNull();
+    expect(within(breadcrumb).getByText('Organization')).toHaveClass('text-muted-foreground');
+    expect(within(breadcrumb).getByText('Organization')).not.toHaveClass('font-bold');
+    expect(within(breadcrumb).getByText('Team')).toHaveClass('font-bold');
     expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to jobs' })).toHaveAttribute('href', '/');
     await expectNoAxeViolations();
+  });
+
+  // The Settings home has no permission of its own: it opens for anyone who may use one setting it lists.
+  describe('the Settings home', () => {
+    it.each<Exclude<OrganizationRole, 'Custom'>>(['Owner', 'Admin'])('opens for an %s', (role) => {
+      renderAs(userAs(role), '/settings');
+
+      expect(screen.getByText('Settings page content')).toBeInTheDocument();
+    });
+
+    it('opens for a custom role with one permission that opens a setting', () => {
+      const keeper: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageApiKeys'] } };
+
+      renderAs(keeper, '/settings');
+
+      expect(screen.getByText('Settings page content')).toBeInTheDocument();
+    });
+
+    it.each<Exclude<OrganizationRole, 'Custom'>>(['Recruiter', 'Viewer'])('says a %s has no settings to change', async (role) => {
+      renderAs(userAs(role), '/settings');
+
+      expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument();
+      expect(screen.getByText('Your role cannot change settings. Ask an owner or admin of your organization.')).toBeInTheDocument();
+      expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
+      await expectNoAxeViolations();
+    });
   });
 
   it('opens a page by its permission, whatever the role is called', () => {
@@ -166,19 +201,19 @@ describe('settings layout', () => {
       expect(screen.queryByText('Not in your role')).not.toBeInTheDocument();
     });
 
-    it('holds the Integrations directory for someone whose only integration is Slack until the shell has heard, then opens it', () => {
+    it('holds the Settings home for someone whose only setting is Slack until the shell has heard, then opens it', () => {
       const slackOnly: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageIntegrations'] } };
 
-      const waiting = renderSlack({}, slackOnly, '/settings/integrations');
+      const waiting = renderSlack({}, slackOnly, '/settings');
       expect(screen.queryByText('Not in your role')).not.toBeInTheDocument();
       expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
       waiting.unmount();
 
-      const on = renderSlack({ slack: true }, slackOnly, '/settings/integrations');
+      const on = renderSlack({ slack: true }, slackOnly, '/settings');
       expect(screen.getByText('Settings page content')).toBeInTheDocument();
       on.unmount();
 
-      renderSlack({ slack: false }, slackOnly, '/settings/integrations');
+      renderSlack({ slack: false }, slackOnly, '/settings');
       expect(screen.getByText('Not in your role')).toBeInTheDocument();
     });
 

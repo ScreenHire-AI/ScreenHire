@@ -16,7 +16,7 @@
     user,
     crumbs = [{ label: 'Candidates' }],
     back,
-    viewCounts = {},
+    openTasks,
     saved = [],
     hiddenBuiltIns = [],
     viewActions,
@@ -24,17 +24,15 @@
     user: CurrentUser;
     crumbs?: readonly { label: string; href?: string }[];
     back?: boolean;
-    /** Rows in each view, by view id; the layout derives them from the applications. */
-    viewCounts?: Record<string, number | undefined>;
     /** The views people saved, and the built-in ones this person hid, as the views query returns them. */
     saved?: SavedViewSummary[];
     hiddenBuiltIns?: string[];
     viewActions?: ViewActions;
+    /** The person's open tasks, as the layout counts them for the badge after My tasks. */
+    openTasks?: number;
   } = $props();
 
-  const listed = $derived(sidebarViews({ saved, hiddenBuiltIns, applications: undefined, now: 0, jobTitles: {} }));
-  const withCount = (view: (typeof listed.visible)[number]) => ({ ...view, count: viewCounts[view.key] });
-  const views = $derived({ visible: listed.visible.map(withCount), hidden: listed.hidden.map(withCount) });
+  const views = $derived(sidebarViews({ saved, hiddenBuiltIns, jobTitles: {} }));
 
   let shortcutsOpen = $state(false);
   let notificationsOpen = $state(false);
@@ -45,6 +43,7 @@
     openCalendar: () => {},
     live: () => 'connected',
     features: () => ({ slack: true }),
+    sendingDomainMark: () => undefined,
   });
   const laptop = new MediaQuery('min-width: 1024px');
 </script>
@@ -52,7 +51,7 @@
 <!-- The root layout's tooltip provider. -->
 <Tooltip.Provider>
   <Sidebar.Provider open={laptop.current}>
-    <AppSidebar {user} {views} {viewActions} />
+    <AppSidebar {user} {views} {viewActions} {openTasks} />
     <Sidebar.Inset>
       <TopBar {crumbs} {back} />
       <main><h1>Page</h1></main>

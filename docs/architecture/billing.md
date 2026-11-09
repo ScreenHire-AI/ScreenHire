@@ -297,7 +297,7 @@ Two tenant-owned tables, each with the `tenant_isolation` row-level security pol
 
 ## The Billing page
 
-Settings > Billing (`/settings/billing`) is in the Organization area for an Owner, and only where a payment provider is set
+Settings > Billing (`/settings/billing`) is in the Settings home's Organization group for an Owner, and only where a payment provider is set
 up (`available`): elsewhere the entry and the page are hidden, as Slack's are (design system A3). It shows the state as a
 status badge (Free trial, Active, Payment failed or Ended), the current plan, the trial's end or the next payment (and that
 the subscription will cancel), the open jobs against the limit (`3 of 5`, or `3` with none), and the plans. A plan has a Choose button while Trialing or Ended

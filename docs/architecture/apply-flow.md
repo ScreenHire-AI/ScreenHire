@@ -122,7 +122,7 @@ each page as the careers server measured them (§7; kept in the step state, so t
 are only a hint, and never sent with the switch on). The telemetry module fills `automationMarkers` and `deviceFingerprint` on the review step, and the careers
 server passes them on with the session token and the module's last snapshot. The API hashes a fingerprint per
 organization and never stores it as sent, and keeps it only on the job's device-check basis (the more protective of its region's and the organization's own choice in
-Settings, Verification; where the organization turned the duplicates checks off there is none, and where it turned form use
+the Verification page; where the organization turned the duplicates checks off there is none, and where it turned form use
 off the form is issued no telemetry session): where that is `Consent`
 (the EU and EEA by default), the details step shows an optional "Check this device for repeat applications" box and the
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
@@ -235,7 +235,7 @@ tenant host, a path that already starts with `/{tenant}` (a path-style link) get
 
 **Pages.** A questionnaire's named sections (`sections` on the hiring definition's questionnaire, workflow-engine.md §7)
 are its pages, one each, in order. Without sections the questions split into pages of the organization's questions per
-page (Hiring setup > Careers site, 1 to 50, default 8; `questionsPerPage` on the public form). One function,
+page (Settings > Careers site > Careers page, 1 to 50, default 8; `questionsPerPage` on the public form). One function,
 `questionPages` in `packages/ui/src/questions/model.ts`, pages the apply form, the follow-up page and the dashboard's
 preview, so the preview is the form. The resume stays on the details step, and a section left empty by that is
 dropped. Steps are `details`, `page-1` to `page-N` and `review`; each page's heading is its section's name

@@ -22,6 +22,7 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -89,7 +90,7 @@
   <title>General · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Organization' }, { label: 'General' }]} />
+<TopBar crumbs={settingsCrumbs('/settings/organization')} />
 
 <main class="flex flex-col">
   <HeaderBand title="General" oneRow>
