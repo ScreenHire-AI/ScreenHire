@@ -15,9 +15,9 @@ namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
 /// Billing (docs/architecture/billing.md, ADR-0029): the Owner's page of plan, next payment and the way to change it, the
-/// Checkout and portal redirects, the price and confirmation of a plan change, and the local sandbox's stand-ins for both. Signed-in Owners only: an API key gets
-/// nothing here. With no payment provider configured, every route but <c>GET</c> is a 404 and that one says
-/// <c>available: false</c>, so the dashboard hides the page.
+/// Checkout and portal redirects, the price and confirmation of a plan change, and the local sandbox's stand-ins for both.
+/// Signed-in Owners only: an API key gets nothing here. With no payment provider configured, every route but <c>GET</c> is
+/// a 404 and that one says <c>available: false</c>, so the dashboard hides the page.
 /// </summary>
 internal static class BillingEndpoints
 {
@@ -164,6 +164,12 @@ internal static class BillingEndpoints
             return new PlanChangeCheck(null, Conflict: "There is no subscription to change yet. Choose a plan first.");
         }
 
+        // A subscription set to end has no next payment to price, and a switch would not undo the cancellation.
+        if (account.CancelsAtPeriodEnd)
+        {
+            return new PlanChangeCheck(null, Conflict: "Your subscription is set to end. To keep it on another plan, renew it with Manage billing first.");
+        }
+
         if (catalogue.Find(account.PlanKey) is not { } current)
         {
             return new PlanChangeCheck(null, Conflict: "Your current plan is not one that is on offer, so a change cannot be priced here. Use Manage billing.");
@@ -257,7 +263,7 @@ internal static class BillingEndpoints
         catch (BillingProviderException)
         {
             return TypedResults.Problem(
-                "The plan was not changed and you have not been charged. Check your payment details with Manage billing, or try again in a moment.",
+                "The payment provider did not confirm the change. If your plan has not changed in a moment, check your payment details with Manage billing before trying again.",
                 statusCode: StatusCodes.Status502BadGateway);
         }
 

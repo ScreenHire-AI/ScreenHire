@@ -44,13 +44,22 @@ public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtectio
     /// <summary>
     /// A day-based proration, so tests and the local demo show real-looking numbers: the price difference times the whole days
     /// left in the period over the days in it, rounded to the cent. The period is the month that ends at
-    /// <see cref="PlanChangeRequest.CurrentPeriodEnd"/> (the sandbox's checkout sets it a month ahead). A downgrade is a credit,
+    /// <see cref="PlanChangeRequest.CurrentPeriodEnd"/> (the sandbox's checkout sets it a month ahead), or at the first whole month
+    /// after it that is still to come. A downgrade is a credit,
     /// which shows as nothing due. A plan with no price counts as free.
     /// </summary>
     public Task<PlanChangePreview> PreviewPlanChangeAsync(PlanChangeRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var periodEnd = request.CurrentPeriodEnd ?? request.ProrationDate.AddMonths(1);
+        var lastKnownEnd = request.CurrentPeriodEnd ?? request.ProrationDate.AddMonths(1);
+        // The sandbox never renews, so an account older than a month has a period end in the past. Its current period ends a
+        // whole number of months on, as a renewing subscription's would.
+        var periodEnd = lastKnownEnd;
+        for (var months = 1; periodEnd <= request.ProrationDate; months++)
+        {
+            periodEnd = lastKnownEnd.AddMonths(months);
+        }
+
         var periodDays = Math.Max(1, (periodEnd - periodEnd.AddMonths(-1)).Days);
         var daysLeft = Math.Clamp((periodEnd.UtcDateTime.Date - request.ProrationDate.UtcDateTime.Date).Days, 0, periodDays);
         var newPrice = request.NewPlan.MonthlyPrice ?? 0m;

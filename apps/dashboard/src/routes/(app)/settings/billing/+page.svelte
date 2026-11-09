@@ -69,7 +69,8 @@
   const standing = $derived(overview?.state ?? null);
   const subscribed = $derived(standing === 'Active' || standing === 'PastDue');
   const choosable = $derived(mayChoosePlan(standing));
-  const switchable = $derived(standing === 'Active' && Boolean(overview?.canManage));
+  // A subscription set to end is renewed with Manage billing first; the API refuses to switch it.
+  const switchable = $derived(standing === 'Active' && Boolean(overview?.canManage) && !overview?.cancelsAtPeriodEnd);
 </script>
 
 <svelte:head>

@@ -51,12 +51,23 @@
       onchanged(plan);
     } catch (error) {
       failure = describeError(error, 'Could not change the plan');
+      // Price it again: a refusal for an out-of-date price needs a new one, and a retry with the same date would only get
+      // the payment provider's earlier answer back.
+      preview.mutate({ data: { plan: plan.key } });
     }
+  }
+
+  // Focus the dialog itself, not its first control: that is the date in the price line, whose tooltip would open over the
+  // text before anyone asked for it. bits-ui calls this without dispatching the event, so the dialog comes from its ref.
+  let content = $state<HTMLElement | null>(null);
+  function onOpenAutoFocus(event: Event) {
+    event.preventDefault();
+    content?.focus();
   }
 </script>
 
 <Dialog.Root bind:open>
-  <Dialog.Content class="sm:max-w-md">
+  <Dialog.Content bind:ref={content} class="sm:max-w-md" {onOpenAutoFocus}>
     <Dialog.Header>
       <Dialog.Title>Change to {plan?.name ?? 'this plan'}?</Dialog.Title>
       <Dialog.Description>The plan changes as soon as you confirm. Your open jobs stay open.</Dialog.Description>

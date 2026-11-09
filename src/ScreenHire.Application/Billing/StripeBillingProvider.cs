@@ -326,13 +326,18 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             prorationDate);
     }
 
-    // Stripe amounts are whole minor units (cents). These currencies have no minor unit (https://docs.stripe.com/currencies#zero-decimal).
+    // Stripe amounts are whole minor units, and Stripe's own list says how many a currency has
+    // (https://docs.stripe.com/currencies#special-cases). .NET has no table of ISO 4217 minor units, so the exceptions are kept
+    // here: these have none, and these five have three. Every other currency has two.
     private static readonly HashSet<string> ZeroDecimalCurrencies = new(StringComparer.OrdinalIgnoreCase)
     {
         "BIF", "CLP", "DJF", "GNF", "JPY", "KMF", "KRW", "MGA", "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF",
     };
 
-    private static decimal MajorUnits(long minor, string currency) => ZeroDecimalCurrencies.Contains(currency) ? minor : minor / 100m;
+    private static readonly HashSet<string> ThreeDecimalCurrencies = new(StringComparer.OrdinalIgnoreCase) { "BHD", "JOD", "KWD", "OMR", "TND" };
+
+    private static decimal MajorUnits(long minor, string currency) =>
+        ZeroDecimalCurrencies.Contains(currency) ? minor : ThreeDecimalCurrencies.Contains(currency) ? minor / 1000m : minor / 100m;
 
     private async Task<JsonElement> SendAsync(
         HttpMethod method, string path, List<KeyValuePair<string, string>>? form, string? idempotencyKey, CancellationToken cancellationToken)
