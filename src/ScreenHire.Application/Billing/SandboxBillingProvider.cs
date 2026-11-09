@@ -41,6 +41,34 @@ public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtectio
         return Task.FromResult(new Uri($"{PortalPath}?state={Uri.EscapeDataString(state)}", UriKind.Relative));
     }
 
+    /// <summary>
+    /// A day-based proration, so tests and the local demo show real-looking numbers: the price difference times the whole days
+    /// left in the period over the days in it, rounded to the cent. The period is the month that ends at
+    /// <see cref="PlanChangeRequest.CurrentPeriodEnd"/> (the sandbox's checkout sets it a month ahead). A downgrade is a credit,
+    /// which shows as nothing due. A plan with no price counts as free.
+    /// </summary>
+    public Task<PlanChangePreview> PreviewPlanChangeAsync(PlanChangeRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var periodEnd = request.CurrentPeriodEnd ?? request.ProrationDate.AddMonths(1);
+        var periodDays = Math.Max(1, (periodEnd - periodEnd.AddMonths(-1)).Days);
+        var daysLeft = Math.Clamp((periodEnd.UtcDateTime.Date - request.ProrationDate.UtcDateTime.Date).Days, 0, periodDays);
+        var newPrice = request.NewPlan.MonthlyPrice ?? 0m;
+        var difference = newPrice - (request.CurrentPlan.MonthlyPrice ?? 0m);
+        var dueNow = Math.Max(0m, Math.Round(difference * daysLeft / periodDays, 2, MidpointRounding.AwayFromZero));
+        return Task.FromResult(new PlanChangePreview(dueNow, newPrice, periodEnd, request.NewPlan.Currency, request.ProrationDate));
+    }
+
+    /// <summary>
+    /// Nothing to call: the sandbox charges nobody and has no webhook, so the API's route records the new plan itself, as its
+    /// checkout page does.
+    /// </summary>
+    public Task ChangePlanAsync(PlanChangeRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Task.CompletedTask;
+    }
+
     /// <summary>The sandbox has no webhook: its pages apply the change themselves.</summary>
     public BillingWebhook ReadWebhook(string body, string? signature, DateTimeOffset now) => new(false, null);
 

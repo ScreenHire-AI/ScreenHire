@@ -15,7 +15,7 @@ namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
 /// Billing (docs/architecture/billing.md, ADR-0029): the Owner's page of plan, next payment and the way to change it, the
-/// Checkout and portal redirects, and the local sandbox's stand-ins for both. Signed-in Owners only: an API key gets
+/// Checkout and portal redirects, the price and confirmation of a plan change, and the local sandbox's stand-ins for both. Signed-in Owners only: an API key gets
 /// nothing here. With no payment provider configured, every route but <c>GET</c> is a 404 and that one says
 /// <c>available: false</c>, so the dashboard hides the page.
 /// </summary>
@@ -30,6 +30,18 @@ internal static class BillingEndpoints
             .RequirePermission(Permission.ManageBilling)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/checkout", StartBillingCheckout).WithName("StartBillingCheckout")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.ManageBilling)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status502BadGateway)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/plan/preview", PreviewBillingPlanChange).WithName("PreviewBillingPlanChange")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.ManageBilling)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status502BadGateway)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/plan", ChangeBillingPlan).WithName("ChangeBillingPlan")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.ManageBilling)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -118,6 +130,148 @@ internal static class BillingEndpoints
         {
             return ProviderDidNotAnswer();
         }
+    }
+
+    // How long a preview can be confirmed. Stripe needs the proration date inside the current period, and a price shown long ago is stale.
+    private static readonly TimeSpan PreviewLifetime = TimeSpan.FromMinutes(15);
+
+    private sealed record PlanChangeCheck(PlanChangeRequest? Request, bool NotFound = false, string? PlanProblem = null, string? Conflict = null);
+
+    // The preview and the change share one set of refusals, so a change the preview showed is never refused for a new reason.
+    private static async Task<PlanChangeCheck> CheckPlanChangeAsync(
+        string? planKey, DateTimeOffset prorationDate, BillingService billing, BillingAccess access, PlanCatalogue catalogue,
+        ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (!access.IsConfigured)
+        {
+            return new PlanChangeCheck(null, NotFound: true);
+        }
+
+        if (catalogue.Find(planKey) is not { } plan || !ToContract(plan, access.Mode).CanSubscribe)
+        {
+            return new PlanChangeCheck(null, PlanProblem: "Choose one of the plans on offer.");
+        }
+
+        var account = (await billing.AccountAsync(tenant.OrganizationId!.Value, cancellationToken))!;
+        var state = Entitlement.StateOf(account, time.GetUtcNow());
+        if (state == BillingState.PastDue)
+        {
+            return new PlanChangeCheck(null, Conflict: "Your last payment failed. Update your payment details with Manage billing before changing plan.");
+        }
+
+        if (state != BillingState.Active || account.ProviderSubscriptionId is null)
+        {
+            return new PlanChangeCheck(null, Conflict: "There is no subscription to change yet. Choose a plan first.");
+        }
+
+        if (catalogue.Find(account.PlanKey) is not { } current)
+        {
+            return new PlanChangeCheck(null, Conflict: "Your current plan is not one that is on offer, so a change cannot be priced here. Use Manage billing.");
+        }
+
+        if (string.Equals(current.Key, plan.Key, StringComparison.OrdinalIgnoreCase))
+        {
+            return new PlanChangeCheck(null, PlanProblem: "You are already on that plan.");
+        }
+
+        return new PlanChangeCheck(new PlanChangeRequest(
+            account.OrganizationId, account.ProviderCustomerId, account.ProviderSubscriptionId, current, plan, account.CurrentPeriodEnd, prorationDate));
+    }
+
+    private static async Task<Results<Ok<BillingPlanChangePreview>, NotFound, ValidationProblem, ProblemHttpResult>> PreviewBillingPlanChange(
+        PreviewBillingPlanChangeRequest request,
+        BillingService billing,
+        BillingAccess access,
+        PlanCatalogue catalogue,
+        ITenantContext tenant,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        // Stripe takes the proration date in whole seconds.
+        var prorationDate = DateTimeOffset.FromUnixTimeSeconds(time.GetUtcNow().ToUnixTimeSeconds());
+        var check = await CheckPlanChangeAsync(request.Plan, prorationDate, billing, access, catalogue, tenant, time, cancellationToken);
+        if (check.NotFound)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (check.PlanProblem is { } planProblem)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("plan", planProblem));
+        }
+
+        if (check.Request is not { } change)
+        {
+            return TypedResults.Problem(check.Conflict, statusCode: StatusCodes.Status409Conflict);
+        }
+
+        try
+        {
+            var preview = await access.Provider.PreviewPlanChangeAsync(change, cancellationToken);
+            return TypedResults.Ok(new BillingPlanChangePreview(
+                change.NewPlan.Key, preview.AmountDueNow, preview.NextPaymentAmount, preview.NextPaymentAt, preview.Currency, preview.ProrationDate));
+        }
+        catch (BillingProviderException)
+        {
+            return ProviderDidNotAnswer();
+        }
+    }
+
+    private static async Task<Results<NoContent, NotFound, ValidationProblem, ProblemHttpResult>> ChangeBillingPlan(
+        ChangeBillingPlanRequest request,
+        BillingService billing,
+        BillingAccess access,
+        PlanCatalogue catalogue,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        TenantContext tenant,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        var now = time.GetUtcNow();
+        var check = await CheckPlanChangeAsync(request.Plan, request.ProrationDate, billing, access, catalogue, tenant, time, cancellationToken);
+        if (check.NotFound)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (check.PlanProblem is { } planProblem)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("plan", planProblem));
+        }
+
+        if (check.Request is not { } change)
+        {
+            return TypedResults.Problem(check.Conflict, statusCode: StatusCodes.Status409Conflict);
+        }
+
+        // The prices were worked out at this instant. An old or future one is a stale page or a replay: price it again.
+        if (request.ProrationDate > now.AddMinutes(1) || request.ProrationDate < now - PreviewLifetime)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("prorationDate", "The price on screen is out of date. Look at it again before confirming."));
+        }
+
+        try
+        {
+            await access.Provider.ChangePlanAsync(change, cancellationToken);
+        }
+        catch (BillingProviderException)
+        {
+            return TypedResults.Problem(
+                "The plan was not changed and you have not been charged. Check your payment details with Manage billing, or try again in a moment.",
+                statusCode: StatusCodes.Status502BadGateway);
+        }
+
+        if (access.Mode == BillingMode.Sandbox)
+        {
+            // Stripe tells us through its webhook. The sandbox has none, so the route records the plan itself, as its checkout page does.
+            await BillingEventApplier.ApplyAsync(
+                outbox, tenant, billing,
+                new BillingProviderEvent(
+                    $"sandbox_{Guid.CreateVersion7():N}", now, change.OrganizationId, null, null, change.NewPlan.Key, SubscriptionStatus.Active, null, null),
+                cancellationToken);
+        }
+
+        return TypedResults.NoContent();
     }
 
     private static async Task<Results<Ok<BillingRedirect>, NotFound, ProblemHttpResult>> OpenBillingPortal(

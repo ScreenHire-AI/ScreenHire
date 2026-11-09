@@ -109,6 +109,67 @@ public sealed class SandboxBillingProviderTests
         provider.Read(new string('A', 4001)).Should().BeNull();
     }
 
+    // A 31-day period, 1 January to 1 February.
+    private static readonly DateTimeOffset PeriodEnd = new(2100, 2, 1, 0, 0, 0, TimeSpan.Zero);
+
+    private static Plan Growth() => new("growth", "Growth", 2, 99m, "USD", 25, false, null);
+
+    private Task<PlanChangePreview> Preview(Plan from, Plan to, DateTimeOffset on, DateTimeOffset? periodEnd = null) =>
+        provider.PreviewPlanChangeAsync(new PlanChangeRequest(organization, null, "sub_fictional", from, to, periodEnd ?? PeriodEnd, on), TestContext.Current.CancellationToken);
+
+    [Fact]
+    public async Task An_upgrade_halfway_through_the_period_costs_the_price_difference_for_the_days_left()
+    {
+        var preview = await Preview(Starter(), Growth(), new DateTimeOffset(2100, 1, 17, 9, 0, 0, TimeSpan.Zero));
+
+        // (99 - 29) x 15 days left of 31, to the cent.
+        preview.AmountDueNow.Should().Be(33.87m);
+        preview.NextPaymentAmount.Should().Be(99m);
+        preview.NextPaymentAt.Should().Be(PeriodEnd);
+        preview.Currency.Should().Be("USD");
+        preview.ProrationDate.Should().Be(new DateTimeOffset(2100, 1, 17, 9, 0, 0, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public async Task An_upgrade_on_the_first_day_costs_the_whole_difference_and_on_the_last_day_one_day_of_it()
+    {
+        var first = await Preview(Starter(), Growth(), new DateTimeOffset(2100, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        var last = await Preview(Starter(), Growth(), new DateTimeOffset(2100, 1, 31, 23, 0, 0, TimeSpan.Zero));
+        var after = await Preview(Starter(), Growth(), new DateTimeOffset(2100, 2, 1, 0, 0, 0, TimeSpan.Zero));
+
+        first.AmountDueNow.Should().Be(70m);
+        last.AmountDueNow.Should().Be(2.26m);
+        after.AmountDueNow.Should().Be(0m, "no days are left to charge for");
+    }
+
+    [Fact]
+    public async Task A_downgrade_owes_nothing_now_and_the_lower_price_is_next()
+    {
+        var preview = await Preview(Growth(), Starter(), new DateTimeOffset(2100, 1, 17, 9, 0, 0, TimeSpan.Zero));
+
+        preview.AmountDueNow.Should().Be(0m);
+        preview.NextPaymentAmount.Should().Be(29m);
+    }
+
+    [Fact]
+    public async Task A_change_with_no_known_period_end_is_priced_as_a_month_from_the_proration_date()
+    {
+        var on = new DateTimeOffset(2100, 1, 17, 9, 0, 0, TimeSpan.Zero);
+        var preview = await provider.PreviewPlanChangeAsync(
+            new PlanChangeRequest(organization, null, "sub_fictional", Starter(), Growth(), null, on), TestContext.Current.CancellationToken);
+
+        preview.NextPaymentAt.Should().Be(on.AddMonths(1));
+        preview.AmountDueNow.Should().Be(70m, "a whole period is left");
+    }
+
+    [Fact]
+    public async Task Changing_the_plan_has_nothing_to_call()
+    {
+        var change = new PlanChangeRequest(organization, null, "sub_fictional", Starter(), Growth(), PeriodEnd, Start);
+
+        await provider.Invoking(p => p.ChangePlanAsync(change, TestContext.Current.CancellationToken)).Should().NotThrowAsync();
+    }
+
     [Fact]
     public void The_sandbox_has_no_webhook_so_a_post_to_the_provider_reads_as_unsigned()
     {

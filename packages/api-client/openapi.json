@@ -11594,6 +11594,161 @@
         ]
       }
     },
+    "/v1/organization/billing/plan/preview": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "PreviewBillingPlanChange",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewBillingPlanChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPlanChangePreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/billing/plan": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "ChangeBillingPlan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeBillingPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/organization/billing/portal": {
       "post": {
         "tags": [
@@ -16038,6 +16193,42 @@
         },
         "description": "A plan. `monthlyPrice` is null until the owner sets it. `activeJobs` is the most jobs open at once, null with\nno limit set; `unlimited` says there is none by design. `canSubscribe`: Checkout can start it here."
       },
+      "BillingPlanChangePreview": {
+        "required": [
+          "plan",
+          "amountDueNow",
+          "nextPaymentAmount",
+          "nextPaymentAt",
+          "currency",
+          "prorationDate"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          },
+          "amountDueNow": {
+            "type": "number",
+            "format": "double"
+          },
+          "nextPaymentAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "nextPaymentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "prorationDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "What switching the live subscription to `plan` costs, in `currency`. `amountDueNow` is the prorated difference\ncharged when the owner confirms (0 when the new plan costs less: the credit stays on the account), then\n`nextPaymentAmount` a month on `nextPaymentAt`. `prorationDate` is the instant both were priced at; send it back\nwith the confirmation so the charge is the one shown."
+      },
       "BillingRedirect": {
         "required": [
           "url"
@@ -16679,6 +16870,23 @@
           "ScreenHire",
           null
         ]
+      },
+      "ChangeBillingPlanRequest": {
+        "required": [
+          "plan",
+          "prorationDate"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          },
+          "prorationDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Confirms the switch to `plan` priced at `prorationDate`, as the preview returned it."
       },
       "ChangeMemberJobAccessRequest": {
         "required": [
@@ -21148,6 +21356,18 @@
           }
         },
         "description": "A text of the job that changed since the board's own was written. Both are plain text."
+      },
+      "PreviewBillingPlanChangeRequest": {
+        "required": [
+          "plan"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          }
+        },
+        "description": "The plan to price a switch to, by its key from the plan list."
       },
       "ProblemDetails": {
         "type": "object",
