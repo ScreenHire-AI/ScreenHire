@@ -10,6 +10,7 @@ sources:
   - resource: apps/dashboard/src/app.css
   - resource: apps/dashboard/src/lib/status.ts
   - resource: apps/dashboard/src/lib/verification-area.ts
+  - resource: apps/dashboard/src/lib/shell.ts
   - resource: apps/dashboard/src/routes/(app)/verification/+layout.svelte
   - resource: apps/dashboard/src/lib/components/sign-in-card.svelte
   - resource: apps/dashboard/src/lib/components/provider-marks/google-mark.svelte

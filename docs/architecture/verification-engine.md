@@ -18,6 +18,22 @@ sources:
   - resource: apps/api/Endpoints/VerificationAreaEndpoints.cs
   - resource: apps/api/Contracts/VerificationAreaContracts.cs
   - resource: apps/dashboard/src/lib/verification-area.ts
+  - resource: apps/dashboard/src/lib/activity-log.ts
+  - resource: apps/dashboard/src/lib/verification-settings-save.ts
+  - resource: apps/dashboard/src/lib/verification-settings.ts
+  - resource: apps/dashboard/src/lib/components/verification-area/ai-model-form.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/alerts-form.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/checks-form.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/policy-form.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/settings-tab.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/activity-rows.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/activity/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/checks/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/policy/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/ai-model/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/notifications/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/tab-guard.ts
   - resource: src/ScreenHire.Domain/Verification/DeviceCheckBasis.cs
   - resource: src/ScreenHire.Domain/Verification/TrustedSources.cs
   - resource: src/ScreenHire.Domain/History/VerificationSettingsFacts.cs
