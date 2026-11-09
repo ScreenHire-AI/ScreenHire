@@ -149,7 +149,7 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         // Each tab shows its own panel; the header band, with the candidate's facts, is the same element in the same place.
         var tabs = new (string Tab, string Url, ILocator Content)[]
         {
-            ("Verification", "tab=verification", Region("Review log")),
+            ("Verification", "tab=verification", Region("Verification")),
             ("Activity", "tab=activity", Page.GetByRole(AriaRole.Group, new() { Name = "Show" })),
             ("Files", "tab=files", Region("Files")),
             ("Application", "tab=application", Region("Answers")),

@@ -1,7 +1,7 @@
 <script lang="ts">
   import PencilIcon from '~icons/lucide/pencil';
   import Trash2Icon from '~icons/lucide/trash-2';
-  import { deleteApplicationNote, type ApplicationTimelineEntry, type Permission, type TeamMember } from '@screenhire/api-client';
+  import { deleteApplicationNote, type ApplicationTimelineEntry, type Permission, type TeamMember, type VerificationReviewEntry } from '@screenhire/api-client';
   import { ApiError } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import ActivityList, { type Activity } from '#lib/components/activity-list.svelte';
@@ -16,6 +16,7 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { activityKind, activityKinds, actorText, describeEvent, eventIcons, kindCounts, visibleEntries, type ActivityKind, type ActivityNames } from '#lib/activity.js';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { reviewActivities } from '#lib/verification-activity.js';
   import { applicationsPath } from '#lib/realtime.js';
 
   // An application's Activity (design system section 21): a box for a note, then what anyone did, newest first, saying
@@ -25,6 +26,7 @@
   let {
     applicationId,
     entries,
+    verificationLog,
     error,
     onretry,
     members,
@@ -36,6 +38,8 @@
     applicationId: string;
     /** The timeline, oldest first as the API sends it; undefined while it loads. */
     entries: readonly ApplicationTimelineEntry[] | undefined;
+    /** What people and API keys did to the candidate's verification (`reviewLog`, oldest first); its entries sit among the timeline's. */
+    verificationLog?: readonly VerificationReviewEntry[];
     error?: unknown;
     onretry: () => void;
     members: readonly TeamMember[] | undefined;
@@ -57,12 +61,19 @@
   let announcement = $state('');
 
   const visible = $derived(entries ? visibleEntries(entries) : undefined);
-  const counts = $derived(kindCounts(visible ?? []));
+  // The verification log's lines wait for the timeline, so the list never shows half of Activity.
+  const reviews = $derived(reviewActivities(verificationLog ?? [], currentUserId));
+  const counts = $derived.by(() => {
+    const timeline = kindCounts(visible ?? []);
+    return { ...timeline, all: timeline.all + reviews.length, verification: timeline.verification + reviews.length };
+  });
   const filtered = $derived(visible?.filter((entry) => filter === 'all' || activityKind(entry) === filter));
   const byId = $derived(new Map((entries ?? []).map((entry) => [entry.id, entry])));
 
-  const items = $derived<Activity[] | undefined>(
-    filtered?.map((entry) => ({
+  // The timeline's entries and the verification log's, newest first.
+  const items = $derived.by<Activity[] | undefined>(() => {
+    if (!filtered) return undefined;
+    const events: Activity[] = filtered.map((entry) => ({
       id: entry.id,
       icon: eventIcons[entry.type],
       event: describeEvent(entry, names),
@@ -70,8 +81,10 @@
       note: entry.type === 'NoteAdded' ? undefined : (entry.note ?? undefined),
       noteId: entry.type === 'NoteAdded' ? (entry.noteId ?? undefined) : undefined,
       at: entry.occurredAt,
-    })),
-  );
+    }));
+    const verification = filter === 'all' || filter === 'verification' ? reviews : [];
+    return [...events, ...verification].toSorted((a, b) => Date.parse(b.at) - Date.parse(a.at));
+  });
 
   const isAuthor = (entry: ApplicationTimelineEntry) => Boolean(entry.actorUserId) && entry.actorUserId === currentUserId;
   const editable = $derived(permissions.includes('AddNotesAndTags'));

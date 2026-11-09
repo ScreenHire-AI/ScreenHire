@@ -42,9 +42,9 @@ hiring process. So the question is how to open the evidence to a key without mak
 4. **Every read through a key is in the review log.** One `ReadByKey` row per application read: the key, the time, and
    no acting user. A level search that returns ten applications writes ten rows, and one that returns none writes
    none, because the log belongs to an application. The row is saved before the answer
-   goes out, so a read that cannot be recorded is not answered. The log stays append-only. The review log panel shows
-   it as "Read through the API key X" with the person who made the key, and folds a run of reads by one key into one
-   line with a count.
+   goes out, so a read that cannot be recorded is not answered. The log stays append-only. The candidate's Activity shows
+   it (the separate review log panel went in November 2026) as "Verification read through the API key X" with the person
+   who made the key, and folds a run of reads by one key into one line with a count.
 5. **Non-negotiable 2 is unchanged.** No verification tool rejects, moves, dismisses or notes. The server instructions
    and every verification tool description say a level is never a reason to reject on its own and that a candidate is
    not moved to a Rejected stage because of one, and every verification result repeats it in a `guidance` field. The

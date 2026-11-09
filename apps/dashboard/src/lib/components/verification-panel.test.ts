@@ -1,4 +1,4 @@
-import type { ApplicationVerification, ApplicationSource, CurrentUser, VerificationReasonExplanation, VerificationReviewEntry } from '@screenhire/api-client';
+import type { ApplicationVerification, CurrentUser, VerificationReasonExplanation } from '@screenhire/api-client';
 import { QueryClient } from '@tanstack/svelte-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -8,12 +8,13 @@ import { apiStub, user, userAs } from '../../test-support/fixtures.js';
 import {
   authenticityAssessmentId,
   botVerification,
+  checkGroups,
   genuineVerification,
   verificationApplicationId,
   pendingVerification,
 } from '../../test-support/verification-fixtures.js';
-import VerificationHarness from '../../test-support/verification-harness.svelte';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
+import VerificationPanel from './verification-panel.svelte';
 
 // Who is signed in; a test can switch to a role without the review permission.
 const signedIn = vi.hoisted(() => ({ user: null as CurrentUser | null }));
@@ -29,7 +30,7 @@ vi.mock('$app/state', () => ({
 
 const base = `/v1/applications/${verificationApplicationId}/verification`;
 
-/** Serves the verification panel from `state`, which a POST stub can replace, and records each POST body. */
+/** Serves the verification tab from `state`, which a POST stub can replace, and records each POST body. */
 function serve(initial: ApplicationVerification, posts: Record<string, (body: unknown) => { status: number; body: unknown; next?: ApplicationVerification }> = {}) {
   let state = initial;
   const sent: { route: string; body: unknown }[] = [];
@@ -47,11 +48,25 @@ function serve(initial: ApplicationVerification, posts: Record<string, (body: un
   return sent;
 }
 
-function renderPanel(source?: ApplicationSource) {
-  return render(WithQueryClient, { props: { component: VerificationHarness, props: { applicationId: verificationApplicationId, source } } });
+function renderPanel() {
+  return render(WithQueryClient, { props: { component: VerificationPanel, props: { applicationId: verificationApplicationId } } });
 }
 
-const section = (name: string) => screen.getByRole('region', { name });
+const summaryPanel = () => screen.getByRole('region', { name: 'Verification' });
+// The summary panel shows once the tab has loaded; until then a skeleton of the same name stands in.
+async function assessed() {
+  await waitFor(() => expect(document.querySelector('[data-summary]')).toBeInTheDocument());
+  return summaryPanel();
+}
+const group = (name: string) => screen.getByRole('region', { name });
+const tile = (key: string) => document.querySelector<HTMLElement>(`[data-group-map] [data-group="${key}"]`)!;
+const finding = (code: string) => document.querySelector<HTMLElement>(`[data-signal="${code}"]`)!;
+const openFinding = async (code: string) => {
+  const row = finding(code);
+  await fireEvent.click(row.querySelector('summary')!);
+  await waitFor(() => expect(row.querySelector('details')!.open).toBe(true));
+  return row;
+};
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -65,7 +80,7 @@ function explanation(actorUserId: string, overrides: Partial<VerificationReasonE
   return { actionId: `e-${actorUserId}`, reason: 'KnownFalsePositive', note: null, actorUserId, actorName: name, explainedAt: '2026-10-20T10:00:00Z', ...overrides };
 }
 
-/** The bot with some of its authenticity reasons explained, by code. */
+/** The bot with some of its authenticity findings explained, by code. */
 function botExplained(explained: Record<string, VerificationReasonExplanation>, overrides: Partial<ApplicationVerification> = {}): ApplicationVerification {
   const bot = botVerification();
   return {
@@ -75,262 +90,277 @@ function botExplained(explained: Record<string, VerificationReasonExplanation>, 
   };
 }
 
-function logEntry(overrides: Partial<VerificationReviewEntry>): VerificationReviewEntry {
-  return {
-    id: 'l1',
-    type: 'ReasonExplained',
-    assessmentKind: 'Authenticity',
-    assessmentId: authenticityAssessmentId,
-    dismissReason: null,
-    note: null,
-    actorUserId: user.id,
-    actorName: 'Avery Quinn',
-    occurredAt: '2026-10-20T10:00:00Z',
-    signalId: 'signal-NET_DATACENTER_IP',
-    signalTitle: "Sent from a hosting provider's network",
-    explainReason: 'ExpectedForRole',
-    apiKeyId: null,
-    apiKeyName: null,
-    keyCreatedByName: null,
-    ...overrides,
-  };
-}
-
-const reasonRow = (code: string) => section('Authenticity').querySelector<HTMLElement>(`[data-signal="${code}"]`)!;
-
-describe('verification panel', () => {
-  it('shows each assessment with its summary, next step, reasons with evidence, context and counter-evidence', async () => {
+describe('verification tab', () => {
+  it('opens with the next step, then the groups that found something, each finding opening to its evidence and counter-evidence', async () => {
     serve(botVerification());
     renderPanel();
 
-    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByRole('img', { name: 'Authenticity: Verification suggested, the highest of 3' })).toBeInTheDocument();
-    expect(authenticity).toHaveTextContent('3 observations from network and automation checks back each other up.');
-    expect(authenticity.querySelector('[data-next-step]')).toHaveTextContent(/^Confirm the candidate is who they say they are/);
-    // The next step leads, in a callout, with the summary under it; no labels, and no heading over the reasons.
-    expect(authenticity.querySelector('[data-summary]')?.firstElementChild?.nextElementSibling?.firstElementChild).toHaveAttribute('data-next-step');
-    expect(authenticity.querySelector('[data-summary] dt')).toBeNull();
-    expect(within(authenticity).getByRole('list', { name: 'Reasons' })).toBeInTheDocument();
-    const codes = [...authenticity.querySelectorAll('[data-signal]')].map((item) => item.getAttribute('data-signal'));
-    // Grouped by the check that found them, so the order follows the checks, not the list the API sends.
-    expect(codes.toSorted()).toEqual(['AUTO_SUBMIT_VELOCITY', 'AUTO_WEBDRIVER', 'NET_ANON_PROXY', 'NET_DATACENTER_IP']);
-    const context = authenticity.querySelector('[data-check="context"]')!;
-    expect(within(context as HTMLElement).getByRole('heading', { name: 'Context' })).toBeInTheDocument();
-    expect(context).toHaveTextContent('Not counted toward the level');
-    // When it was assessed and under which rules: audit details, on the panel's last line.
-    expect(authenticity.querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
-    expect(authenticity.querySelector('[data-signal="AUTO_SUBMIT_VELOCITY"] [data-evidence-kind="Metric"]')).toHaveTextContent('6 seconds');
-    const counter = authenticity.querySelector('[data-signal="NET_DATACENTER_IP"] [data-counter-evidence]')!;
-    // The other side of the argument, in its own card under its label.
+    const summary = await assessed();
+    // The level is the page header's mark, shown once: the tab does not spell out the scale or name two assessments.
+    expect(screen.queryByRole('region', { name: 'Authenticity' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'AI assistance' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /of 3/ })).not.toBeInTheDocument();
+    // The next step leads, in a callout, with the summary under it, and names the six groups.
+    const callout = summary.querySelector('[data-summary]')!;
+    expect(callout.querySelector('[data-next-step]')).toHaveTextContent(/^Confirm the candidate is who they say they are/);
+    expect(callout).toHaveTextContent('3 observations from network and form use checks back each other up.');
+    expect(callout).toHaveClass('border-status-verify-mark');
+    // A panel for each group that has findings, in the groups' order, titled by the group and nothing else.
+    expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent?.trim())).toEqual(['Verification', 'Network', 'Documents', 'Answers', 'Form use']);
+    expect(group('Network').querySelectorAll('svg[data-icon="globe"]')).toHaveLength(0);
+    const codes = (name: string) => [...group(name).querySelectorAll('[data-signal]')].map((item) => item.getAttribute('data-signal'));
+    expect(codes('Network')).toEqual(['NET_DATACENTER_IP', 'NET_ANON_PROXY']);
+    expect(codes('Form use')).toEqual(['AUTO_SUBMIT_VELOCITY', 'AUTO_WEBDRIVER']);
+    expect(codes('Documents')).toEqual(['CNT_PROMPT_INJECTION']);
+    expect(codes('Answers')).toEqual(['CNT_NEAR_DUPLICATE_ANSWER']);
+    // No tag on a finding that counts, and nothing that says "nothing found" outside a tile.
+    expect(document.body).not.toHaveTextContent('Counts toward the level');
+    expect(group('Network')).not.toHaveTextContent(/nothing found/i);
+    // Evidence is drawn by kind, and the counter-evidence is the other side of the argument in its own card.
+    expect(finding('AUTO_SUBMIT_VELOCITY').querySelector('[data-evidence-kind="Metric"]')).toHaveTextContent('6 seconds');
+    const counter = finding('NET_DATACENTER_IP').querySelector('[data-counter-evidence]')!;
     expect(counter.firstElementChild).toHaveTextContent(/^Counter-evidence$/);
     expect(counter).toHaveTextContent('The candidate gave a phone number in the same country.');
     expect(counter).toHaveTextContent('Phone country: United Kingdom');
+    expect(finding('CNT_PROMPT_INJECTION').querySelector('[data-evidence-kind="Quote"]')).toBeInTheDocument();
+    expect(finding('CNT_NEAR_DUPLICATE_ANSWER').querySelector('[data-evidence-kind="TextComparison"]')).toBeInTheDocument();
   });
 
-  it('groups the reasons under the check that found them, marking the checks that fed the level (W6)', async () => {
+  it('draws a map of the six groups, each with one state, linking to the panel of a group that found something', async () => {
     serve(botVerification());
     renderPanel();
 
-    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    const checks = [...authenticity.querySelectorAll<HTMLElement>('[data-check]')];
-    expect(checks.map((check) => check.querySelector('h3')?.textContent?.trim())).toEqual(['Network', 'Identity', 'Automation', 'Content', 'Context']);
-    const network = checks.find((check) => check.dataset.check === 'Network')!;
-    const identity = checks.find((check) => check.dataset.check === 'Identity')!;
-    expect(network).toHaveTextContent('1 signal');
-    expect(network.querySelector('svg[data-icon="triangle-alert"]')).toBeInTheDocument();
-    // Its reason sits under it and does not repeat the check's name.
-    const reason = network.querySelector('[data-signal="NET_DATACENTER_IP"] summary')!;
-    expect(reason).not.toHaveTextContent('Network');
-    expect(reason.querySelector('svg[data-icon="chevron-down"]')).toBeInTheDocument();
-    expect(identity).toHaveTextContent('Nothing found');
-    expect(identity.querySelector('svg[data-icon="triangle-alert"]')).not.toBeInTheDocument();
-    // There is no second list of the same reasons.
-    expect(authenticity.querySelectorAll('[data-signal="NET_DATACENTER_IP"]')).toHaveLength(1);
+    await assessed();
+    const map = screen.getByRole('list', { name: 'Check groups' });
+    expect([...map.querySelectorAll('[data-group]')].map((item) => item.getAttribute('data-group'))).toEqual(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']);
+    expect(tile('Network')).toHaveTextContent('Network 1 found');
+    expect(tile('Contact')).toHaveTextContent('Contact details Nothing found');
+    expect(tile('Documents')).toHaveTextContent('Documents 1 note, information only');
+    expect(tile('Answers')).toHaveTextContent('Answers 1 note, information only');
+    expect(tile('Duplicates')).toHaveTextContent('Duplicates Nothing found');
+    expect(tile('FormUse')).toHaveTextContent('Form use 2 found');
+    // A group that found nothing is a tile and not a link; one that found something links to its panel.
+    expect(tile('Contact').querySelector('a')).toBeNull();
+    expect(tile('Network').querySelector('a')).toHaveAttribute('href', '#verification-group-network');
+    expect(group('Network')).toHaveAttribute('id', 'verification-group-network');
+    // A state is its icon, colour and words, always together (T1).
+    expect(tile('Network').querySelector('[data-status="verify"], [data-status="review"]')).toBeInTheDocument();
+    expect(tile('Contact').querySelector('[data-status-icon]')).toBeInTheDocument();
+    // Following a tile moves focus to its panel.
+    group('Network').scrollIntoView = vi.fn();
+    await fireEvent.click(tile('Network').querySelector('a')!);
+    expect(group('Network')).toHaveFocus();
   });
 
-  // A recruiter added them by hand: no careers form, so no network address, session or form telemetry (section 16).
-  it('says which checks had nothing to look at for a candidate added by hand, and marks them Not checked', async () => {
-    const bot = botVerification();
-    const duplicate = { ...bot.authenticity!.signals[0]!, id: 'signal-duplicate', code: 'ID_DUPLICATE_EMAIL', title: 'Email used on another application', category: 'Identity' as const };
-    serve({ ...bot, authenticity: { ...bot.authenticity!, level: 'ReviewSuggested', reasonCodes: [duplicate.code], signals: [duplicate] } });
-    renderPanel('Recruiter');
-
-    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(authenticity.querySelector('[data-not-checked]')).toHaveTextContent(
-      'Added by hand, so the network, automation and form activity checks had nothing to look at.',
-    );
-    const check = (name: string) => authenticity.querySelector<HTMLElement>(`[data-check="${name}"]`)!;
-    expect(check('Network')).toHaveTextContent('Not checked');
-    expect(check('Automation')).toHaveTextContent('Not checked');
-    expect(check('Content')).toHaveTextContent('Nothing found');
-    expect(screen.getByRole('region', { name: 'AI assistance' }).querySelector('[data-not-checked]')).toBeNull();
-  });
-
-  it('keeps a calm hand-added result to its summary and one quiet line', async () => {
-    serve(genuineVerification());
-    renderPanel('Recruiter');
-
-    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(authenticity.querySelector('[data-not-checked]')).toHaveTextContent(/^Added by hand/);
-    expect(authenticity.querySelector('[data-checks]')).toBeNull();
-  });
-
-  it('never says a careers applicant had checks that could not run', async () => {
-    serve(genuineVerification());
-    renderPanel('CareersSite');
-
-    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(authenticity.querySelector('[data-not-checked]')).toBeNull();
-    expect(authenticity).not.toHaveTextContent('Not checked');
-  });
-
-  it('expands every reason at once and closes them again', async () => {
+  it('says AI help is information only on its findings, and offers no action or tag on anything else that does not count', async () => {
     serve(botVerification());
     renderPanel();
 
-    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    const reasons = () => [...authenticity.querySelectorAll('[data-signal] details')] as HTMLDetailsElement[];
-    expect(reasons().some((reason) => reason.open)).toBe(false);
-    await fireEvent.click(within(authenticity).getAllByRole('button', { name: 'Expand all' })[0]!);
-    await waitFor(() => expect(reasons().slice(0, 3).every((reason) => reason.open)).toBe(true));
-    await fireEvent.click(within(authenticity).getAllByRole('button', { name: 'Collapse all' })[0]!);
-    await waitFor(() => expect(reasons().slice(0, 3).some((reason) => reason.open)).toBe(false));
-  });
-
-  it("shows AI assistance as information, with the job policy and not the candidate's declaration", async () => {
-    serve(botVerification());
-    renderPanel();
-
-    const ai = await screen.findByRole('region', { name: 'AI assistance' });
-    expect(within(ai).getByRole('heading', { level: 2 })).toHaveTextContent('AI assistance');
-    // The level, the job's policy and Informational are pills in the header on a wide panel and the body's first line on
-    // a narrow one (a container query jsdom does not apply, so both copies are here).
-    const [header, body] = [...ai.querySelectorAll<HTMLElement>('[data-level-pills]')];
-    expect(header!.closest('header')).not.toBeNull();
-    expect(body!.closest('header')).toBeNull();
-    for (const pills of [header!, body!]) {
-      expect(within(pills).getByRole('img', { name: 'AI assistance: Some signs of AI help, the middle of 3' })).toBeInTheDocument();
-      expect(within(pills).getByText(/AI allowed with disclosure/)).toHaveTextContent('Job policy: AI allowed with disclosure');
+    await assessed();
+    for (const code of ['CNT_PROMPT_INJECTION', 'CNT_NEAR_DUPLICATE_ANSWER']) {
+      expect(finding(code).querySelector('[data-information-only]')).toHaveTextContent('Information only');
     }
-    expect(body).toHaveTextContent('Informational');
-    expect(within(ai.querySelector('header')!).getByText('Informational')).toBeInTheDocument();
-    expect(ai.querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
+    // The exception is marked, not the rule: a finding that counts and a context signal (the VPN) carry no tag.
+    for (const code of ['NET_DATACENTER_IP', 'AUTO_WEBDRIVER', 'NET_ANON_PROXY']) {
+      expect(finding(code).querySelector('[data-information-only]')).toBeNull();
+    }
+    for (const code of ['CNT_PROMPT_INJECTION', 'CNT_NEAR_DUPLICATE_ANSWER', 'NET_ANON_PROXY']) {
+      await openFinding(code);
+      expect(within(finding(code)).queryByRole('button', { name: 'Mark explained' })).not.toBeInTheDocument();
+    }
+    await openFinding('NET_DATACENTER_IP');
+    expect(within(finding('NET_DATACENTER_IP')).getByRole('button', { name: 'Mark explained' })).toBeInTheDocument();
+  });
+
+  it("shows AI help as its badge and the job's policy, with its summary and next step when it has signs, and no Dismiss", async () => {
+    serve(botVerification());
+    renderPanel();
+
+    const summary = await assessed();
+    const row = summary.querySelector('[data-ai-row]')!;
+    expect(within(row as HTMLElement).getByText('Some signs of AI help')).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByText(/AI allowed with disclosure/)).toHaveTextContent('Job policy: AI allowed with disclosure');
+    // Non-negotiable 1: the AI result's summary and next step are on screen when it has signs.
+    expect(row.querySelector('[data-ai-summary]')).toHaveTextContent('Some answers look generated or templated. Ask about the answers in the first conversation.');
     // The declaration has its own place on the page, with the candidate's answers (section 16).
-    expect(ai).not.toHaveTextContent(/Declared AI use/);
-    expect(ai.querySelector('[data-evidence-kind="Quote"]')).toBeInTheDocument();
-    expect(ai.querySelector('[data-evidence-kind="TextComparison"]')).toBeInTheDocument();
-    expect(ai.querySelector('[data-slot="badge"]')!.className).not.toMatch(/status-(review|verify)/);
+    expect(summary).not.toHaveTextContent(/Declared AI use/);
+    // One Dismiss, for the verification result; AI help has none.
+    expect(within(summary).getAllByRole('button', { name: 'Dismiss' })).toHaveLength(1);
+    expect(row.querySelector('[data-slot="badge"]')!.className).not.toMatch(/status-(review|verify)/);
   });
 
-  it('keeps a calm AI assistance header to its level and the job policy (W10)', async () => {
+  it('keeps a calm AI row to its badge and the policy, with the summary for screen readers only', async () => {
     serve(genuineVerification());
     renderPanel();
 
-    const ai = await screen.findByRole('region', { name: 'AI assistance' });
-    // Both copies of the pills (the wide header's and the narrow body's) lose the meter and Informational.
-    const pills = [...ai.querySelectorAll<HTMLElement>('[data-level-pills]')];
-    expect(pills).toHaveLength(2);
-    for (const row of pills) {
-      expect(within(row).getByText('No signs of AI help')).toBeInTheDocument();
-      expect(within(row).getByText(/AI allowed with disclosure/)).toHaveTextContent('Job policy: AI allowed with disclosure');
-      expect(within(row).queryByRole('img', { name: /the lowest of 3/ })).toBeNull();
-    }
-    expect(within(ai).queryByText('Informational')).toBeNull();
+    const summary = await assessed();
+    const row = summary.querySelector<HTMLElement>('[data-ai-row]')!;
+    expect(within(row).getByText('No signs of AI help')).toBeInTheDocument();
+    expect(within(row).getByText(/AI allowed with disclosure/)).toHaveTextContent('Job policy: AI allowed with disclosure');
+    expect(row.querySelector('[data-ai-summary]')).toBeNull();
+    expect(row.querySelector('.sr-only')).toHaveTextContent('No indicators. No action needed.');
   });
 
-  it('offers no reject control, no score and no percentage, and says no decision was made', async () => {
+  it('is one line when nothing was found, with the checks one click away and no empty lines for the groups', async () => {
+    serve(genuineVerification());
+    renderPanel();
+
+    const summary = await assessed();
+    // A calm result is the summary then its next step, quiet, with no map and no panel for any group.
+    const line = summary.querySelector('[data-summary]')!;
+    expect(line.tagName).toBe('P');
+    expect(line).toHaveClass('text-muted-foreground');
+    expect(line).toHaveTextContent('Nothing unusual in the checks that ran. No action needed.');
+    expect(line.querySelector('[data-next-step]')).toHaveTextContent('No action needed.');
+    expect(screen.queryByRole('list', { name: 'Check groups' })).toBeNull();
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(1);
+    expect(summary).not.toHaveTextContent(/nothing found/i);
+    // What was checked is collapsed and names the groups with their checks, and says nothing about what they mean.
+    const checked = summary.querySelector<HTMLDetailsElement>('[data-checked]')!;
+    expect(checked.open).toBe(false);
+    expect(checked.querySelector('summary')).toHaveTextContent('What was checked');
+    const names = [...checked.querySelectorAll('li')].map((item) => item.querySelector('span')?.textContent);
+    expect(names).toEqual(['Network:', 'Contact details:', 'Documents:', 'Answers:', 'Duplicates:', 'Form use:']);
+    // Nothing to dismiss, and the footer is on the one panel.
+    expect(screen.queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
+    expect(summary.querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
+    expect(summary).toHaveTextContent('No automated decision has been made. Every action is logged.');
+  });
+
+  it('says outright which groups did not run, so a quiet result is never read as a clean one', async () => {
+    serve({
+      ...genuineVerification(),
+      checkGroups: checkGroups({
+        Duplicates: { state: 'TurnedOff', note: "Duplicates checks are turned off in this organization's settings." },
+        Network: { state: 'NotChecked', note: 'Added by hand, so there was no careers form for these checks to read.' },
+        Contact: { note: 'A shared email address was not counted because its domain is on the organization\'s trusted list.' },
+      }),
+    });
+    renderPanel();
+
+    const summary = await assessed();
+    const lines = [...summary.querySelectorAll<HTMLElement>('[data-not-run] li')];
+    expect(lines.map((item) => item.getAttribute('data-group'))).toEqual(['Network', 'Contact', 'Duplicates']);
+    expect(lines[0]).toHaveTextContent('Network Not checked Added by hand, so there was no careers form for these checks to read.');
+    expect(lines[1]).toHaveTextContent('Contact details Not counted');
+    expect(lines[1]).toHaveTextContent('trusted list');
+    expect(lines[2]).toHaveTextContent("Duplicates Turned off Duplicates checks are turned off in this organization's settings.");
+    expect(lines[0]!.querySelector('[data-status-icon]')).toBeInTheDocument();
+    // What was checked names only the groups that ran.
+    const names = [...summary.querySelectorAll('[data-checked] li')].map((item) => item.querySelector('span')?.textContent);
+    expect(names).toEqual(['Contact details:', 'Documents:', 'Answers:', 'Form use:']);
+  });
+
+  it('shows the map for a calm level that still has notes, with the next step as one quiet line', async () => {
+    const calm = genuineVerification();
+    serve({
+      ...calm,
+      aiAssistance: { ...botVerification().aiAssistance!, level: 'NotIndicated', reasonCodes: [] },
+      checkGroups: checkGroups({ Documents: { state: 'InformationOnly', notes: 1 }, Answers: { state: 'InformationOnly', notes: 1 } }),
+    });
+    renderPanel();
+
+    const summary = await assessed();
+    expect(summary.querySelector('[data-summary]')!.tagName).toBe('P');
+    expect(summary.querySelector('[data-checked]')).toBeNull();
+    expect(screen.getByRole('list', { name: 'Check groups' })).toBeInTheDocument();
+    expect(group('Documents')).toBeInTheDocument();
+    expect(finding('CNT_PROMPT_INJECTION').querySelector('[data-information-only]')).toBeInTheDocument();
+    // Nothing counts, so nothing can be explained or dismissed.
+    expect(screen.queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
+  });
+
+  it('shows Expand all only for a group with more than one finding, and opens and closes them together', async () => {
+    serve(botVerification());
+    renderPanel();
+
+    await assessed();
+    expect(within(group('Documents')).queryByRole('button', { name: /Expand all|Collapse all/ })).not.toBeInTheDocument();
+    expect(within(group('Answers')).queryByRole('button', { name: /Expand all|Collapse all/ })).not.toBeInTheDocument();
+    const open = () => [...group('Form use').querySelectorAll<HTMLDetailsElement>('[data-signal] details')];
+    expect(open().some((details) => details.open)).toBe(false);
+    await fireEvent.click(within(group('Form use')).getByRole('button', { name: 'Expand all' }));
+    await waitFor(() => expect(open().every((details) => details.open)).toBe(true));
+    await fireEvent.click(within(group('Form use')).getByRole('button', { name: 'Collapse all' }));
+    await waitFor(() => expect(open().some((details) => details.open)).toBe(false));
+  });
+
+  it('puts the audit line and the decision line last, on the last panel only', async () => {
+    serve(botVerification());
+    renderPanel();
+
+    await assessed();
+    expect(document.querySelectorAll('[data-audit]')).toHaveLength(1);
+    expect(group('Form use').querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
+    expect(group('Form use')).toHaveTextContent('No automated decision has been made. Every action is logged.');
+    expect(summaryPanel().querySelector('[data-audit]')).toBeNull();
+  });
+
+  it('shows a trusted-domain or network note in the group it concerns', async () => {
+    const bot = botVerification();
+    serve({ ...bot, checkGroups: checkGroups({ Network: { state: 'Found', found: 1, notes: 1, note: 'The address is on a network the organization trusts, so no network signal was raised.' }, FormUse: { state: 'Found', found: 2 } }) });
+    renderPanel();
+
+    await assessed();
+    expect(group('Network')).toHaveTextContent('network the organization trusts');
+    expect(group('Form use')).not.toHaveTextContent('trusts');
+  });
+
+  it('offers no reject control, no score and no percentage, no review log and no review note', async () => {
     serve(botVerification());
     const { container } = renderPanel();
-    await screen.findByRole('region', { name: 'Authenticity' });
+    await assessed();
 
     for (const control of [...screen.queryAllByRole('button'), ...screen.queryAllByRole('link')]) {
       expect(control.textContent).not.toMatch(/reject|decline|disqualif/i);
     }
     expect(container.textContent).not.toMatch(/%|score/i);
     expect(container).toHaveTextContent('No automated decision has been made. Every action is logged.');
+    expect(screen.queryByRole('region', { name: 'Review log' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Add review note|Request verification/ })).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/phase 2|review log/i);
   });
 
-  it('hides request verification until it exists', async () => {
-    serve(botVerification());
-    renderPanel();
-    await screen.findByRole('region', { name: 'Authenticity' });
-
-    expect(screen.queryByRole('button', { name: /Request verification/ })).not.toBeInTheDocument();
-    expect(document.body).not.toHaveTextContent(/phase 2/i);
-  });
-
-  it('says why, then the next step: quiet when calm, semibold when the level needs a look', async () => {
-    serve(genuineVerification());
-    const { unmount } = renderPanel();
-    const calm = await screen.findByRole('region', { name: 'Authenticity' });
-    // A calm result is one quiet line: the summary, then its next step, which every result carries.
-    const line = calm.querySelector('[data-summary]')!;
-    expect(line.tagName).toBe('P');
-    expect(line).toHaveClass('text-muted-foreground');
-    expect(line.querySelector('[data-next-step]')).toHaveTextContent('No action needed.');
-    // Its summary already says nothing was found, so there is no list of empty checks under it (W7).
-    expect(within(calm).queryByRole('list', { name: 'Reasons' })).toBeNull();
-    unmount();
-
-    serve(botVerification());
-    renderPanel();
-    const concern = await screen.findByRole('region', { name: 'Authenticity' });
-    // A level that needs a look leads with its next step, semibold, in a callout edged in the level's colour.
-    const callout = concern.querySelector('[data-summary]')!;
-    expect(callout).toHaveClass('border-status-verify-mark');
-    expect(callout.querySelector('[data-next-step]')).toHaveClass('font-semibold');
-    expect(callout).toHaveTextContent(botVerification().authenticity!.summary);
-  });
-
-  it('dismisses an assessment with a reason, which lands in the review log', async () => {
+  it('dismisses the result with a reason, and says who set it aside; the level and the findings stay', async () => {
     const dismissed: ApplicationVerification = {
       ...botVerification(),
       authenticity: {
         ...botVerification().authenticity!,
         dismissal: { actionId: 'a1', reason: 'VerifiedOutsideScreenHire', note: 'Video call on Monday.', actorUserId: user.id, actorName: 'Avery Quinn', dismissedAt: '2026-10-20T11:00:00Z' },
       },
-      reviewLog: [
-        { id: 'a1', type: 'Dismissed', assessmentKind: 'Authenticity', assessmentId: authenticityAssessmentId, dismissReason: 'VerifiedOutsideScreenHire', note: 'Video call on Monday.', actorUserId: user.id, actorName: 'Avery Quinn', occurredAt: '2026-10-20T11:00:00Z', signalId: null, signalTitle: null, explainReason: null, apiKeyId: null, apiKeyName: null, keyCreatedByName: null },
-      ],
     };
     const sent = serve(botVerification(), {
       [`POST ${base}/assessments/${authenticityAssessmentId}/dismiss`]: () => ({ status: 200, body: dismissed, next: dismissed }),
     });
     renderPanel();
 
-    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Dismiss this authenticity assessment?' });
+    await fireEvent.click(await within(await assessed()).findByRole('button', { name: 'Dismiss' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Dismiss this verification result?' });
+    expect(dialog).toHaveTextContent('your reason goes in Activity');
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Verified outside ScreenHire' }));
     await fireEvent.input(within(dialog).getByLabelText('Note (optional)'), { target: { value: 'Video call on Monday.' } });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
 
     await waitFor(() => expect(sent).toEqual([{ route: `POST ${base}/assessments/${authenticityAssessmentId}/dismiss`, body: { reason: 'VerifiedOutsideScreenHire', note: 'Video call on Monday.' } }]));
-    await screen.findByText(/Dismissed authenticity: Verified outside ScreenHire. The decision is in the review log./);
-    const log = await screen.findByRole('region', { name: 'Review log' });
-    await within(log).findByText(/Dismissed authenticity: Verified outside ScreenHire/);
-    expect(log).toHaveTextContent('by you');
-    expect(log).toHaveTextContent('"Video call on Monday."');
-    // The level stays as assessed; the panel says who dismissed it and the button is gone.
-    const authenticity = section('Authenticity');
-    expect(within(authenticity).getByRole('img', { name: /Authenticity: Verification suggested/ })).toBeInTheDocument();
-    expect(authenticity).toHaveTextContent(/Dismissed by you/);
-    expect(within(authenticity).queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
+    await screen.findByText('Dismissed the verification result: Verified outside ScreenHire.');
+    const summary = summaryPanel();
+    await waitFor(() => expect(summary.querySelector('[data-dismissal]')).toHaveTextContent('Dismissed by you'));
+    expect(summary.querySelector('[data-dismissal]')).toHaveTextContent('Verified outside ScreenHire. "Video call on Monday."');
+    expect(within(summary).queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
+    // The evidence stays on record, and the level is not the tab's to change.
+    expect(finding('NET_DATACENTER_IP')).toBeInTheDocument();
+    expect(document.querySelector('[data-summary]')).not.toHaveClass('border-status-verify-mark');
   });
 
-  it('marks a reason explained, which closes it with its badge and lands in the review log, and decides nothing', async () => {
-    const after = botExplained(
-      { NET_DATACENTER_IP: explanation(user.id, { reason: 'ExpectedForRole', note: 'Remote role.' }) },
-      { reviewLog: [logEntry({ note: 'Remote role.' })] },
-    );
+  it('marks a finding explained, which closes it with its badge and decides nothing', async () => {
+    const after = botExplained({ NET_DATACENTER_IP: explanation(user.id, { reason: 'ExpectedForRole', note: 'Remote role.' }) });
     const sent = serve(botVerification(), {
       [`POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/explain`]: () => ({ status: 200, body: after, next: after }),
     });
     renderPanel();
 
-    await screen.findByRole('region', { name: 'Authenticity' });
-    const row = reasonRow('NET_DATACENTER_IP');
-    await fireEvent.click(row.querySelector('summary')!);
-    await waitFor(() => expect(row.querySelector('details')!.open).toBe(true));
+    await assessed();
+    const row = await openFinding('NET_DATACENTER_IP');
     await fireEvent.click(within(row).getByRole('button', { name: 'Mark explained' }));
     const dialog = await screen.findByRole('dialog', { name: `Mark "Sent from a hosting provider's network" explained?` });
     expect(dialog).toHaveTextContent('The level stays as assessed.');
@@ -339,64 +369,57 @@ describe('verification panel', () => {
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Mark explained' }));
 
     await waitFor(() => expect(sent).toEqual([{ route: `POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/explain`, body: { reason: 'ExpectedForRole', note: 'Remote role.' } }]));
-    await screen.findByText(`Marked explained: Sent from a hosting provider's network. It is in the review log.`);
-    await waitFor(() => expect(reasonRow('NET_DATACENTER_IP')).toHaveAttribute('data-explained'));
-    const explained = reasonRow('NET_DATACENTER_IP');
+    await screen.findByText(`Marked explained: Sent from a hosting provider's network.`);
+    await waitFor(() => expect(finding('NET_DATACENTER_IP')).toHaveAttribute('data-explained'));
+    const explained = finding('NET_DATACENTER_IP');
     expect(explained.querySelector('details')!.open).toBe(false);
     expect(within(explained.querySelector('summary')!).getByText('Explained')).toBeInTheDocument();
+    // The note sits under the finding it concerns.
     expect(explained.querySelector('[data-explanation] p')).toHaveTextContent(/^You .+: Expected for this role\. "Remote role\."$/);
     expect(within(explained).getByRole('button', { name: 'Undo' })).toBeInTheDocument();
-    expect(within(section('Review log')).getByText(`Explained Sent from a hosting provider's network: Expected for this role`)).toBeInTheDocument();
-    // The level, and the one button, stay as they were: other reasons are still unexplained.
-    const authenticity = section('Authenticity');
-    expect(within(authenticity).getByRole('img', { name: /Authenticity: Verification suggested/ })).toBeInTheDocument();
-    expect(within(authenticity).getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
-    expect(within(authenticity).queryByRole('button', { name: 'Dismiss all' })).not.toBeInTheDocument();
+    // The next step, the callout's colour and the one button stay as they were: other findings are still unexplained.
+    expect(summaryPanel().querySelector('[data-summary]')).toHaveClass('border-status-verify-mark');
+    expect(within(summaryPanel()).getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
+    expect(within(summaryPanel()).queryByRole('button', { name: 'Dismiss all' })).not.toBeInTheDocument();
   });
 
-  it('leaves a reason open when the API refuses its explanation', async () => {
+  it('leaves a finding open when the API refuses its explanation', async () => {
     const sent = serve(botVerification(), {
       [`POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/explain`]: () => ({ status: 409, body: { title: 'Already explained', status: 409 } }),
     });
     renderPanel();
 
-    await screen.findByRole('region', { name: 'Authenticity' });
-    const row = reasonRow('NET_DATACENTER_IP');
-    await fireEvent.click(row.querySelector('summary')!);
-    await waitFor(() => expect(row.querySelector('details')!.open).toBe(true));
+    await assessed();
+    const row = await openFinding('NET_DATACENTER_IP');
     await fireEvent.click(within(row).getByRole('button', { name: 'Mark explained' }));
     const dialog = await screen.findByRole('dialog', { name: `Mark "Sent from a hosting provider's network" explained?` });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Mark explained' }));
 
     await waitFor(() => expect(sent).toHaveLength(1));
-    await screen.findByText('Someone already explained this reason, or the assessment changed. The panel now shows the latest.');
-    expect(reasonRow('NET_DATACENTER_IP').querySelector('details')!.open).toBe(true);
+    await screen.findByText('Someone already explained this finding, or the result changed. The tab now shows the latest.');
+    expect(finding('NET_DATACENTER_IP').querySelector('details')!.open).toBe(true);
   });
 
   it('offers Undo to the author of an explanation only, and undoes it', async () => {
     const before = botExplained({ NET_DATACENTER_IP: explanation(user.id), AUTO_WEBDRIVER: explanation(teammate) });
-    const after = botExplained(
-      { AUTO_WEBDRIVER: explanation(teammate) },
-      { reviewLog: [logEntry({}), logEntry({ id: 'l2', type: 'ExplanationUndone', explainReason: null, occurredAt: '2026-10-20T10:05:00Z' })] },
-    );
+    const after = botExplained({ AUTO_WEBDRIVER: explanation(teammate) });
     const sent = serve(before, {
       [`POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/undo-explanation`]: () => ({ status: 200, body: after, next: after }),
     });
     renderPanel();
 
-    await screen.findByRole('region', { name: 'Authenticity' });
-    expect(reasonRow('AUTO_WEBDRIVER').querySelector('[data-explanation]')).toHaveTextContent(/^Jordan Park /);
-    expect(within(reasonRow('AUTO_WEBDRIVER')).queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
-    await fireEvent.click(within(reasonRow('NET_DATACENTER_IP')).getByRole('button', { name: 'Undo' }));
+    await assessed();
+    expect(finding('AUTO_WEBDRIVER').querySelector('[data-explanation]')).toHaveTextContent(/^Jordan Park /);
+    expect(within(finding('AUTO_WEBDRIVER')).queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+    await fireEvent.click(within(finding('NET_DATACENTER_IP')).getByRole('button', { name: 'Undo' }));
 
     await waitFor(() => expect(sent).toEqual([{ route: `POST ${base}/assessments/${authenticityAssessmentId}/signals/signal-NET_DATACENTER_IP/undo-explanation`, body: undefined }]));
     await screen.findByText(`Undid the explanation: Sent from a hosting provider's network.`);
-    await waitFor(() => expect(reasonRow('NET_DATACENTER_IP')).not.toHaveAttribute('data-explained'));
-    expect(within(section('Review log')).getByText(`Undid the explanation of Sent from a hosting provider's network`)).toBeInTheDocument();
+    await waitFor(() => expect(finding('NET_DATACENTER_IP')).not.toHaveAttribute('data-explained'));
   });
 
-  it('offers Dismiss all once every reason that counts is explained, lists their notes, and dismisses once', async () => {
-    // The context reason (the VPN) does not count, so it need not be explained.
+  it('offers Dismiss all once every finding that counts is explained, lists their notes, and dismisses once', async () => {
+    // The context finding (the VPN) does not count, so it need not be explained.
     const all = botExplained({
       AUTO_SUBMIT_VELOCITY: explanation(user.id, { actionId: 'e1', reason: 'ConfirmedWithCandidate', note: 'Uses a password manager to fill forms.' }),
       AUTO_WEBDRIVER: explanation(teammate, { actionId: 'e2' }),
@@ -407,16 +430,15 @@ describe('verification panel', () => {
     });
     renderPanel();
 
-    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).queryByRole('button', { name: 'Dismiss' })).not.toBeInTheDocument();
-    await fireEvent.click(within(authenticity).getByRole('button', { name: 'Dismiss all' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Dismiss this authenticity assessment?' });
-    const listed = within(dialog).getByRole('list', { name: 'Explained reasons' });
-    // In the panel's order (Network before Automation), not the order the API listed the signals in.
+    const summary = await assessed();
+    expect(within(summary).queryByRole('button', { name: 'Dismiss' })).not.toBeInTheDocument();
+    await fireEvent.click(within(summary).getByRole('button', { name: 'Dismiss all' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Dismiss this verification result?' });
+    const listed = within(dialog).getByRole('list', { name: 'Explained findings' });
     expect(within(listed).getAllByRole('listitem').map((item) => item.querySelector('span')!.textContent)).toEqual([
-      "Sent from a hosting provider's network",
       'Completed faster than a person could',
       'Browser automation detected',
+      "Sent from a hosting provider's network",
     ]);
     expect(listed).toHaveTextContent('Confirmed with the candidate, by you. "Uses a password manager to fill forms."');
     expect(listed).toHaveTextContent('A known false positive, by Jordan Park');
@@ -428,7 +450,7 @@ describe('verification panel', () => {
     await waitFor(() => expect(sent).toEqual([{ route: `POST ${base}/assessments/${authenticityAssessmentId}/dismiss`, body: { reason: 'FalsePositive', note: null } }]));
   });
 
-  it('keeps explanations read-only once the assessment is dismissed', async () => {
+  it('keeps explanations read-only once the result is dismissed', async () => {
     const bot = botExplained({ NET_DATACENTER_IP: explanation(user.id) });
     serve({
       ...bot,
@@ -439,24 +461,24 @@ describe('verification panel', () => {
     });
     renderPanel();
 
-    await screen.findByRole('region', { name: 'Authenticity' });
-    expect(reasonRow('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
-    expect(within(section('Authenticity')).queryByRole('button', { name: /Undo|Mark explained|Dismiss/ })).not.toBeInTheDocument();
+    await assessed();
+    await openFinding('NET_DATACENTER_IP');
+    expect(finding('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
+    expect(screen.queryByRole('button', { name: /Undo|Mark explained|Dismiss/ })).not.toBeInTheDocument();
   });
 
-  it('shows no review controls to a role that does not review verification', async () => {
+  it('shows no review controls to a role that does not review verification, and says why', async () => {
     signedIn.user = { ...userAs('Viewer'), id: user.id };
     serve(botExplained({ NET_DATACENTER_IP: explanation(user.id) }));
     renderPanel();
 
-    await screen.findByRole('region', { name: 'Authenticity' });
-    await fireEvent.click(within(section('Authenticity')).getAllByRole('button', { name: 'Expand all' })[0]!);
-    await waitFor(() => expect(reasonRow('AUTO_WEBDRIVER').querySelector('details')!.open).toBe(true));
+    await assessed();
+    await openFinding('AUTO_WEBDRIVER');
 
-    expect(screen.queryByRole('button', { name: /Mark explained|Undo|Dismiss|Add review note/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Mark explained|Undo|Dismiss/ })).not.toBeInTheDocument();
     // Read-only says why (E3).
-    expect(section('Authenticity')).toHaveTextContent('Your role can read these checks; ask a reviewer to explain or dismiss them.');
-    expect(reasonRow('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
+    expect(summaryPanel()).toHaveTextContent('Your role can read these checks; ask a reviewer to explain or dismiss them.');
+    expect(finding('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
   });
 
   it('asks for a note before dismissing for another reason', async () => {
@@ -465,7 +487,7 @@ describe('verification panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
+    await fireEvent.click(await within(await assessed()).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Other reason' }));
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
@@ -475,17 +497,17 @@ describe('verification panel', () => {
     expect(sent).toEqual([]);
   });
 
-  it('closes and says so when the assessment was already dismissed or replaced', async () => {
+  it('closes and says so when the result was already dismissed or replaced', async () => {
     serve(botVerification(), {
       [`POST ${base}/assessments/${authenticityAssessmentId}/dismiss`]: () => ({ status: 409, body: { title: 'Conflict', status: 409 } }),
     });
     renderPanel();
 
-    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
+    await fireEvent.click(await within(await assessed()).findByRole('button', { name: 'Dismiss' }));
     const dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss with this reason' }));
 
-    await screen.findByText('This assessment was already dismissed, or a newer one replaced it. The panel now shows the latest.');
+    await screen.findByText('This result was already dismissed, or a newer one replaced it. The tab now shows the latest.');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
@@ -495,7 +517,7 @@ describe('verification panel', () => {
     });
     renderPanel();
 
-    await fireEvent.click(await within(await screen.findByRole('region', { name: 'Authenticity' })).findByRole('button', { name: 'Dismiss' }));
+    await fireEvent.click(await within(await assessed()).findByRole('button', { name: 'Dismiss' }));
     let dialog = await screen.findByRole('dialog');
     await fireEvent.click(within(dialog).getByRole('radio', { name: 'Explained by the candidate' }));
     await fireEvent.input(within(dialog).getByLabelText('Note (optional)'), { target: { value: 'Said so on the phone.' } });
@@ -506,28 +528,10 @@ describe('verification panel', () => {
 
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    await fireEvent.click(within(section('Authenticity')).getByRole('button', { name: 'Dismiss' }));
+    await fireEvent.click(within(summaryPanel()).getByRole('button', { name: 'Dismiss' }));
     dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('radio', { name: 'The observations do not apply' })).toBeChecked();
     expect(within(dialog).getByLabelText('Note (optional)')).toHaveValue('');
-  });
-
-  it('shows a rejected note under the field', async () => {
-    serve(botVerification(), {
-      [`POST ${base}/notes`]: () => ({
-        status: 400,
-        body: { title: 'One or more validation errors occurred.', status: 400, errors: { note: ['The note is too long.'] } },
-      }),
-    });
-    renderPanel();
-
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add review note' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a review note' });
-    await fireEvent.input(within(dialog).getByLabelText('Note'), { target: { value: 'A note.' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add review note' }));
-
-    expect(await within(dialog).findByText('The note is too long.')).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('Note')).toHaveAttribute('aria-invalid', 'true');
   });
 
   it('keeps the evidence on screen when a refetch fails', async () => {
@@ -537,120 +541,29 @@ describe('verification panel', () => {
       vi.fn(apiStub({ [`GET ${base}`]: () => (failing ? Response.json({ title: 'Server error', status: 500 }, { status: 500 }) : Response.json(botVerification())) })),
     );
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(WithQueryClient, { props: { component: VerificationHarness, props: { applicationId: verificationApplicationId }, client } });
-    await screen.findByRole('region', { name: 'Authenticity' });
+    render(WithQueryClient, { props: { component: VerificationPanel, props: { applicationId: verificationApplicationId }, client } });
+    await screen.findByRole('region', { name: 'Network' });
 
     failing = true;
     await invalidatePath(client, '/v1/applications');
 
     expect(await screen.findByText(/Could not load the verification checks/)).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Authenticity' }).querySelector('[data-next-step]')).toHaveTextContent(/^Confirm the candidate/);
-  });
-
-  it('adds a note to the review log', async () => {
-    const noted: ApplicationVerification = {
-      ...botVerification(),
-      reviewLog: [{ id: 'n1', type: 'NoteAdded', assessmentKind: null, assessmentId: null, dismissReason: null, note: 'Asked for references.', actorUserId: 'someone-else', actorName: 'Jordan Park', occurredAt: '2026-10-20T11:00:00Z', signalId: null, signalTitle: null, explainReason: null, apiKeyId: null, apiKeyName: null, keyCreatedByName: null }],
-    };
-    const sent = serve(botVerification(), { [`POST ${base}/notes`]: () => ({ status: 200, body: noted, next: noted }) });
-    renderPanel();
-
-    await fireEvent.click(await screen.findByRole('button', { name: 'Add review note' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Add a review note' });
-    await fireEvent.input(within(dialog).getByLabelText('Note'), { target: { value: '  Asked for references. ' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add review note' }));
-
-    await waitFor(() => expect(sent).toEqual([{ route: `POST ${base}/notes`, body: { note: 'Asked for references.' } }]));
-    const log = screen.getByRole('region', { name: 'Review log' });
-    await within(log).findByText('"Asked for references."');
-    expect(log).toHaveTextContent('Note by Jordan Park');
-  });
-
-  it('shows a read through an API key by the key, with who made it, and folds a run of reads into one line', async () => {
-    const read = (id: string, keyId: string, keyName: string, occurredAt: string) =>
-      logEntry({ id, type: 'ReadByKey', assessmentKind: null, assessmentId: null, explainReason: null, signalId: null, signalTitle: null, actorUserId: null, actorName: null, apiKeyId: keyId, apiKeyName: keyName, keyCreatedByName: 'Avery Quinn', occurredAt });
-    serve({
-      ...botVerification(),
-      reviewLog: [
-        logEntry({ id: 'p1', type: 'NoteAdded', explainReason: null, signalId: null, signalTitle: null, note: 'Asked for references.', occurredAt: '2026-10-20T09:00:00Z' }),
-        read('r1', 'key-1', 'Auditor', '2026-10-20T10:00:00Z'),
-        read('r2', 'key-1', 'Auditor', '2026-10-20T10:05:00Z'),
-        read('r3', 'key-1', 'Auditor', '2026-10-20T10:10:00Z'),
-        read('r4', 'key-2', 'Export', '2026-10-20T11:00:00Z'),
-      ],
-    });
-    renderPanel();
-
-    const log = await screen.findByRole('region', { name: 'Review log' });
-    await within(log).findByText('Read through the API key Auditor, 3 times');
-    expect(within(log).getByText('Read through the API key Export')).toBeInTheDocument();
-    expect(log).toHaveTextContent('key made by Avery Quinn');
-    expect(log).toHaveTextContent('Note on authenticity by you');
-    expect(within(log).queryByRole('button', { name: /reject/i })).not.toBeInTheDocument();
-  });
-
-  it('has nothing to dismiss when there are no concerns', async () => {
-    serve(genuineVerification());
-    renderPanel();
-
-    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByRole('img', { name: 'Authenticity: No concerns, the lowest of 3' })).toBeInTheDocument();
-    expect(authenticity.querySelector('[data-next-step]')).toHaveTextContent('No action needed.');
-    expect(screen.queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
-    expect(within(section('Review log')).getByText('No review actions yet.')).toBeInTheDocument();
+    expect(document.querySelector('[data-next-step]')).toHaveTextContent(/^Confirm the candidate/);
   });
 
   it('turns from pending to assessed when VerificationAssessed arrives, without a reload', async () => {
     let assessed = false;
     vi.stubGlobal('fetch', vi.fn(apiStub({ [`GET ${base}`]: () => Response.json(assessed ? botVerification() : pendingVerification()) })));
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(WithQueryClient, { props: { component: VerificationHarness, props: { applicationId: verificationApplicationId }, client } });
+    render(WithQueryClient, { props: { component: VerificationPanel, props: { applicationId: verificationApplicationId }, client } });
     await screen.findByText(/Checks are still running/);
 
     // What the shell's live connection does with the event (#lib/realtime.ts).
     assessed = true;
     await Promise.all((invalidations.VerificationAssessed ?? []).map((path) => invalidatePath(client, path)));
 
-    const authenticity = await screen.findByRole('region', { name: 'Authenticity' });
-    expect(within(authenticity).getByRole('img', { name: /Authenticity: Verification suggested/ })).toBeInTheDocument();
+    await screen.findByRole('region', { name: 'Network' });
     expect(screen.queryByText(/Checks are still running/)).not.toBeInTheDocument();
-  });
-
-  // The organization's settings (turned-off groups, trusted domains and networks) are listed, so a result without signals from a
-  // group is never read as a clean one.
-  it('lists what the settings kept the checks from doing, each with an icon, a label and its note', async () => {
-    serve({
-      ...genuineVerification(),
-      checksNotRun: [
-        { group: 'Documents', label: 'Documents', kind: 'TurnedOff', note: "Documents checks are turned off in this organization's settings." },
-        { group: 'Network', label: 'Network', kind: 'Trusted', note: 'The address is on a network the organization trusts, so no network signal was raised.' },
-      ],
-    });
-    renderPanel();
-
-    const list = await screen.findByRole('region', { name: 'Not checked' });
-    expect(within(list).getByText("Documents checks are turned off in this organization's settings.")).toBeInTheDocument();
-    expect(within(list).getByText('Turned off')).toBeInTheDocument();
-    expect(within(list).getByText('Not counted')).toBeInTheDocument();
-    expect(within(list).getByText(/network the organization trusts/)).toBeInTheDocument();
-    expect(list.querySelectorAll('[data-status-icon]')).toHaveLength(2);
-    expect(list).not.toHaveTextContent(/%|score/i);
-  });
-
-  it('shows no Not checked list when the settings kept nothing back', async () => {
-    serve({ ...genuineVerification(), checksNotRun: [] });
-    renderPanel();
-
-    await screen.findByRole('region', { name: 'Authenticity' });
-    expect(screen.queryByRole('region', { name: 'Not checked' })).not.toBeInTheDocument();
-  });
-
-  it('shows no Not checked list when the API sends none', async () => {
-    serve({ ...genuineVerification(), checksNotRun: null });
-    renderPanel();
-
-    await screen.findByRole('region', { name: 'Authenticity' });
-    expect(screen.queryByRole('region', { name: 'Not checked' })).not.toBeInTheDocument();
   });
 
   it('says the checks are still running while they are', async () => {
@@ -658,6 +571,14 @@ describe('verification panel', () => {
     renderPanel();
 
     expect(await screen.findByText(/Checks are still running/)).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Authenticity' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Check groups' })).not.toBeInTheDocument();
+  });
+
+  it('tolerates an API that sends no check groups', async () => {
+    serve({ ...genuineVerification(), checkGroups: null });
+    renderPanel();
+
+    const summary = await assessed();
+    expect(summary.querySelector('[data-summary]')).toHaveTextContent('Nothing unusual in the checks that ran. No action needed.');
   });
 });

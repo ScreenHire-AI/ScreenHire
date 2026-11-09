@@ -42,71 +42,71 @@ public static class SignalCatalogue
 
     private static readonly SignalDefinition[] Definitions =
     [
-        new(DatacenterIp, SignalCategory.Network, VerificationAssessmentKind.Authenticity, SignalWeight.Medium,
+        new(DatacenterIp, SignalCategory.Network, VerificationAssessmentKind.Authenticity, SignalWeight.Medium, "network",
             "Sent from a hosting provider's network",
             "The application came from {network}, a hosting or cloud provider. People usually apply from a home, mobile or office connection."),
-        new(AnonymousProxy, SignalCategory.Network, VerificationAssessmentKind.Authenticity, SignalWeight.Low,
+        new(AnonymousProxy, SignalCategory.Network, VerificationAssessmentKind.Authenticity, SignalWeight.Low, "network",
             "Sent through a VPN, proxy or Tor",
             "The application came through {service}. Many people use these for privacy, so this is context only and never a reason on its own.",
             ContextOnly: true),
-        new(GeoClaimMismatch, SignalCategory.Network, VerificationAssessmentKind.Authenticity, SignalWeight.Medium,
+        new(GeoClaimMismatch, SignalCategory.Network, VerificationAssessmentKind.Authenticity, SignalWeight.Medium, "network",
             "Network location differs from the location the candidate gave",
             "The candidate's details point to {claimed}, but the application came from a network in {observed}."),
 
-        new(DisposableEmail, SignalCategory.Identity, VerificationAssessmentKind.Authenticity, SignalWeight.Medium,
+        new(DisposableEmail, SignalCategory.Identity, VerificationAssessmentKind.Authenticity, SignalWeight.Medium, "identity",
             "Throwaway email address",
             "The email address uses {domain}, a disposable email service whose inboxes expire."),
-        new(EmailWithoutMx, SignalCategory.Identity, VerificationAssessmentKind.Authenticity, SignalWeight.Medium,
+        new(EmailWithoutMx, SignalCategory.Identity, VerificationAssessmentKind.Authenticity, SignalWeight.Medium, "identity",
             "Email domain cannot receive mail",
             "The domain {domain} publishes no mail server, so messages to this address cannot be delivered."),
-        new(InvalidPhone, SignalCategory.Identity, VerificationAssessmentKind.Authenticity, SignalWeight.Low,
+        new(InvalidPhone, SignalCategory.Identity, VerificationAssessmentKind.Authenticity, SignalWeight.Low, "identity",
             "Phone number is not a valid number",
             "The phone number does not match any number range in use for {region}."),
-        new(VoipPhone, SignalCategory.Identity, VerificationAssessmentKind.Authenticity, SignalWeight.Low,
+        new(VoipPhone, SignalCategory.Identity, VerificationAssessmentKind.Authenticity, SignalWeight.Low, "identity",
             "Internet phone number",
             "The phone number is in a range for internet (VoIP) numbers in {region}. Many people use them legitimately; they are also easy to create in bulk."),
-        new(DuplicateInOrganization, SignalCategory.Identity, VerificationAssessmentKind.Authenticity, SignalWeight.Medium,
+        new(DuplicateInOrganization, SignalCategory.Identity, VerificationAssessmentKind.Authenticity, SignalWeight.Medium, "duplicates",
             "Shares details with other applicants",
             "This application and {others} to your organization came from different candidates but share {shared}."),
 
-        new(Webdriver, SignalCategory.Automation, VerificationAssessmentKind.Authenticity, SignalWeight.High,
+        new(Webdriver, SignalCategory.Automation, VerificationAssessmentKind.Authenticity, SignalWeight.High, "automation",
             "Browser automation detected",
             "The browser reported that automation software was controlling it ({markers})."),
-        new(SubmitVelocity, SignalCategory.Automation, VerificationAssessmentKind.Authenticity, SignalWeight.Medium,
+        new(SubmitVelocity, SignalCategory.Automation, VerificationAssessmentKind.Authenticity, SignalWeight.Medium, "automation",
             "Completed faster than a person could",
             "The form's pages were open for {duration} in all, faster than reading and answering them plausibly takes ({minimum}).",
             AccessibilitySensitive: true),
-        new(Honeypot, SignalCategory.Automation, VerificationAssessmentKind.Authenticity, SignalWeight.Medium,
+        new(Honeypot, SignalCategory.Automation, VerificationAssessmentKind.Authenticity, SignalWeight.Medium, "automation",
             "Hidden field filled in",
             "A form field hidden from people was filled in. Automated software usually does this; some autofill tools can too.",
             AccessibilitySensitive: true),
-        new(TurnstileFailed, SignalCategory.Automation, VerificationAssessmentKind.Authenticity, SignalWeight.Low,
+        new(TurnstileFailed, SignalCategory.Automation, VerificationAssessmentKind.Authenticity, SignalWeight.Low, "automation",
             "Bot challenge not passed",
             "The browser did not pass the bot challenge. Browsers with JavaScript turned off or strict privacy tools fail it too, so this is context only.",
             ContextOnly: true),
 
-        new(PasteDominant, SignalCategory.Behavioural, VerificationAssessmentKind.AiAssistance, SignalWeight.Medium,
+        new(PasteDominant, SignalCategory.Behavioural, VerificationAssessmentKind.AiAssistance, SignalWeight.Medium, "behavioural",
             "Answers mostly pasted in",
             "Most of the text in {field} arrived by pasting rather than typing.",
             AccessibilitySensitive: true),
-        new(FocusSwitching, SignalCategory.Behavioural, VerificationAssessmentKind.AiAssistance, SignalWeight.Low,
+        new(FocusSwitching, SignalCategory.Behavioural, VerificationAssessmentKind.AiAssistance, SignalWeight.Low, "behavioural",
             "Frequent switching away while answering",
             "The candidate switched away from the form often while answering {field}.",
             AccessibilitySensitive: true),
 
-        new(PromptInjection, SignalCategory.Document, VerificationAssessmentKind.AiAssistance, SignalWeight.High,
+        new(PromptInjection, SignalCategory.Document, VerificationAssessmentKind.AiAssistance, SignalWeight.High, "documents",
             "Hidden instructions in the resume",
             "The {document} contains text aimed at automated screening tools rather than people: {detail}."),
-        new(NearDuplicateAnswer, SignalCategory.Content, VerificationAssessmentKind.AiAssistance, SignalWeight.Medium,
+        new(NearDuplicateAnswer, SignalCategory.Content, VerificationAssessmentKind.AiAssistance, SignalWeight.Medium, "answers",
             "Answer nearly identical to another applicant's",
             "The answer to {question} is nearly identical to an answer another applicant gave."),
-        new(ResumeGenerator, SignalCategory.Document, VerificationAssessmentKind.AiAssistance, SignalWeight.Low,
+        new(ResumeGenerator, SignalCategory.Document, VerificationAssessmentKind.AiAssistance, SignalWeight.Low, "documents",
             "Resume made with a generator tool",
             "The resume file's details show it was made with {tool}."),
-        new(Inconsistency, SignalCategory.Content, VerificationAssessmentKind.Authenticity, SignalWeight.Medium,
+        new(Inconsistency, SignalCategory.Content, VerificationAssessmentKind.Authenticity, SignalWeight.Medium, "consistency",
             "Details contradict each other",
             "The {left} and the {right} give different {topic}. There is often an ordinary explanation, such as a role left off one of them, so ask the candidate before drawing a conclusion."),
-        new(TemplatedAnswer, SignalCategory.Content, VerificationAssessmentKind.AiAssistance, SignalWeight.Low,
+        new(TemplatedAnswer, SignalCategory.Content, VerificationAssessmentKind.AiAssistance, SignalWeight.Low, "answers",
             "Answer contains template text",
             "The answer to {question} contains {pattern}, text usually left over from a writing tool or template. This is for information only and never counts toward a level.",
             ContextOnly: true,
@@ -115,6 +115,9 @@ public static class SignalCatalogue
 
     /// <summary>Every definition by code.</summary>
     public static FrozenDictionary<string, SignalDefinition> All { get; } = Definitions.ToFrozenDictionary(d => d.Code, StringComparer.Ordinal);
+
+    /// <summary>The check group of <paramref name="code"/>, or null for a code the catalogue does not know.</summary>
+    public static CheckGroup? GroupOf(string code) => All.TryGetValue(code, out var definition) ? CheckGroups.Of(definition.Analyzer) : null;
 
     /// <summary>The definition of <paramref name="code"/>; an unknown code is a programming error.</summary>
     public static SignalDefinition Get(string code) =>
@@ -126,6 +129,8 @@ public static class SignalCatalogue
 /// in (<see cref="Explain"/>).
 /// </summary>
 /// <remarks>
+/// <c>analyzer</c>: the name of the analyzer that observes the signal, the same name a stored signal carries as its source.
+/// <see cref="CheckGroups.Of"/> turns it into the check group, so a signal's group has one definition.
 /// <c>informational</c>: never counted by the ruleset, not even as context next to other signals of its category.
 /// </remarks>
 public sealed record SignalDefinition(
@@ -133,6 +138,7 @@ public sealed record SignalDefinition(
     SignalCategory Category,
     VerificationAssessmentKind Assessment,
     SignalWeight Weight,
+    string Analyzer,
     string Title,
     string ExplanationTemplate,
     bool AccessibilitySensitive = false,

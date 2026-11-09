@@ -43,6 +43,15 @@ public static class CheckGroups
     /// <summary>The group of an analyzer, or null for one this map does not know.</summary>
     public static CheckGroup? Of(string analyzerName) => ByAnalyzer.TryGetValue(analyzerName, out var group) ? group : null;
 
+    /// <summary>
+    /// The group of a stored signal: its source analyzer's, or the catalogue's for a code whose source this map does not know.
+    /// Null for a retired code from an analyzer that no longer exists.
+    /// </summary>
+    public static CheckGroup? OfSignal(VerificationSignal signal) => Of(signal.Source) ?? SignalCatalogue.GroupOf(signal.Code);
+
+    /// <summary>The group's name in a sentence ("contact details"), as the ruleset's summary says it.</summary>
+    public static string SentenceName(CheckGroup group) => Label(group).ToLowerInvariant();
+
     /// <summary>The name shown to people ("Network checks").</summary>
     public static string Label(CheckGroup group) => group switch
     {
@@ -52,6 +61,17 @@ public static class CheckGroups
         CheckGroup.Answers => "Answers",
         CheckGroup.Duplicates => "Duplicates",
         _ => "Form use",
+    };
+
+    /// <summary>What a group looks at, in the words "What was checked" uses: names the checks, says nothing about what they mean.</summary>
+    public static string Checked(CheckGroup group) => group switch
+    {
+        CheckGroup.Network => "hosting providers, VPN, proxy and Tor, and location against the candidate's details",
+        CheckGroup.Contact => "throwaway email, mail server, valid phone and internet phone",
+        CheckGroup.Documents => "hidden instructions and generator tools",
+        CheckGroup.Answers => "copied answers, template text and details that contradict each other",
+        CheckGroup.Duplicates => "email address, phone number, device and resume file against your other applicants",
+        _ => "automation, speed, hidden field, bot challenge, pasting and switching away",
     };
 
     /// <summary>

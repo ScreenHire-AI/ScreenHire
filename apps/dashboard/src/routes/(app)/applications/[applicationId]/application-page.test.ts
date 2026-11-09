@@ -3,6 +3,7 @@ import type {
   ApplicationInterview,
   ApplicationTaskEntry,
   ApplicationVerification,
+  VerificationReviewEntry,
   CandidateEmailEntry,
   ApplicationTimelineEntry,
   JobDetail,
@@ -899,6 +900,46 @@ describe('application page', () => {
     expect(within(region).getByText('Ask about the notice period.')).toBeInTheDocument();
   });
 
+  it("lists what people and API keys did to the candidate's verification in Activity, under the Verification kind", async () => {
+    const logged = (overrides: Partial<VerificationReviewEntry>): VerificationReviewEntry => ({
+      id: 'log-1',
+      type: 'ReasonExplained',
+      assessmentKind: 'Authenticity',
+      assessmentId: null,
+      dismissReason: null,
+      note: null,
+      actorUserId: user.id,
+      actorName: 'Avery Quinn',
+      occurredAt: '2026-10-20T12:00:00Z',
+      signalId: null,
+      signalTitle: "Sent from a hosting provider's network",
+      explainReason: 'ExpectedForRole',
+      apiKeyId: null,
+      apiKeyName: null,
+      keyCreatedByName: null,
+      ...overrides,
+    });
+    const read = (id: string, occurredAt: string) =>
+      logged({ id, type: 'ReadByKey', actorUserId: null, actorName: null, signalTitle: null, explainReason: null, apiKeyId: 'key-1', apiKeyName: 'Auditor', keyCreatedByName: 'Avery Quinn', occurredAt });
+    stubApi({
+      [`GET /v1/applications/${applicationId}/verification`]: () =>
+        Response.json({ ...botVerification(), applicationId, reviewLog: [logged({}), read('r1', '2026-10-20T13:00:00Z'), read('r2', '2026-10-20T13:05:00Z')] }),
+    });
+    renderPage('activity');
+    const region = await screen.findByRole('region', { name: 'Activity' });
+
+    await within(region).findByText('Verification read through the API key Auditor, 2 times');
+    // Newest first among the timeline's own lines, a run of reads by one key as one line, who made the key after it.
+    expect(lines(region)[0]).toBe('Verification read through the API key Auditor, 2 times key made by Avery Quinn');
+    expect(lines(region)).toContain(`Explained "Sent from a hosting provider's network": Expected for this role by you`);
+    const filter = within(region).getByRole('group', { name: 'Show' });
+    await waitFor(() => expect(within(filter).getByRole('button', { name: /^Verification/ })).toHaveTextContent('Verification 3'));
+    await fireEvent.click(within(filter).getByRole('button', { name: /^Verification/ }));
+    await waitFor(() => expect(within(region).getAllByRole('listitem')).toHaveLength(3));
+    // The tab's own count is every line.
+    expect(screen.getByRole('tab', { name: /^Activity/ })).toHaveTextContent('Activity 8');
+  });
+
   it('filters Activity by kind, with a count on each kind and none on All, which the tab shows', async () => {
     renderPage('activity');
     const region = await screen.findByRole('region', { name: 'Activity' });
@@ -912,6 +953,7 @@ describe('application page', () => {
         'Scorecards 0',
         'Interviews 0',
         'Stage and tags 4',
+        'Verification 1',
       ]),
     );
     await fireEvent.click(within(filter).getByRole('button', { name: /^Notes/ }));
@@ -1182,14 +1224,14 @@ describe('application page', () => {
     });
   });
 
-  it('shows the Verification tab with its checks and the review log, also at its old address', async () => {
+  it('shows the Verification tab with its checks, also at its old address', async () => {
     // ?tab=integrity is the tab's old address: a link from before the rename still opens it.
     renderPage('integrity');
 
     await screen.findByText(/Checks are still running/);
     expect(screen.getByRole('tab', { name: /^Verification/ })).toHaveAttribute('aria-selected', 'true');
     expect(document.body).toHaveTextContent('No automated decision has been made. Every action is logged.');
-    expect(await screen.findByRole('region', { name: 'Review log' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Review log' })).not.toBeInTheDocument();
   });
 
   it('adds a note from the box on Activity, mentioning a teammate picked from the list by keyboard', async () => {

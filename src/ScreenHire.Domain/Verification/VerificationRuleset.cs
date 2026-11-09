@@ -34,7 +34,7 @@ namespace ScreenHire.Domain.Verification;
 public static class VerificationRuleset
 {
     /// <summary>Stored with every assessment. Change it whenever a rule, weight or threshold changes, or an analyzer changes what its signals mean (a new analyzer version).</summary>
-    public const string Version = "2026-11-02.1";
+    public const string Version = "2026-11-09.1";
 
     public const int CorroboratingWeight = 2;
 
@@ -194,7 +194,7 @@ public static class VerificationRuleset
                         : "No signs that the content was generated or templated."
                     : shown.All(s => s.ContextOnly)
                             ? $"Shown for context only: {Observations(shown.Count).ToLowerInvariant()}, never a reason on {(shown.Count == 1 ? "its" : "their")} own."
-                            : $"{Observations(shown.Count)} from {Categories(shown)} checks, with nothing from a second, independent kind of check to back {(shown.Count == 1 ? "it" : "them")} up. Shown for context only.";
+                            : $"{Observations(shown.Count)} from {Categories(shown)} checks, with nothing independent to back {(shown.Count == 1 ? "it" : "them")} up. Shown for context only.";
 
         public static string NextStep(VerificationAssessmentKind kind, int step, AiPolicyContext? context)
         {
@@ -220,21 +220,13 @@ public static class VerificationRuleset
         private static string Observations(int count) =>
             count == 1 ? "One observation" : $"{count.ToString(CultureInfo.InvariantCulture)} observations";
 
+        // The summary names the check groups the engine runs (Network, Contact details, ...), the same six the Verification tab
+        // is organised by, in their enum order.
         private static string Categories(IEnumerable<VerificationSignal> signals)
         {
-            var names = signals.Select(s => s.Category).Distinct().Order().Select(CategoryName).ToList();
+            var names = signals.Select(CheckGroups.OfSignal).OfType<CheckGroup>().Distinct().Order().Select(CheckGroups.SentenceName).ToList();
             return names.Count <= 1 ? names.FirstOrDefault() ?? "" : $"{string.Join(", ", names[..^1])} and {names[^1]}";
         }
-
-        private static string CategoryName(SignalCategory category) => category switch
-        {
-            SignalCategory.Network => "network",
-            SignalCategory.Identity => "identity",
-            SignalCategory.Automation => "automation",
-            SignalCategory.Behavioural => "form behaviour",
-            SignalCategory.Document => "document",
-            _ => "content",
-        };
     }
 }
 

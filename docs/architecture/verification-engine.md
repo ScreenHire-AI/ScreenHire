@@ -63,7 +63,11 @@ sources:
   - resource: apps/api/Endpoints/VerificationSettingsHandlers.cs
   - resource: apps/api/Contracts/VerificationContracts.cs
   - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/VerificationConfiguration.cs
-  - resource: apps/dashboard/src/lib/components/review-log.svelte
+  - resource: apps/dashboard/src/lib/components/verification-panel.svelte
+  - resource: apps/dashboard/src/lib/components/verification-group-map.svelte
+  - resource: apps/dashboard/src/lib/components/verification-finding.svelte
+  - resource: apps/dashboard/src/lib/verification-activity.ts
+  - resource: apps/api/Applications/VerificationGroups.cs
   - resource: apps/api/Endpoints/PublicTelemetryEndpoints.cs
   - resource: apps/dashboard/src/lib/verification.ts
   - resource: packages/telemetry/src/collector.ts
@@ -229,7 +233,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
 ## 7. Recruiter & candidate experience
 
 - **Recruiter**: assessment chips on every candidate card (`Authenticity: Review suggested · 3 reasons`), a detail
-  panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add review note*.
+  panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, and *Mark explained* with an optional note on a finding.
   Every action is audit-logged. No "reject" button sits in the verification panel, the candidate's Verification tab.
 
   Built in v1 (`apps/dashboard`), where people see this feature as Verification (ADR-0017): one Verification column in
@@ -240,33 +244,37 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   one per state with its count, which filter the job's table and board; the "To review" and "To verify" saved views (authenticity above its lowest level,
   not dismissed; AI assistance is information, not a queue); and the candidate's Verification tab. While authenticity
   needs a look and is not dismissed, its state is the candidate's status beside their name and the tab's grey
-  count is the signals behind it. Each assessment is one panel: its level, its three-step scale and, for AI assistance,
-  the job's AI policy as a pill in the header; the suggested next step leading in a callout in the level's colour with
-  the summary under it (one quiet line for a calm result); then the reasons grouped by the kind of check that found them
-  (Network, Identity, Automation and Content always; Files for `Document` and Form activity for `Behavioural` only when
-  they found something, kept apart because the levels count categories apart) and a Context group for signals that do
-  not count, each reason expanding to its evidence drawn by kind (§10.1) and counter-evidence; and last, the dismissal
-  or Dismiss, with when it was assessed and the ruleset. Overview repeats the suggested next step while the level needs
-  a look, with "Not a reason to reject on its own". The candidate's AI declaration is on the Application tab, not
-  repeated here, and the summary leaves out the job's AI policy, which the pill shows. Each reason of an assessment
-  above the lowest level and not dismissed can be *Marked explained*, with a reason (Confirmed with the candidate,
-  Expected for this role, A known false positive, or Other with a note) and an optional note; it then shows closed, as
-  Explained, with who, when and why, and *Undo* for its author only. Explaining decides nothing: the level, the status
-  badge, the chips, the filters, "To review", the workflow engine's facts, webhooks and the MCP server never read it.
-  Once every reason that counts is explained, Dismiss reads *Dismiss all* and opens the same dismiss dialog with the
-  explained reasons and their notes listed; it is still one dismissal with its own reason. After a dismissal the
-  explanations are read only. Its action is *Dismiss with a reason* (per assessment above the lowest level); the Review
-  log panel beside it lists every dismissal, explanation, undo and note and holds *Add review note*. *Request verification* is hidden until phase 2
-  builds it. The footer reads "No automated decision has been made. Every action is logged." `VerificationAssessed`
-  refetches the chips, overview and panel live. AI chips take the AI colour and the sparkles icon at every level, and
-  stay quiet in lists, so they read as information. While a verification filter is set, the job page's bulk move offers no
-  Rejected or Withdrawn stage, and a new filter clears the selection (`bulkMoveStages` in `#lib/verification.ts`): a
-  filtered "select all" must not become rejection driven by verification signals. Moving one candidate stays a person's
-  decision about that candidate. A candidate a recruiter added by hand came through no careers form, so `network` and
-  `automation` had nothing to read and `behavioural` no telemetry: their authenticity panel says so in one quiet line,
-  and Network and Automation read "Not checked" instead of "Nothing found" (`uncheckedCategories` in
-  `#lib/verification.ts`). It goes by the application's source alone, so a careers applicant who turned telemetry off with
-  the assistive-technology switch is never told apart; the ruleset is unchanged.
+  count is the signals behind it. The tab is organised by the six groups of checks the engine runs (`CheckGroup`:
+  Network, Contact details, Documents, Answers, Duplicates, Form use), not by the two assessments. It opens with the
+  suggested next step (a callout in the level's colour with the summary under it when the level needs a look, one quiet
+  line otherwise) and Dismiss, then AI help as information (its badge, the job's policy as a pill, and for Some and
+  Strong signs its summary and next step), then a map of the six groups, each tile with one state: `Found` (counts toward
+  the level), `InformationOnly` (AI help and context that never counts), `NothingFound`, `NotChecked` or `TurnedOff`. Below
+  it is a panel for each group that has findings, each finding expanding to its evidence drawn by kind (§10.1) and
+  counter-evidence. The API computes the states (`checkGroups` on the verification view, from the signals, the
+  analyzers' run notes and the application's source) and each signal's `group` (from its source analyzer through
+  `CheckGroups.ByAnalyzer`), so the dashboard holds no second table. A calm result (no finding in any group) is one line, the
+  AI row, one line for each group that was turned off or not checked, and a collapsed "What was checked". The level
+  is the page header's mark, shown once. Each finding of an authenticity result above its lowest level and not dismissed that
+  counts toward the level can be *Marked explained*, with a reason (Confirmed with the candidate, Expected for this
+  role, A known false positive, or Other with a note) and an optional note; it then shows closed, as Explained, with who,
+  when and why under it, and *Undo* for its author only. AI findings say "Information only" and have no action. Explaining
+  decides nothing: the level, the status badge, the chips, the filters, "To review", the workflow engine's facts,
+  webhooks and the MCP server never read it. Once every finding that counts is explained, Dismiss reads *Dismiss all* and
+  opens the same dismiss dialog with the explained findings and their notes listed; it is still one dismissal with its
+  own reason. After a dismissal the explanations are read only. There is no review log panel and no *Add review note* in the
+  dashboard: every dismissal, explanation, undo, note, re-check's evidence change and read through an API key is a line in
+  the candidate's Activity, under its Verification filter (`reviewLog` in the API is that audit trail; a run of reads by one
+  key is one line). *Request verification* is hidden until phase 2 builds it. The footer reads "No automated decision has
+  been made. Every action is logged." `VerificationAssessed` refetches the chips, overview and tab live. AI chips take the
+  AI colour and the sparkles icon at every level, and stay quiet in lists, so they read as information. While a
+  verification filter is set, the job page's bulk move offers no Rejected or Withdrawn stage, and a new filter clears the
+  selection (`bulkMoveStages` in `#lib/verification.ts`): a filtered "select all" must not become rejection driven by
+  verification signals. Moving one candidate stays a person's decision about that candidate. A candidate a recruiter
+  added by hand came through no careers form, so `network` and `automation` had nothing to read and `behavioural` no
+  telemetry: Network and Form use read `NotChecked` instead of `NothingFound`. It goes by the application's source alone, so a
+  careers applicant who turned telemetry off with the assistive-technology switch is never told apart; the ruleset is
+  unchanged.
 - **Candidate**: notice before collection, accommodation toggle, AI-use declaration, a "why we asked you to verify"
   page, and an **appeal / human-review request** flow (UK Art. 22C, CCPA ADMT, Colorado notices).
 
@@ -467,11 +475,11 @@ Rules of thumb in the analyzers:
   signals (timing, telemetry, the honeypot) are never stored, the behavioural analyzer never asks for telemetry, and the
   run's note reads the same either way, so nothing records the switch.
 
-### 10.3 Ruleset (`VerificationRuleset`, version `2026-11-02.1`)
+### 10.3 Ruleset (`VerificationRuleset`, version `2026-11-09.1`)
 
 Weights count `Low` 1, `Medium` 2, `High` 3. A category **corroborates** when its weights add up to at least 2;
 context-only signals (`NET_ANON_PROXY`, `AUTO_TURNSTILE_FAIL`) add their weight only next to a direct signal of the same
-category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. Version `2026-10-21.2` shortened summaries to the count and the kinds of check; the reasons list names each signal. Version `2026-11-02.1` followed the automation analyzer to version 2 (active time per page replaced the time from first showing the form to sending it): the ruleset version moves whenever an analyzer changes what its signals mean, so an assessment says which meaning it was made under. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
+category. Informational signals (`CNT_TEMPLATED_ANSWER`) add nothing at all; version `2026-10-20.3` added that rule. Version `2026-10-20.4` added `telemetry-only-alongside-another-category`. Version `2026-10-21.1` took the declaration out of AI assistance summaries. Version `2026-10-21.2` shortened summaries to the count and the kinds of check; the reasons list names each signal. Version `2026-11-02.1` followed the automation analyzer to version 2 (active time per page replaced the time from first showing the form to sending it): the ruleset version moves whenever an analyzer changes what its signals mean, so an assessment says which meaning it was made under. Version `2026-11-09.1` changed the summary only: it names the check groups of the signals that back each other up ("network, contact details and answers checks") instead of their categories ("network, identity and content checks"); no rule, weight or level moved (the context-only sentence now says "nothing independent to back it up" instead of "a second, independent kind of check", since the groups it lists are not the categories the rule counts), and an application keeps the summary it was assessed with until something reassesses it. The honeypot is `Medium` and accessibility-sensitive: autofill and assistive tools can fill a hidden field.
 For each assessment, in order:
 
 | Rule id | Rule |
@@ -557,7 +565,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 
 | Route | What |
 |---|---|
-| `GET /v1/applications/{id}/verification` | `status` (`Pending` until assessed), both current assessments with level, reason codes, summary, next step, signals with evidence and counter-evidence, any dismissal, AI policy context, the review log, and whether verification can be requested (not until phase 2) |
+| `GET /v1/applications/{id}/verification` | `status` (`Pending` until assessed), both current assessments with level, reason codes, summary, next step, signals with evidence and counter-evidence, any dismissal, AI policy context, the review log (the audit trail the dashboard shows in Activity), `checkGroups` (the six groups of checks, each with its state), and whether verification can be requested (not until phase 2) |
 | `GET /v1/verification/applications` | the applications whose current authenticity or AI assistance level is the one asked for (`authenticity`, `aiAssistance`, `jobId`, `includeDismissed`, `limit` up to 50), newest first and never ranked, each with both levels, their reason codes and whether each was dismissed. At least one level is required. For a key with the Verification read scope; each application returned is logged (below) |
 | `POST .../verification/assessments/{assessmentId}/dismiss` | a reason (`VerifiedOutsideScreenHire`, `ExplainedByCandidate`, `FalsePositive`, or `Other` with a note); only the current assessment, above the lowest level, once |
 | `POST .../verification/assessments/{assessmentId}/signals/{signalId}/explain` | marks one reason explained: a reason (`ConfirmedWithCandidate`, `ExpectedForRole`, `KnownFalsePositive`, or `Other` with a note) and an optional note; only the current assessment, above the lowest level and not dismissed, and once until undone. It changes nothing but the review log |
@@ -570,7 +578,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST /v1/organization/verification-settings/llm/test` | one small request with the key and model; answers with a word, never the provider's text |
 
 The verification view also carries `consistencyCheck` (status, note, prompt version, models) once the check is decided, and
-each signal's `informational` flag and, for `CNT_INCONSISTENCY`, its `llm` provenance. `checksNotRun` lists the groups the
+each signal's `informational` flag and `group` (its check group) and, for `CNT_INCONSISTENCY`, its `llm` provenance. `checkGroups` carries, for each of the six groups, how many findings count toward the level (`found`), how many are notes (`notes`), the one `state` the tab shows, what the group looks at (`checked`) and the settings' note. `checksNotRun` lists the groups the
 organization's settings kept from running or from counting something (a group turned off, a trusted domain or network), each
 with its note, so a result without signals from a group is never read as a clean one; the MCP server and the Verification
 read key return it too.
@@ -580,7 +588,7 @@ a key without the scope gets 403, and every other route here is the session's, s
 through a key adds a `ReadByKey` row to the review log for each application read, in the same save that precedes the
 answer: the key's id and the time, no acting user. A database check keeps every row to a person (`actor_user_id`) or a
 key (`api_key_id`), never both. The view shows it as `type: ReadByKey` with `apiKeyId`, `apiKeyName` and
-`keyCreatedByName`, and the dashboard's review log folds a run of reads by one key into one line with a count. Reading
+`keyCreatedByName`, and the dashboard's Activity folds a run of reads by one key into one line with a count. Reading
 decides nothing: no level, filter, automation fact or webhook reads these rows (ADR-0004).
 
 Writes need a hiring role and the antiforgery header. Dismissing records a decision and never changes the assessment.

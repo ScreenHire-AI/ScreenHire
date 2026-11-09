@@ -751,7 +751,7 @@ in a development build, shows every component in each state, and its test fails 
 | Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7). The sign-in pages have none, because their card carries the mark |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones. Two text styles and one-line cells (L1); every column sorts through the sort header (L2). A list item that takes a date puts its name on its own line under the status, so a draft with no date is as tall as a published job. A list whose actions live only on its rows (saved candidates) ends each list item with the row's More menu, which stays clickable above the item's link. A job's candidate table and the board's cards do the same (`ApplicationMenu`, named Actions for the candidate): a Move to heading over the job's stages, the current one marked, which is the non-drag way to move a card (A7). The detail page keeps its Move to stage button, because it is one page's own action |
 | Search field | Our component | A list's search, in its table panel's header (section 7); 16px text on touch |
-| Activity | `ActivityList`; on a candidate `ActivityPanel` | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People and API keys show by name ("by Robin Ashby", "by you", "by ATS sync"). A candidate's Activity lists everything newest first, opens with the note box, then filters by kind (All, Notes, Emails, Scorecards, Interviews, Stage and tags) with a count on each kind but All, whose count is the Activity tab's (W7); Overview shows the last five and links to the rest. A team note shows its latest text through `NoteText`, with "Edited" after it and when in a tooltip; its More menu holds Edit for the author and Delete for the author, an Owner or an Admin, confirmed in a dialog, and anyone else sees no menu. Editing turns the note into its own box in place. A deleted note leaves one line, "Deleted a note" and who, never its text |
+| Activity | `ActivityList`; on a candidate `ActivityPanel` | Icon in a circle, event, who did it, time ago; a note left with it is quoted below. People and API keys show by name ("by Robin Ashby", "by you", "by ATS sync"). A candidate's Activity lists everything newest first, opens with the note box, then filters by kind (All, Notes, Emails, Scorecards, Interviews, Stage and tags, Verification) with a count on each kind but All, whose count is the Activity tab's (W7); the Verification kind holds when the checks ran and what people and API keys did to the candidate's verification (dismissals, explanations, undos, notes, evidence a re-check changed, and reads through an API key, a run by one key as one line) (section 16); Overview shows the last five and links to the rest. A team note shows its latest text through `NoteText`, with "Edited" after it and when in a tooltip; its More menu holds Edit for the author and Delete for the author, an Owner or an Admin, confirmed in a dialog, and anyone else sees no menu. Editing turns the note into its own box in place. A deleted note leaves one line, "Deleted a note" and who, never its text |
 | Mention | `MentionField` on shadcn `Textarea`; `NoteForm` for the note box and editing in place; `NoteText` | @ opens the organization's members, without yourself, narrowing as you type: arrow keys move, Enter or Tab picks, Esc closes the list only. The list sits under the field, each member an avatar, name and role; the field points at it with `aria-controls` and `aria-activedescendant`, because a textarea cannot be a combobox. An @ button (Mention someone) starts one below `md`. Ctrl or Cmd Enter saves, hinted in the Save tooltip. A mention is stored as the member's user id and shows their current name ("@former teammate" once they leave). The person mentioned gets a notification card and an email that says who and where and never quotes the note; a mention an edit adds notifies only that person. Save is outline, because the page's primary is Move to stage (A1) |
 | Rich text editor | `RichTextEditor` and `RichTextToolbar` on Tiptap 3, with shadcn `Toggle`, `Tooltip` and `Popover` | A job's description (New job, Edit details), an email template's message and the email composer's (docs/architecture/rich-text.md). A box with the input edge, a toolbar across its top and the text under it; the label above it names the text area (`aria-labelledby`, because a contenteditable has no `for`), and clicking the label focuses it. The toolbar holds Bold, Italic, Heading, Subheading, Bulleted list, Numbered list and Link, in that order: one tab stop, the arrow keys, Home and End move between them, each an icon toggle with its name and key caps in a tooltip (A4, K1), the pressed ones `accent` (A6), one line that scrolls rather than wraps (F5), 44px on touch (F4). Link opens a popover with the address field, Apply and, on a link, Remove link; a bare host gets https, an email address mailto, and anything else says what to enter. Headings are two levels (the careers page's h1 is the job title), lists do not nest, and Tab always leaves the editor. In an email, each variable is a chip: a muted word with its label (First name), kept whole, and Insert variable adds one at the caret; End goes past a chip that ends a line. An email template's Subject shows its variables as the same chips in `SubjectEditor`: the size and edge of a text field around one line of plain text that scrolls sideways, where Enter does nothing; it stores the Liquid text as the message does. Read-only, the same text without the toolbar. No hint under it: the toolbar says what it does (W4) |
 | Tag list | `TagList` | Each tag a fact pill with its own Remove icon button beside it, never inside it (A5), then a field and Add tag. In a candidate's header (`compact`) the Remove button shows on hover, focus and tap only, and Add tag is a small outline button (A6) that opens its field in place. Removing is not destructive: adding the tag again undoes it (section 10). Without a role that changes hiring data, the pills only. The same list holds the sites that can embed the careers page (Settings, Careers site, Careers page, the Embed on your website panel), with Add site and Remove site: each saves at once, and "No sites yet. Add one to get the embed code." while there are none |
@@ -776,7 +776,7 @@ in a development build, shows every component in each state, and its test fails 
 | Customize sheet | `CustomizePostingSheet`, `CustomizePostingForm` on shadcn `Sheet` | What one job board receives in place of the job's title and description. Each field starts as what the board gets now, which is the job's text until it is customized; "Use the job's title" or "Use the job's description" shows under the field only while it differs, and an empty or equal field follows the job. The Edit / Preview switch (A8, no window) shows the API's preview, with the board's failing checks as `FailureText`. When the job changed since the board was customized, a block above the fields shows each field's old and new job text. Cancel and one primary, Save and post; a failing check stays in the sheet and nothing is sent. Where it opens from, and where it is never offered, is in section 21 |
 | Live indicator | `LiveIndicator` | The live updates status as a pill in the top bar, beside Search, on every page: icon, colour and label (T1), from section 3.2 (Live, Connecting, Offline). While live, its icon has a slow, soft pulse behind it, which stops for reduced motion. On a phone only the icon shows; screen readers hear the label |
 | Failure text | `FailureText` with `ProblemIcon` | A failed action or form, in one line where it happened: the problem icon, the verify colour and the reason (T1, section 14). A section that cannot load uses `QueryError` |
-| Verification chip and panel | `VerificationChip`, `SignalEvidence`, `ReviewLog`, `LevelScale`; `VerificationPanel` is the candidate's Verification tab, with `VerificationExplainDialog` and `VerificationDismissDialog` | Section 16. `LevelScale` draws a level on its three steps. A summary card per kind of check: Network, Identity, Automation and Content always, Files and Form activity (the telemetry aggregates) only when they found something, each named for what was looked at, never for what it means about the person. Reasons expand one by one or with Expand all, and each can be marked explained, with Undo for its author. The review log is its own panel: dismissals, explained reasons, undos and review notes as Activity, and Add review note, named apart from Activity's Add note |
+| Verification chip and panel | `VerificationChip`, `SignalEvidence`; `VerificationPanel` is the candidate's Verification tab (a map of the six check groups and a panel per group that found something), with `VerificationExplainDialog` and `VerificationDismissDialog` | Section 16. The map's tiles name what was looked at, never what it means about the person. A finding opens to its evidence, can be marked explained with an optional note, and shows the explanation under it with Undo for its author. Dismissals, explanations, undos, notes and reads through API keys are entries in the candidate's Activity, not a panel of their own |
 | Tabs | `RecordTabs` on shadcn `Tabs` (`line`) | A record's peer views in a fixed order, each with its count in the count badge. The workflow page's tabs (Overview, Pipeline, Questions, Automations, Test) are this strip too, kept in the address as `?tab=`, so a job and its workflow keep one frame (S8). A count is a plain number, never a fraction (Job postings 7), always in the same grey count badge; a state that needs a look is the record's status beside its title, never a coloured tab, a dot or a lone icon (E2). The list scrolls sideways, never wraps (F5) |
 | Notice | `Notice` | A problem to fix: the verify status's soft colour, full width, the problem icon (section 14), what is wrong in words and a link to the fix, or the button that fixes it from there (E2) |
 | Expandable row | `ExpandableRow` | A list's row that opens in place to show more, such as an email on Messages: the whole row is the button, with `aria-expanded` and `chevron-down`, which turns up when it is open; what it shows follows the row. Its words wrap rather than truncate, since a tooltip has no place inside a button. The rows share one surface and its dividers (S4) |
@@ -893,47 +893,56 @@ input those sequences act like single-key shortcuts.
 
 Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 
-- Each assessment shows its level as a status badge, a one-line summary, its reasons with evidence and
-  counter-evidence, and its suggested next step. A calm result keeps its next step as one quiet line ("Suggested next
-  step: No action needed."), not a boxed callout.
-- AI assistance is information: a bare `sparkles` mark with a tooltip in its own colour, shown only for Some and
-  Strong signs and never in a badge, never a warning. It never sorts, filters or counts.
-- No score, no percentage, no reject control. The panel ends with "No automated decision has been made. Every action
-  is logged."
-- Facts shown elsewhere on the page (the candidate's AI declaration) are not repeated in the panel (W7).
-- On a candidate it is the Verification tab. When the level needs a look, the tab's count is the signals behind it, in
-  the grey every tab's count has (E2), and the level is the candidate's status badge beside their name (T2). Each
-  assessment is one panel with one skeleton and no labels over sentences (W9): its name, level badge (unless the page
-  header already shows it, W7), a small meter of the three steps and, for AI assistance, the job's policy as a pill ("AI
-  allowed with disclosure") in the header, with Expand all on the right. AI assistance's pills (level, meter, policy and
-  Informational) do not fit a fixed-height header on a narrow panel, so below a 48rem container they move to the body's
-  first line and the header keeps the name and Expand all (F1, F5). A calm AI result (No signs of AI help) keeps only the level
-  and the policy: the meter's lowest step and Informational are dropped (W10). When the level needs a look the next step
-  leads, semibold, in a callout edged in the level's colour with an arrow, the summary a muted line under it; a calm or
-  dismissed result is one muted line, the summary then its next step (W10). Then the reasons, grouped by the kind of
-  check that found them (Network, Identity, Automation, Content) and a last Context group for what does not count, each
-  group's name and signal count beside its reasons, each reason opening (A9) to what was observed, its evidence as a
-  facts row, any counter-evidence in its own card, and its code. The panel ends with Dismiss on the left and "Assessed 2
-  hours ago" and "Ruleset" in caption size on the right. A calm result has no list of empty checks: its summary already
-  says so. The summary never repeats the job's policy, which the pill shows (W7).
-- A candidate added by hand came through no careers form, so the authenticity result says so in one quiet line ("Added
-  by hand, so the network, automation and form activity checks had nothing to look at."), and Network and Automation
-  read "Not checked" rather than "Nothing found" when the reasons show. It goes by the source alone; a careers
-  applicant's checks never say this, so nothing tells an assistive-technology opt-out apart.
-- Each reason of an assessment that needs a look and is not dismissed has Mark explained, an outline button on the row
-  of its code (F6). It opens a dialog: a reason from a list (Confirmed with the candidate, Expected for this role, A
-  known false positive, Other) and a note, optional unless the reason is Other. An explained reason closes, shows a
-  quiet Explained badge on its row (W6, T3), and under the row one muted line starts with who explained it, then when, why and
-  the note (the badge already says Explained, W7), with an outline Undo for its author only. Explaining decides nothing: the level, the candidate's status badge,
-  "To review", filters, automations and webhooks never read it. Once every reason that counts is explained, Dismiss
-  reads Dismiss all; it is the same button, never a second one (W7), and it opens the dismiss dialog with the explained
-  reasons and their notes listed above the dismissal's own reason. A dismissed assessment keeps its explanations, read
-  only. The review controls show only to a role that reviews Verification; any other role reads one line saying it can
-  read the checks and should ask a reviewer to explain or dismiss them (E3). The dismiss dialog scrolls when the list
-  is taller than the window, so its button stays reachable.
+- The Verification tab is organised by the six check groups the engine runs (`CheckGroup`): Network, Contact details,
+  Documents, Answers, Duplicates and Form use. The two assessments (authenticity and AI assistance) are not panels any
+  more. The candidate's level shows once, as the mark in the page header (T2); the tab does not spell out Clear, Review
+  and Verify again (W7).
+- The tab opens with the suggested next step. When the level needs a look it leads, semibold, in a callout edged in the
+  level's colour with an arrow, the summary a muted line under it; otherwise it is one quiet line, the summary then its
+  next step. Dismiss sits right under it, an outline button, and after a dismissal one muted line says who set it aside,
+  when and why. The level stays as assessed. A role that cannot review reads one line saying it can read the checks and
+  should ask a reviewer (E3).
+- AI help is information (a bare `sparkles` mark with a tooltip, in its own colour, never a warning). Its row is the AI
+  badge ("No signs", "Some signs" or "Strong signs of AI help") and the job's policy as a pill ("AI allowed with
+  disclosure"). For Some and Strong signs one muted line carries its summary and next step; for No signs they sit in the
+  badge's tooltip and screen-reader text. It never changes, sorts, filters or counts toward the level, and it has no
+  Dismiss.
+- A map of the six groups follows, one tile per group, each a link to its panel with one state in icon, colour and words:
+  "2 found" (counts toward the level), "1 note, information only" (AI help and context that never counts), "Nothing
+  found", "Not checked" (a candidate a recruiter added by hand came through no careers form, so Network and Form use had
+  nothing to look at; it goes by the application's source alone, so a careers applicant who turned telemetry off with
+  the assistive-technology switch reads like any other) and "Turned off" (the organization's settings, with the note in
+  a tooltip). Group icons sit on the tiles only, never in a panel header, and a group has no description paragraph.
+- Below the map is a panel for each group that has findings, titled with the group's name. Nothing else gets a panel:
+  "Nothing found" is a tile state and appears nowhere as a line. A finding is its plain sentence, short ("The resume and
+  the answer give different dates for Lumen Health. Ask the candidate."), opening (A9) to its evidence as a facts row,
+  any quote or comparison, the counter-evidence in its own card and its code. Only the exception is marked: an AI note
+  says "Information only" with the sparkles mark; there is no "Counts toward the level" tag. Expand all and Collapse all
+  show only where a group has more than one finding.
+- One review action per finding: Mark explained, an outline button on the row of its code (F6), offered only on a
+  finding that counts toward the level while the level needs a look, the result is not dismissed and the role reviews
+  Verification. It opens a dialog: a reason from a list (Confirmed with the candidate, Expected for this role, A known
+  false positive, Other) and a note, optional unless the reason is Other. An explained finding closes, shows a quiet
+  Explained badge, and under it one muted line starts with who explained it, then when, why and the note, with an outline
+  Undo for its author only. Information-only findings have no action. Explaining decides nothing: the level, the
+  candidate's state, "To review", filters, automations and webhooks never read it. Once every finding that counts is
+  explained, Dismiss reads Dismiss all and opens the dismiss dialog with the explained findings and their notes listed.
+  A dismissed result keeps its explanations, read only.
+- A calm result (no finding in any group) is one line, "Nothing unusual in the checks that ran. No action needed.", with
+  the AI row, then one line for each group that is Turned off or Not checked, so a quiet result is never read as a clean
+  one, then a collapsed "What was checked" naming the groups that ran and their checks. It has no map and no "nothing
+  found" lines (W10).
+- The panel's last line is the audit line, caption size: "Assessed 2 hours ago" and "Ruleset", after "No automated
+  decision has been made. Every action is logged." (W10). A code or an id never sits above the next step.
+- There is no Review log panel and no Add review note button. Every review action is an entry in the candidate's
+  Activity, under the Verification filter: a dismissal, an explanation, its undo, a note, evidence that a re-check added
+  or took away, and each read through an API key (one line for a run of reads by one key, with the key and who made
+  it). A finding's explanation and note also show under the finding they concern.
+- No score, no percentage, no reject control. Facts shown elsewhere on the page (the candidate's AI declaration) are not
+  repeated in the tab (W7). On a candidate, when the level needs a look, the tab's count is the signals behind it, in
+  the grey every tab's count has (E2).
 - A level shows as one word (Clear, Review, Verify) with the level mark; its full name (Verification suggested, Review
-  suggested) is screen-reader text. The Verification tab keeps the full names in its panels. AI assistance reads No
-  signs, Some signs or Strong signs of AI help.
+  suggested) is screen-reader text. AI assistance reads No signs, Some signs or Strong signs of AI help.
 
 ## 17. Accessibility and motion
 
