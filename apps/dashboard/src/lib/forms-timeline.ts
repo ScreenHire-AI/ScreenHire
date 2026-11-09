@@ -22,7 +22,7 @@ export const APPLY_FORM_ID = 'apply';
 export const MAX_DAYS_LATER = 365;
 
 const NAME_LENGTH = 80;
-const clip = (text: string): string => (text.length > NAME_LENGTH ? text.slice(0, NAME_LENGTH).trimEnd() : text);
+const clip = (text: string, length = NAME_LENGTH): string => (text.length > length ? text.slice(0, length).trimEnd() : text);
 const lowerFirst = (text: string): string => text.replace(/^./, (first) => first.toLowerCase());
 const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? '' : 's'}`;
 
@@ -46,8 +46,9 @@ function waitWords(hours: number): string {
 /** The moment a trigger fires, worded from the candidate's side. */
 export function momentOf(workflow: HiringWorkflow, trigger: AutomationTrigger): string {
   switch (trigger.type) {
+    // The apply form's card says "When they apply"; a form an automation sends on the same event comes right after it.
     case 'ApplicationSubmitted':
-      return 'When they apply';
+      return 'Right after they apply';
     case 'StageEntered':
       return `When they reach ${stageName(workflow, trigger.stageId)}`;
     case 'StageExited':
@@ -59,9 +60,11 @@ export function momentOf(workflow: HiringWorkflow, trigger: AutomationTrigger): 
   }
 }
 
-// Where a moment sits on the timeline: by the stage's place in the pipeline, then by the wait inside it. Triggers that
-// belong to no stage go last, in the order the workflow lists them.
+// Where a moment sits on the timeline: by the stage's place in the pipeline, then by the wait inside it. A form sent on
+// submission comes first, right after the apply form. Other triggers that belong to no stage go last, in the order the
+// workflow lists them.
 function position(workflow: HiringWorkflow, trigger: AutomationTrigger): [number, number] {
+  if (trigger.type === 'ApplicationSubmitted') return [-1, 0];
   const stage = workflow.stages.findIndex((candidate) => candidate.id === trigger.stageId);
   if (stage < 0) return [Number.MAX_SAFE_INTEGER, 0];
   return [stage, trigger.type === 'TimeElapsed' ? (trigger.afterHours ?? 0) : trigger.type === 'StageExited' ? Number.MAX_SAFE_INTEGER : 0];
@@ -100,10 +103,11 @@ export function addFormLater(workflow: HiringWorkflow, later: FormLater): { work
   const days = later.days && later.days > 0 ? Math.min(Math.floor(later.days), MAX_DAYS_LATER) : null;
   const followUps = followUpsOf(workflow);
 
-  const base = clip(days ? `${stage} questions after ${plural(days, 'day')}` : `${stage} questions`);
+  const base = days ? `${stage} questions after ${plural(days, 'day')}` : `${stage} questions`;
   const names = new Set(followUps.map((form) => form.name));
-  let name = base;
-  for (let n = 2; names.has(name); n++) name = clip(`${base} ${n}`);
+  let name = clip(base);
+  // The number goes on after the stem is cut, so a long stage name still gets a name the set does not hold.
+  for (let n = 2; names.has(name); n++) name = `${clip(base, NAME_LENGTH - ` ${n}`.length)} ${n}`;
 
   const formId = idFrom(name, followUps.map((form) => form.id), 'questionnaire');
   const form: FollowUpQuestionnaire = { id: formId, name, questions: [newQuestion(workflow)] };

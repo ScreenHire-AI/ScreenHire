@@ -79,6 +79,20 @@ describe('addFormLater', () => {
     expect(new Set(questions.map((question) => question.id)).size).toBe(questions.length);
   });
 
+  it('numbers a second form on a stage whose name fills the name limit, and keeps it within 80 characters', () => {
+    const long = workflow();
+    long.stages[2] = { ...long.stages[2]!, name: 'T'.repeat(80) };
+
+    let current = addFormLater(long, { stageId: 'trial' }).workflow;
+    current = addFormLater(current, { stageId: 'trial' }).workflow;
+    current = addFormLater(current, { stageId: 'trial' }).workflow;
+    const names = current.followUpQuestionnaires!.map((form) => form.name);
+
+    expect(new Set(names).size).toBe(3);
+    expect(names.every((name) => name.length <= 80)).toBe(true);
+    expect(names.slice(1).map((name) => name.slice(-2))).toEqual([' 2', ' 3']);
+  });
+
   it('holds the wait to the validator limit of 8760 hours', () => {
     const { workflow: after } = addFormLater(workflow(), { stageId: 'phone', days: 9999 });
 
@@ -131,7 +145,21 @@ describe('momentOf', () => {
     const current = workflow();
     expect(momentOf(current, { type: 'StageExited', stageId: 'phone' })).toBe('When they leave Phone call');
     expect(momentOf(current, { type: 'ReviewerDecision' })).toBe('When a reviewer records a decision');
-    expect(momentOf(current, { type: 'ApplicationSubmitted' })).toBe('When they apply');
+    expect(momentOf(current, { type: 'ApplicationSubmitted' })).toBe('Right after they apply');
+  });
+});
+
+describe('timelineOf, a form sent on submission', () => {
+  it('comes right after the apply form, before the stage forms', () => {
+    let current = addFormLater(workflow(), { stageId: 'phone' }).workflow;
+    current.followUpQuestionnaires = [...current.followUpQuestionnaires!, { id: 'extra', name: 'Extra', questions: [{ id: 'x', type: 'ShortText', label: 'X', required: false }] }];
+    current.automations = [...current.automations, send('e', 'extra', { type: 'ApplicationSubmitted' })];
+
+    expect(timelineOf(current).map((form) => [form.when, form.name])).toEqual([
+      ['When they apply', 'Apply form'],
+      ['Right after they apply', 'Extra'],
+      ['When they reach Phone call', 'Phone call questions'],
+    ]);
   });
 });
 
