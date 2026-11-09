@@ -64,7 +64,7 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
         var link = await PortalLinkAsync(candidate, subjectStart: "Your link to your applications at ");
         await Page.GotoAsync(link.Value);
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your applications");
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("Platform Engineer");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 2 })).ToHaveTextAsync("Platform Engineer");
         var steps = Page.GetByRole(AriaRole.List, new() { Name = "Where your application is" }).GetByRole(AriaRole.Listitem);
         await Expect(steps).ToHaveCountAsync(4);
         await Expect(steps.First).ToHaveAttributeAsync("aria-current", "step");

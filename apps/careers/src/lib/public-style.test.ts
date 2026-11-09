@@ -65,6 +65,32 @@ describe('public page markup', () => {
     }
   });
 
+  it('uses only the three radii (section 5): 8px, 12px (rounded-panel) and full, never rounded-2xl or the like', () => {
+    // A card with its own radius and no shadow beside Panel's looks like another page's (the portal's cards once did).
+    expect(offenders(/(?<![\w-])(?:[a-z0-9-]+:)*rounded-(?!panel(?![\w-])|lg(?![\w-])|full(?![\w-])|none(?![\w-]))[\w[]+/g)).toEqual([]);
+  });
+
+  it('never promises that a person reads, that every application is reviewed or that no software decides (design system 4.4, voice)', () => {
+    // An employer's eligibility question can end an application with no person involved, so candidate copy says what the
+    // checks never do. The two emails that used to carry the claim are read with the pages. Prose is hard-wrapped, so any
+    // whitespace separates the words.
+    const promise =
+      /\ba\s+person\s+(?:at\s+\S+\s+)?(?:reads|reviews)\s+(?:every\s+application|your\s+(?:application|answers?))|\breviews\s+(?:every|your)\s+application|\bno\s+software\s+makes/i;
+    for (const sample of [
+      'A person at {employer.name} reviews every application.',
+      'and a person reads your\n        answer alongside',
+      '{{ organizationName }} reviews every application.',
+      'No software makes a decision about you.',
+    ]) {
+      expect(promise.test(sample), sample).toBe(true);
+    }
+    const emails = ['talent-pool-invitation', 'questionnaire-request'].map((name) => ({
+      path: `src/ScreenHire.Infrastructure/Email/Templates/${name}.body.liquid`,
+      text: readFileSync(fileURLToPath(new URL(`../../../../src/ScreenHire.Infrastructure/Email/Templates/${name}.body.liquid`, import.meta.url)), 'utf8'),
+    }));
+    expect([...careersMarkup, ...emails].filter((file) => promise.test(file.text)).map((file) => file.path)).toEqual([]);
+  });
+
   it('keeps margins, padding and gaps on the 4px grid (section 5): no half steps, 28px or 36px', () => {
     const offGrid = /(?<![\w-])(?:[a-z0-9-]+:)*-?(?:p|px|py|pt|pb|pl|pr|ps|pe|m|mx|my|mt|mb|ml|mr|ms|me|gap|gap-x|gap-y|space-x|space-y)-(?:0\.5|1\.5|2\.5|3\.5|7|9|11)(?![\w.])/g;
     expect(offenders(offGrid)).toEqual([]);

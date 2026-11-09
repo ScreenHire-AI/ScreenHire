@@ -35,7 +35,7 @@ const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
 
   <Panel id="next-heading" title="What happens next" class="mt-6">
     <ul class="flex list-disc flex-col gap-2 pl-5 text-candidate-body">
-      <li>A person at {employer.name} reads your application. No software makes a decision about you.</li>
+      <li>Our checks for bots and impersonation never reject anyone.</li>
       <li>{employer.name} contacts you by email about next steps.</li>
       <li>
         See where your application stands and read your messages on <a href={withEmbed(`${base}/my-applications`, embed)} class="text-link">your page</a>.
@@ -44,8 +44,5 @@ const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
     </ul>
   </Panel>
 
-  <p class="mt-6 text-candidate-body">
-    <a href={withEmbed(`${base}/privacy`, embed)} class="text-link">What we collect and why</a>
-  </p>
   <a href={withEmbed(base || '/', embed)} class="button-secondary mt-4">See other open roles</a>
 </CareersLayout>
