@@ -12,7 +12,6 @@
   import { describeError } from '#lib/query.js';
   import { outcomeOf, samplesOf, type Outcome, type Sample } from '#lib/test-drive.js';
   import { emailTemplateNames } from '#lib/workflow.js';
-  import { definitionStamp } from '#lib/workflow-graph.js';
   import GuidedTest from './guided-test.svelte';
   import ProblemNotice from './problem-notice.svelte';
 
@@ -53,13 +52,22 @@
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
   const simulate = createSimulateWorkflow();
 
-  type Answer = { sample: Sample; result: WorkflowSimulationResult; outcome: Outcome };
-  let answers = $state<Answer[]>([]);
+  type Run = { sample: Sample; result: WorkflowSimulationResult; workflow: HiringWorkflow };
+  type Answer = Run & { outcome: Outcome };
+  let runs = $state.raw<Run[]>([]);
   let ranFor = $state('');
   let failure = $state('');
   let own = $state(false);
 
-  const stamp = $derived(definitionStamp(workflow));
+  // The steps are worded from the email templates' current names, so a list that loads after the run still names them.
+  const answers = $derived<Answer[]>(
+    runs.map((run) => ({ ...run, outcome: outcomeOf(run.workflow, run.result, templateNames, run.sample.id === 'accommodation') })),
+  );
+
+  // The whole workflow, not only its stages and automations: the samples come from the questionnaire too (a knockout
+  // question is the "Fails" sample), so a change on the Questions tab runs them again.
+  const stampOf = (value: HiringWorkflow) => JSON.stringify(value);
+  const stamp = $derived(stampOf(workflow));
   const blocked = $derived(errors.length > 0);
   const running = $derived(!blocked && (checking || ranFor !== stamp) && failure === '');
   const hasAutomations = $derived(workflow.automations.some((automation) => automation.enabled !== false));
@@ -70,21 +78,16 @@
     const current = stamp;
     if (blocked || checking || own || current === ranFor) return;
     const snapshot = $state.snapshot(workflow) as HiringWorkflow;
-    const names = templateNames;
     const timer = setTimeout(async () => {
       try {
         const samples = samplesOf(snapshot);
         const results = await Promise.all(samples.map((sample) => simulate.mutateAsync({ data: sample.request })));
-        if (current !== definitionStamp(workflow)) return;
-        answers = samples.map((sample, index) => ({
-          sample,
-          result: results[index]!.data,
-          outcome: outcomeOf(snapshot, results[index]!.data, names, sample.id === 'accommodation'),
-        }));
+        if (current !== stampOf(workflow)) return;
+        runs = samples.map((sample, index) => ({ sample, result: results[index]!.data, workflow: snapshot }));
         ranFor = current;
         failure = '';
       } catch (error) {
-        if (current === definitionStamp(workflow)) failure = describeError(error, 'Could not run the samples');
+        if (current === stampOf(workflow)) failure = describeError(error, 'Could not run the samples');
       }
     }, delayMs);
     return () => clearTimeout(timer);

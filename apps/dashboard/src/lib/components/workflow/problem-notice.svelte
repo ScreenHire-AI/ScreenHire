@@ -51,7 +51,7 @@
     <!-- Read only: nothing to fix here. -->
   {:else if blankTag}
     <div class="flex flex-wrap items-end gap-2">
-      <label class={[labelClass, 'w-56']}>
+      <label class={[labelClass, 'w-full max-w-56']}>
         Tag name
         <Input class="bg-card" bind:value={tag} maxlength={50} onkeydown={(event) => event.key === 'Enter' && (event.preventDefault(), addTag())} />
       </label>

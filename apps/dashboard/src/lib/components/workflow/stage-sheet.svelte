@@ -112,6 +112,13 @@
     syncReminders();
   }
 
+  // A stage set by hand to one that ends the application loses its reminder, as a rename to one does.
+  function setKind(kind: StageKind) {
+    if (!stage) return;
+    stage.kind = kind;
+    syncReminders();
+  }
+
   const reminderSaid = $derived(
     stage && stage.slaDays && !isTerminal(stage.kind) && canRemindIn(workflow, stage.id) ? `The team gets a reminder after ${timeLimitLabel(stage.slaDays)}.` : null,
   );
@@ -156,7 +163,7 @@
               <ToggleGroup.Item value="other" class="text-foreground data-[state=on]:inset-ring-2 data-[state=on]:inset-ring-accent-foreground">Other</ToggleGroup.Item>
             </ToggleGroup.Root>
             {#if choice === 'other'}
-              <label class={[labelClass, 'w-40']}>
+              <label class={[labelClass, 'w-full max-w-40']}>
                 Days
                 <Input type="number" min={1} max={365} value={stage.slaDays ?? ''} onchange={(event) => setOther(event.currentTarget.value)} />
               </label>
@@ -205,7 +212,7 @@
             <div id="stage-more-options" class="flex flex-col gap-2">
               <label class={labelClass}>
                 Kind
-                <select class={selectClass} value={stage.kind} onchange={(event) => (stage.kind = event.currentTarget.value as StageKind)}>
+                <select class={selectClass} value={stage.kind} onchange={(event) => setKind(event.currentTarget.value as StageKind)}>
                   {#each stageKinds as kind (kind)}<option value={kind}>{stageKindLabels[kind]}</option>{/each}
                 </select>
               </label>

@@ -23,9 +23,5 @@ export function createWorkflowTab() {
     href(tab: WorkflowTab, extra?: Record<string, string>): string {
       return tabHref(url, tab, extra);
     },
-    /** The value of `?show=`, which a link from the Test tab sets to light a path on the Automations tab. */
-    get show(): string | null {
-      return url.searchParams.get('show');
-    },
   };
 }

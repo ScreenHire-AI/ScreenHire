@@ -624,8 +624,14 @@ internal static class JobEndpoints
             return conflict;
         }
 
-        // A stage that picks a library scorecard names it; the job takes its own copy of the questions here.
+        // A draft's shape is checked before anything reads its stages, so a part with no id is refused, never a 500.
         var workflow = request.Workflow;
+        if (job.Status == JobStatus.Draft && DraftShape.Problems(workflow, "workflow").ToProblems("") is { } shape)
+        {
+            return TypedResults.ValidationProblem(shape);
+        }
+
+        // A stage that picks a library scorecard names it; the job takes its own copy of the questions here.
         if (workflow?.Stages is not null)
         {
             (workflow, var missing) = await ScorecardReferences.CopyAsync(db, workflow, "workflow", cancellationToken);
@@ -635,14 +641,8 @@ internal static class JobEndpoints
             }
         }
 
-        if (job.Status == JobStatus.Draft)
-        {
-            if (DraftShape.Problems(workflow, "workflow").ToProblems("") is { } shape)
-            {
-                return TypedResults.ValidationProblem(shape);
-            }
-        }
-        else if ((await TemplateReferences.ValidateAsync(db, workflow, cancellationToken)).ToProblems("workflow") is { } problems)
+        if (job.Status != JobStatus.Draft
+            && (await TemplateReferences.ValidateAsync(db, workflow, cancellationToken)).ToProblems("workflow") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }

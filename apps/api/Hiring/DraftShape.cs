@@ -52,6 +52,32 @@ internal static class DraftShape
         Require(workflow.Automations?.All(a => a?.Actions is not null && a.Trigger is not null) ?? true, "automations", "Every automation needs a trigger and its steps.");
         Require(workflow.FollowUpQuestionnaires?.All(f => f?.Questions is not null) ?? true, "followUpQuestionnaires", "Every follow-up questionnaire needs its questions.");
         Require(workflow.Questionnaire?.Questions?.All(q => q is not null) ?? true, "questionnaire.questions", "Every question must be an object.");
+
+        // Change history matches the parts of two versions by id and words each automation's rules, so a draft without
+        // an id, or with a null step or rule, would fail the save (DefinitionChanges). The validator's other checks on
+        // ids (their form, duplicates) are problems the draft saves with.
+        var stages = workflow.Stages?.Where(s => s is not null) ?? [];
+        Require(stages.All(s => s.Id is not null), "stages", "Every stage needs an id.");
+        Require(
+            stages.All(s => s.Scorecard is null || (s.Scorecard.Questions?.All(q => q?.Id is not null) ?? false)),
+            "stages", "Every scorecard needs its questions, each with an id.");
+        var automations = workflow.Automations?.Where(a => a is not null) ?? [];
+        Require(automations.All(a => a.Id is not null), "automations", "Every automation needs an id.");
+        Require(automations.All(a => a.Actions?.All(step => step is not null) ?? true), "automations", "Every step must be an object.");
+        Require(
+            automations.All(a => a.Conditions is null || (a.Conditions.Rules?.All(rule => rule?.Fact is not null) ?? false)),
+            "automations", "Every condition needs its rules, each with a fact.");
+        var followUps = workflow.FollowUpQuestionnaires?.Where(f => f is not null) ?? [];
+        Require(followUps.All(f => f.Id is not null), "followUpQuestionnaires", "Every follow-up questionnaire needs an id.");
+        Require(
+            followUps.All(f => f.Questions?.All(q => q is not null) ?? true),
+            "followUpQuestionnaires", "Every question must be an object.");
+        var questions = (workflow.Questionnaire?.Questions ?? [])
+            .Concat(followUps.SelectMany(f => f.Questions ?? []))
+            .Where(q => q is not null);
+        Require(questions.All(q => q.Id is not null), "questionnaire.questions", "Every question needs an id.");
+        var sections = (workflow.Questionnaire?.Sections ?? []).Concat(followUps.SelectMany(f => f.Sections ?? []));
+        Require(sections.All(s => s?.Id is not null), "questionnaire.sections", "Every section needs an id.");
         return missing;
     }
 }

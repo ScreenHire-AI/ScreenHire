@@ -45,7 +45,9 @@
 
   async function start(point: StartingPoint | null) {
     failure = '';
-    const title = name.trim() || (point ? chosenName : 'New hiring template');
+    // The name field follows the chosen card until the person types, so starting from nothing uses only a typed name.
+    const typed = named ? name.trim() : '';
+    const title = point ? name.trim() || chosenName : typed || 'New hiring template';
     try {
       const response = await create.mutateAsync({ data: { name: title, copyFromVersionId: point?.versionId ?? null } });
       await goto(`/templates/${response.data.id}`);

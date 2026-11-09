@@ -104,7 +104,7 @@ export function automationWords(
   const { trigger } = automation;
   const rule = automation.conditions?.rules?.[0];
   const condition = rule ? (conditionWords(rule, workflow) ?? 'the conditions match') : null;
-  const more = (automation.conditions?.rules?.length ?? 0) > 1 ? ' and more' : '';
+  const more = (automation.conditions?.rules?.length ?? 0) > 1 ? ' and the other conditions match' : '';
 
   if (trigger.type === 'SlaBreached') return `${steps} when the time limit passes`;
   const when =
@@ -159,11 +159,13 @@ export function journeyOf(
 
   const lines = new Map<string, string[]>();
   const anytime: string[] = [];
+  const known = new Set(workflow.stages.map((stage) => stage.id));
   for (const automation of workflow.automations) {
     if (automation.enabled === false) continue;
     const home = homeOf(workflow, automation);
     const text = automationWords(automation, workflow, templateNames);
-    if (home === null) anytime.push(text);
+    // An automation whose stage is gone (a problem the validator names) still shows, under Any time.
+    if (home === null || !known.has(home)) anytime.push(text);
     else lines.set(home, [...(lines.get(home) ?? []), text]);
   }
 
