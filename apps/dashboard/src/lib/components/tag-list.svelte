@@ -16,7 +16,7 @@
   // A record's tags (design system section 11): each a fact pill, with its own Remove button beside it, never inside it
   // (A5), and a field to add one. Removing is not destructive: adding the tag again undoes it (section 10). Without
   // `onadd` and `onremove` (a Viewer, A3) it shows the pills only. The same list holds the sites that may embed the
-  // careers page (Settings, Organization), with its own words and field.
+  // careers page (Settings, Careers site, Careers page), with its own words and field.
   let {
     tags,
     onadd,

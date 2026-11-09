@@ -199,7 +199,7 @@ internal static class JobEndpoints
         }
         else if (await db.VerificationSettings.AsNoTracking().Select(s => (AiUsePolicy?)s.DefaultAiUse).SingleOrDefaultAsync(cancellationToken) is { } aiUse)
         {
-            // No template: the organization's default AI-use policy (Settings > Verification). A template carries its own.
+            // No template: the organization's default AI-use policy (the Verification page). A template carries its own.
             job.StartWithAiUse(aiUse);
         }
 

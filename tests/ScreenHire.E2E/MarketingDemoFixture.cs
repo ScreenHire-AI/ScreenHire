@@ -5,7 +5,7 @@ namespace ScreenHire.E2E;
 /// runs), serving the production builds like the shared stack. The marketing site's product screenshots are taken from
 /// Brightwater Studio and its people, so they need the demo's jobs, candidates, history and reports; the shared fixture
 /// keeps Brightwater as the seeder leaves it, because other tests count its jobs. Slack and the calendar keep their
-/// sandboxes on, so the Integrations directory and the interview booking page show a working setup.
+/// sandboxes on, so the Settings home's Integrations group and the interview booking page show a working setup.
 /// </summary>
 public sealed class MarketingDemoFixture : E2EFixture
 {

@@ -1,7 +1,7 @@
 import type { SendingDomainDetail, SendingDomainRecordPurpose, SendingDomainRecordState } from '@screenhire/api-client';
 import type { StatusName } from '#lib/status.js';
 
-/** The name each record goes by on the Sending domain page. */
+/** The name each record goes by on the Email domain page. */
 export const recordPurposes: Record<SendingDomainRecordPurpose, string> = {
   Dkim: 'DKIM key',
   ReturnPath: 'Return path',

@@ -226,7 +226,7 @@ curl -X POST http://localhost:5080/v1/dev/inbound-email -H "Content-Type: applic
 ```
 
 The reply shows on the candidate's Messages tab and in Activity, and a card appears in Avery's tray. Reporting a bounce needs
-SendGrid's signature, so it is covered by the integration tests, not this walk-through. Settings > **Sending domain** takes any
+SendGrid's signature, so it is covered by the integration tests, not this walk-through. Settings > Organization > **Email domain** takes any
 domain you own (example.org will do): the page lists made-up records, Check records says they are missing until
 `POST /v1/dev/sending-domains/publish` with `{"domain":"example.org"}`, and the next check verifies the domain.
 
