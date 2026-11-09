@@ -176,6 +176,15 @@ describe('start from page', () => {
     await waitFor(() => expect(posted(fetchMock)).toEqual([{ name: 'New hiring template', copyFromVersionId: null }]));
   });
 
+  it('does not name a template started from nothing after the card the name field was following', async () => {
+    const { fetchMock } = renderPage();
+    await waitFor(() => expect(nameField()).toHaveValue('Office role'));
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Start from nothing' }));
+
+    await waitFor(() => expect(posted(fetchMock)).toEqual([{ name: 'New hiring template', copyFromVersionId: null }]));
+  });
+
   it('says so, and stays, when the template could not be created', async () => {
     renderPage(user, { 'POST /v1/templates': () => Response.json({ title: 'Conflict', status: 409, detail: 'A template with that name exists.' }, { status: 409 }) });
     await waitFor(() => expect(nameField()).toHaveValue('Office role'));

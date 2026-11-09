@@ -139,6 +139,20 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_draft_jobs_workflow_with_a_stage_that_has_no_id_is_refused_and_saves_nothing()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Stage without an id"));
+        var noId = WorkflowOf(job);
+        ((JsonObject)noId["stages"]![1]!).Remove("id");
+
+        var saved = await recruiter.PutAsync($"/v1/jobs/{job.Id()}/workflow", WorkflowRequest(noId, 1));
+
+        saved.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("workflow.stages");
+        (await recruiter.GetAsync($"/v1/jobs/{job.Id()}")).At("workflowVersion").GetInt32().Should().Be(1);
+    }
+
+    [Fact]
     public async Task An_open_jobs_workflow_is_live_so_a_save_with_problems_is_rejected_with_workflow_keys_and_saves_nothing()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();

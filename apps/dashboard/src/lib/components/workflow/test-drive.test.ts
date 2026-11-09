@@ -158,6 +158,18 @@ describe('test drive samples', () => {
     expect(sent(fetchMock).slice(4).every((body) => (body as unknown as { workflow: HiringWorkflow }).workflow.stages[1]!.name === 'Renamed')).toBe(true);
   });
 
+  it('runs again after a change on the Questions tab, since the samples come from the questions', async () => {
+    const fetchMock = stubApi();
+    renderDrive();
+    await waitFor(() => expect(sent(fetchMock)).toHaveLength(4));
+    expect(sample('fails')).toHaveTextContent('Do you have the right to work here?');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Reword a question' }));
+
+    await waitFor(() => expect(sent(fetchMock)).toHaveLength(8));
+    await waitFor(() => expect(sample('fails')).toHaveTextContent('Can you work here?'));
+  });
+
   it('runs once for changes that follow each other inside the delay', async () => {
     vi.useFakeTimers();
     try {

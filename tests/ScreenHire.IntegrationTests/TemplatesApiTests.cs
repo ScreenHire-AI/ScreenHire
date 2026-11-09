@@ -114,6 +114,35 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         (await recruiter.GetAsync("/v1/templates")).Count().Should().Be(5, "nothing was saved");
     }
 
+    // A draft saves with its problems, but change history matches parts by id and words each rule, so a part with no id
+    // or a null step is refused rather than stored (DraftShape). Before drafts saved with problems the validator refused them.
+    [Theory]
+    [InlineData("stage")]
+    [InlineData("automation")]
+    [InlineData("rule")]
+    [InlineData("step")]
+    public async Task A_draft_with_a_part_that_has_no_id_or_a_null_step_is_refused_and_the_stored_draft_still_reads(string part)
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var template = await recruiter.CreateTemplateAsync("Missing ids");
+        var before = (await recruiter.GetAsync($"/v1/templates/{template.Id()}/versions/1")).Expect(HttpStatusCode.OK);
+        var definition = Samples.DefinitionWith(Samples.EmailOnTag("vip"));
+        var workflow = definition["workflow"]!;
+        switch (part)
+        {
+            case "stage": ((JsonObject)workflow["stages"]![1]!).Remove("id"); break;
+            case "automation": ((JsonObject)workflow["automations"]![0]!).Remove("id"); break;
+            case "rule": ((JsonObject)workflow["automations"]![0]!["conditions"]!["rules"]![0]!).Remove("fact"); break;
+            default: workflow["automations"]![0]!["actions"]!.AsArray().Add(null); break;
+        }
+
+        var saved = await recruiter.PutAsync($"/v1/templates/{template.Id()}/versions/1", new JsonObject { ["definition"] = definition });
+
+        saved.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().ContainSingle(key => key.StartsWith("definition.workflow.", StringComparison.Ordinal));
+        var stored = (await recruiter.GetAsync($"/v1/templates/{template.Id()}/versions/1")).Expect(HttpStatusCode.OK);
+        stored.At("definition.workflow").GetRawText().Should().Be(before.At("definition.workflow").GetRawText(), "the refused draft did not replace the stored one");
+    }
+
     private static IEnumerable<string> ProblemPaths(ApiResult version) =>
         version.At("problems").EnumerateArray().Select(p => p.GetProperty("path").GetString()!);
 

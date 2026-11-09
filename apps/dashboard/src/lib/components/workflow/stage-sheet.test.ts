@@ -325,6 +325,19 @@ describe('the name and the kind', () => {
     expect(interview().kind).toBe('Offer');
   });
 
+  it('drops the reminder when the kind is set by hand to one that ends the application', async () => {
+    renderSheet();
+    const dialog = await sheet();
+    await fireEvent.click(limit(dialog, '3 days'));
+    expect(automationIds()).toContain('reminder-interview');
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'More options' }));
+    await fireEvent.change(within(dialog).getByRole('combobox', { name: 'Kind' }), { target: { value: 'Rejected' } });
+
+    expect(interview().kind).toBe('Rejected');
+    expect(automationIds()).not.toContain('reminder-interview');
+  });
+
   it('never changes the kind of the first stage, which is where candidates arrive', async () => {
     renderSheet({ stageId: 'applied' });
     const dialog = await sheet();

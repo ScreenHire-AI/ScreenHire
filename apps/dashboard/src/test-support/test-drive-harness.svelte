@@ -49,4 +49,5 @@
   automationsHref="?tab=automations"
 />
 <button type="button" onclick={() => (edited.stages[1]!.name = 'Renamed')}>Rename a stage</button>
+<button type="button" onclick={() => (edited.questionnaire.questions[0]!.label = 'Can you work here?')}>Reword a question</button>
 <p data-testid="automation-count">{edited.automations.length}</p>

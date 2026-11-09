@@ -108,7 +108,7 @@ describe('automationWords', () => {
     expect(automationWords(queued, flow, names)).toBe('If the answer to "Do you have the right to work here?" is no, queues them for the team to look at first');
   });
 
-  it('adds "and more" when there is more than one condition, and "the conditions match" when it cannot say one plainly', () => {
+  it('adds "and the other conditions match" when there is more than one condition, and "the conditions match" when it cannot say one plainly', () => {
     const rules = [
       { fact: 'answers.right_to_work', operator: 'EqualTo' as const, value: 'no' },
       { fact: 'application.source', operator: 'EqualTo' as const, value: 'Recruiter' },
@@ -116,7 +116,7 @@ describe('automationWords', () => {
     const several = automation('s', { type: 'StageEntered', stageId: 'interview' }, { conditions: { match: 'All', rules }, actions: [{ type: 'NotifyTeam' }] });
     const other = automation('o', { type: 'StageEntered', stageId: 'interview' }, { conditions: { match: 'All', rules: [rules[1]!] }, actions: [{ type: 'NotifyTeam' }] });
 
-    expect(automationWords(several, flow, names)).toBe('If the answer to "Do you have the right to work here?" is no and more, tells the team');
+    expect(automationWords(several, flow, names)).toBe('If the answer to "Do you have the right to work here?" is no and the other conditions match, tells the team');
     expect(automationWords(other, flow, names)).toBe('If the conditions match, tells the team');
   });
 
@@ -207,6 +207,12 @@ describe('journeyOf', () => {
 
     expect(anytime).toEqual(['When the checks finish, asks the team to review']);
     expect(anytime.join(' ')).not.toContain('someone');
+  });
+
+  it('still shows an automation whose stage is gone, under any time, rather than nowhere', () => {
+    const orphan = automation('orphan', { type: 'StageEntered', stageId: 'removed-stage' });
+
+    expect(journeyOf(workflowWith([orphan]), names).anytime).toEqual([automationWords(orphan, workflowWith([orphan]), names)]);
   });
 
   it('lists the end stages, each with what happens there on the same line', () => {
