@@ -66,6 +66,8 @@ describe('job details form', () => {
       locations: null,
       salary: { min: 70000, max: 95000, currency: 'GBP', period: 'Year' },
       validThrough: '2026-11-30T23:59:59Z',
+      // The job has no written summary and does not follow its description, so nothing is sent.
+      summary: null,
       description,
     });
     await waitFor(() => expect(onsaved).toHaveBeenCalledWith('Saved. The careers page shows it now.'));
