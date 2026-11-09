@@ -770,7 +770,7 @@ scorecard then asks for a required overall `Recommendation` (strong no, no, yes,
   tasks kept their stage, is answered by any scorecard of theirs submitted since it was assigned. Until then the API leaves the rating (`AfterYourScorecard`, no number),
   the content of the other scorecards, the others' recommendations in the timeline and automation runs out of what they read. The scorecards list still has a row for each other
   scorecard, with `withheld: true`: who gave it, for which stage and scorecard, and when, but `recommendation` and `rating` null, `answers` and `ratings` empty
-  and `note` null, so the dashboard shows who has submitted without anchoring the reviewer. Their own scorecards are never withheld. A
+  and `note` null, so the dashboard shows who has submitted without anchoring the reviewer. Their own scorecards are never withheld, and nor is anything for a reader with no scorecard to give, whatever their role. A review task entry carries its `stageId`, so the dashboard can say whether a review is for the scorecard it is showing; other kinds leave it null. A
   Review task for the whole team holds nothing back, and neither does an API key. Since a review is finished by any
   scorecard its reviewer gives, giving one shows them the rating.
 - The rating is on `ApplicationSummary` and `ApplicationDetail`, so the job's table, the candidates list and the
