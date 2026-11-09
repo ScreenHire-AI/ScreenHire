@@ -664,7 +664,24 @@ export function automationLine(
   const condition =
     titles.length === 0 ? '' : automation.conditions?.match === 'Any' && titles.length > 1 ? ` and one of ${titles.join(' or ')}` : ` and ${titles.join(' and ')}`;
   const steps = automation.actions.map((action) => lowerFirst(describeAction(action, workflow, members, templateNames)));
-  return `When ${lowerFirst(triggerTitle(automation.trigger, workflow))}${condition}, ${steps.length > 0 ? steps.join(' and ') : 'nothing happens yet'}.`;
+  return `When ${triggerClause(automation.trigger, workflow)}${condition}, ${steps.length > 0 ? steps.join(' and ') : 'nothing happens yet'}.`;
+}
+
+/** The map's trigger title as the clause after "When": a node title such as "Moves to Phone call" has no subject. */
+function triggerClause(trigger: Automation['trigger'], workflow: HiringWorkflow): string {
+  const title = lowerFirst(triggerTitle(trigger, workflow));
+  switch (trigger.type) {
+    case 'StageEntered':
+    case 'StageExited':
+    case 'QuestionnaireCompleted':
+      return `someone ${title}`;
+    case 'SlaBreached':
+      return trigger.stageId ? `the ${title}` : title;
+    case 'Manual':
+      return 'it is run by hand';
+    default:
+      return title;
+  }
 }
 
 function conditionParts(automation: Automation, index: number, workflow: HiringWorkflow, ctx: SentenceContext): Part[] {
