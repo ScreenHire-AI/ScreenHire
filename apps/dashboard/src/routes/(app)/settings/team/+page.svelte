@@ -43,8 +43,8 @@
   import MemberAccessSheet from '#lib/components/member-access-sheet.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
-  import SearchField from '#lib/components/search-field.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';

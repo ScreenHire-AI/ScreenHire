@@ -67,8 +67,9 @@ public sealed class SandboxSlackClient(ScreenHireDbContext db, TenantContext ten
     /// <summary>The token of a workspace that took the app away: Slack answers <c>token_revoked</c> to it.</summary>
     public static string RevokedToken(Guid organizationId) => $"{TokenPrefix}revoked-{organizationId:N}";
 
-    // How many times each message was tried, per organization and text. Retries run in the worker that sent the first
-    // attempt, so memory is enough.
+    // How many times each message was tried, per organization and text, in this process. A retry runs in the process that
+    // made the first attempt (the worker for a post, the API for Send test message, where the person tries again), so
+    // memory is enough. The same text posted again later counts on, and goes at once.
     private static readonly ConcurrentDictionary<(Guid, string, string), int> Attempts = new();
 
     /// <summary>The sandbox's id for a ScreenHire user: stable, so linking twice gives the same account.</summary>

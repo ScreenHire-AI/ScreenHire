@@ -121,6 +121,13 @@
   // A phone lists a page of jobs at a time, so a long list does not make the page as tall as it is long (S9).
   const phonePageSize = 50;
   let phoneShown = $state(phonePageSize);
+  // A new search or status filter starts from the first page again. A live update does not, so a list someone opened
+  // further stays open.
+  $effect(() => {
+    void search;
+    void statusFilter;
+    phoneShown = phonePageSize;
+  });
 
   let busyJobId = $state<string | null>(null);
   let failure = $state('');

@@ -77,7 +77,12 @@ internal static partial class SlackEndpoints
         {
             app.MapGet(SandboxSlackClient.AuthorizePath, AuthorizeInSandbox).RequireAuthorization().ExcludeFromDescription();
             app.MapGet("/v1/slack/sandbox/messages", ListSandboxMessages).RequireAuthorization().ExcludeFromDescription();
-            app.MapPost("/v1/slack/sandbox/break", BreakSandboxConnection).RequireAuthorization().RequireAntiforgeryToken().ExcludeFromDescription();
+            // Breaking the connection is managing it, so it needs what Disconnect needs.
+            app.MapPost("/v1/slack/sandbox/break", BreakSandboxConnection).WithName("BreakSlackSandboxConnection")
+                .RequireAuthorization()
+                .RequireAntiforgeryToken()
+                .RequirePermission(Permission.ManageIntegrations)
+                .ExcludeFromDescription();
         }
 
         return app;
@@ -494,6 +499,9 @@ internal static partial class SlackEndpoints
             case SlackSandboxBreak.ChannelRemoved:
                 installation.ChooseChannel(SandboxSlackClient.RemovedChannelId, installation.ChannelName ?? "hiring", installation.Events, now);
                 break;
+            default:
+                // A number that names no kind changes nothing, and says so.
+                return TypedResults.NotFound();
         }
 
         await db.SaveChangesAsync(cancellationToken);

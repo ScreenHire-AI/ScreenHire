@@ -19,8 +19,8 @@
   import HeaderBand from '#lib/components/header-band.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import Panel from '#lib/components/panel.svelte';
-  import SearchField from '#lib/components/search-field.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
@@ -103,10 +103,10 @@
       </Panel>
     {:else}
       <Panel title="Endpoints" flush>
-      {#snippet tools()}
-        <!-- Past about ten, a list has a search, so adding one never changes the layout (S9). -->
-        {#if all.length > 10}<SearchField bind:value={search} label="Search endpoints" class="ml-auto flex-[0_1_15rem]" />{/if}
-      {/snippet}
+        {#snippet tools()}
+          <!-- Past about ten, a list has a search, so adding one never changes the layout (S9). -->
+          {#if all.length > 10}<SearchField bind:value={search} label="Search endpoints" class="ml-auto flex-[0_1_15rem]" />{/if}
+        {/snippet}
         {#if endpoints.isPending}
           <div aria-hidden="true" class="flex flex-col">
             {#each [0, 1] as row (row)}

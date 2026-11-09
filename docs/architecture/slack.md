@@ -178,8 +178,8 @@ layer. Slack's answers sort into (`SlackErrors`):
 The workspace is "ScreenHire sandbox", with `#hiring`, `#recruiting`, `#general`, `#announcements` (only admins may
 post, so posts fail with `restricted_action`) and an archived `#old-hiring`, plus `#flaky`, which refuses the first attempt to post each message with an answer no
 error code explains (as an unreachable Slack does) and takes the second. What it receives lands in
-`slack_sandbox_messages`, which `GET /v1/slack/sandbox/messages` lists, newest first. `POST /v1/slack/sandbox/break` does
-to the signed-in organization's connection what Slack does on its own side without a word to the app: `TokenRevoked`
+`slack_sandbox_messages`, which `GET /v1/slack/sandbox/messages` lists, newest first. `POST /v1/slack/sandbox/break`
+(Manage integrations, as Disconnect needs) does to the signed-in organization's connection what Slack does on its own side without a word to the app: `TokenRevoked`
 swaps the stored token for one the sandbox answers `token_revoked` to, and `ChannelArchived` and `ChannelRemoved` point
 the saved channel at an archived or an unknown one. The app finds out at its next call, as it does from Slack (there is
 no uninstall event). The sandbox's routes are mapped only in sandbox mode, so the API's description never lists them.
