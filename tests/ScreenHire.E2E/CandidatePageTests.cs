@@ -8,17 +8,16 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The candidate page on the detail template (design system sections 7, 11 and 21) at the sizes F1 names and the review
-/// canvas's 820 and 390: who they are and where they stand in the header band (the name and one status, the pipeline
-/// tracker, three mini cards), with no rail at the window's edge (S7);
-/// Overview's two columns of panels where they fit, one column below that; and Move to stage in a bar at the bottom on a
-/// phone. The same six tabs for every candidate, and a header that does not move between them. Signs in as a new person
-/// with a new organization.
+/// canvas's 820 and 390: who they are and where they stand in the header band (the name and one word of verification state,
+/// one meta line, the rating and tags, the stage rail), with no rail at the window's edge (S7);
+/// Overview's panels, and Move to stage in a bar at the bottom on a phone. The same seven tabs for every candidate, and a
+/// header that does not move between them. Signs in as a new person with a new organization.
 /// </summary>
 public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture)
 {
     private static readonly string[] Gb = ["GB"];
 
-    private static readonly string[] TabNames = ["Overview", "Application", "Messages", "Scorecards", "Verification", "Activity"];
+    private static readonly string[] TabNames = ["Overview", "Application", "Files", "Messages", "Scorecards", "Verification", "Activity"];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -37,10 +36,23 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         await WaitForTabCountsAsync();
         await WaitForHeaderAsync();
         await Expect(Tracker.Locator("[aria-current='step']")).ToContainTextAsync("Here ");
-        await Expect(Group("Contact").GetByRole(AriaRole.Button, new() { Name = "Copy email address" })).ToBeVisibleAsync();
-        await Expect(Group("Application").GetByRole(AriaRole.Link, new() { Name = "Platform Engineer" })).ToBeVisibleAsync();
+        // The email and phone are links in the meta line, with no copy buttons, and the job links to its page.
+        await Expect(Band.GetByRole(AriaRole.Link, new() { Name = applicant.Email })).ToBeVisibleAsync();
+        (await Band.GetByRole(AriaRole.Button, new() { NameRegex = new("^Copy") }).CountAsync()).Should().Be(0, "the email is the Email action; there are no copy buttons");
+        await Expect(Band.GetByRole(AriaRole.Link, new() { Name = "Platform Engineer" })).ToBeVisibleAsync();
+        // A calm candidate shows a quiet Clear beside their name, in one word, with the long name for screen readers.
+        var state = Band.Locator("[data-verification-chip]");
+        await Expect(state).ToHaveAttributeAsync("data-level", "clear", new() { Timeout = 60_000 });
+        await Expect(state).ToContainTextAsync("Clear");
+        await Expect(state).ToContainTextAsync("Verification: No concerns");
+        // Overview is four panels at most, and a candidate with nothing yet has only Needs you: no Files, Answers, Tags or Activity panel.
+        await Expect(Region("Needs you")).ToBeVisibleAsync();
+        foreach (var gone in new[] { "Files", "Answers", "Tags", "Activity", "Verification", "Next steps" })
+        {
+            (await Region(gone).CountAsync()).Should().Be(0, $"{gone} is not a panel on Overview");
+        }
 
-        // Wide: Overview's two columns side by side, Files beside Next steps. Narrower: one column, Files after Next steps.
+        // Every size: the header's rail shows every stage when wide and only the current one, with its place, on a phone.
         foreach (var (width, height, name) in new[] { (1920, 1080, "wide"), (1440, 1000, "desktop"), (1024, 900, "laptop"), (820, 1180, "tablet"), (768, 1024, "small-tablet"), (390, 844, "phone"), (360, 780, "small-phone") })
         {
             await Page.SetViewportSizeAsync(width, height);
@@ -48,40 +60,18 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
             await SettledAsync();
 
             (await Page.GetByRole(AriaRole.Complementary, new() { Name = "Details" }).CountAsync()).Should().Be(0, "a detail page has no rail (S7)");
-            var files = await BoxAsync(Region("Files"));
-            var content = await BoxAsync(Region("Next steps"));
+            var content = await BoxAsync(Region("Needs you"));
             var action = await BoxAsync(move);
-            if (width >= 1440)
-            {
-                files.X.Should().BeGreaterThan(content.X + content.Width, $"Files is beside Next steps at {width}px");
-                files.Y.Should().BeApproximately(content.Y, 1, "panels in a row share a top edge (S4)");
-            }
-            else
-            {
-                files.Y.Should().BeGreaterThan(content.Y + content.Height, $"one column at {width}px, Files after Next steps");
-                files.X.Should().BeApproximately(content.X, 1);
-            }
 
-            // The mini cards sit three across from a wide band and in one row that scrolls sideways on a phone (it would take about
-            // 580px stacked); the tracker shows every stage when wide and only the current one, with its place, on a phone.
-            var contact = await BoxAsync(Group("Contact"));
-            var application = await BoxAsync(Group("Application"));
-            var also = await BoxAsync(Group("Also applied to"));
+            // The rail shows every stage when wide and only the current one, with its place, on a phone (about 580px less tall).
             var visibleStages = await Tracker.GetByRole(AriaRole.Listitem).EvaluateAllAsync<int>(
                 "items => items.filter((item) => item.getBoundingClientRect().width > 2).length");
             if (width >= 1440)
             {
-                application.X.Should().BeGreaterThan(contact.X + contact.Width - 1, $"Application is beside Contact at {width}px");
-                application.Y.Should().BeApproximately(contact.Y, 1);
-                also.Y.Should().BeApproximately(contact.Y, 1);
                 visibleStages.Should().BeGreaterThan(1, $"every stage shows at {width}px");
             }
             else if (width <= 390)
             {
-                application.Y.Should().BeApproximately(contact.Y, 1, $"the cards share one row at {width}px");
-                also.Y.Should().BeApproximately(contact.Y, 1);
-                application.X.Should().BeGreaterThan(contact.X + contact.Width - 1);
-                (await Page.Locator("[data-header-cards]").EvaluateAsync<bool>("row => row.scrollWidth > row.clientWidth")).Should().BeTrue($"the row scrolls sideways at {width}px");
                 visibleStages.Should().Be(1, $"only the current stage shows at {width}px");
                 await Expect(Tracker.Locator("[aria-current='step']")).ToContainTextAsync(new Regex(@"\d+ of \d+"));
             }
@@ -103,11 +93,14 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         // The bar's menu still moves the candidate.
         await move.ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Screening" }).ClickAsync();
+        // The move shows on the rail's current stage, and in Activity, which is its own tab.
+        await Expect(Tracker.Locator("[aria-current='step']")).ToContainTextAsync("Screening");
+        await Tab("Activity").ClickAsync();
         await Expect(Region("Activity")).ToContainTextAsync("Moved from Applied to Screening by you");
     }
 
     [Fact]
-    public async Task Two_candidates_show_the_same_six_tabs_in_the_same_order()
+    public async Task Two_candidates_show_the_same_seven_tabs_in_the_same_order()
     {
         var genuine = SyntheticApplicants.GenuineHuman;
         var bot = SyntheticApplicants.Bot;
@@ -158,10 +151,11 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         {
             ("Verification", "tab=verification", Region("Review log")),
             ("Activity", "tab=activity", Page.GetByRole(AriaRole.Group, new() { Name = "Show" })),
+            ("Files", "tab=files", Region("Files")),
             ("Application", "tab=application", Region("Answers")),
             ("Messages", "tab=messages", Region("Messages")),
             ("Scorecards", "tab=scorecards", Region("Scorecards")),
-            ("Overview", "", Region("Next steps")),
+            ("Overview", "", Region("Needs you")),
         };
         foreach (var (tab, url, content) in tabs)
         {
@@ -183,14 +177,8 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
 
     private ILocator Tracker => Page.GetByRole(AriaRole.List, new() { Name = "Pipeline", Exact = true });
 
-    private ILocator Group(string name) => Page.GetByRole(AriaRole.Group, new() { Name = name, Exact = true });
-
-    // The tracker draws once the job's workflow has loaded, and the third card's count once the profile has.
-    private async Task WaitForHeaderAsync()
-    {
-        await Expect(Tracker).ToBeVisibleAsync();
-        await Expect(Group("Also applied to")).ToContainTextAsync("No other jobs");
-    }
+    // The rail draws once the job's workflow has loaded.
+    private async Task WaitForHeaderAsync() => await Expect(Tracker).ToBeVisibleAsync();
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
 

@@ -32,19 +32,20 @@ const stageOf = (id: string) => {
 const states = (steps: { name: string; state: string }[]) => steps.map((step) => `${step.name}:${step.state}`);
 
 describe('trackerFor', () => {
-  it('draws every stage but the ways out, with the stage they are in ringed and the earlier ones passed with their dates', () => {
+  it('draws every stage but the ways out, with the stage they are in ringed and the earlier ones passed, with nothing under them (W7)', () => {
     const tracker = trackerFor(workflow, { stage: stageOf('screening'), stageEnteredAt: '2026-10-30T09:00:00Z' }, history.slice(0, 2), now);
 
     expect(states(tracker.steps)).toEqual(['Applied:passed', 'Screening:current', 'Interview:upcoming', 'Offer:upcoming', 'Hired:upcoming']);
-    expect(tracker.steps.map((step) => step.note)).toEqual(['Oct 20', 'Here 3 days', undefined, undefined, undefined]);
+    expect(tracker.steps.map((step) => step.note)).toEqual([undefined, 'Here 3 days', undefined, undefined, undefined]);
     expect(tracker).toMatchObject({ position: 2, total: 5, outcome: undefined });
   });
 
-  it('keeps the latest date for a stage they entered twice', () => {
+  it('says nothing under a stage they entered twice and passed: only the current stage has a note', () => {
     const again = [...history, entry('StageChanged', '2026-10-30T09:00:00Z', 'screening', 'interview')];
     const tracker = trackerFor(workflow, { stage: stageOf('interview'), stageEnteredAt: '2026-10-31T09:00:00Z' }, again, now);
 
-    expect(tracker.steps[1]).toMatchObject({ name: 'Screening', state: 'passed', note: 'Oct 30' });
+    expect(tracker.steps[1]).toMatchObject({ name: 'Screening', state: 'passed' });
+    expect(tracker.steps.filter((step) => step.note).map((step) => step.state)).toEqual(['current']);
   });
 
   it('fills a stage a move skipped, without a date', () => {
@@ -125,11 +126,10 @@ describe('trackerFor', () => {
     expect(tracker).toMatchObject({ position: 5, outcome: 'Hired' });
   });
 
-  it('puts the year on a date from another year', () => {
-    const old = [entry('Submitted', '2025-12-20T09:00:00Z', 'applied')];
-    const tracker = trackerFor(workflow, { stage: stageOf('screening'), stageEnteredAt: '2026-10-30T09:00:00Z' }, old, now);
+  it('puts the year on the date a candidate left, when it was another year', () => {
+    const tracker = trackerFor(workflow, { stage: stageOf('hired'), stageEnteredAt: '2025-12-20T09:00:00Z' }, history, now);
 
-    expect(tracker.steps[0]!.note).toBe('Dec 20, 2025');
+    expect(tracker.steps.at(-1)!.note).toBe('Hired Dec 20, 2025');
   });
 });
 

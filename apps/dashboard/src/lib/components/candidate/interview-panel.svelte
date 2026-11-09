@@ -14,7 +14,7 @@
   import { applicationsPath } from '#lib/realtime.js';
 
   // The candidate's interview (docs/architecture/interview-scheduling.md, design system ADR-0017): what is open or booked, or
-  // how the last one ended. The time of a booked interview is the header's one fact and is not said again here (W7). A panel
+  // how the last one ended. A booked interview's time is the panel's first fact. A panel
   // for an application nobody has offered an interview is not drawn. Cancelling emails the candidate and takes the event off
   // every calendar, so it is a destructive item in the panel header's menu, confirmed in a dialog (A2). Offer new times is the
   // other item, for a booked interview: the candidate picks again from days the person chooses, and the booked time stays held

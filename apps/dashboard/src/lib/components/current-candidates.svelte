@@ -215,7 +215,7 @@
 
   <div class={['@container', !phone.current && 'flex min-h-0 flex-1 flex-col']}>
     <div class={['flex w-full flex-col px-4 py-6 md:px-6', !phone.current && 'min-h-0 flex-1']}>
-      <Panel title="Applications" count={applications.isSuccess ? shown.length : undefined} flush fill={!phone.current} class={phone.current ? undefined : 'min-h-0 flex-1'}>
+      <Panel title="Candidates" flush fill={!phone.current} class={phone.current ? undefined : 'min-h-0 flex-1'}>
         {#snippet tools()}
           <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
           {#if selectedCount > 0}<span data-selected-count class="flex shrink-0 items-center gap-1.5 text-muted-foreground">Selected <Badge variant="count">{selectedCount}</Badge></span>{/if}

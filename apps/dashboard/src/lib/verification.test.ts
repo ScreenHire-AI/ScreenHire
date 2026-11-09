@@ -3,7 +3,21 @@ import { describe, expect, it } from 'vitest';
 import { applications, now } from '../test-support/fixtures.js';
 import { summary } from '../test-support/verification-fixtures.js';
 import type { VerificationReviewEntry } from '@screenhire/api-client';
-import { bulkMoveStages, groupKeyReads, verificationOverview, matchesVerificationFilter, needsReview, noVerificationFilter, verificationRecommended } from './verification.js';
+import {
+  aiMarkOf,
+  bulkMoveStages,
+  groupKeyReads,
+  matchesVerificationFilter,
+  needsReview,
+  noVerificationFilter,
+  overviewStepOf,
+  stateOf,
+  verificationFilterOptions,
+  verificationOverview,
+  verificationRank,
+  verificationRecommended,
+  verificationStateOf,
+} from './verification.js';
 import { findSavedView } from './saved-views.js';
 
 const [clear, review, verify] = [
@@ -35,10 +49,59 @@ describe('verification filter', () => {
     expect([clear, review, verify, pending].filter((a) => matchesVerificationFilter(a, { ...noVerificationFilter, authenticity: 'Pending' }))).toEqual([pending]);
   });
 
-  it('combines the authenticity and AI assistance levels', () => {
-    const filter = { authenticity: 'ReviewSuggested', aiAssistance: 'SomeIndicators' } as const;
-    expect([clear, review, verify, pending].filter((a) => matchesVerificationFilter(a, filter))).toEqual([review]);
-    expect([clear, review, verify, pending].filter((a) => matchesVerificationFilter(a, { ...filter, aiAssistance: 'StrongIndicators' }))).toEqual([]);
+  it('never filters by AI assistance, which is information (a row with signs of AI help shows under its own state)', () => {
+    const rows = [clear, review, verify, pending];
+    expect(rows.filter((a) => matchesVerificationFilter(a, { authenticity: 'ReviewSuggested' }))).toEqual([review]);
+    expect(Object.keys(noVerificationFilter)).toEqual(['authenticity']);
+  });
+
+  it('lists its choices by their one word, then Pending', () => {
+    expect(verificationFilterOptions.map((option) => option.word)).toEqual(['Clear', 'Review', 'Verify', 'Pending']);
+  });
+});
+
+describe('verification state', () => {
+  it('names each level by one word and keeps the long name for screen readers', () => {
+    expect([clear, review, verify].map((a) => stateOf(a.verification))).toMatchObject([
+      { kind: 'clear', word: 'Clear', label: 'No concerns', steps: 0 },
+      { kind: 'review', word: 'Review', label: 'Review suggested', steps: 2 },
+      { kind: 'verify', word: 'Verify', label: 'Verification suggested', steps: 3 },
+    ]);
+  });
+
+  it('is Pending without a summary, and Dismissed once a reviewer set a level aside, which keeps the level it had', () => {
+    expect(stateOf(null)).toMatchObject({ kind: 'pending', word: 'Pending' });
+    expect(stateOf(dismissed.verification)).toMatchObject({ kind: 'dismissed', word: 'Dismissed', assessedAs: 'VerificationRecommended' });
+    expect(stateOf(dismissed.verification).label).toBe('Verification suggested, dismissed after review');
+    // The lowest level has nothing to dismiss.
+    expect(verificationStateOf('NoConcerns', true).kind).toBe('clear');
+  });
+
+  it('shows the AI mark only for Some and Strong signs', () => {
+    expect(aiMarkOf(clear.verification)).toBeUndefined();
+    expect(aiMarkOf(review.verification)).toBe('SomeIndicators');
+    expect(aiMarkOf(summary({ aiAssistance: 'StrongIndicators' }))).toBe('StrongIndicators');
+    expect(aiMarkOf(null)).toBeUndefined();
+  });
+
+  it('gives the Overview a sentence only for Review and Verify, and never speaks of rejecting', () => {
+    expect(overviewStepOf(stateOf(verify.verification))).toBe('Confirm who they are on a short video call before interviewing.');
+    const sentences = [clear, review, verify, pending, dismissed].map((a) => overviewStepOf(stateOf(a.verification)));
+    expect(sentences.filter(Boolean)).toHaveLength(2);
+    expect(sentences.join(' ')).not.toMatch(/reject/i);
+  });
+});
+
+describe('the Verification column sort order', () => {
+  it('ranks Verify, Review, Dismissed, Clear, then Pending last', () => {
+    const ranked = [clear, review, verify, pending, dismissed].toSorted((a, b) => (verificationRank(b) ?? -1) - (verificationRank(a) ?? -1)).map((a) => stateOf(a.verification).kind);
+    expect(ranked).toEqual(['verify', 'review', 'dismissed', 'clear', 'pending']);
+    expect(verificationRank(pending)).toBeUndefined();
+  });
+
+  it('ignores AI assistance', () => {
+    const aiOnly = { ...clear, verification: summary({ aiAssistance: 'StrongIndicators', aiAssistanceReasons: ['X'] }) };
+    expect(verificationRank(aiOnly)).toBe(verificationRank(clear));
   });
 });
 
@@ -66,11 +129,12 @@ describe('bulk moves under a verification filter', () => {
     expect(bulkMoveStages(stages, noVerificationFilter)).toEqual(stages);
   });
 
-  it('never offers a stage that ends the candidacy while either verification filter is set (ADR-0004)', () => {
+  it('never offers a stage that ends the candidacy while a verification filter is set (ADR-0004)', () => {
     for (const filter of [
       { ...noVerificationFilter, authenticity: 'VerificationRecommended' },
+      { ...noVerificationFilter, authenticity: 'ReviewSuggested' },
+      { ...noVerificationFilter, authenticity: 'NoConcerns' },
       { ...noVerificationFilter, authenticity: 'Pending' },
-      { ...noVerificationFilter, aiAssistance: 'StrongIndicators' },
     ] as const) {
       const kinds = bulkMoveStages(stages, filter).map((stage) => stage.kind);
       expect(kinds).not.toContain('Rejected');

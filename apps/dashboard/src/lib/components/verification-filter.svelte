@@ -1,37 +1,19 @@
 <script lang="ts">
-  import type { AiAssistanceLevel, AuthenticityLevel } from '@screenhire/api-client';
+  import type { AuthenticityLevel } from '@screenhire/api-client';
   import ListFilterIcon from '~icons/lucide/list-filter';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import {
-    aiAssistanceLevels,
-    aiAssistanceOrder,
-    authenticityLevels,
-    authenticityOrder,
-    pendingLevel,
-    type VerificationFilter,
-  } from '#lib/verification.js';
+  import { verificationFilterOptions, type VerificationFilter } from '#lib/verification.js';
   import { watchTruncation } from '#lib/truncation.js';
   import { cn } from '#lib/utils.js';
 
-  // Filters the candidate table by either assessment's level. The page applies it to the rows before the table sees
+  // Filters the candidate table by its verification state. The page applies it to the rows before the table sees
   // them, as it does the stage filter, so counts and "select all" match what is shown. In a narrow panel header the
   // trigger is its icon, and the tooltip says what it filters (F5, A4).
   let { filter = $bindable() }: { filter: VerificationFilter } = $props();
 
-  const authenticityOptions = [
-    ...authenticityOrder.map((id) => ({ id, view: authenticityLevels[id] })),
-    { id: 'Pending' as const, view: pendingLevel },
-  ];
-  const aiOptions = aiAssistanceOrder.map((id) => ({ id, view: aiAssistanceLevels[id] }));
-
-  const active = $derived(
-    [
-      filter.authenticity && (filter.authenticity === 'Pending' ? pendingLevel : authenticityLevels[filter.authenticity]).label,
-      filter.aiAssistance && `AI ${aiAssistanceLevels[filter.aiAssistance].label.toLowerCase()}`,
-    ].filter(Boolean),
-  );
+  const active = $derived(verificationFilterOptions.filter((option) => option.value === filter.authenticity).map((option) => option.word));
 
   // The tooltip says the label only where the label is cut: visually hidden in a narrow panel header, or ending in an
   // ellipsis (F5).
@@ -40,8 +22,7 @@
   const summary = $derived(`Verification: ${active.length > 0 ? active.join(', ') : 'All'}`);
 
   // bits-ui radio groups take strings; "all" stands for no filter.
-  const authenticityValue = $derived(filter.authenticity ?? 'all');
-  const aiValue = $derived(filter.aiAssistance ?? 'all');
+  const value = $derived(filter.authenticity ?? 'all');
 </script>
 
 <DropdownMenu.Root>
@@ -61,30 +42,14 @@
   </Tooltip.Root>
   <DropdownMenu.Content align="end" class="w-64">
     <DropdownMenu.Group>
-      <DropdownMenu.GroupHeading class="text-caption text-muted-foreground">Authenticity</DropdownMenu.GroupHeading>
+      <DropdownMenu.GroupHeading class="text-caption text-muted-foreground">Verification</DropdownMenu.GroupHeading>
       <DropdownMenu.RadioGroup
-        value={authenticityValue}
-        onValueChange={(value) => (filter = { ...filter, authenticity: value === 'all' ? null : (value as AuthenticityLevel | 'Pending') })}
+        {value}
+        onValueChange={(next) => (filter = { ...filter, authenticity: next === 'all' ? null : (next as AuthenticityLevel | 'Pending') })}
       >
-        <DropdownMenu.RadioItem value="all">Any level</DropdownMenu.RadioItem>
-        {#each authenticityOptions as option (option.id)}
-          <DropdownMenu.RadioItem value={option.id}>
-            {option.view.label}
-          </DropdownMenu.RadioItem>
-        {/each}
-      </DropdownMenu.RadioGroup>
-    </DropdownMenu.Group>
-    <DropdownMenu.Separator />
-    <DropdownMenu.Group>
-      <DropdownMenu.GroupHeading class="text-caption text-muted-foreground">AI assistance</DropdownMenu.GroupHeading>
-      <DropdownMenu.RadioGroup
-        value={aiValue}
-        onValueChange={(value) => (filter = { ...filter, aiAssistance: value === 'all' ? null : (value as AiAssistanceLevel) })}
-      >
-        <DropdownMenu.RadioItem value="all">Any level</DropdownMenu.RadioItem>
-        {#each aiOptions as option (option.id)}
-          <!-- AI assistance is information, so its levels carry no status mark (section 3.2). -->
-          <DropdownMenu.RadioItem value={option.id}>{option.view.label}</DropdownMenu.RadioItem>
+        <DropdownMenu.RadioItem value="all">Any state</DropdownMenu.RadioItem>
+        {#each verificationFilterOptions as option (option.value)}
+          <DropdownMenu.RadioItem value={option.value}>{option.word}</DropdownMenu.RadioItem>
         {/each}
       </DropdownMenu.RadioGroup>
     </DropdownMenu.Group>

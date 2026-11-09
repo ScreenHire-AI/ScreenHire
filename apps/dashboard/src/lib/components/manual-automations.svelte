@@ -11,7 +11,7 @@
 
   // The job's automations a person runs by hand (a Manual trigger), each with Run (design system section 11). The
   // worker evaluates the run like any other, conditions and guardrails included, so Run asks for a run and does not
-  // promise an outcome; what it did shows in Activity and Tasks when AutomationRunFinished arrives. Each click sends
+  // promise an outcome; what it did shows in Activity when AutomationRunFinished arrives. Each click sends
   // its own Idempotency-Key, so a retried request runs nothing twice (workflow-engine.md §8). The page shows this panel
   // only to a role that can run automations, and only when the job has one.
   let { applicationId, automations }: { applicationId: string; automations: readonly Automation[] } = $props();
@@ -29,7 +29,7 @@
     try {
       const response = await runManualAutomation(applicationId, automation.id, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
       if (response.status === 202) {
-        announcement = `Asked to run "${automation.name}". What it does shows in Activity and Tasks.`;
+        announcement = `Asked to run "${automation.name}". What it does shows in Activity.`;
       } else {
         // The plain client returns refusals rather than throwing: a 404 is an automation gone from the job's workflow,
         // a 400 says why it cannot run by hand.

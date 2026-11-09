@@ -36,6 +36,7 @@ export function sortableColumnIds(extraColumns: readonly CandidateColumn[], show
     ...extraColumns.flatMap((column) => (column.id ? [column.id] : [])),
     ...(showJob ? ['job'] : []),
     'stage',
+    'overdue',
     'source',
     'applied',
     'lastActivity',

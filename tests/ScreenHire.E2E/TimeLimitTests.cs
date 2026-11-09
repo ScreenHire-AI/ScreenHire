@@ -31,12 +31,16 @@ public sealed class TimeLimitTests(E2EFixture fixture) : BrowserTest(fixture)
         await SignInAsync(email);
         await Page.Clock.SetFixedTimeAsync(DateTime.UtcNow.AddDays(4));
 
-        // The Overdue view lists the waiting candidate only, with the badge before the stage.
+        // The Overdue view lists the waiting candidate only. The stage cell is the stage and nothing else; the badge is in
+        // the Overdue column that follows it.
         await Page.GotoAsync(DashboardUrl("/candidates?view=overdue"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Overdue");
-        var applications = Page.GetByRole(AriaRole.Region, new() { Name = "Applications", Exact = true });
+        var applications = Page.GetByRole(AriaRole.Region, new() { Name = "Candidates", Exact = true });
         var row = applications.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = Waiting, Exact = true }) });
-        await Expect(row).ToContainTextAsync(new System.Text.RegularExpressions.Regex("Overdue by 1 day\\s*Screening"));
+        await Expect(applications.GetByRole(AriaRole.Columnheader, new() { Name = "Overdue", Exact = true })).ToBeVisibleAsync();
+        await Expect(row.GetByRole(AriaRole.Cell, new() { Name = "Screening", Exact = true })).ToBeVisibleAsync();
+        await Expect(row.GetByRole(AriaRole.Cell, new() { Name = "Overdue by 1 day", Exact = true })).ToBeVisibleAsync();
+        await Expect(row).ToContainTextAsync(new System.Text.RegularExpressions.Regex("Screening\\s*Overdue by 1 day"));
         await Expect(applications.GetByRole(AriaRole.Link, new() { Name = Fresh, Exact = true })).ToHaveCountAsync(0);
         // The sidebar view has no count (design system I2, T4): it is the current view, named by its words alone.
         await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Overdue", Exact = true })).ToHaveAttributeAsync("aria-current", "page");
@@ -63,11 +67,12 @@ public sealed class TimeLimitTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-overdue-board");
 
-        // The application's page has the badge beside the name, and the task the SlaBreached automation created.
+        // The application's page has the badge on the stage rail's current stage, beside how long they have been there, and the
+        // task the SlaBreached automation created in Needs you.
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(Waiting);
-        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("Overdue by 1 day");
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Next steps", Exact = true })).ToContainTextAsync(Reminder, new() { Timeout = 30_000 });
+        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Pipeline", Exact = true }).Locator("[aria-current='step']")).ToContainTextAsync("Overdue by 1 day");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Needs you", Exact = true })).ToContainTextAsync(Reminder, new() { Timeout = 30_000 });
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-overdue-application");
     }

@@ -32,8 +32,6 @@
     currentUserId,
     permissions,
     names,
-    limit,
-    allHref,
   }: {
     applicationId: string;
     /** The timeline, oldest first as the API sends it; undefined while it loads. */
@@ -47,9 +45,6 @@
     /** What the person's role allows: Add notes and tags writes, edits and deletes their own notes, Delete anyone's notes any note. */
     permissions: readonly Permission[];
     names: ActivityNames;
-    /** Overview's latest few, with the link to every entry; leave out for the Activity tab and its filter. */
-    limit?: number;
-    allHref?: string;
   } = $props();
 
   const queryClient = useQueryClient();
@@ -64,11 +59,10 @@
   const visible = $derived(entries ? visibleEntries(entries) : undefined);
   const counts = $derived(kindCounts(visible ?? []));
   const filtered = $derived(visible?.filter((entry) => filter === 'all' || activityKind(entry) === filter));
-  const shown = $derived(limit === undefined ? filtered : filtered?.slice(0, limit));
   const byId = $derived(new Map((entries ?? []).map((entry) => [entry.id, entry])));
 
   const items = $derived<Activity[] | undefined>(
-    shown?.map((entry) => ({
+    filtered?.map((entry) => ({
       id: entry.id,
       icon: eventIcons[entry.type],
       event: describeEvent(entry, names),
@@ -130,32 +124,23 @@
   {/if}
 {/snippet}
 
-{#snippet allLink()}
-  <a href={allHref} class="inline-flex min-h-6 items-center font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">All {visible?.length} in Activity</a>
-{/snippet}
-
-<Panel
-  title="Activity"
-  footer={limit !== undefined && allHref && visible && visible.length > limit ? allLink : undefined}
->
+<Panel title="Activity">
   <div class="flex flex-col gap-4">
     {#if editable}
       <NoteForm {applicationId} members={mentionable ?? members ?? []} {currentUserId} ondone={refresh} />
     {/if}
-    {#if limit === undefined}
-      <!-- The note box opens the panel and the filters narrow the list under it. One line that scrolls inside the panel rather than wrapping (F5). -->
-      <div class="-m-1 overflow-x-auto p-1">
-        <div role="group" aria-label="Show" class="flex w-max gap-1">
-          <!-- All has no count: the Activity tab already shows it (W7). -->
-          <Toggle size="lg" bind:pressed={() => filter === 'all', () => (filter = 'all')}>All</Toggle>
-          {#each activityKinds as kind (kind.value)}
-            <Toggle size="lg" bind:pressed={() => filter === kind.value, () => (filter = filter === kind.value ? 'all' : kind.value)}>
-              {kind.label} <Badge variant="count">{counts[kind.value]}</Badge>
-            </Toggle>
-          {/each}
-        </div>
+    <!-- The note box opens the panel and the filters narrow the list under it. One line that scrolls inside the panel rather than wrapping (F5). -->
+    <div class="-m-1 overflow-x-auto p-1">
+      <div role="group" aria-label="Show" class="flex w-max gap-1">
+        <!-- All has no count: the Activity tab already shows it (W7). -->
+        <Toggle size="lg" bind:pressed={() => filter === 'all', () => (filter = 'all')}>All</Toggle>
+        {#each activityKinds as kind (kind.value)}
+          <Toggle size="lg" bind:pressed={() => filter === kind.value, () => (filter = filter === kind.value ? 'all' : kind.value)}>
+            {kind.label} <Badge variant="count">{counts[kind.value]}</Badge>
+          </Toggle>
+        {/each}
       </div>
-    {/if}
+    </div>
     {#if error}
       <QueryError message={describeError(error, 'Could not load the activity')} {onretry} inset />
     {:else if items && items.length === 0}
@@ -170,7 +155,7 @@
 <ConfirmDialog
   bind:open={confirmOpen}
   title="Delete this note?"
-  description="It leaves Overview and Activity for the whole team. You can't undo this."
+  description="It leaves Activity for the whole team. You can't undo this."
   confirmLabel="Delete note"
   failure="Could not delete the note"
   onconfirm={confirmDelete}

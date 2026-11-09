@@ -26,7 +26,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task An_authenticity_chip_and_the_stage_filter_narrow_the_candidates()
+    public async Task A_verification_chip_and_the_stage_filter_narrow_the_candidates()
     {
         var scene = await SceneAsync(FullDescription);
         var genuine = SyntheticApplicants.GenuineHuman;
@@ -49,19 +49,19 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         await GoToJobAsync(scene.JobId);
         var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Candidates", Exact = true });
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
-        await Expect(Chip(bot.FullName)).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
-        await Expect(Chip(genuine.FullName)).ToContainTextAsync("Authenticity: No concerns", Assessed);
-        await Expect(Chip(honest.FullName)).ToContainTextAsync("Authenticity: No concerns", Assessed);
+        await Expect(Chip(bot.FullName)).ToContainTextAsync("Verification: Verification suggested", Assessed);
+        await Expect(Chip(genuine.FullName)).ToContainTextAsync("Verification: No concerns", Assessed);
+        await Expect(Chip(honest.FullName)).ToContainTextAsync("Verification: No concerns", Assessed);
 
-        // With no authenticity filter, a ticked row's bar offers Email, so its absence below is the filter's doing.
+        // With no verification filter, a ticked row's bar offers Email, so its absence below is the filter's doing.
         var bar = pipeline.GetByRole(AriaRole.Region, new() { Name = "Selected candidates" });
         await pipeline.GetByRole(AriaRole.Checkbox, new() { Name = $"Select {honest.FullName}" }).CheckAsync();
         await Expect(bar.GetByRole(AriaRole.Button, new() { Name = "Email 1 selected" })).ToBeVisibleAsync();
         await bar.GetByRole(AriaRole.Button, new() { Name = "Clear selection" }).ClickAsync();
 
         // The chips carry each level's count; one press narrows the table to that level.
-        var chips = pipeline.GetByRole(AriaRole.Group, new() { Name = "Authenticity" });
-        await chips.GetByRole(AriaRole.Button, new() { Name = "No concerns 2" }).ClickAsync();
+        var chips = pipeline.GetByRole(AriaRole.Group, new() { Name = "Verification" });
+        await chips.GetByRole(AriaRole.Button, new() { Name = "Clear 2" }).ClickAsync();
         await Expect(table.Locator("[data-row-link]")).ToHaveCountAsync(2);
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = bot.FullName })).ToHaveCountAsync(0);
 
@@ -329,7 +329,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
 
     private ILocator Chip(string candidate) =>
         Page.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
-            .Locator("[data-verification-chip='authenticity']");
+            .Locator("[data-verification-chip]");
 
     private string DashboardUrl(string pathAndQuery) => new Uri(Fixture.GetEndpoint("dashboard"), pathAndQuery).ToString();
 }
