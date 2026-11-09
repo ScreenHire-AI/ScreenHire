@@ -22,7 +22,9 @@ internal sealed class NotificationConfiguration : IEntityTypeConfiguration<Notif
 
         // Raising one twice for a person is one row; clearing finds every person's copy by kind and key.
         builder.HasIndex(n => new { n.OrganizationId, n.UserId, n.Kind, n.Key }).IsUnique();
-        // The bell reads one person's newest first; the daily purge reads by age.
+        // The bell reads one person's newest first. The daily purge reads one organization by age across its people, which this
+        // index serves only by its organization prefix: fine at a month of rows, and the place for an (organization, created)
+        // index if that grows.
         builder.HasIndex(n => new { n.OrganizationId, n.UserId, n.CreatedAt });
     }
 }

@@ -79,11 +79,16 @@ export const overviewViews: readonly SavedView[] = [
     matches: (application, now) => now - Date.parse(application.submittedAt) < week,
   },
   {
-    // A booked interview that has not started and begins within the week (the server reads `nextInterviewAt` at the request).
+    // A booked interview that has not started and begins within the week. The server picks `nextInterviewAt` at the request, and
+    // a cached list can be a minute old, so one that started since is checked here too.
     id: 'interviews-this-week',
     label: 'Interviews this week',
     icon: CalendarCheckIcon,
-    matches: (application, now) => application.nextInterviewAt != null && Date.parse(application.nextInterviewAt) - now < week,
+    matches: (application, now) => {
+      if (application.nextInterviewAt == null) return false;
+      const until = Date.parse(application.nextInterviewAt) - now;
+      return until >= 0 && until < week;
+    },
   },
 ];
 

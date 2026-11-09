@@ -238,8 +238,8 @@
                 Add these records where your domain is managed, or send them to whoever manages it. Then press Check records. Changes can take a few hours to show.
               </p>
             {/if}
-            {#if !allGood || showRecords}
-            <ul id="dns-records" class="flex flex-col divide-y divide-border">
+            <!-- Always in the page, so Show records' aria-controls names an element; hidden while the all-good line stands in. -->
+            <ul id="dns-records" class="flex flex-col divide-y divide-border" hidden={allGood && !showRecords}>
               {#each domain.records as record (record.type + record.host)}
                 {@const found = recordStatus(record.state)}
                 {@const name = recordName(domain.records, record)}
@@ -262,7 +262,6 @@
                 </li>
               {/each}
             </ul>
-            {/if}
           </div>
         </Panel>
       {/if}

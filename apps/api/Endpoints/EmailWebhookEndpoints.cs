@@ -71,6 +71,7 @@ internal static partial class EmailWebhookEndpoints
         var sandbox = app.MapGroup("/v1/dev").AllowAnonymous();
         sandbox.MapPost("/inbound-email", DeliverSandboxReply).ExcludeFromDescription();
         sandbox.MapPost("/sending-domains/publish", PublishSandboxDomain).ExcludeFromDescription();
+        sandbox.MapPost("/sending-domains/unpublish", UnpublishSandboxDomain).ExcludeFromDescription();
         return app;
     }
 
@@ -223,6 +224,18 @@ internal static partial class EmailWebhookEndpoints
         }
 
         zone.Publish(request.Domain.Trim().ToLowerInvariant());
+        return Results.Ok();
+    }
+
+    // Takes a sandbox domain's records out of DNS again, so a verified domain can be seen failing a check.
+    private static IResult UnpublishSandboxDomain(SandboxDomain request, IOptions<EmailOptions> options, SandboxDnsZone zone)
+    {
+        if (!options.Value.Sandbox.Enabled)
+        {
+            return Results.NotFound();
+        }
+
+        zone.Unpublish(request.Domain.Trim().ToLowerInvariant());
         return Results.Ok();
     }
 

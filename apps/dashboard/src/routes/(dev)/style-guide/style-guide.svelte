@@ -134,6 +134,7 @@
   import TemplateBuilderDemo from './template-builder-demo.svelte';
   import DropAreaDemo from './drop-area-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
+  import NotificationBellDemo from './notification-bell-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
@@ -1436,6 +1437,24 @@
           <OverviewStat icon={UsersIcon} title="Open jobs" value="3 of 5" href="#overview-stat" />
         </div>
       </section>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Notification bell" class="flex-[1_1_320px]">
+          <figure class="flex flex-col items-start gap-2">
+            <figcaption class="text-caption text-muted-foreground">In the top bar after Search. Open it: setup steps left, then an unread alert</figcaption>
+            <NotificationBellDemo user={page.data.user} />
+          </figure>
+        </Panel>
+        <Panel title="Email domain all-good state" class="flex-[999_1_520px]">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">The DNS records panel of Settings, Email domain, once every record is found</figcaption>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <p class="min-w-0 flex-[1_1_16rem]">Every record is in place. ScreenHire checks again every day and tells the Owners if it stops.</p>
+              <Button variant="outline" aria-expanded="false">Show records<ChevronDownIcon aria-hidden="true" /></Button>
+            </div>
+          </figure>
+        </Panel>
+      </div>
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Edit / Preview switch" class="flex-[999_1_520px]">

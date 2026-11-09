@@ -134,13 +134,24 @@ internal static class SendingDomainEndpoints
         try
         {
             // The same look the daily re-check takes. When the Owners were told this domain stopped verifying and it now
-            // passes, the notification is cleared in the same save, so a fix shows in the bell at once.
+            // passes, the notification is cleared in the same save, so a fix shows in the bell at once. When a verified domain
+            // fails here, the Owners are told as the daily check would tell them: it falls back to Pending, so the daily check
+            // would otherwise take it for a domain still being set up and never say a word.
             var probe = await service.ProbeAsync(domain, cancellationToken);
             var wasLost = domain.HasLostVerification;
-            domain.RecordCheck(probe.Records, probe.Verified, probe.ProviderMessage, time.GetUtcNow());
+            var wasVerified = domain.Status == SendingDomainStatus.Verified;
+            var now = time.GetUtcNow();
+            domain.RecordCheck(probe.Records, probe.Verified, probe.ProviderMessage, now);
             if (wasLost && !domain.HasLostVerification)
             {
                 await outbox.PublishAsync(new ClearNotification(domain.OrganizationId, NotificationKinds.SendingDomainFailing, domain.Id.ToString("N")));
+            }
+            else if (wasVerified && domain.Status != SendingDomainStatus.Verified)
+            {
+                foreach (var message in await SendingDomainAlerts.LoseAsync(db, domain, now, cancellationToken))
+                {
+                    await outbox.PublishAsync(message);
+                }
             }
 
             await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
