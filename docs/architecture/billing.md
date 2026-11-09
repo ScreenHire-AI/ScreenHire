@@ -105,6 +105,9 @@ the Billing page, a checkout or a publish asks (a unique index on the organizati
 safe). The publish route asks before its transaction, so a refused publish does not roll the trial's start back and a
 trial can never restart. With billing off the trial does not exist.
 
+No card is taken for the trial, so nothing is charged until an Owner chooses a plan. The Billing page says so under Plans while
+the organization is Trialing: the trial needs no card, open jobs stay open when it ends, and a new job needs a plan.
+
 ## Trial reminders
 
 A trial used to end in silence: the first an Owner heard of it was a refused publish. Now each Owner is told, by email and in the
