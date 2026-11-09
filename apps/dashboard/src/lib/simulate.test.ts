@@ -33,7 +33,6 @@ const workflowWith = (automations: Automation[], extra: Partial<HiringWorkflow> 
     { id: 'rejected', name: 'Not progressing', kind: 'Rejected' },
   ],
   questionnaire: { questions: [rightToWork, stack] },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations,
   ...extra,
 });

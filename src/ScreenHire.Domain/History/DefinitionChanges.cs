@@ -34,11 +34,6 @@ public static class DefinitionChanges
         Stages(before, after, lines);
         Questions(before, after, lines);
         Automations(before, after, lines);
-        if (before.VerificationPolicy.AiUse != after.VerificationPolicy.AiUse)
-        {
-            lines.Add(ChangeLine.Of($"changed AI use from {AiUse(before.VerificationPolicy.AiUse)} to ", AiUse(after.VerificationPolicy.AiUse)));
-        }
-
         return lines;
     }
 

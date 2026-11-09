@@ -29,7 +29,6 @@ const workflow: HiringWorkflow = {
     { id: 'interview', name: 'Interview', kind: 'Interview' },
   ],
   questionnaire: { questions: [] },
-  verificationPolicy: { aiUse: 'Allowed' },
   automations: [
     {
       id: 'advance',

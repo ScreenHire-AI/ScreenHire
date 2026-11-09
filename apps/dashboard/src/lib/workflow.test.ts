@@ -17,7 +17,6 @@ import {
   laneOf,
   newAction,
   newAutomation,
-  newFollowUp,
   newQuestion,
   newRule,
   newStage,
@@ -58,7 +57,6 @@ const workflow: HiringWorkflow = {
       },
     ],
   },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations: [
     {
       id: 'tag_on_entry',
@@ -215,7 +213,7 @@ describe('validator paths', () => {
     expect(describePath(workflow, 'stages[1].name')).toBe('The stage "Screening"');
     expect(describePath(workflow, 'stages')).toBe('The stages');
     expect(describePath(workflow, 'questionnaire')).toBe('The questions');
-    expect(describePath(workflow, 'verificationPolicy')).toBe('The workflow');
+    expect(describePath(workflow, 'anythingElse')).toBe('The workflow');
   });
 
   it('names the reviewer an AssignReviewer action asks, or the team', () => {
@@ -310,7 +308,6 @@ describe('follow-up questionnaires', () => {
 
   it('gives a new question an id no questionnaire of the workflow uses', () => {
     expect(newQuestion(withFollowUp).id).toBe('question_2');
-    expect(newFollowUp(withFollowUp)).toMatchObject({ id: 'questionnaire', name: 'New questionnaire', questions: [{ id: 'question_2' }] });
   });
 
   it('starts a SendQuestionnaire action on the first follow-up, and says what each part does', () => {

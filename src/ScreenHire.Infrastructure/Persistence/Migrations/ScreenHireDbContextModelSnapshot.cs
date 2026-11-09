@@ -1967,6 +1967,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("AiUseOverride")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("ai_use_override");
+
                     b.PrimitiveCollection<List<string>>("ApplicantLocationRequirements")
                         .IsRequired()
                         .HasColumnType("text[]")

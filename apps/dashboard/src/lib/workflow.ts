@@ -224,6 +224,9 @@ export const aiUseLabels: Record<AiUsePolicy, string> = {
   NotAllowed: 'Not allowed: candidates are asked to write without AI tools',
 };
 
+/** The policy's name alone: "Allowed with disclosure". */
+export const aiUseName = (policy: AiUsePolicy): string => aiUseLabels[policy].split(': ')[0]!;
+
 export const questionTypeLabels: Record<QuestionType, string> = {
   ShortText: 'Short text',
   LongText: 'Long text',
@@ -530,12 +533,6 @@ export function syncReminder(workflow: HiringWorkflow, stageId: string): HiringW
 export function newQuestion(workflow: HiringWorkflow, type: QuestionType = 'ShortText'): Question {
   const id = idFrom('question', allQuestions(workflow).map((question) => question.id), 'question');
   return withQuestionType({ id, type: 'ShortText', label: 'New question', required: false }, type);
-}
-
-/** A new follow-up questionnaire with one question, its id unique among the workflow's follow-ups. */
-export function newFollowUp(workflow: HiringWorkflow): FollowUpQuestionnaire {
-  const id = idFrom('questionnaire', followUpsOf(workflow).map((followUp) => followUp.id), 'questionnaire');
-  return { id, name: 'New questionnaire', questions: [newQuestion(workflow)] };
 }
 
 /** The question as `type`, keeping what carries over and dropping members the type does not take. */

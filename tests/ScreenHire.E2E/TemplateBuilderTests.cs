@@ -65,12 +65,39 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         // A knockout question in the form builder, which the preview shows as the careers page would.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Questions" }).ClickAsync();
-        var questions = Page.GetByRole(AriaRole.Region, new() { Name = "Screening questions", Exact = true });
+        var questions = Page.GetByRole(AriaRole.Region, new() { Name = "Questions", Exact = true });
         await questions.GetByRole(AriaRole.Button, new() { Name = "Add a question" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Yes or no", Exact = true }).ClickAsync();
         await questions.GetByRole(AriaRole.Textbox, new() { Name = "Question 1", Exact = true }).FillAsync(RightToWork);
         await questions.GetByRole(AriaRole.Checkbox, new() { Name = "Knockout question" }).CheckAsync();
         await Expect(Page.GetByText("A knockout is an objective eligibility check only")).ToBeVisibleAsync();
+
+        // The forms sit on the candidate's timeline, and the AI-use question is ScreenHire's: a locked row with the
+        // organization's policy and a link to change it, not a setting of the template.
+        var forms = Page.GetByRole(AriaRole.Group, new() { Name = "Forms", Exact = true });
+        await Expect(forms.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Apply form") })).ToHaveAttributeAsync("aria-pressed", "true");
+        await Expect(forms).ToContainTextAsync("When they apply");
+        var aiUse = Page.Locator("[data-ai-use-row]");
+        await Expect(aiUse).ToContainTextAsync("AI use. Asked by ScreenHire. Policy: Allowed with disclosure.");
+        await Expect(aiUse.GetByRole(AriaRole.Link, new() { Name = "Change policy" })).ToHaveAttributeAsync("href", "/verification");
+        await Expect(Page.GetByRole(AriaRole.Combobox, new() { Name = "AI use while applying" })).ToHaveCountAsync(0);
+
+        // Ask more later makes a form for a moment and the automation that emails it; removing the form takes it along.
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Ask more later" }).ClickAsync();
+        var ask = Page.GetByRole(AriaRole.Form, new() { Name = "Ask more later" });
+        await ask.GetByLabel("Stage").SelectOptionAsync(new SelectOptionValue { Label = "Interview" });
+        await Expect(ask).ToContainTextAsync("We add the email automation for you.");
+        await ask.GetByRole(AriaRole.Button, new() { Name = "Add form" }).ClickAsync();
+        await Expect(forms.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Interview questions") })).ToHaveAttributeAsync("aria-pressed", "true");
+        await Expect(forms).ToContainTextAsync("When they reach Interview");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Actions for Interview questions" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Remove form" }).ClickAsync();
+        var removal = Page.GetByRole(AriaRole.Dialog, new() { Name = "Remove Interview questions?" });
+        await Expect(removal).ToContainTextAsync("This also removes Email the form when they reach Interview.");
+        await removal.GetByRole(AriaRole.Button, new() { Name = "Remove form" }).ClickAsync();
+        await Expect(forms.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Interview questions") })).ToHaveCountAsync(0);
+        await Expect(forms.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Apply form") })).ToHaveAttributeAsync("aria-pressed", "true");
+
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-questionnaire-builder-light");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Preview", Exact = true }).ClickAsync();

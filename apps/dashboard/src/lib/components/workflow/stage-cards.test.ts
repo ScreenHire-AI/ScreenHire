@@ -17,7 +17,6 @@ const workflow: HiringWorkflow = {
     { id: 'rejected', name: 'Not progressing', kind: 'Rejected', scorecard: { name: 'Why not', questions: [] } },
   ],
   questionnaire: { questions: [] },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations: [
     { id: 'welcome', name: 'Welcome', trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [{ type: 'NotifyTeam' }] },
     { id: 'tag-screen', name: 'Tag screened', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'AddTag', tag: 'screened' }] },

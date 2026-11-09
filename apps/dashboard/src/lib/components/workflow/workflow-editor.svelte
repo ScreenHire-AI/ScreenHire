@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { DefinitionError, EvaluationOutcome, HiringWorkflow, WorkflowSimulationResult } from '@screenhire/api-client';
+  import type { AiUsePolicy, DefinitionError, EvaluationOutcome, HiringWorkflow, WorkflowSimulationResult } from '@screenhire/api-client';
   import { tick, untrack } from 'svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
@@ -32,6 +32,7 @@
     checking = false,
     tab = $bindable(),
     hrefOf,
+    aiUse,
   }: {
     workflow: HiringWorkflow;
     errors: readonly DefinitionError[];
@@ -40,6 +41,8 @@
     tab: WorkflowTab;
     /** The address that shows a tab, for the links that go to one (A5). */
     hrefOf: (tab: WorkflowTab) => string;
+    /** The AI-use policy in force and where to change it, if the person may. Undefined while it loads. */
+    aiUse?: { policy?: AiUsePolicy; href?: string };
   } = $props();
 
   // The stage whose sheet is open, by id, so reordering the stages behind it keeps the same one.
@@ -266,7 +269,7 @@
   {/if}
 </Tabs.Content>
 <Tabs.Content value="questions">
-  <QuestionnaireBuilder bind:workflow {errors} />
+  <QuestionnaireBuilder bind:workflow {errors} {aiUse} />
 </Tabs.Content>
 <Tabs.Content value="test">
   <TestDrive bind:workflow {errors} {checking} onshow={showTested} onadd={() => openRecipes(null)} onfix={fix} automationsHref={hrefOf('automations')} />

@@ -97,7 +97,21 @@ public sealed record JobDetail(
     DateTimeOffset? ClosedAt,
     IReadOnlyList<JobPostingStatus> Postings,
     LastUpdate LastUpdated,
-    IReadOnlyList<DefinitionError> WorkflowProblems);
+    IReadOnlyList<DefinitionError> WorkflowProblems,
+    JobAiUse AiUse);
+
+/// <summary>
+/// The AI-use policy the apply form asks under for one job. The organization sets <c>organizationDefault</c> once
+/// (Verification) and a job may override it with <c>override</c>; <c>policy</c> is the one in force, the override when
+/// there is one. The question itself is asked on every application, and no automation reads the answer.
+/// </summary>
+public sealed record JobAiUse(AiUsePolicy Policy, AiUsePolicy? Override, AiUsePolicy OrganizationDefault);
+
+/// <summary>
+/// Sets a job's own AI-use policy, or follows the organization's again when <c>policy</c> is null. It is a route of its own
+/// rather than a field of <see cref="UpdateJobRequest"/>, which replaces the posting and would clear it when left out.
+/// </summary>
+public sealed record SetJobAiUseRequest(AiUsePolicy? Policy);
 
 /// <summary>The template version a job's workflow was copied from, and whether a newer one is published.</summary>
 public sealed record JobTemplateSource(
@@ -212,15 +226,19 @@ internal static class JobMappings
     /// <param name="latestTemplateVersion">The source template's newest published version number.</param>
     /// <param name="postings">The job's postings, as statuses.</param>
     /// <param name="lastChange">The job's newest recorded change, or null when it has none.</param>
+    /// <param name="organizationDefault">The organization's AI-use policy, or null when it has saved none.</param>
     public static JobDetail ToDetail(
         this Job job, JobSnapshot? latestSnapshot, string? templateName, int? latestTemplateVersion, IReadOnlyList<JobPostingStatus> postings,
-        ChangeStamp? lastChange) =>
+        ChangeStamp? lastChange, AiUsePolicy? organizationDefault = null) =>
         new(job.Id, job.Title, job.Slug, job.Status, job.Description, job.EffectiveSummary, job.Summary is null, job.Department, job.EmploymentType, job.WorkplaceType,
             job.Locations, job.ApplicantLocationRequirements, job.LocationLabel(), job.Salary, job.ValidThrough,
             job.Workflow, job.WorkflowVersion, job.ToTemplateSource(templateName, latestTemplateVersion), job.PublishedVersion,
             job.Status == JobStatus.Open && latestSnapshot != job.Snapshot(),
             job.CreatedAt, job.UpdatedAt, job.PublishedAt, job.ClosedAt, postings, LastUpdate.From(lastChange, job.CreatedAt, job.UpdatedAt),
-            DefinitionValidator.Validate(job.Workflow));
+            DefinitionValidator.Validate(job.Workflow),
+            new JobAiUse(
+                AiUsePolicies.Effective(job.AiUseOverride, organizationDefault), job.AiUseOverride,
+                organizationDefault ?? AiUsePolicies.Fallback));
 
     private static JobTemplateSource? ToTemplateSource(this Job job, string? templateName, int? latestTemplateVersion) =>
         job is { SourceTemplateId: { } templateId, SourceTemplateVersionId: { } versionId, SourceTemplateVersion: { } version }

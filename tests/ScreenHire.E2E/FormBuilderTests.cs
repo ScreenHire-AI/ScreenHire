@@ -34,7 +34,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(job.Email);
         await OpenQuestionnaireAsync(job.JobId);
-        var questions = Region("Screening questions");
+        var questions = Region("Questions");
 
         // Add a question, make it required, then duplicate it: the copy follows the original and opens.
         await AddQuestionAsync("Short text");
@@ -43,14 +43,16 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         var required = questions.GetByRole(AriaRole.Switch, new() { Name = "Required" });
         await required.ClickAsync();
         await Expect(required).ToHaveAttributeAsync("aria-checked", "true");
-        await questions.GetByRole(AriaRole.Button, new() { Name = $"Duplicate {Notice}" }).ClickAsync();
+        // Duplicate is in the row's menu (L3).
+        await questions.GetByRole(AriaRole.Button, new() { Name = $"Actions for {Notice}" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Duplicate" }).ClickAsync();
         await Expect(OpenText(2)).ToBeFocusedAsync();
         await Expect(OpenText(2)).ToHaveValueAsync(Notice);
         await Expect(questions.GetByRole(AriaRole.Switch, new() { Name = "Required" })).ToHaveAttributeAsync("aria-checked", "true");
         await OpenText(2).FillAsync(Start);
         await AddQuestionAsync("Yes or no");
         await OpenText(3).FillAsync(RightToWork);
-        await Expect(questions.GetByRole(AriaRole.Button, new() { Name = $"Edit question 1: {Notice}" })).ToContainTextAsync("*");
+        await Expect(questions.GetByRole(AriaRole.Button, new() { Name = $"Edit question 1: {Notice}" })).ToContainTextAsync("Required");
         await ExpectOrderAsync(Notice, Start, RightToWork);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-form-builder");
@@ -97,7 +99,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await AddQuestionAsync("File");
         await OpenText(1).FillAsync("A work sample");
-        await Region("Screening questions").GetByRole(AriaRole.Switch, new() { Name = "Required" }).ClickAsync();
+        await Region("Questions").GetByRole(AriaRole.Switch, new() { Name = "Required" }).ClickAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save workflow" }).ClickAsync();
         await Expect(Page.GetByText("Saved. The job's workflow is now version 2.")).ToBeVisibleAsync();
 
@@ -134,7 +136,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(job.Email);
         await OpenQuestionnaireAsync(job.JobId);
-        var questions = Region("Screening questions");
+        var questions = Region("Questions");
 
         await AddQuestionAsync("Short text");
         await OpenText(1).FillAsync(Notice);
@@ -182,17 +184,17 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
 
     // The open question's text box. Only one question is open at a time.
     private ILocator OpenText(int position) =>
-        Region("Screening questions").GetByRole(AriaRole.Textbox, new() { Name = $"Question {position}", Exact = true });
+        Region("Questions").GetByRole(AriaRole.Textbox, new() { Name = $"Question {position}", Exact = true });
 
     private async Task AddQuestionAsync(string kind)
     {
-        await Region("Screening questions").GetByRole(AriaRole.Button, new() { Name = "Add a question" }).ClickAsync();
+        await Region("Questions").GetByRole(AriaRole.Button, new() { Name = "Add a question" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = kind, Exact = true }).ClickAsync();
     }
 
     private async Task ExpectOrderAsync(params string[] labels)
     {
-        var list = Region("Screening questions").GetByRole(AriaRole.List, new() { Name = "Screening questions", Exact = true });
+        var list = Region("Questions").GetByRole(AriaRole.List, new() { Name = "Questions", Exact = true });
         await Expect(list.Locator(":scope > li")).ToHaveCountAsync(labels.Length);
         for (var i = 0; i < labels.Length; i++)
         {
@@ -205,7 +207,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GotoAsync(new Uri(Fixture.GetEndpoint("dashboard"), $"/jobs/{jobId}/workflow").ToString());
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync(" workflow");
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Questions" }).ClickAsync();
-        await Expect(Region("Screening questions")).ToContainTextAsync("No questions yet.");
+        await Expect(Region("Questions")).ToContainTextAsync("No questions yet.");
     }
 
     // A new person and organization with a published job on the default workflow, whose questionnaire is empty.

@@ -196,19 +196,18 @@ public sealed class DefinitionChangesTests
     }
 
     [Fact]
-    public void Ai_use_and_posting_defaults_say_what_changed()
+    public void Posting_defaults_say_what_changed()
     {
         var before = HiringTemplateDefinition.Default;
         var after = before with
         {
-            Workflow = before.Workflow with { VerificationPolicy = new VerificationPolicy(AiUsePolicy.NotAllowed) },
             PostingDefaults = new PostingDefaults(Department: "Engineering", Description: "<p>We build <b>booking</b> software.</p><ul><li>C#</li></ul>"),
         };
 
         var lines = DefinitionChanges.Describe(before, after);
 
-        Sentences(lines).Should().Equal("changed AI use from Allowed with disclosure to Not allowed", "changed the job defaults");
-        lines[1].Details.Should().Equal(
+        Sentences(lines).Should().Equal("changed the job defaults");
+        lines[0].Details.Should().Equal(
             new ChangeDetail("Department", null, "Engineering"),
             new ChangeDetail("Description", null, "We build booking software.\n\n- C#", ChangeValueKind.Paragraphs));
     }

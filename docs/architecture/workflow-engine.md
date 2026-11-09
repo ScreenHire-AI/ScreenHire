@@ -9,6 +9,10 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/HiringTemplate.cs
   - resource: src/ScreenHire.Domain/Hiring/DefinitionValidator.cs
   - resource: apps/dashboard/src/lib/form-sections.ts
+  - resource: apps/dashboard/src/lib/forms-timeline.ts
+  - resource: apps/dashboard/src/lib/components/workflow/form-timeline.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/ai-use-row.svelte
+  - resource: apps/dashboard/src/lib/components/job-ai-use-panel.svelte
   - resource: apps/dashboard/src/lib/simulate.ts
   - resource: apps/dashboard/src/lib/components/workflow/guided-test.svelte
   - resource: src/ScreenHire.Domain/Hiring/FactSchema.cs
@@ -137,7 +141,7 @@ Organization
  ├─ HiringTemplate (versioned)          ← user-defined, reusable
  │    ├─ WorkflowDefinition             stages + automations
  │    ├─ Questionnaire                  screening questions (+ knockouts, honeypots)
- │    ├─ VerificationPolicy                AI-use policy, step-up rules, telemetry jurisdiction defaults
+ │    │                                 (the AI-use policy is not here: it is the organization's, with a job override, §8)
  │    ├─ PostingDefaults                target boards, duration, sponsorship defaults
  │    └─ JobContentDefaults             description blocks, benefits, EEO/legal boilerplate
  └─ Job
@@ -335,9 +339,21 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     in three groups. A recipe is hidden when the workflow already has an automation that does the same thing (`covers`:
     the same trigger and conditions and at least its actions) or one with its id `recipe-<key>` (cut, with a short hash of the key, to the validator's 40 characters), and when adding it
     would create a refused step.
-- **Questionnaire:** the apply form and each follow-up questionnaire, chosen with toggles, in the form builder
-  (`#lib/components/form-builder.svelte`, design system section 11): a row per question that opens to edit, with its
-  answer kind from the answer menu, Duplicate, Delete, Required and a grip to reorder. The kinds a question takes
+- **Questions:** the Form timeline across the top (`form-timeline.svelte`, design system section 11) has a card for the
+  apply form and one for each follow-up questionnaire, named by when it reaches the candidate: "When they apply",
+  "When they reach Trial shift", "3 days after Trial shift starts", or "Not sent yet" when no enabled automation sends it.
+  A form sent on submission reads "Right after they apply" and comes straight after the apply form.
+  A follow-up has no moment of its own: `timelineOf` (`#lib/forms-timeline.ts`) words the trigger of the automation whose
+  `SendQuestionnaire` step names it. **Ask more later** asks for a stage (never Applied or an end stage) and either
+  "When they reach it" or a number of days after it starts, then `addFormLater` makes the form, named after the moment, and
+  the automation that emails it (`StageEntered`, or `TimeElapsed` with `afterHours` of days times 24), and says so: "We add
+  the email automation for you." `removeForm` takes a form with the automations that exist to send it, those that run when
+  it is answered, and the answer rules that read it, and the dashboard lists them before it removes the form; an automation
+  that does more than send it keeps its other steps. The chosen form edits in the form builder
+  (`#lib/components/form-builder.svelte`) below: a row per question that opens to edit, with its answer kind from the answer
+  menu, Required (a badge on a required row, none on an optional one), a row menu holding Duplicate and Delete, and a grip to
+  reorder. The apply form ends in a locked AI-use row (`ai-use-row.svelte`): "AI use. Asked by ScreenHire. Policy: Allowed
+  with disclosure." with a Change policy link, because the policy is not the template's. The kinds a question takes
   (`applyFormKinds`, `followUpKinds` in `#lib/form-builder.ts`) are every `QuestionType`; a follow-up offers all but
   File, because its page takes no uploads. What a kind needs beyond its text and options (a knockout, a number's range,
   the longest answer, a file's types) is `question-settings.svelte`. A duplicate takes an id unique across the workflow,
@@ -348,11 +364,10 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   and Move down, moves the question into that section, and the list stays one panel with one open question. Deleting a
   section gives its questions to the one before (the first's to the one after), and deleting the last goes back to
   automatic pages; nothing changes until Save. `#lib/form-sections.ts` keeps the flat question list rebuilt from the
-  sections, in order. A scorecard has no sections. The preview beside the builder, or behind the Edit / Preview switch where
-  both do not fit, shows the candidate's form at phone, tablet or desktop width, rendered by the shared components in
+  sections, in order. A scorecard has no sections. The preview, behind the one Edit / Preview switch, shows the candidate's form at phone, tablet or desktop width, rendered by the shared components in
   `packages/ui/src/questions` that the careers pages render, and its window icon opens it at `/preview/form`, a window
-  that follows each edit. The apply form's preview starts with the candidate's details and the resume; a follow-up's is
-  its questions alone, as its page shows them. The preview stacks the pages the candidate meets (each named section, or
+  that follows each edit. The apply form's preview starts with the candidate's details and the resume and ends with the
+  AI-use question; a follow-up's is its questions alone, as its page shows them. The preview stacks the pages the candidate meets (each named section, or
   pages of the organization's questions per page), each opening with the step line the candidate sees ("Step 2 of 4",
   "9 of 24 answered"), so every section shows while editing. Marking a yes/no question as a knockout shows what a knockout may be (an
   objective eligibility check, never AI use or an accommodation). The automation form offers "Send a questionnaire" and
@@ -385,7 +400,7 @@ nothing, because each save of a job's workflow is a new version.
 ## 5. API surface (public, same API the dashboard uses)
 
 - `GET/POST /v1/templates`, `POST /v1/templates/{id}/versions`, `POST /v1/templates/{id}/versions/{v}/publish`
-- `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `POST /v1/jobs/{id}/workflow/apply-template-update`
+- `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `PUT /v1/jobs/{id}/ai-use`, `POST /v1/jobs/{id}/workflow/apply-template-update`
 - `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`
 - `POST /v1/jobs/{id}/applications` (add a candidate by hand) and `POST /v1/jobs/{id}/applications/resume-uploads`
   (its resume's upload link), both Add candidates
@@ -518,6 +533,12 @@ The data model and API from the jobs and templates task, and the engine that run
   apply questionnaire and every follow-up, and a follow-up cannot use the apply form's own ids (`resume`,
   `linkedin_export`), so `answers.{id}` names one question. No file questions: the follow-up page works without
   JavaScript and takes no uploads. The knockout rules apply to follow-up questions as to apply questions.
+- **AI use.** A definition has no AI-use policy. ScreenHire asks the question on every application, and the policy is
+  `VerificationSettings.DefaultAiUse` (Verification, Policy), which a job may override (`PUT /v1/jobs/{id}/ai-use`, in the
+  job's own settings and not in its workflow). `AiUsePolicies.Effective` is the one place that decides: the job's override, else
+  the organization's, else Allowed with disclosure. Definitions stored before this keep a `verificationPolicy` member, which
+  reading ignores and the next save drops; migration `MoveAiUseToOrganizationAndJob` copied each job's own policy to its
+  override where it differed from the organization's. No automation reads the answer or the policy (they are not facts).
 - **Validation** is `DefinitionValidator`: structure (ids, stage, question and questionnaire references, per-kind
   fields) plus the guardrails above as an allowlist. A stage may have a scorecard (section 8), never on a hired, rejected
   or withdrawn stage: a hiring template's stage names a library scorecard (`scorecardTemplateId`, a built-in's id or a

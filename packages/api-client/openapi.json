@@ -2843,6 +2843,94 @@
         ]
       }
     },
+    "/v1/jobs/{jobId}/ai-use": {
+      "put": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "SetJobAiUse",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetJobAiUseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/jobs/{jobId}/publish": {
       "post": {
         "tags": [
@@ -18939,7 +19027,6 @@
         "required": [
           "stages",
           "questionnaire",
-          "verificationPolicy",
           "automations"
         ],
         "type": "object",
@@ -18952,9 +19039,6 @@
           },
           "questionnaire": {
             "$ref": "#/components/schemas/Questionnaire"
-          },
-          "verificationPolicy": {
-            "$ref": "#/components/schemas/VerificationPolicy"
           },
           "automations": {
             "type": "array",
@@ -18972,7 +19056,7 @@
             }
           }
         },
-        "description": "What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification\npolicy, the automations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.",
+        "description": "What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.",
         "externalDocs": {
           "description": "JSON Schema: Hiring workflow",
           "url": "/v1/schemas/hiring-workflow.json"
@@ -19386,6 +19470,33 @@
         ],
         "description": "Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation."
       },
+      "JobAiUse": {
+        "required": [
+          "policy",
+          "override",
+          "organizationDefault"
+        ],
+        "type": "object",
+        "properties": {
+          "policy": {
+            "$ref": "#/components/schemas/AiUsePolicy"
+          },
+          "override": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiUsePolicy"
+              }
+            ]
+          },
+          "organizationDefault": {
+            "$ref": "#/components/schemas/AiUsePolicy"
+          }
+        },
+        "description": "The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer."
+      },
       "JobBoardDepartment": {
         "required": [
           "name"
@@ -19617,7 +19728,8 @@
           "closedAt",
           "postings",
           "lastUpdated",
-          "workflowProblems"
+          "workflowProblems",
+          "aiUse"
         ],
         "type": "object",
         "properties": {
@@ -19750,6 +19862,9 @@
             "items": {
               "$ref": "#/components/schemas/DefinitionError"
             }
+          },
+          "aiUse": {
+            "$ref": "#/components/schemas/JobAiUse"
           }
         },
         "description": "Everything about one job: posting content, lifecycle, its workflow copy and where that came from."
@@ -24417,6 +24532,25 @@
         },
         "description": "An email exactly as it went to the candidate: the address, the subject, the HTML part and the plain-text part."
       },
+      "SetJobAiUseRequest": {
+        "required": [
+          "policy"
+        ],
+        "type": "object",
+        "properties": {
+          "policy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiUsePolicy"
+              }
+            ]
+          }
+        },
+        "description": "Sets a job's own AI-use policy, or follows the organization's again when `policy` is null. It is a route of its own\nrather than a field of UpdateJobRequest, which replaces the posting and would clear it when left out."
+      },
       "SetSendingDomainRequest": {
         "required": [
           "domain"
@@ -26444,18 +26578,6 @@
           }
         },
         "description": "Whether the endpoint answered a tiny request with the key and model. `problem` is a word, never the provider's text."
-      },
-      "VerificationPolicy": {
-        "required": [
-          "aiUse"
-        ],
-        "type": "object",
-        "properties": {
-          "aiUse": {
-            "$ref": "#/components/schemas/AiUsePolicy"
-          }
-        },
-        "description": "The template's verification settings (ADR-0004). Only the AI-use policy exists so far."
       },
       "VerificationReasonExplanation": {
         "required": [

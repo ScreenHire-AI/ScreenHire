@@ -52,6 +52,6 @@ public sealed class VerificationNamesTests
 
         json.Should().Contain("\"VerificationAssessed\"");
         Enum.GetNames<TriggerType>().Should().NotContain(name => name.Contains("Integrity", StringComparison.Ordinal));
-        typeof(HiringWorkflow).GetProperty("VerificationPolicy").Should().NotBeNull();
+        typeof(HiringWorkflow).GetProperty("VerificationPolicy").Should().BeNull("the AI-use policy is the organization's, with a job override");
     }
 }

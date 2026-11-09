@@ -22,7 +22,6 @@ const workflow: HiringWorkflow = {
       { id: 'notice', type: 'ShortText', label: 'Notice period' },
     ],
   },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations: [
     { id: 'welcome', name: 'Welcome', trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [{ type: 'SendEmail', emailTemplate: 'application-received' }] },
     { id: 'ask-review', name: 'Ask for a review', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'AssignReviewer', assigneeUserId: '01a157d4-0000-7000-8000-0000000000aa' }] },

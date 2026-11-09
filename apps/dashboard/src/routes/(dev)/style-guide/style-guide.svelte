@@ -126,6 +126,7 @@
   import { settingsSections } from '#lib/settings.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
+  import AiUseRow from '#lib/components/workflow/ai-use-row.svelte';
   import EditPreviewDemo from './edit-preview-demo.svelte';
   import AddCandidateDemo from './add-candidate-demo.svelte';
   import CustomizePostingDemo from './customize-posting-demo.svelte';
@@ -136,6 +137,7 @@
   import DropAreaDemo from './drop-area-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
+  import FormTimelineDemo from './form-timeline-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
   import SaveViewDemo from './save-view-demo.svelte';
@@ -360,7 +362,6 @@
     questionnaire: {
       questions: [{ id: 'right_to_work', type: 'YesNo', label: 'Do you have the right to work here?', required: true, knockout: { disqualifyingAnswer: false } }],
     },
-    verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
     automations: [
       ...flowAutomations,
       {
@@ -1452,6 +1453,11 @@
           ]}
           ondismiss={() => {}}
         />
+      </section>
+
+      <section aria-label="Form timeline" class="flex min-w-0 flex-col gap-5">
+        <FormTimelineDemo />
+        <section aria-label="Locked question row"><AiUseRow policy="AllowedWithDisclosure" href="#form-timeline" /></section>
       </section>
 
       <div class="flex flex-wrap items-start gap-5">

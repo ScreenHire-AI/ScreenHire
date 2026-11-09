@@ -46,7 +46,6 @@ internal static class DraftShape
 
         Require(workflow.Stages is not null, "stages", "Send the stages.");
         Require(workflow.Automations is not null, "automations", "Send the automations, an empty list if there are none.");
-        Require(workflow.VerificationPolicy is not null, "verificationPolicy", "Send the verification policy.");
         Require(workflow.Questionnaire?.Questions is not null, "questionnaire.questions", "Send the questionnaire's questions, an empty list if there are none.");
         Require(workflow.Stages?.All(s => s is not null) ?? true, "stages", "Every stage must be an object.");
         Require(workflow.Automations?.All(a => a?.Actions is not null && a.Trigger is not null) ?? true, "automations", "Every automation needs a trigger and its steps.");

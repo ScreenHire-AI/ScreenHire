@@ -29,7 +29,6 @@ const workflowWith = (automations: Automation[], extra: Partial<HiringWorkflow> 
   questionnaire: {
     questions: [{ id: 'right_to_work', type: 'YesNo', label: 'Do you have the right to work here?', required: true, knockout: { disqualifyingAnswer: false } }],
   },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   followUpQuestionnaires: [
     {
       id: 'availability',

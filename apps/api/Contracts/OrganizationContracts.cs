@@ -18,8 +18,8 @@ namespace ScreenHire.Api.Contracts;
 /// <c>modelSource</c> says whose model answers. For <c>OwnKey</c>, <c>provider</c>, <c>baseUrl</c> (OpenAI-compatible only)
 /// and <c>model</c> describe it; <c>baseUrl</c> is null for a member who cannot edit settings, because its path can hold a token.
 /// <c>apiKeySaved</c> says a key is held; the key itself is write-only and never returned.
-/// <c>checks</c> says which groups of checks run, <c>defaultAiUse</c> is the AI-use policy a new job without a template starts
-/// with, <c>deviceCheck</c> is the footing the organization asks for (null follows the region, which is always a floor),
+/// <c>checks</c> says which groups of checks run, <c>defaultAiUse</c> is the organization's AI-use policy, asked on every application
+/// (a job may override it), <c>deviceCheck</c> is the footing the organization asks for (null follows the region, which is always a floor),
 /// <c>trustedDomains</c> and <c>trustedNetworks</c> are what stops a shared mailbox, office or partner network repeating a
 /// signal, and <c>alerts</c> are the two notifications. <c>emailAvailable</c> and <c>slackConnected</c> say whether this
 /// deployment can send each kind. <c>lastUpdated</c> is the settings' last change ("by ScreenHire" while they are the
