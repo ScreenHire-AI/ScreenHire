@@ -57,6 +57,7 @@
   import ListItem from '#lib/components/list-item.svelte';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
   import MetricCard, { type MetricPoint } from '#lib/components/metric-card.svelte';
+  import OverviewStat from '#lib/components/overview-stat.svelte';
   import ReportStat from '#lib/components/report-stat.svelte';
   import WeekChart, { type WeekPoint } from '#lib/components/week-chart.svelte';
   import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
@@ -82,7 +83,6 @@
   import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
   import SettingsRows from '#lib/components/settings-rows.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
-  import SetupSteps from '#lib/components/setup-steps.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -1439,17 +1439,13 @@
         </Panel>
       </div>
 
-      <section aria-label="Setup checklist" class="max-w-form">
-        <SetupSteps
-          steps={[
-            { id: 'team', label: 'Invite your team', href: '#setup-checklist', done: true },
-            { id: 'branding', label: 'Set your branding', href: '#setup-checklist', done: false },
-            { id: 'careers', label: 'Set up your careers site', href: '#setup-checklist', done: false },
-            { id: 'email', label: 'Add your email domain', href: '#setup-checklist', done: false },
-            { id: 'job', label: 'Publish your first job', href: '#setup-checklist', done: false },
-          ]}
-          ondismiss={() => {}}
-        />
+      <section aria-label="Overview stat" class="@container max-w-4xl">
+        <div class="grid grid-cols-2 gap-5 @3xl:grid-cols-4">
+          <OverviewStat icon={UsersIcon} title="New this week" value="12" href="#overview-stat" />
+          <OverviewStat icon={UsersIcon} title="Not screened" value="8" href="#overview-stat" />
+          <OverviewStat icon={HourglassIcon} title="Interviews this week" value="3" href="#overview-stat" />
+          <OverviewStat icon={UsersIcon} title="Open jobs" value="3 of 5" href="#overview-stat" />
+        </div>
       </section>
 
       <div class="flex flex-wrap items-start gap-5">

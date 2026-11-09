@@ -60,6 +60,7 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// roles on this application's form and has not taken it back; it has no end date. Only an application with one
 /// can be saved (docs/architecture/talent-pool.md). <c>sourceSite</c>: the organization's own site the careers
 /// page was embedded in when the candidate applied (an origin such as <c>https://www.example.com</c>), or null.
+/// <c>nextInterviewAt</c>: when the earliest booked interview that has not started begins, or null (read at the time of the request).
 /// </remarks>
 public sealed record ApplicationSummary(
     Guid Id,
@@ -78,7 +79,8 @@ public sealed record ApplicationSummary(
     ApplicationRating? Rating = null,
     DateTimeOffset? KeptInMindAt = null,
     bool AllowsFutureRoles = false,
-    string? SourceSite = null);
+    string? SourceSite = null,
+    DateTimeOffset? NextInterviewAt = null);
 
 /// <summary>
 /// The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer
@@ -309,11 +311,11 @@ internal static class ApplicationMappings
     /// <summary>The application in a list.</summary>
     public static ApplicationSummary ToSummary(
         this JobApplication application, Job job, Candidate candidate, DateTimeOffset lastActivityAt,
-        VerificationSummary? verification = null, ApplicationRating? rating = null) =>
+        VerificationSummary? verification = null, ApplicationRating? rating = null, DateTimeOffset? nextInterviewAt = null) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
             application.SubmittedAt, application.StageEnteredAt, lastActivityAt, job.Title, application.Source, application.Tags, verification,
             application.SlaDueAt(job), rating ?? ApplicationRating.NotRated, application.KeptInMindAt,
-            application.AllowsFutureRoles, application.SourceSite);
+            application.AllowsFutureRoles, application.SourceSite, nextInterviewAt);
 
     /// <summary>
     /// The application on its own; <paramref name="inTalentPool"/> says whether the candidate is a saved candidate, saved

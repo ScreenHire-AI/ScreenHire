@@ -15,9 +15,11 @@ using ScreenHire.Application.Distribution.GoogleIndexing;
 using ScreenHire.Application.Verification;
 using ScreenHire.Application.Verification.Content;
 using ScreenHire.Application.Jobs;
+using ScreenHire.Application.Notifications;
 using ScreenHire.Application.OAuth;
 using ScreenHire.Application.Privacy;
 using ScreenHire.Application.Slack;
+using ScreenHire.Application.SendingDomains;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
@@ -203,6 +205,9 @@ public static class ScreenHireMessaging
         // Data requests and record retention: their options, the shared erasure, and no storage for copies of candidates'
         // data until the worker registers its blob store first.
         opts.Services.AddScreenHirePrivacy();
+        opts.Services.AddScreenHireNotifications();
+        // The daily re-check of sending domains looks them up and asks the provider, as the API does.
+        opts.Services.AddScreenHireSendingDomains();
         opts.Services.TryAddSingleton<IDataExportStore, NoDataExportStore>();
 
         UsePostgres(opts, connectionString, settings);
@@ -299,6 +304,10 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<PurgeExpiredDataExports>("47 3 * * *");
         // Ended applications past each organization's retention period, daily; off for an organization until it sets a period.
         opts.Schedules.ScheduleRecurring<PurgeEndedApplications>("12 4 * * *");
+        // Notifications past their retention, daily (docs/architecture/notifications.md).
+        opts.Schedules.ScheduleRecurring<PurgeExpiredNotifications>("32 4 * * *");
+        // Each organization's sending domain looked up again, daily (docs/architecture/notifications.md).
+        opts.Schedules.ScheduleRecurring<RecheckSendingDomains>("47 5 * * *");
         // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
         opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
         opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");

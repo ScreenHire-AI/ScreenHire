@@ -34,4 +34,6 @@ export interface ApplicationSummary {
   allowsFutureRoles?: boolean;
   /** @nullable */
   sourceSite?: string | null;
+  /** @nullable */
+  nextInterviewAt?: string | null;
 }

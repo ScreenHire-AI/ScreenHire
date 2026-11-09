@@ -1,12 +1,12 @@
-import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from '$app/state';
-import { apiStub, jobs, user, userAs } from '../../test-support/fixtures.js';
+import { apiStub, applications, jobs, now, user, userAs } from '../../test-support/fixtures.js';
 import { stubViewport } from '../../test-support/viewport.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
+vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
 vi.mock('$app/state', () => ({ page: { state: {}, data: {}, url: new URL('http://dashboard.test/'), shallow: null }, navigating: { to: null } }));
 
 const closed = { ...jobs[1]!, id: '01a157d4-0000-7000-8000-000000000003', title: 'Support Engineer', status: 'Closed' as const };
@@ -311,42 +311,78 @@ describe('jobs page actions', () => {
   });
 });
 
-describe('jobs page, setup checklist', () => {
-  const stubSetup = (rows = jobs) =>
+describe('jobs page, overview', () => {
+  // Fixed, so "this week" is the same on every machine; the applications below are placed around it.
+  const day = 24 * 60 * 60 * 1000;
+  const at = (offsetMs: number) => new Date(now + offsetMs).toISOString();
+  const rows = [
+    { ...applications[0]!, id: 'app-1', submittedAt: at(-day), stage: { id: 'applied', name: 'Applied', kind: 'Applied' as const } },
+    { ...applications[0]!, id: 'app-2', submittedAt: at(-3 * day), stage: { id: 'applied', name: 'Applied', kind: 'Applied' as const } },
+    { ...applications[0]!, id: 'app-3', submittedAt: at(-20 * day), stage: { id: 'interview', name: 'Interview', kind: 'Interview' as const }, nextInterviewAt: at(2 * day) },
+    { ...applications[0]!, id: 'app-4', submittedAt: at(-30 * day), stage: { id: 'interview', name: 'Interview', kind: 'Interview' as const }, nextInterviewAt: at(12 * day) },
+  ];
+  const billing = { available: true, state: 'Trialing', openJobs: 1, activeJobLimit: 5, canManage: true, currentPlan: null, plans: [] };
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(now);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const stubOverview = (extra: Record<string, () => Response> = {}) =>
     vi.stubGlobal(
       'fetch',
-      vi.fn(
-        apiStub({
-          'GET /v1/jobs': () => Response.json(rows),
-          'GET /v1/organization/members': () => Response.json([{ id: 'avery' }]),
-          'GET /v1/organization/invitations': () => Response.json([]),
-          'GET /v1/organization/branding': () => Response.json({ brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
-          'GET /v1/organization': () => Response.json({ embedOrigins: [], questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE, lastUpdated: { at: null, by: null, created: true } }),
-          'GET /v1/organization/sending-domain': () => Response.json({ available: false, sandbox: false, domain: null }),
-        }),
-      ),
+      vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs), 'GET /v1/applications': () => Response.json(rows), 'GET /v1/organization/billing': () => Response.json(billing), ...extra })),
     );
+  const tile = (title: string) => within(screen.getByRole('group', { name: 'Overview' })).getByRole('link', { name: new RegExp(title) });
 
-  it('shows an Owner the Set up your organization panel above the jobs, with the steps the data leaves open', async () => {
-    stubSetup(jobs.map((job) => ({ ...job, publishedAt: null })));
+  it('replaces the setup checklist with four numbers, each a link to the list it counts', async () => {
+    stubOverview();
     renderPage();
 
-    const panel = await screen.findByRole('region', { name: 'Set up your organization' });
-    expect(within(panel).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual([
-      'Invite your team',
-      'Set your branding',
-      'Set up your careers site',
-      'Publish your first job',
-    ]);
-    expect(panel.compareDocumentPosition(await screen.findByRole('region', { name: 'All jobs' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await screen.findByRole('group', { name: 'Overview' });
+    await waitFor(() => expect(within(screen.getByRole('group', { name: 'Overview' })).getAllByRole('link')).toHaveLength(4));
+    expect(screen.queryByRole('region', { name: 'Set up your organization' })).toBeNull();
+    expect(tile('New this week')).toHaveTextContent('2');
+    expect(tile('New this week')).toHaveAttribute('href', '/candidates?view=new-this-week');
+    expect(tile('Not screened')).toHaveTextContent('2');
+    expect(tile('Not screened')).toHaveAttribute('href', '/candidates?view=not-screened');
+    // Only the booking inside the week counts; the one twelve days out does not.
+    expect(tile('Interviews this week')).toHaveTextContent('1');
+    expect(tile('Interviews this week')).toHaveAttribute('href', '/candidates?view=interviews-this-week');
+    expect(tile('Open jobs')).toHaveAttribute('href', '/?status=Open');
   });
 
-  it('shows a Recruiter no panel', async () => {
+  it('shows an Owner open jobs against the plan limit, and anyone else the count alone', async () => {
+    stubOverview();
+    const { unmount } = renderPage();
+    await waitFor(() => expect(tile('Open jobs')).toHaveTextContent('1 of 5'));
+    unmount();
+
     page.data = { user: userAs('Recruiter') };
-    stubSetup();
+    stubOverview();
+    renderPage();
+    await waitFor(() => expect(tile('Open jobs')).toHaveTextContent('Open jobs 1'));
+    expect(tile('Open jobs')).not.toHaveTextContent('of');
+    expect(fetch).not.toHaveBeenCalledWith('/v1/organization/billing', expect.anything());
+  });
+
+  it('leaves the application numbers out when they cannot load, rather than showing zero', async () => {
+    stubOverview({ 'GET /v1/applications': () => new Response(null, { status: 500 }) });
+    renderPage();
+
+    await waitFor(() => expect(within(screen.getByRole('group', { name: 'Overview' })).getAllByRole('link')).toHaveLength(1));
+    expect(tile('Open jobs')).toBeInTheDocument();
+  });
+
+  it('opens the list on the status in the address, so the Open jobs tile lands filtered', async () => {
+    page.url = new URL('http://dashboard.test/?status=Open');
+    stubOverview();
     renderPage();
 
     await dataRows();
-    expect(screen.queryByRole('region', { name: 'Set up your organization' })).toBeNull();
+    expect(within(statusFilter()).getByRole('button', { name: /^Open/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('region', { name: 'Open jobs' })).toBeInTheDocument();
+    page.url = new URL('http://dashboard.test/');
   });
 });

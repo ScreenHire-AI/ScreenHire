@@ -26,6 +26,8 @@ export const dataRequestsPath = '/v1/data-requests';
 export const billingPath = '/v1/organization/billing';
 /** The retention setting, its dry-run count and its history (`/v1/organization/data-retention`). */
 export const retentionPath = '/v1/organization/data-retention';
+/** The signed-in member's bell (`/v1/notifications`). */
+export const notificationsPath = '/v1/notifications';
 
 /**
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
@@ -98,6 +100,8 @@ export const invalidations: InvalidationMap = {
   ViewsChanged: [viewsPath],
   // The subscription changed (checkout done, a failed payment, a plan change or its end): the Billing page and its entry.
   BillingChanged: [billingPath],
+  // A notification was raised, cleared, read or dismissed: every open bell refetches its own list.
+  NotificationsChanged: [notificationsPath],
 };
 
 export interface LiveUpdates {

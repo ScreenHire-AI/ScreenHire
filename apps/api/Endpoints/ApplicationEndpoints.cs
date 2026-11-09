@@ -92,15 +92,15 @@ internal static class ApplicationEndpoints
     }
 
     private static async Task<Results<Ok<List<ApplicationSummary>>, NotFound>> ListJobApplications(
-        Guid jobId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken) =>
+        Guid jobId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
         await db.Jobs.AnyAsync(j => j.Id == jobId, cancellationToken)
-            ? TypedResults.Ok(await ApplicationReads.ListAsync(user, tenant, db, new(JobId: jobId), cancellationToken))
+            ? TypedResults.Ok(await ApplicationReads.ListAsync(user, tenant, db, time, new(JobId: jobId), cancellationToken))
             : TypedResults.NotFound();
 
     // Every application in the organization, newest first: the dashboard's candidates table across jobs.
     private static Task<List<ApplicationSummary>> ListApplications(
-        ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken) =>
-        ApplicationReads.ListAsync(user, tenant, db, new(), cancellationToken);
+        ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
+        ApplicationReads.ListAsync(user, tenant, db, time, new(), cancellationToken);
 
     // A recruiter adds an application by hand (ApplicationSubmission): the candidate is found by email within the
     // organization, or created, and the application starts in the job's first stage. A resume uploaded through
@@ -439,7 +439,7 @@ internal static class ApplicationEndpoints
     }
 
     private static async Task<Results<Ok<CandidateDetail>, NotFound>> GetCandidate(
-        Guid candidateId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
+        Guid candidateId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
     {
         var candidate = await db.Candidates.AsNoTracking().SingleOrDefaultAsync(c => c.Id == candidateId, cancellationToken);
         if (candidate is null)
@@ -449,7 +449,7 @@ internal static class ApplicationEndpoints
 
         return TypedResults.Ok(new CandidateDetail(
             candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt,
-            await ApplicationReads.ListAsync(user, tenant, db, new(CandidateId: candidateId), cancellationToken),
+            await ApplicationReads.ListAsync(user, tenant, db, time, new(CandidateId: candidateId), cancellationToken),
             candidate.FirstName, candidate.LastName));
     }
 }

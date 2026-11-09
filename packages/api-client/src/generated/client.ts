@@ -128,6 +128,7 @@ import type {
   MembershipLogEntry,
   MoveApplicationRequest,
   MyOrganization,
+  NotificationList,
   OAuthAuthorizationRequestInfo,
   OAuthAuthorizeRequest,
   OAuthAuthorizeResult,
@@ -8783,6 +8784,176 @@ return apiFetch<updateNotificationSettingsResponse>(getUpdateNotificationSetting
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateNotificationSettingsRequest)
+  }
+);}
+
+
+
+export type listNotificationsResponse200 = {
+  data: NotificationList
+  status: 200
+}
+
+export type listNotificationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listNotificationsResponseSuccess = (listNotificationsResponse200) & {
+  headers: Headers;
+};
+export type listNotificationsResponseError = (listNotificationsResponse401) & {
+  headers: Headers;
+};
+
+export type listNotificationsResponse = (listNotificationsResponseSuccess | listNotificationsResponseError)
+
+export const getListNotificationsUrl = () => {
+
+
+
+
+  return `/v1/notifications`
+}
+
+export const listNotifications = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listNotificationsResponse> => {
+
+  return apiFetch<listNotificationsResponse>(getListNotificationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type markAllNotificationsReadResponse204 = {
+  data: void
+  status: 204
+}
+
+export type markAllNotificationsReadResponse401 = {
+  data: void
+  status: 401
+}
+
+export type markAllNotificationsReadResponseSuccess = (markAllNotificationsReadResponse204) & {
+  headers: Headers;
+};
+export type markAllNotificationsReadResponseError = (markAllNotificationsReadResponse401) & {
+  headers: Headers;
+};
+
+export type markAllNotificationsReadResponse = (markAllNotificationsReadResponseSuccess | markAllNotificationsReadResponseError)
+
+export const getMarkAllNotificationsReadUrl = () => {
+
+
+
+
+  return `/v1/notifications/read-all`
+}
+
+export const markAllNotificationsRead = async ( options?: Parameters<typeof apiFetch>[1]): Promise<markAllNotificationsReadResponse> => {
+
+  return apiFetch<markAllNotificationsReadResponse>(getMarkAllNotificationsReadUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type markNotificationReadResponse204 = {
+  data: void
+  status: 204
+}
+
+export type markNotificationReadResponse401 = {
+  data: void
+  status: 401
+}
+
+export type markNotificationReadResponse404 = {
+  data: void
+  status: 404
+}
+
+export type markNotificationReadResponseSuccess = (markNotificationReadResponse204) & {
+  headers: Headers;
+};
+export type markNotificationReadResponseError = (markNotificationReadResponse401 | markNotificationReadResponse404) & {
+  headers: Headers;
+};
+
+export type markNotificationReadResponse = (markNotificationReadResponseSuccess | markNotificationReadResponseError)
+
+export const getMarkNotificationReadUrl = (id: string,) => {
+
+
+
+
+  return `/v1/notifications/${id}/read`
+}
+
+export const markNotificationRead = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<markNotificationReadResponse> => {
+
+  return apiFetch<markNotificationReadResponse>(getMarkNotificationReadUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type dismissNotificationResponse204 = {
+  data: void
+  status: 204
+}
+
+export type dismissNotificationResponse401 = {
+  data: void
+  status: 401
+}
+
+export type dismissNotificationResponse404 = {
+  data: void
+  status: 404
+}
+
+export type dismissNotificationResponseSuccess = (dismissNotificationResponse204) & {
+  headers: Headers;
+};
+export type dismissNotificationResponseError = (dismissNotificationResponse401 | dismissNotificationResponse404) & {
+  headers: Headers;
+};
+
+export type dismissNotificationResponse = (dismissNotificationResponseSuccess | dismissNotificationResponseError)
+
+export const getDismissNotificationUrl = (id: string,) => {
+
+
+
+
+  return `/v1/notifications/${id}/dismiss`
+}
+
+export const dismissNotification = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<dismissNotificationResponse> => {
+
+  return apiFetch<dismissNotificationResponse>(getDismissNotificationUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 

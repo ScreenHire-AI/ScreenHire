@@ -4,13 +4,16 @@ using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Application.Notifications;
 using ScreenHire.Application.SendingDomains;
 using ScreenHire.Domain.History;
+using ScreenHire.Domain.Notifications;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Persistence.History;
 using ScreenHire.Infrastructure.Tenancy;
+using Wolverine.EntityFrameworkCore;
 
 namespace ScreenHire.Api.Endpoints;
 
@@ -119,8 +122,9 @@ internal static class SendingDomainEndpoints
     }
 
     private static async Task<Results<Ok<SendingDomainDetail>, NotFound, ProblemHttpResult>> CheckSendingDomain(
-        ScreenHireDbContext db, SendingDomainService service, CancellationToken cancellationToken)
+        IDbContextOutbox<ScreenHireDbContext> outbox, SendingDomainService service, TimeProvider time, CancellationToken cancellationToken)
     {
+        var db = outbox.DbContext;
         var domain = await db.SendingDomains.SingleOrDefaultAsync(cancellationToken);
         if (domain is null || !service.IsAvailable)
         {
@@ -129,7 +133,18 @@ internal static class SendingDomainEndpoints
 
         try
         {
-            return TypedResults.Ok((await service.CheckAsync(db, domain, cancellationToken)).ToDetail());
+            // The same look the daily re-check takes. When the Owners were told this domain stopped verifying and it now
+            // passes, the notification is cleared in the same save, so a fix shows in the bell at once.
+            var probe = await service.ProbeAsync(domain, cancellationToken);
+            var wasLost = domain.HasLostVerification;
+            domain.RecordCheck(probe.Records, probe.Verified, probe.ProviderMessage, time.GetUtcNow());
+            if (wasLost && !domain.HasLostVerification)
+            {
+                await outbox.PublishAsync(new ClearNotification(domain.OrganizationId, NotificationKinds.SendingDomainFailing, domain.Id.ToString("N")));
+            }
+
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            return TypedResults.Ok(domain.ToDetail());
         }
         catch (SendingDomainProviderException exception)
         {

@@ -1,4 +1,5 @@
 import type { ApplicationSummary } from '@screenhire/api-client';
+import CalendarCheckIcon from '~icons/lucide/calendar-check';
 import CalendarPlusIcon from '~icons/lucide/calendar-plus';
 import InboxIcon from '~icons/lucide/inbox';
 import MessagesSquareIcon from '~icons/lucide/messages-square';
@@ -19,6 +20,7 @@ export type SavedView = {
 } & ({ status: StatusName; icon?: never } | { icon: LucideIcon; status?: never });
 
 const day = 24 * 60 * 60 * 1000;
+const week = 7 * day;
 
 /**
  * The sidebar's saved views, in order. They open `/candidates?view=<id>`. The verification views follow authenticity only:
@@ -64,4 +66,25 @@ export const savedViews: readonly SavedView[] = [
   },
 ];
 
-export const findSavedView = (id: string | null) => savedViews.find((view) => view.id === id);
+/**
+ * The two views the Jobs overview opens (design system section 11, Overview stat). They are not in the sidebar's list: they
+ * answer a question asked on Jobs, and a rolling week is not a place to browse. `?view=` resolves them like any built-in
+ * view, and the tiles count with these same predicates, so a tile and its list never disagree.
+ */
+export const overviewViews: readonly SavedView[] = [
+  {
+    id: 'new-this-week',
+    label: 'New this week',
+    icon: CalendarPlusIcon,
+    matches: (application, now) => now - Date.parse(application.submittedAt) < week,
+  },
+  {
+    // A booked interview that has not started and begins within the week (the server reads `nextInterviewAt` at the request).
+    id: 'interviews-this-week',
+    label: 'Interviews this week',
+    icon: CalendarCheckIcon,
+    matches: (application, now) => application.nextInterviewAt != null && Date.parse(application.nextInterviewAt) - now < week,
+  },
+];
+
+export const findSavedView = (id: string | null) => [...savedViews, ...overviewViews].find((view) => view.id === id);

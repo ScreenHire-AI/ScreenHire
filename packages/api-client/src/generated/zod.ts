@@ -4181,7 +4181,8 @@ export const ListJobApplicationsResponseItem = zod.object({
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "allowsFutureRoles": zod.boolean().default(listJobApplicationsResponseAllowsFutureRolesDefault),
-  "sourceSite": zod.string().nullish()
+  "sourceSite": zod.string().nullish(),
+  "nextInterviewAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')
 export const ListJobApplicationsResponse = zod.array(ListJobApplicationsResponseItem)
 
@@ -4360,7 +4361,8 @@ export const ListApplicationsResponseItem = zod.object({
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "allowsFutureRoles": zod.boolean().default(listApplicationsResponseAllowsFutureRolesDefault),
-  "sourceSite": zod.string().nullish()
+  "sourceSite": zod.string().nullish(),
+  "nextInterviewAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')
 export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
@@ -5007,7 +5009,8 @@ export const GetCandidateResponse = zod.object({
 }).describe('The candidate\'s rating (ADR-0013 decision 13): one to five stars averaged from people\'s scorecards. Each rating answer\nmaps onto 1 to 5 (a 1 to 10 answer spread so that 1 counts as 1 and 10 as 5, a rating Yes as 5 and No as 1), each\nscorecard counts once as the mean of its answered rating questions, and the rating is the mean of those, to one\ndecimal. It is people\'s judgement of the work only: never verification results, AI signals or the stage. No automation\nreads it. A reviewer who still has their own scorecard to give reads `AfterYourScorecard`, with no value, until\nthey give it, so it cannot anchor them.')]).optional(),
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "allowsFutureRoles": zod.boolean().default(getCandidateResponseApplicationsItemAllowsFutureRolesDefault),
-  "sourceSite": zod.string().nullish()
+  "sourceSite": zod.string().nullish(),
+  "nextInterviewAt": zod.iso.datetime({"offset":true}).nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')),
   "firstName": zod.string(),
   "lastName": zod.string().nullable()
@@ -7409,6 +7412,36 @@ export const UpdateNotificationSettingsResponse = zod.object({
   "closeToasts": zod.boolean(),
   "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text.'))
 }).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\nthe kinds of change that do not toast. Everything starts on.')
+
+
+export const ListNotificationsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "kind": zod.string(),
+  "payload": zod.record(zod.string(), zod.string()),
+  "link": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "readAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One notification in the signed-in member\'s bell. The dashboard builds the plain line from `kind` and `payload`,\nso the wording lives in one place and a kind it does not know still shows with its link.')),
+  "unreadCount": zod.int()
+}).describe('The member\'s notifications that are not dismissed, newest first, and how many of all of them are unread.')
+
+
+export const MarkAllNotificationsReadResponse = zod.void()
+
+
+export const MarkNotificationReadParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const MarkNotificationReadResponse = zod.void()
+
+
+export const DismissNotificationParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const DismissNotificationResponse = zod.void()
 
 
 export const ListViewsResponse = zod.object({

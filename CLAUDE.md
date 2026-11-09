@@ -223,6 +223,11 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
   in the same save; `TrackedKinds` is the allow-list, and tracking another kind is one line there plus a history route
   ([`docs/architecture/change-history.md`](docs/architecture/change-history.md)). Change tracked objects through the
   change tracker, never `ExecuteUpdate`/`ExecuteDelete`, or the change goes unrecorded.
+- Notifications: to tell a person something needs attention, return or publish `RaiseNotification` (the audience is a `Permission`, plus a kind
+  from `NotificationKinds`, a stable key, a small payload and a dashboard path), and `ClearNotification` when it stops being true. It
+  lands in the bell in the top bar, one row per person, live and with a retention (`ScreenHire:Notifications:RetentionDays`). A new
+  kind also adds its line to `notification-lines.ts`
+  ([`docs/architecture/notifications.md`](docs/architecture/notifications.md)).
 - Idempotency: delivery is at least once. The durable inbox drops redelivered envelopes; a message that can be sent
   twice for one intent carries an idempotency key from stable ids (never the clock or a new `Guid`) and its handler is
   `[Deduplicated(ValueSource.InputMember, ...)]`; and every handler effect is idempotent on its own (state check,

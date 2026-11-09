@@ -181,6 +181,9 @@ export const realtimeEventSchemas = {
   ViewsChanged: z.object({ organizationId: id, viewId: id, changedAt: instant, actorUserId: actor }),
   // The subscription changed (checkout finished, a payment failed, the plan changed or ended): an open Billing page refetches.
   BillingChanged: z.object({ organizationId: id }),
+  // Someone's bell changed (a notification was raised, cleared, read, dismissed or expired). It names no person and no words: it
+  // reaches every member, and each open bell refetches its own list.
+  NotificationsChanged: z.object({ organizationId: id }),
 } as const;
 
 export type RealtimeEventType = keyof typeof realtimeEventSchemas;

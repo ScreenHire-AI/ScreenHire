@@ -40,6 +40,11 @@
 //                               RepliesPerDay.
 //   Retention:*                 the daily record retention run (ScreenHire.Application RecordRetentionOptions), forwarded to
 //                               the API and the worker: BatchSize. Each organization's period is its own setting, off by default.
+//   Notifications:*             how long the bell keeps notifications (ScreenHire.Application NotificationOptions,
+//                               docs/architecture/notifications.md), forwarded to the API and the worker: RetentionDays (30).
+//   SendingDomainRecheck:*      the daily re-check of each organization's sending domain (ScreenHire.Application
+//                               SendingDomainRecheckOptions), forwarded to the API and the worker: ConfirmDelay (1 hour), how long
+//                               after a verified domain fails a daily look the second look comes.
 //   CareersEmbedding:*          the sites allowed to embed the careers pages (the API's CareersEmbeddingOptions,
 //                               docs/architecture/careers-widget.md), forwarded to the API: AllowLoopback
 //                               (appsettings.Development.json and the test stacks turn it on, so a site on this machine,
@@ -244,9 +249,9 @@ foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePa
     }
 }
 
-// Data requests, record retention and the candidate portal (docs/architecture/data-requests.md,
-// docs/architecture/candidate-portal.md): plain settings, no secrets, read by both hosts.
-foreach (var section in new[] { "DataRequests", "Portal", "Retention" })
+// Data requests, record retention, the candidate portal and notifications (docs/architecture/data-requests.md,
+// docs/architecture/candidate-portal.md, docs/architecture/notifications.md): plain settings, no secrets, read by both hosts.
+foreach (var section in new[] { "DataRequests", "Portal", "Retention", "Notifications", "SendingDomainRecheck" })
 {
     foreach (var (key, value) in settings.GetSection(section).AsEnumerable(makePathsRelative: true))
     {

@@ -233,7 +233,9 @@ nothing.
   upload, with their blobs ([branding.md](branding.md) §4), `PurgeExpiredApplicantUploads` for files uploaded to an
   application that was never sent, also a day after ([apply-flow.md](apply-flow.md) §3). `PurgeExpiredDataExports` deletes copies of
   candidates' data past their download window, and `PurgeEndedApplications` deletes each organization's ended applications past its
-  retention period (off by default); both fan out per organization ([data-requests.md](data-requests.md)). `PurgeExpiredOAuthData` deletes
+  retention period (off by default); both fan out per organization ([data-requests.md](data-requests.md)). `PurgeExpiredNotifications` deletes the bell's notifications past `ScreenHire:Notifications:RetentionDays`, fanning out per organization, and
+  `RecheckSendingDomains` looks each organization's sending domain up again, daily, and schedules a confirming look an hour later for a
+  verified one that failed ([notifications.md](notifications.md)). `PurgeExpiredOAuthData` deletes
   OAuth client registrations nobody approved within a day, then fans out per organization to delete codes and tokens a day past their
   expiry ([oauth-server.md](oauth-server.md)). Saved candidates have no sweep: they have no end date
   ([saved candidates](talent-pool.md)).

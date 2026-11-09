@@ -8356,6 +8356,125 @@
         ]
       }
     },
+    "/v1/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "ListNotifications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/notifications/read-all": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "MarkAllNotificationsRead",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/notifications/{id}/read": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "MarkNotificationRead",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/notifications/{id}/dismiss": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "DismissNotification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/views": {
       "get": {
         "tags": [
@@ -15338,6 +15457,13 @@
               "null",
               "string"
             ]
+          },
+          "nextInterviewAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself."
@@ -20761,6 +20887,67 @@
           }
         },
         "description": "One of the signed-in user's organizations, for the organization switcher, with their role there. `roleName` is\nnull for a custom role in an organization other than the one they work in: row-level security keeps its roles from\nthem until they switch."
+      },
+      "NotificationItem": {
+        "required": [
+          "id",
+          "kind",
+          "payload",
+          "link",
+          "createdAt",
+          "readAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "link": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One notification in the signed-in member's bell. The dashboard builds the plain line from `kind` and `payload`,\nso the wording lives in one place and a kind it does not know still shows with its link."
+      },
+      "NotificationList": {
+        "required": [
+          "items",
+          "unreadCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationItem"
+            }
+          },
+          "unreadCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The member's notifications that are not dismissed, newest first, and how many of all of them are unread."
       },
       "OAuthAuthorizationRequestInfo": {
         "required": [
