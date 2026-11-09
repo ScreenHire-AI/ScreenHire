@@ -9648,8 +9648,12 @@ export const GetAiUsageSummaryResponse = zod.object({
   "calls": zod.int(),
   "inputTokens": zod.int(),
   "outputTokens": zod.int(),
-  "cost": zod.number()
-}).describe('One day of use, by the date in the requested time zone (`yyyy-MM-dd`).')),
+  "cost": zod.number(),
+  "builtInTokens": zod.int(),
+  "ownKeyTokens": zod.int(),
+  "builtInCost": zod.number(),
+  "ownKeyCost": zod.number()
+}).describe('One day of use, by the date in the requested time zone (`yyyy-MM-dd`). The built-in and own-key fields split the day\'s\ntokens (in and out) and cost by whose key paid, so the Usage tab can chart the two side by side.')),
   "byModel": zod.array(zod.object({
   "provider": zod.string(),
   "model": zod.string(),
@@ -9766,6 +9770,73 @@ export const UpdateAiUsageLimitsResponse = zod.object({
   "percent": zod.int()
 }).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
 }).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')
+
+
+export const GetVerificationOverviewResponse = zod.object({
+  "from": zod.iso.datetime({"offset":true}),
+  "to": zod.iso.datetime({"offset":true}),
+  "checked": zod.int(),
+  "pending": zod.int(),
+  "levels": zod.object({
+  "clear": zod.int(),
+  "review": zod.int(),
+  "verify": zod.int()
+}).describe('Applications at each authenticity level, by the word the dashboard shows: Clear, Review, Verify.'),
+  "groups": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "applications": zod.int()
+}).describe('The number of applications in which a check group counted a signal towards the level.'))
+}).describe('The Verification area\'s Overview: this month\'s applications (UTC calendar month) by authenticity level, and which check groups\ncounted a signal in the most of them. Counts of applications only. It holds no score, no percentage, no AI-assistance level\n(which never counts) and nothing about a person. For a member limited to some jobs it covers those jobs.')
+
+
+export const ListVerificationActivityQueryParams = zod.object({
+  "from": zod.iso.datetime({"offset":true}).optional(),
+  "to": zod.iso.datetime({"offset":true}).optional(),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).optional(),
+  "keySource": zod.enum(['BuiltIn', 'OwnKey']).optional(),
+  "outcome": zod.enum(['Completed', 'Found', 'NotRun', 'Failed']).optional(),
+  "before": zod.string().optional(),
+  "limit": zod.int().optional()
+})
+
+export const ListVerificationActivityResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['CheckRun', 'ModelCall']).describe('What one entry of the Verification area\'s activity log is.'),
+  "at": zod.iso.datetime({"offset":true}),
+  "group": zod.union([zod.null(),zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')]),
+  "check": zod.string(),
+  "outcome": zod.enum(['Completed', 'Found', 'NotRun', 'Failed']).describe('How an entry of the activity log ended. A word for what happened, never a verdict on a person.'),
+  "note": zod.string().nullable(),
+  "applicationId": zod.uuid().nullable(),
+  "jobTitle": zod.string().nullable(),
+  "call": zod.union([zod.null(),zod.object({
+  "keySource": zod.enum(['BuiltIn', 'OwnKey']).describe('Whose key paid for a call.'),
+  "provider": zod.string(),
+  "model": zod.string(),
+  "providerRequestId": zod.string().nullable(),
+  "inputTokens": zod.int().nullable(),
+  "outputTokens": zod.int().nullable(),
+  "cost": zod.number().nullable(),
+  "durationMs": zod.int(),
+  "errorKind": zod.string().nullable()
+}).describe('What a model call cost and where to find it in the provider\'s own logs. Only for View AI usage with All jobs.')])
+}).describe('One check run or model call. `check` is the analyzer\'s name (`network`) or the model check\'s\n(`consistency.extraction`). `group` is null for a call that belongs to none. `note` is why a check did not look,\nwhen it did not. `jobTitle` and `applicationId` let a reader open the application; neither names the candidate.')),
+  "nextBefore": zod.string().nullable(),
+  "usageVisible": zod.boolean()
+}).describe('A page of the activity log, newest first: check runs for everyone, and model calls (the AI checks). `usageVisible` says\nthe caller may see what a call cost and the provider\'s request id (View AI usage and All jobs); without it a model call has\nno `call` details, and only calls about an application the caller can open are listed. `nextBefore` goes back as\n`before` for the next page and is null on the last.')
+
+
+export const ExportVerificationActivityQueryParams = zod.object({
+  "from": zod.iso.datetime({"offset":true}).optional(),
+  "to": zod.iso.datetime({"offset":true}).optional(),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).optional(),
+  "keySource": zod.enum(['BuiltIn', 'OwnKey']).optional(),
+  "outcome": zod.enum(['Completed', 'Found', 'NotRun', 'Failed']).optional()
+})
+
+export const ExportVerificationActivityResponse = zod.unknown()
 
 
 export const GetCalendarResponse = zod.object({

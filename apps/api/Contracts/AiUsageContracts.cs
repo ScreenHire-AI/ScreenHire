@@ -40,8 +40,13 @@ public sealed record AiUsageSummary(
 /// <summary>Calls, tokens and cost over a range. <c>cost</c> is in US dollars and counts only calls with a known cost.</summary>
 public sealed record AiUsageTotals(int Calls, long InputTokens, long OutputTokens, decimal Cost, int CallsWithUnknownCost, int FailedCalls);
 
-/// <summary>One day of use, by the date in the requested time zone (<c>yyyy-MM-dd</c>).</summary>
-public sealed record AiUsageDay(string Date, int Calls, long InputTokens, long OutputTokens, decimal Cost);
+/// <summary>
+/// One day of use, by the date in the requested time zone (<c>yyyy-MM-dd</c>). The built-in and own-key fields split the day's
+/// tokens (in and out) and cost by whose key paid, so the Usage tab can chart the two side by side.
+/// </summary>
+public sealed record AiUsageDay(
+    string Date, int Calls, long InputTokens, long OutputTokens, decimal Cost,
+    long BuiltInTokens, long OwnKeyTokens, decimal BuiltInCost, decimal OwnKeyCost);
 
 /// <summary>Use by one provider, model and key source.</summary>
 public sealed record AiUsageGroup(

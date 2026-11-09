@@ -14,6 +14,26 @@ sources:
   - resource: src/ScreenHire.Domain/Verification/VerificationRuleset.cs
   - resource: src/ScreenHire.Domain/Verification/VerificationSettings.cs
   - resource: src/ScreenHire.Domain/Verification/CheckGroup.cs
+  - resource: src/ScreenHire.Application/Verification/VerificationActivity.cs
+  - resource: apps/api/Endpoints/VerificationAreaEndpoints.cs
+  - resource: apps/api/Contracts/VerificationAreaContracts.cs
+  - resource: apps/dashboard/src/lib/verification-area.ts
+  - resource: apps/dashboard/src/lib/activity-log.ts
+  - resource: apps/dashboard/src/lib/verification-settings-save.ts
+  - resource: apps/dashboard/src/lib/verification-settings.ts
+  - resource: apps/dashboard/src/lib/components/verification-area/ai-model-form.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/alerts-form.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/checks-form.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/policy-form.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/settings-tab.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/activity-rows.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/activity/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/checks/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/policy/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/ai-model/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/notifications/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/tab-guard.ts
   - resource: src/ScreenHire.Domain/Verification/DeviceCheckBasis.cs
   - resource: src/ScreenHire.Domain/Verification/TrustedSources.cs
   - resource: src/ScreenHire.Domain/History/VerificationSettingsFacts.cs
@@ -576,7 +596,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST .../verification/notes` | a note on the application's verification or one assessment |
 | `POST .../verification/request-verification` | always 409 until phase 2 |
 | `GET /v1/organization/verification-settings` | the organization's settings (§10.11): the consistency check, the model, the provider presets and whether a key is saved (never the key; the model's address and the own key's prices only for members with Edit settings, because its path can hold a token), the monthly limits and what was used against them (only for members who see AI usage), the groups of checks, the AI-use policy, the device check, the trusted domains and networks, and the alerts |
-| `PUT /v1/organization/verification-settings` | replaces them (organization admins, in the dashboard's Verification page). A new or changed key, provider, address or model is tested first and refused with a field error when it fails. The monthly budget and cap are not here: an Owner sets them with `PUT /v1/organization/ai-usage/limits` ([ai-usage.md](ai-usage.md)) |
+| `PUT /v1/organization/verification-settings` | replaces them (organization admins; each of the dashboard's settings tabs sends its own part over what is saved). A new or changed key, provider, address or model is tested first and refused with a field error when it fails. The monthly budget and cap are not here: an Owner sets them with `PUT /v1/organization/ai-usage/limits` ([ai-usage.md](ai-usage.md)) |
 | `POST /v1/organization/verification-settings/llm/models` | lists the models a provider offers for a key, or says it offers no list |
 | `POST /v1/organization/verification-settings/llm/test` | one small request with the key and model; answers with a word, never the provider's text |
 
@@ -782,18 +802,23 @@ and the organization boundary. `AiUsageTests` covers the ledger.
 
 ### 10.11 What an organization controls
 
-The Verification page (`/verification`, a sidebar item) is one form in four panels, saved with `PUT /v1/organization/verification-settings`
-(Edit settings). Every change is a History line (`SettingsChanges.Verification`, seen through `VerificationSettingsFacts`).
+The Verification area (`/verification`, a sidebar item) has seven tabs, each at its own path: Overview, Activity log, Usage, Checks,
+Policy, AI model and Notifications ([design-system.md](../design/design-system.md), section 16). The four that show settings (AI model, Checks, Policy and
+the alerts under Notifications) each save only their own part with `PUT /v1/organization/verification-settings` (Edit settings): the
+tab sends what is saved with its part laid over it, the API key `null` (keep) and the connection unchanged, so the provider is not
+asked again. Everyone who can see verification reads Checks and Policy as plain text; Edit settings changes them and sees AI model and
+Notifications; View AI usage with All jobs sees Usage. A tab a role cannot use is left out of the strip and its address returns to the
+Overview. Every change is a History line (`SettingsChanges.Verification`, seen through `VerificationSettingsFacts`).
 Settings apply from the next application: an analysis already recorded is not redone.
 
-**AI model.** The consistency check runs on ScreenHire's included model, billed at the provider's price plus a margin
+**AI model tab.** The consistency check runs on ScreenHire's included model, billed at the provider's price plus a margin
 (`ScreenHire:Billing:Ai:Margin`, [billing.md](billing.md)), or on the organization's own key, which costs it nothing extra. The own
 key is one of six provider presets (`ModelPresets`): Anthropic, OpenAI, OpenRouter, Azure OpenAI, Google Gemini, and Other (any
 OpenAI-compatible address). A preset fills in the address and the way the key is sent; Azure OpenAI and Other take an address the
 organization types. One model id serves both steps of the check. The page lists the provider's own models through
 `.../llm/models` (Anthropic `/v1/models`, the others `/models`) and takes a typed id when the provider offers no list (Azure lists
 base models, not the deployments a key calls); no model name is kept in the code. The own key's prices are optional and only
-make the usage page show costs. Every call is in the usage ledger either way, and the provider handles
+make the Usage tab show costs. Every call is in the usage ledger either way, and the provider handles
 the data under the organization's own terms rather than ScreenHire's (docs/research/legal.md). The candidate privacy page says the
 model comes from ScreenHire's provider or one the employer chose, and that the no-training promise covers only the first.
 
@@ -808,7 +833,7 @@ refuses a non-public address, no redirects, no proxy), so an address someone typ
 that no longer decrypts makes the check unavailable, with a note that says to enter it again. The two outbound routes are rate
 limited like the sign-in routes.
 
-**Checks.** Six groups can be turned off, each a fixed set of analyzers (`CheckGroups`): Network (`network`), Contact details
+**Checks tab.** Six groups can be turned off, each a fixed set of analyzers (`CheckGroups`): Network (`network`), Contact details
 (`identity`), Documents (`documents`), Answers (`answers`, `consistency`), Duplicates (`duplicates`) and Form use
 (`automation`, `behavioural`). A group that is off is not run: the pipeline writes the analyzer's run with no signals and the
 note "<Group> checks are turned off in this organization's settings", the consistency check is recorded as off so no source
@@ -831,12 +856,35 @@ raise no network signal and a shared device from them is not counted as a duplic
 still counts. The run's note says what was left out. A network no wider than /16 (IPv4) or /48 (IPv6) is accepted, and each
 list holds 50 entries at most.
 
-**Alerts.** Each of two alerts goes by email, by Slack or both. Verification suggested goes once, when an application first
+**Notifications tab.** Each of two alerts goes by email, by Slack or both. Verification suggested goes once, when an application first
 reaches that level (not at each later stage of evidence, and not again if the level falls and returns), to members who hold Review verification and see the job. The AI usage
 alerts (50%, 80% and 100% of the budget, the cap, and a spike) go once each to members who see AI usage, as a notification in the
 bell and by email or Slack when the organization chose them ([ai-usage.md](ai-usage.md)). Slack gets a direct message to a member who linked Slack, never
 a channel post, because a channel skips permission and job scoping. Neither carries a level, reason, evidence or candidate name:
-the email and the Slack message both name the job, say the application needs a closer look and link to it.
+the email and the Slack message both name the job, say the application needs a closer look and link to it. The AI usage alerts
+link to the Usage tab (`/verification/usage`). The Owner's monthly budget and cap sit on this tab too, as a form for an Owner and as
+facts for an Admin ([ai-usage.md](ai-usage.md)).
+
+**Signal Network.** There is no control for it on any tab. It stays off until legal review (section 6), and a switch that cannot be turned
+on would be a disabled control. When it can be, it joins the Policy tab.
+
+### 10.12 Overview and activity log
+
+Two reads feed the area, both for any signed-in member and both under that member's row-level security, so a member on Only jobs they're
+on sees those jobs. Neither holds a score or a percentage.
+
+| Route | What it gives |
+|---|---|
+| `GET /v1/verification/overview` | This UTC month's applications: how many have an authenticity level (`checked`) and how many are still being checked (`pending`); how many are at each level (`clear`, `review`, `verify`, the newest authenticity assessment of each application, a dismissal not moving it); and the groups of checks that counted a signal in an application, with that number of applications, most first. AI assistance is never counted |
+| `GET /v1/verification/activity` | One newest-first feed of check runs (`VerificationAnalyzerRun`) and model calls (`AiUsageCall`), with filters `group`, `keySource` (model calls only), `outcome`, `from` and `to`, and a cursor (`before`, an opaque token of the last entry's time and id) |
+| `GET /v1/verification/activity/export` | The same feed as CSV, at most 50,000 rows. Needs View AI usage with All jobs |
+
+A run's outcome is a word for what it did: Found (it wrote signals), Completed (it looked and wrote none, including when the
+organization's trusted list stopped a signal), Not run (its group was off, the AI checks were paused, or it could not look; the run's
+note says which). A model call is Completed or Failed. A model call belongs to Answers, or to no group for a connection test. Model calls are
+the organization's, not a job's: a member without View AI usage sees only calls about an application they can open, with no model, key,
+tokens, cost or provider request id, and the call list is empty of calls with no application. The feed merges the two sources in memory, each read
+to one more row than the page holds, ordered by time and then by id as Postgres orders uuids, so a page break never skips or repeats an entry.
 
 ## Open questions
 

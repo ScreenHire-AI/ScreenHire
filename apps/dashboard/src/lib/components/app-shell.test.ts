@@ -195,13 +195,16 @@ describe('app shell', () => {
     expect(within(main()).getByRole('link', { name: 'Verification' })).toBeInTheDocument();
   });
 
-  it.each(['Recruiter', 'Viewer'] as const)('shows a %s no Settings and no Verification: no permission of theirs opens either', (role) => {
+  it.each(['Recruiter', 'Viewer'] as const)('shows a %s Verification but no Settings: no permission of theirs opens Settings', (role) => {
     stubViewport(1280);
     render(ShellHarness, { props: { user: userAs(role) } });
 
-    for (const name of ['Settings', 'Verification']) expect(within(main()).queryByRole('link', { name })).toBeNull();
-    // The five sections (My tasks and Reports included) and the six views.
-    expect(within(main()).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual(['Jobs', 'Candidates', 'Templates', 'My tasks', 'Reports', ...views]);
+    // Everyone who can see verification has the area (read-only for them); only Settings needs a permission.
+    expect(within(main()).queryByRole('link', { name: 'Settings' })).toBeNull();
+    // The sections (My tasks, Reports and Verification included) and the six views.
+    expect(within(main()).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual([
+      'Jobs', 'Candidates', 'Templates', 'My tasks', 'Reports', 'Verification', ...views,
+    ]);
   });
 
   it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {

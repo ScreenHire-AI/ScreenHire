@@ -53,12 +53,11 @@ describe('shortcuts dialog', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('lists Go to Verification, G then V, for a role that may open it, and not for one that may not', async () => {
-    const { unmount } = render(ShortcutsDialog, { props: { user: userAs('Recruiter') } });
+  it('lists Go to Verification, G then V, for every role, since everyone who can see verification has the area', async () => {
+    const { unmount } = render(ShortcutsDialog, { props: { user: userAs('Viewer') } });
     await pressQuestionMark();
-    const recruiterDialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
-    expect(within(recruiterDialog).queryByText('Go to Verification')).toBeNull();
-    expect(within(recruiterDialog).getByText('Go to Reports')).toBeInTheDocument();
+    const viewerDialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+    expect(within(viewerDialog).getByText('Go to Verification')).toBeInTheDocument();
     unmount();
 
     render(ShortcutsDialog, { props: { user } });

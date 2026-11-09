@@ -472,8 +472,8 @@ the organization stands: that billing for AI use is not set up where Stripe has 
 promised an invoice line that will not come), what the trial includes and that use above it is added to the first invoice, "AI use is
 billed once you choose a plan" after the trial, or what the trial covered once a plan is paying. Calls on the organization's own key and
 calls with no known price are each counted in a sentence of their own and are not charged. The footer says bringing your own key removes
-the charge, with a link to Verification to set it and one to `/verification#ai-usage` for the call-by-call list; the usage panel there
-renders after the settings load, so it scrolls itself into view when the address names it. It adds no primary button (A1).
+the charge, with a link to Verification to set it and one to the Verification area's Activity log (`/verification/activity`) for the
+call-by-call list. It adds no primary button (A1).
 
 A refused publish reaches a person at the three places a draft is opened (the jobs list, a job's page and its distribution
 panel) as `PlanProblemNotice` (a 402 is told from other failures by `planProblem` in `apps/dashboard/src/lib/query.ts`), a full-width notice above the table or panel in place of a plain failure line: the API's own

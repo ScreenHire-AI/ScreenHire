@@ -216,7 +216,7 @@
     <p>Bring your own key and this charge goes away.</p>
     <div class="flex flex-wrap gap-x-4">
       <a href="/verification" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">Use your own key</a>
-      <a href="/verification#ai-usage" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">See every call</a>
+      <a href="/verification/activity" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">See every call</a>
     </div>
   </div>
 {/snippet}

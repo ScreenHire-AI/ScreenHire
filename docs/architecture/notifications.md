@@ -89,9 +89,9 @@ Both messages implement `ITenantMessage`, so the handler runs under the organiza
 | `sending-domain-failing` | the sending domain's id | `domain` | `/settings/sending-domain` | Owners (`ManageOwners`) |
 | `trial-ending` | `trial` | `endsAt`, `plan` | `/settings/billing` | Owners (`ManageBilling`) |
 | `trial-ended` | `trial` | `endsAt`, `plan` | `/settings/billing` | Owners (`ManageBilling`) |
-| `ai-usage-budget` | `yyyy-MM:budget-N` (N is 50, 80 or 100) | `percent` | `/verification` | who sees AI usage (`ViewAiUsage`) |
-| `ai-usage-cap` | `yyyy-MM:cap` | none | `/verification` | who sees AI usage (`ViewAiUsage`) |
-| `ai-usage-spike` | `yyyy-MM-dd:spike` | `day` | `/verification` | who sees AI usage (`ViewAiUsage`) |
+| `ai-usage-budget` | `yyyy-MM:budget-N` (N is 50, 80 or 100) | `percent` | `/verification/usage` | who sees AI usage (`ViewAiUsage`) |
+| `ai-usage-cap` | `yyyy-MM:cap` | none | `/verification/usage` | who sees AI usage (`ViewAiUsage`) |
+| `ai-usage-spike` | `yyyy-MM-dd:spike` | `day` | `/verification/usage` | who sees AI usage (`ViewAiUsage`) |
 
 The two trial kinds are one story: `trial-ending` appears 7 days before the trial ends and is replaced by `trial-ended` when it
 ends, and a plan starting clears both ([billing](billing.md#trial-reminders)). Their line says the days left, which the dashboard

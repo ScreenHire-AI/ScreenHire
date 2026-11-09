@@ -108,7 +108,7 @@ describe('template page, the AI-use question', () => {
       return found!;
     });
     expect(row).toHaveTextContent('AI use. Asked by ScreenHire.');
-    expect(within(row).getByRole('link', { name: 'Change policy' })).toHaveAttribute('href', '/verification');
+    expect(within(row).getByRole('link', { name: 'Change policy' })).toHaveAttribute('href', '/verification/policy');
     expect(screen.queryByRole('combobox', { name: 'AI use while applying' })).toBeNull();
   });
 

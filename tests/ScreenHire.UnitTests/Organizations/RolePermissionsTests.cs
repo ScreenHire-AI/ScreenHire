@@ -119,6 +119,7 @@ public sealed partial class RolePermissionsTests
         ["GetAiUsageSummary"] = Permission.ViewAiUsage,
         ["ListAiUsageCalls"] = Permission.ViewAiUsage,
         ["ExportAiUsageCalls"] = Permission.ViewAiUsage,
+        ["ExportVerificationActivity"] = Permission.ViewAiUsage,
         // Owners set the monthly budget and cap: spend controls are billing, not general settings.
         ["UpdateAiUsageLimits"] = Permission.ManageBilling,
         ["EraseCandidate"] = Permission.EraseCandidates,

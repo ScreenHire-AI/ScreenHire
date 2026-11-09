@@ -3,6 +3,7 @@
   import type LucideIcon from '~icons/lucide/circle';
   import ArrowDownIcon from '~icons/lucide/arrow-down';
   import ArrowUpIcon from '~icons/lucide/arrow-up';
+  import type { Snippet } from 'svelte';
   import Hint from '#lib/components/hint.svelte';
   import * as Card from '#lib/components/ui/card/index.js';
   import type { Change } from '#lib/reports.js';
@@ -16,16 +17,20 @@
   // tooltip and for screen readers. No sparkline, no link.
   // The title is the card's whole label, so it wraps rather than cuts. `Card.Header` is the container these sizes measure:
   // a narrow card keeps room for two lines, so values in a row line up whichever titles wrapped, and the narrowest gives
-  // up the chip for the title.
+  // up the chip for the title. A stat that counts a status (the Verification Overview's Clear, Review and Verify) passes
+  // `mark`, the status's own icon, in place of the decorative chip icon, so the tile carries icon, colour and word (T1, I2).
   let {
     icon: Icon,
+    mark,
     title,
     value,
     share,
     change,
     class: className,
   }: {
-    icon: typeof LucideIcon;
+    icon?: typeof LucideIcon;
+    /** The status's own mark, drawn in the chip instead of `icon`. */
+    mark?: Snippet;
     title: string;
     /** The value, formatted ("16", "21 days"). */
     value: string;
@@ -40,7 +45,7 @@
 <Card.Root class={cn('h-full', className)} data-slot="report-stat">
   <Card.Header class="gap-1.5">
     <Card.Title class="flex min-w-0 items-center gap-2.5 @max-[12rem]:min-h-12 @max-[9rem]:items-start">
-      <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-secondary text-sidebar-foreground @max-[9rem]:hidden"><Icon aria-hidden="true" /></span>
+      <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-secondary text-sidebar-foreground @max-[9rem]:hidden">{#if mark}{@render mark()}{:else if Icon}<Icon aria-hidden="true" />{/if}</span>
       <span class="min-w-0 break-words">{title}</span>
     </Card.Title>
   </Card.Header>

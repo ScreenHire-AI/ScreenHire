@@ -171,7 +171,7 @@ describe('billing page', () => {
 
       await screen.findByText('Active');
       expect(within(panel()).getByText(/Bring your own key and this charge goes away\./)).toBeInTheDocument();
-      expect(within(panel()).getByRole('link', { name: 'See every call' })).toHaveAttribute('href', '/verification#ai-usage');
+      expect(within(panel()).getByRole('link', { name: 'See every call' })).toHaveAttribute('href', '/verification/activity');
       expect(within(panel()).getByRole('link', { name: 'Use your own key' })).toHaveAttribute('href', '/verification');
     });
 

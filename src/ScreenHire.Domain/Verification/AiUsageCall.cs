@@ -90,7 +90,7 @@ public enum AiCostBasis
     /// <summary>Tokens times a price per million tokens from configuration (ScreenHire's key) or from the organization's own setting.</summary>
     Priced,
 
-    /// <summary>Nothing prices the call. It counts as no cost toward a money budget, and the usage page says so.</summary>
+    /// <summary>Nothing prices the call. It counts as no cost toward a money budget, and the Usage tab says so.</summary>
     Unknown,
 }
 

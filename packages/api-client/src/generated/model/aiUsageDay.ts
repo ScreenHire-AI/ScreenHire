@@ -6,7 +6,8 @@
  */
 
 /**
- * One day of use, by the date in the requested time zone (`yyyy-MM-dd`).
+ * One day of use, by the date in the requested time zone (`yyyy-MM-dd`). The built-in and own-key fields split the day's
+ * tokens (in and out) and cost by whose key paid, so the Usage tab can chart the two side by side.
  */
 export interface AiUsageDay {
   date: string;
@@ -14,4 +15,8 @@ export interface AiUsageDay {
   inputTokens: number;
   outputTokens: number;
   cost: number;
+  builtInTokens: number;
+  ownKeyTokens: number;
+  builtInCost: number;
+  ownKeyCost: number;
 }

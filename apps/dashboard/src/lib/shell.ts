@@ -71,9 +71,10 @@ export const sections: readonly {
   { label: 'Templates', href: '/templates', key: 't', icon: LayoutTemplateIcon, matches: (path) => path.startsWith('/templates') },
   { label: 'My tasks', href: '/tasks', key: 'm', icon: ListTodoIcon, matches: (path) => path.startsWith('/tasks') },
   { label: 'Reports', href: '/reports', key: 'r', icon: ChartBarIcon, matches: (path) => path.startsWith('/reports') },
-  // How the checks on applicants work and what they found. Its page asks for Edit settings, as the Settings page it was.
-  { label: 'Verification', href: '/verification', key: 'v', icon: ShieldCheckIcon, matches: (path) => path.startsWith('/verification'), permission: 'EditSettings' },
+  // How the checks on applicants work and what they found. Everyone who can see verification has the area; each of its tabs
+  // checks its own permission (`#lib/verification-area.ts`), so the sidebar item carries none.
+  { label: 'Verification', href: '/verification', key: 'v', icon: ShieldCheckIcon, matches: (path) => path.startsWith('/verification') },
 ];
 
-/** The sections this person may go to: one that needs a permission (Verification) only for a role that has it. */
+/** The sections this person may go to: one that names a permission only for a role that has it (none does today). */
 export const sectionsFor = (user: CurrentUser | null | undefined) => sections.filter((section) => !section.permission || can(user, section.permission));

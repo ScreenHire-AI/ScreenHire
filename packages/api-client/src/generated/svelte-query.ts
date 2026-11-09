@@ -89,6 +89,7 @@ import type {
   EraseDataRequestRequest,
   ExplainVerificationReasonRequest,
   ExportAiUsageCallsParams,
+  ExportVerificationActivityParams,
   GetAiUsageSummaryParams,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
@@ -140,6 +141,7 @@ import type {
   ListInterviewersParams,
   ListJobBoardJobsParams,
   ListTasksParams,
+  ListVerificationActivityParams,
   ListVerificationApplicationsParams,
   ListWebhookDeliveriesParams,
   MagicLinkRequest,
@@ -260,10 +262,12 @@ import type {
   UploadTicket,
   UploadedFile,
   ValidateWorkflowRequest,
+  VerificationActivityPage,
   VerificationMatches,
   VerificationModelList,
   VerificationModelRequest,
   VerificationModelTest,
+  VerificationOverviewView,
   ViewList,
   WebhookDeliveryEntry,
   WebhookEndpointEntry,
@@ -23408,6 +23412,299 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getUpdateAiUsageLimitsMutationOptions(options?.()) }), queryClient);
     }
+
+export type getVerificationOverviewResponse200 = {
+  data: VerificationOverviewView
+  status: 200
+}
+
+export type getVerificationOverviewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getVerificationOverviewResponseSuccess = (getVerificationOverviewResponse200) & {
+  headers: Headers;
+};
+export type getVerificationOverviewResponseError = (getVerificationOverviewResponse401) & {
+  headers: Headers;
+};
+
+export const getGetVerificationOverviewUrl = () => {
+
+
+
+
+  return `/v1/verification/overview`
+}
+
+export const getVerificationOverview = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getVerificationOverviewResponseSuccess> => {
+
+  return apiQueryFetch<getVerificationOverviewResponseSuccess>(getGetVerificationOverviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVerificationOverviewQueryKey = () => {
+    return [
+    'v1','verification','overview'
+    ] as const;
+    }
+
+
+export const getGetVerificationOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getVerificationOverview>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getVerificationOverview>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVerificationOverviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVerificationOverview>>> = ({ signal }) => getVerificationOverview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getVerificationOverview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetVerificationOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getVerificationOverview>>>
+export type GetVerificationOverviewQueryError = ErrorType<void>
+
+
+
+export function createGetVerificationOverview<TData = Awaited<ReturnType<typeof getVerificationOverview>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getVerificationOverview>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetVerificationOverviewQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type listVerificationActivityResponse200 = {
+  data: VerificationActivityPage
+  status: 200
+}
+
+export type listVerificationActivityResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type listVerificationActivityResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listVerificationActivityResponseSuccess = (listVerificationActivityResponse200) & {
+  headers: Headers;
+};
+export type listVerificationActivityResponseError = (listVerificationActivityResponse400 | listVerificationActivityResponse401) & {
+  headers: Headers;
+};
+
+export const getListVerificationActivityUrl = (params?: ListVerificationActivityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/verification/activity?${stringifiedParams}` : `/v1/verification/activity`
+}
+
+export const listVerificationActivity = async (params?: ListVerificationActivityParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listVerificationActivityResponseSuccess> => {
+
+  return apiQueryFetch<listVerificationActivityResponseSuccess>(getListVerificationActivityUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListVerificationActivityQueryKey = (params?: ListVerificationActivityParams,) => {
+    return [
+    'v1','verification','activity', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListVerificationActivityQueryOptions = <TData = Awaited<ReturnType<typeof listVerificationActivity>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: ListVerificationActivityParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listVerificationActivity>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListVerificationActivityQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVerificationActivity>>> = ({ signal }) => listVerificationActivity(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listVerificationActivity>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListVerificationActivityQueryResult = NonNullable<Awaited<ReturnType<typeof listVerificationActivity>>>
+export type ListVerificationActivityQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createListVerificationActivity<TData = Awaited<ReturnType<typeof listVerificationActivity>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ params?: () =>  ListVerificationActivityParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listVerificationActivity>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListVerificationActivityQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type exportVerificationActivityResponse200 = {
+  data: string
+  status: 200
+}
+
+export type exportVerificationActivityResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type exportVerificationActivityResponse401 = {
+  data: void
+  status: 401
+}
+
+export type exportVerificationActivityResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type exportVerificationActivityResponseSuccess = (exportVerificationActivityResponse200) & {
+  headers: Headers;
+};
+export type exportVerificationActivityResponseError = (exportVerificationActivityResponse400 | exportVerificationActivityResponse401 | exportVerificationActivityResponse403) & {
+  headers: Headers;
+};
+
+export const getExportVerificationActivityUrl = (params?: ExportVerificationActivityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/verification/activity/export?${stringifiedParams}` : `/v1/verification/activity/export`
+}
+
+export const exportVerificationActivity = async (params?: ExportVerificationActivityParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<exportVerificationActivityResponseSuccess> => {
+
+  return apiQueryFetch<exportVerificationActivityResponseSuccess>(getExportVerificationActivityUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportVerificationActivityQueryKey = (params?: ExportVerificationActivityParams,) => {
+    return [
+    'v1','verification','activity','export', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getExportVerificationActivityQueryOptions = <TData = Awaited<ReturnType<typeof exportVerificationActivity>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(params?: ExportVerificationActivityParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof exportVerificationActivity>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportVerificationActivityQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportVerificationActivity>>> = ({ signal }) => exportVerificationActivity(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof exportVerificationActivity>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExportVerificationActivityQueryResult = NonNullable<Awaited<ReturnType<typeof exportVerificationActivity>>>
+export type ExportVerificationActivityQueryError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+
+
+
+export function createExportVerificationActivity<TData = Awaited<ReturnType<typeof exportVerificationActivity>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(
+ params?: () =>  ExportVerificationActivityParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof exportVerificationActivity>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getExportVerificationActivityQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type getCalendarResponse200 = {
   data: CalendarStatus

@@ -123,7 +123,7 @@ each page as the careers server measured them (§7; kept in the step state, so t
 are only a hint, and never sent with the switch on). The telemetry module fills `automationMarkers` and `deviceFingerprint` on the review step, and the careers
 server passes them on with the session token and the module's last snapshot. The API hashes a fingerprint per
 organization and never stores it as sent, and keeps it only on the job's device-check basis (the more protective of its region's and the organization's own choice in
-the Verification page; where the organization turned the duplicates checks off there is none, and where it turned form use
+the Policy tab of Verification; where the organization turned the duplicates checks off there is none, and where it turned form use
 off the form is issued no telemetry session): where that is `Consent`
 (the EU and EEA by default), the details step shows an optional "Check this device for repeat applications" box and the
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and

@@ -123,7 +123,7 @@ internal static class AiUsageHandlers
             .ToListAsync(cancellationToken);
         var rows = await db.AiUsageCalls.AsNoTracking()
             .Where(c => c.OccurredAt >= start && c.OccurredAt < end)
-            .Select(c => new { c.OccurredAt, Input = c.InputTokens ?? 0, Output = c.OutputTokens ?? 0, Cost = c.Cost ?? 0m })
+            .Select(c => new { c.OccurredAt, c.KeySource, Input = c.InputTokens ?? 0, Output = c.OutputTokens ?? 0, Cost = c.Cost ?? 0m })
             .ToListAsync(cancellationToken);
 
         var byModel = groups
@@ -139,7 +139,11 @@ internal static class AiUsageHandlers
             .GroupBy(r => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(r.OccurredAt, zone!).DateTime))
             .OrderBy(g => g.Key)
             .Select(g => new AiUsageDay(
-                g.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), g.Count(), g.Sum(r => r.Input), g.Sum(r => r.Output), g.Sum(r => r.Cost)))
+                g.Key.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), g.Count(), g.Sum(r => r.Input), g.Sum(r => r.Output), g.Sum(r => r.Cost),
+                g.Where(r => r.KeySource == AiKeySource.BuiltIn).Sum(r => r.Input + r.Output),
+                g.Where(r => r.KeySource == AiKeySource.OwnKey).Sum(r => r.Input + r.Output),
+                g.Where(r => r.KeySource == AiKeySource.BuiltIn).Sum(r => r.Cost),
+                g.Where(r => r.KeySource == AiKeySource.OwnKey).Sum(r => r.Cost)))
             .ToList();
         var totals = new AiUsageTotals(
             groups.Sum(g => g.Calls), groups.Sum(g => g.Input), groups.Sum(g => g.Output), groups.Sum(g => g.Cost),
@@ -335,7 +339,7 @@ internal static class AiUsageHandlers
         }
     }
 
-    private static Dictionary<string, string[]> RangeProblems(DateTimeOffset? from, DateTimeOffset? to)
+    internal static Dictionary<string, string[]> RangeProblems(DateTimeOffset? from, DateTimeOffset? to)
     {
         var problems = new Dictionary<string, string[]>();
         if (from is { } start && to is { } end)

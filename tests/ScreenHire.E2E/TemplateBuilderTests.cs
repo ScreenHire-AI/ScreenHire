@@ -79,7 +79,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(forms).ToContainTextAsync("When they apply");
         var aiUse = Page.Locator("[data-ai-use-row]");
         await Expect(aiUse).ToContainTextAsync("AI use. Asked by ScreenHire. Policy: Allowed with disclosure.");
-        await Expect(aiUse.GetByRole(AriaRole.Link, new() { Name = "Change policy" })).ToHaveAttributeAsync("href", "/verification");
+        await Expect(aiUse.GetByRole(AriaRole.Link, new() { Name = "Change policy" })).ToHaveAttributeAsync("href", "/verification/policy");
         await Expect(Page.GetByRole(AriaRole.Combobox, new() { Name = "AI use while applying" })).ToHaveCountAsync(0);
 
         // Ask more later makes a form for a moment and the automation that emails it; removing the form takes it along.
