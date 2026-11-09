@@ -84,6 +84,10 @@ export function waitingRows(
       assigneeUserId: task.assigneeUserId!,
       scorecard: scorecardWords(library.find((card) => card.id === task.scorecardTemplateId)?.name ?? 'requested'),
       askedAt: task.createdAt,
-      askedByUserId: timeline?.find((entry) => entry.type === 'TaskCreated' && entry.taskId === task.id)?.actorUserId ?? null,
+      askedByUserId: askedByOf(timeline, task.id) ?? null,
     }));
 }
+
+/** Who created a task, from the application's timeline; undefined when an automation or an API key did. */
+export const askedByOf = (timeline: readonly ApplicationTimelineEntry[] | undefined, taskId: string): string | undefined =>
+  timeline?.find((entry) => entry.type === 'TaskCreated' && entry.taskId === taskId)?.actorUserId ?? undefined;

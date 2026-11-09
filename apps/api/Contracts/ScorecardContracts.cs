@@ -26,7 +26,8 @@ namespace ScreenHire.Api.Contracts;
 /// <c>scorecardName</c>: The scorecard's name as it was; null on scorecards given before submissions kept it.
 /// <c>withheld</c>: True when the reader has a scorecard of their own still to give (ADR-0013), so this one shows who gave it
 /// and when and nothing else: <c>recommendation</c> and <c>rating</c> are null, <c>answers</c> and <c>ratings</c> are empty
-/// and <c>note</c> is null. Always false for the reader's own scorecards and for an Owner or an API key.
+/// and <c>note</c> is null. Always false for the reader's own scorecards, for a reader with no scorecard to give (whatever
+/// their role) and for an API key.
 /// </remarks>
 public sealed record ScorecardEntry(
     Guid Id,

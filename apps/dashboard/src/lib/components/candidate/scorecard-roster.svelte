@@ -75,7 +75,7 @@
 
 {#snippet recommendation(row: RosterRow)}
   {#if row.entry.recommendation}
-    <span class="text-foreground">{recommendationLabels[row.entry.recommendation]}</span>
+    <span class="font-semibold text-foreground">{recommendationLabels[row.entry.recommendation]}</span>
   {:else}
     <span class="sr-only">Hidden until you submit yours</span>
   {/if}
@@ -184,7 +184,7 @@
             <!-- Nothing to open until they submit it, so the row is not a control. -->
             <Table.Row class="h-12 hover:bg-transparent">
               <Table.Cell class="max-w-56 pl-4.5"><span class="flex min-w-0"><span class="truncate font-semibold">{waitingName(row)}</span></span></Table.Cell>
-              <Table.Cell></Table.Cell>
+              <Table.Cell><span class="sr-only">No stage yet</span></Table.Cell>
               <Table.Cell class="whitespace-nowrap">{@render waitingBadge(row)}</Table.Cell>
               <Table.Cell><span class="sr-only">No rating yet</span></Table.Cell>
               <Table.Cell class="max-w-72 text-muted-foreground"><span class="flex min-w-0"><TruncatedText text={askedText(row)} /></span></Table.Cell>

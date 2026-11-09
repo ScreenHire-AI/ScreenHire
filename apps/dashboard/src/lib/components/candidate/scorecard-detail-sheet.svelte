@@ -82,14 +82,14 @@
       </div>
       <!-- With one scorecard there is nothing to step to, so no buttons (A3). -->
       {#if count > 1}
-      <Sheet.Footer class="flex-row justify-between">
-        <Button type="button" variant="outline" size="lg" disabled={position <= 0} onclick={() => onstep(-1)}>
-          <ChevronLeftIcon aria-hidden="true" />Previous
-        </Button>
-        <Button type="button" variant="outline" size="lg" disabled={position < 0 || position >= count - 1} onclick={() => onstep(1)}>
-          Next<ChevronRightIcon aria-hidden="true" />
-        </Button>
-      </Sheet.Footer>
+        <Sheet.Footer class="flex-row justify-between">
+          <Button type="button" variant="outline" size="lg" disabled={position <= 0} onclick={() => onstep(-1)}>
+            <ChevronLeftIcon aria-hidden="true" />Previous
+          </Button>
+          <Button type="button" variant="outline" size="lg" disabled={position < 0 || position >= count - 1} onclick={() => onstep(1)}>
+            Next<ChevronRightIcon aria-hidden="true" />
+          </Button>
+        </Sheet.Footer>
       {/if}
     {/if}
   </Sheet.Content>

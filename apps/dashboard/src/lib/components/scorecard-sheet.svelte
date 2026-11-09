@@ -146,14 +146,20 @@
           note: note.trim() || null,
         },
       });
-      submitted = true;
-      await ondone(`${scorecardWords(choice.name)} saved.`.replace(/^./, (first) => first.toUpperCase()));
-      settled = true;
     } catch (error) {
       failure =
         error instanceof ApiError && error.status === 409
           ? 'You already submitted this scorecard for this stage.'
           : describeError(error, "We couldn't save the scorecard just now. Try again in a minute.");
+      return;
+    }
+    // Saved: the form gives way to the success line, and a refetch that fails afterwards only leaves out Open next task.
+    submitted = true;
+    try {
+      await ondone(`${scorecardWords(choice.name)} saved.`.replace(/^./, (first) => first.toUpperCase()));
+      settled = true;
+    } catch {
+      // The scorecard is in; the next task cannot be named until the task list reloads.
     }
   }
 </script>
@@ -181,71 +187,71 @@
         {/if}
       </div>
     {:else}
-    <form novalidate class="@container flex flex-col gap-5 px-4 pb-4" {onsubmit}>
-      {#if asked}
-        <!-- Said once, with no icon: who asked and when. A workflow's review has no one to name. -->
-        <p class="text-muted-foreground">{askedLine(asked)}</p>
-      {/if}
-      {#if choices.length === 0 && loadingChoices}
-        <div aria-hidden="true" class="flex flex-col gap-2">
-          {#each [0, 1, 2] as row (row)}<Skeleton class="h-10 w-full" />{/each}
-        </div>
-        <p class="sr-only" role="status">Loading the scorecards…</p>
-      {:else if choices.length === 0 && !libraryError}
-        <p class="text-body">You have given every scorecard you can for this candidate at this stage.</p>
-      {:else if choices.length > 1}
-      <Field.Field>
-        <Field.Label for={`${uid}-scorecard`}>Scorecard</Field.Label>
-        <select
-          id={`${uid}-scorecard`}
-          class={selectClass}
-          bind:value={() => chosenValue, (value) => ((chosenValue = value), clear())}
-          aria-invalid={(tried && !choice) || undefined}
-          aria-describedby={tried && !choice ? `${uid}-scorecard-error` : undefined}
-        >
-          <option value="" disabled>Choose a scorecard</option>
-          {#if stageChoices.length > 0}
-            <optgroup label="This job's stages">
-              {#each stageChoices as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
-            </optgroup>
-          {/if}
-          {#if builtIns.length > 0}
-            <optgroup label="Built in">
-              {#each builtIns as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
-            </optgroup>
-          {/if}
-          {#if own.length > 0}
-            <optgroup label="Your scorecards">
-              {#each own as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
-            </optgroup>
-          {/if}
-        </select>
-        <Field.Error id={`${uid}-scorecard-error`} errors={tried && !choice ? [{ message: 'Choose a scorecard.' }] : undefined} />
-      </Field.Field>
-      {/if}
-      {#if libraryError}
-        <QueryError message={describeError(libraryError, 'Could not load the scorecard library')} onretry={() => onretrylibrary?.()} inset />
-      {/if}
-
-      {#if library.isError && choice && !choice.questions}
-        <QueryError message={describeError(library.error, 'Could not load this scorecard')} onretry={() => library.refetch()} inset />
-      {:else if loading}
-        <div aria-hidden="true" class="flex flex-col gap-2">
-          {#each [0, 1, 2] as row (row)}<Skeleton class="h-10 w-full" />{/each}
-        </div>
-        <p class="sr-only" role="status">Loading the scorecard…</p>
-      {:else if choice}
-        <ScorecardFields {questions} bind:values bind:picks bind:recommendation bind:note {tried} {unanswered} idPrefix={uid} />
-      {/if}
-
-      <FailureText message={failure} />
-      <div class="flex justify-end gap-2">
-        <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
-        {#if choices.length > 0}
-          <Button type="submit" size="lg" disabled={submit.isPending}><ClipboardCheckIcon aria-hidden="true" />Submit scorecard</Button>
+      <form novalidate class="@container flex flex-col gap-5 px-4 pb-4" {onsubmit}>
+        {#if asked}
+          <!-- Said once, with no icon: who asked and when. A workflow's review has no one to name. -->
+          <p class="text-muted-foreground">{askedLine(asked)}</p>
         {/if}
-      </div>
-    </form>
+        {#if choices.length === 0 && loadingChoices}
+          <div aria-hidden="true" class="flex flex-col gap-2">
+            {#each [0, 1, 2] as row (row)}<Skeleton class="h-10 w-full" />{/each}
+          </div>
+          <p class="sr-only" role="status">Loading the scorecards…</p>
+        {:else if choices.length === 0 && !libraryError}
+          <p class="text-body">You have given every scorecard you can for this candidate at this stage.</p>
+        {:else if choices.length > 1}
+          <Field.Field>
+            <Field.Label for={`${uid}-scorecard`}>Scorecard</Field.Label>
+            <select
+              id={`${uid}-scorecard`}
+              class={selectClass}
+              bind:value={() => chosenValue, (value) => ((chosenValue = value), clear())}
+              aria-invalid={(tried && !choice) || undefined}
+              aria-describedby={tried && !choice ? `${uid}-scorecard-error` : undefined}
+            >
+              <option value="" disabled>Choose a scorecard</option>
+              {#if stageChoices.length > 0}
+                <optgroup label="This job's stages">
+                  {#each stageChoices as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+                </optgroup>
+              {/if}
+              {#if builtIns.length > 0}
+                <optgroup label="Built in">
+                  {#each builtIns as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+                </optgroup>
+              {/if}
+              {#if own.length > 0}
+                <optgroup label="Your scorecards">
+                  {#each own as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
+                </optgroup>
+              {/if}
+            </select>
+            <Field.Error id={`${uid}-scorecard-error`} errors={tried && !choice ? [{ message: 'Choose a scorecard.' }] : undefined} />
+          </Field.Field>
+        {/if}
+        {#if libraryError}
+          <QueryError message={describeError(libraryError, 'Could not load the scorecard library')} onretry={() => onretrylibrary?.()} inset />
+        {/if}
+
+        {#if library.isError && choice && !choice.questions}
+          <QueryError message={describeError(library.error, 'Could not load this scorecard')} onretry={() => library.refetch()} inset />
+        {:else if loading}
+          <div aria-hidden="true" class="flex flex-col gap-2">
+            {#each [0, 1, 2] as row (row)}<Skeleton class="h-10 w-full" />{/each}
+          </div>
+          <p class="sr-only" role="status">Loading the scorecard…</p>
+        {:else if choice}
+          <ScorecardFields {questions} bind:values bind:picks bind:recommendation bind:note {tried} {unanswered} idPrefix={uid} />
+        {/if}
+
+        <FailureText message={failure} />
+        <div class="flex justify-end gap-2">
+          <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
+          {#if choices.length > 0}
+            <Button type="submit" size="lg" disabled={submit.isPending}><ClipboardCheckIcon aria-hidden="true" />Submit scorecard</Button>
+          {/if}
+        </div>
+      </form>
     {/if}
   </Sheet.Content>
 </Sheet.Root>

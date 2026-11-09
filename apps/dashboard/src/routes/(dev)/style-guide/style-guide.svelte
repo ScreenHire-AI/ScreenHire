@@ -466,7 +466,7 @@
     {
       id: 's1',
       stageId: 'interview',
-      reviewerUserId: 'u2',
+      reviewerUserId: 'u1',
       answers: [
         { questionId: 'problem_solving', label: 'Problem solving', type: 'Rating5', rating: 5 },
         { questionId: 'dotnet', label: '.NET and C#', type: 'Rating10', rating: 8 },
@@ -487,7 +487,7 @@
     {
       id: 's2',
       stageId: 'interview',
-      reviewerUserId: 'u1',
+      reviewerUserId: 'u2',
       answers: [],
       rating: null,
       ratings: [],
@@ -1196,7 +1196,14 @@
           <TaskCheckboxDemo tasks={sampleTasks} members={sampleTeam} />
         </Panel>
         <Panel title="Scorecard" class="flex-[1_1_320px]">
-          <ScorecardRoster scorecards={sampleScorecards} waiting={sampleWaiting} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />
+          <div class="flex flex-col gap-4">
+            <!-- Given, withheld (a scorecard the reader still owes) and asked for; a given row opens ScorecardDetailSheet. -->
+            <ScorecardRoster scorecards={sampleScorecards} waiting={sampleWaiting} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />
+            <figure class="flex flex-col gap-2">
+              <figcaption class="text-caption text-muted-foreground">On a phone: list items and a Sort chip</figcaption>
+              <ScorecardRoster scorecards={sampleScorecards} waiting={sampleWaiting} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" phone />
+            </figure>
+          </div>
         </Panel>
       </div>
 
