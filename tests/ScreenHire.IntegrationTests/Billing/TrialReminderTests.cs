@@ -88,7 +88,7 @@ public sealed class TrialReminderTests(AppHostFixture fixture)
         await WaitForEmailAsync(firstEmail, EndDay);
         (await store.ReleaseNextScheduledAsync(org, NoticeType, Ct)).Should().Be(1);
         await WolverineStore.WaitUntilAsync(async () => await store.CountHandledAsync(org, Ct, NoticeType) >= 2, "the ended notice to be handled", Ct);
-        var ended = await WaitForKindAsync(first, "trial-ended");
+        var ended = await WaitForOnlyAsync(first, "trial-ended");
         ended.Count("items").Should().Be(1, "the ending notice was replaced, not added to");
         ended.At("unreadCount").GetInt32().Should().Be(1);
         (await admin.NotificationsAsync()).Count("items").Should().Be(0);
@@ -105,7 +105,7 @@ public sealed class TrialReminderTests(AppHostFixture fixture)
         (await ReleaseNoticeAsync(store, org)).Should().Be(1);
         (await store.ReleaseNextScheduledAsync(org, NoticeType, Ct)).Should().Be(1);
         await WolverineStore.WaitUntilAsync(async () => await store.CountHandledAsync(org, Ct, NoticeType) >= 2, "both notices to be handled", Ct);
-        await WaitForKindAsync(owner, "trial-ended");
+        await WaitForOnlyAsync(owner, "trial-ended");
 
         // A month and more later, the daily purge runs: the notice says something still true, so it stays.
         await using (var db = await fixture.ContextAsync(owner.OrganizationId, Ct))
@@ -193,16 +193,17 @@ public sealed class TrialReminderTests(AppHostFixture fixture)
             async () => await store.CountHandledAsync(message.Key, Ct, EmailType) > handledBefore, "the worker to handle the redelivered reminder", Ct);
     }
 
-    private static async Task<ApiResult> WaitForKindAsync(Tenant member, string kind)
+    // Waits until the bell holds exactly that kind: a swap is a clear and a raise, two messages, so it has an instant with both.
+    private static async Task<ApiResult> WaitForOnlyAsync(Tenant member, string kind)
     {
         ApiResult? list = null;
         await WolverineStore.WaitUntilAsync(
             async () =>
             {
                 list = await member.NotificationsAsync();
-                return list.Body.GetProperty("items").EnumerateArray().Any(i => i.GetProperty("kind").GetString() == kind);
+                return list.Body.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("kind").GetString()).SequenceEqual([kind]);
             },
-            $"a {kind} notification",
+            $"only a {kind} notification",
             Ct);
         return list!;
     }
