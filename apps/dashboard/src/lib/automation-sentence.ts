@@ -21,6 +21,7 @@ import {
   actionsFor,
   allQuestions,
   builtInEmailTemplates,
+  describeAction,
   factsFor,
   followUpName,
   followUpsOf,
@@ -365,8 +366,12 @@ function triggerParts(automation: Automation, index: number, workflow: HiringWor
 
   // A kind that would make this automation a check's, with a step a check cannot start, is left out.
   let refused = false;
+  // A passed time limit cannot read the hours in the stage (the validator refuses it), so it is not offered while a
+  // condition does.
+  const readsHours = (automation.conditions?.rules ?? []).some((rule) => rule.fact === 'application.hoursInStage');
   const kinds = triggerTypes.filter((type) => {
     if (type === trigger.type) return true;
+    if (type === 'SlaBreached' && readsHours) return false;
     if (!breaks(workflow, index, changeTrigger(automation, workflow, type))) return true;
     refused = true;
     return false;
@@ -641,6 +646,27 @@ export function ruleTitle(rule: AutomationCondition, workflow: HiringWorkflow, t
   return `${option ? factLabel(option, workflow) : rule.fact} ${relation}${value ? ` ${value}` : ''}`;
 }
 
+const lowerFirst = (text: string): string => text.charAt(0).toLowerCase() + text.slice(1);
+
+/**
+ * An automation in one line, in the map's words: "When someone applies and Right to work is No, queue for rejection
+ * review." The Automation list's row. It reads the same titles the map's nodes carry and offers no choices, so a list of
+ * fifty automations costs fifty strings, not fifty sentences' worth of guardrail checks.
+ */
+export function automationLine(
+  automation: Automation,
+  workflow: HiringWorkflow,
+  members?: Parameters<typeof describeAction>[2],
+  templateNames?: Parameters<typeof describeAction>[3],
+): string {
+  const rules = automation.conditions?.rules ?? [];
+  const titles = rules.map((rule) => ruleTitle(rule, workflow, automation.trigger.type));
+  const condition =
+    titles.length === 0 ? '' : automation.conditions?.match === 'Any' && titles.length > 1 ? ` and one of ${titles.join(' or ')}` : ` and ${titles.join(' and ')}`;
+  const steps = automation.actions.map((action) => lowerFirst(describeAction(action, workflow, members, templateNames)));
+  return `When ${lowerFirst(triggerTitle(automation.trigger, workflow))}${condition}, ${steps.length > 0 ? steps.join(' and ') : 'nothing happens yet'}.`;
+}
+
 function conditionParts(automation: Automation, index: number, workflow: HiringWorkflow, ctx: SentenceContext): Part[] {
   void ctx;
   const path = `automations[${index}]`;
@@ -878,8 +904,9 @@ function moveCandidates(workflow: HiringWorkflow, index: number, step: number | 
 }
 
 const textFieldHints: Partial<Record<keyof AutomationAction, { placeholder: string; maxLength: number }>> = {
-  tag: { placeholder: 'name the tag', maxLength: 500 },
-  note: { placeholder: 'add a message', maxLength: 500 },
+  // The validator's limits (DefinitionValidator.ValidateActionText): a tag 50, a note 1000, a reason 500.
+  tag: { placeholder: 'name the tag', maxLength: 50 },
+  note: { placeholder: 'add a message', maxLength: 1000 },
   url: { placeholder: 'a web address (https)', maxLength: 2000 },
   reason: { placeholder: 'give a reason', maxLength: 500 },
 };

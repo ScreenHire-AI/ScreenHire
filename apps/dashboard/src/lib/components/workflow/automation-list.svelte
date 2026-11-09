@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates, createListTeamMembers } from '@screenhire/api-client/svelte-query';
-  import { isTerminal, laneOf, emailTemplateNames, summarize } from '#lib/workflow.js';
+  import { automationLine } from '#lib/automation-sentence.js';
+  import { isTerminal, laneOf, emailTemplateNames } from '#lib/workflow.js';
   import { cn } from '#lib/utils.js';
 
   // The automations as rows, grouped by the stage they fire on (design system section 11, Automation list): the Automations
@@ -58,7 +59,7 @@
             {#snippet row()}
               <span class="flex min-w-0 flex-col gap-0.5">
                 <span class="font-semibold break-words">{automation.name || 'Untitled automation'}{#if automation.enabled === false}<span class="font-normal text-muted-foreground">, off</span>{/if}</span>
-                <span class="text-muted-foreground break-words">{summarize(automation, workflow, members, templateNames)}</span>
+                <span class="text-muted-foreground break-words">{automationLine(automation, workflow, members, templateNames)}</span>
               </span>
             {/snippet}
             <li>

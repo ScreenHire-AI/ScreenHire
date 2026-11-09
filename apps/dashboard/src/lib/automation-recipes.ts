@@ -22,7 +22,22 @@ export interface Recipe {
   automation: Automation;
 }
 
-export const recipeId = (key: string): string => `recipe-${key}`;
+/** The validator's id limit (DefinitionValidator.Identifier): 1 to 40 characters. */
+const maxIdLength = 40;
+
+/**
+ * The automation id for a recipe: `recipe-{key}`, or, when a long stage or question id would take it past 40 characters,
+ * its start and a short hash of the whole key, so the id stays stable and two long keys with one start still differ.
+ */
+export function recipeId(key: string): string {
+  const id = `recipe-${key}`;
+  if (id.length <= maxIdLength) return id;
+  // FNV-1a, 32 bits: enough to tell a template's few long keys apart.
+  let hash = 0x811c9dc5;
+  for (let at = 0; at < key.length; at++) hash = Math.imul(hash ^ key.charCodeAt(at), 0x01000193) >>> 0;
+  const suffix = hash.toString(36);
+  return `${id.slice(0, maxIdLength - suffix.length - 1).replace(/[-_]+$/, '')}-${suffix}`;
+}
 
 const applicationReceived = builtInEmailTemplates[0]!;
 const stageChange = builtInEmailTemplates[1]!;
