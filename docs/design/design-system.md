@@ -277,7 +277,7 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **F3** Navigation and actions follow section 8 at each size.
 - **F4** Touch (`pointer: coarse`) gets 44px targets and 16px inputs. Anything shown on hover also opens on tap or
   focus.
-- **F5** Controls never wrap. Long text truncates (`min-w-0`, ellipsis) with the full value in a tooltip.
+- **F5** Controls never wrap, except Email domain's entry in the 200px Settings menu (section 11). Long text truncates (`min-w-0`, ellipsis) with the full value in a tooltip.
 - **F6** A field's message sits under the field, and the actions that go with the field (Save note, Add tag) share
   that row on the right, rather than starting a row of their own.
 - **E1** Loading shows skeletons of the same shape. Empty states say why and offer the one action. Errors use
