@@ -1,13 +1,20 @@
 ---
 type: Design
 title: "Sign-in, organizations and tenant isolation"
-description: "Identity providers and email links, abuse controls, API key authentication, configured domains, organizations, permission checks, built-in and custom roles, team members and invitations, job access through each job's hiring team, and tenant isolation through named query filters and Postgres row-level security under screenhire_app, with Dev SSO and Mailpit locally."
+description: "Identity providers, email links and passkeys, abuse controls, API key authentication, configured domains, organizations, permission checks, built-in and custom roles, team members and invitations, job access through each job's hiring team, and tenant isolation through named query filters and Postgres row-level security under screenhire_app, with Dev SSO and Mailpit locally."
 tags: [auth, tenancy, rls, team]
 sources:
   - resource: apps/api/Auth/Antiforgery.cs
   - resource: apps/api/Auth/ApiKeyAuthentication.cs
   - resource: apps/api/Auth/ApiKeyTokens.cs
   - resource: apps/api/Auth/AuthenticationSetup.cs
+  - resource: apps/api/Endpoints/PasskeyEndpoints.cs
+  - resource: apps/api/Contracts/PasskeyContracts.cs
+  - resource: src/ScreenHire.Infrastructure/Identity/ApplicationUserPasskey.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/ScreenHireDbContext.cs
+  - resource: apps/dashboard/src/lib/passkeys.ts
+  - resource: apps/dashboard/src/routes/(app)/account/passkeys/+page.svelte
+  - resource: apps/dashboard/src/routes/(auth)/sign-in/+page.svelte
   - resource: apps/api/Configuration/AuthOptions.cs
   - resource: apps/api/Auth/EmailVerification.cs
   - resource: apps/api/Auth/ExternalProviders.cs
@@ -71,9 +78,9 @@ plus RLS). Non-negotiables 6 and 7 in CLAUDE.md.
 
 ## Sign-in
 
-There are no passwords. A person signs in with an identity provider or an emailed link, and the first sign-in creates
-their account. ASP.NET Core Identity is the user store (`ApplicationUser`, tables `users`, `user_logins`,
-`user_claims`, `user_tokens`); the session is the `sh.session` cookie (HttpOnly, SameSite=Lax, 14 days sliding).
+There are no passwords. A person signs in with an identity provider, an emailed link or a passkey, and the first sign-in
+creates their account (a passkey is added later, from a signed-in session). ASP.NET Core Identity is the user store
+(`ApplicationUser`, tables `users`, `user_logins`, `user_claims`, `user_tokens`, `user_passkeys`); the session is the `sh.session` cookie (HttpOnly, SameSite=Lax, 14 days sliding).
 
 Sign-in keeps no provider tokens. A member who connects a Google or Outlook calendar for interview scheduling goes through
 a separate OAuth flow with its own scopes and stored tokens, and removing the member deletes that connection and takes them off the interviews still to come
@@ -99,6 +106,11 @@ organization API key in place of the session ("API keys" below).
 | `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. A custom role is named only in the one they work in: row-level security hides other organizations' roles. |
 | `POST /v1/auth/switch-organization` | Makes another of the user's organizations the one they work in. |
 | `POST /v1/auth/sign-out` | Ends the session. |
+| `POST /v1/auth/passkeys/sign-in/options` | Anonymous. The WebAuthn request options for a sign-in with no username, as `{ optionsJson }`. The challenge waits in the `sh.passkey` cookie. |
+| `POST /v1/auth/passkeys/sign-in` | Anonymous. Checks the browser's answer and signs in with 204, or answers 401 for any failure. |
+| `GET /v1/auth/passkeys` | The signed-in person's passkeys: id, name, created, last used, and the limit. |
+| `POST /v1/auth/passkeys/register/options`, `POST /v1/auth/passkeys/register` | Signed in. The creation options, then the browser's answer with a name for the device. 409 at ten passkeys. |
+| `DELETE /v1/auth/passkeys/{id}` | Signed in. Removes one of the person's own passkeys, or 404 for any other id. 409 when it is their last way to sign in. |
 
 ### Identity providers
 
@@ -131,6 +143,60 @@ Email goes through `IEmailSender` (`src/ScreenHire.Infrastructure/Email`). The o
 registered when `ConnectionStrings:mailpit` is set; without it the magic-link form is hidden. The production
 provider is a later decision. The magic-link request sends inside the request, after its commit, so the reply
 waits for SMTP; moving the send to a worker message is a later change.
+
+### Passkeys
+
+A passkey (WebAuthn) signs a person in with their device's own unlock and nothing typed, which suits people who sign in once
+a week and would otherwise wait for an email. ADR-0008 chose `SignInManager`'s passkey support with our own endpoints
+(`apps/api/Endpoints/PasskeyEndpoints.cs`), because only the Blazor template wires them. The dashboard side is
+`apps/dashboard/src/lib/passkeys.ts` (the browser's own WebAuthn calls, no library) and the Passkeys page in the person's
+menu (`/account/passkeys`, outside Settings because it is the person's own, not the organization's).
+
+- **Data.** `user_passkeys` holds Identity's row (credential id, user, a JSON `data` column with the public key, name, created
+  time and signature counter) and `last_used_at`, which Identity does not keep. It is global like `users`: no
+  `organization_id` and no row-level security, because a passkey belongs to the person whatever organizations they are in.
+  `ScreenHireDbContext` maps the table itself and `AuthenticationSetup` names the store (`UserOnlyStore` over
+  `ApplicationUserPasskey`), and `Stores.SchemaVersion` stays at 1. Setting it to 3 would change the model of the one context
+  that has the API's service provider and none of the others (the migrator, `dotnet ef`, the seeder, the tests), so the API's
+  model would differ from the migrations' snapshot. `PasskeyModelTests` checks that both builds agree.
+- **Relying party.** `IdentityPasskeyOptions.ServerDomain` is the host of `ScreenHire:Domains:AppHost`, and the origin check
+  accepts exactly the app origin (scheme, host and port), not the default's "any subdomain". The API is reached through the
+  dashboard's `/v1` path, so the request's own host is not what the person's authenticator knows the site by, and a careers
+  page on a sibling host must never be able to ask for an assertion.
+- **Sign-in with no username.** The button sends no email, so registration requires a resident (discoverable) credential and
+  the authenticator offers its passkeys for this site. A credential that is not discoverable would register and then never
+  work from the button.
+- **User verification is required.** A passkey is the only factor, so the options ask for user verification and the check
+  rejects an assertion whose flag is unset: the device must have checked the person (a PIN, a fingerprint, a face), not only
+  that something was touched. Platform authenticators and phones always do; a bare security key without a PIN cannot sign in.
+- **One credential, one person.** A credential id is the table's key and is registered once. Registering an id that already
+  belongs to someone else fails and changes nothing (`PasskeyTests` checks the victim's row and sign-in are untouched).
+- **Ceremony state.** The challenge waits in the `sh.passkey` cookie (HttpOnly, SameSite=Lax, five minutes, the session's secure
+  policy), so it is bound to the browser that asked. An answer sent without that browser's cookie finds no ceremony: Identity
+  throws then, and the endpoints turn that, and a body that is not a credential, into the refusal, logging the exception type
+  (never the body). The state is in the cookie, not on the server, so someone who copied both the cookie and the answer
+  could send them again within the five minutes.
+- **Refusals say nothing.** Every sign-in failure is the same 401: no challenge, wrong origin, bad signature, an unknown
+  passkey, a locked-out user. It never says whether a credential exists or whose it is.
+- **Counters and last use.** After a sign-in the store keeps the passkey's new signature counter (a cloned authenticator shows
+  as a counter that went backwards) and the endpoint stamps `last_used_at`.
+- **The last way in.** Removing a passkey is refused (409) when it is the person's last one and nothing else signs them in: no
+  identity provider that is still configured and no emailed link (`PasskeyLimits.MayRemove`). With email links working it is
+  always allowed, because the address is verified at sign-up. The count and the delete run under one per-user advisory lock,
+  so two removals at once cannot both see two passkeys and leave none.
+- **Registration needs a session.** A signed-in session can add a passkey, with no step-up check in v1. A stolen session could
+  therefore add one that outlives it. The mitigations are that the person sees every passkey on their page and can remove it,
+  and that there are at most ten (counted under the same per-user lock as a removal, so two adds at once cannot pass it).
+  Asking for a fresh sign-in before adding one is the next step if the threat grows.
+- **Sessions.** Adding or removing a credential may rotate the security stamp, which would sign the person out of their own
+  session within the validator's interval, so the endpoints refresh the sign-in when the stamp changed. Removing a passkey
+  does not end other sessions.
+- **Abuse.** Antiforgery on every POST and DELETE. The two anonymous routes have their own per-IP limit,
+  `ScreenHire:Auth:PasskeyPermitsPerMinute` (default 20), which Development does not raise, so each test uses a unique
+  `X-Forwarded-For`. The rest use the `auth` limit. A request body over 64 KB is a 413 before it is read, and a
+  credential over 20,000 characters is a 400.
+- **Phishing.** A passkey is bound to the relying party id, so a look-alike site cannot ask for an assertion for it. That is
+  the reason to offer it beside the email link.
 
 ### Abuse controls
 
@@ -457,7 +523,7 @@ Two layers, so one mistake is not a breach.
    filters candidates itself (`JobScope`), and a job's history is read only through the job. `JobAccessTests` checks that
    every table with a `job_id` or `application_id` has the policy, and that the policies alone hide a job.
 
-`users`, `user_logins`, `user_claims`, `user_tokens` and `magic_link_tokens` have no row-level security, because
+`users`, `user_logins`, `user_claims`, `user_tokens`, `user_passkeys` and `magic_link_tokens` have no row-level security, because
 sign-in finds a user by email before any organization is known. An endpoint that lists people therefore starts from
 `OrganizationMembers` (tenant-filtered) and joins to users, never from `Users`.
 
@@ -554,4 +620,7 @@ listed on its login page.
 | Any email address | what you type | A new user, or the existing one with that email |
 
 Tests sign in the way people do: `ApiSession` (`tests/ScreenHire.Testing`) drives the magic link through Mailpit or
-the Dev SSO flow, and the Playwright journeys use the real pages. There is no test-only sign-in.
+the Dev SSO flow, and the Playwright journeys use the real pages. There is no test-only sign-in. The passkey integration
+tests use `PasskeyAuthenticator` (`tests/ScreenHire.Testing`), a software authenticator that builds the registration and the
+signature the way a device does; the end-to-end test uses Chromium's virtual authenticator through the DevTools `WebAuthn`
+domain, which needs no prompt and works headless.

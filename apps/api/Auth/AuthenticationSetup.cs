@@ -3,10 +3,12 @@ using System.Reflection;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using ScreenHire.Api.Configuration;
@@ -26,6 +28,9 @@ internal static class AuthenticationSetup
 {
     /// <summary>The per-IP rate limit on sign-in endpoints that change state.</summary>
     public const string RateLimitPolicy = "auth";
+
+    /// <summary>The per-IP rate limit on the anonymous passkey sign-in routes.</summary>
+    public const string PasskeyRateLimitPolicy = "passkey";
 
     /// <summary>The session cookie.</summary>
     public const string SessionCookie = "sh.session";
@@ -55,8 +60,16 @@ internal static class AuthenticationSetup
                 options.User.RequireUniqueEmail = true;
                 // The user name is the email address, which may contain any character an address allows.
                 options.User.AllowedUserNameCharacters = "";
+                // Not Stores.SchemaVersion = Version3: that would change the model of this one context (other Identity tables
+                // too) and leave the migrator's, the design-time one and the tests' on version 1, none of which have this
+                // service provider. ScreenHireDbContext maps user_passkeys itself, whatever the version.
             })
             .AddEntityFrameworkStores<ScreenHireDbContext>()
+            // Named in full so the store reads and writes ApplicationUserPasskey, the row with LastUsedAt; the shortcut above
+            // would pick Identity's plain passkey type, which the model does not hold.
+            .AddUserStore<UserOnlyStore<
+                ApplicationUser, ScreenHireDbContext, Guid, IdentityUserClaim<Guid>, IdentityUserLogin<Guid>, IdentityUserToken<Guid>,
+                ApplicationUserPasskey>>()
             .AddSignInManager();
 
         var authentication = services.AddAuthentication(IdentityConstants.ApplicationScheme);
@@ -79,6 +92,32 @@ internal static class AuthenticationSetup
             options.Cookie.Name = "sh.external";
             options.Cookie.SameSite = SameSiteMode.Lax;
             options.Cookie.SecurePolicy = secure;
+        });
+        // The state of a passkey ceremony (its challenge) waits in this cookie between the options request and the
+        // browser's answer. Host-only, five minutes (the Identity default), the same cookie rules as the session.
+        services.Configure<CookieAuthenticationOptions>(IdentityConstants.TwoFactorUserIdScheme, options =>
+        {
+            options.Cookie.Name = "sh.passkey";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.SecurePolicy = secure;
+        });
+        // The relying party is the dashboard's host, from configuration: the browser reaches the API through the
+        // dashboard's /v1 path, so the request's own host is not what the person's authenticator knows the site by.
+        services.AddOptions<IdentityPasskeyOptions>().Configure<IOptions<DomainOptions>>((passkeys, configured) =>
+        {
+            var appOrigin = configured.Value.GetAppOrigin();
+            passkeys.ServerDomain = appOrigin.Host;
+            // The exact app origin, not the default's "any subdomain": a careers page on a sibling host is not the
+            // dashboard and must never get an assertion for it. A cross-origin frame is refused too.
+            passkeys.ValidateOrigin = context => ValueTask.FromResult(
+                !context.CrossOrigin
+                && string.Equals(context.Origin, appOrigin.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase));
+            // The sign-in button sends no username, so the credential must be one the authenticator can find by itself.
+            passkeys.ResidentKeyRequirement = "required";
+            // A passkey is the only factor, so the device must have checked the person (a PIN, a fingerprint, a face), not
+            // only that someone touched it. Platform authenticators and phones always do.
+            passkeys.UserVerificationRequirement = "required";
         });
 
         var providers = ExternalProviders.FromOptions(authOptions, allowPlainHttp: builder.Environment.IsDevelopment());
@@ -135,6 +174,14 @@ internal static class AuthenticationSetup
                     PermitLimit = context.RequestServices.GetRequiredService<IOptions<AuthOptions>>().Value.PermitsPerMinute,
                     Window = TimeSpan.FromMinutes(1),
                 }));
+            // The two anonymous passkey routes: a guess is one request, so they get a lower limit of their own.
+            options.AddPolicy(PasskeyRateLimitPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = context.RequestServices.GetRequiredService<IOptions<AuthOptions>>().Value.PasskeyPermitsPerMinute,
+                    Window = TimeSpan.FromMinutes(1),
+                }));
         });
 
         // The dashboard calls the API same-origin through its /v1 path, so browsers need no CORS for it. This policy only
@@ -157,6 +204,8 @@ internal static class AuthenticationSetup
             services.AddScoped<MagicLinks>();
         }
 
+        services.AddSingleton<IValidator<PasskeySignInRequest>, PasskeySignInRequestValidator>();
+        services.AddSingleton<IValidator<RegisterPasskeyRequest>, RegisterPasskeyRequestValidator>();
         services.AddSingleton<IValidator<MagicLinkRequest>, MagicLinkRequestValidator>();
         services.AddSingleton<IValidator<MagicLinkVerification>, MagicLinkVerificationValidator>();
         services.AddSingleton<IValidator<OnboardingRequest>, OnboardingRequestValidator>();
