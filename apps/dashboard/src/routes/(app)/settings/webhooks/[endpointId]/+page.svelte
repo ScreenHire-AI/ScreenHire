@@ -108,6 +108,8 @@
   );
   const notFound = $derived(endpoint.error instanceof ApiError && endpoint.error.status === 404);
   const log = $derived(deliveries.data?.data ?? []);
+  // How many deliveries the API returns by default (`DefaultDeliveryLimit`): a log this long may hold more.
+  const deliveryLimit = 50;
 
   // The delivery log sorts like every table (L2), newest first.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
@@ -293,7 +295,7 @@
           {/each}
         </ul>
       </Panel>
-      <Panel title="Deliveries" count={deliveries.isSuccess ? log.length : undefined} flush footer={actionFailure || replayFailure || !detail.enabled ? deliveriesFooter : undefined}>
+      <Panel title="Deliveries" count={deliveries.isSuccess ? log.length : undefined} flush footer={actionFailure || replayFailure || !detail.enabled || log.length >= deliveryLimit ? deliveriesFooter : undefined}>
           {#if deliveries.isError}
             <div class="p-4">
               <QueryError message={describeError(deliveries.error, 'Could not load the deliveries')} onretry={() => deliveries.refetch()} inset />
@@ -405,7 +407,11 @@
   {:else if replayFailure}
     <FailureText message={replayFailure} />
   {:else}
-    <p class="text-muted-foreground">Turn the endpoint on to replay deliveries.</p>
+    <!-- The API lists the latest 50 deliveries, so the count above never says more than that. -->
+    <p class="text-muted-foreground">
+      {#if !detail?.enabled}Turn the endpoint on to replay deliveries.{/if}
+      {#if log.length >= deliveryLimit}Showing the latest {deliveryLimit} deliveries.{/if}
+    </p>
   {/if}
 {/snippet}
 
