@@ -1447,6 +1447,29 @@ describe('application page', () => {
       });
     });
 
+    it("starts on the stage's scorecard even when Fill in is pressed before the job has loaded", async () => {
+      let releaseJob = () => {};
+      const jobLoaded = new Promise<void>((resolve) => (releaseJob = resolve));
+      // The candidate is in Interview, whose scorecard the sheet starts on once the job says what it is.
+      stubApi({
+        [`GET /v1/applications/${applicationId}`]: () =>
+          Response.json({ ...application, stage: { ...application.stage, id: 'interview', name: 'Interview', kind: 'Interview' } }),
+        [`GET /v1/jobs/${jobId}`]: async () => {
+          await jobLoaded;
+          return Response.json(scoredJob);
+        },
+        'GET /v1/scorecard-templates': () => Response.json(library),
+      });
+      renderPage('scorecards');
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+
+      await fireEvent.click(await within(panel).findByRole('button', { name: 'Fill in' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Fill in a scorecard' });
+      releaseJob();
+
+      await waitFor(() => expect(within(sheet).getByRole('combobox', { name: 'Scorecard' })).toHaveValue('stage:interview'));
+    });
+
     it("opens the sheet on the scorecard a link names: a teammate's request from My tasks", async () => {
       stubApi({
         [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),

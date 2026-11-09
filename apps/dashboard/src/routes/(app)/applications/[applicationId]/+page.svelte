@@ -259,10 +259,13 @@
       : undefined,
   );
 
+  // The scorecard the sheet starts on: the one asked for, else the default for the stage the candidate is in, which can
+  // arrive after the sheet opens (the sheet takes it then).
   function fillIn(value?: string) {
-    scorecardInitial = value ?? defaultChoice(choices, detail?.stage.id)?.value;
+    scorecardInitial = value;
     scorecardOpen = true;
   }
+  const sheetInitial = $derived(scorecardInitial ?? defaultChoice(choices, detail?.stage.id)?.value);
 
   // A link to a scorecard opens the sheet on it once everything it needs has loaded, once per visit. A scorecard the
   // reader gave already offers nothing, so the tab simply shows.
@@ -565,7 +568,7 @@
         bind:open={scorecardOpen}
         applicationId={detail.id}
         {choices}
-        initial={scorecardInitial}
+        initial={sheetInitial}
         loadingChoices={library.isPending || scorecards.isPending || !workflow}
         libraryError={library.error ?? undefined}
         onretrylibrary={() => library.refetch()}
