@@ -36,7 +36,8 @@ public sealed record JobSalary(decimal? Min, decimal? Max, string Currency, Sala
 
 /// <summary>
 /// The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A
-/// <see cref="JobVersion"/> freezes one. Equality compares the content, list members included.
+/// <see cref="JobVersion"/> freezes one. Equality compares the content, list members included. <c>summary</c> is
+/// the written summary only (null while the card follows the description); a version frozen before the field existed has none.
 /// </summary>
 public sealed record JobSnapshot(
     string Title,
@@ -48,7 +49,8 @@ public sealed record JobSnapshot(
     IReadOnlyList<JobLocation> Locations,
     IReadOnlyList<string> ApplicantLocationRequirements,
     JobSalary? Salary,
-    DateTimeOffset? ValidThrough)
+    DateTimeOffset? ValidThrough,
+    string? Summary = null)
 {
     public bool Equals(JobSnapshot? other) =>
         other is not null
@@ -61,7 +63,8 @@ public sealed record JobSnapshot(
         && Locations.SequenceEqual(other.Locations)
         && ApplicantLocationRequirements.SequenceEqual(other.ApplicantLocationRequirements)
         && Salary == other.Salary
-        && ValidThrough == other.ValidThrough;
+        && ValidThrough == other.ValidThrough
+        && Summary == other.Summary;
 
     public override int GetHashCode() => HashCode.Combine(Title, Slug, Description, Locations.Count, ValidThrough);
 }

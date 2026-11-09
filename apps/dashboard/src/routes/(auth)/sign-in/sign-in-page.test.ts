@@ -1,9 +1,14 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { goto } from '$app/navigation';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
+import { cancelledPrompt, stubWebAuthn, unstubWebAuthn } from '../../../test-support/webauthn.js';
 import WithTooltips from '../../../test-support/with-tooltips.svelte';
 import Page from './+page.svelte';
 import { load } from './+page.js';
+
+// Superforms needs the rest of the module (beforeNavigate).
+vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
 
 type Data = Parameters<typeof Page>[1]['data'];
 
@@ -167,6 +172,95 @@ describe('sign-in page', () => {
     expect(card).toHaveTextContent('Sign-in is not set up on this server yet.');
     // Nothing to sign in with, so no line about what signing in does.
     expect(card).not.toHaveTextContent('New here?');
+  });
+});
+
+describe('sign-in with a passkey', () => {
+  const passkeyRoutes = (signIn: () => Response = () => new Response(null, { status: 204 })) =>
+    vi.fn<typeof fetch>(async (input, init) => {
+      const key = `${init?.method ?? 'GET'} ${String(input)}`;
+      if (key === 'POST /v1/auth/passkeys/sign-in/options') return Response.json({ optionsJson: JSON.stringify({ challenge: 'abc' }) });
+      if (key === 'POST /v1/auth/passkeys/sign-in') return signIn();
+      throw new Error(`No stub for ${key}`);
+    });
+
+  afterEach(() => {
+    unstubWebAuthn();
+    vi.mocked(goto).mockClear();
+  });
+
+  it('offers no passkey button in a browser without WebAuthn', () => {
+    show(data());
+
+    expect(screen.queryByRole('button', { name: 'Sign in with a passkey' })).not.toBeInTheDocument();
+  });
+
+  it('puts the button first among the providers, before the "or" divider, and passes axe', async () => {
+    stubWebAuthn();
+    show(data());
+
+    const button = screen.getByRole('button', { name: 'Sign in with a passkey' });
+    expect(button.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    const provider = screen.getByRole('link', { name: 'Continue with Dev SSO' });
+    expect(button.compareDocumentPosition(provider) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(button.compareDocumentPosition(screen.getByText('or')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await expectNoAxeViolations(document.body);
+  });
+
+  it('keeps the divider when the passkey is the only thing above the email form, and drops it when it is the only method', () => {
+    stubWebAuthn();
+    const { unmount } = show(data({ methods: { providers: [], magicLinkEnabled: true } }));
+    expect(screen.getByRole('button', { name: 'Sign in with a passkey' })).toBeInTheDocument();
+    expect(screen.getByText('or')).toHaveAttribute('data-slot', 'or-divider');
+    unmount();
+
+    show(data({ methods: { providers: [], magicLinkEnabled: false } }));
+    expect(screen.getByRole('button', { name: 'Sign in with a passkey' })).toBeInTheDocument();
+    expect(screen.queryByText('or')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sign-in is not set up on this server yet.')).not.toBeInTheDocument();
+  });
+
+  it('signs in and goes on to where this visit was going, running the guard again', async () => {
+    const credentials = stubWebAuthn();
+    vi.stubGlobal('fetch', passkeyRoutes());
+    show(data({ returnUrl: '/oauth/authorize?client_id=abc' }));
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Sign in with a passkey' }));
+
+    await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/oauth/authorize?client_id=abc', { invalidateAll: true }));
+    expect(credentials.get).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('says nothing when the person closes the browser prompt, and lets them try again', async () => {
+    const credentials = stubWebAuthn({ get: async () => Promise.reject(cancelledPrompt()) });
+    vi.stubGlobal('fetch', passkeyRoutes());
+    show(data());
+
+    const button = screen.getByRole('button', { name: 'Sign in with a passkey' });
+    await fireEvent.click(button);
+
+    await vi.waitFor(() => expect(credentials.get).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(button).toBeEnabled());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(goto).not.toHaveBeenCalled();
+  });
+
+  it('points to the other ways in when the passkey does not work', async () => {
+    stubWebAuthn();
+    vi.stubGlobal('fetch', passkeyRoutes(() => Response.json({ errors: {} }, { status: 400 })));
+    show(data());
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Sign in with a passkey' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('That passkey did not work. Use another way to sign in.');
+    // Above the ways to try again (design system section 7).
+    expect(alert.compareDocumentPosition(screen.getByRole('button', { name: 'Sign in with a passkey' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(alert.compareDocumentPosition(screen.getByRole('link', { name: 'Continue with Dev SSO' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(goto).not.toHaveBeenCalled();
+    // The other ways are still there.
+    expect(screen.getByLabelText('Work email')).toBeInTheDocument();
   });
 });
 

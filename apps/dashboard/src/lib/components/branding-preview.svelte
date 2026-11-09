@@ -63,10 +63,16 @@
           <span class="shrink-0 font-semibold">All jobs</span>
         </div>
         <div class="flex flex-col gap-4 px-5 py-6">
-          <p class="font-display text-candidate-title">Open roles at {draft.organizationName}</p>
+          <p class="font-display text-candidate-title">Open roles</p>
           <div class="flex flex-col gap-3 rounded-panel border border-candidate-border bg-candidate-surface p-5 shadow-surface">
+            <!-- The board's card (JobCard on the careers site): title, short summary, chips. The link and the button
+                 below it are the job page's, kept here because they are what the brand colour paints. -->
             <p class="font-display text-panel-title">Product designer</p>
-            <p class="text-candidate-muted-foreground">Remote, full time</p>
+            <p class="text-candidate-muted-foreground">Shape how customers book and pay, from first sketch to release.</p>
+            <div class="flex flex-wrap gap-2 text-candidate-hint font-semibold text-candidate-chip-foreground">
+              <span class="rounded-full bg-candidate-chip px-3 py-1">Remote</span>
+              <span class="rounded-full bg-candidate-chip px-3 py-1">Full-time</span>
+            </div>
             <span class="font-semibold text-candidate-brand-text underline underline-offset-2">Read about the team</span>
             <span class="inline-flex min-h-11 items-center justify-center self-start rounded-lg bg-candidate-cta px-6 font-semibold text-candidate-cta-foreground">
               Apply for this role

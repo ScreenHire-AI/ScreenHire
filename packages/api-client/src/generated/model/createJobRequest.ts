@@ -14,7 +14,9 @@ import type { WorkplaceType } from './workplaceType.ts';
  * version's workflow, and every field left out here takes the template's posting default. Without a slug, one is made
  * from the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,
  * h3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text
- * works too: a blank line starts a paragraph and lines starting with "- " make a list.
+ * works too: a blank line starts a paragraph and lines starting with "- " make a list. The summary is the plain-text
+ * line a careers card shows under the title, at most 160 characters; leave it out and the card uses the description's
+ * first sentence.
  */
 export interface CreateJobRequest {
   title: string;
@@ -35,4 +37,6 @@ export interface CreateJobRequest {
   salary?: null | SalaryRequest;
   /** @nullable */
   validThrough?: string | null;
+  /** @nullable */
+  summary?: string | null;
 }

@@ -137,7 +137,7 @@ public sealed class BillingWebhookTests(AppHostFixture fixture)
         await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
         var options = Options.Create(new BillingOptions { Sandbox = new BillingSandboxOptions { Enabled = true } });
         var time = new FixedTime(At);
-        var access = new BillingAccess(options, new StripeBillingProvider(options, new PlanCatalogue(options)), new SandboxBillingProvider(new EphemeralDataProtectionProvider(), time));
+        var access = new BillingAccess(options, new StripeBillingProvider(options, new PlanCatalogue(options)), new SandboxBillingProvider(new EphemeralDataProtectionProvider(), time, options));
         // The open-job counter is only used to read the page and to check a publish, neither of which this calls.
         var service = new BillingService(db, access, new PlanCatalogue(options), null!, options, time);
         var providerEvent = new BillingProviderEvent(evt.Id, evt.CreatedAt, evt.Organization, "cus_fictional", evt.Subscription, evt.Plan, evt.Status, null, false);

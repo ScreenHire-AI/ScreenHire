@@ -169,7 +169,21 @@ brackets.
   competitor prices on the compare pages, which carry the date they were read (docs/research/pain-points.md).
 - **OAuth server.** Have someone outside the project review `apps/api/OAuth` before a real customer connects an assistant. It
   is hand-written (#107 chose it over OpenIddict), and only this project's tests and reviews have checked it.
-- **Billing.** Prices and job limits go in `packages/plans/plans.json` (the pricing page reads it too) or in `ScreenHire:Billing:Plans:<key>:*` configuration. The file ships working numbers, in USD: Starter $79 a month with 3 open jobs, Growth $149 with 10 (the trial's plan) and Unlimited $249 with no limit. Confirm or change them before launch, and create the matching Stripe prices; a plan with no limit set limits nothing. To charge: a Stripe account, one product with a recurring monthly price per plan, each price's id in `StripePriceId`, the secret key and the webhook signing secret as the `stripe-secret-key` and `stripe-webhook-secret` parameters (the Key Vault secrets in the [deploy runbook](operations/deploy.md)), and a webhook endpoint at `https://<api host>/v1/webhooks/stripe` for `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted`, created through Stripe's API with `api_version=2024-06-20`. Turn the customer portal on in Stripe (plan switching, and cancelling at the end of the period, which the pricing page promises), set up Stripe Tax if tax applies, and write the terms of service before anyone pays ([billing](architecture/billing.md), ADR-0029).
+- **Billing.** Prices and job limits go in `packages/plans/plans.json` (the pricing page reads it too) or in `ScreenHire:Billing:Plans:<key>:*` configuration. The file ships working numbers, in USD: Starter $79 a month with 3 open jobs, Growth $149 with 10 (the trial's plan) and Unlimited $249 with no limit. Confirm or change them before launch, and create the matching Stripe prices; a plan with no limit set limits nothing. To charge: a Stripe account, one product with a recurring monthly price per plan, each price's id in `StripePriceId`, the secret key and the webhook signing secret as the `stripe-secret-key` and `stripe-webhook-secret` parameters (the Key Vault secrets in the [deploy runbook](operations/deploy.md)), and a webhook endpoint at `https://<api host>/v1/webhooks/stripe` for `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted`, created through Stripe's API with `api_version=2024-06-20`. Turn the customer portal on in Stripe (cancelling at the end of the period, which the pricing page promises; plan switching is done on the Billing page), make the first plan change in test mode to check the cost it previews against the invoice Stripe sends, set up Stripe Tax as the Sales tax and VAT item below describes, and write the terms of service before anyone pays ([billing](architecture/billing.md), ADR-0029).
+- **Sales tax and VAT.** ScreenHire is the merchant of record for its own subscriptions, so tax on them is its duty. The
+  research is general and is not tax advice ([billing providers](research/billing-providers.md)).
+  - Apply the research's state table to the business with the owner's accountant and confirm the registrations, including
+    any state where the business has people working, an office or property.
+  - Open the Stripe account in the business's own name.
+  - Add each registration to Stripe Tax before it is turned on, because Stripe collects tax only where a registration is
+    added, and decide how returns are filed (Tax Complete, a filing partner, or by hand).
+  - Create each Stripe price with `tax_behavior=exclusive` (`plans.json` prices exclude tax; a price's tax behavior cannot be
+    changed once set), and in the customer portal configuration turn on Billing address and Tax ID so a customer can change both.
+  - Then set `ScreenHire:Billing:Stripe:Tax:Enabled=true` where the API runs. It is built and off: Checkout then calculates
+    tax, collects the billing address and a business tax id (`Stripe:Tax:CollectTaxIds=false` skips the tax id), and the
+    Billing page says "plus tax where it applies" ([billing](architecture/billing.md#tax)).
+  - Watch the UK proposal published 2026-10-28 that would make an overseas seller charge VAT to a UK business with no VAT
+    number from 2027-04-01.
 - **Product.** Subscribe to Svelte Flow Pro before charging anyone. The workflow graph hides Svelte Flow's attribution, which its MIT licence allows, and its makers ask a business earning from it to subscribe first. Move jobs still on "Software
   engineer" version 1 to version 2 (#13).
 
@@ -188,7 +202,15 @@ brackets.
   ended, as the setting says.
 
 - Only automated tests and fakes have exercised these so far: real Stripe, SendGrid, calendars, Azure and a claude.ai
-  connector; every page in dark mode; lists of 20 or more items; Candidates at phone widths; several Slack and webhook
-  states; and portal replies, the Billing page and the OAuth consent page by hand.
+  connector, and real Slack and real webhook receivers (the Slack and webhook states are proven against the sandbox
+  workspace and a local receiver); every page in dark mode; and portal replies, the Billing page and the OAuth consent
+  page by hand.
+- Large lists are proven at 1440 and 390 px up to 26 of each record, 20 webhook endpoints (the limit) and 210 applications
+  on one job (`LargeListsTests`). The 26 saved views are checked in the sidebar at 1440 only; the phone's navigation sheet
+  that holds them is not opened. The API's list routes still return every row and the dashboard sorts and filters them in
+  the browser, so an organization with thousands of candidates or applications is not proven. The tables draw only the rows
+  in view and a phone lists 50 at a time; the delivery log of an endpoint (it says it shows the latest 50) and the done tasks are limited by the API.
+- When a Slack post fails in a way a retry cannot fix and the retries run out, the message goes to the dead-letter table
+  and the Slack page says nothing about it ([slack](architecture/slack.md)).
 - With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
   startup (verification-engine.md §10.9). In the browser pane, `/preview` waits for a verification chip before it checks anything live.

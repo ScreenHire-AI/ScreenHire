@@ -29,8 +29,8 @@
 //                               anthropic-api-key, never from these keys.
 //   Webhooks:*                  webhook settings (ScreenHire.Application WebhookOptions), forwarded to the API and the
 //                               worker: AllowLoopback (appsettings.Development.json turns it on, so a receiver on this
-//                               machine works; never in production), RetryDelays:0..n and DisableAfterFailedDeliveries
-//                               (the tests shorten both). The signing key comes from the webhook-signing-key parameter,
+//                               machine works; never in production), RetryDelays:0..n, DisableAfterFailedDeliveries
+//                               and Timeout (how long a receiver may take to answer; the tests shorten all three). The signing key comes from the webhook-signing-key parameter,
 //                               never from these keys.
 //   DataRequests:*              candidates' requests for a copy of their data or for its erasure (ScreenHire.Application
 //                               DataRequestOptions, docs/architecture/data-requests.md), forwarded to the API and the worker:
@@ -57,8 +57,12 @@
 //                               fake instead (Development only; the test stacks turn it on). Trial:Days and Trial:Plan set
 //                               the free trial. Plans:<key>:Name, Order, MonthlyPrice, Currency, ActiveJobs, Unlimited and
 //                               StripePriceId override the defaults in packages/plans/plans.json, which the marketing pricing
-//                               page reads too. ApiBaseUrl and Timeout are for a test that points the Stripe client at a
-//                               stand-in. The keys come from those parameters, never from these settings.
+//                               page reads too. Stripe:Tax:Enabled=true makes Checkout calculate tax (Stripe Tax, which needs the
+//                               owner's registrations first; off by default) and the Billing page say "plus tax where it
+//                               applies"; Stripe:Tax:CollectTaxIds (default true with tax on) also asks a business for its tax
+//                               id, and the sandbox's Checkout records both. ApiBaseUrl and Timeout are for a test that
+//                               points the Stripe client at a stand-in. The keys come from those parameters, never from
+//                               these settings.
 //   Calendar:*                  member calendars for interview scheduling (ScreenHire.Application CalendarOptions,
 //                               docs/architecture/interview-scheduling.md), forwarded to the API and the worker. A
 //                               provider is on only when both its client id (Google:ClientId, Microsoft:ClientId) and
@@ -321,8 +325,8 @@ if (!string.IsNullOrWhiteSpace(settings["Slack:ClientId"]))
 foreach (var (key, value) in settings.GetSection("Billing").AsEnumerable(makePathsRelative: true))
 {
     // The keys are secrets: they go through the parameters below, never as plain configuration. Stripe:Enabled only decides
-    // whether the parameters are asked for.
-    if (value is not null && !key.StartsWith("Stripe:", StringComparison.OrdinalIgnoreCase)
+    // whether the parameters are asked for; the rest of Stripe: (Stripe:Tax:*) is plain configuration and goes through.
+    if (value is not null && !key.Equals("Stripe:Enabled", StringComparison.OrdinalIgnoreCase)
         && !key.Equals("SecretKey", StringComparison.OrdinalIgnoreCase) && !key.Equals("WebhookSecret", StringComparison.OrdinalIgnoreCase))
     {
         api.WithEnvironment($"ScreenHire__Billing__{key.Replace(":", "__", StringComparison.Ordinal)}", value);

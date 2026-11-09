@@ -1,5 +1,5 @@
 ---
-import JobFacts from '../../components/JobFacts.astro';
+import JobCard from '../../components/JobCard.astro';
 import CareersLayout from '../../layouts/CareersLayout.astro';
 import { listPublicJobs } from '../../lib/api';
 import { useEmbedding, withEmbed } from '../../lib/embed';
@@ -25,7 +25,7 @@ const embed = useEmbedding(Astro.locals, Astro.url, board.embedOrigins);
   organizationSlug={board.organizationSlug}
   branding={board.branding}
 >
-  <h1 class="font-display text-candidate-title">Open roles at {board.organizationName}</h1>
+  <h1 class="font-display text-candidate-title">Open roles</h1>
   {
     board.jobs.length === 0 ? (
       <p class="mt-3 text-candidate-body text-candidate-muted-foreground">
@@ -34,18 +34,12 @@ const embed = useEmbedding(Astro.locals, Astro.url, board.embedOrigins);
     ) : (
       <>
         <p class="mt-2 text-candidate-body text-candidate-muted-foreground">
-          {board.jobs.length} {board.jobs.length === 1 ? 'role is' : 'roles are'} open. Choose one to read it and apply.
+          {board.jobs.length === 1 ? 'Read the open role and apply.' : `Choose one of the ${board.jobs.length} open roles to read it and apply.`}
         </p>
         <ul class="mt-6 flex flex-col gap-3">
           {board.jobs.map((job) => (
             <li>
-              <a
-                href={withEmbed(`${base}/jobs/${job.slug}`, embed)}
-                class="flex flex-col gap-2 rounded-panel border border-candidate-border bg-candidate-surface p-5 text-candidate-foreground no-underline shadow-surface hover:border-candidate-input-border"
-              >
-                <span class="font-display text-panel-title">{job.title}</span>
-                <JobFacts job={job} />
-              </a>
+              <JobCard job={job} href={withEmbed(`${base}/jobs/${job.slug}`, embed)} />
             </li>
           ))}
         </ul>

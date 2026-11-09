@@ -55,3 +55,19 @@ public sealed record SlackTestResult(bool Posted, SlackProblem? Problem);
 
 /// <summary>A message the local sandbox workspace received: its channel or direct message id, its text and when.</summary>
 public sealed record SlackSandboxMessageEntry(string Conversation, string Text, DateTimeOffset PostedAt);
+
+/// <summary>What the local sandbox workspace does to the organization's connection on Slack's side (Development and tests only).</summary>
+public enum SlackSandboxBreak
+{
+    /// <summary>The workspace took the app away: the token stops working.</summary>
+    TokenRevoked,
+
+    /// <summary>Someone archived the channel the team picked.</summary>
+    ChannelArchived,
+
+    /// <summary>Someone deleted the channel the team picked.</summary>
+    ChannelRemoved,
+}
+
+/// <summary>Asks the sandbox workspace to break the organization's connection the way <see cref="SlackSandboxBreak"/> says.</summary>
+public sealed record SlackSandboxBreakRequest(SlackSandboxBreak Kind);

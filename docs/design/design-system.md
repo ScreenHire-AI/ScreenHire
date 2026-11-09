@@ -55,6 +55,7 @@ sources:
   - resource: apps/dashboard/src/lib/simulate.ts
   - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
   - resource: apps/careers/src/components/JobFacts.astro
+  - resource: apps/careers/src/components/JobCard.astro
   - resource: apps/careers/src/components/Notice.astro
   - resource: apps/careers/src/components/Panel.astro
   - resource: apps/careers/src/styles/global.css
@@ -527,8 +528,16 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   notice version.
 - No cursor class on a component. Buttons, summaries, selects and switch labels get the hand from `theme.css` (A10).
 - A kicker adds to the breadcrumb and never repeats it (W7): a page whose kicker would be its own name has none.
-- A job's facts (where, how, contract, pay) are chips from one component, `JobFacts`, on the board, the job and the apply
-  form. The workplace type is left out when the location already says it. Chips are never links or buttons (A5).
+- A job's facts are at most three chips (place, contract, pay) from one component, `JobFacts`, on the board, the job and the
+  apply form. The workplace type goes into the place chip ("London, England, GB (Hybrid)"), and is left out when the job is
+  on-site or the location already says it. Chips are never links or buttons (A5).
+- A job card on the board (`JobCard`) reads title, the job's short summary clamped to three lines with `line-clamp-3`
+  (CSS only, no script), then the chips. The summary is at most 160 characters, about the job rather than the company; until
+  a person writes one it is the description's first sentence. The job page does not repeat it: the description is right below, and
+  until someone writes a summary the two start with the same sentence. The card takes no employer colour. The branding
+  preview's sample card starts with the same title, summary and chips, then adds the job page's link and Apply button,
+  because those are what the brand colour paints.
+- The board's heading is "Open roles", because the header already names the employer, over a lede of one sentence.
 - A message about what just happened is `Notice`: an icon, the message, and one quieter line for what to do next. A page
   never builds its own bordered block for it.
 - Every step of a form names itself in a visible heading, so "Step 2 of 3" is never the only clue. The review step says
@@ -620,10 +629,13 @@ Sign-in, onboarding and error pages sit outside the app shell, with no sidebar. 
   - the 40px logo mark;
   - the page's h1, "Sign in to ScreenHire";
   - one muted line, "New here? Signing in creates your account.";
-  - any error from a provider that sent the person back;
+  - any error from a provider that sent the person back, or from a passkey that did not work ("That passkey did not
+    work. Use another way to sign in."), above the ways to try again;
+  - "Sign in with a passkey", a full-width outline button with `key-round`, first in the list and only in a browser that
+    has WebAuthn. Closing the browser's own prompt says nothing;
   - each configured provider as a full-width outline button, "Continue with Google". Google and Microsoft carry their
     own marks (section 14). Any other provider, such as Dev SSO or an organization's own OIDC, has `log-in`;
-  - an "or" divider, only when both providers and email links are offered;
+  - an "or" divider, only when the passkey button or providers and email links are offered;
   - the Work email field and the one primary button, "Email me a sign-in link".
 
   "Check your email", "Finish signing in" and "This link doesn't work" are the same card with their own title. There is
@@ -656,7 +668,7 @@ Four size classes on Tailwind's breakpoints. No custom breakpoints.
 | Columns | One | One | A detail page's panels in two columns from 1024px of content | Same, filling the window |
 | Header band | Facts in a two-column grid | Facts wrap | One line of facts where they fit; beside the full sidebar they may wrap | One line of facts |
 | Actions | Primary in a bar at the bottom; the rest in More. A form keeps Cancel and its primary at its end (section 7) | In the header; extras fold into More | In the header | In the header |
-| Tables | Rows become two-line list items, with a Sort chip beside the filters (L2) | Scroll inside the panel; first column sticks, and so does a row menu at the end (the Jobs table's), so it stays reachable. While it scrolls the row's link covers that cell only | Full; a table wider than its panel beside the full sidebar scrolls inside it, as on a tablet | Full, optional columns may show |
+| Tables | Rows become two-line list items, with a Sort chip beside the filters (L2); a long list shows 50 at a time and Show more adds the next 50, saying how many are shown of how many there are (S9) | Scroll inside the panel; first column sticks, and so does a row menu at the end (the Jobs table's), so it stays reachable. While it scrolls the row's link covers that cell only | Full; a table wider than its panel beside the full sidebar scrolls inside it, as on a tablet | Full, optional columns may show |
 
 The sidebar is shadcn-svelte's `Sidebar`: `collapsible="icon"` gives the rail and its mobile mode gives the sheet.
 On a phone the workflow graph is for reading: its nodes cannot be pressed and have no plus buttons, one line says to edit in Pipeline, and the
@@ -717,7 +729,7 @@ in a development build, shows every component in each state, and its test fails 
 | Icon button | `IconButton`: ghost `Button` and `Tooltip` | A quiet row action; its label is both the `aria-label` and the tooltip (A4) |
 | Empty state | shadcn `Empty` | One line saying why, and the one action. A list that has never held anything has an icon, a short title and that line (No candidates yet, Nothing to do); a list a filter emptied has only its line and Clear filters. A loading state draws skeletons of the page's own shape (header, facts, tabs, a panel of rows) in `secondary`, because `muted` on a white panel is almost invisible |
 | Shortcuts dialog | shadcn `Dialog` | Opens on `?`; lists every shortcut; holds the single-key toggle |
-| Sidebar | shadcn `Sidebar` | Section 8. The sections (Jobs, Candidates, Templates, My tasks, Reports; Saved candidates is the Saved choice on the Candidates page, not an item, though G then S still goes to it), the Views (built in and saved, each with a menu on hover and focus: Rename, Share with the team or Make private, Delete view, and Hide from sidebar for a built-in one, which only that person stops seeing; a Show hidden views button ends the list while any are hidden, and each hidden view's menu has Show in sidebar), then up to three items at the bottom, Organization, Hiring setup and Integrations, each for anyone whose role has a permission for at least one page in it and each opening the first page they may use (Integrations opens its directory); nobody else sees one. On a phone they sit in the sheet, and in the icon rail they keep their icon and a tooltip. The person's block at the foot shows their name and their role, never the organization again (W7: the workspace above names it). The person's block is set apart from the navigation above it by a hairline divider in `sidebar-border` (shadcn `Sidebar.Separator`), so where to go and who you are read as two things; the divider holds in the icon rail and the sheet. The person's menu there holds the keyboard shortcuts, the single-key switch, Slack account (while the organization's Slack workspace is connected, opening `SlackAccountSheet`, where each person links their own account and picks their direct messages), Calendar (while this ScreenHire has a calendar to connect, opening `CalendarAccountSheet`, where each person connects or disconnects their own: the Connected status first, then which calendar, and Disconnect says that interviews already booked stay on it; not in the style guide because it reads the signed-in person's connection) and Sign out |
+| Sidebar | shadcn `Sidebar` | Section 8. The sections (Jobs, Candidates, Templates, My tasks, Reports; Saved candidates is the Saved choice on the Candidates page, not an item, though G then S still goes to it), the Views (built in and saved, each with a menu on hover and focus: Rename, Share with the team or Make private, Delete view, and Hide from sidebar for a built-in one, which only that person stops seeing; a Show hidden views button ends the list while any are hidden, and each hidden view's menu has Show in sidebar), then up to three items at the bottom, Organization, Hiring setup and Integrations, each for anyone whose role has a permission for at least one page in it and each opening the first page they may use (Integrations opens its directory); nobody else sees one. On a phone they sit in the sheet, and in the icon rail they keep their icon and a tooltip. The person's block at the foot shows their name and their role, never the organization again (W7: the workspace above names it). The person's block is set apart from the navigation above it by a hairline divider in `sidebar-border` (shadcn `Sidebar.Separator`), so where to go and who you are read as two things; the divider holds in the icon rail and the sheet. The person's menu there holds the keyboard shortcuts, the single-key switch, Slack account (while the organization's Slack workspace is connected, opening `SlackAccountSheet`, where each person links their own account and picks their direct messages), Passkeys (a link to the Account page that lists the person's passkeys, section 21), Calendar (while this ScreenHire has a calendar to connect, opening `CalendarAccountSheet`, where each person connects or disconnects their own: the Connected status first, then which calendar, and Disconnect says that interviews already booked stay on it; not in the style guide because it reads the signed-in person's connection) and Sign out. Passkeys sits just above Sign out, in the group of the person's own things |
 | Interview panel | `candidate/interview-panel.svelte` | On a candidate's Overview, above Latest message, and not drawn while no interview was ever offered. A status badge first: Waiting for the candidate (`waiting`), Booked (`booked`), Cancelled or Expired (`notInEffect`), then the days offered, the interviewers and the meeting link, or one line on how it ended. A booked interview with new times offered adds Waiting for a new time (`waiting`) and a line that the booked time stays until the candidate picks. Its menu has Offer new times (booked only, a sheet) and Cancel, a destructive item behind a dialog. A booked interview's time, in the reader's zone, and its length come first after the badge, since the header no longer carries it. The details are in the style guide; the panel with its menu is not, because it reads the application's interviews |
 | Brand bar | Our component (`BrandBar`) | The top bar of a page outside the app shell: the logo mark and name only (section 7). The sign-in pages have none, because their card carries the mark |
 | Table, list item | TanStack table; our list item | 48px rows; list items on phones. Two text styles and one-line cells (L1); every column sorts through the sort header (L2). A list item that takes a date puts its name on its own line under the status, so a draft with no date is as tall as a published job. A list whose actions live only on its rows (saved candidates) ends each list item with the row's More menu, which stays clickable above the item's link. A job's candidate table and the board's cards do the same (`ApplicationMenu`, named Actions for the candidate): a Move to heading over the job's stages, the current one marked, which is the non-drag way to move a card (A7). The detail page keeps its Move to stage button, because it is one page's own action |
@@ -1149,6 +1161,14 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   is served in production. API keys has Last updated and History on its title's row: each key created and revoked, with
   its name, access and who. A webhook endpoint's page has Last updated and History (its address by host, its events, its
   switch and each rotation of its secret) beside Secret rotated (T6).
+- **Account pages:** what belongs to the person, whatever organization they work in, is a page under `/account` that the
+  person's menu in the sidebar links to, and not a Settings page: it has no Settings menu, no permission and a breadcrumb
+  that starts with Account. Passkeys (`/account/passkeys`) is the first, on the List template: a table of Name, Added and
+  Last used (newest use first; a passkey never used says Never used, a value and not a blank, L1), a row
+  menu with Remove passkey, and Add a passkey in the title's row, in the bar on a phone. Adding names the passkey in a
+  dialog (pre-filled with the device), then the browser asks. The limit is said in the panel's footer only when two or
+  fewer are left; at the limit Add is off and the sentence beside it says why. A browser without WebAuthn gets a notice
+  in place of Add. The API refuses to remove the last way to sign in, and the confirm dialog shows its reason.
 - **MCP server:** the values any MCP client needs (this deployment's server URL, the transport, the header), the
   key's access, the tools as pills, one generic config and a link to API keys. Never one client's setup steps.
 

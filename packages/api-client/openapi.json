@@ -658,6 +658,227 @@
         }
       }
     },
+    "/v1/auth/passkeys/sign-in/options": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "MakePasskeySignInOptions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptions"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/passkeys/sign-in": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "SignInWithPasskey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeySignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/passkeys": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "ListPasskeys",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/auth/passkeys/register/options": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "MakePasskeyRegistrationOptions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeyOptions"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/auth/passkeys/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "RegisterPasskey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPasskeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasskeySummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/auth/passkeys/{passkeyId}": {
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "RemovePasskey",
+        "parameters": [
+          {
+            "name": "passkeyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/public/organizations/{organizationSlug}": {
       "get": {
         "tags": [
@@ -11594,6 +11815,161 @@
         ]
       }
     },
+    "/v1/organization/billing/plan/preview": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "PreviewBillingPlanChange",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewBillingPlanChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPlanChangePreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/billing/plan": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "ChangeBillingPlan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeBillingPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/organization/billing/portal": {
       "post": {
         "tags": [
@@ -15917,6 +16293,7 @@
           "openJobs",
           "activeJobLimit",
           "canManage",
+          "taxAtCheckout",
           "plans"
         ],
         "type": "object",
@@ -15985,6 +16362,9 @@
           "canManage": {
             "type": "boolean"
           },
+          "taxAtCheckout": {
+            "type": "boolean"
+          },
           "plans": {
             "type": "array",
             "items": {
@@ -15992,7 +16372,7 @@
             }
           }
         },
-        "description": "An organization's billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan's limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe."
+        "description": "An organization's billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan's limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says \"plus tax where it applies\"."
       },
       "BillingPlan": {
         "required": [
@@ -16037,6 +16417,42 @@
           }
         },
         "description": "A plan. `monthlyPrice` is null until the owner sets it. `activeJobs` is the most jobs open at once, null with\nno limit set; `unlimited` says there is none by design. `canSubscribe`: Checkout can start it here."
+      },
+      "BillingPlanChangePreview": {
+        "required": [
+          "plan",
+          "amountDueNow",
+          "nextPaymentAmount",
+          "nextPaymentAt",
+          "currency",
+          "prorationDate"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          },
+          "amountDueNow": {
+            "type": "number",
+            "format": "double"
+          },
+          "nextPaymentAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "nextPaymentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "prorationDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "What switching the live subscription to `plan` costs, in `currency`. `amountDueNow` is the prorated difference\ncharged when the owner confirms (0 when the new plan costs less: the credit stays on the account), then\n`nextPaymentAmount` a month on `nextPaymentAt`. `prorationDate` is the instant both were priced at; send it back\nwith the confirmation so the charge is the one shown."
       },
       "BillingRedirect": {
         "required": [
@@ -16680,6 +17096,23 @@
           null
         ]
       },
+      "ChangeBillingPlanRequest": {
+        "required": [
+          "plan",
+          "prorationDate"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          },
+          "prorationDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Confirms the switch to `plan` priced at `prorationDate`, as the preview returned it."
+      },
       "ChangeMemberJobAccessRequest": {
         "required": [
           "jobAccess"
@@ -17226,9 +17659,15 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list."
+        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list. The summary is the plain-text\nline a careers card shows under the title, at most 160 characters; leave it out and the card uses the description's\nfirst sentence."
       },
       "CreateRoleRequest": {
         "required": [
@@ -19150,6 +19589,8 @@
           "slug",
           "status",
           "description",
+          "summary",
+          "summaryFollowsDescription",
           "department",
           "employmentType",
           "workplaceType",
@@ -19187,6 +19628,12 @@
           },
           "description": {
             "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "summaryFollowsDescription": {
+            "type": "boolean"
           },
           "department": {
             "type": [
@@ -19570,9 +20017,15 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included."
+        "description": "The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included. `summary` is\nthe written summary only (null while the card follows the description); a version frozen before the field existed has none."
       },
       "JobStatus": {
         "enum": [
@@ -20881,6 +21334,79 @@
         },
         "description": "The active seconds on one page of the apply form (`details`, `page-2`, `review`)."
       },
+      "PasskeyList": {
+        "required": [
+          "passkeys",
+          "limit"
+        ],
+        "type": "object",
+        "properties": {
+          "passkeys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PasskeySummary"
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The signed-in person's passkeys, newest first, and how many they may keep."
+      },
+      "PasskeyOptions": {
+        "required": [
+          "optionsJson"
+        ],
+        "type": "object",
+        "properties": {
+          "optionsJson": {
+            "type": "string"
+          }
+        },
+        "description": "The WebAuthn options the browser passes to `navigator.credentials.create` or `get`, as the JSON text the\nW3C `PublicKeyCredential*OptionsJSON` shape defines. The browser parses it with\n`PublicKeyCredential.parseCreationOptionsFromJSON` or `parseRequestOptionsFromJSON`."
+      },
+      "PasskeySignInRequest": {
+        "required": [
+          "credentialJson"
+        ],
+        "type": "object",
+        "properties": {
+          "credentialJson": {
+            "type": "string"
+          }
+        },
+        "description": "The browser's answer to a sign-in ceremony: `credential.toJSON()` as text."
+      },
+      "PasskeySummary": {
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "lastUsedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One of the signed-in person's passkeys. `id` is the credential id, base64url."
+      },
       "PendingInvitation": {
         "required": [
           "id",
@@ -21148,6 +21674,18 @@
           }
         },
         "description": "A text of the job that changed since the board's own was written. Both are plain text."
+      },
+      "PreviewBillingPlanChangeRequest": {
+        "required": [
+          "plan"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          }
+        },
+        "description": "The plan to price a switch to, by its key from the plan list."
       },
       "ProblemDetails": {
         "type": "object",
@@ -21853,6 +22391,7 @@
           "salaryCurrency",
           "publishedAt",
           "description",
+          "summary",
           "department",
           "locations",
           "applicantLocationRequirements",
@@ -21910,6 +22449,9 @@
             "format": "date-time"
           },
           "description": {
+            "type": "string"
+          },
+          "summary": {
             "type": "string"
           },
           "department": {
@@ -22823,6 +23365,24 @@
           "StrongYes"
         ],
         "description": "A reviewer's overall recommendation for the stage. Automations test it as `reviewer.recommendation`."
+      },
+      "RegisterPasskeyRequest": {
+        "required": [
+          "credentialJson"
+        ],
+        "type": "object",
+        "properties": {
+          "credentialJson": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The browser's answer to a registration ceremony, and the name to give the passkey (a device, as the person typed it)."
       },
       "RemoveFromTalentPoolRequest": {
         "type": "object",
@@ -25170,9 +25730,15 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest."
+        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest. A blank or missing summary goes back to following the description."
       },
       "UpdateJobWorkflowRequest": {
         "required": [

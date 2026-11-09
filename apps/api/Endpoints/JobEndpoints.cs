@@ -178,7 +178,8 @@ internal static class JobEndpoints
             [.. request.Locations ?? []],
             [.. request.ApplicantLocationRequirements ?? []],
             ToSalary(request.Salary, defaults),
-            request.ValidThrough);
+            request.ValidThrough,
+            JobSummaryText.Normalize(request.Summary));
 
         if (await validator.ProblemsAsync(content, cancellationToken) is { } problems)
         {
@@ -271,7 +272,8 @@ internal static class JobEndpoints
             [.. request.Locations ?? []],
             [.. request.ApplicantLocationRequirements ?? []],
             ToSalary(request.Salary, PostingDefaults.None),
-            request.ValidThrough);
+            request.ValidThrough,
+            JobSummaryText.Normalize(request.Summary));
 
         if (await validator.ProblemsAsync(content, cancellationToken) is { } problems)
         {

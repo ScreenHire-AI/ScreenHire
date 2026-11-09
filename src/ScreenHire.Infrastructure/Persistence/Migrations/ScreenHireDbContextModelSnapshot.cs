@@ -2064,6 +2064,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
 
+                    b.Property<string>("Summary")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("summary");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -4908,6 +4913,30 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Infrastructure.Identity.ApplicationUserPasskey", b =>
+                {
+                    b.Property<byte[]>("CredentialId")
+                        .HasMaxLength(1024)
+                        .HasColumnType("bytea")
+                        .HasColumnName("credential_id");
+
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("CredentialId")
+                        .HasName("pk_user_passkeys");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_user_passkeys_user_id");
+
+                    b.ToTable("user_passkeys", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Infrastructure.Identity.MagicLinkToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5868,6 +5897,59 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ActiveOrganizationId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_users_organizations_active_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Infrastructure.Identity.ApplicationUserPasskey", b =>
+                {
+                    b.HasOne("ScreenHire.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_passkeys_users_user_id");
+
+                    b.OwnsOne("Microsoft.AspNetCore.Identity.IdentityPasskeyData", "Data", b1 =>
+                        {
+                            b1.Property<byte[]>("ApplicationUserPasskeyCredentialId");
+
+                            b1.Property<byte[]>("AttestationObject")
+                                .IsRequired();
+
+                            b1.Property<byte[]>("ClientDataJson")
+                                .IsRequired();
+
+                            b1.Property<DateTimeOffset>("CreatedAt");
+
+                            b1.Property<bool>("IsBackedUp");
+
+                            b1.Property<bool>("IsBackupEligible");
+
+                            b1.Property<bool>("IsUserVerified");
+
+                            b1.Property<string>("Name");
+
+                            b1.Property<byte[]>("PublicKey")
+                                .IsRequired();
+
+                            b1.Property<long>("SignCount");
+
+                            b1.PrimitiveCollection<string>("Transports");
+
+                            b1.HasKey("ApplicationUserPasskeyCredentialId");
+
+                            b1.ToTable("user_passkeys");
+
+                            b1
+                                .ToJson("data")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ApplicationUserPasskeyCredentialId")
+                                .HasConstraintName("fk_user_passkeys_user_passkeys_credential_id");
+                        });
+
+                    b.Navigation("Data")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationNote", b =>

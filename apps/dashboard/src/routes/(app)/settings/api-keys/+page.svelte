@@ -38,6 +38,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
@@ -86,7 +87,12 @@
 
   const meta = createGetMeta();
   const apiOrigin = $derived(meta.data?.data.apiOrigin);
-  const list = $derived(keys.data?.data ?? []);
+  const all = $derived(keys.data?.data ?? []);
+  let search = $state('');
+  const list = $derived.by(() => {
+    const words = search.trim().toLowerCase();
+    return words ? all.filter((key) => key.name.toLowerCase().includes(words)) : all;
+  });
   const access = (scopes: readonly ApiKeyScope[]) => (scopes.includes('Write') ? 'Read and write' : 'Read only');
   // What the Verification read scope opens, in the create dialog (ADR-0021).
   const verificationOpens = 'Opens verification levels, reasons and evidence.';
@@ -183,8 +189,8 @@
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
     title="API keys"
-    count={keys.isSuccess ? list.length : undefined}
-    countLabel={list.length === 1 ? 'key' : 'keys'}
+    count={keys.isSuccess ? all.length : undefined}
+    countLabel={all.length === 1 ? 'key' : 'keys'}
     actions={bandActions}
   />
 
@@ -194,6 +200,10 @@
       <Panel title="Keys"><QueryError message={describeError(keys.error, 'Could not load the API keys')} onretry={() => keys.refetch()} inset /></Panel>
     {:else}
       <Panel title="Keys" flush>
+        {#snippet tools()}
+          <!-- Past about ten, a list has a search, so adding one never changes the layout (S9). -->
+          {#if all.length > 10}<SearchField bind:value={search} label="Search keys" class="ml-auto flex-[0_1_15rem]" />{/if}
+        {/snippet}
         {#if keys.isPending}
           <div aria-hidden="true" class="flex flex-col">
             {#each [0, 1] as row (row)}
@@ -205,7 +215,7 @@
             {/each}
           </div>
           <p class="sr-only" role="status">Loading the API keys…</p>
-        {:else if list.length === 0}
+        {:else if all.length === 0}
           <Empty.Root>
             <Empty.Header>
               <Empty.Media variant="icon"><KeyRoundIcon /></Empty.Media>
@@ -215,6 +225,9 @@
           </Empty.Root>
         {:else}
           <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
+          {#if list.length === 0}
+            <p class="border-b border-border-subtle px-4.5 py-3 text-muted-foreground max-md:px-4">No key matches the search.</p>
+          {/if}
           <ul class="md:hidden">
             {#each sorted as key (key.id)}
               <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">

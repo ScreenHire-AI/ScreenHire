@@ -139,6 +139,77 @@ public sealed class JobsApiTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_job_without_a_written_summary_follows_the_descriptions_first_sentence()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var body = Samples.RemoteJob("Support Engineer");
+        body["description"] = "<h2>About the role</h2><p>Help customers get unstuck. You will work with the product team.</p>";
+
+        var created = await recruiter.CreateJobAsync(body);
+
+        created.Text("summary").Should().Be("Help customers get unstuck.");
+        created.At("summaryFollowsDescription").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task A_written_summary_is_kept_tidied_and_goes_back_to_the_description_when_cleared()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var body = Samples.RemoteJob("Support Engineer");
+        body["summary"] = "  Help customers\nget unstuck,   fast. ";
+        var created = await recruiter.CreateJobAsync(body);
+        created.Text("summary").Should().Be("Help customers get unstuck, fast.");
+        created.At("summaryFollowsDescription").GetBoolean().Should().BeFalse();
+
+        var update = Samples.RemoteJob("Support Engineer");
+        update["summary"] = "Answer the questions our customers ask.";
+        var rewritten = (await recruiter.PutAsync($"/v1/jobs/{created.Id()}", update)).Expect(HttpStatusCode.OK);
+        rewritten.Text("summary").Should().Be("Answer the questions our customers ask.");
+
+        update["summary"] = "   ";
+        var cleared = (await recruiter.PutAsync($"/v1/jobs/{created.Id()}", update)).Expect(HttpStatusCode.OK);
+        cleared.Text("summary").Should().Be("Build and run the things people rely on.");
+        cleared.At("summaryFollowsDescription").GetBoolean().Should().BeTrue("a blank summary goes back to following the description");
+    }
+
+    [Theory]
+    [InlineData(160, HttpStatusCode.OK)]
+    [InlineData(161, HttpStatusCode.BadRequest)]
+    public async Task A_summary_is_at_most_160_characters(int length, HttpStatusCode expected)
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var body = Samples.RemoteJob("Support Engineer");
+        body["summary"] = new string('a', length);
+
+        var result = await recruiter.PostAsync("/v1/jobs", body);
+
+        if (expected == HttpStatusCode.BadRequest)
+        {
+            result.Expect(expected).ProblemKeys().Should().Contain("summary");
+        }
+        else
+        {
+            result.Status.Should().Be(HttpStatusCode.Created);
+        }
+    }
+
+    [Fact]
+    public async Task Changing_the_summary_of_an_open_job_flags_unpublished_changes()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Support Engineer"));
+        await recruiter.PublishJobAsync(job.Id());
+        var update = Samples.RemoteJob("Support Engineer");
+        update["summary"] = "A new line for the card.";
+
+        var updated = (await recruiter.PutAsync($"/v1/jobs/{job.Id()}", update)).Expect(HttpStatusCode.OK);
+
+        updated.At("hasUnpublishedChanges").GetBoolean().Should().BeTrue();
+        var history = (await recruiter.GetAsync($"/v1/jobs/{job.Id()}/history")).Expect(HttpStatusCode.OK);
+        history.Text("entries.0.lines.0.text").Should().Be("set the summary to A new line for the card.");
+    }
+
+    [Fact]
     public async Task Updating_a_draft_to_another_jobs_slug_is_a_validation_error()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();

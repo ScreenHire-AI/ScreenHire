@@ -22,6 +22,15 @@ public sealed class JobContentValidatorTests
         validator.Validate(Content(new JobSalary(null, value, "GBP", SalaryPeriod.Year))).IsValid.Should().Be(valid);
     }
 
-    private static JobSnapshot Content(JobSalary salary) =>
+    [Theory]
+    [InlineData(160, true)]
+    [InlineData(161, false)]
+    public void A_summary_is_at_most_160_characters(int length, bool valid) =>
+        validator.Validate(Content(null) with { Summary = new string('a', length) }).IsValid.Should().Be(valid);
+
+    [Fact]
+    public void A_job_needs_no_summary() => validator.Validate(Content(null) with { Summary = null }).IsValid.Should().BeTrue();
+
+    private static JobSnapshot Content(JobSalary? salary) =>
         new("Data Engineer", "data-engineer", "<p>Build pipelines.</p>", null, EmploymentType.FullTime, WorkplaceType.Remote, [], ["GB"], salary, null);
 }

@@ -106,6 +106,21 @@ public sealed class RecordChangesTests
     }
 
     [Fact]
+    public void A_jobs_summary_is_recorded_when_a_person_writes_changes_or_clears_it()
+    {
+        var job = NewJob();
+        var written = NewJob();
+        written.Revise(written.Snapshot() with { Summary = "Own the payments service." }, Monday);
+        var reworded = NewJob();
+        reworded.Revise(reworded.Snapshot() with { Summary = "Run the payments service." }, Monday);
+
+        Sentences(JobChanges.Describe(job, written)).Should().Equal("set the summary to Own the payments service.");
+        Sentences(JobChanges.Describe(written, reworded)).Should().Equal("changed the summary from Own the payments service. to Run the payments service.");
+        Sentences(JobChanges.Describe(written, job)).Should().Equal("cleared the summary, so it follows the description");
+        Sentences(JobChanges.Describe(job, NewJob())).Should().BeEmpty("a summary that follows the description records nothing of its own");
+    }
+
+    [Fact]
     public void A_formatting_only_edit_says_so_without_a_before_and_after_that_read_the_same()
     {
         var job = NewJob();

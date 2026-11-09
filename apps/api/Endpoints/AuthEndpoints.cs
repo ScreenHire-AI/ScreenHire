@@ -517,7 +517,7 @@ internal static class AuthEndpoints
         exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 
     // Signs in and re-issues the antiforgery token: tokens are bound to the user, so the anonymous one stops working.
-    private static async Task SignInAsync(HttpContext context, SignInManager<ApplicationUser> signIn, ApplicationUser user)
+    internal static async Task SignInAsync(HttpContext context, SignInManager<ApplicationUser> signIn, ApplicationUser user)
     {
         var principal = await signIn.CreateUserPrincipalAsync(user);
         await context.SignInAsync(IdentityConstants.ApplicationScheme, principal, new AuthenticationProperties { IsPersistent = true });
