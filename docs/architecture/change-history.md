@@ -136,7 +136,9 @@ The describers in `src/ScreenHire.Domain/History` are pure functions from the en
   but the text did not (bold, a heading, a list), the line is "changed the formatting of the description" or "of the
   message", with no before and after. A job's short summary makes a line only when a person writes, changes or clears
   it ("set the summary to ...", "cleared the summary, so it follows the description"); while it follows the description
-  its own value is null and the description's line says everything. A time, such as when a posting expires,
+  its own value is null and the description's line says everything.
+  A job's own AI-use policy makes a line the same way ("set AI use for this job to Not allowed", "made AI use follow the
+  organization's policy"), and the organization's policy is on the Verification settings history. A time, such as when a posting expires,
   is an `Instant` detail in ISO 8601, which the browser formats.
 - Bookkeeping makes no line: `updated_at`, workflow and publish counters, the row version.
 
