@@ -212,13 +212,20 @@ brackets.
 
 - Only automated tests and fakes have exercised these so far: real Stripe, SendGrid, calendars, Azure and a claude.ai
   connector, and real Slack and real webhook receivers (the Slack and webhook states are proven against the sandbox
-  workspace and a local receiver); and portal replies, the Billing page and the OAuth consent page by hand. The dashboard
-  is proven in dark mode at 1440 px and at 390 px with a touch screen on every route and tab of one organization, and
-  on its overlays (`DashboardThemeTests`, `DashboardPhoneTests`); what that does not reach is the sign-in pages that need a
-  token (the invitation and OAuth consent pages), the onboarding page, and states a seeded organization never shows.
+  workspace and a local receiver); and portal replies, the Billing page and the OAuth consent page by hand.
+- Dark mode and phone widths are proven for the dashboard's routes, their first tab lists and its overlays, on one organization
+  with a job, three assessed applicants, one of each template, a role, a key, a webhook endpoint and a task, and on a new
+  empty one (`DashboardThemeTests`, `DashboardPhoneTests`, [testing](process/testing.md)). Not reached: the invitation, OAuth
+  consent and onboarding pages (each needs a token or a state the walk does not make); the workflow map with automations
+  drawn between its stages (the walk's job has none); the scorecard roster and its side sheet with scorecards in them (the
+  walk has none); and tabs nested inside a tab. Axe reads text only, so a focus ring, a status icon and a chart colour are
+  proven from the tokens in both themes (`theme-contrast.test.ts`), not on the page.
 - The careers and candidate pages have no dark theme: their dark tokens exist (`--candidate-*` under `.dark`) and
-  nothing applies the class. The candidate input border is about 1.6:1 against its surface in both themes, under the 3:1 that
-  WCAG 1.4.11 asks of a control's edge, and it is a field's only edge on the apply form (`packages/ui/src/questions.css`).
+  nothing applies the class. A control's edge is under the 3:1 that WCAG 1.4.11 asks in both themes: the candidate input
+  border is about 1.6:1 against its surface (`packages/ui/src/questions.css`), where it is the field's only edge, and the
+  dashboard's `input` token is about 1.4:1 on the card in light and dark (the checkbox draws its own edge at 70% of
+  `muted-foreground`). Neither was changed.
+- A phone has no way to list the shortcuts, so the walk skips that dialog there; its Switch is 32 by 18 px on touch.
 - Large lists are proven at 1440 and 390 px up to 26 of each record, 20 webhook endpoints (the limit) and 210 applications
   on one job (`LargeListsTests`). The 26 saved views are checked in the sidebar at 1440 only; the phone's navigation sheet
   that holds them is not opened. The API's list routes still return every row and the dashboard sorts and filters them in

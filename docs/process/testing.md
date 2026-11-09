@@ -308,6 +308,7 @@ run lists every page to fix.
   dialog's controls count. A step that finds the pointer no longer coarse reloads the page first.
 - `theme-contrast.test.ts` (Vitest) computes what axe cannot read from the tokens, in both themes: the focus ring at 3:1,
   status icons at 3:1, status labels at 4.5:1 and the chart colour at 3:1.
+- Each class also walks the list pages of a new, empty organization (`EmptyOrganizationAsync`), which is where the empty states show.
 - `SeparatorTests` measures the shared separator: 1 px high, as wide as its box.
 
 The careers and candidate pages are not in the dark walk: they have no dark theme today ([status](../status.md)).
