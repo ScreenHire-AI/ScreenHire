@@ -62,49 +62,52 @@
     <p class="sr-only" role="status">Loading the AI usage…</p>
   </Panel>
 {:else}
-  <Panel title="AI usage">
-    <div class="flex flex-col gap-4">
-      <p class="max-w-measure text-muted-foreground">Every model call is listed below with the provider's own id, to compare with your provider's dashboard.</p>
-      <SummaryList>
-        <SummaryItem label="Model calls"><span class="tabular-nums">{formatTokens(data.totals.calls)}</span></SummaryItem>
-        <SummaryItem label="Tokens in and out">
-          <span class="tabular-nums">{formatTokens(data.totals.inputTokens)} in, {formatTokens(data.totals.outputTokens)} out</span>
-        </SummaryItem>
-        <SummaryItem label="Cost"><span class="tabular-nums">{formatCost(data.totals.cost)}</span></SummaryItem>
-        {#if data.limits.effectiveBudget}
-          {@const budget = data.limits.effectiveBudget}
-          {@const state = budgetStatus(budget)}
-          <SummaryItem label="Monthly budget">
-            <span class="flex flex-wrap items-center gap-2">
-              <span class="tabular-nums">{limitLine(budget)}</span>
-              <StatusBadge status={state.status} label={state.label} quiet={state.status === 'done'} />
-              {#if !budget.isDefault}<span class="text-muted-foreground">Set by you</span>{/if}
-            </span>
+  <!-- The summary and the limits form keep the form's column; the chart and the tables below take the page's width (S6). -->
+  <div class="flex w-full max-w-form flex-col gap-5">
+    <Panel title="AI usage">
+      <div class="flex flex-col gap-4">
+        <p class="max-w-measure text-muted-foreground">Every model call is listed below with the provider's own id, to compare with your provider's dashboard.</p>
+        <SummaryList>
+          <SummaryItem label="Model calls"><span class="tabular-nums">{formatTokens(data.totals.calls)}</span></SummaryItem>
+          <SummaryItem label="Tokens in and out">
+            <span class="tabular-nums">{formatTokens(data.totals.inputTokens)} in, {formatTokens(data.totals.outputTokens)} out</span>
           </SummaryItem>
+          <SummaryItem label="Cost"><span class="tabular-nums">{formatCost(data.totals.cost)}</span></SummaryItem>
+          {#if data.limits.effectiveBudget}
+            {@const budget = data.limits.effectiveBudget}
+            {@const state = budgetStatus(budget)}
+            <SummaryItem label="Monthly budget">
+              <span class="flex flex-wrap items-center gap-2">
+                <span class="tabular-nums">{limitLine(budget)}</span>
+                <StatusBadge status={state.status} label={state.label} quiet={state.status === 'done'} />
+                {#if !budget.isDefault}<span class="text-muted-foreground">Set by you</span>{/if}
+              </span>
+            </SummaryItem>
+          {/if}
+          {#if data.limits.effectiveCap}
+            {@const cap = data.limits.effectiveCap}
+            {@const state = budgetStatus(cap)}
+            <SummaryItem label="Monthly cap">
+              <span class="flex flex-wrap items-center gap-2">
+                <span class="tabular-nums">{limitLine(cap)}</span>
+                <StatusBadge status={state.status} label={cap.percent >= 100 ? 'Reached, AI checks paused' : state.label} quiet={state.status === 'done'} />
+                {#if !cap.isDefault}<span class="text-muted-foreground">Set by you</span>{/if}
+              </span>
+            </SummaryItem>
+          {/if}
+        </SummaryList>
+        {#if data.totals.callsWithUnknownCost > 0}
+          <p class="text-muted-foreground">
+            {data.totals.callsWithUnknownCost} {data.totals.callsWithUnknownCost === 1 ? 'call has' : 'calls have'} no known cost, so the cost counts them as nothing.
+          </p>
         {/if}
-        {#if data.limits.effectiveCap}
-          {@const cap = data.limits.effectiveCap}
-          {@const state = budgetStatus(cap)}
-          <SummaryItem label="Monthly cap">
-            <span class="flex flex-wrap items-center gap-2">
-              <span class="tabular-nums">{limitLine(cap)}</span>
-              <StatusBadge status={state.status} label={cap.percent >= 100 ? 'Reached, AI checks paused' : state.label} quiet={state.status === 'done'} />
-              {#if !cap.isDefault}<span class="text-muted-foreground">Set by you</span>{/if}
-            </span>
-          </SummaryItem>
-        {/if}
-      </SummaryList>
-      {#if data.totals.callsWithUnknownCost > 0}
-        <p class="text-muted-foreground">
-          {data.totals.callsWithUnknownCost} {data.totals.callsWithUnknownCost === 1 ? 'call has' : 'calls have'} no known cost, so the cost counts them as nothing.
-        </p>
-      {/if}
-    </div>
-  </Panel>
+      </div>
+    </Panel>
 
-  {#if canSetLimits}
-    <Panel title="Monthly limits"><AiUsageLimitsForm limits={data.limits} /></Panel>
-  {/if}
+    {#if canSetLimits}
+      <Panel title="Monthly limits"><AiUsageLimitsForm limits={data.limits} /></Panel>
+    {/if}
+  </div>
 
   {#if dayRows.length > 0}
     <Panel title="Usage by day">
@@ -144,22 +147,23 @@
   </Panel>
 
   <Panel title="Calls" flush>
-    {#snippet tools()}
-      <select class={`${selectClass} w-auto`} bind:value={keySource} aria-label="Filter by key">
+    {#snippet actions()}
+      <Button href={exportUrl} download variant="outline" size="default"><DownloadIcon aria-hidden="true" />Export CSV</Button>
+    {/snippet}
+    <!-- The filters: a row under the header that scrolls inside the panel rather than squeezing the selects (F5). -->
+    <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+      <select class={`${selectClass} w-auto shrink-0`} bind:value={keySource} aria-label="Filter by key">
         <option value="">Any key</option>
         <option value="BuiltIn">{keySourceLabels.BuiltIn}</option>
         <option value="OwnKey">{keySourceLabels.OwnKey}</option>
       </select>
-      <select class={`${selectClass} w-auto`} bind:value={outcome} aria-label="Filter by outcome">
+      <select class={`${selectClass} w-auto shrink-0`} bind:value={outcome} aria-label="Filter by outcome">
         <option value="">Any outcome</option>
         <option value="Ok">{outcomeLabels.Ok}</option>
         <option value="Error">{outcomeLabels.Error}</option>
         <option value="TimedOut">{outcomeLabels.TimedOut}</option>
       </select>
-    {/snippet}
-    {#snippet actions()}
-      <Button href={exportUrl} download variant="outline" size="default"><DownloadIcon aria-hidden="true" />Export CSV</Button>
-    {/snippet}
+    </div>
     <Table.Root>
       <Table.Header>
         <Table.Row>

@@ -94,6 +94,7 @@
   <Field.Field data-invalid={$errors.budget ? true : undefined}>
     <Field.Label for="limit-budget">Monthly budget <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
     <Input id="limit-budget" name="budget" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.budget} aria-invalid={$errors.budget ? 'true' : undefined} />
+    <Field.Description>Empty keeps ScreenHire's default budget for its own key; your own key has none.</Field.Description>
     <Field.Error errors={message($errors.budget)} />
   </Field.Field>
 

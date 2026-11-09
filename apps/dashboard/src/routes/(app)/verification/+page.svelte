@@ -698,12 +698,13 @@
             {/snippet}
           </Panel>
         </form>
-
-        <!-- Usage: for who holds View AI usage (the server sends the limits only to them); only an Owner sets the limits. -->
-        {#if detail.limits}
-          <AiUsagePanel canSetLimits={can(page.data.user, 'ManageBilling')} />
-        {/if}
       {/if}
     </div>
+
+    <!-- Usage: for who holds View AI usage (the server sends the limits only to them); only an Owner sets the limits. Outside the
+         form's column, so its tables use the page's width (S6). -->
+    {#if detail?.limits}
+      <AiUsagePanel canSetLimits={can(page.data.user, 'ManageBilling')} />
+    {/if}
   </div>
 </main>
