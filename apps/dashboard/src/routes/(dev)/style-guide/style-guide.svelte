@@ -653,7 +653,7 @@
       <label class="flex items-center gap-2">
         <span class="text-muted-foreground">Width</span>
         <select
-          class="h-9 rounded-lg border border-input bg-card px-2.5 pointer-coarse:h-11 pointer-coarse:text-reading"
+          class="h-9 rounded-lg border border-field-edge bg-card px-2.5 pointer-coarse:h-11 pointer-coarse:text-reading"
           value={String(width)}
           onchange={(event) => setWidth(Number(event.currentTarget.value))}
         >
