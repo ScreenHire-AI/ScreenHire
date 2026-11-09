@@ -167,7 +167,7 @@ public sealed class BillingPlanChangeTests(AppHostFixture fixture)
         await using var db = await fixture.CreateDbContextAsync(tenant, ct);
         var options = Options.Create(new BillingOptions { Sandbox = new BillingSandboxOptions { Enabled = true } });
         var access = new BillingAccess(
-            options, new StripeBillingProvider(options, new PlanCatalogue(options)), new SandboxBillingProvider(new EphemeralDataProtectionProvider(), TimeProvider.System));
+            options, new StripeBillingProvider(options, new PlanCatalogue(options)), new SandboxBillingProvider(new EphemeralDataProtectionProvider(), TimeProvider.System, options));
         // The open-job counter is only used to read the page and to check a publish, neither of which this calls.
         var service = new BillingService(db, access, new PlanCatalogue(options), null!, options, TimeProvider.System);
         // Later than the checkout's own event, or the account would ignore it as older.

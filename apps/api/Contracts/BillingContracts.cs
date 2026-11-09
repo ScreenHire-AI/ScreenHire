@@ -10,6 +10,7 @@ namespace ScreenHire.Api.Contracts;
 /// <c>nextPaymentAmount</c> are set while a subscription renews, and <c>cancelsAtPeriodEnd</c> says it will not.
 /// <c>openJobs</c> counts the jobs open now and <c>activeJobLimit</c> is the plan's limit, null when it has none.
 /// <c>canManage</c>: the provider has a customer, so the payment portal can open. <c>sandbox</c>: the local fake, not Stripe.
+/// <c>taxAtCheckout</c>: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".
 /// </summary>
 public sealed record BillingOverview(
     bool Available,
@@ -23,6 +24,7 @@ public sealed record BillingOverview(
     int OpenJobs,
     int? ActiveJobLimit,
     bool CanManage,
+    bool TaxAtCheckout,
     IReadOnlyList<BillingPlan> Plans);
 
 /// <summary>

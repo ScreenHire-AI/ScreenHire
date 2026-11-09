@@ -73,7 +73,38 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             form.Add(new("customer_email", request.CustomerEmail));
         }
 
+        AddTax(form, hasCustomer: !string.IsNullOrEmpty(request.CustomerId));
         return await SessionUrlAsync("checkout/sessions", form, cancellationToken);
+    }
+
+    // Stripe Tax at Checkout (https://docs.stripe.com/tax/checkout/page, /tax/checkout/tax-ids). Tax needs the customer's
+    // location, so the billing address is always collected. A session for a Stripe customer that already exists does not save
+    // what the page collected unless told to: customer_update[address] keeps the tax on the address just entered, and
+    // customer_update[name] stores the business name that goes with a tax id. A new customer (customer_email) is created by
+    // Checkout in subscription mode and keeps both. The prices stay tax-exclusive: that is tax_behavior on the Stripe price,
+    // which the owner sets (docs/architecture/billing.md, Owner actions), not something this request can say.
+    private void AddTax(List<KeyValuePair<string, string>> form, bool hasCustomer)
+    {
+        if (!options.Stripe.Tax.Enabled)
+        {
+            return;
+        }
+
+        form.Add(new("automatic_tax[enabled]", "true"));
+        form.Add(new("billing_address_collection", "required"));
+        if (hasCustomer)
+        {
+            form.Add(new("customer_update[address]", "auto"));
+        }
+
+        if (options.CollectTaxIds)
+        {
+            form.Add(new("tax_id_collection[enabled]", "true"));
+            if (hasCustomer)
+            {
+                form.Add(new("customer_update[name]", "auto"));
+            }
+        }
     }
 
     public async Task<Uri> CreatePortalAsync(PortalRequest request, CancellationToken cancellationToken)

@@ -45,6 +45,7 @@ const trial: BillingOverview = {
   openJobs: 3,
   activeJobLimit: 25,
   canManage: false,
+  taxAtCheckout: false,
   plans: [starter, growth, unlimited],
 };
 const active: BillingOverview = {
@@ -125,6 +126,18 @@ describe('billing page', () => {
     expect(within(plans()).getByText('$99 a month')).toBeInTheDocument();
     expect(within(plans()).getByText('Price not set')).toBeInTheDocument();
     expect(within(plans()).getByText('Unlimited open jobs')).toBeInTheDocument();
+    expect(within(plans()).queryByText(/plus tax/)).not.toBeInTheDocument();
+    await expectNoAxeViolations();
+  });
+
+  it('says "plus tax where it applies" beside each price when Checkout adds tax, and not beside a price that is not set', async () => {
+    renderPage({ ...trial, taxAtCheckout: true });
+
+    await screen.findByText('Free trial');
+    expect(within(plans()).getByText('$49 a month plus tax where it applies')).toBeInTheDocument();
+    expect(within(plans()).getByText('$99 a month plus tax where it applies')).toBeInTheDocument();
+    expect(within(plans()).getByText('Price not set')).toBeInTheDocument();
+    expect(within(plans()).getAllByText(/plus tax where it applies/)).toHaveLength(2);
     await expectNoAxeViolations();
   });
 
@@ -313,6 +326,15 @@ describe('billing page', () => {
     renderPage();
 
     expect(await screen.findByText(sentence)).toBeInTheDocument();
+    await waitFor(() => expect(navigation.goto).toHaveBeenCalledOnce());
+    expect(String(navigation.goto.mock.calls[0]?.[0])).toBe('http://dashboard.test/settings/billing');
+  });
+
+  it("takes the sandbox Checkout's tax markers out of the address with the outcome", async () => {
+    location.url = new URL('http://dashboard.test/settings/billing?checkout=success&tax=requested&taxId=requested');
+    renderPage();
+
+    expect(await screen.findByText('Checkout finished. This page updates when the payment is confirmed.')).toBeInTheDocument();
     await waitFor(() => expect(navigation.goto).toHaveBeenCalledOnce());
     expect(String(navigation.goto.mock.calls[0]?.[0])).toBe('http://dashboard.test/settings/billing');
   });

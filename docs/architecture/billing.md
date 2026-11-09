@@ -50,6 +50,8 @@ out the same way everywhere:
 | `Stripe:Enabled` | off | AppHost only. When true the AppHost asks for the two parameters below; it never reaches the API |
 | `stripe-secret-key` parameter | none | Becomes `SecretKey`. |
 | `stripe-webhook-secret` parameter | none | Becomes `WebhookSecret`, the signing secret of the Stripe webhook endpoint |
+| `Stripe:Tax:Enabled` | off | Checkout calculates tax with Stripe Tax and collects the billing address it needs. Off until the owner has registered in Stripe Tax, because Stripe collects tax only where a registration exists (see Tax below) |
+| `Stripe:Tax:CollectTaxIds` | on, with tax on | Checkout also asks a business for its tax id. Does nothing while `Stripe:Tax:Enabled` is off. Unlike `Stripe:Enabled`, both `Stripe:Tax:*` settings reach the API |
 | `Sandbox:Enabled` | off | The local fake. On in `pnpm dev` (`appsettings.Development.json`) and in the test stacks |
 | `Trial:Days` | `packages/plans/trial.json` (14) | The length of a new organization's trial, 0 or more. The marketing site reads the file to say how long the trial is, so a host that overrides this changes the file too |
 | `Trial:Plan` | `packages/plans/trial.json` (`growth`) | The plan whose limit applies during the trial. With billing on, a key the catalogue does not have stops the host at start (`BillingTrialGate`), as a negative `Trial:Days` does, because neither would show up any other way |
@@ -189,6 +191,46 @@ days left in the month that ends at the account's period end, over the days in i
 The sandbox never renews, so a period end in the past rolls on by whole months to the next one still to come.
 It has no webhook, so after `ChangePlanAsync` (which calls nothing) the route records the new plan itself, as its checkout page does.
 
+## Tax
+
+Prices in `plans.json` are tax-exclusive. With `Stripe:Tax:Enabled` on, `StripeBillingProvider` adds to the Checkout form
+(names checked against Stripe's documentation on 2026-11-08):
+
+| Field | When | Why |
+|---|---|---|
+| `automatic_tax[enabled]=true` | tax on | Stripe calculates the tax for the customer's location |
+| `billing_address_collection=required` | tax on | The location comes from the billing address, so Checkout always asks for it |
+| `customer_update[address]=auto` | tax on, and the organization already has a Stripe customer | Stripe refuses to use an address it was not told to save onto an existing customer |
+| `tax_id_collection[enabled]=true` | tax on and `CollectTaxIds` | Checkout asks a business for its tax id. A tax id Stripe can check lets Stripe Tax apply the reverse charge or a zero rate |
+| `customer_update[name]=auto` | as above, with an existing customer | Saves the business name that goes with the tax id |
+
+A first Checkout passes `customer_email`, so Checkout creates the customer and keeps the address, name and tax id with no
+`customer_update`. With tax off none of these fields is sent, and `CollectTaxIds` alone sends nothing.
+
+The portal takes no tax parameter. What a customer may change there (billing address, which is on by default, and tax id,
+which is off by default) is part of the portal configuration in the Stripe Dashboard, so it is an owner action below.
+
+The sandbox's Checkout records the same request: its state carries `TaxRequested` and `TaxIdsRequested`, and the page adds
+`tax=requested` and `taxId=requested` to the address it sends the browser back to, so a test can see what a real Checkout
+would have asked. The Billing page takes both out of its address with `checkout`, so a reload does not keep them. The overview's `taxAtCheckout` is the setting, and the Billing page says "plus tax where it applies"
+beside each price while it is true. The marketing pricing page says the same in its questions, unconditionally, because the
+site is static and the owner turns tax on before launch.
+
+### Owner actions for tax
+
+Billing code cannot do these, and tax stays off until they are done:
+
+1. Add each Stripe Tax registration (Dashboard, Tax, Registrations), after confirming with an accountant where one is
+   needed ([status](../status.md#owner-actions), [billing providers](../research/billing-providers.md)). Stripe collects
+   tax only in a jurisdiction with an active registration.
+2. Complete Stripe Tax's settings (head office address, default tax code for software as a service) and give each Stripe
+   price `tax_behavior=exclusive` when creating it. A price's tax behavior cannot be changed afterwards, and a price with
+   none takes the Tax setting's default, so set it on the price. `exclusive` matches `plans.json`, whose prices exclude tax.
+3. In the customer portal configuration, turn on Billing address and Tax ID (Customer information), so a customer can
+   change both after Checkout.
+4. Set `ScreenHire:Billing:Stripe:Tax:Enabled=true` where the API runs, and `CollectTaxIds=false` if the business does not
+   want tax ids.
+
 ## Webhooks
 
 `POST /v1/webhooks/stripe` is anonymous, not in the generated client and not in the API's description. Its checks, in order:
@@ -282,9 +324,10 @@ owner.
 | `EntitlementTests` (unit) | the trial's last moment, a subscription deciding the state, the plan in force, the publish decision for each state and limit, a trial that ran out told apart from a subscription that ended, an event applying only what it carries and an older one changing nothing |
 | `BillingProblemsTests` (unit) | the 402 problems: type, title and a detail that names the numbers, the singular, that open jobs stay open, and a trial that ran out never mentioning a subscription |
 | `StripeSignatureTests` (unit) | a good signature, another secret, a changed body or timestamp, the five-minute window both ways, a malformed header without throwing, several `v1` values |
-| `StripeBillingProviderTests` (unit) | the Checkout and portal requests against a stub handler (fields, metadata, key, pinned version, customer reuse), the plan change's lookup, preview and update requests (the plan's item among others, the date, `always_invoice`, the idempotency key) and a preview read into amounts (prorations as due now, a downgrade at 0, a zero-decimal and a three-decimal currency, a missing next payment), refusals and network failures without the key, each event type read into the common event, a period end from the subscription or its first item, and a plan from the price, ahead of the metadata |
-| `SandboxBillingProviderTests` (unit) | the sandbox's links and state: what it names, its lifetime, a tampered, foreign or oversize state not reading, and no webhook; and its day-based proration (mid-period, first and last day, a downgrade, no known period end, a period end that has passed) |
-| `BillingTests` (integration) | the Owner's overview, the trial at sign-up and for an older organization, Checkout and the portal through the sandbox, who may use them, and billing off |
+| `StripeBillingProviderTests` (unit) | the Checkout and portal requests against a stub handler (fields, metadata, key, pinned version, customer reuse), the tax fields with tax off, on, on for an existing customer and on with tax ids off, the plan change's lookup, preview and update requests (the plan's item among others, the date, `always_invoice`, the idempotency key) and a preview read into amounts (prorations as due now, a downgrade at 0, a zero-decimal and a three-decimal currency, a missing next payment), refusals and network failures without the key, each event type read into the common event, a period end from the subscription or its first item, and a plan from the price, ahead of the metadata |
+| `SandboxBillingProviderTests` (unit) | the sandbox's links and state: what it names, whether tax and a tax id were asked for, its lifetime, a tampered, foreign or oversize state not reading, and no webhook; and its day-based proration (mid-period, first and last day, a downgrade, no known period end, a period end that has passed) |
+| `BillingTests` (integration) | the Owner's overview, the trial at sign-up and for an older organization, Checkout and the portal through the sandbox (asking for no tax on the shared stack), who may use them, and billing off |
+| `BillingTaxTests` (integration) | on a stack of its own with `Stripe:Tax:Enabled`, the overview's `taxAtCheckout` and the sandbox Checkout asking for tax and a tax id |
 | `BillingPlanChangeTests` (integration) | the preview and the change through the sandbox: an upgrade's amounts bounded by the shipped prices, a downgrade owing nothing, a confirmation switching the plan and no other organization's, a stale or future `prorationDate` refused, a trial, an ended organization or a subscription set to end a 409, an unknown or current plan a 400 on `plan`, and Admins and Recruiters a 403 |
 | `BillingPlanLimitTests` (integration) | the 402 at the limit and when ended, open jobs left open, republish and close not counted, the whole organization counted for a member on "only jobs they're on", and no limit when billing is off |
 | `BillingPublishCheckTests` (integration) | the job being published is not counted, so a double submit is not refused for taking its own place, and a different draft still is |
@@ -300,7 +343,7 @@ The test stacks pin nothing: they sell the plans in `plans.json`, and a test tha
 ## Not built
 
 - Reminders before the trial ends, by email or in the app.
-- Tax: Stripe Tax and the collection of tax ids are not set up (an owner action; see [billing providers](../research/billing-providers.md) for what Stripe Tax does and does not do).
+- Tax filing and registration. Checkout calculates tax and collects tax ids (see Tax), but registering with Stripe Tax and filing returns are the owner's ([billing providers](../research/billing-providers.md) says what Stripe Tax does and does not do). The overview and the Billing page show prices without tax, with the words "plus tax where it applies", and never the tax Stripe charged.
 - A list of invoices or receipts; Stripe's portal has them.
 - Amounts read from Stripe except in a plan change's preview. The rest of the page shows the catalogue's price and Stripe
   charges its own.
