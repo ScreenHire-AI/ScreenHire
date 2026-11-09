@@ -135,11 +135,22 @@ public sealed class SandboxBillingProviderTests
     {
         var first = await Preview(Starter(), Growth(), new DateTimeOffset(2100, 1, 1, 0, 0, 0, TimeSpan.Zero));
         var last = await Preview(Starter(), Growth(), new DateTimeOffset(2100, 1, 31, 23, 0, 0, TimeSpan.Zero));
-        var after = await Preview(Starter(), Growth(), new DateTimeOffset(2100, 2, 1, 0, 0, 0, TimeSpan.Zero));
 
         first.AmountDueNow.Should().Be(70m);
         last.AmountDueNow.Should().Be(2.26m);
-        after.AmountDueNow.Should().Be(0m, "no days are left to charge for");
+    }
+
+    [Fact]
+    public async Task A_period_end_that_has_passed_rolls_on_by_whole_months_so_the_next_payment_is_never_in_the_past()
+    {
+        var atTheEnd = await Preview(Starter(), Growth(), PeriodEnd);
+        var twoMonthsOn = await Preview(Starter(), Growth(), new DateTimeOffset(2100, 3, 17, 9, 0, 0, TimeSpan.Zero));
+
+        atTheEnd.NextPaymentAt.Should().Be(new DateTimeOffset(2100, 3, 1, 0, 0, 0, TimeSpan.Zero), "the next period has begun");
+        atTheEnd.AmountDueNow.Should().Be(70m, "all of the new period is left");
+        twoMonthsOn.NextPaymentAt.Should().Be(new DateTimeOffset(2100, 4, 1, 0, 0, 0, TimeSpan.Zero));
+        // (99 - 29) x 15 days left of 31 (17 March to 1 April), to the cent.
+        twoMonthsOn.AmountDueNow.Should().Be(33.87m);
     }
 
     [Fact]

@@ -373,6 +373,18 @@ public sealed class StripeBillingProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task A_three_decimal_currency_is_divided_by_a_thousand()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
+        stripe.Answer(PreviewJson("kwd", Line(3500, true, ProrationDate.ToUnixTimeSeconds()), Line(14900, false, NextPeriodStart)));
+
+        var preview = await Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        preview.AmountDueNow.Should().Be(3.5m);
+        preview.NextPaymentAmount.Should().Be(14.9m);
+    }
+
+    [Fact]
     public async Task A_declined_plan_change_is_an_exception_that_names_no_key()
     {
         stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));

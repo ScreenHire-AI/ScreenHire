@@ -1,6 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Options;
+using ScreenHire.Application.Billing;
 using ScreenHire.Domain.Billing;
+using ScreenHire.Infrastructure.Tenancy;
 
 namespace ScreenHire.IntegrationTests.Billing;
 
@@ -54,7 +58,9 @@ public sealed class BillingPlanChangeTests(AppHostFixture fixture)
     public async Task Confirming_with_the_previews_date_switches_the_plan_and_the_page_shows_it()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var bystander = await fixture.SignedInWithOrganizationAsync();
         await fixture.SubscribeAsync(owner, "starter");
+        await fixture.SubscribeAsync(bystander, "starter");
         var preview = (await owner.PostAsync(Preview, Plan("growth"))).Expect(HttpStatusCode.OK);
 
         (await owner.PostAsync(Change, new JsonObject { ["plan"] = "growth", ["prorationDate"] = preview.Text("prorationDate") })).Expect(HttpStatusCode.NoContent);
@@ -64,6 +70,7 @@ public sealed class BillingPlanChangeTests(AppHostFixture fixture)
         billing.Text("currentPlan.key").Should().Be("growth");
         billing.At("activeJobLimit").GetInt32().Should().Be(ShippedPlans.Growth.RequiredLimit);
         billing.At("nextPaymentAmount").GetDecimal().Should().Be(ShippedPlans.Growth.MonthlyPrice);
+        (await bystander.BillingAsync()).Text("currentPlan.key").Should().Be("starter", "only the owner's own organization changes");
     }
 
     [Fact]
@@ -103,6 +110,22 @@ public sealed class BillingPlanChangeTests(AppHostFixture fixture)
         (await owner.PostAsync(Preview, Plan("starter"))).Expect(HttpStatusCode.Conflict).Text("detail").Should().Contain("no subscription to change");
     }
 
+    [Fact]
+    public async Task A_subscription_set_to_end_is_a_conflict_that_points_to_manage_billing_and_stays_as_it_is()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await fixture.SubscribeAsync(owner, "starter");
+        // The sandbox's portal cancels at once, so the provider's "cancel at period end" arrives as Stripe's webhook would.
+        await SetToEndAsync(owner.OrganizationId);
+        (await owner.BillingAsync()).At("cancelsAtPeriodEnd").GetBoolean().Should().BeTrue("the event was applied");
+
+        var preview = (await owner.PostAsync(Preview, Plan("growth"))).Expect(HttpStatusCode.Conflict);
+        (await owner.PostAsync(Change, new JsonObject { ["plan"] = "growth", ["prorationDate"] = DateTimeOffset.UtcNow.ToString("O") })).Expect(HttpStatusCode.Conflict);
+
+        preview.Text("detail").Should().Contain("set to end").And.Contain("Manage billing");
+        (await owner.BillingAsync()).Text("currentPlan.key").Should().Be("starter");
+    }
+
     [Theory]
     [InlineData("platinum")]
     [InlineData("")]
@@ -133,5 +156,24 @@ public sealed class BillingPlanChangeTests(AppHostFixture fixture)
         }
 
         (await owner.BillingAsync()).Text("currentPlan.key").Should().Be("starter");
+    }
+
+    /// <summary>Applies the provider's "cancels at period end" to the organization through <see cref="BillingService"/>, as the webhook's route does.</summary>
+    private async Task SetToEndAsync(Guid organization)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var tenant = new TenantContext();
+        tenant.SetPublicOrganization(organization);
+        await using var db = await fixture.CreateDbContextAsync(tenant, ct);
+        var options = Options.Create(new BillingOptions { Sandbox = new BillingSandboxOptions { Enabled = true } });
+        var access = new BillingAccess(
+            options, new StripeBillingProvider(options, new PlanCatalogue(options)), new SandboxBillingProvider(new EphemeralDataProtectionProvider(), TimeProvider.System));
+        // The open-job counter is only used to read the page and to check a publish, neither of which this calls.
+        var service = new BillingService(db, access, new PlanCatalogue(options), null!, options, TimeProvider.System);
+        // Later than the checkout's own event, or the account would ignore it as older.
+        var setToEnd = new BillingProviderEvent($"evt_{Guid.CreateVersion7():N}", DateTimeOffset.UtcNow.AddMinutes(1), organization, null, null, null, null, null, true);
+
+        (await service.ApplyAsync(setToEnd, organization, ct)).Should().BeTrue();
+        await db.SaveChangesAsync(ct);
     }
 }
