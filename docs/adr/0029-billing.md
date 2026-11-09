@@ -11,6 +11,7 @@ tags: [adr, billing, stripe, plans, trial]
 - **Builds on:** ADR-0008 (licence policy and the package list), ADR-0011 (an API key reaches only the hiring API),
   ADR-0014 (permissions), ADR-0021 (the Owner-only grant, which Manage billing follows)
 - **Detail:** `docs/architecture/billing.md`
+- **Research:** `docs/research/billing-providers.md` (vendor fees and tax duties read on 2026-11-08)
 
 ## Context
 
@@ -100,7 +101,8 @@ about payment may reach it. A payment problem must not lock a team out of candid
   not at an upgrade we did not choose.
 - A cancelled subscription keeps working until Stripe says the period ended; the account follows Stripe's events,
   not the calendar.
-- Taxes, invoices and proration are Stripe's. We show none of them (`docs/architecture/billing.md`, Not built).
+- Invoices and proration are Stripe's, and we show none of them (`docs/architecture/billing.md`, Not built). Tax on our
+  own charges is our duty as merchant of record, with Stripe Tax as the tool (see the alternatives below).
 - Nothing about verification changes. A level is evidence for a person to review and never a reason to reject
   (ADR-0004), and a plan limit is not a verification signal.
 
@@ -119,3 +121,23 @@ about payment may reach it. A payment problem must not lock a team out of candid
 - **A lookup table from Stripe customer id to organization.** The webhook could find its organization from the customer
   id. The metadata Checkout carries is signed by the same webhook secret and needs no table to keep in step, and an event
   that arrives before our row exists (a Checkout that completes first) still names its organization.
+- **Another billing platform or a merchant of record (2026-11-09 review).** The owner asked whether Stripe is the right
+  platform. `docs/research/billing-providers.md` read each vendor's own pages on 2026-11-08. At the working prices a month
+  costs 3.7 to 4.0% of the price on Stripe Payments plus Billing (2.9% + 30 cents and 0.7%), 5.2 to 5.6% on Paddle
+  (5% + 50 cents, merchant of record) and 7.2 to 7.5% on Stripe Managed Payments (Stripe's fees plus 3.5%, Stripe as
+  merchant of record). Lemon Squeezy lists Paddle's fee and is being folded into Managed Payments. Azure Marketplace takes
+  3% and moves US sales tax to Microsoft, but only for customers who buy through Microsoft, so it is a second channel and
+  not a replacement. Stripe stays, because it is the cheapest way to charge a card, the integration exists, and the
+  merchant-of-record products add 1.5 to 3.5 points for a duty that Stripe Tax covers from $90 a month.
+- **Stripe Tax is two products.** Tax Basic (0.5% per transaction where
+  registered) calculates and collects tax. It does not register the seller or file returns. Tax Complete (from $90 a
+  month) adds registration help and filing, and Stripe files US returns through TaxJar from the seller's own US bank
+  account. The tax work therefore stays with ScreenHire's owner: register where the owner's accountant says, add each
+  registration to Stripe, and choose how to file. The task that builds Stripe Tax and tax ids at checkout turns on
+  automatic tax and tax id collection, and the registrations decide where it collects.
+- **Stripe Managed Payments as the fallback.** It was out of preview on 2026-04-29 per Stripe's own recap, works with the
+  Checkout and portal calls the provider already makes, and takes registration, filing and remittance in 80+ countries off
+  the seller for 3.5% more. Below about $2,600 of monthly revenue that is cheaper than the cheapest Tax Complete plan, and
+  above it Tax Complete is cheaper. It also changes what customers see (receipts and card statements come from Link) and
+  Stripe's eligibility review applies. If tax administration becomes a burden, switching is a Checkout setting, not a new
+  vendor, and `IBillingProvider` does not change. Nothing here builds that switch.
