@@ -12,13 +12,16 @@ import { aiMarginPercent } from '@screenhire/plans';
  * packages/plans/ai.json that the product reads too (docs/architecture/billing.md, "AI usage"). With the customer's own AI key
  * ScreenHire charges nothing for it. Never say the AI is free, and never retype the margin: it comes from the catalogue.
  */
+const billed = `Use of our AI key is billed at the provider's price plus ${aiMarginPercent}%.`;
+const ownKey = 'Bring your own AI key and we charge nothing for it.';
+
 export const aiCost = {
   /** The margin as a whole percentage, from the catalogue. */
   marginPercent: aiMarginPercent,
-  billed: `Use of our AI key is billed at the provider's price plus ${aiMarginPercent}%.`,
-  ownKey: 'Bring your own AI key and we charge nothing for it.',
+  billed,
+  ownKey,
   /** Both sentences, for a place with room for them. */
-  both: `Use of our AI key is billed at the provider's price plus ${aiMarginPercent}%. Bring your own AI key and we charge nothing for it.`,
+  both: `${billed} ${ownKey}`,
 };
 
 export interface Source {

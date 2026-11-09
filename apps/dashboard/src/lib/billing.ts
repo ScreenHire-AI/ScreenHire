@@ -48,11 +48,14 @@ export const aiCallsText = (calls: number) => `${calls} AI ${calls === 1 ? 'call
 
 /**
  * What else the AI usage panel says, one sentence each, depending on where the organization stands (docs/architecture/billing.md,
- * "AI usage"): how the trial treats its use, a provider that cannot bill it yet, and calls nothing could price.
+ * "AI usage"): a provider that cannot bill it yet (before the trial's wording, which would promise an invoice line that never
+ * comes), how the trial treats its use, checks that ran on the organization's own key, and calls nothing could price.
  */
 export function aiUsageNotes(usage: BillingAiUsage, state: BillingState | null): string[] {
   const notes: string[] = [];
-  if (state === 'Trialing') {
+  if (!usage.metered) {
+    notes.push('Billing for AI use is not set up here yet.');
+  } else if (state === 'Trialing') {
     notes.push(
       usage.trialAllowance > 0
         ? `Your trial includes ${formatCost(usage.trialAllowance)} of AI use. Use above that is added to your first invoice.`
@@ -60,10 +63,13 @@ export function aiUsageNotes(usage: BillingAiUsage, state: BillingState | null):
     );
   } else if (state === 'Ended') {
     notes.push('AI use is billed once you choose a plan.');
-  } else if (!usage.metered) {
-    notes.push('Billing for AI use is not set up here yet.');
   } else if (usage.trialAllowanceUsed > 0) {
     notes.push(`Your trial covered ${formatCost(usage.trialAllowanceUsed)} of AI use.`);
+  }
+
+  if (usage.ownKeyCalls > 0) {
+    const n = usage.ownKeyCalls;
+    notes.push(`${n} ${n === 1 ? 'call' : 'calls'} ran on your own key, so ScreenHire charges nothing for ${n === 1 ? 'it' : 'them'}.`);
   }
 
   if (usage.callsWithUnknownCost > 0) {

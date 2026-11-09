@@ -726,7 +726,7 @@ internal sealed partial class DevelopmentDemo(
     {
         await using var scope = scopes.CreateAsyncScope();
         if (await BeginAsync(scope, cancellationToken) is not { } step
-            || scope.ServiceProvider.GetRequiredService<BillingService>().NewTrial(step.OrganizationId) is not { } account)
+            || scope.ServiceProvider.GetRequiredService<BillingService>().NewTrial(step.OrganizationId) is null)
         {
             return;
         }
@@ -737,6 +737,11 @@ internal sealed partial class DevelopmentDemo(
             return;
         }
 
+        // The trial ended the day before the demo starts, so Brightwater's AI use (SeedAiUsageAsync and the worker's own checks) is
+        // past the trial and billed in full: the worker's 15-minute report sends it to the sandbox meter rather than waiving it under
+        // the trial's allowance. No TrialStarted is published, so no reminders are scheduled for it.
+        var trialDays = scope.ServiceProvider.GetRequiredService<IOptions<BillingOptions>>().Value.Trial.Days;
+        var account = BillingAccount.StartTrial(step.OrganizationId, step.Now.AddDays(-trialDays - 1), trialDays);
         account.Apply(step.Now, "cus_sandbox_demo", "sub_sandbox_demo", "unlimited", SubscriptionStatus.Active, step.Now.AddMonths(1), false, step.Now);
         db.BillingAccounts.Add(account);
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);

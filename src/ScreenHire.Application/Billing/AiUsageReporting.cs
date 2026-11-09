@@ -50,8 +50,10 @@ public static class ReportAiUsageHandler
 public static partial class ReportOrganizationAiUsageHandler
 {
     /// <summary>
-    /// How far back a call is still reported. Stripe takes events up to 35 days old, so a call older than 34 days is left alone
-    /// rather than sent to be refused every run.
+    /// How far back a call is still billed. A call that started longer ago and was never settled (an organization that chose a plan
+    /// weeks after its trial ended) is never reported or settled: a first invoice does not reach back past about one billing period,
+    /// and the query stays bounded. The meter event is stamped with the time of the report, not of the call, so this is a choice,
+    /// not Stripe's 35-day limit.
     /// </summary>
     public static readonly TimeSpan ReportWindow = TimeSpan.FromDays(34);
 

@@ -192,7 +192,7 @@
               <SummaryList>
                 <SummaryItem label="This month">{aiCallsText(usage.builtInCalls)}</SummaryItem>
                 <SummaryItem label="Provider's price"><span class="tabular-nums">{formatCost(usage.providerCost)}</span></SummaryItem>
-                <SummaryItem label="You pay"><span class="tabular-nums">{formatCost(usage.charge)}</span></SummaryItem>
+                <SummaryItem label="Cost so far"><span class="tabular-nums">{formatCost(usage.charge)}</span></SummaryItem>
               </SummaryList>
               {#each aiUsageNotes(usage, standing) as note (note)}
                 <p class="max-w-measure text-muted-foreground">{note}</p>

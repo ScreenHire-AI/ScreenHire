@@ -155,7 +155,7 @@ describe('billing page', () => {
       expect(within(panel()).getByText("AI checks on ScreenHire's key are billed at the provider's price plus 20%.")).toBeInTheDocument();
       expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('41 AI calls');
       expect(within(panel()).getByText("Provider's price", { selector: 'dt' }).nextElementSibling).toHaveTextContent('$3.12');
-      expect(within(panel()).getByText('You pay', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$3.744');
+      expect(within(panel()).getByText('Cost so far', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$3.744');
       await expectNoAxeViolations();
     });
 
@@ -217,6 +217,21 @@ describe('billing page', () => {
       expect(within(panel()).getByText('Billing for AI use is not set up here yet.')).toBeInTheDocument();
     });
 
+    it('promises a trial no invoice line when the payment provider has no metered price', async () => {
+      renderPage({ ...trial, aiUsage: { ...aiUsage, metered: false } });
+
+      await screen.findByText('Free trial');
+      expect(within(panel()).getByText('Billing for AI use is not set up here yet.')).toBeInTheDocument();
+      expect(within(panel()).queryByText(/first invoice/)).toBeNull();
+    });
+
+    it('says calls on the organization\'s own key are not charged', async () => {
+      renderPage({ ...active, aiUsage: { ...aiUsage, ownKeyCalls: 3 } });
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText('3 calls ran on your own key, so ScreenHire charges nothing for them.')).toBeInTheDocument();
+    });
+
     it('counts a call nothing could price and says it is not charged', async () => {
       renderPage({ ...active, aiUsage: { ...aiUsage, callsWithUnknownCost: 2 } });
 
@@ -229,7 +244,7 @@ describe('billing page', () => {
 
       await screen.findByText('Active');
       expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('0 AI calls');
-      expect(within(panel()).getByText('You pay', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$0.00');
+      expect(within(panel()).getByText('Cost so far', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$0.00');
     });
 
     it('says "call" in the singular for one', async () => {
