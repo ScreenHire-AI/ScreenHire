@@ -192,7 +192,9 @@
               <Table.Row class="h-10">
                 {#each shown as column, index (column.id)}
                   {#if index === 0}
-                    <Table.Cell class="w-full max-w-0 min-w-40 font-semibold">
+                    <!-- The name takes two fifths and the numbers share the rest, so on a wide panel the figures spread
+                         across the row instead of packing at its right edge behind a long empty gap. -->
+                    <Table.Cell class="w-2/5 max-w-0 min-w-40 font-semibold">
                       {#if column.href}
                         <a href={column.href(row)} class="inline-flex min-h-6 max-w-full min-w-0 items-center text-primary underline underline-offset-2 pointer-coarse:min-h-11"
                           ><TruncatedText text={column.text(row)} /></a

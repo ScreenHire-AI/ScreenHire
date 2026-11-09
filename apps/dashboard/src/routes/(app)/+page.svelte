@@ -233,7 +233,7 @@
       <!-- The status filter: one line that scrolls inside the panel rather than wrapping (F5). On a phone the Sort chip
            stays in view beside it, since list items have no headers (L2). -->
       <div class="flex items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-        <div class="min-w-0 flex-1 overflow-x-auto">
+        <div class="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]">
           <div role="group" aria-label="Status" class="flex w-max gap-1">
             <!-- All's count is the header's (W4). -->
             <Toggle size="lg" bind:pressed={() => statusFilter === null, () => chooseStatus(null)}>All</Toggle>

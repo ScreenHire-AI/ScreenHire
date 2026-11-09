@@ -407,7 +407,7 @@
             </ChartPanel>
           </div>
 
-          <div class="grid items-start gap-4 @5xl:grid-cols-2">
+          <div class="grid gap-4 @5xl:grid-cols-2">
             <ChartPanel
               title="Time to hire"
               basis="Median days hires spent in each stage, and from applying to being hired by job, for hires made in these dates."

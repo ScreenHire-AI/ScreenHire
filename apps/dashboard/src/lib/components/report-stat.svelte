@@ -11,8 +11,8 @@
 
   // A headline number on the Reports page (design system section 11, Report stat): shadcn's Card, packed close. The title
   // is a muted one-line label with its small icon, and the value in the UI typeface (`metric`) is the one thing to read;
-  // the change from the previous period is a small pill and the optional share a muted line, both on the value's own
-  // baseline so a tile is two rows, not four. They wrap under the value when the tile is too narrow for them. The pill is
+  // the change from the previous period is a small pill on the value's own baseline, and the optional share a muted line
+  // under it. The pill wraps under the value when the tile is too narrow for both. The pill is
   // grey, never a status colour: a report states how far a number moved and leaves it to the person to say whether that is
   // good (T1 keeps status colours for statuses). Its sentence is in the tooltip and for screen readers. No sparkline, no
   // link. The title is the card's whole label, so it wraps rather than cuts. `Card.Header` is the container these sizes
