@@ -50,9 +50,10 @@ describe('jobs page', () => {
 
     expect((await dataRows()).map(cellTexts)).toEqual([
       // A draft was never published: the cell is blank, with its words for screen readers only (L1).
-      // Nobody in play is blank too, and so is a count that never arrived (nothing here answers the applications request).
-      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', 'No candidates', 'Not published', 'Oct 19, 2026', ''],
-      ['Open', 'Senior .NET Engineer', 'Remote (GB, IE)', 'Full-time', 'No candidates', 'Oct 18, 2026', 'Oct 18, 2026', ''],
+      // A count that never arrived (nothing here answers the applications request) is blank, and says nothing to a screen
+      // reader either: "No candidates" would claim what nobody knows.
+      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', '', 'Not published', 'Oct 19, 2026', ''],
+      ['Open', 'Senior .NET Engineer', 'Remote (GB, IE)', 'Full-time', '', 'Oct 18, 2026', 'Oct 18, 2026', ''],
     ]);
     expect(screen.getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Jobs');
