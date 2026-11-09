@@ -54,6 +54,7 @@ Nothing is queued. The owner picks the next workflow from "Later" and "Before re
   ([verification engine](architecture/verification-engine.md) §9).
 - **Verification phase 3:** interview verification.
 - **Signal Network:** built and off until a legal review and DPIA (ADR-0005).
+- **Marketing site:** a character pass after the app is complete. The owner found the rebuilt site a good base without soul (2026-11-09); the second-pass mockup and `docs/design/marketing-site.md` are its starting point.
 
 ## Before real customers
 
