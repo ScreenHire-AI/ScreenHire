@@ -1,7 +1,6 @@
 <script lang="ts">
   import StatusBadge from '#lib/components/status-badge.svelte';
   import type { SendingDomainMark } from '#lib/sending-domain.js';
-  import type { SettingsSection } from '#lib/settings.js';
 
   // The rows of the Settings home (design system section 11): the setting's name as a link, one line under it only where
   // the name does not explain itself (W9), and, in a search, its group after the name. Email domain says where it stands
@@ -11,7 +10,8 @@
     withGroup = false,
     domainMark,
   }: {
-    list: readonly SettingsSection[];
+    /** Settings pages, or pages elsewhere that a search found: all that is read is the name, its line and its group. */
+    list: readonly { label: string; href: string; description?: string; group: string }[];
     /** A search's results name each row's group. */
     withGroup?: boolean;
     /** Email domain's status while something is left to do (T3). */

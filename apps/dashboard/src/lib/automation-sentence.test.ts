@@ -202,7 +202,7 @@ describe('the trigger blanks', () => {
 
   it('titles a trigger in the few words a map node holds', () => {
     expect(triggerTitle({ type: 'ApplicationSubmitted' }, workflow)).toBe('Someone applies');
-    expect(triggerTitle({ type: 'StageEntered', stageId: 'trial' }, workflow)).toBe('Moves to Trial shift');
+    expect(triggerTitle({ type: 'StageEntered', stageId: 'trial' }, workflow)).toBe('Moves into Trial shift');
     expect(triggerTitle({ type: 'TimeElapsed', stageId: 'screening', afterHours: 48 }, workflow)).toBe('2 days pass in Phone call');
     expect(triggerTitle({ type: 'SlaBreached' }, workflow)).toBe('A time limit passes');
   });
@@ -676,7 +676,7 @@ describe('review fixes', () => {
     const names = new Map([['stage-change', 'Moved to the next step']]);
 
     expect(automationLine(wf.automations[0]!, wf)).toBe('When someone applies and Verification is Review or Verify, add the tag "Not eligible".');
-    expect(automationLine(wf.automations[1]!, wf, undefined, names)).toBe('When someone moves to Phone call, send the "Moved to the next step" email.');
+    expect(automationLine(wf.automations[1]!, wf, undefined, names)).toBe('When someone moves into Phone call, send the "Moved to the next step" email.');
     expect(automationLine(wf.automations[2]!, wf)).toMatch(/^When someone applies and one of .+ or .+, ask the team to review\.$/);
   });
 

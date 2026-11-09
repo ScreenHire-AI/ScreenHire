@@ -71,6 +71,15 @@ describe('sending domain page', () => {
     await waitFor(() => expect(bodies).toEqual([{ domain: 'example.com' }]));
   });
 
+  it('takes the domain out of an address someone pasted from the browser bar or an email', async () => {
+    const bodies = renderPage({ available: true, sandbox: false, domain: null });
+
+    await fireEvent.input(await screen.findByRole('textbox', { name: 'Domain' }), { target: { value: 'https://www.example.com/careers' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Add domain' }));
+
+    await waitFor(() => expect(bodies).toEqual([{ domain: 'example.com' }]));
+  });
+
   it('asks for a domain before it adds one', async () => {
     const bodies = renderPage({ available: true, sandbox: false, domain: null });
 

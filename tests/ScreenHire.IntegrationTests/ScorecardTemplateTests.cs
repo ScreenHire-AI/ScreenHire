@@ -13,7 +13,7 @@ namespace ScreenHire.IntegrationTests;
 public sealed class ScorecardTemplateTests(AppHostFixture fixture)
 {
     private static readonly string[] BuiltInIds =
-        ["screening", "interview", "technical-exercise", "engineering-interview", "phone-screen", "hourly-interview"];
+        ["screening", "interview", "technical-exercise", "engineering-interview", "phone-screen", "hourly-interview", "trial-shift"];
 
     [Fact]
     public async Task The_library_lists_the_built_ins_in_their_order_then_the_organizations_own_by_name()
@@ -27,15 +27,15 @@ public sealed class ScorecardTemplateTests(AppHostFixture fixture)
         var list = (await owner.GetAsync("/v1/scorecard-templates")).Expect(HttpStatusCode.OK);
 
         list.Body.EnumerateArray().Select(s => s.GetProperty("id").GetString()).Should().Equal([.. BuiltInIds, alpha, zeta]);
-        list.Body.EnumerateArray().Take(6).Should().OnlyContain(s => s.GetProperty("builtIn").GetBoolean());
-        list.Body.EnumerateArray().Skip(6).Should().OnlyContain(s => !s.GetProperty("builtIn").GetBoolean());
+        list.Body.EnumerateArray().Take(7).Should().OnlyContain(s => s.GetProperty("builtIn").GetBoolean());
+        list.Body.EnumerateArray().Skip(7).Should().OnlyContain(s => !s.GetProperty("builtIn").GetBoolean());
         list.Text("1.name").Should().Be("Interview");
         list.At("1.questions").GetInt32().Should().Be(3);
         list.At("1.ratingQuestions").GetInt32().Should().Be(3);
-        list.Text("6.name").Should().Be("Alpha review");
-        list.At("6.questions").GetInt32().Should().Be(2);
-        list.At("6.ratingQuestions").GetInt32().Should().Be(1, "only the 1 to 5 question counts toward the rating");
-        (await other.GetAsync("/v1/scorecard-templates")).Count().Should().Be(7, "the six built-ins and its own");
+        list.Text("7.name").Should().Be("Alpha review");
+        list.At("7.questions").GetInt32().Should().Be(2);
+        list.At("7.ratingQuestions").GetInt32().Should().Be(1, "only the 1 to 5 question counts toward the rating");
+        (await other.GetAsync("/v1/scorecard-templates")).Count().Should().Be(8, "the seven built-ins and its own");
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public sealed class ScorecardTemplateTests(AppHostFixture fixture)
         optionsOnRating.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("questions[0].options");
         choiceWithoutOptions.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("questions[0].options");
         update.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("questions");
-        (await owner.GetAsync("/v1/scorecard-templates")).Count().Should().Be(7, "nothing was stored by a refused request");
+        (await owner.GetAsync("/v1/scorecard-templates")).Count().Should().Be(8, "nothing was stored by a refused request");
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public sealed class ScorecardTemplateTests(AppHostFixture fixture)
         using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer");
         var key = await CreateScorecardAsync(owner, "Platform interview", Rating5("depth"));
 
-        (await viewer.GetAsync("/v1/scorecard-templates")).Expect(HttpStatusCode.OK).Count().Should().Be(7);
+        (await viewer.GetAsync("/v1/scorecard-templates")).Expect(HttpStatusCode.OK).Count().Should().Be(8);
         (await viewer.GetAsync($"/v1/scorecard-templates/{key}")).Expect(HttpStatusCode.OK);
         (await viewer.GetAsync($"/v1/scorecard-templates/{key}/history")).Expect(HttpStatusCode.OK);
         (await viewer.PostAsync("/v1/scorecard-templates", new JsonObject { ["name"] = "Mine", ["questions"] = Questions(Rating5("depth")) }))

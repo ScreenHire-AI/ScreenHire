@@ -4,6 +4,7 @@ import {
   actionLabels,
   actionTypes,
   actionsFor,
+  answerIsRead,
   describeAction,
   describePath,
   errorsUnder,
@@ -68,6 +69,17 @@ const workflow: HiringWorkflow = {
     { id: 'manual', name: 'By hand', trigger: { type: 'Manual' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'Look' }] },
   ],
 };
+
+describe('an answer an automation reads', () => {
+  it('is one a condition names, so a knockout nobody reacts to can be told apart', () => {
+    expect(answerIsRead(workflow, 'work_authorization')).toBe(true);
+    expect(answerIsRead(workflow, 'shift')).toBe(false);
+    expect(answerIsRead({ ...workflow, automations: [] }, 'work_authorization')).toBe(false);
+    // An automation that is switched off does nothing with the answer, so the knockout still says nothing happens.
+    const off = { ...workflow, automations: workflow.automations.map((automation) => ({ ...automation, enabled: false })) };
+    expect(answerIsRead(off, 'work_authorization')).toBe(false);
+  });
+});
 
 describe('facts', () => {
   it('offers one fact per question with its values, then the application facts and the verification levels', () => {
@@ -178,6 +190,8 @@ describe('elements', () => {
     expect(newAutomation(workflow, 'screening').trigger).toEqual({ type: 'StageEntered', stageId: 'screening' });
     expect(newAutomation(workflow, null).trigger).toEqual({ type: 'ApplicationSubmitted' });
     expect(newAutomation(workflow, null).id).toBe('automation');
+    // Complete from the start, and valid under every trigger, so "Write your own" never opens as a problem.
+    expect(newAutomation(workflow, 'screening').actions).toEqual([{ type: 'AssignReviewer' }]);
   });
 
   it('puts stage triggers in their stage lane and the rest in the whole-workflow lane', () => {
@@ -220,6 +234,10 @@ describe('validator paths', () => {
     const members = [{ userId: 'u2', displayName: 'Robin Ashby' }];
     expect(describeAction({ type: 'AssignReviewer', assigneeUserId: 'u2' }, workflow, members)).toBe('Ask Robin Ashby to review');
     expect(describeAction({ type: 'AssignReviewer', assigneeUserId: 'gone' }, workflow, members)).toBe('Ask a teammate to review');
+    expect(describeAction({ type: 'AddTag', tag: 'Check closely' }, workflow, members)).toBe('Add the tag "Check closely"');
+    // A tag nobody has named yet reads as unfinished, never as an empty pair of quotes.
+    expect(describeAction({ type: 'AddTag' }, workflow, members)).toBe('Add a tag (no name yet)');
+    expect(describeAction({ type: 'AddTag', tag: '  ' }, workflow, members)).toBe('Add a tag (no name yet)');
     expect(describeAction({ type: 'AssignReviewer' }, workflow, members)).toBe('Ask the team to review');
   });
 

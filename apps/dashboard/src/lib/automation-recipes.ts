@@ -7,7 +7,7 @@ import type { Automation, AutomationAction, AutomationCondition, HiringWorkflow 
 import { breaksWorkflow } from './automation-sentence.js';
 import { builtInEmailTemplates, isTerminal, laneOf } from './workflow.js';
 
-export const recipeGroups = ['Keep candidates in the loop', 'Check the must-haves', 'Look closer when the checks suggest it'] as const;
+export const recipeGroups = ['Keep candidates in the loop', 'Get the team to act', 'Check the must-haves', 'Look closer when the checks suggest it'] as const;
 export type RecipeGroup = (typeof recipeGroups)[number];
 
 export interface Recipe {
@@ -131,6 +131,24 @@ export function allRecipes(workflow: HiringWorkflow): Recipe[] {
           trigger: { type: 'StageEntered', stageId: stage.id },
           conditions: null,
           actions: [{ type: 'SendEmail', emailTemplate: stageChange.id }],
+        },
+      ),
+    );
+  });
+
+  // A stage where someone has to look, such as a trial shift, asks the team for a scorecard the moment a person gets there.
+  workflow.stages.forEach((stage, index) => {
+    if (index === 0 || stage.kind === 'Applied' || isTerminal(stage.kind)) return;
+    recipes.push(
+      make(
+        `review-${stage.id}`,
+        'Get the team to act',
+        `Ask the team to review at ${stage.name}`,
+        `When someone moves into ${stage.name}, ask the team to review.`,
+        {
+          trigger: { type: 'StageEntered', stageId: stage.id },
+          conditions: null,
+          actions: [{ type: 'AssignReviewer' }],
         },
       ),
     );

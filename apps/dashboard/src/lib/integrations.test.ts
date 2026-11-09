@@ -20,7 +20,7 @@ describe('integrations', () => {
       expect(integration.description ?? '').not.toContain('\n');
     }
     expect(integrations.find((integration) => integration.label === 'Slack')?.description).toBeUndefined();
-    expect(integrations.find((integration) => integration.label === 'Webhooks')?.description).toBeUndefined();
+    expect(integrations.find((integration) => integration.label === 'Webhooks')?.description).toBeDefined();
     expect(integrations.find((integration) => integration.label === 'MCP server')?.description).toBeDefined();
   });
 });

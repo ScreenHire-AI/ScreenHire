@@ -328,14 +328,14 @@ export function changeTrigger(automation: Automation, workflow: HiringWorkflow, 
   };
 }
 
-/** A trigger in the few words a map node carries: "Someone applies", "Moves to Phone call", "2 days pass in Phone call". */
+/** A trigger in the few words a map node carries: "Someone applies", "Moves into Phone call", "2 days pass in Phone call". */
 export function triggerTitle(trigger: Automation['trigger'], workflow: HiringWorkflow): string {
   const stage = stageName(workflow, trigger.stageId);
   switch (trigger.type) {
     case 'ApplicationSubmitted':
       return 'Someone applies';
     case 'StageEntered':
-      return `Moves to ${stage}`;
+      return `Moves into ${stage}`;
     case 'StageExited':
       return `Leaves ${stage}`;
     case 'TimeElapsed':
@@ -667,7 +667,7 @@ export function automationLine(
   return `When ${triggerClause(automation.trigger, workflow)}${condition}, ${steps.length > 0 ? steps.join(' and ') : 'nothing happens yet'}.`;
 }
 
-/** The map's trigger title as the clause after "When": a node title such as "Moves to Phone call" has no subject. */
+/** The map's trigger title as the clause after "When": a node title such as "Moves into Phone call" has no subject. */
 function triggerClause(trigger: Automation['trigger'], workflow: HiringWorkflow): string {
   const title = lowerFirst(triggerTitle(trigger, workflow));
   switch (trigger.type) {

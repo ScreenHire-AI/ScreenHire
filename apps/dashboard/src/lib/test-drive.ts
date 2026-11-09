@@ -76,6 +76,19 @@ export function samplesOf(workflow: HiringWorkflow): Sample[] {
     add('signals', 'Checks suggest a review', 'Verification is Review', 'VerificationAssessed', signals);
   }
 
+  // A stage with steps of its own (a trial shift's form, its scorecard request) is only tried at its own moment, so each
+  // such stage, up to three, gets a candidate who reaches it. The moment the first sample already tries is not repeated.
+  const tried = triggerFor(workflow, main);
+  workflow.stages
+    .filter((stage) => !(tried.type === 'StageEntered' && tried.stageId === stage.id))
+    .map((stage) => ({ stage, trigger: { type: 'StageEntered', stageId: stage.id } as AutomationTrigger }))
+    .filter(({ trigger }) => listenersOf(workflow, trigger).length > 0)
+    .slice(0, 3)
+    .forEach(({ stage, trigger }) => {
+      const preset = presetsFor(workflow, trigger, listenersOf(workflow, trigger)).find((candidate) => candidate.id === 'meets');
+      if (preset) samples.push({ id: `stage:${stage.id}`, name: `Reaches ${stage.name}`, caption: '', moment: `When they reach ${stage.name}`, trigger, request: requestOf(workflow, trigger, preset) });
+    });
+
   // Everyone can ask for an accommodation, so the sample always exists once there is a moment to try it at.
   const accommodation = here.presets.find((preset) => preset.id === 'accommodation') ?? {
     id: 'accommodation',

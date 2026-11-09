@@ -15,6 +15,26 @@ describe('question settings', () => {
     expect(question.acceptedFileTypes).toEqual(['.pdf', '.docx']);
   });
 
+  it('says a knockout does nothing yet, and where to add a step, until an automation reads its answer (A11)', () => {
+    const question = { id: 'licence', type: 'YesNo' as const, label: 'Do you hold a licence?', knockout: { disqualifyingAnswer: false, reason: null } };
+    // The page's own address for the tab, so a version being edited stays the one shown.
+    const automationsHref = '/templates/t-1?version=2&tab=automations';
+    const { rerender } = render(QuestionSettings, { props: { question, unhandled: true, automationsHref } });
+
+    expect(screen.getByText(/Nothing happens to this answer yet/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Add a step in Automations' })).toHaveAttribute('href', automationsHref);
+
+    rerender({ question, unhandled: false, automationsHref });
+    expect(screen.queryByText(/Nothing happens to this answer yet/)).toBeNull();
+  });
+
+  it('says nothing about a step for a question that is not a knockout', () => {
+    const question = { id: 'licence', type: 'YesNo' as const, label: 'Do you hold a licence?' };
+    render(QuestionSettings, { props: { question, unhandled: true } });
+
+    expect(screen.queryByText(/Nothing happens to this answer yet/)).toBeNull();
+  });
+
   it('draws nothing for a choice question, so the open question keeps even gaps', () => {
     const question = { id: 'years', type: 'SingleChoice' as const, label: 'Years in support', options: [] };
     const { container } = render(QuestionSettings, { props: { question } });

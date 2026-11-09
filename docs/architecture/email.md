@@ -351,7 +351,7 @@ The candidate then carries `emailIssue` (`Bounced` or `SpamComplaint`, with when
 
 Out of the box, mail comes from ScreenHire's address (`ScreenHire:Email:From`). An Owner or Admin can add the company's own
 domain under Settings, Organization, Email domain (`/v1/organization/sending-domain`, `EditSettings`; every member reads it). The page is
-hidden, with a line saying so, when this deployment has no provider.
+hidden, with a line saying so, when this deployment has no provider. The field takes what a person copies (`https://www.example.com/careers`, `hiring@example.com`): the dashboard cuts it to the domain (`tidyDomain`) before it asks, and the API stays strict about what it stores.
 
 - **Records.** The provider returns them (`ISendingDomainProvider`; SendGrid's domain authentication with automated
   security): two DKIM CNAMEs and a return-path CNAME that carries SPF on its own subdomain, so the company never adds a

@@ -282,7 +282,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     its column, along a lane above the stages (lanes are shared by moves that do not overlap) and down into the target
     stage, labelled "Moves to", the only words a line carries. A line crosses another where it must, never a node.
   - **Nodes.** Each kind has its own look and its word (When, If, Then, and the lane and stage headers), and no icon. A
-    When node's title is what starts the automation in a few words (`triggerTitle`: "Someone applies", "Moves to Phone
+    When node's title is what starts the automation in a few words (`triggerTitle`: "Someone applies", "Moves into Phone
     call") with the automation's name under it, an If node's is its conditions (`ruleTitle`: "Right to work is No",
     "Verification is Review or Verify") and a Then node's the step. A node's accessible name keeps the automation's name
     right after the word, so "When Fast-track referrals" names the trigger node. With the editor the whole node is one
@@ -340,7 +340,8 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     sets `checkSafeActions` and `checkSafeStageKinds` copy `SignalSafeActions` and `SignalSafeStages`, and
     `timeLimitActions` copies `SlaBreachActions`: change them together, or the sentence offers what the save refuses.
   - **Recipes.** `#lib/automation-recipes.ts` builds ready-made automations from the template's own questions and stages,
-    in three groups. A recipe is hidden when the workflow already has an automation that does the same thing (`covers`:
+    in four groups: Keep candidates in the loop, Get the team to act, Check the must-haves, and Look closer when the checks
+    suggest it. Every open stage after Applied offers "Ask the team to review at X" in the second group. A recipe is hidden when the workflow already has an automation that does the same thing (`covers`:
     the same trigger and conditions and at least its actions) or one with its id `recipe-<key>` (cut, with a short hash of the key, to the validator's 40 characters), and when adding it
     would create a refused step.
 - **Questions:** the Form timeline across the top (`form-timeline.svelte`, design system section 11) has a card for the
@@ -374,10 +375,10 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   AI-use question; a follow-up's is its questions alone, as its page shows them. The preview stacks the pages the candidate meets (each named section, or
   pages of the organization's questions per page), each opening with the step line the candidate sees ("Step 2 of 4",
   "9 of 24 answered"), so every section shows while editing. Marking a yes/no question as a knockout shows what a knockout may be (an
-  objective eligibility check, never AI use or an accommodation). The automation form offers "Send a questionnaire" and
+  objective eligibility check, never AI use or an accommodation), and, while no automation's condition reads its answer, that nothing happens to it yet, with a link to the Automations tab (A11). The automation form offers "Send a questionnaire" and
   the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
-- **Test:** `test-drive.svelte`. A moment after each change it builds up to four samples from the template (`#lib/test-drive.ts`: meets every requirement, fails a knockout, whose checks suggest a review, asked for an accommodation), runs each through `POST /v1/workflows/simulate`, and shows what happens to each in a few plain steps with a "Show in the map" link to the Automations tab. While a problem blocks the workflow the tab shows only a notice with the fix inline (`problem-notice.svelte`: type the missing tag, or remove the step). "Try your own candidate" is the guided test: a guided test, three questions one at a time (`guided-test.svelte`, rules in `#lib/simulate.ts`, design
+- **Test:** `test-drive.svelte`. A moment after each change it builds samples from the template (`#lib/test-drive.ts`: meets every requirement, fails a knockout, whose checks suggest a review, then one who reaches each stage that has steps of its own, up to three, and one who asked for an accommodation), runs each through `POST /v1/workflows/simulate`, and shows what happens to each in a few plain steps with a "Show in the map" link to the Automations tab. While a problem blocks the workflow the tab shows only a notice with the fix inline (`problem-notice.svelte`: type the missing tag, or remove the step). "Try your own candidate" is the guided test: a guided test, three questions one at a time (`guided-test.svelte`, rules in `#lib/simulate.ts`, design
   system section 11, Guided test). What happened: a moment in plain words, offered only where an automation that is on
   reacts to it, with a second question (which stage or questionnaire) only when automations react in more than one. Who
   is the candidate: ready-made candidates built from the workflow (one who meets every requirement, one who fails a

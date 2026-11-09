@@ -120,6 +120,10 @@ describe('scorecard template page', () => {
     expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
     expect(screen.queryByLabelText('Name')).toBeNull();
     expect(screen.getByRole('list', { name: 'Questions' })).toHaveTextContent('Problem solving');
+    // Nothing can be edited, so the switch names what it shows instead of offering an edit (A8, E3).
+    const view = within(screen.getByRole('group', { name: 'View' }));
+    expect(view.getByRole('button', { name: 'Questions' })).toHaveAttribute('aria-pressed', 'true');
+    expect(view.queryByRole('button', { name: 'Edit' })).toBeNull();
   });
 
   it('reads only for a role that cannot change scorecards, and says so', async () => {

@@ -77,6 +77,7 @@ describe('Add automation', () => {
     const recipes = await sheet('Add an automation');
     expect(within(recipes).getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
       'Keep candidates in the loop',
+      'Get the team to act',
       'Check the must-haves',
       'Look closer when the checks suggest it',
     ]);
@@ -127,7 +128,10 @@ describe('Add automation', () => {
 
     await fireEvent.click(within(panel()).getByRole('button', { name: (name) => name.includes('Add an automation to Trial shift') }));
     const recipes = await sheet('Add an automation');
-    expect(within(recipes).getAllByRole('listitem').map((row) => row.textContent)).toEqual([expect.stringContaining('Tell people when they reach Trial shift')]);
+    expect(within(recipes).getAllByRole('listitem').map((row) => row.textContent)).toEqual([
+      expect.stringContaining('Tell people when they reach Trial shift'),
+      expect.stringContaining('Ask the team to review at Trial shift'),
+    ]);
 
     await fireEvent.click(within(recipes).getByRole('button', { name: 'Write your own' }));
     const edit = await sheet('New automation');

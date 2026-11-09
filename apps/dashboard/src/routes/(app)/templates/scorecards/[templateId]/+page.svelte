@@ -327,7 +327,7 @@
     {/if}
 
     <div class="flex w-full flex-col px-4 py-6 md:px-6">
-      <EditPreviewLayout bind:mode onpopout={() => source.open('/preview/scorecard')}>
+      <EditPreviewLayout bind:mode readOnly={!editable} onpopout={() => source.open('/preview/scorecard')}>
         {#snippet editor()}
           {#if editable}
             <Panel title="Details">

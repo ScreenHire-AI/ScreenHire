@@ -47,6 +47,7 @@ export const integrations: readonly Integration[] = [
   {
     label: 'Webhooks',
     href: '/settings/webhooks',
+    description: 'Tell another tool when something happens',
     keywords: ['events', 'callback', 'http', 'endpoint', 'developer', 'notify'],
     permission: 'ManageWebhooks',
     allJobs: true,

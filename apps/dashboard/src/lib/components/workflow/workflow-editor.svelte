@@ -269,7 +269,7 @@
   {/if}
 </Tabs.Content>
 <Tabs.Content value="questions">
-  <QuestionnaireBuilder bind:workflow {errors} {aiUse} />
+  <QuestionnaireBuilder bind:workflow {errors} {aiUse} automationsHref={hrefOf('automations')} />
 </Tabs.Content>
 <Tabs.Content value="test">
   <TestDrive bind:workflow {errors} {checking} onshow={showTested} onadd={() => openRecipes(null)} onfix={fix} automationsHref={hrefOf('automations')} />

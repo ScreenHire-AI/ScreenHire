@@ -94,7 +94,12 @@ describe('the Policy tab', () => {
 
     await type(input, 'office');
     await fireEvent.click(screen.getByRole('button', { name: 'Add network' }));
-    expect(await screen.findByText('Enter a network such as 203.0.113.0/24.')).toBeInTheDocument();
+    expect(await screen.findByText('Enter an address such as 203.0.113.7, or a range such as 203.0.113.0/24.')).toBeInTheDocument();
+
+    // An office usually has one address, so a plain address is enough: no range to work out (W8).
+    await type(input, '203.0.113.7');
+    await fireEvent.click(screen.getByRole('button', { name: 'Add network' }));
+    expect(await screen.findByRole('button', { name: 'Remove 203.0.113.7' })).toBeInTheDocument();
 
     await type(input, '203.0.113.0/24');
     await fireEvent.click(screen.getByRole('button', { name: 'Add network' }));
@@ -103,7 +108,7 @@ describe('the Policy tab', () => {
     await fireEvent.click(await save());
 
     await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0]).toMatchObject({ trustedNetworks: ['203.0.113.0/24'] });
+    expect(bodies[0]).toMatchObject({ trustedNetworks: ['203.0.113.7', '203.0.113.0/24'] });
   });
 
   it("shows the server's complaint about a trusted entry under its list", async () => {

@@ -53,9 +53,20 @@ public static class BuiltInScorecards
         Rating("relevant_experience", "Relevant experience", "Work they have done that is like this job's tasks."),
     ]);
 
+    /// <summary>
+    /// For a paid trial shift or a work sample: what the team saw them do, never what they seem like.
+    /// </summary>
+    public static BuiltInScorecard TrialShift { get; } = new("trial-shift", "Trial shift",
+    [
+        Rating("task_quality", "Does the work well", "The quality of the work they did on the shift."),
+        Rating("pace", "Keeps a good pace", "How much they got done for the time, and how well it held up."),
+        Rating("safe_working", "Works safely", "The safety and hygiene steps this job's tasks need."),
+        Rating("follows_instructions", "Follows instructions", "Whether they did the work the way they were shown."),
+    ]);
+
     /// <summary>Every built-in, in the order a library lists them.</summary>
     public static IReadOnlyList<BuiltInScorecard> All { get; } =
-        [Screening, Interview, TechnicalExercise, EngineeringInterview, PhoneScreen, HourlyRoleInterview];
+        [Screening, Interview, TechnicalExercise, EngineeringInterview, PhoneScreen, HourlyRoleInterview, TrialShift];
 
     /// <summary>The built-in with <paramref name="id"/>, or null.</summary>
     public static BuiltInScorecard? Find(string? id) => All.FirstOrDefault(b => b.Id == id);

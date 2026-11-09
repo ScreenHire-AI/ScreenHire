@@ -53,6 +53,8 @@ describe('form builder', () => {
     const first = edit(/^Edit question 1: /);
     expect(first).toHaveAccessibleName('Edit question 1: Do you have the right to work here? Required Yes or no');
     expect(first).toHaveAttribute('aria-expanded', 'false');
+    // A row that opens in place has a chevron saying so (A9).
+    expect(first.querySelector('svg[data-icon="chevron-down"]')).toBeInTheDocument();
     expect(first).toHaveTextContent('Do you have the right to work here? Required');
     expect(within(first).getByText('Required')).toHaveAttribute('data-slot', 'badge');
     expect(first).toHaveTextContent('Yes or no');

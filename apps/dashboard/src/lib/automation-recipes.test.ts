@@ -34,7 +34,7 @@ const automation = (id: string, trigger: Automation['trigger'], actions: Automat
 const titles = (flow: HiringWorkflow) => recipesFor(flow).map((recipe) => recipe.title);
 
 describe('the recipes', () => {
-  it('are written for the template\'s own questions and stages, in three groups', () => {
+  it('are written for the template\'s own questions and stages, in four groups', () => {
     const groups = groupedRecipes(workflow());
 
     expect(groups.map((entry) => entry.group)).toEqual([...recipeGroups]);
@@ -44,8 +44,14 @@ describe('the recipes', () => {
       'Tell people when they reach Trial shift',
       'Tell people when they reach Offer',
     ]);
-    expect(groups[1]!.recipes.map((recipe) => recipe.title)).toEqual(['Review anyone who fails "Right to work in the UK?"', 'Review anyone who fails "Ever convicted?"']);
-    expect(groups[2]!.recipes.map((recipe) => recipe.title)).toEqual(['Ask the team to look closer', 'Tag anyone the checks say to verify']);
+    // A stage where someone has to look, such as a trial shift, can ask the team for a scorecard on arrival.
+    expect(groups[1]!.recipes.map((recipe) => recipe.title)).toEqual([
+      'Ask the team to review at Phone call',
+      'Ask the team to review at Trial shift',
+      'Ask the team to review at Offer',
+    ]);
+    expect(groups[2]!.recipes.map((recipe) => recipe.title)).toEqual(['Review anyone who fails "Right to work in the UK?"', 'Review anyone who fails "Ever convicted?"']);
+    expect(groups[3]!.recipes.map((recipe) => recipe.title)).toEqual(['Ask the team to look closer', 'Tag anyone the checks say to verify']);
   });
 
   it('are one line each, and name no person', () => {
@@ -74,7 +80,7 @@ describe('the recipes', () => {
 
     expect(recipes.find((recipe) => recipe.key === 'reaches-trial')!.lane).toBe('trial');
     expect(recipes.find((recipe) => recipe.key === 'thanks')!.lane).toBeNull();
-    expect(recipesFor(workflow(), 'trial').map((recipe) => recipe.key)).toEqual(['reaches-trial']);
+    expect(recipesFor(workflow(), 'trial').map((recipe) => recipe.key)).toEqual(['reaches-trial', 'review-trial']);
     expect(recipesFor(workflow(), null).length).toBe(recipesFor(workflow()).length);
   });
 

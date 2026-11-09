@@ -1,6 +1,7 @@
 import type { CurrentUser, JobAccess, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
 import { integrations } from '#lib/integrations.js';
 import { can, seesAllJobs } from '#lib/permissions.js';
+import { verificationTab, type VerificationTabValue } from '#lib/verification-area.js';
 
 /** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
 export const teamPath = '/v1/organization/team';
@@ -146,6 +147,68 @@ export const settingsSections: readonly SettingsSection[] = [
     ...(feature && { feature }),
   })),
 ];
+
+/**
+ * A page people look for in Settings because it is a setting to them, but that lives in an area of its own: the hiring
+ * template's stages and questions, the scorecards, the AI model and its budget. Settings search finds each one by the
+ * everyday words kept here and says which area it is in, so a search for "ai key" lands on the AI model tab instead of
+ * a dead end. Only what the person's role may open is offered (A3).
+ */
+export interface SettingsElsewhere {
+  label: string;
+  href: string;
+  /** The area it lives in, shown where a Settings page shows its group. */
+  group: 'Templates' | 'Verification';
+  description?: string;
+  keywords: readonly string[];
+  allowed: (user: CurrentUser | null | undefined) => boolean;
+}
+
+const everyone = () => true;
+
+/** A Verification tab as a search result: its name, address and who may open it come from the tab itself, so search never offers one the tab bar hides (A3). */
+function verificationPage(value: VerificationTabValue, description: string, keywords: readonly string[]): SettingsElsewhere {
+  const tab = verificationTab(value);
+  return { label: tab.label, href: tab.href, group: 'Verification', description, keywords, allowed: tab.allowed };
+}
+
+export const settingsElsewhere: readonly SettingsElsewhere[] = [
+  {
+    label: 'Hiring templates',
+    href: '/templates',
+    group: 'Templates',
+    description: 'Stages, questions and automations',
+    keywords: ['stages', 'pipeline', 'questions', 'questionnaire', 'apply form', 'automation', 'automations', 'workflow', 'knockout', 'hiring process'],
+    allowed: everyone,
+  },
+  {
+    label: 'Scorecards',
+    href: '/templates?tab=scorecards',
+    group: 'Templates',
+    keywords: ['scorecard', 'rating', 'ratings', 'interview feedback', 'review form'],
+    allowed: everyone,
+  },
+  {
+    label: 'Email templates',
+    href: '/templates?tab=emails',
+    group: 'Templates',
+    keywords: ['email', 'emails', 'wording', 'rejection email', 'reminder email', 'message'],
+    allowed: everyone,
+  },
+  verificationPage('ai-model', "ScreenHire's model or your own key", ['ai', 'ai key', 'key', 'openai', 'anthropic', 'claude', 'provider', 'own key']),
+  verificationPage('usage', 'What the AI checks used and cost', ['ai', 'budget', 'cost', 'tokens', 'cap', 'spend', 'bill']),
+  verificationPage('notifications', 'Who hears about AI budget and check alerts', ['alerts', 'budget', 'warn']),
+  verificationPage('checks', 'Which checks run on an applicant', ['ai checks', 'turn off', 'consistency', 'duplicates', 'network']),
+  verificationPage('policy', 'AI use while applying, trusted domains and networks', ['ai use', 'device check', 'trusted', 'network', 'privacy', 'consent']),
+];
+
+/** The pages outside Settings that a search for `query` finds, for what this person may open. An empty search finds none. */
+export const searchElsewhere = (user: CurrentUser | null | undefined, query: string): SettingsElsewhere[] =>
+  query.trim() === ''
+    ? []
+    : settingsElsewhere.filter(
+        (page) => page.allowed(user) && matchesWords([page.label, page.description ?? '', ...page.keywords, page.group].join(' '), query),
+      );
 
 /**
  * The Settings pages the person's role may use: none means no Settings item at all. API keys, webhooks, Slack and Data

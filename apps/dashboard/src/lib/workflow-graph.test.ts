@@ -115,6 +115,8 @@ describe('toGraph layout', () => {
     const headers = nodes.filter((candidate) => candidate.data.kind === 'lane' || candidate.data.kind === 'stage');
     expect(headers.map((candidate) => candidate.data.title)).toEqual(['Whole workflow', 'Applied', 'Screening', 'Interview']);
     expect(new Set(headers.map((candidate) => candidate.position.y)).size).toBe(1);
+    // A stage is its name: the kind it was made from (Screening, Assessment) is the engine's word, not the team's.
+    expect(headers.map((candidate) => candidate.data.detail)).toEqual(['', '', '', '']);
     expect(new Set(headers.map((candidate) => candidate.height)).size).toBe(1);
     const xs = headers.map((candidate) => candidate.position.x);
     expect(xs).toEqual([...xs].sort((a, b) => a - b));

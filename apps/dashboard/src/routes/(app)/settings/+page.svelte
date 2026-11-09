@@ -6,7 +6,7 @@
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
-  import { searchSettings, settingsGroups, visibleSettingsSections } from '#lib/settings.js';
+  import { searchElsewhere, searchSettings, settingsGroups, visibleSettingsSections } from '#lib/settings.js';
   import { getShell } from '#lib/shell.js';
   import type { PageProps } from './$types';
 
@@ -23,7 +23,9 @@
 
   let query = $state('');
   const searching = $derived(query.trim() !== '');
-  const found = $derived(searchSettings(visible, query));
+  // What people look for here that lives in its own area (a scorecard, the AI model) follows the settings it found, with its area
+  // where a setting has its group, so a search never ends where the thing is not.
+  const found = $derived([...searchSettings(visible, query), ...searchElsewhere(data.user, query)]);
 </script>
 
 <svelte:head>

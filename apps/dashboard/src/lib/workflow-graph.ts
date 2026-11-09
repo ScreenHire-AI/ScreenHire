@@ -284,7 +284,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
       end,
       header: item(
         stageNode(stage.id),
-        { ...none, kind: 'stage', title: stage.name, detail: stage.kind === stage.name ? '' : stage.kind, path: `stages[${index}]`, lane: stage.id, band: stage.id, endStage: end },
+        { ...none, kind: 'stage', title: stage.name, detail: '', path: `stages[${index}]`, lane: stage.id, band: stage.id, endStage: end },
         end ? `End stage: ${stage.name}` : `Stage ${index + 1}: ${stage.name}`,
       ),
       chains: chains.filter((chain) => bandOf(chain.index) === stage.id),
