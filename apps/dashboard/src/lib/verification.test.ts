@@ -1,12 +1,15 @@
 import { StageKind } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { applications, now } from '../test-support/fixtures.js';
-import { summary } from '../test-support/verification-fixtures.js';
-import type { VerificationReviewEntry } from '@screenhire/api-client';
+import { botVerification, summary } from '../test-support/verification-fixtures.js';
+import type { CheckGroupView } from '@screenhire/api-client';
 import {
   aiMarkOf,
   bulkMoveStages,
-  groupKeyReads,
+  findingsByGroup,
+  groupAnchor,
+  groupDidNotRun,
+  groupStateText,
   matchesVerificationFilter,
   needsReview,
   noVerificationFilter,
@@ -144,44 +147,48 @@ describe('bulk moves under a verification filter', () => {
   });
 });
 
-describe('review log rows', () => {
-  const entry = (id: string, overrides: Partial<VerificationReviewEntry>): VerificationReviewEntry => ({
-    id,
-    type: 'NoteAdded',
-    assessmentKind: null,
-    assessmentId: null,
-    dismissReason: null,
+describe('check groups', () => {
+  const group = (overrides: Partial<CheckGroupView>): CheckGroupView => ({
+    group: 'Network',
+    label: 'Network',
+    state: 'NothingFound',
+    found: 0,
+    notes: 0,
+    checked: 'hosting providers',
     note: null,
-    actorUserId: 'user-1',
-    actorName: 'Avery Quinn',
-    occurredAt: '2026-10-20T10:00:00Z',
-    signalId: null,
-    signalTitle: null,
-    explainReason: null,
-    apiKeyId: null,
-    apiKeyName: null,
-    keyCreatedByName: null,
     ...overrides,
   });
-  const read = (id: string, apiKeyId: string, occurredAt: string) =>
-    entry(id, { type: 'ReadByKey', actorUserId: null, actorName: null, apiKeyId, apiKeyName: apiKeyId, occurredAt });
 
-  it('folds consecutive reads by one key into the latest, with how many there were', () => {
-    const rows = groupKeyReads([read('a', 'k1', '2026-10-20T10:00:00Z'), read('b', 'k1', '2026-10-20T10:05:00Z'), read('c', 'k1', '2026-10-20T10:09:00Z')]);
-
-    expect(rows.map((row) => [row.entry.id, row.reads])).toEqual([['c', 3]]);
+  it('words each state in a few words that say nothing about the person', () => {
+    expect(groupStateText(group({ state: 'Found', found: 2 }))).toBe('2 found');
+    expect(groupStateText(group({ state: 'InformationOnly', notes: 1 }))).toBe('1 note, information only');
+    expect(groupStateText(group({ state: 'InformationOnly', notes: 3 }))).toBe('3 notes, information only');
+    expect(groupStateText(group({ state: 'NothingFound' }))).toBe('Nothing found');
+    expect(groupStateText(group({ state: 'NotChecked' }))).toBe('Not checked');
+    expect(groupStateText(group({ state: 'TurnedOff' }))).toBe('Turned off');
   });
 
-  it('keeps a different key, and a person\'s action between two reads, as rows of their own', () => {
-    const rows = groupKeyReads([read('a', 'k1', '2026-10-20T10:00:00Z'), read('b', 'k2', '2026-10-20T10:01:00Z'), entry('n', {}), read('c', 'k2', '2026-10-20T10:02:00Z')]);
-
-    expect(rows.map((row) => [row.entry.id, row.reads])).toEqual([['a', 1], ['b', 1], ['n', 1], ['c', 1]]);
+  it('says a quiet result did not run only for a group that was turned off or not checked', () => {
+    expect(groupDidNotRun(group({ state: 'TurnedOff' }))).toBe(true);
+    expect(groupDidNotRun(group({ state: 'NotChecked' }))).toBe(true);
+    expect(groupDidNotRun(group({ state: 'NothingFound' }))).toBe(false);
+    expect(groupDidNotRun(group({ state: 'InformationOnly', notes: 1 }))).toBe(false);
   });
 
-  it('changes nothing for a log with no key reads', () => {
-    const entries = [entry('x', {}), entry('y', { type: 'Dismissed' })];
+  it('puts each finding in its group, the ones that count toward the level first, AI help after', () => {
+    const bot = botVerification();
+    const byGroup = findingsByGroup(bot.authenticity, bot.aiAssistance);
 
-    expect(groupKeyReads(entries).map((row) => row.entry)).toEqual(entries);
-    expect(groupKeyReads([])).toEqual([]);
+    expect(byGroup.Network.map((finding) => finding.signal.code)).toEqual(['NET_DATACENTER_IP', 'NET_ANON_PROXY']);
+    expect(byGroup.FormUse.map((finding) => finding.signal.code)).toEqual(['AUTO_SUBMIT_VELOCITY', 'AUTO_WEBDRIVER']);
+    expect(byGroup.Documents.map((finding) => [finding.signal.code, finding.kind])).toEqual([['CNT_PROMPT_INJECTION', 'aiAssistance']]);
+    expect(byGroup.Answers.map((finding) => finding.signal.code)).toEqual(['CNT_NEAR_DUPLICATE_ANSWER']);
+    expect(byGroup.Contact).toEqual([]);
+    expect(byGroup.Duplicates).toEqual([]);
+    expect(findingsByGroup(null, undefined).Network).toEqual([]);
+  });
+
+  it('gives each group an anchor of its own', () => {
+    expect(groupAnchor('FormUse')).toBe('verification-group-formuse');
   });
 });

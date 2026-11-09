@@ -59,7 +59,9 @@ feedback became a rule on the canvas, and the owner approved the result. This AD
   rating questions into the candidate's stars, because the owner wants one way to compare candidates on the job's
   own criteria. It stays clear of ADR-0004. The average is of people's judgements about the work, never integrity
   results, AI signals or the stage. A reviewer sees it only after submitting their own scorecard, so it cannot anchor
-  them. No automation acts on it. The integrity non-negotiables are unchanged: no integrity score, no reject control.
+  them. Until then they still see who gave each other scorecard and when (the scorecards list marks those rows
+  `withheld` and leaves out the recommendation, rating, answers and note), because who has submitted anchors nobody.
+  No automation acts on it. The integrity non-negotiables are unchanged: no integrity score, no reject control.
 - **Shadows.** v0.2 kept shadows to raised and overlay layers. v0.3 gives panels and cards a soft surface shadow,
   because white on warm grey reads as a layer and a hairline alone did not.
 - **Width.** The 1280px page cap, the 1536px wide page and the 320px side column go.

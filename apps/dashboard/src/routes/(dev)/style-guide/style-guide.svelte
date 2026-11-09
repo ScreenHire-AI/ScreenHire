@@ -72,13 +72,12 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
-  import LevelScale from '#lib/components/level-scale.svelte';
   import MentionField from '#lib/components/mention-field.svelte';
   import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import NoteText from '#lib/components/note-text.svelte';
   import Rating from '#lib/components/rating.svelte';
   import RatingAnswer from '#lib/components/rating-answer.svelte';
-  import ScorecardList from '#lib/components/scorecard-list.svelte';
+  import ScorecardRoster from '#lib/components/candidate/scorecard-roster.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
   import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
@@ -118,7 +117,7 @@
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import type { Tracker, TrackerStep } from '#lib/pipeline-tracker.js';
   import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
-  import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder, pendingState, verificationStateOf } from '#lib/verification.js';
+  import { pendingState, verificationStateOf } from '#lib/verification.js';
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
@@ -131,6 +130,7 @@
   import AddCandidateDemo from './add-candidate-demo.svelte';
   import CustomizePostingDemo from './customize-posting-demo.svelte';
   import BrandingDemo from './branding-demo.svelte';
+  import AutomationDemo from './automation-demo.svelte';
   import GraphDemo from './graph-demo.svelte';
   import TemplateBuilderDemo from './template-builder-demo.svelte';
   import DropAreaDemo from './drop-area-demo.svelte';
@@ -449,7 +449,7 @@
   let richTextEditor = $state<ReturnType<typeof RichTextEditor> | null>(null);
   let richText = $state('<h2>Next steps</h2><p>Hi {{ firstName }}, thank you for applying for <strong>{{ jobTitle }}</strong>.</p><ul><li>Book a time</li><li>Bring your portfolio</li></ul>');
   const sampleTasks: TaskRow[] = [
-    { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Review this application.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
+    { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Give your scorecard.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
     { id: 't2', applicationId: 'a1', kind: 'RejectionReview', note: 'Not authorised to work in the UK.', assigneeUserId: null, createdAt: ago(day), completedAt: null, completedByUserId: null },
     { id: 't3', applicationId: 'a1', kind: 'Task', note: 'Call the references.', assigneeUserId: null, createdAt: ago(3 * day), completedAt: ago(5 * hour), completedByUserId: 'u2' },
     {
@@ -468,7 +468,7 @@
     {
       id: 's1',
       stageId: 'interview',
-      reviewerUserId: 'u2',
+      reviewerUserId: 'u1',
       answers: [
         { questionId: 'problem_solving', label: 'Problem solving', type: 'Rating5', rating: 5 },
         { questionId: 'dotnet', label: '.NET and C#', type: 'Rating10', rating: 8 },
@@ -484,7 +484,27 @@
       submittedAt: ago(3 * hour),
       scorecardTemplateId: 'interview',
       scorecardName: 'Interview',
+      withheld: false,
     },
+    {
+      id: 's2',
+      stageId: 'interview',
+      reviewerUserId: 'u2',
+      answers: [],
+      rating: null,
+      ratings: [],
+      recommendation: null,
+      note: null,
+      workflowVersion: 1,
+      timelineEventId: 'e2',
+      submittedAt: ago(26 * hour),
+      scorecardTemplateId: 'interview',
+      scorecardName: 'Interview',
+      withheld: true,
+    },
+  ];
+  const sampleWaiting = [
+    { taskId: 't1', assigneeUserId: 'u2', scorecard: 'Portfolio review scorecard', askedAt: ago(2 * hour), askedByUserId: 'u1' },
   ];
   // Teammates' changes as toasts (one change, then several on one job), newest first, above a notification card (section 11, Notification tray).
   let notifications = $state<TrayItem[]>([
@@ -877,6 +897,18 @@
         <GraphDemo />
       </Panel>
 
+      <Panel title="Automation sentence">
+        <div class="max-w-form"><AutomationDemo part="sentence" /></div>
+      </Panel>
+
+      <Panel title="Recipe list">
+        <div class="max-w-form"><AutomationDemo part="recipes" /></div>
+      </Panel>
+
+      <Panel title="Automation list">
+        <div class="max-w-form"><AutomationDemo part="list" /></div>
+      </Panel>
+
       <Panel title="Guided test">
         <div class="flex flex-col gap-6">
           <figure class="flex flex-col gap-2">
@@ -1178,7 +1210,14 @@
           <TaskCheckboxDemo tasks={sampleTasks} members={sampleTeam} />
         </Panel>
         <Panel title="Scorecard" class="flex-[1_1_320px]">
-          <ScorecardList scorecards={sampleScorecards} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />
+          <div class="flex flex-col gap-4">
+            <!-- Given, withheld (a scorecard the reader still owes) and asked for; a given row opens ScorecardDetailSheet. -->
+            <ScorecardRoster scorecards={sampleScorecards} waiting={sampleWaiting} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />
+            <figure class="flex flex-col gap-2">
+              <figcaption class="text-caption text-muted-foreground">On a phone: list items and a Sort chip</figcaption>
+              <ScorecardRoster scorecards={sampleScorecards} waiting={sampleWaiting} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" phone />
+            </figure>
+          </div>
         </Panel>
       </div>
 
@@ -1551,8 +1590,6 @@
             <AiMark level="SomeIndicators" />
             <AiMark level="StrongIndicators" />
           </div>
-          <LevelScale levels={authenticityOrder.map((id) => authenticityLevels[id])} current={authenticityLevels.VerificationRecommended} name="Authenticity" />
-          <LevelScale levels={aiAssistanceOrder.map((id) => aiAssistanceLevels[id])} current={aiAssistanceLevels.NotIndicated} name="AI assistance" />
           <SignalEvidence evidence={quote} />
         </div>
       </Panel>

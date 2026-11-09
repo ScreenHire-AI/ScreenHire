@@ -67,6 +67,8 @@ sources:
   - resource: apps/api/Endpoints/PublicQuestionnaireEndpoints.cs
   - resource: apps/dashboard/src/lib/workflow.ts
   - resource: apps/dashboard/src/lib/workflow-graph.ts
+  - resource: apps/dashboard/src/lib/automation-sentence.ts
+  - resource: apps/dashboard/src/lib/automation-recipes.ts
   - resource: apps/dashboard/src/lib/components/workflow/workflow-graph.svelte
   - resource: apps/dashboard/src/lib/components/workflow/step-node.svelte
   - resource: apps/dashboard/src/lib/components/workflow/graph-keys.svelte
@@ -78,6 +80,12 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-flow.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-form.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/automation-sentence.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/automation-blank.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/automation-recipes.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/automation-list.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/automations-panel.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/interview-fields.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-cards.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-sheet.svelte
   - resource: apps/dashboard/src/lib/components/workflow/journey-overview.svelte
@@ -108,6 +116,10 @@ sources:
   - resource: apps/dashboard/src/lib/components/scorecard-builder.svelte
   - resource: apps/dashboard/src/lib/components/scorecard-sheet.svelte
   - resource: apps/dashboard/src/lib/components/ask-scorecard-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/scorecards-tab.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/scorecard-roster.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/scorecard-detail-sheet.svelte
+  - resource: apps/dashboard/src/lib/scorecard-roster.ts
   - resource: apps/dashboard/src/lib/scorecard-choices.ts
   - resource: apps/dashboard/src/lib/components/task-list.svelte
   - resource: apps/dashboard/src/lib/tasks.svelte.ts
@@ -223,8 +235,9 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
   with its time limit, scorecard and automations in plain sentences ("When a candidate enters *Screening* → send
   *Questionnaire A*" reads "Sends the *Questionnaire A* form"), and the end stages on one line.
 - **Pipeline view**: the stages as cards, each opening a sheet for its name, time limit, scorecard and automations.
-- **Graph view** (power users): node-graph editor showing triggers → conditions → actions across stages. Same
-  underlying model; the graph is a projection, not a separate format.
+- **Automations** (the map and the list): the map is the overview, showing triggers → conditions → actions across
+  stages in short plain words; a phone gets the list. Pressing an automation edits it as one sentence with blanks, and
+  Add automation opens ready-made recipes. Same underlying model; the map is a projection, not a separate format.
 - **Questionnaire builder** with a preview rendering the **same question components** the candidate sees on the
   Astro apply page (shared component package, a factor in the dashboard framework decision).
 - **Test**: four sample candidates built from the template run through the definition after each change and show
@@ -268,17 +281,21 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     through a trunk under it. A move to a stage has a path of its own: out of the action's right side, up the gap beside
     its column, along a lane above the stages (lanes are shared by moves that do not overlap) and down into the target
     stage, labelled "Moves to", the only words a line carries. A line crosses another where it must, never a node.
-  - **Nodes.** Each kind has its own look and icon (When, If, Then, and the lane and stage headers). With the editor the
-    whole node is one button, so it is the node's only tab stop: an automation's node opens its form (the drawer's own
-    `automation-form.svelte`) at the node's part (its trigger, its conditions or that action), so every trigger,
-    condition and action the form offers is built from the graph; a lane or stage opens its automations' drawer. A
-    version that cannot be edited, and a phone, draw the same nodes as a focusable box with no buttons, and the phone
-    says to edit in Pipeline.
+  - **Nodes.** Each kind has its own look and its word (When, If, Then, and the lane and stage headers), and no icon. A
+    When node's title is what starts the automation in a few words (`triggerTitle`: "Someone applies", "Moves to Phone
+    call") with the automation's name under it, an If node's is its conditions (`ruleTitle`: "Right to work is No",
+    "Verification is Review or Verify") and a Then node's the step. A node's accessible name keeps the automation's name
+    right after the word, so "When Fast-track referrals" names the trigger node. With the editor the whole node is one
+    button, so it is the node's only tab stop: an automation's node opens the automation as a sentence
+    (`automation-sentence.svelte`) at the node's part (its trigger, its conditions or that action); a lane or stage
+    opens its automations as rows. A version that cannot be edited draws the same nodes as a focusable box with no
+    buttons. A phone does not draw the map: the Automations tab is the list there (see **List and sheets**).
   - **Plus buttons.** Where a thing would go there is a plus, only while editing and once the workflow has an
     automation: under each lane or stage for a new automation (`addAutomation`), on the line between a trigger and its
     first action for a first condition (`addCondition`), and under the last action for another action (`addAction`).
-    Each opens the form at what it added. A workflow with no automations says what an automation is and offers one
-    button, "Add an automation", which adds one to the whole workflow.
+    The plus for a new automation opens the recipes for that lane; the other two open the sentence at what they added. A
+    workflow with no automations says what an automation is and offers one button, "Add an automation", which opens the
+    recipes for the whole workflow.
   - **Paths.** Hovering or focusing a node lights its path (`pathOf`): an automation's chain with the stage it fires on
     and the stage it moves into, or a stage's automations and the moves into it. The rest quietens by its edge and its
     line alone, so text keeps its contrast, and nothing moves for someone who prefers reduced motion. Simulate's
@@ -295,13 +312,37 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     finish at any of them from any stage. Their automations hang under them like any stage's.
   - **Keyboard.** Nodes are listed in reading order, a band at a time, which is the Tab order. The arrow keys move along
     a column (Up, Down) and across to the nearest column (Left, Right), Home and End go to the first and last
-    (`neighbour`); whatever takes the focus is panned into view and out from under the toolbar. Crossing the phone's width swaps a
-    node's button for its box, and the focus stays on the node (`focusGraphNode`). Closing a form returns
-    the focus to the node that opened it.
+    (`neighbour`); whatever takes the focus is panned into view and out from under the toolbar. Closing a sheet returns
+    the focus to the node that opened it (`focusGraphNode`), or to the row that opened it in the list.
   - **Links.** A "move to a stage" action also points at its stage by drawing a link from its right edge to a stage, a
     pointer shortcut for the form's Stage field (`connect`), never the only way (WCAG 2.5.7).
   - A validation message shows on the node its path names, an automation's own messages on its trigger node, as it does
-    on the form control. Removing an automation is the Remove in its form.
+    under the sentence. Removing an automation is the Remove on its rules form (Edit as rules).
+  - **List and sheets.** The panel header has a List | Map switch and Add automation (`automations-panel.svelte`); the
+    list (`automation-list.svelte`) groups the automations by stage with each one's sentence, and a phone shows only it.
+    One sheet in `workflow-editor.svelte` has three views: a lane's automations as rows, the recipes, and one automation.
+  - **The sentence.** `automation-sentence.svelte` reads one automation as "When [someone applies] and [their answer to
+    Right to work is No], [ask the team to review] and [add the tag ...]", from `sentenceOf` in
+    `#lib/automation-sentence.ts`, which returns text and blanks; each blank holds its choices and an `apply` that returns
+    the automation with that choice made, so the definition is the only thing stored and the validator stays the judge.
+    The facts are grouped as Their answers, The application and ScreenHire's checks; a fixed list of values is ticked,
+    one value stored as is and two or more as is one of. The sheet has Name, On and Done; Edit as rules swaps in
+    `automation-form.svelte` in place, and Remove is there.
+  - **The guardrail in the choices.** `violations` ports `DefinitionValidator.DrivenAutomations` and its rules: the steps
+    a check drives (directly, or through a tag it adds, a stage it moves into, any stage exit once it moves anyone, a
+    stageless reviewer decision or time limit) outside asking a teammate to review, adding a tag or moving into a
+    Screening, Assessment, Verification or Interview stage, and the steps a passed time limit drives outside its
+    reminders. Every choice the sentence offers (a step, a stage to move into, a trigger, a check as a condition, a
+    condition that reads tags) is offered only if `breaks` finds it creates no refused step anywhere in the workflow, so
+    after a check the step list is those three, a stage whose own automations also only ask for a closer look, and the line
+    "A check can only ask for a closer look. A person decides.". The sentence never adds a rejection; AI-use and
+    accommodation are not facts, so they are never offered as conditions. The API's validator still checks every save. The
+    sets `checkSafeActions` and `checkSafeStageKinds` copy `SignalSafeActions` and `SignalSafeStages`, and
+    `timeLimitActions` copies `SlaBreachActions`: change them together, or the sentence offers what the save refuses.
+  - **Recipes.** `#lib/automation-recipes.ts` builds ready-made automations from the template's own questions and stages,
+    in three groups. A recipe is hidden when the workflow already has an automation that does the same thing (`covers`:
+    the same trigger and conditions and at least its actions) or one with its id `recipe-<key>` (cut, with a short hash of the key, to the validator's 40 characters), and when adding it
+    would create a refused step.
 - **Questions:** the Form timeline across the top (`form-timeline.svelte`, design system section 11) has a card for the
   apply form and one for each follow-up questionnaire, named by when it reaches the candidate: "When they apply",
   "When they reach Trial shift", "3 days after Trial shift starts", or "Not sent yet" when no enabled automation sends it.
@@ -764,7 +805,9 @@ scorecard then asks for a required overall `Recommendation` (strong no, no, yes,
   that key. A review in a stage with a scorecard is answered only by their scorecard for that stage (the task's
   `stageId`), so scoring another stage does not show it. A review in a stage without a scorecard, or one made before
   tasks kept their stage, is answered by any scorecard of theirs submitted since it was assigned. Until then the API leaves the rating (`AfterYourScorecard`, no number),
-  the other scorecards, the others' recommendations in the timeline and automation runs out of what they read. A
+  the content of the other scorecards, the others' recommendations in the timeline and automation runs out of what they read. The scorecards list still has a row for each other
+  scorecard, with `withheld: true`: who gave it, for which stage and scorecard, and when, but `recommendation` and `rating` null, `answers` and `ratings` empty
+  and `note` null, so the dashboard shows who has submitted without anchoring the reviewer. Their own scorecards are never withheld, and nor is anything for a reader with no scorecard to give, whatever their role. A review task entry carries its `stageId`, so the dashboard can say whether a review is for the scorecard it is showing; other kinds leave it null. A
   Review task for the whole team holds nothing back, and neither does an API key. Since a review is finished by any
   scorecard its reviewer gives, giving one shows them the rating.
 - The rating is on `ApplicationSummary` and `ApplicationDetail`, so the job's table, the candidates list and the

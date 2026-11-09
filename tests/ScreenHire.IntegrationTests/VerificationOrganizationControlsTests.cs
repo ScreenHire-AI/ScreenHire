@@ -298,6 +298,11 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
         notRun.Select(n => n.GetProperty("label").GetString()).Should().Equal("Network", "Answers");
         notRun.Should().OnlyContain(n => n.GetProperty("kind").GetString() == "TurnedOff");
         notRun[0].GetProperty("note").GetString().Should().Be("Network checks are turned off in this organization's settings.");
+        // The tab's map says the same in one word per group.
+        var groups = verification.At("checkGroups").EnumerateArray().ToDictionary(g => g.GetProperty("group").GetString()!, g => g.GetProperty("state").GetString());
+        groups["Network"].Should().Be("TurnedOff");
+        groups["Answers"].Should().Be("TurnedOff");
+        groups["FormUse"].Should().Be("Found", "the groups that are on still run");
         // With Answers off the pipeline does not wait for the consistency check, so its outcome is read once the worker has recorded it.
         await Messaging.WolverineStore.WaitUntilAsync(
             async () =>
@@ -327,6 +332,11 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
         var duplicates = verification.At("checksNotRun").EnumerateArray().Single(n => n.GetProperty("label").GetString() == "Duplicates");
         duplicates.GetProperty("kind").GetString().Should().Be("TurnedOff");
         duplicates.GetProperty("note").GetString().Should().Be(RunNotes.DeviceNotCompared);
+        // Duplicates still compared the email address, phone number and resume, so it is a note on that group, not a group that is off.
+        var groups = verification.At("checkGroups").EnumerateArray().ToDictionary(g => g.GetProperty("group").GetString()!);
+        groups["FormUse"].GetProperty("state").GetString().Should().Be("TurnedOff");
+        groups["Duplicates"].GetProperty("state").GetString().Should().Be("NothingFound");
+        groups["Duplicates"].GetProperty("note").GetString().Should().Be(RunNotes.DeviceNotCompared);
     }
 
     [Fact]

@@ -11,10 +11,10 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
-  import { assessmentNames, dismissReasonLabels, explainReasonLabels, type AssessmentKind, type ExplainedReasonItem } from '#lib/verification.js';
+  import { dismissReasonLabels, explainReasonLabels, type AssessmentKind, type ExplainedReasonItem } from '#lib/verification.js';
   import { cn } from '#lib/utils.js';
 
-  // Dismissing records a reviewer's decision in the audit log. It never changes the assessment or its evidence, and
+  // Dismissing records a reviewer's decision in Activity. It never changes the assessment or its evidence, and
   // it is the only way to set an assessment aside: there is no reject here (ADR-0004).
   let {
     open = $bindable(false),
@@ -56,12 +56,12 @@
       const response = await dismissVerificationAssessment(applicationId, assessment.id, { reason: form.data.reason, note });
       if (response.status === 200) {
         open = false;
-        ondone(`Dismissed ${assessmentNames[assessment.kind].toLowerCase()}: ${dismissReasonLabels[form.data.reason]}. The decision is in the review log.`);
+        ondone(`Dismissed the verification result: ${dismissReasonLabels[form.data.reason]}.`);
       } else if (response.status === 400) {
         applyValidationProblem(form, response.data);
       } else if (response.status === 409) {
         open = false;
-        ondone('This assessment was already dismissed, or a newer one replaced it. The panel now shows the latest.');
+        ondone('This result was already dismissed, or a newer one replaced it. The tab now shows the latest.');
       } else {
         form.valid = false;
         form.errors._errors = ["We couldn't record the dismissal just now. Try again in a minute."];
@@ -75,7 +75,6 @@
   });
 
   const reasons = Object.values(DismissReason);
-  const name = $derived(assessment ? assessmentNames[assessment.kind].toLowerCase() : 'assessment');
 </script>
 
 <Dialog.Root bind:open>
@@ -83,13 +82,13 @@
        does, and the dismiss button stays reachable. -->
   <Dialog.Content class="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md">
     <Dialog.Header>
-      <Dialog.Title>Dismiss this {name} assessment?</Dialog.Title>
+      <Dialog.Title>Dismiss this verification result?</Dialog.Title>
       <Dialog.Description>
-        The evidence stays on record and your reason goes in the review log{assessment?.kind === 'authenticity' ? '; the candidate leaves "To review".' : '.'}
+        The evidence stays on record and your reason goes in Activity{assessment?.kind === 'authenticity' ? '; the candidate leaves "To review".' : '.'}
       </Dialog.Description>
     </Dialog.Header>
     {#if explained.length > 0}
-      <p id="dismiss-explained-label" class="text-caption font-semibold text-muted-foreground">Explained reasons</p>
+      <p id="dismiss-explained-label" class="text-caption font-semibold text-muted-foreground">Explained findings</p>
       <ul aria-labelledby="dismiss-explained-label" class="-mt-2 flex flex-col gap-2" data-explained-reasons>
         {#each explained as item (item.id)}
           <li class="flex flex-col gap-0.5">

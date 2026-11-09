@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using ScreenHire.Api.Applications;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Applications;
@@ -396,8 +397,14 @@ internal static class VerificationReads
             .. assessment.SignalIds.Where(signals.ContainsKey).Select(id => signals[id]).Select(s => new VerificationSignalView(
                 s.Id, s.Code, TitleOf(s), s.Category, s.Weight,
                 s.Confidence, assessment.CountedSignalIds.Contains(s.Id), s.ContextOnly, s.AccessibilitySensitive, s.Explanation, s.Evidence,
-                s.CounterEvidence, s.Source, s.SourceVersion, s.ObservedAt, s.Informational, s.Llm, ExplanationOf(assessment, s.Id))),
+                s.CounterEvidence, s.Source, s.SourceVersion, s.ObservedAt, s.Informational, s.Llm, ExplanationOf(assessment, s.Id),
+                CheckGroups.OfSignal(s))),
         ];
+
+        var authenticitySignals = authenticity is null ? [] : SignalsOf(authenticity);
+        var aiSignals = aiAssistance is null ? [] : SignalsOf(aiAssistance);
+        // A hand-added candidate came through no careers form, so some groups had nothing to read. It goes by the source alone.
+        var source = await db.Applications.AsNoTracking().Where(a => a.Id == applicationId).Select(a => (ApplicationSource?)a.Source).SingleOrDefaultAsync(cancellationToken);
 
         return new ApplicationVerification(
             applicationId,
@@ -406,12 +413,12 @@ internal static class VerificationReads
                 ? null
                 : new AuthenticityAssessmentView(
                     authenticity.Id, Enum.Parse<AuthenticityLevel>(authenticity.Level), authenticity.ReasonCodes, authenticity.Summary,
-                    authenticity.NextStep, SignalsOf(authenticity), authenticity.RulesetVersion, authenticity.AssessedAt, DismissalOf(authenticity)),
+                    authenticity.NextStep, authenticitySignals, authenticity.RulesetVersion, authenticity.AssessedAt, DismissalOf(authenticity)),
             aiAssistance is null
                 ? null
                 : new AiAssistanceAssessmentView(
                     aiAssistance.Id, Enum.Parse<AiAssistanceLevel>(aiAssistance.Level), aiAssistance.ReasonCodes, aiAssistance.Summary,
-                    aiAssistance.NextStep, SignalsOf(aiAssistance), aiAssistance.RulesetVersion, aiAssistance.AssessedAt, DismissalOf(aiAssistance),
+                    aiAssistance.NextStep, aiSignals, aiAssistance.RulesetVersion, aiAssistance.AssessedAt, DismissalOf(aiAssistance),
                     aiAssistance.AiUsePolicy ?? AiUsePolicy.AllowedWithDisclosure, aiAssistance.AiUseDeclaration ?? AiUseDeclaration.NotProvided,
                     aiAssistance.AiPolicyContext ?? AiPolicyContext.NotDisclosed),
             [
@@ -427,7 +434,8 @@ internal static class VerificationReads
                 ? null
                 : new ConsistencyCheckView(
                     check.Status, check.Note, check.PromptVersion, check.ExtractionModel, check.ConsistencyModel, check.Contradictions.Count, check.CompletedAt),
-            notRun);
+            notRun,
+            VerificationGroups.Of(authenticitySignals, aiSignals, notRun, source));
     }
 
     /// <summary>The chips for each application in <paramref name="applicationIds"/> that has been assessed.</summary>

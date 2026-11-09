@@ -24,6 +24,7 @@ describe('status catalogue', () => {
       archived: 'neutral archive',
       saved: 'neutral bookmark',
       notInEffect: 'neutral circle-minus',
+      information: 'neutral info',
     });
   });
 

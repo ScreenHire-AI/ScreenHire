@@ -90,26 +90,38 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Verification") }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(@"\?tab=verification$"));
         var tab = Page.GetByRole(AriaRole.Tabpanel);
-        var authenticity = Region("Authenticity");
-        await Expect(authenticity.GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync(Visible);
+        var summary = Region("Verification");
+        // The tab is organised by the six check groups: a panel for each that found something, named for the group.
+        await Expect(Region("Network")).ToBeVisibleAsync(Visible);
         foreach (var code in new[] { "AUTO_HONEYPOT", "AUTO_SUBMIT_VELOCITY", "AUTO_WEBDRIVER", "ID_EMAIL_DISPOSABLE", "ID_PHONE_INVALID", "NET_DATACENTER_IP" })
         {
-            await Expect(authenticity.Locator($"[data-signal='{code}']")).ToBeVisibleAsync();
+            await Expect(tab.Locator($"[data-signal='{code}']")).ToBeVisibleAsync();
         }
 
-        await Expect(authenticity.Locator("[data-next-step]")).ToContainTextAsync("Confirm the candidate is who they say they are");
-        // A reason expands to its evidence.
-        await ExpandAllAsync(authenticity);
-        await Expect(authenticity.Locator("[data-signal='NET_DATACENTER_IP']")).ToContainTextAsync("Example Cloud Hosting (AS64497)");
-        await Expect(authenticity.Locator("[data-signal='AUTO_WEBDRIVER'] [data-evidence-kind='List']")).ToContainTextAsync("webdriver");
-        await Expect(authenticity.Locator("[data-signal='AUTO_SUBMIT_VELOCITY'] [data-evidence-kind='Metric']")).ToContainTextAsync("Plausible minimum for this form");
-        var ai = Region("AI assistance");
-        // A calm result is its level and the policy only: the meter and the Informational pill are for a concern (W10).
+        await Expect(Region("Network").Locator("[data-signal='NET_DATACENTER_IP']")).ToBeVisibleAsync();
+        await Expect(Region("Contact details").Locator("[data-signal='ID_PHONE_INVALID']")).ToBeVisibleAsync();
+        await Expect(Region("Form use").Locator("[data-signal='AUTO_WEBDRIVER']")).ToBeVisibleAsync();
+        await Expect(Region("Authenticity")).ToHaveCountAsync(0);
+        await Expect(Region("Review log")).ToHaveCountAsync(0);
+        var map = summary.GetByRole(AriaRole.List, new() { Name = "Check groups" });
+        await Expect(map.Locator("[data-group='Network']")).ToContainTextAsync("1 found");
+        await Expect(map.Locator("[data-group='Documents']")).ToContainTextAsync("information only");
+        await Expect(map.Locator("[data-group='Duplicates']")).ToContainTextAsync("Nothing found");
+        await Expect(summary.Locator("[data-next-step]")).ToContainTextAsync("Confirm the candidate is who they say they are");
+        // A finding expands to its evidence.
+        await OpenAllFindingsAsync();
+        await Expect(tab.Locator("[data-signal='NET_DATACENTER_IP']")).ToContainTextAsync("Example Cloud Hosting (AS64497)");
+        await Expect(tab.Locator("[data-signal='AUTO_WEBDRIVER'] [data-evidence-kind='List']")).ToContainTextAsync("webdriver");
+        await Expect(tab.Locator("[data-signal='AUTO_SUBMIT_VELOCITY'] [data-evidence-kind='Metric']")).ToContainTextAsync("Plausible minimum for this form");
+        // A calm AI row is its badge and the job's policy, and nothing marks a finding that counts as information only.
+        var ai = summary.Locator("[data-ai-row]");
         await Expect(ai).ToContainTextAsync("No signs of AI help");
-        await Expect(ai.GetByRole(AriaRole.Img, new() { NameRegex = new("^AI assistance:") })).ToHaveCountAsync(0);
-        // The job's policy is a pill beside the level.
         await Expect(ai).ToContainTextAsync("AI allowed with disclosure");
-        (await ai.TextContentAsync()).Should().NotContain("Declared AI use", "the declaration is on the Application tab, not repeated here");
+        // AI help is marked as information only on its own findings (the resume's) and nowhere else.
+        await Expect(Region("Documents").Locator("[data-information-only]")).Not.ToHaveCountAsync(0);
+        await Expect(Region("Network").Locator("[data-information-only]")).ToHaveCountAsync(0);
+        await Expect(Region("Form use").Locator("[data-information-only]")).ToHaveCountAsync(0);
+        (await tab.TextContentAsync()).Should().NotContain("Declared AI use", "the declaration is on the Application tab, not repeated here");
         // A feature that does not exist yet is hidden, not shown disabled (design system A3).
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Request verification", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);
         await Expect(tab).Not.ToContainTextAsync("Phase 2");
@@ -119,12 +131,12 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-verification-panel-light");
 
-        // Each reason is marked explained in turn: it closes with its badge, and the level stays as assessed.
+        // Each finding is marked explained in turn: it closes with its badge, and the level stays as assessed.
         string[] counted = ["AUTO_HONEYPOT", "AUTO_SUBMIT_VELOCITY", "AUTO_WEBDRIVER", "ID_EMAIL_DISPOSABLE", "ID_PHONE_INVALID", "NET_DATACENTER_IP"];
         foreach (var code in counted)
         {
-            await Expect(authenticity.GetByRole(AriaRole.Button, new() { Name = "Dismiss", Exact = true })).ToBeVisibleAsync();
-            var reason = authenticity.Locator($"[data-signal='{code}']");
+            await Expect(summary.GetByRole(AriaRole.Button, new() { Name = "Dismiss", Exact = true })).ToBeVisibleAsync();
+            var reason = tab.Locator($"[data-signal='{code}']");
             await reason.GetByRole(AriaRole.Button, new() { Name = "Mark explained" }).ClickAsync();
             var explain = Page.GetByRole(AriaRole.Dialog, new() { NameRegex = new Regex("^Mark \".+\" explained\\?$") });
             if (code == "NET_DATACENTER_IP")
@@ -144,14 +156,12 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
             await Expect(reason.GetByRole(AriaRole.Button, new() { Name = "Undo" })).ToBeVisibleAsync();
         }
 
-        await Expect(authenticity.GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync();
-        await Expect(Region("Review log")).ToContainTextAsync("Explained Sent from a hosting provider's network: Expected for this role by you");
         await ExpectNoAccessibilityViolationsAsync();
 
         // Every reason explained, the one button reads Dismiss all; dismissing still takes a reason and is one action.
-        await authenticity.GetByRole(AriaRole.Button, new() { Name = "Dismiss all", Exact = true }).ClickAsync();
-        var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Dismiss this authenticity assessment?" });
-        var listed = dialog.GetByRole(AriaRole.List, new() { Name = "Explained reasons" });
+        await summary.GetByRole(AriaRole.Button, new() { Name = "Dismiss all", Exact = true }).ClickAsync();
+        var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Dismiss this verification result?" });
+        var listed = dialog.GetByRole(AriaRole.List, new() { Name = "Explained findings" });
         await Expect(listed.GetByRole(AriaRole.Listitem)).ToHaveCountAsync(counted.Length);
         await Expect(listed).ToContainTextAsync("Expected for this role, by you. \"Remote role; works through a hosted VPN.\"");
         await dialog.GetByRole(AriaRole.Radio, new() { Name = "Verified outside ScreenHire" }).CheckAsync();
@@ -160,14 +170,19 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Dismiss with this reason" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();
 
-        var log = Region("Review log");
-        await Expect(log).ToContainTextAsync("Dismissed authenticity: Verified outside ScreenHire by you");
-        await Expect(log).ToContainTextAsync("\"Video call on Monday; ID checked.\"");
-        await Expect(authenticity).ToContainTextAsync("Dismissed by you");
-        await Expect(authenticity).ToContainTextAsync("Verified outside ScreenHire");
-        // The level stays as assessed.
-        await Expect(authenticity.GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync();
-        await Expect(authenticity.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^(Dismiss|Undo|Mark explained)") })).ToHaveCountAsync(0);
+        await Expect(summary).ToContainTextAsync("Dismissed by you");
+        await Expect(summary).ToContainTextAsync("Verified outside ScreenHire");
+        await Expect(tab.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^(Dismiss|Undo|Mark explained)") })).ToHaveCountAsync(0);
+
+        // There is no Review log panel: every explanation, and the dismissal with its note, is a line in Activity, under the
+        // Verification filter.
+        await Tab("Activity").ClickAsync();
+        var activity = Region("Activity");
+        await activity.GetByRole(AriaRole.Group, new() { Name = "Show" }).GetByRole(AriaRole.Button, new() { NameRegex = new("^Verification") }).ClickAsync();
+        await Expect(activity).ToContainTextAsync("Explained \"Sent from a hosting provider's network\": Expected for this role");
+        await Expect(activity).ToContainTextAsync("Dismissed the verification result: Verified outside ScreenHire");
+        await Expect(activity).ToContainTextAsync("\"Video call on Monday; ID checked.\"");
+        await Tab("Verification").ClickAsync();
 
         // The audit entries are in the API's record too, with the reviewer: one per explained reason, then one dismissal.
         var record = await Page.APIRequest.GetAsync(DashboardUrl($"/v1/applications/{botId}/verification"));
@@ -202,9 +217,9 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         // A farm member's Verification tab shows what it shares with the others; the genuine applicant's has nothing to dismiss.
         await queue.GetByRole(AriaRole.Link, new() { Name = farmSecond.FullName }).ClickAsync();
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Verification") }).ClickAsync();
-        await Expect(Region("Authenticity").GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync(Visible);
+        await Expect(Region("Duplicates")).ToBeVisibleAsync(Visible);
         var shared = Page.Locator("[data-signal='ID_DUPLICATE_IN_ORG']");
-        await ExpandAllAsync(Region("Authenticity"));
+        await OpenAllFindingsAsync();
         await Expect(shared).ToContainTextAsync("Same device");
         await Expect(shared).ToContainTextAsync("Same resume file");
         await Expect(Page.Locator("[data-signal='NET_DATACENTER_IP']")).ToBeVisibleAsync();
@@ -214,8 +229,11 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" }).GetByRole(AriaRole.Link, new() { Name = genuine.FullName }).ClickAsync();
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Verification") }).ClickAsync();
         var genuineTab = Page.GetByRole(AriaRole.Tabpanel);
-        await Expect(Region("Authenticity").GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: No concerns") })).ToBeVisibleAsync(Visible);
-        await Expect(Region("Authenticity").Locator("[data-next-step]")).ToHaveTextAsync("No action needed.");
+        await Expect(Region("Verification").Locator("[data-next-step]")).ToHaveTextAsync("No action needed.", new() { Timeout = 60_000 });
+        // A calm result is one line and a collapsed list of what was checked, with no map and no panel for any group.
+        await Expect(genuineTab).ToContainTextAsync("Nothing unusual in the checks that ran.");
+        await Expect(genuineTab.Locator("[data-checked]")).ToContainTextAsync("What was checked");
+        await Expect(genuineTab.GetByRole(AriaRole.List, new() { Name = "Check groups" })).ToHaveCountAsync(0);
         await Expect(genuineTab.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Dismiss") })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
     }
@@ -302,16 +320,14 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
 
-    // Opens every list of reasons in the panel; the button turns into Collapse all, so the count of Expand all falls.
-    private static async Task ExpandAllAsync(ILocator panel)
+    // Opens every finding on the tab. A group with one finding has no Expand all, so each closed finding is opened by its row.
+    private async Task OpenAllFindingsAsync()
     {
-        var expand = panel.GetByRole(AriaRole.Button, new() { Name = "Expand all" });
-        for (var left = await expand.CountAsync(); left > 0; left--)
-        {
-            await expand.First.ClickAsync();
-            await Expect(expand).ToHaveCountAsync(left - 1);
-        }
+        await Page.EvalOnSelectorAllAsync("[data-signal] details:not([open]) > summary", "rows => rows.forEach(row => row.click())");
+        await Expect(Page.Locator("[data-signal] details:not([open])")).ToHaveCountAsync(0);
     }
+
+    private ILocator Tab(string name) => Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^" + name) });
 
     private static ILocator CandidateLinks(ILocator table) => table.Locator("[data-row-link]");
 

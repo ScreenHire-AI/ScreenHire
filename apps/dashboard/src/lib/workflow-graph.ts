@@ -7,20 +7,8 @@
 // projection shows.
 import type { Edge, Node } from '@xyflow/svelte';
 import type { DefinitionError, EvaluationOutcome, HiringWorkflow } from '@screenhire/api-client';
-import {
-  describeAction,
-  emailTemplateNames,
-  errorsUnder,
-  factsFor,
-  followUpName,
-  isTerminal,
-  laneOf,
-  newAction,
-  newAutomation,
-  newRule,
-  operatorLabels,
-  triggerLabels,
-} from './workflow.js';
+import { ruleTitle, triggerTitle } from './automation-sentence.js';
+import { describeAction, emailTemplateNames, errorsUnder, factsFor, isTerminal, laneOf, newAction, newAutomation, newRule } from './workflow.js';
 
 export type StepKind = 'lane' | 'stage' | 'trigger' | 'conditions' | 'action' | 'add-automation' | 'add-condition' | 'add-action';
 
@@ -224,15 +212,14 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
     const off = disabled ? ', off' : '';
     const base = { automation: index, automationId: automation.id, automationName: automation.name, lane: null, band, disabled };
     const items: Item[] = [];
-    const trigger = triggerLabels[automation.trigger.type] ?? automation.trigger.type;
     items.push(
       item(
         triggerNode(automation.id),
         {
           ...base,
           kind: 'trigger',
-          title: automation.name,
-          detail: automation.trigger.questionnaireId ? `${trigger}: ${followUpName(workflow, automation.trigger.questionnaireId)}` : trigger,
+          title: triggerTitle(automation.trigger, workflow),
+          detail: automation.name,
           path: `${path}.trigger`,
           movesToStage: false,
         },
@@ -241,8 +228,8 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
     );
     const rules = automation.conditions?.rules ?? [];
     if (rules.length > 0) {
-      const match = automation.conditions?.match === 'Any' ? 'Any of' : 'All of';
-      const title = `${match} ${rules.length} ${rules.length === 1 ? 'condition' : 'conditions'}`;
+      const joiner = automation.conditions?.match === 'Any' ? ' or ' : ' and ';
+      const title = rules.map((rule) => ruleTitle(rule, workflow, automation.trigger.type)).join(joiner);
       items.push(
         item(
           `${automation.id}:conditions`,
@@ -250,7 +237,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
             ...base,
             kind: 'conditions',
             title,
-            detail: rules.map((rule) => `${rule.negate ? 'not ' : ''}${rule.fact} ${operatorLabels[rule.operator]} ${rule.value ?? rule.values?.join(', ') ?? ''}`.trim()).join('; '),
+            detail: '',
             path: `${path}.conditions`,
             movesToStage: false,
           },

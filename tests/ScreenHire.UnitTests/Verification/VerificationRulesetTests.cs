@@ -85,7 +85,7 @@ public sealed class VerificationRulesetTests
 
         authenticity.Level.Should().Be(nameof(AuthenticityLevel.ReviewSuggested));
         authenticity.ReasonCodes.Should().BeEquivalentTo([SignalCatalogue.DatacenterIp, SignalCatalogue.DisposableEmail]);
-        authenticity.Summary.Should().Be("2 observations from network and identity checks back each other up.",
+        authenticity.Summary.Should().Be("2 observations from network and contact details checks back each other up.",
             "the summary is one line; the reasons list names each signal");
         authenticity.NextStep.Should().StartWith("Read the evidence before the first screen.");
     }

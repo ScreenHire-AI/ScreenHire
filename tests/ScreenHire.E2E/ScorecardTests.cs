@@ -33,7 +33,7 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await scorecards.GetByRole(AriaRole.Button, new() { Name = "Fill in" }).ClickAsync();
 
         // The candidate is in Interview, so the sheet starts on its scorecard.
-        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Fill in a scorecard" });
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Give your scorecard" });
         await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Scorecard" })).ToHaveValueAsync("stage:interview");
         // Ratings and yes-or-no answer on a row of joined buttons, with Low and High under a number scale.
         await Question(sheet, "Problem solving").GetByRole(AriaRole.Radio, new() { Name = "4", Exact = true }).ClickAsync();
@@ -49,13 +49,25 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-scorecard-sheet");
         await sheet.GetByRole(AriaRole.Button, new() { Name = "Submit scorecard" }).ClickAsync();
+        // The sheet says so and stays until it is closed; there is no other task to offer.
+        await Expect(sheet).ToContainTextAsync("Scorecard submitted.");
+        await Expect(sheet.GetByRole(AriaRole.Link, new() { Name = "Open next task" })).ToHaveCountAsync(0);
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Close" }).ClickAsync();
         await Expect(sheet).ToBeHiddenAsync();
 
-        // The scorecard shows each answer with its reviewer, and its rating questions make the stars: 4, 10 (5) and a
-        // rating Yes (5) average 4.7. The automation's move reaches the page live.
-        await Expect(scorecards).ToContainTextAsync("Strong yes by you");
-        await Expect(scorecards).ToContainTextAsync("10 of 10");
-        await Expect(scorecards).ToContainTextAsync("Testing");
+        // The roster has the scorecard, and its rating questions make the stars: 4, 10 (5) and a rating Yes (5) average 4.7.
+        // The row opens the answers in a side sheet. The automation's move reaches the page live.
+        var yours = scorecards.GetByRole(AriaRole.Row, new() { NameRegex = new("^You") });
+        await Expect(yours).ToContainTextAsync("Strong yes");
+        await Expect(yours).ToContainTextAsync("4.7");
+        await yours.GetByRole(AriaRole.Button, new() { Name = "You" }).ClickAsync();
+        var read = Page.GetByRole(AriaRole.Dialog, new() { Name = "Interview scorecard" });
+        await Expect(read).ToContainTextAsync("10 of 10");
+        await Expect(read).ToContainTextAsync("Testing");
+        await Expect(read).ToContainTextAsync("Clear walk-through of the cache design.");
+        await SaveScreenshotAsync(Page, "dashboard-scorecard-read-sheet");
+        await read.GetByRole(AriaRole.Button, new() { Name = "Close" }).ClickAsync();
+        await Expect(read).ToBeHiddenAsync();
         // The header's rating is a link to the Scorecards tab, named by what it says: the number and how many scorecards.
         var rating = Page.GetByRole(AriaRole.Link, new() { Name = "Rated 4.7 out of 5 from 1 scorecard" });
         await Expect(rating).ToBeVisibleAsync();
@@ -68,7 +80,7 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await rating.ClickAsync();
         await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(@"\?tab=scorecards$"));
         await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Scorecards") })).ToHaveAttributeAsync("aria-selected", "true");
-        await Expect(scorecards).ToContainTextAsync("Strong yes by you");
+        await Expect(scorecards).ToContainTextAsync("Strong yes");
         // The automation's move shows on the header's pipeline tracker, where the current stage is marked, and in Activity.
         await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Pipeline", Exact = true }).Locator("[aria-current='step']"))
             .ToContainTextAsync("Offer", new() { Timeout = 30_000 });
@@ -95,7 +107,7 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}?tab=scorecards"));
         await Page.SetViewportSizeAsync(390, 844);
-        await Expect(Region("Scorecards")).ToContainTextAsync("Strong yes by you");
+        await Expect(Region("Scorecards")).ToContainTextAsync("Strong yes");
         (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
             .Should().BeTrue("the page never scrolls sideways (F1)");
         await SaveScreenshotAsync(Page, "dashboard-scorecards-phone");

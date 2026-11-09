@@ -1,4 +1,4 @@
-import type { ApplicationVerification, VerificationSignalView, VerificationSummary, SignalEvidence } from '@screenhire/api-client';
+import type { ApplicationVerification, CheckGroup, CheckGroupView, VerificationSignalView, VerificationSummary, SignalEvidence } from '@screenhire/api-client';
 
 /**
  * Fictional verification responses for component tests, shaped like `GET /v1/applications/{id}/verification`. The signals
@@ -30,12 +30,36 @@ export const evidenceOfEveryKind: Record<SignalEvidence['kind'], SignalEvidence>
   List: { kind: 'List', label: 'Automation markers', items: ['webdriver', 'headless'] },
 };
 
+const groupLabels: Record<CheckGroup, string> = {
+  Network: 'Network',
+  Contact: 'Contact details',
+  Documents: 'Documents',
+  Answers: 'Answers',
+  Duplicates: 'Duplicates',
+  FormUse: 'Form use',
+};
+
+/** The six groups in order, all with nothing found unless `overrides` says otherwise for a group. */
+export function checkGroups(overrides: Partial<Record<CheckGroup, Partial<CheckGroupView>>> = {}): CheckGroupView[] {
+  return (Object.keys(groupLabels) as CheckGroup[]).map((group) => ({
+    group,
+    label: groupLabels[group],
+    state: 'NothingFound',
+    found: 0,
+    notes: 0,
+    checked: `what ${groupLabels[group].toLowerCase()} looks at`,
+    note: null,
+    ...overrides[group],
+  }));
+}
+
 function signal(code: string, title: string, overrides: Partial<VerificationSignalView> = {}): VerificationSignalView {
   return {
     id: `signal-${code}`,
     code,
     title,
     category: 'Automation',
+    group: 'FormUse',
     weight: 'Medium',
     confidence: 'High',
     countsTowardLevel: true,
@@ -63,17 +87,18 @@ export function botVerification(overrides: Partial<ApplicationVerification> = {}
       id: authenticityAssessmentId,
       level: 'VerificationRecommended',
       reasonCodes: ['AUTO_SUBMIT_VELOCITY', 'AUTO_WEBDRIVER', 'NET_DATACENTER_IP'],
-      summary: '3 observations from network and automation checks back each other up.',
+      summary: '3 observations from network and form use checks back each other up.',
       nextStep: 'Confirm the candidate is who they say they are before you spend interview time. These signals are not a reason to reject on their own.',
       signals: [
         signal('AUTO_SUBMIT_VELOCITY', 'Completed faster than a person could', { evidence: [evidenceOfEveryKind.Metric] }),
         signal('AUTO_WEBDRIVER', 'Browser automation detected', { evidence: [evidenceOfEveryKind.List] }),
         signal('NET_DATACENTER_IP', "Sent from a hosting provider's network", {
           category: 'Network',
+          group: 'Network',
           evidence: [evidenceOfEveryKind.Fact],
           counterEvidence: [{ explanation: 'The candidate gave a phone number in the same country.', evidence: { kind: 'Fact', label: 'Phone country', value: 'United Kingdom' } }],
         }),
-        signal('NET_ANON_PROXY', 'Connected through a VPN', { category: 'Network', countsTowardLevel: false, contextOnly: true }),
+        signal('NET_ANON_PROXY', 'Connected through a VPN', { category: 'Network', group: 'Network', countsTowardLevel: false, contextOnly: true }),
       ],
       rulesetVersion: '2026-10-20.2',
       assessedAt: '2026-10-20T09:01:00Z',
@@ -86,8 +111,8 @@ export function botVerification(overrides: Partial<ApplicationVerification> = {}
       summary: 'Some answers look generated or templated.',
       nextStep: 'Ask about the answers in the first conversation.',
       signals: [
-        signal('CNT_PROMPT_INJECTION', 'Hidden instructions in the resume', { category: 'Document', evidence: [evidenceOfEveryKind.Quote] }),
-        signal('CNT_NEAR_DUPLICATE_ANSWER', "Answer close to another applicant's", { category: 'Content', evidence: [evidenceOfEveryKind.TextComparison] }),
+        signal('CNT_PROMPT_INJECTION', 'Hidden instructions in the resume', { category: 'Document', group: 'Documents', evidence: [evidenceOfEveryKind.Quote] }),
+        signal('CNT_NEAR_DUPLICATE_ANSWER', "Answer close to another applicant's", { category: 'Content', group: 'Answers', evidence: [evidenceOfEveryKind.TextComparison] }),
       ],
       rulesetVersion: '2026-10-20.2',
       assessedAt: '2026-10-20T09:01:00Z',
@@ -97,6 +122,12 @@ export function botVerification(overrides: Partial<ApplicationVerification> = {}
       policyContext: 'NotDisclosed',
     },
     reviewLog: [],
+    checkGroups: checkGroups({
+      Network: { state: 'Found', found: 1, notes: 1 },
+      Documents: { state: 'InformationOnly', notes: 1 },
+      Answers: { state: 'InformationOnly', notes: 1 },
+      FormUse: { state: 'Found', found: 2 },
+    }),
     consistencyCheck: null,
     requestVerification: { available: false, reason: 'Identity verification arrives in phase 2.' },
     ...overrides,
@@ -108,8 +139,9 @@ export function genuineVerification(): ApplicationVerification {
   const bot = botVerification();
   return {
     ...bot,
-    authenticity: { ...bot.authenticity!, level: 'NoConcerns', reasonCodes: [], signals: [], summary: 'No checks found anything to review.', nextStep: 'No action needed.' },
+    authenticity: { ...bot.authenticity!, level: 'NoConcerns', reasonCodes: [], signals: [], summary: 'Nothing unusual in the checks that ran.', nextStep: 'No action needed.' },
     aiAssistance: { ...bot.aiAssistance!, level: 'NotIndicated', reasonCodes: [], signals: [], summary: 'No indicators.', nextStep: 'No action needed.' },
+    checkGroups: checkGroups(),
   };
 }
 

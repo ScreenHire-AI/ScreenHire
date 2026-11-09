@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { CheckGroup } from './checkGroup.ts';
 import type { CounterEvidence } from './counterEvidence.ts';
 import type { LlmProvenance } from './llmProvenance.ts';
 import type { SignalCategory } from './signalCategory.ts';
@@ -35,4 +36,5 @@ export interface VerificationSignalView {
   informational: boolean;
   llm: null | LlmProvenance;
   explained: null | VerificationReasonExplanation;
+  group: CheckGroup;
 }

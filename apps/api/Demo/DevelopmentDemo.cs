@@ -353,7 +353,7 @@ internal sealed partial class DevelopmentDemo(
                     OrganizationId = found.Application.OrganizationId,
                     ApplicationId = found.Application.Id,
                     Kind = Domain.Automations.ApplicationTaskKind.Review,
-                    Note = "Review this application.",
+                    Note = "Give your scorecard.",
                     AssigneeUserId = avery,
                     StageId = DemoScorecards.ReviewForOwnerStage,
                     CreatedAt = step.Now,

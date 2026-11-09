@@ -33,7 +33,7 @@ const task = (overrides: Partial<TaskListItem>): TaskListItem => ({
 // For the team, the person's own, and a teammate's.
 const open = [
   task({}),
-  task({ kind: 'Review', note: 'Review this application.', assigneeUserId: user.id, candidateName: 'Jordan Lee', createdAt: '2026-10-20T10:05:00Z' }),
+  task({ kind: 'Review', note: 'Give your scorecard.', assigneeUserId: user.id, candidateName: 'Jordan Lee', createdAt: '2026-10-20T10:05:00Z' }),
   task({ kind: 'Review', note: 'Review the portfolio.', assigneeUserId: robin, candidateName: 'Alex Reed', createdAt: '2026-10-20T10:10:00Z' }),
 ];
 const done = [task({ kind: 'RejectionReview', note: 'Not authorised to work in the UK.', completedAt: '2026-10-20T11:00:00Z', completedByUserId: robin })];
@@ -74,9 +74,12 @@ describe('my tasks page', () => {
     const own = rows(panel);
     expect(own).toHaveLength(1);
     // The row links to where the work is done, and the task is ticked off there, so there is no checkbox here.
-    expect(within(own[0]!).getByRole('link', { name: 'Review this application.' })).toHaveAttribute('href', '/applications/01a157d4-0000-7000-8000-000000000410?tab=scorecards&fill=stage');
+    expect(within(own[0]!).getByRole('link', { name: 'Give your scorecard.' })).toHaveAttribute('href', '/applications/01a157d4-0000-7000-8000-000000000410?tab=scorecards&fill=stage');
     expect(own[0]).toHaveTextContent('Jordan Lee');
-    expect(own[0]).toHaveTextContent('Review');
+    // The Type column says Scorecard: "Review" only means the verification state.
+    expect(own[0]).toHaveTextContent('Scorecard');
+    // Task and Type say what to do and what kind it is, so no other column repeats them (W7).
+    expect(within(panel).getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(['Task', 'Candidate', 'Job', 'Type', 'Created']);
     // Mine already says whose they are, so there is no For column (W7).
     expect(within(panel).queryByRole('columnheader', { name: 'For' })).not.toBeInTheDocument();
     expect(within(own[0]!).queryByRole('checkbox')).not.toBeInTheDocument();
@@ -119,7 +122,7 @@ describe('my tasks page', () => {
       '/applications/01a157d4-0000-7000-8000-000000000411?tab=scorecards&scorecard=interview',
     );
     // A review is finished by any scorecard, so it opens the sheet on the scorecard for the candidate's stage.
-    expect(within(panel).getByRole('link', { name: 'Review this application.' })).toHaveAttribute(
+    expect(within(panel).getByRole('link', { name: 'Give your scorecard.' })).toHaveAttribute(
       'href',
       '/applications/01a157d4-0000-7000-8000-000000000410?tab=scorecards&fill=stage',
     );
