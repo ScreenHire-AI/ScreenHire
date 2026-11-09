@@ -194,20 +194,27 @@ public sealed class Job : ITenantOwned
     }
 
     /// <summary>
-    /// Starts a new job that did not come from a template with the organization's default AI-use policy. It is the job's first
-    /// workflow, not an edit of one, so the workflow version stays as it is. A published job keeps its workflow.
+    /// This job's own AI-use policy, or null to follow the organization's (<see cref="AiUsePolicies.Effective"/>). It is not
+    /// part of the workflow, so a template never carries it, and not part of <see cref="Snapshot"/>, so changing it neither
+    /// marks the posting changed nor republishes it to boards.
     /// </summary>
-    public void StartWithAiUse(AiUsePolicy policy)
+    public AiUsePolicy? AiUseOverride { get; private set; }
+
+    /// <summary>Sets the job's own AI-use policy, or null to follow the organization's again. A closed job is final.</summary>
+    public void SetAiUseOverride(AiUsePolicy? policy, DateTimeOffset now)
     {
-        if (PublishedAt is not null)
+        if (Status == JobStatus.Closed)
         {
-            throw new InvalidOperationException("A published job keeps its workflow; the default applies to new jobs.");
+            throw new InvalidOperationException("A closed job cannot be changed; create a new job instead.");
         }
 
-        if (Workflow.VerificationPolicy.AiUse != policy)
+        if (AiUseOverride == policy)
         {
-            Workflow = Workflow with { VerificationPolicy = new VerificationPolicy(policy) };
+            return;
         }
+
+        AiUseOverride = policy;
+        UpdatedAt = now;
     }
 
     /// <summary>

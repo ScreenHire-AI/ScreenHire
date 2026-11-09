@@ -194,6 +194,7 @@ import type {
   SendEmailsRequest,
   SendingDomainDetail,
   SentEmail,
+  SetJobAiUseRequest,
   SetSendingDomainRequest,
   SignInMethods,
   SimulateWorkflowRequest,
@@ -3372,6 +3373,86 @@ export const getJobHistory = async (jobId: string,
     method: 'GET'
 
 
+  }
+);}
+
+
+
+export type setJobAiUseResponse200 = {
+  data: JobDetail
+  status: 200
+}
+
+export type setJobAiUseResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type setJobAiUseResponse401 = {
+  data: void
+  status: 401
+}
+
+export type setJobAiUseResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type setJobAiUseResponse404 = {
+  data: void
+  status: 404
+}
+
+export type setJobAiUseResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type setJobAiUseResponse429 = {
+  data: void
+  status: 429
+}
+
+export type setJobAiUseResponseSuccess = (setJobAiUseResponse200) & {
+  headers: Headers;
+};
+export type setJobAiUseResponseError = (setJobAiUseResponse400 | setJobAiUseResponse401 | setJobAiUseResponse403 | setJobAiUseResponse404 | setJobAiUseResponse409 | setJobAiUseResponse429) & {
+  headers: Headers;
+};
+
+export type setJobAiUseResponse = (setJobAiUseResponseSuccess | setJobAiUseResponseError)
+
+export const getSetJobAiUseUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/ai-use`
+}
+
+export const setJobAiUse = async (jobId: string,
+    setJobAiUseRequest: SetJobAiUseRequest, options?: Parameters<typeof apiFetch>[1]): Promise<setJobAiUseResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<setJobAiUseResponse>(getSetJobAiUseUrl(jobId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setJobAiUseRequest)
   }
 );}
 

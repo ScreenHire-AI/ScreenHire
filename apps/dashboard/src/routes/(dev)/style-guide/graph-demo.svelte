@@ -17,7 +17,6 @@
       { id: 'hired', name: 'Hired', kind: 'Hired' },
     ],
     questionnaire: { questions: [] },
-    verificationPolicy: { aiUse: 'Allowed' },
     automations: [
       { id: 'tell', name: 'Tell the team', trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'New application' }] },
       {

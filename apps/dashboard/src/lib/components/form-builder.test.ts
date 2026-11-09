@@ -39,22 +39,29 @@ const edit = (name: RegExp) => within(panel()).getByRole('button', { name });
 const openRow = () => panel().querySelector<HTMLElement>('[data-open]');
 const press = (element: HTMLElement) => fireEvent.pointerDown(element, { button: 0, pointerType: 'mouse' });
 
+// Duplicate and Delete are in each row's menu (L3), open or closed.
+async function chooseRowAction(question: string, action: string) {
+  await press(within(panel()).getByRole('button', { name: `Actions for ${question}` }));
+  await fireEvent.click(await screen.findByRole('menuitem', { name: action }));
+}
+
 describe('form builder', () => {
-  it('reads every question as text, its kind top right and an asterisk when required, with none open', async () => {
+  it('reads every question as text, its kind top right and a Required badge only on a required one, with none open', async () => {
     const { container } = setup();
 
     expect(openRow()).toBeNull();
     const first = edit(/^Edit question 1: /);
-    expect(first).toHaveAccessibleName('Edit question 1: Do you have the right to work here?, required Yes or no');
+    expect(first).toHaveAccessibleName('Edit question 1: Do you have the right to work here? Required Yes or no');
     expect(first).toHaveAttribute('aria-expanded', 'false');
-    expect(first).toHaveTextContent('Do you have the right to work here?*, required');
+    expect(first).toHaveTextContent('Do you have the right to work here? Required');
+    expect(within(first).getByText('Required')).toHaveAttribute('data-slot', 'badge');
     expect(first).toHaveTextContent('Yes or no');
     // A choice question lists its options with the mark the candidate sees, and its help line.
     const second = edit(/^Edit question 2: /);
     expect(second).toHaveTextContent('Paid work only.');
     expect(second).toHaveTextContent('Less than 3');
     expect(second.querySelectorAll('.rounded-full')).toHaveLength(2);
-    expect(edit(/^Edit question 3: /)).not.toHaveTextContent('*');
+    expect(edit(/^Edit question 3: /)).not.toHaveTextContent('Required');
     await expectNoAxeViolations(container);
   });
 
@@ -176,7 +183,7 @@ describe('form builder', () => {
     const { list } = setup();
     await fireEvent.click(edit(/^Edit question 1: /));
 
-    await fireEvent.click(within(openRow()!).getByRole('button', { name: 'Duplicate Do you have the right to work here?' }));
+    await chooseRowAction('Do you have the right to work here?', 'Duplicate');
 
     expect(list().map((question) => question.id)).toEqual(['right_to_work', 'right_to_work_copy', 'years', 'notice']);
     expect(list()[1]).toMatchObject({ type: 'YesNo', label: 'Do you have the right to work here?', required: true });
@@ -197,7 +204,7 @@ describe('form builder', () => {
     const { list } = setup();
     await fireEvent.click(edit(/^Edit question 2: /));
 
-    await fireEvent.click(within(openRow()!).getByRole('button', { name: 'Delete How many years have you worked in support?' }));
+    await chooseRowAction('How many years have you worked in support?', 'Delete');
 
     expect(list().map((question) => question.id)).toEqual(['right_to_work', 'notice']);
     await waitFor(() => expect(edit(/^Edit question 2: What is your notice period/)).toHaveFocus());

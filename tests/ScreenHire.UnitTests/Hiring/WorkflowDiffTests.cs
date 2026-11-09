@@ -82,13 +82,11 @@ public sealed class WorkflowDiffTests
         var after = Base with
         {
             Questionnaire = new Questionnaire([new Question("portfolio", QuestionType.Url, "Portfolio")]),
-            VerificationPolicy = new VerificationPolicy(AiUsePolicy.NotAllowed),
         };
 
         WorkflowDiff.Compare(Base, after).Select(c => (c.Path, c.Kind)).Should().BeEquivalentTo(new[]
         {
             ("questionnaire.questions[portfolio]", WorkflowChangeKind.Added),
-            ("verificationPolicy.aiUse", WorkflowChangeKind.Changed),
         });
     }
 }

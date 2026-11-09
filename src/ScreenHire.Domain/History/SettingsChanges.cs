@@ -180,7 +180,7 @@ public static class SettingsChanges
 
         if (was.DefaultAiUse != after.DefaultAiUse)
         {
-            lines.Add(ChangeLine.Of("set the default AI use for new jobs to ", ChangeLabels.AiUse(after.DefaultAiUse)));
+            lines.Add(ChangeLine.Of("set the AI use policy to ", ChangeLabels.AiUse(after.DefaultAiUse)));
         }
 
         if (was.DeviceCheck != after.DeviceCheck)

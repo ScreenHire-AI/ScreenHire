@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
+  import type { AiUsePolicy, DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { untrack } from 'svelte';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
@@ -15,7 +15,15 @@
     mode,
     tab = 'pipeline',
     checking = false,
-  }: { workflow: HiringWorkflow; errors?: DefinitionError[]; mode: 'editor' | 'summary'; tab?: WorkflowTab; checking?: boolean } = $props();
+    aiUse,
+  }: {
+    workflow: HiringWorkflow;
+    errors?: DefinitionError[];
+    mode: 'editor' | 'summary';
+    tab?: WorkflowTab;
+    checking?: boolean;
+    aiUse?: { policy?: AiUsePolicy; href?: string };
+  } = $props();
 
   // Copies the harness owns, as the page owns its draft and tab, so edits and tab switches in a test work like the page.
   let current = $state<WorkflowTab>(untrack(() => tab));
@@ -26,9 +34,9 @@
   <Tabs.Root bind:value={current}>
     <WorkflowTabs />
     {#if mode === 'editor'}
-      <WorkflowEditor bind:workflow={edited} {errors} {checking} bind:tab={current} hrefOf={(next) => `?tab=${next}`} />
+      <WorkflowEditor bind:workflow={edited} {errors} {checking} bind:tab={current} hrefOf={(next) => `?tab=${next}`} {aiUse} />
     {:else}
-      <WorkflowSummary workflow={edited} {errors} tab={current as WorkflowTab} hrefOf={(next) => `?tab=${next}`} />
+      <WorkflowSummary workflow={edited} {errors} tab={current as WorkflowTab} hrefOf={(next) => `?tab=${next}`} {aiUse} />
     {/if}
   </Tabs.Root>
 </main>

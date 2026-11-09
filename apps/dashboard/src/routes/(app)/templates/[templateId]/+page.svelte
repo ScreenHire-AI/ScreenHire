@@ -4,6 +4,7 @@
     createCreateHiringTemplate,
     createCreateHiringTemplateVersion,
     createGetHiringTemplate,
+    createGetOrganizationVerificationSettings,
     createArchiveHiringTemplate,
     createGetHiringTemplateTeam,
     createGetHiringTemplateVersion,
@@ -96,6 +97,13 @@
   // The sidebar's own phone test (under md), where the primary action moves to the action bar.
   const sidebar = Sidebar.useSidebar();
   const mayEdit = $derived(can(page.data.user, 'EditHiringTemplates'));
+  // The AI-use row: the organization's policy, which a template no longer carries. Changing it is the Verification page's,
+  // so the link is left out for someone who may not (A3).
+  const verification = createGetOrganizationVerificationSettings();
+  const aiUse = $derived({
+    policy: verification.data?.data.defaultAiUse,
+    href: can(page.data.user, 'EditSettings') ? '/verification' : undefined,
+  });
   const isDraft = $derived(current?.status === 'Draft' && !detail?.isSystem && !detail?.archived && mayEdit);
   // Duplicate and Archive, for the team's own template and a role that may change templates.
   const ownActions = $derived(mayEdit && Boolean(detail) && !detail?.isSystem);
@@ -413,9 +421,10 @@
             checking={draft.checking}
             bind:tab={workflowTab.value}
             hrefOf={(tab) => workflowTab.href(tab)}
+            {aiUse}
           />
         {:else}
-          <WorkflowSummary workflow={draft.workflow} errors={draft.errors} tab={workflowTab.value} hrefOf={(tab) => workflowTab.href(tab)} />
+          <WorkflowSummary workflow={draft.workflow} errors={draft.errors} tab={workflowTab.value} hrefOf={(tab) => workflowTab.href(tab)} {aiUse} />
         {/if}
       </div>
 

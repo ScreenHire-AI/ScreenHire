@@ -8,14 +8,16 @@ namespace ScreenHire.Domain.Hiring;
 // - No polymorphism and no untyped members (object, JsonElement): each element is one flat record with a kind enum and
 //   optional per-kind fields, which DefinitionValidator checks. Orval and the JSON Schema stay simple that way.
 // - Add members as optional (a default value), never rename or remove one: published versions are immutable JSONB rows
-//   that must keep deserializing. The one exception so far is the v0.2 scorecard's criteria, which migration
-//   AddScorecardTemplates rewrote in every stored definition and workflow, in the same transaction, before removing them.
+//   that must keep deserializing. Two exceptions so far: the v0.2 scorecard's criteria, which migration
+//   AddScorecardTemplates rewrote in every stored definition and workflow, in the same transaction, before removing them,
+//   and the verification policy, which moved to the organization and the job (AiUsePolicies). Stored definitions that
+//   still hold `verificationPolicy` read as before, because unknown members are ignored.
 // - Element ids are stable keys (stages, questions, automations). Diffs match by id, and facts such as
 //   `answers.work_authorization` refer to them.
 
 /// <summary>
-/// What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the verification
-/// policy, the automations and the follow-up questionnaires a <see cref="ActionType.SendQuestionnaire"/> action sends.
+/// What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the
+/// automations and the follow-up questionnaires a <see cref="ActionType.SendQuestionnaire"/> action sends.
 /// </summary>
 /// <remarks>
 /// <c>followUpQuestionnaires</c>: Optional; questionnaires an automation emails to the candidate after they applied.
@@ -24,7 +26,6 @@ namespace ScreenHire.Domain.Hiring;
 public sealed record HiringWorkflow(
     IReadOnlyList<WorkflowStage> Stages,
     Questionnaire Questionnaire,
-    VerificationPolicy VerificationPolicy,
     IReadOnlyList<Automation> Automations,
     IReadOnlyList<FollowUpQuestionnaire>? FollowUpQuestionnaires = null)
 {
@@ -45,7 +46,6 @@ public sealed record HiringWorkflow(
             new("withdrawn", "Withdrawn", StageKind.Withdrawn),
         ],
         new Questionnaire([]),
-        new VerificationPolicy(AiUsePolicy.AllowedWithDisclosure),
         []);
 
     /// <summary>The stage with <paramref name="stageId"/>, or null.</summary>
@@ -313,15 +313,26 @@ public sealed record QuestionOption(string Id, string Label);
 /// </remarks>
 public sealed record Knockout(bool DisqualifyingAnswer, string? Reason = null);
 
-/// <summary>The template's verification settings (ADR-0004). Only the AI-use policy exists so far.</summary>
-public sealed record VerificationPolicy(AiUsePolicy AiUse);
-
 /// <summary>What the employer allows candidates to do with AI tools while applying.</summary>
 public enum AiUsePolicy
 {
     Allowed,
     AllowedWithDisclosure,
     NotAllowed,
+}
+
+/// <summary>
+/// Which AI-use policy applies to a job. The organization sets one policy (<c>VerificationSettings.DefaultAiUse</c>) and
+/// a job may override it. Every reader asks here, so the apply form, the submit check and the verification run agree.
+/// </summary>
+public static class AiUsePolicies
+{
+    /// <summary>What an organization with no saved verification settings has.</summary>
+    public const AiUsePolicy Fallback = AiUsePolicy.AllowedWithDisclosure;
+
+    /// <summary>The job's own policy, else the organization's, else <see cref="Fallback"/>.</summary>
+    public static AiUsePolicy Effective(AiUsePolicy? jobOverride, AiUsePolicy? organizationDefault) =>
+        jobOverride ?? organizationDefault ?? Fallback;
 }
 
 /// <summary>Values a new job starts with when it is created from the template. Every member is optional.</summary>

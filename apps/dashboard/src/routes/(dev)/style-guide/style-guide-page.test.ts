@@ -105,6 +105,8 @@ const panels: Record<string, string[]> = {
   'Week chart': ['Week chart'],
   'Date range filter': ['Date range filter'],
   'File row and file viewer': ['File row and file viewer'],
+  'Form timeline': ['Form timeline'],
+  'Locked question row': ['Locked question row'],
   'Edit / Preview switch': ['Edit / Preview switch'],
   'Count button': ['Count button'],
   'Sort header': ['Table'],

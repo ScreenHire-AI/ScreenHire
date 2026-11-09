@@ -18,12 +18,14 @@
   import { tick, type Snippet } from 'svelte';
   import AnswerMenu from '#lib/components/answer-menu.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import ReorderList from '#lib/components/reorder-list.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { Label } from '#lib/components/ui/label/index.js';
-  import { Separator } from '#lib/components/ui/separator/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import FieldErrors from '#lib/components/workflow/field-errors.svelte';
@@ -33,8 +35,9 @@
 
   // The form builder (design system section 11), modelled on Google Forms: one panel of questions, each a row that reads
   // as text until it is opened. Only one question is open at a time, marked by an accent bar; it edits its text, its
-  // answer kind (the answer menu, top right), its help line and its options, with Duplicate, Delete and Required in its
-  // footer. Questions and options reorder with a grip (A7). Removing a question changes nothing until the editor saves,
+  // answer kind (the answer menu, top right), its help line (beside the Required switch where the pane is wide) and its options. A row's
+  // Duplicate and Delete are in its row menu (L3), open or closed. A required question wears a Required badge and an
+  // optional one nothing (W6). Questions and options reorder with a grip (A7). Removing a question changes nothing until the editor saves,
   // so it is not destructive (section 10).
   //
   // The builder knows nothing of what it edits: application questions, a follow-up questionnaire or a scorecard. The
@@ -302,19 +305,31 @@
                     </Button>
                   {/snippet}
                 </AnswerMenu>
+                {@render rowMenu(nameOf(question), index)}
               </div>
-              {#if help}
-                <Textarea
-                  aria-label={help.label}
-                  placeholder={help.label}
-                  rows={1}
-                  value={help.get(question) ?? ''}
-                  onkeydown={oneLine}
-                  oninput={(event) => help?.set(question, flatten(event.currentTarget.value) || null)}
-                  maxlength={500}
-                  class={lineClass}
-                />
-              {/if}
+              <!-- The help line and the Required switch share a row where the pane is wide, and stack where it is not. -->
+              <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+                {#if help}
+                  <Textarea
+                    aria-label={help.label}
+                    placeholder={help.label}
+                    rows={1}
+                    value={help.get(question) ?? ''}
+                    onkeydown={oneLine}
+                    oninput={(event) => help?.set(question, flatten(event.currentTarget.value) || null)}
+                    maxlength={500}
+                    class={[lineClass, 'flex-[1_1_18rem]']}
+                  />
+                {/if}
+                <span class="flex items-center gap-2 pointer-coarse:min-h-11">
+                  <Switch
+                    id={`${uid}-required-${index}`}
+                    checked={requiredOf(question)}
+                    onCheckedChange={(value) => setRequired(question, value)}
+                  />
+                  <Label for={`${uid}-required-${index}`} class="font-semibold">Required</Label>
+                </span>
+              </div>
               {#if kind.options}
                 {@const mark = kind.options}
                 {@const options = optionsOf(question)}
@@ -360,19 +375,6 @@
               {/if}
               {@render settings?.(question, index)}
               <FieldErrors id={errorsId} messages={errors} />
-              <div class="flex flex-wrap items-center justify-end gap-1">
-                <IconButton label={`Duplicate ${nameOf(question)}`} onclick={() => copy(index)}><CopyIcon /></IconButton>
-                <IconButton label={`Delete ${nameOf(question)}`} onclick={() => remove(index)}><Trash2Icon /></IconButton>
-                <Separator orientation="vertical" class="mx-2 h-6 data-vertical:self-center" />
-                <span class="flex items-center gap-2 pointer-coarse:min-h-11">
-                  <Switch
-                    id={`${uid}-required-${index}`}
-                    checked={requiredOf(question)}
-                    onCheckedChange={(value) => setRequired(question, value)}
-                  />
-                  <Label for={`${uid}-required-${index}`} class="font-semibold">Required</Label>
-                </span>
-              </div>
             </div>
           </div>
         {:else}
@@ -389,10 +391,11 @@
               >
                 <span class="flex min-w-0 items-baseline gap-3">
                   <span class="min-w-0 flex-1 font-semibold break-words">
-                    <span class="sr-only">Edit question {index + 1}:</span>{' '}{nameOf(question)}{#if requiredOf(question)}<span aria-hidden="true" class="ml-1">*</span><span class="sr-only">, required</span>{/if}
+                    <span class="sr-only">Edit question {index + 1}:</span>{' '}{nameOf(question)}{#if requiredOf(question)}{' '}<Badge variant="muted" class="align-middle">Required</Badge>{/if}
                   </span>
                   <span class="flex shrink-0 items-center gap-1.5 self-start text-muted-foreground">
-                    {#if kind.icon}{@const Icon = kind.icon}<Icon aria-hidden="true" />{/if}{kind.label}
+                    {#if kind.icon}{@const Icon = kind.icon}<Icon aria-hidden="true" />{/if}<!-- The name gives way to its icon in a narrow list, so the question keeps the room (F5). -->
+                    <span class="sr-only @md:not-sr-only">{kind.label}</span>
                   </span>
                 </span>
                 {#if help?.get(question)}<span class="block text-muted-foreground">{help.get(question)}</span>{/if}
@@ -404,6 +407,7 @@
               </button>
               {#if errors.length > 0}<div class="px-2"><FieldErrors id={errorsId} messages={errors} /></div>{/if}
             </div>
+            <span class="pt-0.5">{@render rowMenu(nameOf(question), index)}</span>
           </div>
         {/if}
         {/if}
@@ -426,6 +430,13 @@
     {/snippet}
   </Panel>
 </div>
+
+{#snippet rowMenu(name: string, index: number)}
+  <MoreMenu label={`Actions for ${name}`} size="icon" quiet>
+    <DropdownMenu.Item onSelect={() => copy(index)}><CopyIcon aria-hidden="true" />Duplicate</DropdownMenu.Item>
+    <DropdownMenu.Item onSelect={() => remove(index)}><Trash2Icon aria-hidden="true" />Delete</DropdownMenu.Item>
+  </MoreMenu>
+{/snippet}
 
 {#snippet markOf(mark: 'circle' | 'square')}
   <span aria-hidden="true" class={['size-4 shrink-0 border-2 border-muted-foreground', mark === 'circle' ? 'rounded-full' : 'rounded-sm']}></span>

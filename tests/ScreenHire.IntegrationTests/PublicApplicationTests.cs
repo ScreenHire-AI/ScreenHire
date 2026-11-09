@@ -295,6 +295,41 @@ public sealed class PublicApplicationTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task The_AI_answer_is_required_under_the_policy_in_force_and_a_job_can_set_its_own()
+    {
+        var (organization, job) = await OrganizationWithEngineeringJobAsync();
+        using var client = fixture.CreateHttpClient("api");
+        var form = $"/v1/public/organizations/{organization.Slug}/jobs/{job.Slug}/application-form";
+        async Task<IReadOnlyCollection<string>> SubmittedWithoutAnswerAsync()
+        {
+            var body = Application("jo.park@example.com", uploadId: null);
+            body["aiUseDeclaration"] = "NotProvided";
+            return await ProblemKeysAsync(await SubmitAsync(client, organization, job.Id, body));
+        }
+
+        // The organization has set no policy, so the default, Allowed with disclosure, asks for an answer.
+        (await client.GetFromJsonAsync<JsonElement>(form, Ct)).GetProperty("aiUsePolicy").GetString().Should().Be("AllowedWithDisclosure");
+        (await SubmittedWithoutAnswerAsync()).Should().Contain("aiUseDeclaration");
+
+        // A policy of its own for the job: AI allowed outright makes the answer optional, though the question is still asked.
+        await SetJobOverrideAsync(organization, job.Id, AiUsePolicy.Allowed);
+        (await client.GetFromJsonAsync<JsonElement>(form, Ct)).GetProperty("aiUsePolicy").GetString().Should().Be("Allowed");
+        (await SubmittedWithoutAnswerAsync()).Should().NotContain("aiUseDeclaration");
+
+        await SetJobOverrideAsync(organization, job.Id, AiUsePolicy.NotAllowed);
+        (await client.GetFromJsonAsync<JsonElement>(form, Ct)).GetProperty("aiUsePolicy").GetString().Should().Be("NotAllowed");
+        (await SubmittedWithoutAnswerAsync()).Should().Contain("aiUseDeclaration");
+    }
+
+    private async Task SetJobOverrideAsync(Organization organization, Guid jobId, AiUsePolicy policy)
+    {
+        await using var db = await TenantDbAsync(organization.Id);
+        var job = await db.Jobs.SingleAsync(j => j.Id == jobId, Ct);
+        job.SetAiUseOverride(policy, DateTimeOffset.UtcNow);
+        await db.SaveChangesAsync(Ct);
+    }
+
+    [Fact]
     public async Task A_filled_honeypot_is_recorded_and_never_refuses_the_application()
     {
         var (organization, job) = await OrganizationWithEngineeringJobAsync();
