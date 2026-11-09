@@ -61,6 +61,22 @@ describe('samplesOf', () => {
     expect(samples[3]!.request.trigger).toEqual({ type: 'StageEntered', stageId: 'phone-screen' });
   });
 
+  it('tries at most three stages of their own, in pipeline order', () => {
+    const base = workflowWith([knockout]);
+    const extra = ['trial', 'interview', 'references', 'offer'].map((id) => ({ id, name: id, kind: 'Screening' as const }));
+    const flow: HiringWorkflow = {
+      ...base,
+      stages: [base.stages[0]!, base.stages[1]!, ...extra, ...base.stages.slice(2)],
+      automations: [knockout, tagOnEntry, ...extra.map((stage) => automation(`tag-${stage.id}`, { type: 'StageEntered', stageId: stage.id }))],
+    };
+
+    expect(samplesOf(flow).filter((sample) => sample.id.startsWith('stage:')).map((sample) => sample.id)).toEqual([
+      'stage:phone-screen',
+      'stage:trial',
+      'stage:interview',
+    ]);
+  });
+
   it('builds the requests from the template: the knockout answer that passes, and the one that fails', () => {
     const [meets, fails, signals, accommodation] = samplesOf(workflowWith([knockout, route]));
 

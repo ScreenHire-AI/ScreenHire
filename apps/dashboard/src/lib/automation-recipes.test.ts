@@ -34,7 +34,7 @@ const automation = (id: string, trigger: Automation['trigger'], actions: Automat
 const titles = (flow: HiringWorkflow) => recipesFor(flow).map((recipe) => recipe.title);
 
 describe('the recipes', () => {
-  it('are written for the template\'s own questions and stages, in three groups', () => {
+  it('are written for the template\'s own questions and stages, in four groups', () => {
     const groups = groupedRecipes(workflow());
 
     expect(groups.map((entry) => entry.group)).toEqual([...recipeGroups]);
