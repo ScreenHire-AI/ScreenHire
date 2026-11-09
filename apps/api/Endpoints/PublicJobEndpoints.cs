@@ -149,7 +149,7 @@ internal static class PublicJobEndpoints
             await organization.ToPublicAsync(db, domains.Value, cancellationToken),
             job.ToPublicJob(domains.Value.CareersJobUrl(organization.Slug, job.Slug)),
             [.. ApplicationForm.QuestionsFor(job.Workflow).Select(q => q.ToPublic(FileTypes.AcceptedBy))],
-            job.Workflow.VerificationPolicy.AiUse,
+            await AiUsePolicyFor.JobAsync(job, db, cancellationToken),
             new PublicUploadSettings(uploads.MaxBytes, uploads.Origin),
             turnstile.SiteKey,
             new PublicTelemetrySettings(

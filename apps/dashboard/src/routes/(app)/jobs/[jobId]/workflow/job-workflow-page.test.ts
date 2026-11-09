@@ -21,7 +21,6 @@ const workflow: HiringWorkflow = {
     { id: 'rejected', name: 'Not progressing', kind: 'Rejected' },
   ],
   questionnaire: { questions: [] },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations: [],
 };
 
@@ -33,6 +32,7 @@ const jobIn = (status: JobStatus) =>
     status,
     workflow,
     workflowVersion: 3,
+    aiUse: { policy: 'NotAllowed', override: 'NotAllowed', organizationDefault: 'AllowedWithDisclosure' },
     template: null,
     lastUpdated: { at: '2026-10-18T12:00:00Z', by: 'Avery Quinn', userId: user.id, apiKeyId: null },
   }) as unknown as JobDetail;
@@ -129,6 +129,19 @@ describe('job workflow page', () => {
     expect(screen.getByRole('status').closest('[data-slot=header-band]')).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Save workflow' }).parentElement).not.toContainElement(screen.getByRole('status'));
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(0);
+  });
+
+  it("shows the policy the job asks under on the Questions tab, with a link to the job's own settings", async () => {
+    atTab('questions');
+    stubApi('Open');
+    renderPage();
+
+    const row = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[data-ai-use-row]');
+      expect(found).toHaveTextContent('Policy: Not allowed.');
+      return found!;
+    });
+    expect(within(row).getByRole('link', { name: 'Change policy' })).toHaveAttribute('href', `/jobs/${jobId}/edit#ai-use`);
   });
 
   it('keeps the tab in the address: pressing Questions goes to ?tab=questions', async () => {

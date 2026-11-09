@@ -33,6 +33,7 @@ internal sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.WorkplaceType).HasConversion<string>().HasMaxLength(20);
         builder.Property(j => j.EmploymentType).HasConversion<string>().HasMaxLength(20);
         builder.Property(j => j.SalaryPeriod).HasConversion<string>().HasMaxLength(20);
+        builder.Property(j => j.AiUseOverride).HasConversion<string>().HasMaxLength(30);
 
         // Optimistic concurrency on Postgres' xmin system column (no real column): a publish that loaded the job before
         // someone closed it fails instead of writing Status = Open back over the close.

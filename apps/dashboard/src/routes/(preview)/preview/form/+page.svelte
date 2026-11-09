@@ -29,6 +29,7 @@
         sections={sink.value.sections}
         questionsPerPage={sink.value.questionsPerPage}
         followUp={sink.value.form === 'follow-up'}
+        aiUse={sink.value.aiUse}
       />
     </div>
   {:else}

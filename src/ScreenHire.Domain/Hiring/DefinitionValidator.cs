@@ -115,15 +115,6 @@ public static partial class DefinitionValidator
         var questions = ValidateQuestionnaire(workflow.Questionnaire, Join(path, "questionnaire"), errors);
         var followUps = ValidateFollowUps(workflow.FollowUpQuestionnaires, Join(path, "followUpQuestionnaires"), questions, errors);
 
-        if (workflow.VerificationPolicy is null)
-        {
-            errors.Add(new(Join(path, "verificationPolicy"), "The setting for whether applicants may use AI is missing. Choose one."));
-        }
-        else if (!Enum.IsDefined(workflow.VerificationPolicy.AiUse))
-        {
-            errors.Add(new(Join(path, "verificationPolicy.aiUse"), "The setting for whether applicants may use AI is not recognised. Choose another."));
-        }
-
         ValidateAutomations(workflow.Automations, Join(path, "automations"), new(stages, questions, followUps), errors);
     }
 
