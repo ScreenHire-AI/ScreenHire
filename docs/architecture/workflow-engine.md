@@ -626,7 +626,8 @@ and raises `ApplicationTaskCreated`; like every task, it never changes the appli
 /v1/applications/{id}/scorecard-requests`, `ApplicationChanges.RequestScorecardAsync`): a `Scorecard` task for one
 member who can see the job (ADR-0015) and whose role fills in scorecards, naming a library scorecard by its key
 (`scorecardTemplateId`, a built-in id or the team's template id, not archived; the current stage's own by default in
-the dashboard). Its text is "Fill in the Interview scorecard." and the asker's note of up to 500 characters, it
+the dashboard). Its text is "Fill in the Interview scorecard." and an optional note of up to 500 characters (the API and MCP take one;
+the dashboard's sheet asks for none), it
 records a `TaskCreated` entry and raises `ApplicationTaskCreated`. Asking again while the same request is open, or for a
 scorecard that person already gave on the application, is a 409. People add notes (`POST /v1/applications/{id}/notes`, a `NoteAdded` timeline entry no
 automation reads), and edit and delete them (`PUT` and `DELETE /v1/applications/{id}/notes/{noteId}`; only the author

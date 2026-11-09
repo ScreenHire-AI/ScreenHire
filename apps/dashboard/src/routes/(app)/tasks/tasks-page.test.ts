@@ -74,7 +74,7 @@ describe('my tasks page', () => {
     const own = rows(panel);
     expect(own).toHaveLength(1);
     // The row links to where the work is done, and the task is ticked off there, so there is no checkbox here.
-    expect(within(own[0]!).getByRole('link', { name: 'Review this application.' })).toHaveAttribute('href', '/applications/01a157d4-0000-7000-8000-000000000410');
+    expect(within(own[0]!).getByRole('link', { name: 'Review this application.' })).toHaveAttribute('href', '/applications/01a157d4-0000-7000-8000-000000000410?tab=scorecards&fill=stage');
     expect(own[0]).toHaveTextContent('Jordan Lee');
     expect(own[0]).toHaveTextContent('Review');
     // Mine already says whose they are, so there is no For column (W7).
@@ -96,7 +96,7 @@ describe('my tasks page', () => {
     expect(rows(panel)[2]).toHaveTextContent('Robin Ashby');
   });
 
-  it('links a requested scorecard to the Scorecards tab with its sheet open, and every other task to the candidate', async () => {
+  it('links a requested scorecard and a review to the Scorecards tab with the sheet open, and every other task to the candidate', async () => {
     renderPage({
       'GET /v1/tasks?status=Open&scope=Everyone': () =>
         Response.json([
@@ -118,7 +118,11 @@ describe('my tasks page', () => {
       'href',
       '/applications/01a157d4-0000-7000-8000-000000000411?tab=scorecards&scorecard=interview',
     );
-    expect(within(panel).getByRole('link', { name: 'Review this application.' })).toHaveAttribute('href', '/applications/01a157d4-0000-7000-8000-000000000410');
+    // A review is finished by any scorecard, so it opens the sheet on the scorecard for the candidate's stage.
+    expect(within(panel).getByRole('link', { name: 'Review this application.' })).toHaveAttribute(
+      'href',
+      '/applications/01a157d4-0000-7000-8000-000000000410?tab=scorecards&fill=stage',
+    );
     expect(rows(panel)[1]).toHaveTextContent('Scorecard');
   });
 

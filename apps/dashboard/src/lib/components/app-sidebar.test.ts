@@ -29,6 +29,42 @@ const open = async (name: string) => {
   return screen.findByRole('menu');
 };
 
+describe("the person's block at the foot of the sidebar", () => {
+  // The hairline between the last navigation item and the person's block: where to go, then who you are (section 11).
+  const expectDivider = (scope: HTMLElement) => {
+    const person = within(scope).getByRole('button', { name: /^Avery Quinn/ });
+    const footer = person.closest<HTMLElement>('[data-sidebar="footer"]')!;
+    const divider = footer.previousElementSibling;
+    expect(divider).toHaveAttribute('data-sidebar', 'separator');
+    expect(divider).toHaveClass('h-px', 'bg-sidebar-border');
+    // Decorative: it draws a line and says nothing to a screen reader.
+    expect(divider).toHaveAttribute('aria-hidden', 'true');
+    const nav = within(scope).getByRole('navigation', { name: 'Main' });
+    expect(nav.compareDocumentPosition(divider!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  };
+
+  it('is set apart from the navigation by a hairline in the full sidebar and the icon rail', () => {
+    stubViewport(1280);
+    const { unmount } = render(ShellHarness, { props: { user } });
+    expectDivider(document.body);
+    unmount();
+
+    stubViewport(800);
+    render(ShellHarness, { props: { user } });
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
+    expectDivider(document.body);
+  });
+
+  it('keeps the hairline in the sheet on a phone', async () => {
+    stubViewport(390);
+    render(ShellHarness, { props: { user } });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+
+    expectDivider(await screen.findByRole('dialog', { name: 'Navigation' }));
+  });
+});
+
 describe('the Views list in the sidebar', () => {
   it('is headed Views, so Saved means saved candidates only, and lists a saved view after the built-in ones', () => {
     stubViewport(1280);

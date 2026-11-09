@@ -215,7 +215,7 @@ describe('verification panel', () => {
     expect(body).toHaveTextContent('Informational');
     expect(within(ai.querySelector('header')!).getByText('Informational')).toBeInTheDocument();
     expect(ai.querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
-    // The declaration has its own place on the page, in Declarations (section 16).
+    // The declaration has its own place on the page, with the candidate's answers (section 16).
     expect(ai).not.toHaveTextContent(/Declared AI use/);
     expect(ai.querySelector('[data-evidence-kind="Quote"]')).toBeInTheDocument();
     expect(ai.querySelector('[data-evidence-kind="TextComparison"]')).toBeInTheDocument();

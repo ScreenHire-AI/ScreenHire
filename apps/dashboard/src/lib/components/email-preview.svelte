@@ -7,6 +7,10 @@
   // An email as the candidate receives it (design system section 11): the subject, then the HTML part or the plain-text
   // part. The HTML is the API's rendering, but it is still a template a tenant wrote, so it renders in a sandboxed frame
   // with no scripts, never in the page. While `preview` is undefined it shows a skeleton of the same shape (E1).
+  // The frame takes the email's own height, so a short email leaves no empty space under it. Reading that height needs
+  // `allow-same-origin`; scripts, forms, popups and navigation stay off. Nothing in the frame can run or fetch anything
+  // but the organization's logo: the API builds the layout, and cleans the template's or reply's text to text elements
+  // and links (RichText.cs).
   let {
     preview,
     failure,
@@ -19,6 +23,22 @@
   } = $props();
 
   let part = $state<'html' | 'text'>('html');
+  let frame = $state<HTMLIFrameElement>();
+  let height = $state<number>();
+
+  // The root element's box, not `scrollHeight`, which never reports less than the frame's own height.
+  function fit() {
+    const root = frame?.contentDocument?.documentElement;
+    if (root) height = Math.ceil(root.getBoundingClientRect().height);
+  }
+
+  // A narrower frame wraps the email onto more lines, so its height follows the frame's width.
+  $effect(() => {
+    if (!frame) return;
+    const observer = new ResizeObserver(fit);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  });
   const parts = [
     { id: 'html', label: 'Email' },
     { id: 'text', label: 'Plain text' },
@@ -49,9 +69,12 @@
     <div class="rounded-lg bg-secondary p-3">
       {#if part === 'html'}
         <iframe
+          bind:this={frame}
           title="Email preview"
-          sandbox=""
+          sandbox="allow-same-origin"
           srcdoc={preview.html}
+          onload={fit}
+          style:height={height ? `${height + 2}px` : undefined}
           class="block h-80 w-full rounded-lg border border-border-subtle bg-card"
         ></iframe>
       {:else}

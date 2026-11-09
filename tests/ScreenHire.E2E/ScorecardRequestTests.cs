@@ -58,7 +58,6 @@ public sealed class ScorecardRequestTests(E2EFixture fixture) : BrowserTest(fixt
         var teammate = ask.GetByRole(AriaRole.Combobox, new() { Name = "Teammate" });
         await Expect(teammate).ToHaveValueAsync(recruiter.GetProperty("userId").GetString()!);
         await Expect(ask.GetByRole(AriaRole.Combobox, new() { Name = "Scorecard" })).ToHaveValueAsync("interview");
-        await ask.GetByLabel("Note").FillAsync("Focus on the pairing exercise.");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-ask-for-a-scorecard");
         await ask.GetByRole(AriaRole.Button, new() { Name = "Ask", Exact = true }).ClickAsync();
@@ -72,7 +71,7 @@ public sealed class ScorecardRequestTests(E2EFixture fixture) : BrowserTest(fixt
         await SignInAsync(recruiterPage, recruiterEmail);
         await recruiterPage.GotoAsync(DashboardUrl("/tasks"));
         var tasks = recruiterPage.GetByRole(AriaRole.Region, new() { Name = "Tasks", Exact = true });
-        var row = tasks.GetByRole(AriaRole.Link, new() { Name = "Fill in the Interview scorecard. Focus on the pairing exercise." });
+        var row = tasks.GetByRole(AriaRole.Link, new() { Name = "Fill in the Interview scorecard." });
         await Expect(row).ToBeVisibleAsync();
         await Expect(tasks.GetByRole(AriaRole.Checkbox)).ToHaveCountAsync(0);
         await row.ClickAsync();

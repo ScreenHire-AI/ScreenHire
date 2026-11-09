@@ -1227,7 +1227,7 @@ public static partial class DefinitionValidator
         {
             if (required || text is not null)
             {
-                errors.Add(new(path, required ? "This is required." : "Leave this out rather than sending it blank."));
+                errors.Add(new(path, required ? "This is required." : "This is blank. Fill it in or remove it."));
             }
         }
         else if (text.Length > maxLength)

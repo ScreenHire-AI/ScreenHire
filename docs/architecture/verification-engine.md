@@ -490,7 +490,7 @@ categories, and only when the level is raised; other signals are still shown, as
 The AI-use declaration never raises a level or adds a reason. With the policy it sets `aiPolicyContext`
 (`AllowedByPolicy`, `Disclosed`, `NotDisclosed`, `DeclaredUseNotAllowed`, `NotAllowed`), which changes the next step
 only. The summary states neither: the panel shows the job's policy as a pill beside the level, and the application
-page shows the declaration in its own Declarations panel (design system section 16). The next step is the same whatever the candidate declared,
+page shows the declaration with the candidate's answers, under the question as the apply form asks it (design system section 16). The next step is the same whatever the candidate declared,
 so a declaration is never set against the evidence. Summaries and next steps are generated from the outcome in plain language; none contains a
 number that grades the candidate.
 

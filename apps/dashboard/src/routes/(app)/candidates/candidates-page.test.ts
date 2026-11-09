@@ -22,6 +22,7 @@ afterEach(() => {
 const render_ = (rows: ApplicationSummary[] = applications, reachedIds: string[] = []) => {
   const stub = apiStub({
     'GET /v1/applications': () => Response.json(rows),
+    'GET /v1/talent-pool': () => Response.json({ people: [] }),
     'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
     'GET /v1/views': () => Response.json(viewList()),
   });
@@ -36,15 +37,41 @@ const render_ = (rows: ApplicationSummary[] = applications, reachedIds: string[]
 };
 
 describe('candidates page', () => {
-  it('shows the title with a count pill in the header band (section 7, T4)', async () => {
+  it('counts each list on its choice and what the filters show in the table panel, and puts no count beside the title (S8)', async () => {
     render_();
 
     const heading = await screen.findByRole('heading', { level: 1, name: 'Candidates' });
-    await waitFor(() => expect(screen.getByText(`${applications.length}`, { selector: '[data-slot="badge"]' })).toBeInTheDocument());
-    const count = screen.getByText(`${applications.length}`, { selector: '[data-slot="badge"]' });
-    expect(count).toHaveClass('min-w-7');
-    expect(count).toHaveTextContent(`${applications.length} applications`);
-    expect(heading.closest('[data-slot="header-band"]')).toContainElement(count);
+    const band = heading.closest<HTMLElement>('[data-slot="header-band"]')!;
+    const list = within(band).getByRole('group', { name: 'List' });
+    await waitFor(() => expect(within(list).getByRole('link', { name: `Current ${applications.length}` })).toBeInTheDocument());
+    expect(within(list).getByRole('link', { name: 'Saved 0' })).toBeInTheDocument();
+    expect(within(list).getByRole('link', { name: `All ${applications.length}` })).toBeInTheDocument();
+    // A count beside the title changed width between the lists and slid the switch, so the band has none.
+    expect([...heading.parentElement!.querySelectorAll('[data-slot="badge"]')].every((badge) => list.contains(badge))).toBe(true);
+    const panel = screen.getByRole('region', { name: 'Applications' });
+    expect(within(panel.querySelector('header')!).getByText(`${applications.length}`, { selector: '[data-slot="badge"]' })).toBeInTheDocument();
+  });
+
+  it('leaves saved people and ended applications out of Current and shows them under All', async () => {
+    const saved = { ...applications[0]!, id: 'saved-1', candidateName: 'Grace Adeyemi', keptInMindAt: '2026-10-21T09:00:00Z' };
+    const hired = { ...applications[1]!, id: 'hired-1', candidateName: 'Ruth Mwangi', stage: { ...applications[1]!.stage, kind: 'Hired' as const, name: 'Hired' } };
+    render_([...applications, saved, hired]);
+    await screen.findByRole('link', { name: 'Casey Morgan' });
+
+    expect(screen.queryByRole('link', { name: 'Grace Adeyemi' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Ruth Mwangi' })).toBeNull();
+    const list = screen.getByRole('group', { name: 'List' });
+    expect(within(list).getByRole('link', { name: `Current ${applications.length}` })).toBeInTheDocument();
+    expect(within(list).getByRole('link', { name: `All ${applications.length + 2}` })).toHaveAttribute('href', '/candidates?list=all');
+  });
+
+  it('shows every application under All', async () => {
+    appPage.url = new URL('http://dashboard.test/candidates?list=all');
+    const saved = { ...applications[0]!, id: 'saved-1', candidateName: 'Grace Adeyemi', keptInMindAt: '2026-10-21T09:00:00Z' };
+    render_([...applications, saved]);
+
+    expect(await screen.findByRole('link', { name: 'Grace Adeyemi' })).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'List' })).getByRole('link', { name: /^All/ })).toHaveAttribute('aria-current', 'page');
   });
 
   it('holds the search in the table panel header and the filters in a row under it, and the search narrows the rows and the count', async () => {
@@ -60,7 +87,7 @@ describe('candidates page', () => {
     await fireEvent.input(within(header).getByRole('searchbox', { name: 'Search candidates' }), { target: { value: 'jordan' } });
 
     expect(screen.getAllByRole('link', { name: /^(Casey Morgan|Jordan Lee|Sam Taylor)$/ }).map((link) => link.textContent)).toEqual(['Jordan Lee']);
-    expect(screen.getByText('1', { selector: '[data-slot="badge"]' })).toHaveTextContent('1 application');
+    expect(within(screen.getByRole('region', { name: 'Applications' }).querySelector('header')!).getByText('1', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
   });
 
   it('filters by a tag the listed applications carry, from the filter row', async () => {
@@ -200,7 +227,7 @@ describe('candidates page', () => {
 
     expect(await screen.findByRole('link', { name: jordan!.candidateName })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: casey!.candidateName })).toBeNull();
-    expect(screen.getByText('1', { selector: '[data-slot="badge"]' })).toHaveTextContent('1 application');
+    expect(within(screen.getByRole('region', { name: 'Applications' }).querySelector('header')!).getByText('1', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
 
     await fireEvent.click(screen.getByRole('button', { name: /^Clear filter: Reached Interview, / }));
     const [url] = vi.mocked(goto).mock.calls.at(-1)!;
@@ -385,7 +412,7 @@ describe('candidates page views', () => {
 
 // Saved candidates are the Saved choice on this page (docs/architecture/talent-pool.md), kept in the address.
 describe('candidates page, Current and Saved', () => {
-  const choice = (name: 'Current' | 'Saved') => within(screen.getByRole('group', { name: 'List' })).getByRole('link', { name });
+  const choice = (name: 'Current' | 'Saved') => within(screen.getByRole('group', { name: 'List' })).getByRole('link', { name: new RegExp(`^${name}`) });
 
   it('shows the switch beside the title with Current the current one, each choice a link to its address', async () => {
     render_();
@@ -406,6 +433,7 @@ describe('candidates page, Current and Saved', () => {
       vi.fn(
         apiStub({
           'GET /v1/talent-pool': () => Response.json({ people: [] }),
+          'GET /v1/applications': () => Response.json(applications),
           'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
         }),
       ),

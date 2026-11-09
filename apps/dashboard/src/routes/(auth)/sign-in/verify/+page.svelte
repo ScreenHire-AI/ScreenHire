@@ -7,8 +7,7 @@
   import { page } from '$app/state';
   import { returnUrlParameter, safeReturnUrl } from '#lib/auth.js';
   import FailureText from '#lib/components/failure-text.svelte';
-  import HeaderBand from '#lib/components/header-band.svelte';
-  import Panel from '#lib/components/panel.svelte';
+  import SignInCard from '#lib/components/sign-in-card.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
 
   // The emailed link carries the token in the fragment, which the browser never sends to a server. The person
@@ -47,33 +46,18 @@
   <title>Finish signing in · ScreenHire</title>
 </svelte:head>
 
-<main class="flex flex-col">
-  <HeaderBand form title={broken ? "This link doesn't work" : 'Finish signing in'} bind:heading />
-
-  <!-- The form template (section 7): one 688px column, actions at the end. -->
-  <div class="mx-auto w-full max-w-form px-4 py-6 md:px-6">
-    {#if broken}
-      <Panel title="Email link" footer={newLink}>
-        <FailureText message="This sign-in link has expired or has already been used. Each link works once, for 15 minutes." />
-      </Panel>
-    {:else}
-      <form onsubmit={signIn} aria-label="Finish signing in">
-        <Panel title="Email link" footer={confirm}>
-          <p>This link signs you in on this device.</p>
-        </Panel>
-      </form>
-    {/if}
-  </div>
-</main>
-
-{#snippet confirm()}
-  <div class="flex flex-wrap items-center justify-end gap-2">
-    <Button type="submit" size="lg" disabled={submitting}><LogInIcon aria-hidden="true" />Sign in</Button>
-  </div>
-{/snippet}
-
-{#snippet newLink()}
-  <div class="flex flex-wrap items-center justify-end gap-2">
-    <Button href="/sign-in" size="lg"><MailIcon aria-hidden="true" />Get a new link</Button>
-  </div>
-{/snippet}
+<!-- The same card as the sign-in page (design system section 7). -->
+<SignInCard
+  title={broken ? "This link doesn't work" : 'Finish signing in'}
+  description={broken ? undefined : 'This link signs you in on this device.'}
+  bind:heading
+>
+  {#if broken}
+    <FailureText message="This sign-in link has expired or has already been used. Each link works once, for 15 minutes." />
+    <Button href="/sign-in" size="lg" class="w-full"><MailIcon aria-hidden="true" />Get a new link</Button>
+  {:else}
+    <form onsubmit={signIn} aria-label="Finish signing in">
+      <Button type="submit" size="lg" class="w-full" disabled={submitting}><LogInIcon aria-hidden="true" />Sign in</Button>
+    </form>
+  {/if}
+</SignInCard>

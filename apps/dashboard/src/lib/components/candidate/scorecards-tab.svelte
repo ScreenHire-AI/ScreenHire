@@ -66,7 +66,13 @@
     {:else if !withheld}
       <p class="text-muted-foreground">No scorecards yet.</p>
     {/if}
-    {#if withheld && !error && scorecards}<p class="text-muted-foreground">Other scorecards show after you submit yours.</p>{/if}
+    {#if withheld && !error && scorecards}
+      <!-- The reviewer's one job here, said plainly with the button that does it (the header's Fill in is the same). -->
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-secondary px-4 py-3">
+        <p>You're asked for a scorecard. Your teammates' scorecards show after you submit yours.</p>
+        {#if onfill}<Button onclick={onfill}><ClipboardCheckIcon aria-hidden="true" />Fill in your scorecard</Button>{/if}
+      </div>
+    {/if}
     <p role="status" class="text-muted-foreground empty:hidden">{announcement}</p>
   </div>
 </Panel>

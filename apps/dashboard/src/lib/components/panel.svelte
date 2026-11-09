@@ -71,7 +71,19 @@
     <h2 {id} class="sr-only">{label}</h2>
   {/if}
   {#if children}
-    <div class={cn('min-w-0 flex-1', fill && 'flex min-h-0 flex-col', !flush && 'px-4.5 py-4 max-md:px-4')}>{@render children()}</div>
+    <!-- A flush body's table starts and ends at the panel's padding, so its first and last columns line up with the title
+         and keep off the edge (L4). -->
+    <div
+      class={cn(
+        'min-w-0 flex-1',
+        fill && 'flex min-h-0 flex-col',
+        !flush && 'px-4.5 py-4 max-md:px-4',
+        flush &&
+          '[&_td:first-child]:pl-4.5 [&_td:last-child]:pr-4.5 [&_th:first-child]:pl-4.5 [&_th:last-child]:pr-4.5 max-md:[&_td:first-child]:pl-4 max-md:[&_td:last-child]:pr-4 max-md:[&_th:first-child]:pl-4 max-md:[&_th:last-child]:pr-4',
+      )}
+    >
+      {@render children()}
+    </div>
   {/if}
   {#if footer}
     <div class="rounded-b-panel border-t border-border-subtle bg-muted px-4.5 py-3 max-md:px-4">{@render footer()}</div>

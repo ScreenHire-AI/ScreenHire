@@ -6,12 +6,13 @@
   import SendIcon from '~icons/lucide/send';
   import UserPlusIcon from '~icons/lucide/user-plus';
   import type { TalentPoolMember } from '@screenhire/api-client';
-  import { createListEmailTemplates, createListTalentPool, createRemoveFromTalentPool } from '@screenhire/api-client/svelte-query';
+  import { createListApplications, createListEmailTemplates, createListTalentPool, createRemoveFromTalentPool } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { createSortedRowModel, createTable, rowSortingFeature, sortFn_alphanumeric, sortFn_basic, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
   import { mergeProps } from 'bits-ui';
   import { page } from '$app/state';
   import AddToJobSheet from '#lib/components/add-to-job-sheet.svelte';
+  import { listCounts } from '#lib/candidate-lists.js';
   import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
@@ -54,6 +55,8 @@
   const queryClient = useQueryClient();
   const sidebar = Sidebar.useSidebar();
   const saved = createListTalentPool();
+  // Only for the Current and All choices' counts.
+  const applications = createListApplications();
   const people = $derived<TalentPoolMember[]>(saved.data?.data.people ?? []);
   const emailTemplates = createListEmailTemplates();
   const mayInvite = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
@@ -211,11 +214,11 @@
 <TopBar crumbs={[{ label: 'Candidates' }]} />
 
 <main class="flex min-w-0 flex-col">
-  <HeaderBand title="Candidates" count={saved.isSuccess ? shown.length : undefined} countLabel={shown.length === 1 ? 'person' : 'people'} status={listSwitch} />
+  <HeaderBand title="Candidates" status={listSwitch} />
 
   <div class="@container w-full px-4 py-6 md:px-6">
     <p role="status" class="sr-only">{announcement}</p>
-    <Panel title="People" flush>
+    <Panel title="People" count={saved.isSuccess ? shown.length : undefined} flush>
       {#snippet tools()}
         <SearchField bind:value={search} label="Search saved candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
       {/snippet}
@@ -379,7 +382,7 @@
 </main>
 
 {#snippet listSwitch()}
-  <CandidatesListSwitch list="saved" />
+  <CandidatesListSwitch list="saved" counts={listCounts(applications.data?.data, saved.data?.data.people.length)} />
 {/snippet}
 
 {#snippet personMenu(person: TalentPoolMember)}

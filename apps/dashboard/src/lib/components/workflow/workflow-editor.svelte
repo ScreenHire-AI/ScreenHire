@@ -115,10 +115,39 @@
   }
 
   function onOpenAutoFocus(event: Event) {
-    const target = focusPath ? document.querySelector(`[data-focus="${CSS.escape(focusPath)}"]`) : null;
-    if (!(target instanceof HTMLElement)) return;
+    const target = focusPath ? focusTarget(event.currentTarget, focusPath) : null;
+    if (!target) return;
     event.preventDefault();
     target.focus();
+  }
+
+  // The control to focus for a path: the one that names it, else (from Fix) the first field the sheet marks invalid,
+  // else the control of the nearest part that contains it ("automations[0].actions[1]" for its tag).
+  function focusTarget(sheet: EventTarget | null, path: string): HTMLElement | null {
+    const exact = document.querySelector<HTMLElement>(`[data-focus="${CSS.escape(path)}"]`);
+    if (exact) return exact;
+    const invalid = sheet instanceof HTMLElement ? sheet.querySelector<HTMLElement>('[aria-invalid="true"]') : null;
+    if (invalid) return invalid;
+    const parts = [...document.querySelectorAll<HTMLElement>('[data-focus]')].filter((element) => {
+      const key = element.dataset.focus ?? '';
+      return path.startsWith(`${key}.`) || path.startsWith(`${key}[`);
+    });
+    return parts.sort((a, b) => (b.dataset.focus?.length ?? 0) - (a.dataset.focus?.length ?? 0))[0] ?? null;
+  }
+
+  // A problem's Fix: an automation's opens its form at the field; any other goes to its tab and the first field marked
+  // invalid there.
+  async function fix(path: string) {
+    const automation = /^automations\[(\d+)\]/.exec(path);
+    if (automation) {
+      openAutomation(Number(automation[1]), path);
+      return;
+    }
+    tab = /^(questionnaire|followUpQuestionnaires)/.test(path) ? 'questionnaire' : 'pipeline';
+    await tick();
+    const field = document.querySelector<HTMLElement>('[role="tabpanel"][data-state="active"] [aria-invalid="true"]');
+    field?.scrollIntoView({ block: 'center' });
+    field?.focus({ preventScroll: true });
   }
 
   function onCloseAutoFocus(event: Event) {
@@ -144,7 +173,7 @@
   }
 </script>
 
-<ProblemsPanel title="Problems to fix" {workflow} {errors} />
+<ProblemsPanel title="Problems to fix" {workflow} {errors} onfix={fix} />
 
 <Tabs.Content value="pipeline">
   <PipelineView bind:workflow {errors} onopen={openLane} onscorecard={openScorecard} />

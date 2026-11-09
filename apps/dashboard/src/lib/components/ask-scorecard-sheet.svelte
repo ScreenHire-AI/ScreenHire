@@ -9,12 +9,12 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { describeError } from '#lib/query.js';
   import { scorecardWords, stageScorecardLabel } from '#lib/scorecard-choices.js';
   import { cn } from '#lib/utils.js';
 
-  // Ask a teammate for a scorecard (design system section 11, Scorecard): the teammate, the scorecard and a note. It makes
+  // Ask a teammate for a scorecard (design system section 11, Scorecard): the teammate and the scorecard. The request is the
+  // message ("Fill in the Interview scorecard"), so the sheet has no note; the API still takes one. It makes
   // a Scorecard task for them, done when they submit that scorecard for this candidate, never by ticking it (ADR-0017
   // decision 11). The teammates are the people who can see this job (ADR-0015) and whose role fills in scorecards; the
   // scorecard starts on the current stage's own.
@@ -37,14 +37,12 @@
     ondone: (message: string) => void | Promise<void>;
   } = $props();
 
-  const maxNoteLength = 500;
   const uid = $props.id();
   const request = createRequestScorecard();
   let picked = $state('');
   // The one teammate there is, until someone picks.
   const assigneeUserId = $derived(picked || (teammates?.length === 1 ? teammates[0].userId : ''));
   let pickedScorecard = $state('');
-  let note = $state('');
   let tried = $state(false);
   let failure = $state('');
 
@@ -64,7 +62,6 @@
     untrack(() => {
       picked = '';
       pickedScorecard = '';
-      note = '';
       tried = false;
       failure = '';
     });
@@ -76,7 +73,7 @@
     tried = true;
     if (!assigneeUserId || !scorecardTemplateId) return;
     try {
-      await request.mutateAsync({ applicationId, data: { assigneeUserId, scorecardTemplateId, note: note.trim() || null } });
+      await request.mutateAsync({ applicationId, data: { assigneeUserId, scorecardTemplateId } });
       const name = teammates?.find((teammate) => teammate.userId === assigneeUserId)?.displayName ?? 'your teammate';
       open = false;
       const chosen = scorecardName(scorecardTemplateId);
@@ -143,10 +140,6 @@
             {/if}
           </select>
           <Field.Error id={`${uid}-scorecard-error`} errors={tried && !scorecardTemplateId ? [{ message: 'Choose a scorecard.' }] : undefined} />
-        </Field.Field>
-        <Field.Field>
-          <Field.Label for={`${uid}-note`}>Note</Field.Label>
-          <Textarea id={`${uid}-note`} rows={3} maxlength={maxNoteLength} bind:value={note} />
         </Field.Field>
       {/if}
       <FailureText message={failure} />

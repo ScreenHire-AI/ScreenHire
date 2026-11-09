@@ -233,6 +233,8 @@
   // for a requested scorecard), and the sheet opens on it.
   const library = createListScorecardTemplates();
   const linkedScorecard = $derived(page.url.searchParams.get('scorecard'));
+  // A review's link (?fill=stage, #lib/tasks.svelte.ts) opens the sheet on the scorecard Fill in starts on.
+  const linkedFill = $derived(page.url.searchParams.get('fill') === 'stage');
   const reached = $derived(
     new Set([
       ...(detail ? [detail.stage.id] : []),
@@ -267,9 +269,10 @@
   let openedFromLink = false;
   $effect(() => {
     const key = linkedScorecard;
-    if (!key || openedFromLink || !mayScore || !detail || !job.isSuccess || !scorecards.isSuccess || !timeline.isSuccess || !library.isSuccess) return;
+    const fill = linkedFill;
+    if ((!key && !fill) || openedFromLink || !mayScore || !detail || !job.isSuccess || !scorecards.isSuccess || !timeline.isSuccess || !library.isSuccess) return;
     openedFromLink = true;
-    const choice = choiceFor(choices, key);
+    const choice = key ? choiceFor(choices, key) : defaultChoice(choices, detail.stage.id);
     if (choice) fillIn(choice.value);
   });
 

@@ -7,8 +7,9 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { tick } from 'svelte';
   import FailureText from '#lib/components/failure-text.svelte';
-  import HeaderBand from '#lib/components/header-band.svelte';
-  import Panel from '#lib/components/panel.svelte';
+  import GoogleMark from '#lib/components/provider-marks/google-mark.svelte';
+  import MicrosoftMark from '#lib/components/provider-marks/microsoft-mark.svelte';
+  import SignInCard from '#lib/components/sign-in-card.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -16,6 +17,14 @@
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
+
+  // Google and Microsoft carry their own marks, as their sign-in branding guidelines require (design system section 14).
+  // The API reserves these two ids for them (ExternalProviders); any other provider, such as Dev SSO or an organization's
+  // own OIDC, gets the generic sign-in icon. A Map, so an id like `constructor` finds nothing.
+  const marks = new Map([
+    ['google', GoogleMark],
+    ['microsoft', MicrosoftMark],
+  ]);
 
   // The address the link went to, once it has been sent.
   let sentTo = $state<string | undefined>();
@@ -59,103 +68,82 @@
 
   const providers = $derived(data.methods.providers);
   const magicLink = $derived(data.methods.magicLinkEnabled);
+  const anyMethod = $derived(providers.length > 0 || magicLink);
 </script>
 
 <svelte:head>
   <title>Sign in · ScreenHire</title>
 </svelte:head>
 
-<main class="flex flex-col">
-  <HeaderBand form title={sentTo ? 'Check your email' : 'Sign in'} bind:heading />
-
-  <!-- The form template (section 7): one 688px column, labels above fields, actions at the end. -->
-  <div class="mx-auto flex w-full max-w-form flex-col gap-5 px-4 py-6 md:px-6">
-    {#if sentTo}
-      <Panel title="Email link" footer={anotherAddress}>
-        <div class="flex flex-col gap-2" role="status">
-          <p class="break-words">We sent a sign-in link to <strong class="font-semibold">{sentTo}</strong>. It works once, for the next 15 minutes.</p>
-          <p class="text-muted-foreground">Nothing there? Check spam, or send another link.</p>
-        </div>
-      </Panel>
-    {:else}
-      {#if providers.length > 0}
-        <Panel title="Single sign-on">
-          <div class="flex flex-col gap-3">
-            {@render providerError()}
-            <ul class="flex flex-col gap-2">
-              {#each providers as provider (provider.id)}
-                <li>
-                  <!-- A full page load: the API answers with a redirect to the provider, which SvelteKit's router cannot follow. -->
-                  <Button
-                    href={getChallengeProviderUrl(provider.id, { returnUrl: data.returnUrl })}
-                    data-sveltekit-reload
-                    variant="outline"
-                    size="lg"
-                    class="w-full"
-                  >
-                    <LogInIcon aria-hidden="true" />Continue with {provider.displayName}
-                  </Button>
-                </li>
-              {/each}
-            </ul>
-          </div>
-        </Panel>
-      {/if}
-
-      {#if magicLink}
-        <form method="POST" use:enhance novalidate aria-label="Email link">
-          <Panel title="Email link" footer={sendLink}>
-            <div class="flex flex-col gap-3">
-              {#if providers.length === 0}{@render providerError()}{/if}
-              <Field.Field data-invalid={$errors.email ? true : undefined}>
-                <Field.Label for="email">Work email</Field.Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autocomplete="email"
-                  required
-                  bind:value={$form.email}
-                  aria-invalid={$errors.email ? 'true' : undefined}
-                  aria-describedby={$errors.email ? 'email-error' : undefined}
-                />
-                <Field.Error id="email-error" errors={$errors.email?.map((message) => ({ message }))} />
-              </Field.Field>
-            </div>
-          </Panel>
-        </form>
-      {/if}
-
-      {#if providers.length === 0 && !magicLink}
-        <Panel title="Sign-in methods">
-          <div class="flex flex-col gap-3">
-            {@render providerError()}
-            <FailureText message="Sign-in is not set up on this server yet." />
-          </div>
-        </Panel>
-      {/if}
+<!-- One centred card (design system section 7): the providers, an "or" divider, then the email link. -->
+<SignInCard
+  title={sentTo ? 'Check your email' : 'Sign in to ScreenHire'}
+  description={!sentTo && anyMethod ? 'New here? Signing in creates your account.' : undefined}
+  bind:heading
+>
+  {#if sentTo}
+    <div class="flex flex-col gap-2" role="status">
+      <p class="break-words">We sent a sign-in link to <strong class="font-semibold">{sentTo}</strong>. It works once, for the next 15 minutes.</p>
+      <p class="text-muted-foreground">Nothing there? Check spam, or send another link.</p>
+    </div>
+    <Button variant="outline" size="lg" class="w-full" onclick={sendAnother}>Send another link</Button>
+  {:else}
+    <!-- Why a provider sign-in came back here, above the ways to try again. -->
+    {#if data.errorMessage}
+      <FailureText message={data.errorMessage} />
     {/if}
-  </div>
-</main>
 
-<!-- Why a provider sign-in came back here, in the first panel. -->
-{#snippet providerError()}
-  {#if data.errorMessage}
-    <FailureText message={data.errorMessage} />
+    {#if providers.length > 0}
+      <ul class="flex flex-col gap-2">
+        {#each providers as provider (provider.id)}
+          {@const Mark = marks.get(provider.id)}
+          <li>
+            <!-- A full page load: the API answers with a redirect to the provider, which SvelteKit's router cannot follow. -->
+            <Button
+              href={getChallengeProviderUrl(provider.id, { returnUrl: data.returnUrl })}
+              data-sveltekit-reload
+              variant="outline"
+              size="lg"
+              class="w-full"
+            >
+              {#if Mark}<Mark />{:else}<LogInIcon aria-hidden="true" />{/if}Continue with {provider.displayName}
+            </Button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+
+    {#if providers.length > 0 && magicLink}
+      <div data-slot="or-divider" class="flex items-center gap-3 text-muted-foreground">
+        <span aria-hidden="true" class="h-px flex-1 bg-border"></span>or<span aria-hidden="true" class="h-px flex-1 bg-border"></span>
+      </div>
+    {/if}
+
+    {#if magicLink}
+      <form method="POST" use:enhance novalidate aria-label="Email link" class="flex flex-col gap-4">
+        <Field.Field data-invalid={$errors.email ? true : undefined}>
+          <Field.Label for="email">Work email</Field.Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            required
+            bind:value={$form.email}
+            aria-invalid={$errors.email ? 'true' : undefined}
+            aria-describedby={$errors.email ? 'email-error' : undefined}
+          />
+          <Field.Error id="email-error" errors={$errors.email?.map((message) => ({ message }))} />
+        </Field.Field>
+        <Button type="submit" size="lg" class="w-full" disabled={$submitting}><MailIcon aria-hidden="true" />Email me a sign-in link</Button>
+        {#if $errors._errors}
+          <FailureText message={$errors._errors[0]} />
+        {/if}
+      </form>
+    {/if}
+
+    {#if !anyMethod}
+      <FailureText message="Sign-in is not set up on this server yet." />
+    {/if}
   {/if}
-{/snippet}
-
-{#snippet sendLink()}
-  <div class="flex flex-wrap items-center justify-end gap-2">
-    {#if $errors._errors}
-      <FailureText message={$errors._errors[0]} class="mr-auto" />
-    {/if}
-    <Button type="submit" size="lg" disabled={$submitting}><MailIcon aria-hidden="true" />Email me a sign-in link</Button>
-  </div>
-{/snippet}
-
-{#snippet anotherAddress()}
-  <div class="flex flex-wrap items-center justify-end gap-2">
-    <Button variant="outline" size="lg" onclick={sendAnother}>Send another link</Button>
-  </div>
-{/snippet}
+</SignInCard>

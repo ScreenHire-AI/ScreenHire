@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import WithTooltips from '../../../test-support/with-tooltips.svelte';
@@ -22,14 +22,68 @@ describe('sign-in page', () => {
     vi.unstubAllGlobals();
   });
 
-  it('is the form template: one h1, then a panel per way to sign in, and passes axe', async () => {
+  it('is one centred card: the mark, one h1 and a line on new accounts, the providers, then the email link, and passes axe', async () => {
     show(data());
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sign in');
-    expect(screen.getByRole('region', { name: 'Single sign-on' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Email link' })).toBeInTheDocument();
+    const card = document.querySelector<HTMLElement>('[data-slot="sign-in-card"]')!;
     expect(screen.getAllByRole('main')).toHaveLength(1);
+    expect(screen.getByRole('main')).toContainElement(card);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sign in to ScreenHire');
+    expect(card).toHaveTextContent('New here? Signing in creates your account.');
+    expect(within(card).getByRole('link', { name: 'Continue with Dev SSO' })).toBeInTheDocument();
+    expect(within(card).getByRole('form', { name: 'Email link' })).toBeInTheDocument();
+    // No panels and no brand bar: the card carries the mark (design system section 7).
+    expect(screen.queryByRole('region')).not.toBeInTheDocument();
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
     await expectNoAxeViolations(document.body);
+  });
+
+  it('gives Google and Microsoft their own marks, and any other provider the generic icon', () => {
+    show(
+      data({
+        methods: {
+          providers: [
+            { id: 'google', displayName: 'Google' },
+            { id: 'microsoft', displayName: 'Microsoft' },
+            { id: 'dev-sso', displayName: 'Dev SSO' },
+          ],
+          magicLinkEnabled: true,
+        },
+      }),
+    );
+
+    const google = screen.getByRole('link', { name: 'Continue with Google' });
+    const microsoft = screen.getByRole('link', { name: 'Continue with Microsoft' });
+    const devSso = screen.getByRole('link', { name: 'Continue with Dev SSO' });
+    expect(google.querySelector('[data-slot="google-mark"]')).toHaveAttribute('aria-hidden', 'true');
+    expect(microsoft.querySelector('[data-slot="microsoft-mark"]')).toHaveAttribute('aria-hidden', 'true');
+    expect(google.querySelector('[data-slot="microsoft-mark"]')).toBeNull();
+    // A provider the marks do not know keeps a plain icon, never another company's mark.
+    expect(devSso.querySelector('[data-slot$="-mark"]')).toBeNull();
+    expect(devSso.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('puts an "or" divider between the providers and the email link, only when both are offered', () => {
+    const { unmount } = show(data());
+
+    const divider = screen.getByText('or');
+    expect(divider).toHaveAttribute('data-slot', 'or-divider');
+    const lastProvider = screen.getByRole('link', { name: 'Continue with Dev SSO' });
+    const email = screen.getByLabelText('Work email');
+    expect(lastProvider.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(divider.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    unmount();
+
+    show(data({ methods: { providers: [], magicLinkEnabled: true } }));
+    expect(screen.queryByText('or')).not.toBeInTheDocument();
+  });
+
+  it('has no divider when only providers are offered', () => {
+    show(data({ methods: { providers: [{ id: 'google', displayName: 'Google' }], magicLinkEnabled: false } }));
+
+    expect(screen.getByRole('link', { name: 'Continue with Google' })).toBeInTheDocument();
+    expect(screen.queryByText('or')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Work email')).not.toBeInTheDocument();
   });
 
   it('says where the link went and moves focus to the new title', async () => {
@@ -42,7 +96,10 @@ describe('sign-in page', () => {
     const heading = await screen.findByRole('heading', { level: 1, name: 'Check your email' });
     await vi.waitFor(() => expect(heading).toHaveFocus());
     expect(screen.getByRole('status')).toHaveTextContent('avery@example.com');
-    expect(screen.queryByRole('region', { name: 'Single sign-on' })).not.toBeInTheDocument();
+    // The same card, with the ways to sign in and the line on new accounts gone.
+    expect(document.querySelector('[data-slot="sign-in-card"]')).toContainElement(screen.getByRole('status'));
+    expect(screen.queryByRole('link', { name: /Continue with/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('New here? Signing in creates your account.')).not.toBeInTheDocument();
   });
 
   it('sends another link from the same address: back to the form with the email still in it', async () => {
@@ -92,7 +149,7 @@ describe('sign-in page', () => {
     show(data({ methods: { providers: [], magicLinkEnabled: true } }));
 
     expect(screen.queryByRole('link', { name: /Continue with/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Single sign-on' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Work email')).toBeInTheDocument();
   });
 
@@ -105,9 +162,11 @@ describe('sign-in page', () => {
   it('says why a provider sign-in came back when no sign-in method is left to offer', () => {
     show(data({ methods: { providers: [], magicLinkEnabled: false }, errorMessage: "We couldn't sign you in with that provider." }));
 
-    const panel = screen.getByRole('region', { name: 'Sign-in methods' });
-    expect(panel).toHaveTextContent("We couldn't sign you in with that provider.");
-    expect(panel).toHaveTextContent('Sign-in is not set up on this server yet.');
+    const card = document.querySelector('[data-slot="sign-in-card"]');
+    expect(card).toHaveTextContent("We couldn't sign you in with that provider.");
+    expect(card).toHaveTextContent('Sign-in is not set up on this server yet.');
+    // Nothing to sign in with, so no line about what signing in does.
+    expect(card).not.toHaveTextContent('New here?');
   });
 });
 

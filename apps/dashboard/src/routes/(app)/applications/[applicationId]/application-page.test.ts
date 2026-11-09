@@ -334,7 +334,15 @@ describe('application page', () => {
     const rows = within(answers)
       .getAllByRole('term')
       .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]);
-    expect(rows.map(([label]) => label)).toEqual(['Do you have the right to work in the UK?', 'Years of experience', 'Portfolio', 'Why this role?']);
+    // The job's questions, then the ones every application asks, for what the candidate declared.
+    expect(rows.map(([label]) => label)).toEqual([
+      'Do you have the right to work in the UK?',
+      'Years of experience',
+      'Portfolio',
+      'Why this role?',
+      'Did you use AI tools for this application?',
+      'Adjustments to the process',
+    ]);
     expect(rows[0]![1]).toBe('Yes');
     expect(rows[1]![1]).toBe('3 to 5 years');
     expect(rows[3]![1]).toBe('Small teams.\nReal problems.');
@@ -743,7 +751,8 @@ describe('application page', () => {
     await within(tasks).findByText('Fill in the Interview scorecard.');
     expect(within(tasks).getAllByRole('checkbox').map((box) => box.getAttribute('aria-label'))).toEqual(['Mark done for Call the references.']);
     expect(within(tasks).getByRole('link', { name: 'Fill in: Fill in the Interview scorecard.' })).toHaveAttribute('href', '?tab=scorecards&scorecard=interview');
-    expect(within(tasks).getByRole('link', { name: 'Open scorecards: Review this application.' })).toHaveAttribute('href', '?tab=scorecards');
+    // A review is finished by any scorecard, so its Fill in opens the sheet on the current stage's.
+    expect(within(tasks).getByRole('link', { name: 'Fill in: Review this application.' })).toHaveAttribute('href', '?tab=scorecards&fill=stage');
     // Robin's request is Robin's to do.
     expect(within(tasks).queryByRole('link', { name: 'Fill in: Fill in the Screening scorecard.' })).not.toBeInTheDocument();
   });
@@ -912,29 +921,30 @@ describe('application page', () => {
     expect(screen.queryByRole('region', { name: 'Automations' })).not.toBeInTheDocument();
   });
 
-  it("shows the candidate's declarations on Application", async () => {
+  it("lists the candidate's declarations with their answers on Application, each under the question as asked", async () => {
     renderPage('application');
-    const declarations = await screen.findByRole('region', { name: 'Declarations' });
+    const answers = await screen.findByRole('region', { name: 'Answers' });
+    const row = (question: string) => within(answers).getByText(question).closest('div')!;
 
-    expect(declarations).toHaveTextContent('Used AI: Grammar checks only.');
-    expect(declarations).toHaveTextContent('Asked for adjustments to the process');
-    // These values explain themselves, so their labels are for screen readers only (W9).
-    expect(within(declarations).getByText('AI use')).toHaveClass('sr-only');
-    expect(within(declarations).getByText('Adjustments')).toHaveClass('sr-only');
+    expect(screen.queryByRole('region', { name: 'Declarations' })).not.toBeInTheDocument();
+    expect(row('Did you use AI tools for this application?')).toHaveTextContent('Yes: Grammar checks only.');
+    expect(row('Adjustments to the process')).toHaveTextContent('Asked for');
+    // The question is muted and the answer in medium weight, so the two never read as one.
+    expect(within(row('Adjustments to the process')).getByText('Asked for')).toHaveClass('font-medium');
   });
 
-  it('shows only what the candidate declared, and says so when that is nothing (W6)', async () => {
+  it('shows only what the candidate declared (W6)', async () => {
     stubApi({
       [`GET /v1/applications/${applicationId}`]: () =>
         Response.json({ ...application, aiUseDeclaration: 'NotProvided', aiUseDetails: null, accommodationRequested: false }),
     });
     renderPage('application');
-    const declarations = await screen.findByRole('region', { name: 'Declarations' });
+    const answers = await screen.findByRole('region', { name: 'Answers' });
 
-    expect(declarations).toHaveTextContent('Nothing declared.');
-    expect(declarations).not.toHaveTextContent('AI use');
-    expect(declarations).not.toHaveTextContent('None requested');
-    expect(declarations).not.toHaveTextContent('Not asked or not answered');
+    expect(answers).not.toHaveTextContent('Did you use AI tools');
+    expect(answers).not.toHaveTextContent('Adjustments');
+    expect(answers).not.toHaveTextContent('None requested');
+    expect(answers).not.toHaveTextContent('Not asked or not answered');
   });
 
   describe('saved candidates', () => {
@@ -1122,26 +1132,26 @@ describe('application page', () => {
         stubDetail({ futureRolesGivenAt: '2026-10-20T09:00:00Z', allowsFutureRoles: true });
         renderPage('application');
 
-        const declarations = await screen.findByRole('region', { name: 'Declarations' });
+        const answers = await screen.findByRole('region', { name: 'Answers' });
 
-        expect(declarations).toHaveTextContent('Future roles');
-        expect(declarations).toHaveTextContent('Allowed');
+        expect(answers).toHaveTextContent('Keep my details for future roles');
+        expect(answers).toHaveTextContent('Allowed');
       });
 
       it('says they allowed it and then stopped', async () => {
         stubDetail({ futureRolesGivenAt: '2026-10-20T09:00:00Z', allowsFutureRoles: false });
         renderPage('application');
 
-        expect(await screen.findByRole('region', { name: 'Declarations' })).toHaveTextContent('Allowed, then stopped');
+        expect(await screen.findByRole('region', { name: 'Answers' })).toHaveTextContent('Allowed, then stopped');
       });
 
       it('shows no row at all when the candidate did not tick the box', async () => {
         stubDetail({});
         renderPage('application');
 
-        const declarations = await screen.findByRole('region', { name: 'Declarations' });
+        const answers = await screen.findByRole('region', { name: 'Answers' });
 
-        expect(declarations).not.toHaveTextContent('Future roles');
+        expect(answers).not.toHaveTextContent('future roles');
       });
     });
 
@@ -1350,7 +1360,7 @@ describe('application page', () => {
       renderPage('scorecards');
       const panel = await screen.findByRole('region', { name: 'Scorecards' });
 
-      await within(panel).findByText('Other scorecards show after you submit yours.');
+      await within(panel).findByText("You're asked for a scorecard. Your teammates' scorecards show after you submit yours.");
       expect(screen.getByText('Rating after your scorecard')).toBeInTheDocument();
       expect(screen.queryByRole('img', { name: /of 5 stars/ })).not.toBeInTheDocument();
     });
@@ -1512,13 +1522,14 @@ describe('application page', () => {
       await waitFor(() => expect(who).toHaveValue(teammate));
       expect(within(who).queryByRole('option', { name: user.displayName })).not.toBeInTheDocument();
       expect(within(sheet).getByRole('combobox', { name: 'Scorecard' })).toHaveValue('interview');
-      await fireEvent.input(within(sheet).getByLabelText('Note'), { target: { value: '  Focus on the pairing exercise.  ' } });
+      // The request is the message, so the sheet asks for nothing more.
+      expect(within(sheet).queryByLabelText('Note')).not.toBeInTheDocument();
       await expectNoAxeViolations(sheet);
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Ask' }));
 
       await within(panel).findByText('Asked Robin Ashby for the Interview scorecard.');
       const post = fetch.mock.calls.find(([url, init]) => String(url).endsWith('/scorecard-requests') && init?.method === 'POST');
-      expect(JSON.parse(String(post![1]!.body))).toEqual({ assigneeUserId: teammate, scorecardTemplateId: 'interview', note: 'Focus on the pairing exercise.' });
+      expect(JSON.parse(String(post![1]!.body))).toEqual({ assigneeUserId: teammate, scorecardTemplateId: 'interview' });
     });
 
     it('says why when nobody else who sees the job fills in scorecards', async () => {
