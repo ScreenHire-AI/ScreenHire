@@ -9,7 +9,7 @@ namespace ScreenHire.E2E;
 /// Teammates' changes as toasts (design system section 11, roadmap item 10), in one new organization with an Owner and a
 /// Recruiter on one job's hiring team. The Owner's dashboard is open and live: the Recruiter's move reaches it as a toast
 /// that names the Recruiter, the candidate (a link to their page) and the stage; the Owner's own move makes none; the
-/// Owner turns Moves off in the Notifications sheet and the next move is silent; and on a phone the toast sits above the
+/// Owner turns Moves off in the Teammate changes sheet and the next move is silent; and on a phone the toast sits above the
 /// page's action bar.
 /// </summary>
 public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -74,10 +74,10 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(toasts).ToContainTextAsync($"{recruiterName} added a note on {Candidate}", new() { Timeout = 30_000 });
         await Expect(toasts).Not.ToContainTextAsync("to Interview");
 
-        // Moves off in the Notifications sheet: the account menu, the Notifications item, the Moves switch, Save.
+        // Moves off in the Teammate changes sheet: the account menu, the Teammate changes item, the Moves switch, Save.
         await Page.GetByRole(AriaRole.Button, new() { Name = ownerName }).ClickAsync();
-        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Notifications" }).ClickAsync();
-        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Notifications" });
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Teammate changes" }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Teammate changes" });
         await Expect(sheet).ToBeVisibleAsync();
         var moves = sheet.GetByRole(AriaRole.Switch, new() { Name = "Moves", Exact = true });
         await Expect(moves).ToBeCheckedAsync();

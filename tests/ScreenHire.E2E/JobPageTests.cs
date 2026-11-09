@@ -139,7 +139,9 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(postingsTab).ToHaveAttributeAsync("aria-selected", "true");
         var adzuna = Page.GetByRole(AriaRole.Region, new() { Name = "Job postings" }).Locator("[data-board='adzuna']");
         await Expect(notice).ToContainTextAsync("Adzuna needs a description of at least 100 characters.");
-        await Expect(notice.GetByRole(AriaRole.Link)).ToHaveCountAsync(0);
+        // On the tab it would link to, the notice links to the edit page instead.
+        await Expect(notice.GetByRole(AriaRole.Link, new() { Name = "Fix on Job postings" })).ToHaveCountAsync(0);
+        await Expect(notice.GetByRole(AriaRole.Link, new() { Name = "Edit details" })).ToBeVisibleAsync();
         await adzuna.GetByRole(AriaRole.Button, new() { Name = "Actions for Adzuna" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Edit details for every board" })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");

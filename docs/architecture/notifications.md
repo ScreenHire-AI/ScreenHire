@@ -31,7 +31,9 @@ sources:
 A bell in the top bar holds what needs one person's attention. It has two parts:
 
 - **Setup**, for whoever can do the steps (Owners and Admins): the five steps a new organization takes, each linking to the
-  page where it is done. It is not stored. The dashboard works it out from the organization's own data, as it always did, and
+  page where it is done, in the order a team does them: branding, the first published job, inviting the team, the careers
+  page's own settings, then sending email from the company's own domain (last, because it is DNS work outside ScreenHire and
+  the team can start without it). It is not stored. The dashboard works it out from the organization's own data, as it always did, and
   shows only the steps left, with the done ones folded into one line ("2 steps done"). It goes by itself once the last step is
   done, and Hiding setup (an icon button in the panel) hides it in this browser for the organization.
 - **Alerts**, stored on the server, one row per person: a plain line that links to the page that fixes it. They are read,
@@ -142,6 +144,9 @@ its list cannot disagree. "This week" is a rolling seven days.
 | Not screened | applications in the first stage that nobody kept in mind | `/candidates?view=not-screened` |
 | Interviews this week | applications with a booked interview starting within 7 days (`nextInterviewAt` on the application summary) | `/candidates?view=interviews-this-week` |
 | Open jobs | open jobs, as "3 of 5" against the plan's limit for whoever may manage billing | `/?status=Open` |
+
+An organization with no jobs yet sees no overview: four zeros say nothing to a new team, so the numbers start with the first job and
+the empty state says what to do first.
 
 The two new views are not in the sidebar. Not screened is the count of applications waiting for a first look; the other
 "review" count, To review, depends on a person's verification access, so it is not used here. A tile whose number cannot load is

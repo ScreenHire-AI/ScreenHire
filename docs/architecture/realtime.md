@@ -220,7 +220,7 @@ email makes one toast and no request per candidate. A `TeammateMentioned` for th
 from the same author on the same application: the mention card already says it. Reads go through the shell's query
 cache, so a burst of events reads the team once, and a read that fails drops the toast.
 
-Each member picks what they get in the Notifications sheet, from the account menu: toasts on or off, each kind, and
+Each member picks what they get in the Teammate changes sheet, from the account menu: toasts on or off, each kind, and
 whether toasts close on their own. The settings are on their membership (`organization_members.notifications`, JSONB,
 `NotificationSettings`), so each organization keeps its own and they follow the person to another browser. They hold
 the kinds turned off, so a kind added later starts on.

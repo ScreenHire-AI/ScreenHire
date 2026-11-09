@@ -82,7 +82,8 @@
 <Sheet.Root bind:open>
   <Sheet.Content side="right" class="w-full overflow-y-auto">
     <Sheet.Header>
-      <Sheet.Title>Notifications</Sheet.Title>
+      <!-- Not "Notifications": that is the bell, which lists what needs attention. This sheet only sets the toasts. -->
+      <Sheet.Title>Teammate changes</Sheet.Title>
       <Sheet.Description>Toasts when a teammate changes something you work on.</Sheet.Description>
     </Sheet.Header>
     {#if settings.isError}

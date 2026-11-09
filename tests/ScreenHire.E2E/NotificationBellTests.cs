@@ -22,9 +22,11 @@ public sealed class NotificationBellTests(E2EFixture fixture) : BrowserTest(fixt
         await Page.SetViewportSizeAsync(1440, 900);
         await SignInAsync(owner);
 
-        // Jobs shows the jobs and four numbers, no setup panel.
+        // A new organization has no jobs, so Jobs shows its empty state with what to do next: no setup panel and no four
+        // zeros. The numbers start with the first job.
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Set up your organization" })).ToHaveCountAsync(0);
-        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Overview" }).GetByRole(AriaRole.Link)).ToHaveCountAsync(4);
+        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Overview" })).ToHaveCountAsync(0);
+        await Expect(Page.GetByText("Start from a template, then publish it to your careers page and the job boards.")).ToBeVisibleAsync();
 
         // Five steps open, one badge on the bell. The team is only the Owner, nothing is set, and no job is published.
         var bell = Page.GetByRole(AriaRole.Button, new() { Name = "Notifications, 5 need attention" });
@@ -35,7 +37,7 @@ public sealed class NotificationBellTests(E2EFixture fixture) : BrowserTest(fixt
         var setup = panel.GetByRole(AriaRole.Region, new() { Name = "Finish setting up" });
         await Expect(setup).ToBeVisibleAsync();
         await Expect(setup.GetByRole(AriaRole.Link)).ToHaveTextAsync(
-            ["Invite your team", "Set your branding", "Set up your careers site", "Add your email domain", "Publish your first job"]);
+            ["Set your branding", "Publish your first job", "Invite your team", "Set up your careers page", "Send email from your own domain"]);
         await Expect(setup.GetByRole(AriaRole.Link, new() { Name = "Set your branding" })).ToHaveAttributeAsync("href", "/settings/branding");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-notification-bell");

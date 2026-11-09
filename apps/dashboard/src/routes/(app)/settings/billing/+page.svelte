@@ -150,7 +150,9 @@
           </SummaryList>
         </Panel>
 
-        <Panel title="Plans" footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : subscribed && overview.canManage ? changeFooter : undefined}>
+        <Panel
+          title="Plans"
+          footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : subscribed && overview.canManage ? changeFooter : standing === 'Trialing' ? trialFooter : undefined}>
           <ul class="-my-3">
             {#each overview.plans as plan (plan.key)}
               <li class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border-subtle py-3 last:border-0">
@@ -219,6 +221,11 @@
       <a href="/verification/activity" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">See every call</a>
     </div>
   </div>
+{/snippet}
+
+{#snippet trialFooter()}
+  <!-- The trial is a stored date: no card is taken and nothing is charged until a plan is chosen (docs/architecture/billing.md, "The trial"). -->
+  <p class="text-muted-foreground">Nothing is charged during the trial and no card is needed. When it ends, open jobs stay open and a new job needs a plan.</p>
 {/snippet}
 
 {#snippet changeFooter()}

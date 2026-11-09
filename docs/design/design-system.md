@@ -206,7 +206,7 @@ Authors check their screens against this list, and the `design-review` agent rep
   gets the room and the person's attention, and the preview is one press away, because showing both at once competes
   for both (ADR-0026). A read-only view keeps the switch and names its first choice for what it shows, Questions with a
   list icon, because nothing there can be edited (E3). Preview shows the result at its real size and adds no sentence
-  about itself, unless it follows unsaved edits to something candidates already see (Branding), and then one line says so and that nothing is live until Save; a window icon beside the switch pops it out for someone who wants both, and the window follows the edits. The email composer keeps the switch and has no window: it is one email in a sheet, not wording
+  about itself, unless it follows unsaved edits to something candidates already see (Branding), and then one line says so and that nothing is live until Save; a window icon beside the switch pops it out for someone who wants both, and the window follows the edits (the icon is left out on a phone, which has no room for a second window). The email composer keeps the switch and has no window: it is one email in a sheet, not wording
   others reuse. The Customize sheet does the same: its preview is the API's answer for one board's text, fetched when
   the preview opens, and it does not follow the edits.
 - **A9** Anything that opens in place says so: a `chevron-down` at the end of the row, turning up when it is open, and
@@ -849,6 +849,12 @@ Keep it simple: say less, and say it once.
 | Design for the count | "Used by Software engineer, Brightwater engineering" | 2 hiring templates, a button that lists them |
 
 Helper text only when a label cannot say it. Copy follows `.claude/rules/writing-style.md`.
+
+**One name for one thing.** The bell in the top bar is Notifications; the account menu's sheet that picks which teammates'
+changes show as toasts is Teammate changes, and Verification's alert settings tab keeps its own name. In Settings the group
+is Careers site and its page is Careers page, so a sentence about the page says "careers page" (the careers page address,
+Careers page settings). After Publish the job page says where the job went, because the Publish button is gone. The Jobs
+overview waits for the first job, and the empty state says what to do first.
 
 **Voice.**
 

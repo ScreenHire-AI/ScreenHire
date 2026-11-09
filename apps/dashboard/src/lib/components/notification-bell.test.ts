@@ -80,8 +80,8 @@ describe('notification bell', () => {
 
     const setup = await within(panel).findByRole('region', { name: 'Finish setting up' });
     const links = within(setup).getAllByRole('link');
-    expect(links.map((link) => link.textContent?.trim())).toEqual(['Invite your team', 'Set your branding', 'Set up your careers site', 'Publish your first job']);
-    expect(links[0]).toHaveAttribute('href', '/settings/team');
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['Set your branding', 'Publish your first job', 'Invite your team', 'Set up your careers page']);
+    expect(links[0]).toHaveAttribute('href', '/settings/branding');
     // The setup comes before the alerts.
     const alerts = within(panel).getByRole('list', { name: 'Alerts' });
     expect(setup.compareDocumentPosition(alerts) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

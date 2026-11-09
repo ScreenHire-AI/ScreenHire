@@ -17,7 +17,7 @@
     check,
     errors,
     fallback,
-    placeholder = "ScreenHire's",
+    placeholder = "Default",
   }: {
     id: string;
     label: string;
@@ -57,7 +57,7 @@
       autocomplete="off"
       spellcheck={false}
       {placeholder}
-      class="min-w-0 flex-1 font-mono"
+      class="min-w-0 flex-1 font-mono placeholder:font-sans"
       bind:value
       aria-invalid={problems.length > 0 ? 'true' : undefined}
       aria-describedby={[`${id}-hint`, problems.length > 0 && `${id}-error`].filter(Boolean).join(' ')}

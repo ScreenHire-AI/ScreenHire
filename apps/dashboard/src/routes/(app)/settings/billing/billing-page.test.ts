@@ -145,6 +145,21 @@ describe('billing page', () => {
     await expectNoAxeViolations();
   });
 
+  const trialEndWords = 'Nothing is charged during the trial and no card is needed. When it ends, open jobs stay open and a new job needs a plan.';
+
+  it('tells a trialing owner what the end of the trial does', async () => {
+    renderPage();
+
+    expect(await screen.findByText(trialEndWords)).toBeInTheDocument();
+  });
+
+  it('does not say it once there is a subscription', async () => {
+    renderPage(active);
+
+    await screen.findByText('Active');
+    expect(screen.queryByText(trialEndWords)).not.toBeInTheDocument();
+  });
+
   describe('AI usage', () => {
     const panel = () => screen.getByRole('region', { name: 'AI usage' });
 
