@@ -217,7 +217,8 @@ brackets.
   with a job, three assessed applicants, one of each template, a role, a key, a webhook endpoint and a task, and on a new
   empty one (`DashboardThemeTests`, `DashboardPhoneTests`, [testing](process/testing.md)). Not reached: the invitation, OAuth
   consent and onboarding pages (each needs a token or a state the walk does not make); the workflow map with automations
-  drawn between its stages (the walk's job has none); the scorecard roster and its side sheet with scorecards in them (the
+  drawn between its stages (the walk's job has none); the four `/preview/*` pages on their own (branding, email, form and
+  scorecard: the frames the editors show them in, which axe reads only as part of their page); the scorecard roster and its side sheet with scorecards in them (the
   walk has none); and tabs nested inside a tab. Axe reads text only, so a focus ring, a status icon and a chart colour are
   proven from the tokens in both themes (`theme-contrast.test.ts`), not on the page.
 - The careers and candidate pages have no dark theme: their dark tokens exist (`--candidate-*` under `.dark`) and
