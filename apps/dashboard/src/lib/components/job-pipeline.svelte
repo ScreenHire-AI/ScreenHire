@@ -90,6 +90,11 @@
   const filtering = $derived(Boolean(chosenStage) || Boolean(search.trim()) || isVerificationFiltered(verificationFilter));
   const moveTargets = $derived(bulkMoveStages(stages, verificationFilter));
 
+  // A Rating column with nothing in any row is an empty column on every page load (L1): it joins the table once a scorecard
+  // has a rating, or while someone owes theirs ("After yours"). Its sort stays valid either way (`sort` below lists it).
+  const hasRatings = $derived(applications.some((application) => application.rating != null && application.rating.state !== 'NotRated'));
+  const tableColumns = $derived(hasRatings ? [...verificationColumns, ratingColumn] : verificationColumns);
+
   // A view of this job's table is named in the address (docs/architecture/saved-views.md). Opening one puts its stage,
   // verification filter and sort on the table; leaving one clears them. The sort belongs here so a view can set it, and it
   // outlives switching to the board and back. A view sets it without changing the sort the person remembers.
@@ -259,7 +264,7 @@
       {sort}
       {stages}
       {moves}
-      extraColumns={[...verificationColumns, ratingColumn]}
+      extraColumns={tableColumns}
       bind:selectedIds
       emptyTitle={filtering ? undefined : 'No candidates yet'}
       emptyText={filtering ? 'No candidates match these filters.' : emptyText}

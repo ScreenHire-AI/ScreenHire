@@ -82,7 +82,7 @@ function renderPage(options: { who?: TalentPoolMember[]; as?: CurrentUser; sendi
   return render(WithQueryClient, { props: { component: Page, props: {} } });
 }
 
-const panel = () => screen.findByRole('region', { name: 'People' });
+const panel = () => screen.findByRole('region', { name: 'Candidates' });
 const nameLinks = () => screen.queryAllByRole('link', { name: /^(Casey Morgan|Jordan Lee|Sam Taylor)$/ }).map((link) => link.textContent);
 const search = (text: string) => fireEvent.input(screen.getByRole('searchbox', { name: 'Search saved candidates' }), { target: { value: text } });
 
@@ -124,9 +124,9 @@ describe('saved candidates page', () => {
     expect(within(row).getByText('Oct 28, 2026')).toHaveAttribute('datetime', casey.lastContactedAt);
     // There is no permission end any more: a saved candidate stays until the team removes them or they ask to stop.
     expect(screen.queryByRole('columnheader', { name: /permission/i })).toBeNull();
-    // The list's size is on its choice beside the title, and what the search shows on the panel (S8).
+    // The list's size is on its choice beside the title, and the panel says it again only when a search or filter narrows it (W7).
     expect(within(screen.getByRole('group', { name: 'List' })).getByRole('link', { name: 'Saved 3' })).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'People' }).querySelector('header')!).getByText('3', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Candidates' }).querySelector('header [data-slot="badge"]')).toBeNull();
   });
 
   it('shows the rating from the scorecards, and "After yours" while the reviewer owes their own scorecard', async () => {
@@ -192,7 +192,7 @@ describe('saved candidates page', () => {
 
     await search('jordan');
     expect(nameLinks()).toEqual(['Jordan Lee']);
-    expect(within(screen.getByRole('region', { name: 'People' }).querySelector('header')!).getByText('1', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Candidates' }).querySelector('header')!).getByText('1', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
 
     await search('wrong timing');
     expect(nameLinks()).toEqual(['Casey Morgan']);

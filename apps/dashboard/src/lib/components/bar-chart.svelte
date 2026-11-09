@@ -70,10 +70,10 @@
       {/each}
     </ul>
   {/if}
-  <ul aria-label={label} class="flex flex-col gap-1">
+  <ul aria-label={label} class="flex flex-col">
     {#each rows as row (row.key)}
       <li>
-        <div class="group/row grid grid-cols-[minmax(0,1fr)] items-center gap-x-4 gap-y-1 rounded-md px-1 py-1.5 hover:bg-muted @lg/chart:grid-cols-[minmax(6rem,14rem)_minmax(0,1fr)]">
+        <div class="group/row grid grid-cols-[minmax(0,1fr)] items-center gap-x-4 gap-y-1 rounded-md px-1 py-1 hover:bg-muted @md/chart:grid-cols-[minmax(4rem,9rem)_minmax(0,1fr)]">
           {#if row.href}
             <a href={row.href} class="inline-flex min-h-6 min-w-0 items-center truncate text-body text-primary underline underline-offset-2 pointer-coarse:min-h-11">{row.label}</a>
           {:else}
@@ -105,7 +105,7 @@
                 {#if row.note !== undefined}
                   <!-- Inside the image, so a screen reader hears the row's summary, which says "the biggest drop". -->
                   <span
-                    class={cn('inline-flex shrink-0 items-center justify-end gap-1 text-body whitespace-nowrap tabular-nums @lg/chart:min-w-28', row.drop ? 'font-semibold text-foreground' : 'text-muted-foreground')}
+                    class={cn('inline-flex shrink-0 items-center justify-end gap-1 text-body whitespace-nowrap tabular-nums @md/chart:min-w-24', row.drop ? 'font-semibold text-foreground' : 'text-muted-foreground')}
                   >
                     {#if row.drop}<ArrowDownRightIcon aria-hidden="true" class="size-4" />{/if}{row.note ?? ''}
                   </span>

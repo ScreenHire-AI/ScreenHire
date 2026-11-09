@@ -225,7 +225,9 @@
 
   <div class="@container w-full px-4 py-6 md:px-6">
     <p role="status" class="sr-only">{announcement}</p>
-    <Panel title="People" count={saved.isSuccess ? shown.length : undefined} flush>
+    <!-- Titled like the Current list's panel. The size of the list is on its choice beside the page title (T4), so the panel counts
+         only when a search or filter leaves fewer than that (W7). -->
+    <Panel title="Candidates" count={saved.isSuccess && filtering ? shown.length : undefined} flush>
       {#snippet tools()}
         <SearchField bind:value={search} label="Search saved candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
       {/snippet}

@@ -33,14 +33,22 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Region("Applications and hires by week")).ToBeVisibleAsync();
         await Expect(Region("Open jobs")).ToContainTextAsync("No open jobs");
 
-        // The headline numbers say how far they moved from the 30 days before, in words and never a status colour, and every
-        // card keeps that pill in one place, under the value, however wide the value is.
+        // The headline numbers say how far they moved from the 30 days before, in words and never a status colour. The pill sits
+        // beside its value on the value's own line, and drops under it only when the tile is too narrow for both.
         var headline = Page.GetByRole(AriaRole.Group, new() { Name = "Headline numbers" });
         await Expect(headline).ToContainTextAsync("Applications");
         await Expect(headline).ToContainTextAsync("2 more than before");
-        var pillOffsets = await headline.Locator("[data-report-change]").EvaluateAllAsync<double[]>(
-            "pills => pills.map(pill => Math.round(pill.getBoundingClientRect().left - pill.closest('[data-slot=report-stat]').getBoundingClientRect().left))");
-        pillOffsets.Distinct().Should().ContainSingle("the pill starts at the same place on every card");
+        var pills = await headline.Locator("[data-report-change]").EvaluateAllAsync<double[][]>(
+            """
+            pills => pills.map(pill => {
+              const value = pill.closest('[data-slot=report-stat]').querySelector('.text-metric').getBoundingClientRect();
+              const box = pill.getBoundingClientRect();
+              // [the pill's top minus the value's bottom, the pill's left minus the value's right]
+              return [Math.round(box.top - value.bottom), Math.round(box.left - value.right)];
+            })
+            """);
+        pills.Should().NotBeEmpty();
+        pills.Should().OnlyContain(offset => offset[0] >= 0 || offset[1] >= 0, "a pill is beside its value or under it, never over it");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-reports-1440");
 

@@ -228,7 +228,7 @@
              row, with the Sort chip at the end, so the filters and Sort share one row. -->
         {#if !phone.current}
           <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 py-2">
-            <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">{@render filterMenus()}</div>
+            <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1 [scrollbar-width:none]">{@render filterMenus()}</div>
             {@render saveView()}
           </div>
         {/if}

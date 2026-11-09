@@ -84,7 +84,18 @@ describe('scorecards on the Overview', () => {
 
 describe('first line of an email', () => {
   it('is the first line with words in it, trimmed', () => {
-    expect(firstLine('\n\n  Hi Avery,\nThanks for the call.\n')).toBe('Hi Avery,');
+    // A lone greeting says who it is to, not what it says, so the line after it is the one shown.
+    expect(firstLine('\n\n  Hi Avery,\nThanks for the call.\n')).toBe('Thanks for the call.');
+    expect(firstLine('Dear Ms Quinn\n\nWe would like to book a time.')).toBe('We would like to book a time.');
+    expect(firstLine('Hello, can we move the call to Friday?')).toBe('Hello, can we move the call to Friday?');
+    expect(firstLine('Highlights from the call: three.')).toBe('Highlights from the call: three.');
+    expect(firstLine('Hi Avery,')).toBe('Hi Avery,');
+    expect(firstLine('Hello all,\nThe offer letter is attached.')).toBe('The offer letter is attached.');
+    expect(firstLine('Good morning Ms Quinn,\nI can start in March.')).toBe('I can start in March.');
+    // A short reply that opens with a greeting is what was said, not a greeting to skip.
+    expect(firstLine('Hi Avery, I can do Friday\n\nThanks,\nJordan')).toBe('Hi Avery, I can do Friday');
+    expect(firstLine('Hey, accepting the offer\nJordan')).toBe('Hey, accepting the offer');
+    expect(firstLine('Hello I accept\nJordan')).toBe('Hello I accept');
     expect(firstLine('   \n  ')).toBe('');
     expect(firstLine(undefined)).toBe('');
   });

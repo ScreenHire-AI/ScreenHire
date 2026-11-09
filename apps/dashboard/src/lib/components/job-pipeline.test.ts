@@ -378,4 +378,29 @@ describe('job pipeline views', () => {
     expect(names()).toHaveLength(applications.length);
     expect(within(filters()).getByRole('button', { name: 'Save view' })).toBeDisabled();
   });
+
+  describe('rating column', () => {
+    const table = () => screen.getByRole('table', { name: 'Candidates for Senior .NET Engineer' });
+
+    it('is left out while nobody in the job has a rating, so no column sits empty (L1)', () => {
+      renderPipeline();
+
+      expect(within(table()).queryByRole('columnheader', { name: /^Rating/ })).toBeNull();
+    });
+
+    it('joins the table once a scorecard has rated someone, or while a reviewer owes theirs', () => {
+      const rated = applications.map((application, index) =>
+        index === 0 ? { ...application, rating: { state: 'Rated' as const, value: 4, scorecards: 2 } } : application,
+      );
+      const view = render(WithQueryClient, { props: { component: JobPipelineHarness, props: { stages, applications: rated } } });
+      expect(within(table()).getByRole('columnheader', { name: /^Rating/ })).toBeInTheDocument();
+      view.unmount();
+
+      const owed = applications.map((application, index) =>
+        index === 1 ? { ...application, rating: { state: 'AfterYourScorecard' as const } } : application,
+      );
+      render(WithQueryClient, { props: { component: JobPipelineHarness, props: { stages, applications: owed } } });
+      expect(within(table()).getByRole('columnheader', { name: /^Rating/ })).toBeInTheDocument();
+    });
+  });
 });

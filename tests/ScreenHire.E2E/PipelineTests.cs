@@ -56,7 +56,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await SignInAsync(other, scene.Email);
         await GoToJobAsync(other, scene.JobId);
         await Expect(LiveIndicator(other)).ToContainTextAsync("Live updates: Connected");
-        await Expect(StageCellOf(other, "Casey Morgan")).ToHaveTextAsync("Applied");
+        await Expect(await StageCellOfAsync(other, "Casey Morgan")).ToHaveTextAsync("Applied");
         await other.EvaluateAsync("() => { window.__screenhireNoReload = true; }");
 
         // Opening the second browser's window can take the window's focus from this page, and V works only while the
@@ -77,7 +77,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-board-light");
 
-        await Expect(StageCellOf(other, "Casey Morgan")).ToHaveTextAsync("Screening");
+        await Expect(await StageCellOfAsync(other, "Casey Morgan")).ToHaveTextAsync("Screening");
         (await other.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the table updated in place");
 
         // The move is recorded on the application's timeline.
@@ -437,10 +437,17 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
     private static ILocator Board(IPage page, string boardId) =>
         page.GetByRole(AriaRole.Region, new() { Name = "Job postings" }).Locator($"[data-board='{boardId}']");
 
-    // Select, name, then the one Verification column (status first, T2) and Rating, then Stage (Overdue follows it).
-    private static ILocator StageCellOf(IPage page, string candidate) =>
-        page.GetByRole(AriaRole.Row).Filter(new() { Has = page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
-            .GetByRole(AriaRole.Cell).Nth(4);
+    // The Stage cell of a candidate's row. Select, name, the Verification column and then Rating come before it, but Rating is
+    // left out of the table until someone has a rating, so the position comes from the header, not from a fixed index.
+    private static async Task<ILocator> StageCellOfAsync(IPage page, string candidate)
+    {
+        await Expect(page.GetByRole(AriaRole.Columnheader, new() { Name = "Stage" })).ToBeVisibleAsync();
+        var headers = await page.GetByRole(AriaRole.Columnheader).AllInnerTextsAsync();
+        var stage = headers.ToList().FindIndex(header => header.Trim().StartsWith("Stage", StringComparison.Ordinal));
+        stage.Should().BeGreaterThan(0, "the table has a Stage column");
+        return page.GetByRole(AriaRole.Row).Filter(new() { Has = page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
+            .GetByRole(AriaRole.Cell).Nth(stage);
+    }
 
     private static ILocator LiveIndicator(IPage page) =>
         page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" });
