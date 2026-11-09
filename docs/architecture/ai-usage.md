@@ -103,7 +103,7 @@ rest of Verification cannot change spend controls. The month is the UTC calendar
   `Llm:DefaultMonthlyTokenCap` (2,000,000 tokens each; a cap of 0 turns the deployment's off), so the key stops where it always did.
   An own key has neither unless the Owner sets one.
 - **Resuming.** Raising or removing the cap, and a daily run at 05:12 UTC, ask again for the paused checks of an organization whose
-  cap now allows it (200 a run). The asked-again check runs, and the pipeline reads it again, so the tab stops saying the AI
+  cap now allows it, `ResumeBatchSize` (200) at a time: a full batch sends the next one, after the last check it asked again. The asked-again check runs, and the pipeline reads it again, so the tab stops saying the AI
   checks were paused.
 - **Spike.** A daily run at 06:07 UTC judges the previous completed UTC day, in tokens, from both keys: it is a spike when it used at
   least `ScreenHire:AiUsage:Spike:MinimumTokens` (100,000) and at least `Factor` (3) times the average of the `LookbackDays` (14) days

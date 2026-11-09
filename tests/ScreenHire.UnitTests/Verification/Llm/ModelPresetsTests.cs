@@ -183,6 +183,22 @@ public sealed class ModelPresetsTests
     }
 
     [Fact]
+    public async Task A_call_answered_under_a_dated_model_id_is_priced_by_the_id_that_was_asked_for()
+    {
+        var recorder = new AiUsageRecorder(
+            new AiUsageContext(Guid.CreateVersion7(), null, "OpenAi", AiKeySource.BuiltIn, model => model == "configured-model" ? (1m, 2m) : (null, null)),
+            TimeProvider.System);
+        var client = recorder.Wrap(new ReportingCost(null, "configured-model-2026-01-01"));
+
+        await client.GetResponseAsync([new ChatMessage(ChatRole.User, "x")], new ChatOptions { ModelId = "configured-model" }, Ct);
+
+        var call = recorder.Calls.Should().ContainSingle().Subject;
+        call.Model.Should().Be("configured-model-2026-01-01", "the row keeps the id the provider reported");
+        call.CostBasis.Should().Be(AiCostBasis.Priced, "the price configured for the asked id applies");
+        call.Cost.Should().Be(((10m * 1m) + (2m * 2m)) / 1_000_000m);
+    }
+
+    [Fact]
     public async Task The_connection_test_of_an_own_key_is_recorded_when_a_recorder_is_given()
     {
         var handler = new Replay(request => request.RequestUri!.AbsolutePath == "/v1/chat/completions"
@@ -253,15 +269,16 @@ public sealed class ModelPresetsTests
         }
     }
 
-    // Answers like OpenRouter does: the cost of the call is written into the slot the HTTP handler would have filled.
-    private sealed class ReportingCost(decimal cost) : IChatClient
+    // Answers like OpenRouter does: the cost of the call is written into the slot the HTTP handler would have filled. A null
+    // cost answers like a provider that reports none.
+    private sealed class ReportingCost(decimal? cost, string modelId = "m") : IChatClient
     {
         public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
         {
             ReportedCost.Current!.Value = cost;
             return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, "OK"))
             {
-                ModelId = "m",
+                ModelId = modelId,
                 ResponseId = "gen-1",
                 Usage = new UsageDetails { InputTokenCount = 10, OutputTokenCount = 2 },
             });

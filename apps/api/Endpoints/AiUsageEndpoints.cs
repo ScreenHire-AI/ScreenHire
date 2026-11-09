@@ -247,16 +247,42 @@ internal static class AiUsageHandlers
         }
 
         var capChanged = settings.MonthlyCap != request.Cap || settings.BudgetUnit != request.Unit;
+        var budgetChanged = settings.MonthlyBudget != request.Budget || settings.BudgetUnit != request.Unit;
         settings.BudgetUnit = request.Unit;
         settings.MonthlyBudget = request.Budget;
         settings.MonthlyCap = request.Cap;
         settings.UpdatedAt = now;
+
+        // A new budget or cap is a new decision: the month's alerts for it may go out again, measured against the new amount.
+        // The claims are removed through the change tracker, so they go in the same save as the settings and the messages.
+        var month = AiUsageQueries.Month(now);
+        var cleared = new List<string>();
+        if (budgetChanged)
+        {
+            cleared.AddRange(AiUsageLimits.BudgetThresholds.Select(percent => AiUsageAlertKeys.Budget(month, percent)));
+        }
+
         if (capChanged)
         {
-            // A new cap is a new decision: the month's cap alert may go out again, and the AI checks it paused are asked again
-            // (they stay paused if the new cap still holds).
-            var month = AiUsageQueries.Month(now);
-            await db.AiUsageAlerts.Where(a => a.Key == AiUsageAlertKeys.Cap(month)).ExecuteDeleteAsync(cancellationToken);
+            cleared.Add(AiUsageAlertKeys.Cap(month));
+        }
+
+        if (cleared.Count > 0)
+        {
+            db.AiUsageAlerts.RemoveRange(await db.AiUsageAlerts.Where(a => cleared.Contains(a.Key)).ToListAsync(cancellationToken));
+        }
+
+        if (budgetChanged)
+        {
+            foreach (var percent in AiUsageLimits.BudgetThresholds)
+            {
+                await outbox.PublishAsync(new ClearNotification(organizationId, NotificationKinds.AiUsageBudget, AiUsageAlertKeys.Budget(month, percent)));
+            }
+        }
+
+        if (capChanged)
+        {
+            // The AI checks the old cap paused are asked again (they stay paused if the new cap still holds).
             await outbox.PublishAsync(new ClearNotification(organizationId, NotificationKinds.AiUsageCap, AiUsageAlertKeys.Cap(month)));
             await outbox.PublishAsync(new ResumeOrganizationAiChecks(organizationId, $"limits-{now.UtcTicks}"));
         }

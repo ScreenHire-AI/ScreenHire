@@ -34,7 +34,7 @@
 //   AiUsage:*                   the daily AI usage sweeps (ScreenHire.Application AiUsageOptions, docs/architecture/ai-usage.md),
 //                               forwarded to the API and the worker: Spike:Factor (3), Spike:LookbackDays (14), Spike:MinimumTokens
 //                               (100,000) and Spike:MinimumActiveDays (3) are the spike rule; ResumeBatchSize (200) is how many
-//                               paused AI checks one run asks again.
+//                               paused AI checks one message asks again (a full batch sends the next).
 //   Webhooks:*                  webhook settings (ScreenHire.Application WebhookOptions), forwarded to the API and the
 //                               worker: AllowLoopback (appsettings.Development.json turns it on, so a receiver on this
 //                               machine works; never in production), RetryDelays:0..n, DisableAfterFailedDeliveries

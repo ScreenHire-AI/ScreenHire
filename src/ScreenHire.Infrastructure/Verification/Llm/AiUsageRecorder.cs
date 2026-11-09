@@ -47,6 +47,13 @@ public sealed class AiUsageRecorder(AiUsageContext context, TimeProvider time)
         var inputTokens = response?.Usage?.InputTokenCount;
         var outputTokens = response?.Usage?.OutputTokenCount;
         var (inPrice, outPrice) = context.PriceOf(model);
+        if (inPrice is null && outPrice is null && askedModel.Length > 0 && !string.Equals(model, askedModel, StringComparison.OrdinalIgnoreCase))
+        {
+            // Providers often answer with a dated id ("gpt-4o" comes back as "gpt-4o-2024-08-06"), and the price is configured
+            // under the id the deployment asks for, so a call is not left unpriced, and uncounted by a dollar cap, for that.
+            (inPrice, outPrice) = context.PriceOf(askedModel);
+        }
+
         var (cost, basis) = AiUsageCost.Compute(reported.Value, inputTokens, outputTokens, inPrice, outPrice);
         var outcome = failure is null ? AiCallOutcome.Ok : IsTimeout(failure, cancellationToken) ? AiCallOutcome.TimedOut : AiCallOutcome.Error;
         calls.Add(new AiUsageCall

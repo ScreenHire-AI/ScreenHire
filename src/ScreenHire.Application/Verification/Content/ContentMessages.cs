@@ -235,7 +235,17 @@ public static partial class CheckApplicationConsistencyHandler
 #pragma warning restore CA1031
             {
                 db.AiUsageCalls.AddRange(recorder.Calls);
-                await db.SaveChangesAsync(CancellationToken.None);
+                try
+                {
+                    await db.SaveChangesAsync(CancellationToken.None);
+                }
+#pragma warning disable CA1031 // Logged, and the model's failure below is the one that goes on: it is why the check failed.
+                catch (Exception saveFailure)
+#pragma warning restore CA1031
+                {
+                    LogUsageNotSaved(logger, saveFailure, application.Id, recorder.Calls.Count);
+                }
+
                 throw;
             }
 
@@ -338,4 +348,7 @@ public static partial class CheckApplicationConsistencyHandler
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Consistency check for application {ApplicationId}: {Status}, {Contradictions} contradictions")]
     private static partial void LogChecked(ILogger logger, Guid applicationId, ConsistencyCheckStatus status, int contradictions);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Consistency check for application {ApplicationId} failed, and its {Calls} usage rows could not be saved")]
+    private static partial void LogUsageNotSaved(ILogger logger, Exception exception, Guid applicationId, int calls);
 }

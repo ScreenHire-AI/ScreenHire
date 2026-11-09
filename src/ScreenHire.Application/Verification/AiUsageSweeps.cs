@@ -23,7 +23,7 @@ public sealed class AiUsageOptions
 
     public SpikeOptions Spike { get; set; } = new();
 
-    /// <summary>The most paused checks one organization's run asks again; a run that finds more sends itself again.</summary>
+    /// <summary>The most paused checks one message asks again; a full batch sends the next one after it.</summary>
     public int ResumeBatchSize { get; set; } = 200;
 }
 
@@ -200,11 +200,14 @@ public sealed record ResumePausedAiChecks;
 
 /// <summary>
 /// Asks again for one organization's paused AI checks. Sent by the daily run and when an Owner raises or removes the cap.
-/// <paramref name="Why"/> only keys the message to its cause, so two causes on one day are two intents.
+/// <paramref name="Why"/> only keys the message to its cause, so two causes on one day are two intents. <paramref name="After"/>
+/// is the cursor of a follow-up batch: the start time of the last check the batch before it asked again.
 /// </summary>
-public sealed record ResumeOrganizationAiChecks(Guid OrganizationId, string Why) : ITenantMessage
+public sealed record ResumeOrganizationAiChecks(Guid OrganizationId, string Why, DateTimeOffset? After = null) : ITenantMessage
 {
-    public string IdempotencyKey => $"ai-resume:{OrganizationId:N}:{Why}";
+    public string IdempotencyKey => After is { } after
+        ? $"ai-resume:{OrganizationId:N}:{Why}:{after.UtcTicks}"
+        : $"ai-resume:{OrganizationId:N}:{Why}";
 }
 
 public static class ResumePausedAiChecksHandler
@@ -231,11 +234,19 @@ public static partial class ResumeOrganizationAiChecksHandler
         ILogger<ResumeOrganizationAiChecks> logger,
         CancellationToken cancellationToken)
     {
-        var paused = await db.ConsistencyChecks.AsNoTracking()
-            .Where(c => c.Status == ConsistencyCheckStatus.Paused)
+        var batchSize = Math.Max(1, options.Value.ResumeBatchSize);
+        var query = db.ConsistencyChecks.AsNoTracking().Where(c => c.Status == ConsistencyCheckStatus.Paused);
+        if (message.After is { } after)
+        {
+            // Past the batch before: its checks may still be Paused until their messages run. A check that pauses again gets a
+            // new start time and lands after the cursor, but only when the cap holds again, which ends the run below.
+            query = query.Where(c => c.StartedAt > after);
+        }
+
+        var paused = await query
             .OrderBy(c => c.StartedAt)
-            .Select(c => c.ApplicationId)
-            .Take(Math.Max(1, options.Value.ResumeBatchSize))
+            .Select(c => new { c.ApplicationId, c.StartedAt })
+            .Take(batchSize)
             .ToListAsync(cancellationToken);
         var outgoing = new OutgoingMessages();
         if (paused.Count == 0)
@@ -251,7 +262,13 @@ public static partial class ResumeOrganizationAiChecksHandler
             return outgoing;
         }
 
-        outgoing.AddRange(paused.Select(id => new CheckApplicationConsistency(message.OrganizationId, id)));
+        outgoing.AddRange(paused.Select(p => new CheckApplicationConsistency(message.OrganizationId, p.ApplicationId)));
+        if (paused.Count == batchSize)
+        {
+            // A full batch may have left more behind: the next one starts after it, so raising the cap resumes every paused check.
+            outgoing.Add(new ResumeOrganizationAiChecks(message.OrganizationId, message.Why, paused[^1].StartedAt));
+        }
+
         LogResumed(logger, message.OrganizationId, paused.Count);
         return outgoing;
     }

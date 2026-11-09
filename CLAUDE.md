@@ -86,8 +86,8 @@ subsystem.
   `ScreenHire:Billing:*` (plans, the free trial and job limits: Stripe with the `stripe-secret-key` and `stripe-webhook-secret`
   parameters once `Stripe:Enabled=true`, or `Sandbox:Enabled` for the local fake, on in `pnpm dev` and the test stacks; `Trial:Days`
   and `Trial:Plan` over `packages/plans/trial.json`, and `Plans:<key>:*` over `packages/plans/plans.json`; `Stripe:Tax:Enabled` (off) makes Checkout calculate tax with Stripe Tax and
-  `Stripe:Tax:CollectTaxIds` (on with tax) asks a business for its tax id; `Ai:Margin` (0.20) is the share added to the provider's price for AI use on
-  ScreenHire's key; hidden and limiting nothing when neither) goes to the API; see
+  `Stripe:Tax:CollectTaxIds` (on with tax) asks a business for its tax id; hidden and limiting nothing when
+  neither Stripe nor the sandbox is on; `Ai:Margin` (0.20) is the share added to the provider's price for AI use on ScreenHire's key) goes to the API; see
   [`docs/architecture/billing.md`](docs/architecture/billing.md).
   `ScreenHire:Email:*` (Mailpit sends unless `SendGrid:Enabled=true` with the `sendgrid-api-key` secret; `ReplyDomain` is the host
   replies arrive on and `SendGrid:EventWebhookPublicKey` checks SendGrid's signed events; `email-reply-key` and

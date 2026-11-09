@@ -274,6 +274,35 @@ public sealed class AiUsageTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_new_budget_lets_its_alerts_go_out_again_and_saving_the_same_budget_keeps_the_ones_already_sent()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 1_000 })).Expect(HttpStatusCode.OK);
+        var month = AiUsageQueries.Month(TimeProvider.System.GetUtcNow());
+        var sent = AiUsageAlertKeys.Budget(month, 50);
+        var cap = AiUsageAlertKeys.Cap(month);
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId))
+        {
+            db.AiUsageAlerts.AddRange(
+                new AiUsageAlert { OrganizationId = tenant.OrganizationId, Key = sent, RaisedAt = TimeProvider.System.GetUtcNow() },
+                new AiUsageAlert { OrganizationId = tenant.OrganizationId, Key = cap, RaisedAt = TimeProvider.System.GetUtcNow() });
+            await db.SaveChangesAsync(Ct);
+        }
+
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 1_000 })).Expect(HttpStatusCode.OK);
+        (await AlertKeysAsync()).Should().BeEquivalentTo([sent, cap], "the same budget and cap are no new decision");
+
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 5_000 })).Expect(HttpStatusCode.OK);
+        (await AlertKeysAsync()).Should().BeEquivalentTo([cap], "a new budget is measured afresh, and the unchanged cap keeps its alert");
+
+        async Task<List<string>> AlertKeysAsync()
+        {
+            await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);
+            return await db.AiUsageAlerts.Select(a => a.Key).ToListAsync(Ct);
+        }
+    }
+
+    [Fact]
     public async Task A_day_well_above_the_recent_average_is_a_spike_and_a_quiet_history_or_a_small_day_is_not()
     {
         using var busy = await fixture.SignedInWithOrganizationAsync();
