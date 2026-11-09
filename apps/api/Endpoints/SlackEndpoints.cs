@@ -77,6 +77,12 @@ internal static partial class SlackEndpoints
         {
             app.MapGet(SandboxSlackClient.AuthorizePath, AuthorizeInSandbox).RequireAuthorization().ExcludeFromDescription();
             app.MapGet("/v1/slack/sandbox/messages", ListSandboxMessages).RequireAuthorization().ExcludeFromDescription();
+            // Breaking the connection is managing it, so it needs what Disconnect needs.
+            app.MapPost("/v1/slack/sandbox/break", BreakSandboxConnection).WithName("BreakSlackSandboxConnection")
+                .RequireAuthorization()
+                .RequireAntiforgeryToken()
+                .RequirePermission(Permission.ManageIntegrations)
+                .ExcludeFromDescription();
         }
 
         return app;
@@ -467,6 +473,40 @@ internal static partial class SlackEndpoints
             .OrderByDescending(m => m.PostedAt).ThenByDescending(m => m.Id).Take(200)
             .Select(m => new SlackSandboxMessageEntry(m.Conversation, m.Text, m.PostedAt))
             .ToListAsync(cancellationToken));
+
+    // What Slack does on its own side, with no word to the app: the installation keeps what it had, and the next post or
+    // call finds out (slack.md). The token is swapped for one the sandbox answers token_revoked to, and the saved channel
+    // for one the sandbox has archived or no longer knows.
+    private static async Task<Results<NoContent, NotFound>> BreakSandboxConnection(
+        SlackSandboxBreakRequest request, ScreenHireDbContext db, SlackTokens tokens, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (await db.SlackInstallations.SingleOrDefaultAsync(cancellationToken) is not { } installation || tenant.OrganizationId is not { } organizationId)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var now = time.GetUtcNow();
+        switch (request.Kind)
+        {
+            case SlackSandboxBreak.TokenRevoked:
+                installation.Reconnect(
+                    installation.TeamId, installation.TeamName, installation.BotUserId,
+                    tokens.Protect(organizationId, SandboxSlackClient.RevokedToken(organizationId)), installation.ConnectedByUserId, now);
+                break;
+            case SlackSandboxBreak.ChannelArchived:
+                installation.ChooseChannel(SandboxSlackClient.ArchivedChannelId, installation.ChannelName ?? "hiring", installation.Events, now);
+                break;
+            case SlackSandboxBreak.ChannelRemoved:
+                installation.ChooseChannel(SandboxSlackClient.RemovedChannelId, installation.ChannelName ?? "hiring", installation.Events, now);
+                break;
+            default:
+                // A number that names no kind changes nothing, and says so.
+                return TypedResults.NotFound();
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.NoContent();
+    }
 
     private static async Task<SlackStatus> StatusAsync(ScreenHireDbContext db, ITenantContext tenant, SlackAccess slack, CancellationToken cancellationToken)
     {

@@ -29,8 +29,8 @@
 //                               anthropic-api-key, never from these keys.
 //   Webhooks:*                  webhook settings (ScreenHire.Application WebhookOptions), forwarded to the API and the
 //                               worker: AllowLoopback (appsettings.Development.json turns it on, so a receiver on this
-//                               machine works; never in production), RetryDelays:0..n and DisableAfterFailedDeliveries
-//                               (the tests shorten both). The signing key comes from the webhook-signing-key parameter,
+//                               machine works; never in production), RetryDelays:0..n, DisableAfterFailedDeliveries
+//                               and Timeout (how long a receiver may take to answer; the tests shorten all three). The signing key comes from the webhook-signing-key parameter,
 //                               never from these keys.
 //   DataRequests:*              candidates' requests for a copy of their data or for its erasure (ScreenHire.Application
 //                               DataRequestOptions, docs/architecture/data-requests.md), forwarded to the API and the worker:

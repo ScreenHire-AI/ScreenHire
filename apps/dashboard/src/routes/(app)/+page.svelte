@@ -37,6 +37,7 @@
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
+  import ShowMore from '#lib/components/show-more.svelte';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
@@ -117,6 +118,16 @@
     getRowId: (job) => job.id,
   });
   const rows = $derived(table.getRowModel().rows);
+  // A phone lists a page of jobs at a time, so a long list does not make the page as tall as it is long (S9).
+  const phonePageSize = 50;
+  let phoneShown = $state(phonePageSize);
+  // A new search or status filter starts from the first page again. A live update does not, so a list someone opened
+  // further stays open.
+  $effect(() => {
+    void search;
+    void statusFilter;
+    phoneShown = phonePageSize;
+  });
 
   let busyJobId = $state<string | null>(null);
   let failure = $state('');
@@ -233,7 +244,7 @@
         </Empty.Root>
       {:else if sidebar.isMobile}
         <ul aria-label="Jobs">
-          {#each rows as row (row.id)}
+          {#each rows.slice(0, phoneShown) as row (row.id)}
             {@const job = row.original}
             <ListItem href={`/jobs/${job.id}`} title={job.title}>
               {#snippet status()}<StatusBadge {...jobStatus[job.status]} quiet />{/snippet}
@@ -248,6 +259,7 @@
             </ListItem>
           {/each}
         </ul>
+        <ShowMore shown={Math.min(phoneShown, rows.length)} total={rows.length} onmore={() => (phoneShown += phonePageSize)} />
       {:else}
         <!-- Location gives way before the title in a narrow panel: the title is the row's name (F5). relative: the
              Actions header's sr-only label is absolute, and would escape the scroller and widen the page (F1). -->

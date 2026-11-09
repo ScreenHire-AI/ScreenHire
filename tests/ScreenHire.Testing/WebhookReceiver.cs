@@ -24,6 +24,7 @@ public sealed class WebhookReceiver : IAsyncDisposable
 
     private readonly WebApplication app;
     private readonly ConcurrentQueue<int> statuses = new();
+    private readonly ConcurrentQueue<TimeSpan> delays = new();
     private readonly ConcurrentQueue<ReceivedWebhook> received = new();
 
     private WebhookReceiver(WebApplication app, Uri url)
@@ -51,7 +52,15 @@ public sealed class WebhookReceiver : IAsyncDisposable
             var body = await reader.ReadToEndAsync(context.RequestAborted);
             var headers = context.Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString(), StringComparer.OrdinalIgnoreCase);
             receiver!.received.Enqueue(new ReceivedWebhook(body, headers, DateTimeOffset.UtcNow));
-            return Results.StatusCode(receiver.statuses.TryDequeue(out var status) ? status : StatusCodes.Status200OK);
+            // The status is taken on arrival, so a slow answer uses its own and a retry that arrives meanwhile takes the next.
+            var status = receiver.statuses.TryDequeue(out var next) ? next : StatusCodes.Status200OK;
+            if (receiver.delays.TryDequeue(out var delay) && delay > TimeSpan.Zero)
+            {
+                // Answers too late: the sender has given up by then, as with a receiver that hangs.
+                await Task.Delay(delay, context.RequestAborted).ContinueWith(_ => { }, TaskScheduler.Default);
+            }
+
+            return Results.StatusCode(status);
         });
         await app.StartAsync(cancellationToken);
         var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
@@ -65,6 +74,18 @@ public sealed class WebhookReceiver : IAsyncDisposable
         foreach (var code in codes)
         {
             statuses.Enqueue(code);
+        }
+    }
+
+    /// <summary>
+    /// The next requests wait this long before they answer, in order (a zero answers at once); after them, none do. With the
+    /// stack's webhook timeout shorter than the wait, the sender times out, as it does on a receiver that hangs.
+    /// </summary>
+    public void DelayResponses(params TimeSpan[] waits)
+    {
+        foreach (var wait in waits)
+        {
+            delays.Enqueue(wait);
         }
     }
 

@@ -109,6 +109,7 @@ public sealed partial class RolePermissionsTests
         ["UpdateSlackChannel"] = Permission.ManageIntegrations,
         ["SendSlackTestMessage"] = Permission.ManageIntegrations,
         ["DisconnectSlack"] = Permission.ManageIntegrations,
+        ["BreakSlackSandboxConnection"] = Permission.ManageIntegrations,
         ["StartBillingCheckout"] = Permission.ManageBilling,
         ["OpenBillingPortal"] = Permission.ManageBilling,
         ["PreviewBillingPlanChange"] = Permission.ManageBilling,

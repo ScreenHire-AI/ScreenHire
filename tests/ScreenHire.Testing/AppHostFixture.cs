@@ -41,6 +41,9 @@ public class AppHostFixture : IAsyncLifetime
     /// <summary>Failed deliveries in a row that disable a webhook endpoint in the test stack.</summary>
     public const int WebhookDisableAfterFailedDeliveries = 2;
 
+    /// <summary>How long the stack's webhook sender waits for a receiver before it counts the attempt as failed.</summary>
+    public static readonly TimeSpan WebhookTimeout = TimeSpan.FromSeconds(5);
+
     private readonly CancellationTokenSource watching = new();
     private readonly ConcurrentDictionary<string, string> stopped = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, OwnProcess> processes = new(StringComparer.Ordinal);
@@ -108,6 +111,8 @@ public class AppHostFixture : IAsyncLifetime
                 $"--ScreenHire:Webhooks:RetryDelays:0={WebhookRetryDelays[0]}",
                 $"--ScreenHire:Webhooks:RetryDelays:1={WebhookRetryDelays[1]}",
                 $"--ScreenHire:Webhooks:DisableAfterFailedDeliveries={WebhookDisableAfterFailedDeliveries}",
+                // A receiver that hangs times out after this long, so a test can watch it (WebhookReceiver.DelayResponses).
+                $"--ScreenHire:Webhooks:Timeout={WebhookTimeout}",
                 // Embedding: the end-to-end tests' host pages are on http://*.localhost.
                 "--ScreenHire:CareersEmbedding:AllowLoopback=true",
                 // Slack: the local sandbox workspace (docs/architecture/slack.md), so connecting and posting run with no Slack.

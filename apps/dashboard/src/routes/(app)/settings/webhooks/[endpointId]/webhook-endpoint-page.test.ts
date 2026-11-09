@@ -160,6 +160,22 @@ describe('webhook endpoint page', () => {
     expect(screen.getByText('Turn the endpoint on to replay deliveries.')).toBeInTheDocument();
   });
 
+  // The API lists the latest 50 deliveries, so a log that long says it may hold more (S9); a shorter one says nothing.
+  it('says the log shows only the latest 50 deliveries once it holds 50', async () => {
+    const fifty = Array.from({ length: 50 }, (_, index) => delivery(`x${index}`, 'Succeeded', 'job.closed', { lastStatusCode: 200 }));
+    renderPage(endpoint(), {}, fifty);
+    await screen.findAllByText('Job closed');
+
+    expect(screen.getByText('Showing the latest 50 deliveries.')).toBeInTheDocument();
+  });
+
+  it('shows no such line for a short log', async () => {
+    renderPage(endpoint());
+    await screen.findAllByText('Job published');
+
+    expect(screen.queryByText(/Showing the latest/)).not.toBeInTheDocument();
+  });
+
   it('says why a replay failed', async () => {
     renderPage(endpoint(), {
       [`POST /v1/webhooks/${endpointId}/deliveries/d2/replay`]: () => Response.json({ detail: 'The event is still being tried.' }, { status: 409 }),

@@ -194,6 +194,24 @@ describe('jobs page', () => {
     expect(newJob.closest('[data-slot=action-bar]')).not.toBeNull();
     expect(document.querySelector('[data-slot=header-band] a[href="/jobs/new"]')).toBeNull();
   });
+
+  // A long list is a page at a time on a phone (S9), and a new search starts from the first page again.
+  it('lists 50 jobs at a time on a phone and goes back to the first page after a search', async () => {
+    stubViewport(360);
+    const many = Array.from({ length: 60 }, (_, index) => ({ ...jobs[1]!, id: `job-${index}`, title: `Role ${index}` }));
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(many) })));
+    renderPage();
+
+    const items = async () => within(await screen.findByRole('list', { name: 'Jobs' })).getAllByRole('listitem');
+    expect(await items()).toHaveLength(50);
+    expect(screen.getByText('Showing 50 of 60')).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+    expect(await items()).toHaveLength(60);
+
+    await fireEvent.input(screen.getByLabelText('Search jobs'), { target: { value: 'Role' } });
+    await fireEvent.input(screen.getByLabelText('Search jobs'), { target: { value: '' } });
+    expect(await items()).toHaveLength(50);
+  });
 });
 
 describe('jobs page actions', () => {

@@ -56,6 +56,11 @@
   const settings = $derived(current?.settings ?? undefined);
   const connected = $derived(Boolean(current?.workspace && settings));
   const channels = createListSlackChannels(() => ({ query: { enabled: connected && settings?.problem !== 'Disconnected' } }));
+  // A channel list that finds Slack has taken the token back is answered 409 after the server recorded Disconnected, so the
+  // status is read again and says so with Reconnect, in place of an error under Channel (the app learns at its next call).
+  $effect(() => {
+    if (channels.error instanceof ApiError && channels.error.status === 409) void slack.refetch();
+  });
   const install = createStartSlackInstall();
   const update = createUpdateSlackChannel(() => ({ mutation: { onSettled: settled } }));
   const test = createSendSlackTestMessage(() => ({ mutation: { onSettled: settled } }));
