@@ -213,7 +213,7 @@ Mailpit and never quote the note; Avery's own note offers Edit and Delete in its
 from the details rail's View, Support Engineer for a closed job and its candidates' activity with the recruiter's notes,
 Saved candidates (the **Saved** choice beside the Candidates title; Grace Adeyemi, saved from Support Engineer, with no end date: the page shows Rating and Last contacted (Never until an email goes, so the invitation sets it), Message opens the email composer, Edit note changes the note and shows its History, and Invite to apply sends the invitation to Mailpit with the
 job's link and her link to stop being kept, which opens on the careers site), the Templates page (below) and its builder (questions, automations and the guardrail that refuses a
-verification-driven rejection), the workflow graph and "Simulate", Ctrl K for the command palette, the dark theme, and a
+verification-driven rejection), the workflow graph on the Automations tab and the Test tab, Ctrl K for the command palette, the dark theme, and a
 second browser window on the same job to show live updates.
 
 Replies, as Avery: send an email to a candidate from the box on their Messages tab, then open it in Mailpit and copy its
