@@ -43,7 +43,7 @@ public static class AiUsageQueries
 
     /// <summary>
     /// What the organization's calls have used this month, in <paramref name="unit"/>. A call with an unknown cost counts
-    /// nothing toward dollars; the usage page says how many there are.
+    /// nothing toward dollars; the Usage tab says how many there are.
     /// </summary>
     public static async Task<decimal> UsedThisMonthAsync(
         this ScreenHireDbContext db, UsageUnit unit, DateTimeOffset now, CancellationToken cancellationToken)

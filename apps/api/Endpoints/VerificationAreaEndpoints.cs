@@ -243,7 +243,7 @@ internal static class VerificationAreaHandlers
 
         if (group is not null)
         {
-            query = query.Where(c => c.CheckName.StartsWith("consistency"));
+            query = query.Where(c => c.CheckName.StartsWith(VerificationActivity.ConsistencyCallPrefix));
         }
 
         if (from is { } start)

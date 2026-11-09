@@ -76,5 +76,5 @@ export const sections: readonly {
   { label: 'Verification', href: '/verification', key: 'v', icon: ShieldCheckIcon, matches: (path) => path.startsWith('/verification') },
 ];
 
-/** The sections this person may go to: one that needs a permission (Verification) only for a role that has it. */
+/** The sections this person may go to: one that names a permission only for a role that has it (none does today). */
 export const sectionsFor = (user: CurrentUser | null | undefined) => sections.filter((section) => !section.permission || can(user, section.permission));

@@ -802,7 +802,7 @@ OpenAI-compatible address). A preset fills in the address and the way the key is
 organization types. One model id serves both steps of the check. The page lists the provider's own models through
 `.../llm/models` (Anthropic `/v1/models`, the others `/models`) and takes a typed id when the provider offers no list (Azure lists
 base models, not the deployments a key calls); no model name is kept in the code. The own key's prices are optional and only
-make the usage page show costs. Every call is in the usage ledger either way, and the provider handles
+make the Usage tab show costs. Every call is in the usage ledger either way, and the provider handles
 the data under the organization's own terms rather than ScreenHire's (docs/research/legal.md). The candidate privacy page says the
 model comes from ScreenHire's provider or one the employer chose, and that the no-training promise covers only the first.
 

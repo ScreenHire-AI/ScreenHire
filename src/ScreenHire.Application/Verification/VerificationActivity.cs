@@ -55,9 +55,12 @@ public static class VerificationActivity
     public static VerificationActivityOutcome OutcomeOfCall(AiCallOutcome outcome) =>
         outcome == AiCallOutcome.Ok ? VerificationActivityOutcome.Completed : VerificationActivityOutcome.Failed;
 
+    /// <summary>How the consistency check's model calls are named (<c>consistency.extraction</c>, <c>consistency.comparison</c>).</summary>
+    public const string ConsistencyCallPrefix = "consistency";
+
     /// <summary>The group a model call's check belongs to: the consistency check is part of Answers; a connection test has none.</summary>
     public static CheckGroup? GroupOfCall(string checkName) =>
-        checkName.StartsWith("consistency", StringComparison.Ordinal) ? CheckGroup.Answers : null;
+        checkName.StartsWith(ConsistencyCallPrefix, StringComparison.Ordinal) ? CheckGroup.Answers : null;
 
     /// <summary>The analyzers of a group, for filtering runs.</summary>
     public static IReadOnlyList<string> AnalyzersOf(CheckGroup group) =>

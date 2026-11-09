@@ -1,7 +1,7 @@
 <script lang="ts">
-    import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
+  import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
   import FileTextIcon from '~icons/lucide/file-text';
-    import type { VerificationGroupCount } from '@screenhire/api-client';
+  import type { VerificationGroupCount } from '@screenhire/api-client';
   import { createGetOrganizationVerificationSettings, createGetVerificationOverview } from '@screenhire/api-client/svelte-query';
   import BarChart, { type BarRow } from '#lib/components/bar-chart.svelte';
   import ChartPanel, { type ChartColumn } from '#lib/components/chart-panel.svelte';
