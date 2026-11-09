@@ -237,6 +237,15 @@ describe('candidates page', () => {
     expect((url as URL).search).toBe('');
   });
 
+  it('shows every application a report row counted, hired ones too, though they are not current', async () => {
+    const hired = { ...applications[1]!, id: 'hired-1', candidateName: 'Ruth Mwangi', stage: { ...applications[1]!.stage, kind: 'Hired' as const, name: 'Hired' } };
+    appPage.url = new URL('http://dashboard.test/candidates?reached=Interview&from=2026-10-01T00:00:00.000Z&to=2026-10-31T00:00:00.000Z');
+    render_([...applications, hired], [applications[1]!.id, hired.id]);
+
+    expect(await screen.findByRole('link', { name: 'Ruth Mwangi' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: applications[1]!.candidateName })).toBeInTheDocument();
+  });
+
   it('starts with the jobs the link names', async () => {
     const [casey, jordan] = applications;
     appPage.url = new URL(`http://dashboard.test/candidates?job=${casey!.jobId}`);

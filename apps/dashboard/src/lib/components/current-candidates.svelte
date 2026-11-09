@@ -70,9 +70,7 @@
   const viewLoading = $derived(Boolean(viewId) && !builtIn && !saved && savedViews.isPending);
   const all = $derived(applications.data?.data ?? []);
   // Current is the people in a hiring process now: on a job that is not closed, neither saved nor at an end stage. All is every
-  // application, for finding someone whose process ended. A view (built-in or saved) keeps its own rules over every
-  // application, so it and its sidebar count agree.
-  const pool = $derived(view || scope === 'all' ? all : all.filter((application) => isCurrentApplication(application, closedJobs)));
+  // application, for finding someone whose process ended.
   // The sidebar counts use the same clock, so a view and its count agree.
   let verificationFilter = $state<VerificationFilter>({ ...noVerificationFilter });
   let tagFilter = $state<string | null>(null);
@@ -82,6 +80,9 @@
   // dates they were submitted in); the ids come from the same query the report counts with, so the list matches its count.
   let jobFilter = $state<string[]>(page.url.searchParams.getAll('job'));
   const reached = $derived(readReached(page.url.searchParams));
+  // A view keeps its own rules, and a report's funnel link shows everyone the report counted (hired and rejected
+  // included), so neither is narrowed to Current.
+  const pool = $derived(view || reached || scope === 'all' ? all : all.filter((application) => isCurrentApplication(application, closedJobs)));
   const reachedApplications = createGetFunnelApplications(
     () => reached?.kind ?? 'Applied',
     () => ({ from: reached?.from ?? '', to: reached?.to ?? '' }),
