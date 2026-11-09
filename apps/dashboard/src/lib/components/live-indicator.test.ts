@@ -5,7 +5,7 @@ import LiveIndicator from './live-indicator.svelte';
 
 describe('live indicator', () => {
   it.each<[ConnectionStatus, string]>([
-    ['connected', 'Live'],
+    ['connected', 'Connected'],
     ['connecting', 'Connecting…'],
     ['reconnecting', 'Reconnecting…'],
     ['disconnected', 'Offline'],

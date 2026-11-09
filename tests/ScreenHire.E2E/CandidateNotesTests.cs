@@ -61,7 +61,7 @@ public sealed class CandidateNotesTests(E2EFixture fixture) : BrowserTest(fixtur
         await SignInAsync(recruiterPage, recruiterEmail);
         await recruiterPage.GotoAsync(activityUrl);
         await Expect(recruiterPage.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(Candidate);
-        await Expect(recruiterPage.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Live");
+        await Expect(recruiterPage.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Connected");
 
         // The Owner writes a note on Activity and mentions the Recruiter from the @ list.
         await Page.SetViewportSizeAsync(1440, 1000);

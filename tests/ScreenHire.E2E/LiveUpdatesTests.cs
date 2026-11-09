@@ -44,8 +44,8 @@ public sealed class LiveUpdatesTests(E2EFixture fixture) : BrowserTest(fixture)
         await SignInWithDevSsoAsync(other, email);
         await Expect(other).ToHaveURLAsync(DashboardUrl("/"));
         await Expect(StatusOf(other, title)).ToHaveTextAsync("Draft");
-        await Expect(LiveIndicator(other)).ToContainTextAsync("Live updates: Live");
-        await Expect(LiveIndicator(Page)).ToContainTextAsync("Live updates: Live");
+        await Expect(LiveIndicator(other)).ToContainTextAsync("Live updates: Connected");
+        await Expect(LiveIndicator(Page)).ToContainTextAsync("Live updates: Connected");
         await other.EvaluateAsync($"() => {{ {NoReloadMarker} = true; }}");
 
         await Page.GetByRole(AriaRole.Button, new() { Name = $"Actions for {title}" }).ClickAsync();

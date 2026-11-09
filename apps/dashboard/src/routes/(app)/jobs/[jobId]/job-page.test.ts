@@ -209,12 +209,14 @@ describe('job page', () => {
     await waitFor(() => expect(document.querySelector('[data-slot=notice]')).toHaveTextContent("Sandbox board refused this job's posting. Sandbox board: Title too long."));
   });
 
-  it('keeps the notice on Job postings, with no link to the page it is on', async () => {
+  it('keeps the notice on Job postings, linking to Edit details rather than to the tab it is on', async () => {
     onPostingsTab();
     stub({ ...job, postings: [posting('careers', 'Careers page'), posting('sandbox', 'Sandbox board', { state: 'Draft', issues: ['Sandbox board needs a city.'] })] });
 
     await waitFor(() => expect(document.querySelector('[data-slot=notice]')).toHaveTextContent('Sandbox board did not take this job. Sandbox board needs a city.'));
-    expect(within(document.querySelector<HTMLElement>('[data-slot=notice]')!).queryByRole('link')).toBeNull();
+    const notice = document.querySelector<HTMLElement>('[data-slot=notice]')!;
+    expect(within(notice).queryByRole('link', { name: 'Fix on Job postings' })).toBeNull();
+    expect(within(notice).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
   });
 
   it('shows no notice for a job that is not open, or whose postings are fine', async () => {
@@ -269,6 +271,62 @@ describe('job page', () => {
     expect(fetchMock.mock.calls.find(([url]) => url === publish)![1]!.body).toBeUndefined();
     // A draft has nothing to close, so on a wide screen there is no More menu.
     expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
+  });
+
+  it('says where a published job went, with a link to Job postings, because the Publish button is gone', async () => {
+    const publish = `/v1/jobs/${jobId}/publish`;
+    stub({ ...job, status: 'Draft', publishedAt: null, postings: [] }, { [`POST ${publish}`]: () => Response.json({}) });
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
+
+    const message = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[data-published]');
+      expect(found).toHaveTextContent('Published. It is on your careers page now.');
+      return found!;
+    });
+    expect(within(message).getByRole('link', { name: 'See Job postings' })).toHaveAttribute('href', '?tab=postings');
+  });
+
+  it('drops the published line once the job is closed, because it is off the careers page then', async () => {
+    let current = { ...job, status: 'Draft', publishedAt: null, postings: [] } as unknown as JobDetail;
+    stub(current, {
+      [`GET /v1/jobs/${jobId}`]: () => Response.json(current),
+      [`GET /v1/jobs/${jobId}/applications`]: () => Response.json([]),
+      [`POST /v1/jobs/${jobId}/publish`]: () => {
+        current = job;
+        return Response.json({});
+      },
+      [`POST /v1/jobs/${jobId}/close`]: () => {
+        current = { ...job, status: 'Closed', closedAt: '2026-10-19T09:00:00Z' } as unknown as JobDetail;
+        return Response.json({});
+      },
+    });
+    const line = () => document.querySelector('[data-published]')?.textContent?.trim() ?? '';
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
+    await waitFor(() => expect(line()).toContain('Published.'));
+
+    await fireEvent.click(within(await openMoreActions()).getByRole('menuitem', { name: 'Close & remove everywhere' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Close this job and remove it everywhere?' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Close & remove everywhere' }));
+
+    await waitFor(() => expect(line()).toBe(''));
+  });
+
+  it('says nothing is published when the publish fails, and a draft tells the candidates list why it is empty', async () => {
+    stub(
+      { ...job, status: 'Draft', publishedAt: null, postings: [] },
+      {
+        [`GET /v1/jobs/${jobId}/applications`]: () => Response.json([]),
+        [`POST /v1/jobs/${jobId}/publish`]: () => Response.json({ detail: 'The job changed meanwhile.' }, { status: 409 }),
+      },
+    );
+
+    expect(await screen.findByText('Nobody can apply until you publish this job.')).toBeInTheDocument();
+    await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
+
+    await waitFor(() => expect(screen.getByText('The job changed meanwhile.')).toBeInTheDocument());
+    expect(document.querySelector('[data-published]')?.textContent?.trim() ?? '').toBe('');
   });
 
   it('puts a publish the plan refused in a full-width notice under the band, with the way to upgrade for an owner', async () => {
@@ -481,7 +539,7 @@ describe('job page', () => {
       stub(job);
 
       expect(await screen.findByText(/Add your website on/)).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: 'Careers site settings' })).toHaveAttribute('href', '/settings/careers-site');
+      expect(screen.getByRole('link', { name: 'Careers page settings' })).toHaveAttribute('href', '/settings/careers-site');
       expect(screen.queryByLabelText('Embed code for this job')).toBeNull();
     });
 

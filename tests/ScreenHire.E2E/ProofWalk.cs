@@ -44,10 +44,17 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
     }
 
-    /// <summary>The pages that list records, which an empty organization shows as empty states.</summary>
+    /// <summary>
+    /// The pages that list records, which an empty organization shows as empty states, and the pages a new Owner meets in the
+    /// first hour (New job, Billing on the trial, Branding with nothing set), which only an organization this new shows.
+    /// </summary>
     protected static IReadOnlyList<string> EmptyRoutes() =>
     [
         "/",
+        "/jobs/new",
+        "/settings/billing",
+        "/settings/branding",
+        "/settings/careers-site",
         "/candidates",
         "/tasks",
         "/reports",

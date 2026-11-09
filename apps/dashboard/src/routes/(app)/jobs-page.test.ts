@@ -155,6 +155,14 @@ describe('jobs page', () => {
     expect(await screen.findByText('No jobs yet')).toBeInTheDocument();
   });
 
+  it('says what comes next, and leaves the four numbers out until there is a first job', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([]) })));
+    renderPage();
+
+    expect(await screen.findByText('Start from a template, then publish it to your careers page and the job boards.')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Overview' })).toBeNull();
+  });
+
   it('offers no actions on a closed job', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([closed]) })));
     renderPage();

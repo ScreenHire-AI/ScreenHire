@@ -18,7 +18,7 @@ export interface Shell {
   openPalette(): void;
   /** Opens the keyboard shortcuts dialog (`?`). */
   openShortcuts(): void;
-  /** Opens the Notifications sheet: which teammates' changes show as toasts. */
+  /** Opens the Teammate changes sheet: which teammates' changes show as toasts. */
   openNotifications(): void;
   /** Opens the Calendar sheet from the account menu, for a page that needs the person's calendar connected. */
   openCalendar(): void;

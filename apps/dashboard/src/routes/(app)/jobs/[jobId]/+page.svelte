@@ -133,13 +133,21 @@
   // A publish the plan refused: a notice with the way to upgrade, in place of the failure line.
   let publishRefused = $state<PlanProblem | null>(null);
   let boardsUpdated = $state('');
+  // The Publish button disappears once the job is open, so without this the page says nothing about where it went. It
+  // holds the job it was said for: the page component stays mounted when another job opens, and a closed job is no
+  // longer on the careers page.
+  let publishedJobId = $state<string | null>(null);
+  const published = $derived(publishedJobId === params.jobId && detail?.status !== 'Closed');
 
   // A draft's primary action: publish to every board at once.
   async function publishEverywhere() {
     publishFailure = '';
     publishRefused = null;
+    publishedJobId = null;
+    const jobId = params.jobId;
     try {
-      await publish.mutateAsync({ jobId: params.jobId });
+      await publish.mutateAsync({ jobId });
+      publishedJobId = jobId;
     } catch (error) {
       publishRefused = planProblem(error);
       if (!publishRefused) publishFailure = describeError(error, 'Could not publish the job');
@@ -150,6 +158,7 @@
   async function updateBoards() {
     publishFailure = '';
     publishRefused = null;
+    publishedJobId = null;
     boardsUpdated = '';
     try {
       await publish.mutateAsync({ jobId: params.jobId });
@@ -219,7 +228,7 @@
     <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
       <!-- What saving the details or publishing did, in the band's line under the title, so a long message never pushes
            the actions onto a second row. -->
-      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || boardsUpdated || added ? outcome : undefined}>
+      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || boardsUpdated || published || added ? outcome : undefined}>
         {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
         {#snippet actions()}
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
@@ -324,9 +333,15 @@
       <!-- The work area first, filling the window (S6), with no side column beside the table or the board (S7). -->
       <div class={['flex w-full flex-col gap-4 px-4 py-6 md:px-6', boardFills && 'min-h-0 flex-1']}>
         {#if publishRefused}<PlanProblemNotice problem={publishRefused} />{/if}
-        <!-- Above the tabs, because they are about the job, not one view of it. On Job postings the fix is on this page. -->
+        <!-- Above the tabs, because they are about the job, not one view of it. Elsewhere the link goes to Job postings, where
+             the row menus hold the fixes. On Job postings itself a board that did not take the job needs its details fixed,
+             so the notice links to the edit page rather than to nothing. -->
         {#each problems as problem (problem.kind)}
-          <Notice href={tab === 'postings' ? undefined : '?tab=postings'} link="Fix on Job postings">{problem.text}</Notice>
+          {@const editHere = tab === 'postings' && problem.kind === 'notTaken' && mayEdit}
+          <Notice
+            href={editHere ? `/jobs/${detail.id}/edit` : tab === 'postings' ? undefined : '?tab=postings'}
+            link={editHere ? 'Edit details' : 'Fix on Job postings'}>{problem.text}</Notice
+          >
         {/each}
         {#if updatable}
           <Notice>
@@ -341,6 +356,7 @@
             bind:view
             jobId={params.jobId}
             jobTitle={detail.title}
+            draft={detail.status === 'Draft'}
             {stages}
             applications={all}
             pending={applications.isPending}
@@ -393,6 +409,9 @@
 {#snippet outcome()}
   <p role="status" class="empty:hidden">{page.state.saved ?? ''}</p>
   <p role="status" class="empty:hidden">{boardsUpdated}</p>
+  <p role="status" class="empty:hidden" data-published>
+    {#if published}Published. It is on your careers page now. <a href="?tab=postings" class="underline underline-offset-2">See Job postings</a>{/if}
+  </p>
   <p role="status" class="empty:hidden" data-added>
     {#if added}Added <a href={`/applications/${added.applicationId}`} class="underline underline-offset-2">{added.name}</a> to this job.{/if}
   </p>

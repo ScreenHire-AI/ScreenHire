@@ -149,7 +149,7 @@ describe('branding page', () => {
     expect(within(tile).queryByText('Replace logo')).toBeNull();
     expect(within(tile).queryByRole('button', { name: 'Remove logo' })).toBeNull();
     // An empty brand colour is ScreenHire's; an empty second colour is no header band at all.
-    expect(screen.getByLabelText('Brand colour')).toHaveAttribute('placeholder', "ScreenHire's");
+    expect(screen.getByLabelText('Brand colour')).toHaveAttribute('placeholder', 'Default');
     expect(screen.getByLabelText('Second colour')).toHaveAttribute('placeholder', 'None');
   });
 

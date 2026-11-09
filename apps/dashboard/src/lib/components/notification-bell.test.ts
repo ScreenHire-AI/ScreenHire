@@ -61,6 +61,15 @@ describe('notification bell', () => {
     expect(button.querySelector('[data-bell-count]')).toHaveTextContent('5');
   });
 
+  it('says in its tooltip that it holds setup while steps are left, so a new Owner knows why to open it', async () => {
+    stub([], 0);
+    renderBell();
+
+    await fireEvent.focus(await screen.findByRole('button', { name: 'Notifications, 4 need attention' }));
+
+    expect(await screen.findAllByText('Setup and notifications')).not.toHaveLength(0);
+  });
+
   it('shows no count when nothing needs attention, and says so when opened', async () => {
     stub([], 0);
     renderBell(userAs('Recruiter'));
@@ -80,8 +89,8 @@ describe('notification bell', () => {
 
     const setup = await within(panel).findByRole('region', { name: 'Finish setting up' });
     const links = within(setup).getAllByRole('link');
-    expect(links.map((link) => link.textContent?.trim())).toEqual(['Invite your team', 'Set your branding', 'Set up your careers site', 'Publish your first job']);
-    expect(links[0]).toHaveAttribute('href', '/settings/team');
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['Set your branding', 'Publish your first job', 'Invite your team', 'Set up your careers page']);
+    expect(links[0]).toHaveAttribute('href', '/settings/branding');
     // The setup comes before the alerts.
     const alerts = within(panel).getByRole('list', { name: 'Alerts' });
     expect(setup.compareDocumentPosition(alerts) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
