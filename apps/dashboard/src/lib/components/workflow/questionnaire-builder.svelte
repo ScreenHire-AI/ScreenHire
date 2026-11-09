@@ -118,18 +118,8 @@
 <div class="flex min-w-0 flex-col gap-4">
   <FormTimeline {forms} bind:selected {stages} onadd={askLater} />
 
+  <!-- No toolbar: the switch starts the row, beside the form it shows, rather than pushed to the window's far edge (S7). -->
   <EditPreviewLayout bind:mode wide onpopout={() => source.open('/preview/form')}>
-    {#snippet toolbar()}
-      {#if current}
-        <!-- The form's own actions, beside the switch: removing it takes its email automation along (L3). -->
-        <MoreMenu label={`Actions for ${current.name || current.id}`} size="icon">
-          <DropdownMenu.Item
-            onSelect={() => (cascade.length > 0 ? (removing = true) : removeSelected())}
-          ><Trash2Icon aria-hidden="true" />Remove form</DropdownMenu.Item>
-        </MoreMenu>
-      {/if}
-    {/snippet}
-
     {#snippet preview()}
       <Panel title="Preview">
         <PreviewFrame>
@@ -141,21 +131,32 @@
     {#snippet editor()}
       {@render followUpsErrors()}
       {#if current}
-        <div class="flex max-w-form flex-col gap-1.5">
-          <!-- The form's id is detail: it is in the label's tooltip (W6). -->
-          <div class={labelClass}>
-            <Hint content={`Form id: ${current.id}`}>
-              {#snippet children({ props })}<label {...props} for="follow-up-name" class="w-fit">Name</label>{/snippet}
-            </Hint>
-            <Input
-              id="follow-up-name"
-              bind:value={current.name}
-              maxlength={80}
-              aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined}
-            />
+        <!-- The follow-up form's name and its own actions sit in a panel, never on the page background (S3). Removing it
+             takes its email automation along (L3). -->
+        <Panel title="Form">
+          {#snippet actions()}
+            <MoreMenu label={`Actions for ${current.name || current.id}`} size="icon">
+              <DropdownMenu.Item
+                onSelect={() => (cascade.length > 0 ? (removing = true) : removeSelected())}
+              ><Trash2Icon aria-hidden="true" />Remove form</DropdownMenu.Item>
+            </MoreMenu>
+          {/snippet}
+          <div class="flex max-w-form flex-col gap-1.5">
+            <!-- The form's id is detail: it is in the label's tooltip (W6). -->
+            <div class={labelClass}>
+              <Hint content={`Form id: ${current.id}`}>
+                {#snippet children({ props })}<label {...props} for="follow-up-name" class="w-fit">Name</label>{/snippet}
+              </Hint>
+              <Input
+                id="follow-up-name"
+                bind:value={current.name}
+                maxlength={80}
+                aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined}
+              />
+            </div>
+            <FieldErrors id="follow-up-name-errors" messages={[...errorsAt(errors, path), ...errorsAt(errors, `${path}.id`), ...errorsAt(errors, `${path}.name`)]} />
           </div>
-          <FieldErrors id="follow-up-name-errors" messages={[...errorsAt(errors, path), ...errorsAt(errors, `${path}.id`), ...errorsAt(errors, `${path}.name`)]} />
-        </div>
+        </Panel>
       {/if}
       {#key path}
         <FormBuilder

@@ -341,8 +341,12 @@ describe('workflow builder', () => {
     expect(shown.queryByRole('group', { name: /Did you use AI tools/ })).toBeNull();
     await fireEvent.click(within(pane).getByRole('button', { name: 'Edit' }));
 
+    // The follow-up's name and its menu sit in their own panel, never on the page background (S3).
+    const formPanel = within(pane).getByRole('region', { name: 'Form' });
+    expect(within(formPanel).getByRole('textbox', { name: 'Name' })).toHaveValue('Availability');
+
     // Removing the form takes the automation that emailed it, and says so first.
-    await fireEvent.pointerDown(within(pane).getByRole('button', { name: 'Actions for Availability' }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.pointerDown(within(formPanel).getByRole('button', { name: 'Actions for Availability' }), { button: 0, pointerType: 'mouse' });
     await fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove form' }));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('This also removes Email the form 2 days after Phone screen starts.');

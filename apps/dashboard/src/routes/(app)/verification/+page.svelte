@@ -528,7 +528,7 @@
                   {#each aiUses as policy (policy)}<option value={policy}>{aiUseName(policy)}</option>{/each}
                 </select>
                 <Field.Description id="default-ai-use-hint">
-                  {aiUseHint($form.defaultAiUse)} Asked on every application. A job can set its own in its settings.
+                  {aiUseHint($form.defaultAiUse)} Asked on every application. A job can set its own.
                 </Field.Description>
               </Field.Field>
 
