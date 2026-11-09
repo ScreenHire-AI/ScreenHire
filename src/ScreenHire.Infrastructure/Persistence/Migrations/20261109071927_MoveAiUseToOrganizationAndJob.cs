@@ -8,7 +8,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
     /// The AI-use policy is the organization's, and a job may override it, instead of every job and template carrying a
     /// copy. Each existing job's own copy (<c>workflow.verificationPolicy.aiUse</c>) becomes its override where it differs
     /// from what the organization's policy is now, so no job changes what its apply form asks. Published template versions
-    /// are immutable and keep the old key, which reading ignores. Down drops the column and the overrides with it.
+    /// are immutable and keep the old key, which reading ignores. Down drops the column and the overrides with it. It does
+    /// not write the old key back: a job created after this migration has no <c>verificationPolicy</c> in its workflow, so
+    /// rolling back is safe only together with code that reads its absence as the organization's policy.
     /// </summary>
     public partial class MoveAiUseToOrganizationAndJob : Migration
     {

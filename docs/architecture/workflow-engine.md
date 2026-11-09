@@ -9,6 +9,10 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/HiringTemplate.cs
   - resource: src/ScreenHire.Domain/Hiring/DefinitionValidator.cs
   - resource: apps/dashboard/src/lib/form-sections.ts
+  - resource: apps/dashboard/src/lib/forms-timeline.ts
+  - resource: apps/dashboard/src/lib/components/workflow/form-timeline.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/ai-use-row.svelte
+  - resource: apps/dashboard/src/lib/components/job-ai-use-panel.svelte
   - resource: apps/dashboard/src/lib/simulate.ts
   - resource: apps/dashboard/src/lib/components/workflow/guided-test.svelte
   - resource: src/ScreenHire.Domain/Hiring/FactSchema.cs
@@ -301,6 +305,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
 - **Questions:** the Form timeline across the top (`form-timeline.svelte`, design system section 11) has a card for the
   apply form and one for each follow-up questionnaire, named by when it reaches the candidate: "When they apply",
   "When they reach Trial shift", "3 days after Trial shift starts", or "Not sent yet" when no enabled automation sends it.
+  A form sent on submission reads "Right after they apply" and comes straight after the apply form.
   A follow-up has no moment of its own: `timelineOf` (`#lib/forms-timeline.ts`) words the trigger of the automation whose
   `SendQuestionnaire` step names it. **Ask more later** asks for a stage (never Applied or an end stage) and either
   "When they reach it" or a number of days after it starts, then `addFormLater` makes the form, named after the moment, and

@@ -22,6 +22,7 @@ sources:
   - resource: apps/careers/src/lib/interview.ts
   - resource: apps/careers/src/components/Notice.astro
   - resource: apps/api/Endpoints/PublicApplicationEndpoints.cs
+  - resource: apps/api/Applications/AiUsePolicyFor.cs
   - resource: apps/api/Applications/ApplicantUploads.cs
   - resource: src/ScreenHire.Domain/Organizations/BrandPalette.cs
   - resource: apps/dashboard/src/lib/components/file-frame.svelte
