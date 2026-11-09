@@ -239,6 +239,15 @@ describe('billing page', () => {
     expect(String(navigation.goto.mock.calls[0]?.[0])).toBe('http://dashboard.test/settings/billing');
   });
 
+  it("takes the sandbox Checkout's tax markers out of the address with the outcome", async () => {
+    location.url = new URL('http://dashboard.test/settings/billing?checkout=success&tax=requested&taxId=requested');
+    renderPage();
+
+    expect(await screen.findByText('Checkout finished. This page updates when the payment is confirmed.')).toBeInTheDocument();
+    await waitFor(() => expect(navigation.goto).toHaveBeenCalledOnce());
+    expect(String(navigation.goto.mock.calls[0]?.[0])).toBe('http://dashboard.test/settings/billing');
+  });
+
   it('shows a skeleton while loading, then says why billing could not load, with a retry', async () => {
     renderPage(() => Response.json({ detail: 'Try again later.' }, { status: 500 }));
 

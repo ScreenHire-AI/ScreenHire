@@ -196,8 +196,10 @@ order: a dark band with the headline ("One price for your whole team. Everything
 the call to action and the three plans as rows, Growth marked as the trial; "Every plan includes", grouped by the five
 selling points plus the careers site and job posting (`includedByTopic`); "What you will not pay extra for", each line
 with what one vendor's own page says today and a link (`pricingNotes`); six questions (what counts as an open job, what
-happens at the limit and after the trial, changing and cancelling, whether prices are before tax, how many users); and the close. FAQ JSON-LD matches the
-questions and the offers match the priced plans.
+happens at the limit and after the trial, changing and cancelling, whether prices are before tax, how many users); and the close.
+The tax question is there however `Stripe:Tax:Enabled` is set, because the site is static and the owner turns tax on
+before launch ([billing](../architecture/billing.md#tax)). FAQ JSON-LD matches the questions and the offers match the
+priced plans.
 
 Each market line says what a page lists, with the page's name and the date it was read, in `competitors.md` under
 "Pricing pages re-read on 2026-11-08". Re-read a page and update its date before changing a line.

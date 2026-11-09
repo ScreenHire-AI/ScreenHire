@@ -30,13 +30,14 @@
   const checkout = createStartBillingCheckout();
   const portal = createOpenBillingPortal();
 
-  // How a round trip to Checkout ended, read once and taken out of the address, so a reload does not repeat it.
+  // How a round trip to Checkout ended, read once and taken out of the address, so a reload does not repeat it. The
+  // local sandbox's Checkout also adds `tax` and `taxId` when it asked for them (for its tests), which go with it.
   const returned = page.url.searchParams.get('checkout');
   const outcome = returned === 'success' || returned === 'cancelled' ? returned : null;
   $effect(() => {
     if (page.url.searchParams.has('checkout')) {
       const url = new URL(page.url.href);
-      url.searchParams.delete('checkout');
+      for (const key of ['checkout', 'tax', 'taxId']) url.searchParams.delete(key);
       void goto(url, { replace: true, reset: false });
     }
   });
