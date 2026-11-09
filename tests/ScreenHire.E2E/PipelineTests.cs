@@ -436,7 +436,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
 
     // The Stage cell of a candidate's row. Select, name, the Verification column and then Rating come before it, but Rating is
     // left out of the table until someone has a rating, so the position comes from the header, not from a fixed index.
-    private async Task<ILocator> StageCellOfAsync(IPage page, string candidate)
+    private static async Task<ILocator> StageCellOfAsync(IPage page, string candidate)
     {
         await Expect(page.GetByRole(AriaRole.Columnheader, new() { Name = "Stage" })).ToBeVisibleAsync();
         var headers = await page.GetByRole(AriaRole.Columnheader).AllInnerTextsAsync();
