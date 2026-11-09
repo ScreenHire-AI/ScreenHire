@@ -171,7 +171,7 @@ which is off by default) is part of the portal configuration in the Stripe Dashb
 
 The sandbox's Checkout records the same request: its state carries `TaxRequested` and `TaxIdsRequested`, and the page adds
 `tax=requested` and `taxId=requested` to the address it sends the browser back to, so a test can see what a real Checkout
-would have asked. The overview's `taxAtCheckout` is the setting, and the Billing page says "plus tax where it applies"
+would have asked. The Billing page takes both out of its address with `checkout`, so a reload does not keep them. The overview's `taxAtCheckout` is the setting, and the Billing page says "plus tax where it applies"
 beside each price while it is true. The marketing pricing page says the same in its questions, unconditionally, because the
 site is static and the owner turns tax on before launch.
 
