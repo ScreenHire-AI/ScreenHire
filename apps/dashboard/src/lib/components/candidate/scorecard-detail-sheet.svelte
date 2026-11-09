@@ -42,10 +42,14 @@
     onstep: (delta: -1 | 1) => void;
   } = $props();
 
-  // The row goes as the sheet closes, so the last one stays drawn until the animation ends.
+  // The row goes as the sheet closes, so the last one, and its place for Previous and Next, stay drawn until the
+  // animation ends.
   let shown = $state<RosterRow | undefined>();
+  let shownPosition = $state(0);
   $effect(() => {
-    if (row) shown = row;
+    if (!row) return;
+    shown = row;
+    shownPosition = position;
   });
   const entry = $derived(shown?.entry);
   const who = $derived(entry ? sentenceStart(personName(entry.reviewerUserId, members, currentUserId)) : '');
@@ -83,10 +87,10 @@
       <!-- With one scorecard there is nothing to step to, so no buttons (A3). -->
       {#if count > 1}
         <Sheet.Footer class="flex-row justify-between">
-          <Button type="button" variant="outline" size="lg" disabled={position <= 0} onclick={() => onstep(-1)}>
+          <Button type="button" variant="outline" size="lg" disabled={shownPosition <= 0} onclick={() => onstep(-1)}>
             <ChevronLeftIcon aria-hidden="true" />Previous
           </Button>
-          <Button type="button" variant="outline" size="lg" disabled={position < 0 || position >= count - 1} onclick={() => onstep(1)}>
+          <Button type="button" variant="outline" size="lg" disabled={shownPosition < 0 || shownPosition >= count - 1} onclick={() => onstep(1)}>
             Next<ChevronRightIcon aria-hidden="true" />
           </Button>
         </Sheet.Footer>

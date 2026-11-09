@@ -15407,6 +15407,12 @@
               "null",
               "string"
             ]
+          },
+          "stageId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand."

@@ -4958,7 +4958,8 @@ export const CreateApplicationTaskResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
@@ -4976,7 +4977,8 @@ export const ListApplicationTasksResponseItem = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 export const ListApplicationTasksResponse = zod.array(ListApplicationTasksResponseItem)
 
@@ -8379,7 +8381,8 @@ export const CompleteTaskResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
@@ -8397,7 +8400,8 @@ export const ReopenTaskResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
@@ -8592,7 +8596,8 @@ export const RequestScorecardResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 

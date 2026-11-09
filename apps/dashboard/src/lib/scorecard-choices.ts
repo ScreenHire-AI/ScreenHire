@@ -100,6 +100,8 @@ export interface ScorecardRequest {
   kind: 'Review' | 'Scorecard';
   /** The library scorecard a Scorecard request names; null for a review. */
   scorecardTemplateId: string | null;
+  /** The stage a review is for, whose scorecard answers it; null for a request, or a review made before tasks kept it. */
+  stageId: string | null;
   askedAt: string;
   /** Who asked, by name; undefined when a workflow did. */
   askedBy: string | undefined;
@@ -107,12 +109,13 @@ export interface ScorecardRequest {
 
 /**
  * The request a choice answers, for the sheet's "Asked by" line: a requested scorecard when the choice is that library
- * scorecard (or the stage's copy of it), else the review for the stage, since any scorecard of theirs finishes a review.
+ * scorecard (or the stage's copy of it), else the review for that stage (or one that names no stage, which any
+ * scorecard of theirs finishes).
  */
 export function askedFor(choice: ScorecardChoice | undefined, requests: readonly ScorecardRequest[]): ScorecardRequest | undefined {
   if (!choice) return undefined;
   return (
     requests.find((request) => request.kind === 'Scorecard' && choice.key !== null && request.scorecardTemplateId === choice.key) ??
-    requests.find((request) => request.kind === 'Review' && choice.stageId !== undefined)
+    requests.find((request) => request.kind === 'Review' && choice.stageId !== undefined && (request.stageId === null || request.stageId === choice.stageId))
   );
 }

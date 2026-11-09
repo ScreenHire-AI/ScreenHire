@@ -275,6 +275,7 @@
         return {
           kind: task.kind as 'Review' | 'Scorecard',
           scorecardTemplateId: task.scorecardTemplateId ?? null,
+          stageId: task.stageId ?? null,
           askedAt: task.createdAt,
           askedBy: actor ? personName(actor, members, currentUserId) : undefined,
         };

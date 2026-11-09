@@ -27,4 +27,6 @@ export interface ApplicationTaskEntry {
   completedByUserId: string | null;
   /** @nullable */
   scorecardTemplateId?: string | null;
+  /** @nullable */
+  stageId?: string | null;
 }
