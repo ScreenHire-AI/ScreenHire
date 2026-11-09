@@ -67,7 +67,10 @@ public static class TrialReminderKeys
     /// scheduled. It cannot be a provider's event id, which all start <c>evt_</c> or <c>sandbox_</c>.
     /// </summary>
     public static string ScheduledRecord(DateTimeOffset trialEndsAt) =>
-        string.Create(CultureInfo.InvariantCulture, $"trial-reminders-scheduled:{trialEndsAt.ToUnixTimeSeconds()}");
+        string.Create(CultureInfo.InvariantCulture, $"{ScheduledRecordPrefix}{trialEndsAt.ToUnixTimeSeconds()}");
+
+    /// <summary>What every <see cref="ScheduledRecord"/> id starts with, to tell these rows from a provider's events.</summary>
+    public const string ScheduledRecordPrefix = "trial-reminders-scheduled:";
 }
 
 /// <summary>Where the trial's links and notices point: Settings, Billing.</summary>
