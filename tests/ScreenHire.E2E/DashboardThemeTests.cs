@@ -44,27 +44,28 @@ public sealed class DashboardThemeTests(E2EFixture fixture) : ProofWalk(fixture)
     }
 
     [Fact]
-    public async Task The_empty_states_of_a_new_organization_pass_axe_in_the_dark_theme()
+    public async Task Onboarding_and_the_empty_states_of_a_new_organization_pass_axe_in_the_dark_theme()
     {
-        var email = await EmptyOrganizationAsync();
         await UseDarkThemeAsync();
         await Page.SetViewportSizeAsync(1440, 1000);
-        await SignInAsync(email);
 
+        async Task Check(string name)
+        {
+            if (!await Page.EvaluateAsync<bool>("() => document.documentElement.classList.contains('dark')"))
+            {
+                Problems.Add($"{name}: the page is not in the dark theme");
+            }
+
+            await CollectAxeAsync(name);
+            await CollectOverflowAsync(name);
+            await CollectFieldEdgesAsync(name);
+            _ = await ScreenshotAsync("dark-empty", name);
+        }
+
+        await EmptyOrganizationAsync(Check);
         foreach (var path in EmptyRoutes())
         {
-            await WalkAsync(path, "dark empty", async name =>
-            {
-                if (!await Page.EvaluateAsync<bool>("() => document.documentElement.classList.contains('dark')"))
-                {
-                    Problems.Add($"{name}: the page is not in the dark theme");
-                }
-
-                await CollectAxeAsync(name);
-                await CollectOverflowAsync(name);
-                await CollectFieldEdgesAsync(name);
-                _ = await ScreenshotAsync("dark-empty", name);
-            });
+            await WalkAsync(path, "dark empty", Check);
         }
 
         ExpectNoProblems("The dark theme, empty");

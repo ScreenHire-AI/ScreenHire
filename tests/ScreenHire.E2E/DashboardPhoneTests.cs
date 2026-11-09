@@ -39,24 +39,25 @@ public sealed class DashboardPhoneTests(E2EFixture fixture) : ProofWalk(fixture)
     }
 
     [Fact]
-    public async Task The_empty_states_of_a_new_organization_fit_a_phone_and_are_touchable()
+    public async Task Onboarding_and_the_empty_states_of_a_new_organization_fit_a_phone_and_are_touchable()
     {
-        var email = await EmptyOrganizationAsync();
         await UseTouchScreenAsync();
         await Page.SetViewportSizeAsync(390, 844);
-        await SignInAsync(email);
 
+        async Task Check(string name)
+        {
+            await CollectAxeAsync(name);
+            await CollectOverflowAsync(name);
+            await CollectFieldEdgesAsync(name);
+            await CollectClippedAsync(name);
+            await CollectSmallTargetsAsync(name);
+            _ = await ScreenshotAsync("phone-empty", name);
+        }
+
+        await EmptyOrganizationAsync(Check);
         foreach (var path in EmptyRoutes())
         {
-            await WalkAsync(path, "phone empty", async name =>
-            {
-                await CollectAxeAsync(name);
-                await CollectOverflowAsync(name);
-                await CollectFieldEdgesAsync(name);
-                await CollectClippedAsync(name);
-                await CollectSmallTargetsAsync(name);
-                _ = await ScreenshotAsync("phone-empty", name);
-            });
+            await WalkAsync(path, "phone empty", Check);
         }
 
         ExpectNoProblems("The phone width, empty");

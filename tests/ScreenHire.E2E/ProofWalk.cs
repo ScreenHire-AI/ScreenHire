@@ -24,15 +24,24 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
     protected string DashboardUrl(string pathAndQuery) => new Uri(Fixture.GetEndpoint("dashboard"), pathAndQuery).ToString();
 
     /// <summary>
-    /// A new person and organization with nothing in it, for the empty states of the lists. Returns the person's address.
+    /// Signs a new person in through Dev SSO in the browser, runs <paramref name="check"/> on the onboarding page they land
+    /// on, then sets up an organization with nothing in it there, for the empty states of the lists. Ends on the Jobs page.
     /// </summary>
-    protected async Task<string> EmptyOrganizationAsync()
+    protected async Task EmptyOrganizationAsync(Func<string, Task> check)
     {
         var email = ApiSession.NewEmail("e2e-empty");
-        using var session = new ApiSession(Fixture);
-        await session.SignInWithDevSsoAsync(email, Ct);
-        await session.OnboardAsync(Ct);
-        return email;
+        await GoToAsync("dashboard", "/sign-in");
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" }).ClickAsync();
+        await Page.GetByLabel("Any email address").FillAsync(email);
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Sign in with this address" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Set up your organization");
+        await SettleAsync();
+        await check("/onboarding");
+
+        await Page.GetByLabel("Organization name").FillAsync("Harbour Lane Studio");
+        await Page.GetByLabel("Careers page address").FillAsync($"test-{Guid.NewGuid():N}");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Create organization" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
     }
 
     /// <summary>The pages that list records, which an empty organization shows as empty states.</summary>
@@ -53,12 +62,12 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         "/settings/data-requests",
     ];
 
-    /// <summary>Signs in through Dev SSO (as the scene's Owner unless <paramref name="email"/> says otherwise) and waits for the Jobs page.</summary>
-    protected async Task SignInAsync(string? email = null)
+    /// <summary>Signs in through Dev SSO as the scene's Owner and waits for the Jobs page.</summary>
+    protected async Task SignInAsync()
     {
         await GoToAsync("dashboard", "/sign-in");
         await Page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" }).ClickAsync();
-        await Page.GetByLabel("Any email address").FillAsync(email ?? Scene.OwnerEmail);
+        await Page.GetByLabel("Any email address").FillAsync(Scene.OwnerEmail);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Sign in with this address" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
     }
@@ -360,16 +369,21 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
 
     // The colour a field's own border draws against the colour behind the field, both as the browser painted them. A
     // canvas turns any CSS colour (a hex, an rgb with alpha, color-mix) into red, green, blue and alpha, which is composited
-    // over the nearest opaque background above. A field inside an input group takes the group's border.
+    // over the nearest opaque background above. A colour the canvas cannot read is reported, never taken as black. A field
+    // with no border of its own takes the border of the wrapper that hugs it (an input group, a search label); a card or
+    // panel around it is not its edge.
     private const string FieldEdgesScript = """
         () => {
           const canvas = document.createElement('canvas');
           canvas.width = canvas.height = 1;
           const context = canvas.getContext('2d', { willReadFrequently: true });
+          const found = [];
           const rgba = (css) => {
             context.clearRect(0, 0, 1, 1);
-            context.fillStyle = '#000';
+            // A colour the canvas does not parse leaves the previous fill in place, so an unlikely one shows it.
+            context.fillStyle = '#010203';
             context.fillStyle = css;
+            if (context.fillStyle === '#010203' && !/^(#010203|rgb\(1, 2, 3\))$/.test(css)) found.push(`colour "${css}" could not be read`);
             context.fillRect(0, 0, 1, 1);
             const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
             return [r, g, b, a / 255];
@@ -389,7 +403,6 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
             return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
           };
           const ratio = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
-          const found = [];
           const selector = 'input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=range]):not([type=submit]):not([type=button]):not([type=color]), textarea, select';
           for (const el of document.querySelectorAll(selector)) {
             if (el.disabled || el.closest('[aria-hidden=true], [inert], .sr-only')) continue;
@@ -398,7 +411,8 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
             let edge = el;
             while (edge && edge !== document.body && parseFloat(getComputedStyle(edge).borderTopWidth) < 1) edge = edge.parentElement;
             const label = (el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.id || el.name || el.tagName.toLowerCase()).slice(0, 30);
-            if (!edge || edge === document.body) { found.push(`<${el.tagName.toLowerCase()}> "${label}" has no edge`); continue; }
+            // A wrapper's edge counts only when it hugs the field: an addon row may add height, a card's header and body add more.
+            if (!edge || edge === document.body || edge.getBoundingClientRect().height > rect.height + 48) { found.push(`<${el.tagName.toLowerCase()}> "${label}" has no edge`); continue; }
             const style = getComputedStyle(edge);
             const line = over(rgba(style.borderTopColor), backdrop(edge.parentElement));
             const around = backdrop(edge.parentElement);
@@ -444,7 +458,8 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         """;
 
     // Targets under 44px on a touch screen (design system F4). A control may be smaller to the eye when its hit area is
-    // 44px: it passes when its label is that size, or when points 22px either side of its centre still land on it. Inline
+    // 44px: it passes when its label is that size, or when points 21px either side of its centre (just inside a 44px square
+    // around it) still land on it. Inline
     // links in a sentence are exempt (WCAG 2.5.8).
     private const string SmallTargetsScript = """
         () => {

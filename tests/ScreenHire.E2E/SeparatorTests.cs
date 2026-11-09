@@ -24,7 +24,7 @@ public sealed class SeparatorTests(E2EFixture fixture) : ProofWalk(fixture)
         await Page.GotoAsync(DashboardUrl("/reports"));
         await SettleAsync();
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^Dates:") }).ClickAsync();
-        var inMenu = Page.Locator("[data-slot=separator]");
+        var inMenu = Page.Locator("[data-slot=popover-content] [data-slot=separator]");
         await Expect(inMenu.First).ToBeVisibleAsync();
         (await inMenu.First.BoundingBoxAsync())!.Height.Should().BeApproximately(1f, 0.05f);
         _ = await SaveScreenshotAsync(Page, "proof-separator-dates-menu");
