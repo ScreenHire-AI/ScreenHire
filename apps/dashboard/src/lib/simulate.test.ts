@@ -204,7 +204,7 @@ describe('ready-made candidates', () => {
     expect(presets.map((preset) => preset.name)).toEqual(['Meets every requirement', 'Has verification signals']);
     expect(presets[0]!.candidate).toMatchObject({ authenticity: 'NoConcerns', aiAssistance: 'NotIndicated' });
     expect(presets[1]!.candidate).toMatchObject({ authenticity: 'VerificationRecommended', aiAssistance: 'StrongIndicators' });
-    expect(presets[1]!.description).toBe('Verification suggested and Strong signs of AI help');
+    expect(presets[1]!.description).toBe('Verify and Strong signs of AI help');
     expect(JSON.stringify(presets)).not.toMatch(/\d+\s?%/);
 
     const other = workflowWith([knockoutRule]);
@@ -297,7 +297,7 @@ describe('the answer', () => {
     expect(describeRule({ fact: 'answers.right_to_work', operator: 'EqualTo', value: 'yes', negate: true }, flow, 'ApplicationSubmitted')).toBe('Do you have the right to work here? is not Yes');
     expect(describeRule({ fact: 'answers.stack', operator: 'In', values: ['csharp', 'svelte'] }, flow, 'ApplicationSubmitted')).toBe('Which of these have you used? is one of C# and Svelte');
     expect(describeRule({ fact: 'application.hoursInStage', operator: 'GreaterThan', value: '48', negate: true }, flow, 'ApplicationSubmitted')).toMatch(/ is not more than 48$/);
-    expect(describeRule({ fact: 'verification.authenticity', operator: 'EqualTo', value: 'VerificationRecommended' }, flow, 'VerificationAssessed')).toBe('Verification: authenticity is Verification suggested');
+    expect(describeRule({ fact: 'verification.authenticity', operator: 'EqualTo', value: 'VerificationRecommended' }, flow, 'VerificationAssessed')).toBe('Verification is Verify');
   });
 
   it('reads an automation with any-of conditions that all failed as one line', () => {

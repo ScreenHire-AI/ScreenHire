@@ -185,7 +185,7 @@ describe('toGraph layout', () => {
     expect(advance[0]!.position.x).toBe(node(graph, 'stage:screening').position.x);
     expect(node(graph, 'hello:trigger').position.x).toBe(node(graph, LANE_NODE).position.x);
     expect(advance[0]!.position.y).toBeGreaterThan(node(graph, 'stage:screening').position.y + node(graph, 'stage:screening').height!);
-    expect(advance[1]!.data.title).toBe('Any of 1 condition');
+    expect(advance[1]!.data.title).toBe('Tags includes referral');
     expect(links(graph)).toEqual(
       expect.arrayContaining([
         'stage:screening>advance:trigger',
@@ -338,9 +338,10 @@ describe('toGraph layout', () => {
     const graph = toGraph(followUps);
 
     expect(links(graph)).toEqual(expect.arrayContaining(['stage:screening>late:trigger', `${LANE_NODE}>any-late:trigger`, `${LANE_NODE}>answered:trigger`]));
-    expect(node(graph, 'late:trigger').data.detail).toBe("A stage's time limit passes");
+    expect(node(graph, 'late:trigger').data).toMatchObject({ title: 'Time limit passes in Screening', detail: 'Late' });
+    expect(node(graph, 'any-late:trigger').data.title).toBe('A time limit passes');
     expect(node(graph, 'ask:action:0').data.title).toBe('Send the "Availability" questionnaire');
-    expect(node(graph, 'answered:trigger').data.detail).toBe('A follow-up questionnaire is answered: Availability');
+    expect(node(graph, 'answered:trigger').data).toMatchObject({ title: 'Answers Availability', detail: 'Answered' });
     expectGeometry(graph);
   });
 

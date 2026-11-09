@@ -129,6 +129,7 @@
   import AddCandidateDemo from './add-candidate-demo.svelte';
   import CustomizePostingDemo from './customize-posting-demo.svelte';
   import BrandingDemo from './branding-demo.svelte';
+  import AutomationDemo from './automation-demo.svelte';
   import GraphDemo from './graph-demo.svelte';
   import TemplateBuilderDemo from './template-builder-demo.svelte';
   import DropAreaDemo from './drop-area-demo.svelte';
@@ -886,6 +887,18 @@
 
       <Panel title="Workflow graph" flush>
         <GraphDemo />
+      </Panel>
+
+      <Panel title="Automation sentence">
+        <div class="max-w-form"><AutomationDemo part="sentence" /></div>
+      </Panel>
+
+      <Panel title="Recipe list">
+        <div class="max-w-form"><AutomationDemo part="recipes" /></div>
+      </Panel>
+
+      <Panel title="Automation list">
+        <div class="max-w-form"><AutomationDemo part="list" /></div>
       </Panel>
 
       <Panel title="Guided test">

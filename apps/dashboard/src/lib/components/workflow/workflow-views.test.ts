@@ -52,6 +52,22 @@ async function chooseStageAction(stage: string, action: string) {
   await fireEvent.click(await screen.findByRole('menuitem', { name: action }));
 }
 
+// A stage's Add an automation opens the recipes; Write your own opens an empty automation as a sentence, and Edit as rules its
+// full form, which keeps the selects the form tests below read.
+async function writeOwn(stage: string): Promise<HTMLElement> {
+  await chooseStageAction(stage, 'Add an automation');
+  const recipes = await screen.findByRole('dialog', { name: 'Add an automation' });
+  await fireEvent.click(within(recipes).getByRole('button', { name: 'Write your own' }));
+  return screen.findByRole('dialog', { name: 'New automation' });
+}
+
+async function writeOwnAsRules(stage: string): Promise<HTMLElement> {
+  const sheet = await writeOwn(stage);
+  await fireEvent.click(within(sheet).getByRole('button', { name: 'Edit as rules' }));
+  await within(sheet).findByRole('combobox', { name: 'Trigger' });
+  return sheet;
+}
+
 describe('validation badge', () => {
   it('is busy while a check is on its way', () => {
     render(ValidationBadge, { props: { errors: [], checking: true } });
@@ -225,10 +241,11 @@ describe('workflow builder', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Phone screen' })).toBeNull());
 
     await fireEvent.click(within(problems).getByRole('button', { name: /^Fix: The automation / }));
-    const sheet = await screen.findByRole('dialog', { name: /^Automations: / });
+    const sheet = await screen.findByRole('dialog', { name: 'Tag screened' });
     await waitFor(() => expect(sheet).toContainElement(document.activeElement as HTMLElement));
+    expect(within(sheet).getByRole('textbox', { name: 'Name' })).toHaveAttribute('aria-invalid', 'true');
     await fireEvent.keyDown(sheet, { key: 'Escape' });
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Automations: / })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Tag screened' })).toBeNull());
 
     await fireEvent.click(within(problems).getByRole('button', { name: 'Fix: The question "Do you have the right to work here?"' }));
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Questions' })).toHaveAttribute('aria-selected', 'true'));
@@ -327,14 +344,12 @@ describe('workflow builder', () => {
       followUpQuestionnaires: [{ id: 'availability', name: 'Availability', questions: [{ id: 'start', type: 'ShortText', label: 'When could you start?' }] }],
     };
     const view = render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: structuredClone(workflow), errors: [], mode: 'editor' } } });
-    await chooseStageAction('Phone screen', 'Add an automation');
-    let sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    let sheet = await writeOwnAsRules('Phone screen');
     expect(within(sheet).queryByRole('option', { name: 'Send a questionnaire' })).toBeNull();
     view.unmount();
 
     render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: followUp, errors: [], mode: 'editor' } } });
-    await chooseStageAction('Phone screen', 'Add an automation');
-    sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    sheet = await writeOwnAsRules('Phone screen');
     const action = within(sheet).getByRole('combobox', { name: 'Action 1' });
     await fireEvent.change(action, { target: { value: 'SendQuestionnaire' } });
     expect((within(sheet).getByRole('combobox', { name: 'Questionnaire' }) as HTMLSelectElement).value).toBe('availability');
@@ -349,9 +364,7 @@ describe('workflow builder', () => {
   // A passed time limit measures the team's delay, so the form offers only reminders for it (workflow-engine.md section 8).
   it("offers a stage's time limit as a trigger, on stages that have one, with only the reminder actions", async () => {
     renderViews('editor');
-    await chooseStageAction('Phone screen', 'Add an automation');
-    const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
-    // The sheet opens once the menu has closed, so focus lands in it rather than on the menu button behind it.
+    const sheet = await writeOwnAsRules('Phone screen');
     await vi.waitFor(() => expect(sheet).toContainElement(document.activeElement as HTMLElement));
     const options = (select: HTMLElement) => within(select).getAllByRole('option').map((option) => option.textContent?.trim());
 
@@ -374,9 +387,10 @@ describe('workflow builder', () => {
       { path: 'automations[0].actions[0].interviewWindowDays', message: 'Give the candidate 1 to 60 days.' },
       { path: 'automations[0].actions[0]', message: 'Offering an interview is not allowed here.' },
     ];
-    render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: withInterview, errors, mode: 'editor', tab: 'pipeline' } } });
-    await chooseStageAction('Phone screen', 'Add an automation');
-    const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: withInterview, errors, mode: 'editor', tab: 'automations' } } });
+    await fireEvent.click(within(screen.getByRole('tabpanel', { name: 'Automations' })).getByRole('button', { name: (name) => name.includes('Then action 1 in Tag screened') }));
+    const sheet = await screen.findByRole('dialog', { name: 'Tag screened' });
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Edit as rules' }));
 
     const days = within(sheet).getByRole('spinbutton', { name: 'Days to choose' });
     const described = (control: HTMLElement) => control.getAttribute('aria-describedby')?.split(' ').map((id) => document.getElementById(id)?.textContent?.trim());
@@ -608,7 +622,7 @@ describe('workflow simulation', () => {
     await fireEvent.click(within(pane()).getByRole('button', { name: /The verification checks finished/ }));
     await waitFor(() => expect(stepHeading()).toHaveTextContent('Who is the candidate?'));
     // The level is offered in words, as the verification screens name it.
-    expect(within(pane()).getByRole('button', { name: /Has verification signals/ })).toHaveTextContent('Verification suggested');
+    expect(within(pane()).getByRole('button', { name: /Has verification signals/ })).toHaveTextContent('Verify');
     await fireEvent.click(within(pane()).getByRole('button', { name: /Has verification signals/ }));
 
     const timeline = await within(pane()).findByRole('list', { name: 'What would happen, in order' });
@@ -788,7 +802,7 @@ describe('workflow simulation', () => {
     expect(within(pane()).getByRole('button', { name: 'Try another moment' })).toBeInTheDocument();
   });
 
-  it('shows the Test tab of an empty workflow with Add an automation, which opens the form of the whole workflow, and none where it only reads', async () => {
+  it('shows the Test tab of an empty workflow with Add an automation, which opens the recipes, and none where it only reads', async () => {
     stubSimulate();
     const empty: HiringWorkflow = { ...workflow, automations: [] };
     const editor = renderViews('editor', 'test', [], empty);
@@ -796,7 +810,7 @@ describe('workflow simulation', () => {
     const tab = screen.getByRole('tabpanel', { name: 'Test' });
     expect(tab).toHaveTextContent('Nothing to test yet');
     await fireEvent.click(within(tab).getByRole('button', { name: 'Add an automation' }));
-    expect(await screen.findByRole('dialog', { name: 'Automations: Whole workflow' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Add an automation' })).toBeInTheDocument();
     editor.unmount();
 
     renderViews('summary', 'test', [], empty);
@@ -813,57 +827,63 @@ describe('workflow graph in the builder', () => {
   const node = (text: string) => within(graph()).getByRole('button', { name: (name) => name.includes(text) });
   const lightOf = (element: HTMLElement) => element.closest('[data-state]')?.getAttribute('data-state');
 
-  it('adds an automation to a stage from the plus under it and opens its form at its name, the one the Pipeline view uses', async () => {
+  it('opens the recipes from the plus under a stage, and Write your own opens its sentence at the name', async () => {
     const { container } = renderViews('editor', 'automations');
     await expectNoAxeViolations(container);
 
     await fireEvent.click(node('Add an automation to Phone screen'));
 
-    const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
+    const recipes = await screen.findByRole('dialog', { name: 'Add an automation' });
+    await fireEvent.click(within(recipes).getByRole('button', { name: 'Write your own' }));
+    const sheet = await screen.findByRole('dialog', { name: 'New automation' });
     const name = within(sheet).getByRole('textbox', { name: 'Name' }) as HTMLInputElement;
     expect(name.value).toBe('New automation');
     await vi.waitFor(() => expect(name).toHaveFocus());
     expect(within(sheet).getAllByRole('article')).toHaveLength(1);
-    expect((within(sheet).getByRole('combobox', { name: 'Trigger' }) as HTMLSelectElement).value).toBe('StageEntered');
+    expect(within(sheet).getByRole('button', { name: 'Trigger: someone moves into' })).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: 'Done' })).toBeInTheDocument();
     expect(node('When New automation')).toBeInTheDocument();
   });
 
-  it("opens an action's form at that action when the whole node is pressed", async () => {
+  it("opens an action's sentence at that action when the whole node is pressed", async () => {
     renderViews('editor', 'automations');
 
     await fireEvent.click(node('Then action 1 in Tag screened'));
 
-    const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
-    await vi.waitFor(() => expect(within(sheet).getByRole('combobox', { name: 'Action 1' })).toHaveFocus());
+    const sheet = await screen.findByRole('dialog', { name: 'Tag screened' });
+    await vi.waitFor(() => expect(within(sheet).getByRole('button', { name: 'Action 1: add the tag' })).toHaveFocus());
   });
 
-  it("opens a stage's automations when the stage is pressed", async () => {
+  it("opens a stage's automations as rows when the stage is pressed", async () => {
     renderViews('editor', 'automations');
 
     await fireEvent.click(node('Stage Phone screen'));
 
     const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
-    expect(within(sheet).getAllByRole('article')).toHaveLength(1);
+    expect(within(sheet).getAllByRole('listitem')).toHaveLength(1);
+    expect(sheet).toHaveTextContent('Tag screened');
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Add automation' }));
+    expect(await screen.findByRole('dialog', { name: 'Add an automation' })).toBeInTheDocument();
   });
 
-  it('adds a condition from the plus on the line, and opens the form at it', async () => {
+  it('adds a condition from the plus on the line, and opens the sentence at it', async () => {
     renderViews('editor', 'automations');
 
     await fireEvent.click(node('Add a condition to Tag screened'));
 
-    const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
-    await vi.waitFor(() => expect(within(sheet).getByLabelText('Fact for condition 1')).toHaveFocus());
+    const sheet = await screen.findByRole('dialog', { name: 'Tag screened' });
+    await vi.waitFor(() => expect(within(sheet).getByRole('button', { name: /^Condition 1: what to check/ })).toHaveFocus());
     expect(node('If in Tag screened')).toBeInTheDocument();
     expect(within(graph()).queryByRole('button', { name: 'Add a condition to Tag screened' })).toBeNull();
   });
 
-  it('adds an action from the plus under the last one, and opens the form at it', async () => {
+  it('adds an action from the plus under the last one, and opens the sentence at it', async () => {
     renderViews('editor', 'automations');
 
     await fireEvent.click(node('Add an action to Tag screened'));
 
-    const sheet = await screen.findByRole('dialog', { name: 'Automations: Phone screen' });
-    await vi.waitFor(() => expect(within(sheet).getByRole('combobox', { name: 'Action 2' })).toHaveFocus());
+    const sheet = await screen.findByRole('dialog', { name: 'Tag screened' });
+    await vi.waitFor(() => expect(within(sheet).getByRole('button', { name: /^Action 2: add the tag/ })).toHaveFocus());
     expect(node('Then action 2 in Tag screened')).toBeInTheDocument();
   });
 
@@ -875,7 +895,7 @@ describe('workflow graph in the builder', () => {
     expect(pressable.querySelector('[data-problem-icon]')).not.toBeNull();
   });
 
-  it('has no Remove on a node: removing an automation is the Remove in its form', () => {
+  it('has no Remove on a node: removing an automation is the Remove in its rules form', () => {
     renderViews('editor', 'automations');
 
     expect(within(graph()).queryByRole('button', { name: /^Remove / })).toBeNull();
@@ -931,10 +951,11 @@ describe('workflow graph in the builder', () => {
 
     expect(graph()).toHaveTextContent('No automations yet');
     expect(within(graph()).queryByRole('button', { name: /^Add an automation to / })).toBeNull();
+    // The map's own button says it once: the panel's header has none while the map is empty (W7).
+    expect(within(screen.getByRole('region', { name: 'Stages and automations' })).getAllByRole('button', { name: /^Add (an )?automation$/ })).toHaveLength(1);
     await fireEvent.click(within(graph()).getByRole('button', { name: 'Add an automation' }));
 
-    const sheet = await screen.findByRole('dialog', { name: 'Automations: Whole workflow' });
-    expect(within(sheet).getAllByRole('article')).toHaveLength(1);
+    expect(await screen.findByRole('dialog', { name: 'Add an automation' })).toBeInTheDocument();
   });
 
   it('lights the path of a sample once it is shown from the Test tab, until it is cleared', async () => {
@@ -1004,31 +1025,42 @@ describe('workflow graph in the builder', () => {
     expect(box.className).toContain('focus-visible:ring-2');
   });
 
-  it('keeps the focus on a node when crossing the phone width swaps its button for its box, and back', async () => {
-    const viewport = stubViewport(1440);
-    renderViews('editor', 'automations');
-    const button = node('When Tag screened');
-    button.focus();
-
-    // A browser sends the focus away as it removes the control; jsdom does not, so the test does.
-    button.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-    viewport.resize(390);
-
-    const box = await within(graph()).findByRole('group', { name: 'When: Tag screened' });
-    await vi.waitFor(() => expect(box).toHaveFocus());
-
-    box.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-    viewport.resize(1440);
-
-    await vi.waitFor(() => expect(node('When Tag screened')).toHaveFocus());
-  });
-
-  it('is for reading on a phone, where editing stays in the Pipeline view', () => {
+  it('draws no map on a phone: the tab is the list, which edits through the same sheets', async () => {
     stubViewport(390);
     renderViews('editor', 'automations');
 
-    expect(graph()).toHaveTextContent('On a phone the graph is for reading. Edit in Pipeline.');
-    expect(within(graph()).queryByRole('button', { name: /^(Add|Edit|Remove) / })).toBeNull();
-    expect(within(graph()).getByRole('group', { name: 'When: Tag screened' })).toBeInTheDocument();
+    const panel = within(graph());
+    expect(panel.queryByRole('group', { name: 'View' })).toBeNull();
+    expect(panel.queryByRole('group', { name: /^When/ })).toBeNull();
+    expect(graph()).not.toHaveTextContent('graph is for reading');
+    const rows = panel.getAllByRole('listitem');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('Tell the team, off');
+    await fireEvent.click(within(rows[1]!).getByRole('button'));
+    expect(await screen.findByRole('dialog', { name: 'Tag screened' })).toBeInTheDocument();
+  });
+
+  it('switches between the list and the map on a wider screen, the map first', async () => {
+    stubViewport(1440);
+    renderViews('editor', 'automations');
+
+    const views = within(graph()).getByRole('group', { name: 'View' });
+    expect(within(views).getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
+    expect(node('When Tag screened')).toBeInTheDocument();
+
+    await fireEvent.click(within(views).getByRole('button', { name: 'List' }));
+    expect(within(graph()).queryByRole('button', { name: (name) => name.includes('When Tag screened') })).toBeNull();
+    expect(within(graph()).getAllByRole('listitem')).toHaveLength(2);
+
+    await fireEvent.click(within(views).getByRole('button', { name: 'Map' }));
+    expect(node('When Tag screened')).toBeInTheDocument();
+  });
+
+  it('reads the list without buttons where the workflow only reads', async () => {
+    stubViewport(390);
+    renderViews('summary', 'automations');
+
+    expect(within(graph()).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(graph()).queryByRole('button')).toBeNull();
   });
 });
