@@ -45,14 +45,17 @@ each item names the doc that designs it. Board workflows carry the detail.
 
 Four design reviews walked the build as a new team in its first hour, as a recruiter in a working day, as someone
 setting ScreenHire up, and as a candidate on a phone. Each fixed what was contained (#146 to #149) and left the rest
-for the owner. This is that rest, merged, with duplicates removed and ranked. Nothing in it is built. Pick the items
-you want and they become the next workflow, then the owner picks from "Later" and "Before real customers" below.
+for the owner. This is that rest, merged, with duplicates removed and ranked. Nothing in it is built. The owner
+picks the items to build, and they become the next workflow. Items not picked wait beside "Later" and "Before real
+customers" below.
 
 How to read it:
 
 - **Rank** is within a group, by how much the change helps a small team against its size. Number 1 is the best value.
 - **Size**: S is a few files and a test. M is a client and API change, or a flow, with tests. L is a new flow across
-  several screens.
+  several screens. S to M means the size depends on which of the named options is picked.
+- **Groups** are the five selling points and the candidate's side. "Built your way" also holds the first-hour items
+  (onboarding, invitations, the trial, the first job), because they fit no other selling point.
 - #147 closed with decisions and no proposals list, so its items here come from the alternatives it named for a
   choice it kept. Where #148 already built part of a #149 proposal, only the rest is listed.
 - A few items need a legal call first. They say so.
@@ -136,7 +139,8 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
    (A12). Let `DropArea` take several. Size S to M. (#146)
 5. **Move the device-check consent to the review step.** Notice, assistive switch and consent put about 1000 px before
    the first field at 390 px. Moving the consent to where the check runs shortens the page but changes consent timing,
-   so it needs a legal call first, and the EU and EEA matter most. Size M. (#146)
+   so it needs a legal call first, and the EU and EEA matter most. The notice and the assistive switch stay
+   before any collection either way. Size M. (#146)
 6. **Promise a person only where it is true.** The footer no longer says a person reads every application, because an
    eligibility question can end one with no person involved. A scoped line ("A person reviews anything our checks
    flag") is true by construction. Needs a legal read of the wording. Size S. (#146)

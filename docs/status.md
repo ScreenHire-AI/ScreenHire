@@ -28,7 +28,7 @@ What comes next, in order, is the [roadmap](roadmap.md).
 
 | Area | What works | PRs |
 |---|---|---|
-| Sign-in and tenancy | Email links, passkeys, Google, Microsoft and generic OIDC, onboarding, organizations, Postgres row-level security under an app role | #7 |
+| Sign-in and tenancy | Email links, passkeys, Google, Microsoft and generic OIDC, onboarding, organizations, Postgres row-level security under an app role | #7, #131 |
 | Team | Members with roles, email invitations that expire and work once, role changes and removal with the last Owner protected, a membership log, switching between organizations | #38 |
 | Roles and permissions | The server checks permissions, not role names, on every route; custom roles copied from a built-in or custom role, edited on their own page with History, deleted only when nobody has them; nobody gives more access than their own role has; Owner-only permissions stay with Owners; API keys capped by their creator ([ADR-0014](adr/0014-permissions-and-custom-roles.md)) | the custom roles task |
 | API access | Organization API keys on the hiring API (jobs, applications, candidates, templates, reports): read or read and write, shown once, a per-key rate limit, revocable ([ADR-0011](adr/0011-api-keys-for-integrators.md)); a Verification read scope that only an Owner can give opens an application's verification to the key, with every read in the review log ([ADR-0021](adr/0021-verification-read-scope-for-api-keys.md)) | #37 |

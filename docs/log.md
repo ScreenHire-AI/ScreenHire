@@ -5,7 +5,7 @@
 **The launch-readiness workflow is finished, and its design reviews left a list for the owner.** Four design reviews walked
 the build as a new team in its first hour, as a recruiter in a working day, as someone setting ScreenHire up, and as a
 candidate on a phone (#149, #148, #147, #146). They fixed what was contained: first-hour copy and ordering, a denser
-Reports page with a per-job Candidates column, setup wording and a safer default for a new automation, and honest candidate
+Reports page and a per-job Candidates column on Jobs, setup wording and a safer default for a new automation, and honest candidate
 copy with the notice at version `2026-11-09.1`. What they left is merged into one ranked list in the
 [roadmap](roadmap.md#the-owners-review-of-the-launch-readiness-build), grouped by the five selling points and the
 candidate's side, for the owner to choose from; nothing in it is built. The workflow also proved the dark and phone states of
