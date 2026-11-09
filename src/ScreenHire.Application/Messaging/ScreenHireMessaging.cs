@@ -209,6 +209,8 @@ public static class ScreenHireMessaging
         opts.Services.AddScreenHireNotifications();
         // The reminders before a free trial ends read the trial's settings and the plan catalogue (docs/architecture/billing.md).
         opts.Services.AddScreenHireTrialReminders();
+        // The AI usage sweeps: the spike rule, the retention floor and asking again for paused AI checks.
+        opts.Services.AddScreenHireAiUsage();
         // The daily re-check of sending domains looks them up and asks the provider, as the API does.
         opts.Services.AddScreenHireSendingDomains();
         opts.Services.TryAddSingleton<IDataExportStore, NoDataExportStore>();
@@ -311,6 +313,11 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<PurgeExpiredNotifications>("32 4 * * *");
         // Each organization's sending domain looked up again, daily (docs/architecture/notifications.md).
         opts.Schedules.ScheduleRecurring<RecheckSendingDomains>("47 5 * * *");
+        // AI usage (docs/architecture/ai-usage.md): yesterday judged against the recent average, ledger rows past each
+        // organization's retention, and paused AI checks asked again once the month or the cap allows it.
+        opts.Schedules.ScheduleRecurring<CheckAiUsageSpikes>("7 6 * * *");
+        opts.Schedules.ScheduleRecurring<PurgeExpiredAiUsage>("42 4 * * *");
+        opts.Schedules.ScheduleRecurring<ResumePausedAiChecks>("12 5 * * *");
         // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
         opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
         opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");

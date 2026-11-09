@@ -97,6 +97,12 @@ public enum CheckNotRunKind
 
     /// <summary>A domain or network the organization trusts stopped a signal.</summary>
     Trusted,
+
+    /// <summary>
+    /// The AI checks were paused because the organization reached its monthly cap. The rule-based checks ran. Never a mark
+    /// against the candidate.
+    /// </summary>
+    Paused,
 }
 
 /// <summary>
@@ -117,12 +123,23 @@ public static class RunNotes
 
     public const string TrustedEmailAndDeviceNotCompared = "A shared email address was not counted (trusted domain), and the device was not compared because form use checks are turned off.";
 
+    /// <summary>What the AI consistency check records when the organization's monthly cap paused it. Says nothing about the candidate.</summary>
+    public const string AiChecksPaused = "The AI checks were paused because this organization reached its monthly AI cap. This says nothing about the candidate. The other checks ran.";
+
+    /// <summary>The name a paused AI check is shown under, in place of the check group's.</summary>
+    public const string AiChecksLabel = "AI checks";
+
     /// <summary>The kind of settings-made note <paramref name="note"/> is, or null for any other note.</summary>
     public static CheckNotRunKind? KindOf(string analyzer, string? note)
     {
         if (note is null)
         {
             return null;
+        }
+
+        if (note == AiChecksPaused)
+        {
+            return CheckNotRunKind.Paused;
         }
 
         if (CheckGroups.Of(analyzer) is { } group && note == CheckGroups.TurnedOffNote(group))

@@ -68,8 +68,8 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
 
         (await owner.PutAsync("/v1/organization", new JsonObject { ["name"] = $"{name} Studio" })).Expect(HttpStatusCode.OK);
         (await owner.PutAsync("/v1/organization/branding", new JsonObject { ["brandColor"] = "#1f4e5a" })).Expect(HttpStatusCode.OK);
-        (await owner.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true, ["monthlyTokenBudget"] = 250000 }))
-            .Expect(HttpStatusCode.OK);
+        (await owner.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true })).Expect(HttpStatusCode.OK);
+        (await owner.PutAsync("/v1/organization/ai-usage/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 250000 })).Expect(HttpStatusCode.OK);
 
         var renamed = (await owner.GetAsync("/v1/organization/history")).Expect(HttpStatusCode.OK);
         renamed.Count("entries").Should().Be(1, "the brand colour is on the same row but has its own history");
@@ -78,8 +78,8 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
         branding.Count("entries").Should().Be(1);
         branding.Text("entries.0.lines.0.text").Should().Be("set the brand colour to #1f4e5a");
         var verification = (await owner.GetAsync("/v1/organization/verification-settings/history")).Expect(HttpStatusCode.OK);
-        verification.Text("entries.0.lines.0.text").Should().Be("turned on the consistency check");
-        verification.Text("entries.0.lines.1.text").Should().Be("set the monthly token budget to 250,000");
+        verification.Text("entries.0.lines.0.text").Should().Be("set the monthly budget to 250,000 tokens", "an Owner's limits are their own entry, newest first");
+        verification.Text("entries.1.lines.0.text").Should().Be("turned on the consistency check");
 
         foreach (var path in new[] { "/v1/organization", "/v1/organization/branding", "/v1/organization/verification-settings" })
         {

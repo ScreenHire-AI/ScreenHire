@@ -46,6 +46,19 @@ public sealed class VerificationGroupsTests
     }
 
     [Fact]
+    public void A_paused_AI_check_is_Paused_not_Nothing_found_and_a_finding_still_wins_over_it()
+    {
+        var paused = new CheckNotRun(CheckGroup.Answers, RunNotes.AiChecksLabel, CheckNotRunKind.Paused, RunNotes.AiChecksPaused);
+
+        var states = States([], [], [paused]);
+        states[CheckGroup.Answers].Should().Be(CheckGroupState.Paused, "nothing found while the AI check did not run must not read as clean");
+        states[CheckGroup.Network].Should().Be(CheckGroupState.NothingFound);
+        VerificationGroups.Of([], [], [paused], ApplicationSource.CareersSite).Single(g => g.Group == CheckGroup.Answers).Note.Should().Be(RunNotes.AiChecksPaused);
+
+        States([Signal(CheckGroup.Answers, counts: true)], [], [paused])[CheckGroup.Answers].Should().Be(CheckGroupState.Found);
+    }
+
+    [Fact]
     public void A_group_is_Turned_off_only_by_its_own_note_and_findings_win_over_it()
     {
         var off = new CheckNotRun(CheckGroup.Network, "Network", CheckNotRunKind.TurnedOff, CheckGroups.TurnedOffNote(CheckGroup.Network));

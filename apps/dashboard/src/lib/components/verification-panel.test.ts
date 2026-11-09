@@ -235,6 +235,19 @@ describe('verification tab', () => {
     expect(summary).toHaveTextContent('No automated decision has been made. Every action is logged.');
   });
 
+  it('says the AI checks were paused at the cap, in words that put nothing on the candidate', async () => {
+    const note = 'The AI checks were paused because this organization reached its monthly AI cap. This says nothing about the candidate. The other checks ran.';
+    serve({ ...genuineVerification(), checkGroups: checkGroups({ Answers: { state: 'Paused', note } }) });
+    renderPanel();
+
+    const summary = await assessed();
+    const line = summary.querySelector<HTMLElement>('[data-not-run] li[data-group="Answers"]');
+    expect(line).toHaveTextContent('Answers AI checks paused');
+    expect(line).toHaveTextContent(note);
+    expect(line!.querySelector('[data-status-icon]')).toBeInTheDocument();
+    expect(summary).not.toHaveTextContent(/%|score/i);
+  });
+
   it('says outright which groups did not run, so a quiet result is never read as a clean one', async () => {
     serve({
       ...genuineVerification(),

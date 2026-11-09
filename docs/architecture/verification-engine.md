@@ -53,7 +53,7 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Verification/VerificationOptions.cs
   - resource: src/ScreenHire.Infrastructure/Verification/IpIntelligence.cs
   - resource: src/ScreenHire.Infrastructure/Verification/KeyedHashing.cs
-  - resource: src/ScreenHire.Infrastructure/Verification/Llm/ConsistencyBudget.cs
+  - resource: src/ScreenHire.Infrastructure/Verification/Llm/AiUsageQueries.cs
   - resource: src/ScreenHire.Infrastructure/Verification/Llm/ConsistencyChecker.cs
   - resource: src/ScreenHire.Infrastructure/Verification/Llm/ConsistencyPrompts.cs
   - resource: src/ScreenHire.Infrastructure/Verification/Llm/FakeConsistencyChatClient.cs
@@ -249,7 +249,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   suggested next step (a callout in the level's colour with the summary under it when the level needs a look, one quiet
   line otherwise) and Dismiss, then AI help as information (its badge, the job's policy as a pill, and for Some and
   Strong signs its summary and next step), then a map of the six groups, each tile with one state: `Found` (counts toward
-  the level), `InformationOnly` (AI help and context that never counts), `NothingFound`, `NotChecked` or `TurnedOff`. Below
+  the level), `InformationOnly` (AI help and context that never counts), `NothingFound`, `NotChecked`, `TurnedOff` or `Paused` (the AI check paused at the organization's cap, with nothing else found; [ai-usage.md](ai-usage.md)). Below
   it is a panel for each group that has findings, each finding expanding to its evidence drawn by kind (§10.1) and
   counter-evidence. The API computes the states (`checkGroups` on the verification view, from the signals, the
   analyzers' run notes and the application's source) and each signal's `group` (from its source analyzer through
@@ -519,7 +519,8 @@ made with.
 | `application_documents` | what each uploaded file says: visible text, metadata, hidden text (§10.10) | insert, read |
 | `answer_fingerprints` | a SimHash per free-text answer, for near-duplicate lookups | insert, read |
 | `consistency_checks` | the consistency check per application and prompt version, with its contradictions and token use | insert, read, update |
-| `verification_settings` | the organization's switch for the consistency check and its monthly token budget | insert, read, update |
+| `verification_settings` | the organization's switch for the consistency check, its model, and its monthly AI budget and cap | insert, read, update |
+| `ai_usage_calls` | one row per model call, with the provider's request id, tokens and cost ([ai-usage.md](ai-usage.md)) | insert, read, delete (retention) |
 | `signal_network_entries` | the Signal Network (§6), cross-tenant | none |
 
 All but the last carry `organization_id` with the usual `tenant_isolation` policy. Only careers-site submissions get
@@ -552,7 +553,9 @@ employer's record period.
 | `Llm:Provider` | the consistency check's model for organizations on ScreenHire's included model: `None`, `Fake` (Development only; a host refuses to start with it elsewhere) or `Anthropic`. With `Fake`, an organization's own key is served by the fake too, so no test needs a real key (§10.11) | `None`; the worker's Development settings use `Fake` |
 | `Llm:ExtractionModel`, `Llm:ConsistencyModel` | model ids for the two steps of the check (§10.10) | `claude-haiku-5-5`, `claude-opus-5-5` (worker `appsettings.json`) |
 | `Llm:Anthropic:ApiKey` | Anthropic's API key, from the AppHost's secret parameter `anthropic-api-key` | unset: the provider is hidden and checks are unavailable |
-| `Llm:DefaultMonthlyTokenBudget`, `Llm:Timeout`, `Llm:MaxOutputTokens` | the budget for an organization with none of its own, and per-call limits | 2,000,000 tokens, 120 s, 8,000 tokens |
+| `Llm:DefaultMonthlyTokenBudget`, `Llm:DefaultMonthlyTokenCap` | the budget and the cap ScreenHire's key falls back to for an organization with none of its own (0 turns the cap off); an own key has neither | 2,000,000 tokens each |
+| `Llm:Prices:<modelId>:Input`, `:Output` | what ScreenHire's key costs per million tokens, for the usage ledger's costs; a model with no entry has an unknown cost | none |
+| `Llm:Timeout`, `Llm:MaxOutputTokens` | per-call limits | 120 s, 8,000 tokens |
 
 The worker refuses to start when `Network:Ip2AsnFile` or `Network:TorExitListFile` names a file that does not
 exist, because the files are read on the first lookup and a wrong path would fail every analysis. A commercial
@@ -572,8 +575,8 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST .../verification/assessments/{assessmentId}/signals/{signalId}/undo-explanation` | takes an explanation back; only its author (403 otherwise), and only while the assessment is not dismissed |
 | `POST .../verification/notes` | a note on the application's verification or one assessment |
 | `POST .../verification/request-verification` | always 409 until phase 2 |
-| `GET /v1/organization/verification-settings` | the organization's settings (§10.11): the consistency check, the model and whether a key is saved (never the key; the model's address only for members with Edit settings, because its path can hold a token), the budget and tokens used this month, the groups of checks, the AI-use policy, the device check, the trusted domains and networks, and the alerts |
-| `PUT /v1/organization/verification-settings` | replaces them (organization admins, in the dashboard's Verification page). A new or changed key, provider, address or model is tested first and refused with a field error when it fails |
+| `GET /v1/organization/verification-settings` | the organization's settings (§10.11): the consistency check, the model, the provider presets and whether a key is saved (never the key; the model's address and the own key's prices only for members with Edit settings, because its path can hold a token), the monthly limits and what was used against them (only for members who see AI usage), the groups of checks, the AI-use policy, the device check, the trusted domains and networks, and the alerts |
+| `PUT /v1/organization/verification-settings` | replaces them (organization admins, in the dashboard's Verification page). A new or changed key, provider, address or model is tested first and refused with a field error when it fails. The monthly budget and cap are not here: an Owner sets them with `PUT /v1/organization/ai-usage/limits` ([ai-usage.md](ai-usage.md)) |
 | `POST /v1/organization/verification-settings/llm/models` | lists the models a provider offers for a key, or says it offers no list |
 | `POST /v1/organization/verification-settings/llm/test` | one small request with the key and model; answers with a word, never the provider's text |
 
@@ -719,7 +722,7 @@ Four stages, each idempotent on its own:
    answers such as right to work) and an uploaded LinkedIn export: a file question with
    the id `linkedin_export`, which a job opts into. ScreenHire never fetches a profile (CLAUDE.md non-negotiable 5).
    Only visible text is sent. The handler checks, in order: the organization's switch (`verification_settings`, off until
-   an admin turns it on), at least two sources with text, a configured model, and the monthly token budget. Then it
+   an admin turns it on), at least two sources with text, a configured model, and the monthly cap. Then it
    claims a `consistency_checks` row (unique per application and prompt version) and asks the model with no database
    transaction open. A claim is taken over once it is older than the longest a check can take: four calls, each with
    the SDK's two retries, all timing out, plus a minute. A redelivered message for a finished check sends the pipeline again,
@@ -750,11 +753,11 @@ source text is logged. Under Anthropic's commercial terms, API inputs and output
 privacy notice (version `2026-10-20.3`) tells candidates their files and answers may go to an AI provider, which is not
 allowed to train on them.
 
-**Budget.** Counted in tokens, not money: the input and output tokens of the organization's checks started this calendar
-month (UTC), counted by `ConsistencyBudget` for both the handler and the settings endpoint. At or over the budget,
-the check is `OverBudget` and says so. The default comes from configuration, and an admin can set the organization's
-own. It is a soft limit: tokens are recorded when a check finishes, so checks that start together all pass the test and
-the last can overshoot by a few checks' worth.
+**Usage, budget and cap.** Every model call the check makes is a row in the usage ledger (`ai_usage_calls`), saved with the
+check's outcome, and the month's use is the ledger's sum in tokens or dollars (`AiUsageQueries`). A budget alerts at 50%, 80%
+and 100%; a cap pauses the check (`Paused`, never a mark against the candidate), and the rule-based checks keep running. Both are
+soft: the cap is read before a check starts, so checks that start together all pass the test and the last can overshoot by a
+few checks' worth. The rules, the ledger and the alerts are in [ai-usage.md](ai-usage.md).
 
 **Known gaps.**
 - Parsing runs in the worker process. A crafted PDF that expands to gigabytes can still exhaust its memory; the slot
@@ -774,8 +777,8 @@ the last can overshoot by a few checks' worth.
 generator metadata. `ConsistencyCheckerTests` replays hand-written Messages API responses
 (`tests/ScreenHire.UnitTests/Verification/Llm/Recordings`) through the real SDK client. It checks the request (configured
 models, a schema, no sampling parameters) and that invented quotes and unknown claim ids are dropped. The golden files
-cover the synthetic applicants, and `ContentForensicsTests` (Aspire) covers blob reading, the LinkedIn export, the budget
-and the organization boundary.
+cover the synthetic applicants, and `ContentForensicsTests` (Aspire) covers blob reading, the LinkedIn export, the cap
+and the organization boundary. `AiUsageTests` covers the ledger.
 
 ### 10.11 What an organization controls
 
@@ -783,11 +786,14 @@ The Verification page (`/verification`, a sidebar item) is one form in four pane
 (Edit settings). Every change is a History line (`SettingsChanges.Verification`, seen through `VerificationSettingsFacts`).
 Settings apply from the next application: an analysis already recorded is not redone.
 
-**AI model.** The consistency check runs on ScreenHire's included model, within the monthly token budget, or on the
-organization's own key: Anthropic, or any endpoint that speaks the OpenAI chat API (OpenAI, Azure OpenAI) at a base URL the
+**AI model.** The consistency check runs on ScreenHire's included model, billed at the provider's price plus a margin
+(`ScreenHire:Billing:Ai:Margin`, [billing.md](billing.md)), or on the organization's own key, which costs it nothing extra. The own
+key is one of six provider presets (`ModelPresets`): Anthropic, OpenAI, OpenRouter, Azure OpenAI, Google Gemini, and Other (any
+OpenAI-compatible address). A preset fills in the address and the way the key is sent; Azure OpenAI and Other take an address the
 organization types. One model id serves both steps of the check. The page lists the provider's own models through
-`.../llm/models` (Anthropic `/v1/models`, OpenAI-compatible `/models`) and takes a typed id when the provider offers no list;
-no model name is kept in the code. With an own key the budget does not apply and usage still shows, and the provider handles
+`.../llm/models` (Anthropic `/v1/models`, the others `/models`) and takes a typed id when the provider offers no list (Azure lists
+base models, not the deployments a key calls); no model name is kept in the code. The own key's prices are optional and only
+make the usage page show costs. Every call is in the usage ledger either way, and the provider handles
 the data under the organization's own terms rather than ScreenHire's (docs/research/legal.md). The candidate privacy page says the
 model comes from ScreenHire's provider or one the employer chose, and that the no-training promise covers only the first.
 
@@ -826,9 +832,9 @@ still counts. The run's note says what was left out. A network no wider than /16
 list holds 50 entries at most.
 
 **Alerts.** Each of two alerts goes by email, by Slack or both. Verification suggested goes once, when an application first
-reaches that level (not at each later stage of evidence, and not again if the level falls and returns), to members who hold Review verification and see the job. The budget
-alert goes once a month when the month's tokens pass 80% of the included-model budget (the handler claims the month on the settings row),
-to members who can edit settings; an own key never triggers it. Slack gets a direct message to a member who linked Slack, never
+reaches that level (not at each later stage of evidence, and not again if the level falls and returns), to members who hold Review verification and see the job. The AI usage
+alerts (50%, 80% and 100% of the budget, the cap, and a spike) go once each to members who see AI usage, as a notification in the
+bell and by email or Slack when the organization chose them ([ai-usage.md](ai-usage.md)). Slack gets a direct message to a member who linked Slack, never
 a channel post, because a channel skips permission and job scoping. Neither carries a level, reason, evidence or candidate name:
 the email and the Slack message both name the job, say the application needs a closer look and link to it.
 

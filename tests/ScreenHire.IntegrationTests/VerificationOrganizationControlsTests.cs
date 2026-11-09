@@ -32,8 +32,10 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
 
         body.GetProperty("modelSource").GetString().Should().Be("Included");
         body.GetProperty("apiKeySaved").GetBoolean().Should().BeFalse();
-        body.GetProperty("budgetApplies").GetBoolean().Should().BeTrue();
-        body.GetProperty("effectiveMonthlyTokenBudget").GetInt64().Should().BeGreaterThan(0);
+        var budget = body.GetProperty("limits").GetProperty("effectiveBudget");
+        budget.GetProperty("isDefault").GetBoolean().Should().BeTrue("ScreenHire's key starts on the deployment's default budget");
+        budget.GetProperty("amount").GetDecimal().Should().BeGreaterThan(0);
+        body.GetProperty("presets").GetArrayLength().Should().Be(6);
         foreach (var group in new[] { "network", "contact", "documents", "answers", "duplicates", "formUse" })
         {
             body.GetProperty("checks").GetProperty(group).GetBoolean().Should().BeTrue(group);
@@ -171,7 +173,7 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
         var saved = (await tenant.PutAsync(Settings, OwnKey(Secret))).Expect(HttpStatusCode.OK);
         saved.Body.GetProperty("modelSource").GetString().Should().Be("OwnKey");
         saved.Body.GetProperty("apiKeySaved").GetBoolean().Should().BeTrue();
-        saved.Body.GetProperty("budgetApplies").GetBoolean().Should().BeFalse("the provider bills an own key");
+        saved.Body.GetProperty("limits").GetProperty("effectiveBudget").ValueKind.Should().Be(JsonValueKind.Null, "the provider bills an own key, so there is no default budget");
         saved.Body.GetProperty("model").GetString().Should().Be("my-model");
 
         var read = (await tenant.GetAsync(Settings)).Expect(HttpStatusCode.OK);
@@ -255,11 +257,12 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
     }
 
     [Fact]
-    public async Task With_an_own_key_the_token_budget_does_not_apply_and_usage_still_counts()
+    public async Task With_an_own_key_ScreenHires_default_cap_does_not_apply_and_every_call_is_still_recorded_as_the_own_keys()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
         var put = OwnKey(Secret);
-        put["monthlyTokenBudget"] = 1;
+        put["ownKeyInputPrice"] = 2.5m;
+        put["ownKeyOutputPrice"] = 10m;
         (await tenant.PutAsync(Settings, put)).Expect(HttpStatusCode.OK);
         var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, tenant, SystemTemplates.SoftwareEngineerVersion2);
         var first = SyntheticApplicants.GenuineHuman;
@@ -270,10 +273,22 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
         var secondId = await VerificationSupport.ApplyAsync(fixture, slug, jobId, second, answers: second.Answers);
         var verification = await VerificationSupport.SettledAsync(fixture, tenant, secondId);
 
-        verification.Text("consistencyCheck.status").Should().Be("Completed", "a budget of one token would have stopped ScreenHire's model after the first check");
+        verification.Text("consistencyCheck.status").Should().Be("Completed", "ScreenHire's default cap protects ScreenHire's key, not the organization's own");
         var settings = (await tenant.GetAsync(Settings)).Body;
-        settings.GetProperty("tokensUsedThisMonth").GetInt64().Should().BeGreaterThan(1);
-        settings.GetProperty("budgetApplies").GetBoolean().Should().BeFalse();
+        settings.GetProperty("limits").GetProperty("effectiveCap").ValueKind.Should().Be(JsonValueKind.Null);
+        settings.GetProperty("limits").GetProperty("effectiveBudget").ValueKind.Should().Be(JsonValueKind.Null);
+        settings.GetProperty("ownKeyInputPrice").GetDecimal().Should().Be(2.5m);
+
+        // Under the fake model the client that answered is the deployment's, but the ledger names whose key the settings say paid.
+        await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);
+        var calls = await db.AiUsageCalls.AsNoTracking().ToListAsync(Ct);
+        calls.Should().NotBeEmpty().And.AllSatisfy(call =>
+        {
+            call.KeySource.Should().Be(AiKeySource.OwnKey);
+            call.Provider.Should().Be("Anthropic");
+            call.CostBasis.Should().Be(AiCostBasis.Priced, "the organization's own prices priced it");
+            call.Cost.Should().BeGreaterThan(0m);
+        });
     }
 
     [Fact]
@@ -489,20 +504,21 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
     }
 
     [Fact]
-    public async Task The_budget_alert_goes_once_when_the_month_passes_80_percent_and_never_with_an_own_key()
+    public async Task Each_budget_share_alerts_once_with_a_notification_and_an_email_and_an_own_key_without_a_budget_is_never_alerted()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
         using var ownKey = await fixture.SignedInWithOrganizationAsync();
-        var put = new JsonObject { ["llmConsistencyCheck"] = true, ["monthlyTokenBudget"] = 1, ["alerts"] = new JsonObject { ["budgetEmail"] = true } };
-        (await tenant.PutAsync(Settings, put)).Expect(HttpStatusCode.OK);
+        var settings = new JsonObject { ["llmConsistencyCheck"] = true, ["alerts"] = new JsonObject { ["budgetEmail"] = true } };
+        (await tenant.PutAsync(Settings, settings)).Expect(HttpStatusCode.OK);
         var own = OwnKey(Secret);
-        own["monthlyTokenBudget"] = 1;
         own["alerts"] = new JsonObject { ["budgetEmail"] = true };
         (await ownKey.PutAsync(Settings, own)).Expect(HttpStatusCode.OK);
+        // A budget of one token: the first check passes 50%, 80% and 100% at once.
+        (await tenant.PutAsync("/v1/organization/ai-usage/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 1 })).Expect(HttpStatusCode.OK);
         var ownerEmail = await EmailOfAsync(tenant);
         var ownKeyEmail = await EmailOfAsync(ownKey);
 
-        foreach (var (who, email) in new[] { (tenant, ownerEmail), (ownKey, ownKeyEmail) })
+        foreach (var who in new[] { tenant, ownKey })
         {
             var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, who, SystemTemplates.SoftwareEngineerVersion2);
             var first = SyntheticApplicants.GenuineHuman;
@@ -511,23 +527,26 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
             await VerificationSupport.SettledAsync(fixture, who, await VerificationSupport.ApplyAsync(fixture, slug, jobId, second, answers: second.Answers));
         }
 
+        string[] subjects = [.. AiUsageLimits.BudgetThresholds.Select(percent => AiUsageAlertWording.Subject(AiUsageAlertKind.Budget, percent))];
         IReadOnlyList<MailpitMessage> alerts = [];
         await Messaging.WolverineStore.WaitUntilAsync(
             async () =>
             {
-                alerts = [.. (await fixture.Mailpit.MessagesAsync(ownerEmail, Ct)).Where(m => m.Subject == VerificationAlertWording.BudgetSubject)];
-                return alerts.Count > 0;
+                alerts = [.. (await fixture.Mailpit.MessagesAsync(ownerEmail, Ct)).Where(m => subjects.Contains(m.Subject))];
+                return alerts.Select(m => m.Subject).Distinct().Count() == 3;
             },
-            "the budget alert email",
+            "the 50%, 80% and 100% budget emails",
             Ct);
         await Task.Delay(TimeSpan.FromSeconds(2), Ct);
 
-        alerts[0].Text.Should().Contain("/verification", "the alert opens the Verification page")
-            .And.NotContain("/settings/verification", "Verification left Settings for its own sidebar item");
-        (await fixture.Mailpit.MessagesAsync(ownerEmail, Ct)).Count(m => m.Subject == VerificationAlertWording.BudgetSubject)
-            .Should().Be(1, "the month passed 80% once, and the second application found the budget already spent");
-        (await fixture.Mailpit.MessagesAsync(ownKeyEmail, Ct)).Where(m => m.Subject == VerificationAlertWording.BudgetSubject)
-            .Should().BeEmpty("an own key has no ScreenHire budget to pass");
+        alerts = [.. (await fixture.Mailpit.MessagesAsync(ownerEmail, Ct)).Where(m => subjects.Contains(m.Subject))];
+        alerts.Should().HaveCount(3, "each share alerted once, though the second application found all three already passed");
+        alerts[0].Text.Should().Contain("/verification").And.NotContain("/settings/verification", "Verification left Settings for its own sidebar item");
+        var bell = (await tenant.GetAsync("/v1/notifications")).Expect(HttpStatusCode.OK);
+        bell.At("items").EnumerateArray().Select(n => n.GetProperty("kind").GetString()).Should().Equal("ai-usage-budget", "ai-usage-budget", "ai-usage-budget");
+        (await fixture.Mailpit.MessagesAsync(ownKeyEmail, Ct)).Where(m => subjects.Contains(m.Subject))
+            .Should().BeEmpty("an own key with no budget of its own has nothing to pass");
+        (await ownKey.GetAsync("/v1/notifications")).Expect(HttpStatusCode.OK).Count("items").Should().Be(0);
     }
 
     private async Task<IReadOnlyList<MailpitMessage>> WaitForAlertsAsync(string address)

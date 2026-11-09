@@ -11,4 +11,8 @@ export type ModelProvider = typeof ModelProvider[keyof typeof ModelProvider] | n
 export const ModelProvider = {
   Anthropic: 'Anthropic',
   OpenAiCompatible: 'OpenAiCompatible',
+  OpenAi: 'OpenAi',
+  OpenRouter: 'OpenRouter',
+  AzureOpenAi: 'AzureOpenAi',
+  Gemini: 'Gemini',
 } as const;

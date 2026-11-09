@@ -86,7 +86,7 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
             .Should().Contain("LinkedIn profile export");
 
         var settings = (await tenant.GetAsync("/v1/organization/verification-settings")).Expect(HttpStatusCode.OK);
-        settings.Body.GetProperty("tokensUsedThisMonth").GetInt64().Should().BeGreaterThan(0);
+        settings.Body.GetProperty("limits").GetProperty("effectiveBudget").GetProperty("used").GetDecimal().Should().BeGreaterThan(0, "every call is in the usage ledger");
         await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);
         (await db.ApplicationDocuments.Where(d => d.ApplicationId == applicationId).Select(d => d.Kind).ToListAsync(Ct))
             .Should().BeEquivalentTo([DocumentKind.Resume, DocumentKind.LinkedInExport]);
@@ -114,11 +114,11 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Once_the_monthly_budget_is_spent_the_check_is_skipped_and_says_why()
+    public async Task Once_the_monthly_cap_is_reached_the_AI_check_is_paused_and_says_so_without_marking_the_candidate()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
-        (await tenant.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true, ["monthlyTokenBudget"] = 1 }))
-            .Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true })).Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync("/v1/organization/ai-usage/limits", new JsonObject { ["unit"] = "Tokens", ["cap"] = 1 })).Expect(HttpStatusCode.OK);
         var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, tenant, SystemTemplates.SoftwareEngineerVersion2);
         var first = SyntheticApplicants.GenuineHuman;
         var second = SyntheticApplicants.HonestAiAssisted;
@@ -128,9 +128,12 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
         var secondId = await VerificationSupport.ApplyAsync(fixture, slug, jobId, second, answers: second.Answers);
         var verification = await VerificationSupport.SettledAsync(fixture, tenant, secondId);
 
-        verification.Text("consistencyCheck.status").Should().Be("OverBudget");
-        verification.Text("consistencyCheck.note").Should().Be("The organization's monthly budget for the consistency check is used up.");
-        verification.Text("status").Should().Be("Assessed", "a skipped check never holds up the assessment");
+        verification.Text("consistencyCheck.status").Should().Be("Paused");
+        verification.Text("consistencyCheck.note").Should().Be(RunNotes.AiChecksPaused);
+        verification.Text("status").Should().Be("Assessed", "a paused check never holds up the assessment, and the rule-based checks still ran");
+        var paused = verification.At("checksNotRun").EnumerateArray().Should().ContainSingle(n => n.GetProperty("kind").GetString() == "Paused").Subject;
+        paused.GetProperty("label").GetString().Should().Be(RunNotes.AiChecksLabel);
+        paused.GetProperty("note").GetString().Should().Contain("says nothing about the candidate");
     }
 
     [Fact]
@@ -169,13 +172,14 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
 
         var initial = (await tenant.GetAsync("/v1/organization/verification-settings")).Expect(HttpStatusCode.OK);
         initial.Body.GetProperty("llmConsistencyCheck").GetBoolean().Should().BeFalse();
-        (await tenant.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true, ["monthlyTokenBudget"] = 0 }))
-            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("monthlyTokenBudget");
-        var saved = (await tenant.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true, ["monthlyTokenBudget"] = 50000 }))
+        (await tenant.PutAsync("/v1/organization/ai-usage/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 0 }))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("budget");
+        (await tenant.PutAsync("/v1/organization/ai-usage/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 50000 })).Expect(HttpStatusCode.OK);
+        var saved = (await tenant.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true }))
             .Expect(HttpStatusCode.OK);
 
         saved.Body.GetProperty("llmConsistencyCheck").GetBoolean().Should().BeTrue();
-        saved.Body.GetProperty("monthlyTokenBudget").GetInt64().Should().Be(50000);
+        saved.Body.GetProperty("limits").GetProperty("budget").GetDecimal().Should().Be(50000, "saving the settings leaves the Owner's budget alone");
         (await other.GetAsync("/v1/organization/verification-settings")).Expect(HttpStatusCode.OK)
             .Body.GetProperty("llmConsistencyCheck").GetBoolean().Should().BeFalse("another organization's switch is its own");
     }
@@ -239,8 +243,8 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
 
-        var saves = await Task.WhenAll(Enumerable.Range(1, 6).Select(budget =>
-            tenant.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true, ["monthlyTokenBudget"] = budget * 1000 })));
+        var saves = await Task.WhenAll(Enumerable.Range(1, 6).Select(_ =>
+            tenant.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true })));
 
         saves.Should().AllSatisfy(save => save.Expect(HttpStatusCode.OK));
         await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);

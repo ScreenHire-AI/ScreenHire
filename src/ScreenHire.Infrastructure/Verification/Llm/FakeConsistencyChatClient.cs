@@ -18,6 +18,9 @@ public sealed partial class FakeConsistencyChatClient : IChatClient
 {
     public const string ModelId = "screenhire-fake-consistency-1";
 
+    /// <summary>What every id the fake gives a response starts with, so a recorded call can be told from a real one.</summary>
+    public const string RequestIdPrefix = "fake-";
+
     private static readonly string[] NumberWords =
     [
         "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
@@ -35,6 +38,8 @@ public sealed partial class FakeConsistencyChatClient : IChatClient
         var response = new ChatResponse(new ChatMessage(ChatRole.Assistant, json))
         {
             ModelId = ModelId,
+            // Like a provider's id for the response: one per call, so the usage ledger has something to compare.
+            ResponseId = RequestIdPrefix + Guid.NewGuid().ToString("N")[..16],
             FinishReason = ChatFinishReason.Stop,
             Usage = new UsageDetails { InputTokenCount = (system.Length + user.Length) / 4, OutputTokenCount = json.Length / 4 },
         };

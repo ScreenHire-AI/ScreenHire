@@ -14,4 +14,5 @@ export type CheckNotRunKind = typeof CheckNotRunKind[keyof typeof CheckNotRunKin
 export const CheckNotRunKind = {
   TurnedOff: 'TurnedOff',
   Trusted: 'Trusted',
+  Paused: 'Paused',
 } as const;

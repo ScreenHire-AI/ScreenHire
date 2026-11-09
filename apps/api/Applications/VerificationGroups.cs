@@ -36,12 +36,15 @@ internal static class VerificationGroups
             // Off means the group did not run. A partial note (Duplicates did not compare the device because Form use is off, or a
             // trusted domain stopped a signal) leaves the group's own checks running, so it is only a note.
             var turnedOff = groupNotes.FirstOrDefault(n => n.Note == CheckGroups.TurnedOffNote(group));
+            // The AI check paused at the organization's cap: with nothing else found, "nothing found" would read as clean.
+            var paused = groupNotes.FirstOrDefault(n => n.Kind == CheckNotRunKind.Paused);
             var state = found > 0 ? CheckGroupState.Found
                 : notes > 0 ? CheckGroupState.InformationOnly
                 : turnedOff is not null ? CheckGroupState.TurnedOff
+                : paused is not null ? CheckGroupState.Paused
                 : source == ApplicationSource.Recruiter && NeedingTheForm.Contains(group) ? CheckGroupState.NotChecked
                 : CheckGroupState.NothingFound;
-            var note = state == CheckGroupState.NotChecked ? AddedByHand : (turnedOff ?? groupNotes.FirstOrDefault())?.Note;
+            var note = state == CheckGroupState.NotChecked ? AddedByHand : (turnedOff ?? paused ?? groupNotes.FirstOrDefault())?.Note;
             return new CheckGroupView(group, CheckGroups.Label(group), state, found, notes, CheckGroups.Checked(group), note);
         }),
     ];

@@ -26,16 +26,15 @@ namespace ScreenHire.Api.Endpoints;
 /// </summary>
 internal static class VerificationSettingsHandlers
 {
-    // Every member reads the settings, but the model address only with Edit settings: its path can hold a token, which is why
-    // History keeps the host alone.
+    // Every member reads the settings, but the model address and the own key's prices only with Edit settings (its path can hold
+    // a token, which is why History keeps the host alone), and the limits with what has been used only with View AI usage.
     public static async Task<Ok<OrganizationVerificationSettings>> Get(
         ScreenHireDbContext db, ITenantContext tenant, IOptions<VerificationOptions> verification, IServiceProvider services, SlackAccess slack,
         TimeProvider time, CancellationToken cancellationToken)
     {
         var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        var response = await ToResponseAsync(db, settings, verification.Value, services, slack, time.GetUtcNow(), cancellationToken);
-        var edits = (await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken)).Contains(Permission.EditSettings);
-        return TypedResults.Ok(edits ? response : response with { BaseUrl = null });
+        var permissions = UsagePermissions(await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken), tenant);
+        return TypedResults.Ok(await ToResponseAsync(db, settings, verification.Value, services, slack, time.GetUtcNow(), permissions, cancellationToken));
     }
 
     // Upserts the organization's row. The settings apply from the next application: turning a group on or off, or the check,
@@ -58,7 +57,7 @@ internal static class VerificationSettingsHandlers
         string? newKey = null;
         if (problems.Count == 0 && request.ModelSource == LlmSource.OwnKey)
         {
-            (newKey, var credentialProblems) = await CheckModelAsync(request, settings, models, keys, cancellationToken);
+            (newKey, var credentialProblems) = await CheckModelAsync(request, settings, organizationId, db, models, keys, time, cancellationToken);
             foreach (var (field, message) in credentialProblems)
             {
                 problems[field] = [message];
@@ -71,6 +70,7 @@ internal static class VerificationSettingsHandlers
         }
 
         var now = time.GetUtcNow();
+        var permissions = UsagePermissions(await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken), tenant);
         if (settings is null)
         {
             settings = new VerificationSettings { OrganizationId = organizationId };
@@ -92,8 +92,12 @@ internal static class VerificationSettingsHandlers
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        return TypedResults.Ok(await ToResponseAsync(db, settings, verification.Value, services, slack, now, cancellationToken));
+        return TypedResults.Ok(await ToResponseAsync(db, settings, verification.Value, services, slack, now, permissions, cancellationToken));
     }
+
+    // Usage covers every job's calls, so a member on Only jobs they're on does not see it, whatever their role holds (as for keys and webhooks).
+    private static IReadOnlySet<Permission> UsagePermissions(IReadOnlySet<Permission> permissions, ITenantContext tenant) =>
+        tenant.SeesAllJobs ? permissions : new HashSet<Permission>(permissions.Where(p => p != Permission.ViewAiUsage));
 
     public static async Task<Results<Ok<VerificationModelList>, ValidationProblem>> ListModels(
         VerificationModelRequest request, ScreenHireDbContext db, OrganizationModels models, LlmKeys keys, CancellationToken cancellationToken)
@@ -109,7 +113,8 @@ internal static class VerificationSettingsHandlers
     }
 
     public static async Task<Results<Ok<VerificationModelTest>, ValidationProblem>> TestModel(
-        VerificationModelRequest request, ScreenHireDbContext db, OrganizationModels models, LlmKeys keys, CancellationToken cancellationToken)
+        VerificationModelRequest request, ScreenHireDbContext db, ITenantContext tenant,
+        OrganizationModels models, LlmKeys keys, TimeProvider time, CancellationToken cancellationToken)
     {
         var (endpoint, problems) = await EndpointAsync(request, requireModel: true, db, keys, cancellationToken);
         if (endpoint is null)
@@ -117,8 +122,27 @@ internal static class VerificationSettingsHandlers
             return TypedResults.ValidationProblem(problems);
         }
 
-        var result = await models.TestAsync(endpoint, cancellationToken);
+        // The test call costs the organization a few tokens, so it is in the ledger like any other.
+        var saved = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        var result = await TestAndRecordAsync(endpoint, saved?.OwnKeyInputPrice, saved?.OwnKeyOutputPrice, tenant.OrganizationId!.Value, db, models, time, cancellationToken);
         return TypedResults.Ok(new VerificationModelTest(result.Ok, result.Problem));
+    }
+
+    // Runs the one-word test and saves its row at once, so a test that fails the save still shows in the ledger.
+    private static async Task<ModelTestResult> TestAndRecordAsync(
+        ModelEndpoint endpoint, decimal? inputPrice, decimal? outputPrice, Guid organizationId, ScreenHireDbContext db, OrganizationModels models,
+        TimeProvider time, CancellationToken cancellationToken)
+    {
+        var recorder = new AiUsageRecorder(
+            new AiUsageContext(organizationId, null, endpoint.Provider.ToString(), AiKeySource.OwnKey, _ => (inputPrice, outputPrice)), time);
+        var result = await models.TestAsync(endpoint, cancellationToken, recorder);
+        if (recorder.Calls.Count > 0)
+        {
+            db.AiUsageCalls.AddRange(recorder.Calls);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return result;
     }
 
     /// <summary>What is wrong with the request itself, by field, before any key is tried.</summary>
@@ -126,11 +150,6 @@ internal static class VerificationSettingsHandlers
     {
         ArgumentNullException.ThrowIfNull(request);
         var problems = new Dictionary<string, string[]>();
-        if (request.MonthlyTokenBudget is { } budget && budget is < 1 or > VerificationSettings.MaxMonthlyTokenBudget)
-        {
-            problems["monthlyTokenBudget"] = [$"A monthly budget is between 1 and {VerificationSettings.MaxMonthlyTokenBudget.ToString("N0", CultureInfo.InvariantCulture)} tokens."];
-        }
-
         if (!Enum.IsDefined(request.ModelSource) || !Enum.IsDefined(request.DefaultAiUse) || (request.DeviceCheck is { } basis && !Enum.IsDefined(basis)))
         {
             problems["modelSource"] = ["Choose one of the listed options."];
@@ -142,7 +161,7 @@ internal static class VerificationSettingsHandlers
             {
                 problems["provider"] = ["Choose a provider."];
             }
-            else if (provider == ModelProvider.OpenAiCompatible && OrganizationModels.BaseUrlProblem(request.BaseUrl) is { } urlProblem)
+            else if (ModelPresets.BaseUrlProblem(provider, request.BaseUrl) is { } urlProblem)
             {
                 problems["baseUrl"] = [urlProblem];
             }
@@ -164,11 +183,22 @@ internal static class VerificationSettingsHandlers
             {
                 problems["apiKey"] = ["Enter the API key, or leave it empty to keep the saved one."];
             }
+
+            AddPriceProblem(problems, "ownKeyInputPrice", request.OwnKeyInputPrice);
+            AddPriceProblem(problems, "ownKeyOutputPrice", request.OwnKeyOutputPrice);
         }
 
         AddTrustedProblems(problems, request.TrustedDomains, "trustedDomains", TrustedSources.NormalizeDomain, "Enter a domain such as partner.example.com.");
         AddTrustedProblems(problems, request.TrustedNetworks, "trustedNetworks", TrustedSources.NormalizeNetwork, null);
         return problems;
+    }
+
+    private static void AddPriceProblem(Dictionary<string, string[]> problems, string field, decimal? price)
+    {
+        if (price is { } value && value is < 0 or > VerificationSettings.MaxPricePerMillion)
+        {
+            problems[field] = [$"A price is between 0 and {VerificationSettings.MaxPricePerMillion.ToString("N0", CultureInfo.InvariantCulture)} dollars per million tokens."];
+        }
     }
 
     private static void AddTrustedProblems(
@@ -202,8 +232,8 @@ internal static class VerificationSettingsHandlers
     // saved key and the same target needs no test. A different provider or address needs a new key, so the old one is never
     // sent to a new host.
     private static async Task<(string? NewKey, List<(string Field, string Message)> Problems)> CheckModelAsync(
-        UpdateVerificationSettingsRequest request, VerificationSettings? settings, OrganizationModels models, LlmKeys keys,
-        CancellationToken cancellationToken)
+        UpdateVerificationSettingsRequest request, VerificationSettings? settings, Guid organizationId, ScreenHireDbContext db,
+        OrganizationModels models, LlmKeys keys, TimeProvider time, CancellationToken cancellationToken)
     {
         var problems = new List<(string, string)>();
         var provider = request.Provider!.Value;
@@ -234,7 +264,8 @@ internal static class VerificationSettingsHandlers
             }
         }
 
-        var test = await models.TestAsync(new ModelEndpoint(provider, baseUrl, key, model), cancellationToken);
+        var test = await TestAndRecordAsync(
+            new ModelEndpoint(provider, baseUrl, key, model), request.OwnKeyInputPrice, request.OwnKeyOutputPrice, organizationId, db, models, time, cancellationToken);
         if (!test.Ok)
         {
             problems.Add(Describe(test.Problem ?? ModelProblem.Other));
@@ -262,7 +293,7 @@ internal static class VerificationSettingsHandlers
         {
             problems["provider"] = ["Choose a provider."];
         }
-        else if (request.Provider == ModelProvider.OpenAiCompatible && OrganizationModels.BaseUrlProblem(request.BaseUrl) is { } urlProblem)
+        else if (ModelPresets.BaseUrlProblem(request.Provider, request.BaseUrl) is { } urlProblem)
         {
             problems["baseUrl"] = [urlProblem];
         }
@@ -310,17 +341,19 @@ internal static class VerificationSettingsHandlers
         return (new ModelEndpoint(request.Provider, baseUrl, key, request.Model?.Trim()), problems);
     }
 
-    // An OpenAI-compatible address ends with a slash, because the client adds its paths to it; Anthropic has none.
+    // A typed address ends with a slash, because the client adds its paths to it. A preset with a fixed address keeps none:
+    // the preset supplies it each time, so a provider that moves its endpoint needs no data change.
     private static string? NormalizeBaseUrl(ModelProvider provider, string? baseUrl) =>
-        provider == ModelProvider.OpenAiCompatible ? baseUrl!.Trim().TrimEnd('/') + "/" : null;
+        ModelPresets.For(provider).BaseUrlEditable ? baseUrl!.Trim().TrimEnd('/') + "/" : null;
 
     private static void Apply(VerificationSettings settings, UpdateVerificationSettingsRequest request, string? newKey, LlmKeys keys, DateTimeOffset now)
     {
         settings.LlmConsistencyCheckEnabled = request.LlmConsistencyCheck;
-        settings.MonthlyTokenBudget = request.MonthlyTokenBudget;
         if (request.ModelSource == LlmSource.OwnKey)
         {
             settings.LlmSource = LlmSource.OwnKey;
+            settings.OwnKeyInputPrice = request.OwnKeyInputPrice;
+            settings.OwnKeyOutputPrice = request.OwnKeyOutputPrice;
             settings.LlmProvider = request.Provider;
             settings.LlmBaseUrl = NormalizeBaseUrl(request.Provider!.Value, request.BaseUrl);
             settings.LlmModel = request.Model!.Trim();
@@ -338,6 +371,8 @@ internal static class VerificationSettingsHandlers
             settings.LlmBaseUrl = null;
             settings.LlmModel = null;
             settings.ProtectedLlmApiKey = null;
+            settings.OwnKeyInputPrice = null;
+            settings.OwnKeyOutputPrice = null;
         }
 
         var checks = request.Checks ?? new VerificationChecks();
@@ -365,9 +400,12 @@ internal static class VerificationSettingsHandlers
 
     private static async Task<OrganizationVerificationSettings> ToResponseAsync(
         ScreenHireDbContext db, VerificationSettings? settings, VerificationOptions options, IServiceProvider services, SlackAccess slack,
-        DateTimeOffset now, CancellationToken cancellationToken)
+        DateTimeOffset now, IReadOnlySet<Permission> permissions, CancellationToken cancellationToken)
     {
-        var used = await db.TokensUsedThisMonthAsync(now, cancellationToken);
+        var edits = permissions.Contains(Permission.EditSettings);
+        var limits = permissions.Contains(Permission.ViewAiUsage)
+            ? await AiUsageHandlers.LimitsAsync(db, settings, options.Llm, now, cancellationToken)
+            : null;
         var last = settings is null
             ? null
             : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.VerificationSettings, settings.OrganizationId.ToString("D"), cancellationToken);
@@ -377,16 +415,16 @@ internal static class VerificationSettingsHandlers
         var config = VerificationConfig.From(settings);
         return new OrganizationVerificationSettings(
             settings?.LlmConsistencyCheckEnabled ?? false,
-            settings?.MonthlyTokenBudget,
-            used,
             lastUpdated,
             settings?.LlmSource ?? LlmSource.Included,
             settings?.LlmProvider,
-            settings?.LlmBaseUrl,
+            edits ? settings?.LlmBaseUrl : null,
             settings?.LlmModel,
             !string.IsNullOrEmpty(settings?.ProtectedLlmApiKey),
-            !(settings?.UsesOwnKey ?? false),
-            settings?.MonthlyTokenBudget ?? options.Llm.DefaultMonthlyTokenBudget,
+            edits ? settings?.OwnKeyInputPrice : null,
+            edits ? settings?.OwnKeyOutputPrice : null,
+            limits,
+            [.. ModelPresets.All.Select(p => new ModelPresetView(p.Provider, p.BaseUrl, p.BaseUrlEditable, p.ListsModels))],
             new VerificationChecks(config.Network, config.Contact, config.Documents, config.Answers, config.Duplicates, config.FormUse),
             settings?.DefaultAiUse ?? AiUsePolicy.AllowedWithDisclosure,
             settings?.DeviceCheck,

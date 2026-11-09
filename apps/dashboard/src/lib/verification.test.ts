@@ -166,12 +166,14 @@ describe('check groups', () => {
     expect(groupStateText(group({ state: 'NothingFound' }))).toBe('Nothing found');
     expect(groupStateText(group({ state: 'NotChecked' }))).toBe('Not checked');
     expect(groupStateText(group({ state: 'TurnedOff' }))).toBe('Turned off');
+    expect(groupStateText(group({ state: 'Paused' }))).toBe('AI checks paused');
   });
 
   it('says a quiet result did not run only for a group that was turned off or not checked', () => {
     expect(groupDidNotRun(group({ state: 'TurnedOff' }))).toBe(true);
     expect(groupDidNotRun(group({ state: 'NotChecked' }))).toBe(true);
     expect(groupDidNotRun(group({ state: 'NothingFound' }))).toBe(false);
+    expect(groupDidNotRun(group({ state: 'Paused' }))).toBe(false); // its rule-based checks ran
     expect(groupDidNotRun(group({ state: 'InformationOnly', notes: 1 }))).toBe(false);
   });
 

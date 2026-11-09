@@ -13,8 +13,8 @@ using ScreenHire.Infrastructure.Verification.Llm;
 namespace ScreenHire.Application.Verification;
 
 /// <summary>An organization's own model endpoint as typed into the settings page.</summary>
-/// <param name="Provider">Anthropic, or any endpoint that speaks the OpenAI chat API.</param>
-/// <param name="BaseUrl">The OpenAI-compatible endpoint; ignored for Anthropic.</param>
+/// <param name="Provider">A provider preset (<see cref="ModelPresets"/>).</param>
+/// <param name="BaseUrl">The address the person typed, for a preset that takes one (Azure OpenAI, Other); ignored for the others.</param>
 /// <param name="ApiKey">The key; never logged.</param>
 /// <param name="Model">The model id; null when only listing models.</param>
 public sealed record ModelEndpoint(ModelProvider Provider, string? BaseUrl, string ApiKey, string? Model);
@@ -69,6 +69,49 @@ public sealed class ModelResponseLimit(HttpMessageHandler inner) : DelegatingHan
 }
 
 /// <summary>
+/// Reads the cost a provider says a chat call cost, when it says so: OpenRouter sends <c>usage.cost</c> in US dollars. It
+/// writes it into the slot of the call in progress (<see cref="ReportedCost"/>), where the usage ledger reads it, since the chat
+/// abstraction carries no cost. Sits outside <see cref="ModelResponseLimit"/>, so the body is already in memory and reading it
+/// costs nothing. Only chat answers are read, never the long models list.
+/// </summary>
+public sealed class ReportedCostCapture(HttpMessageHandler inner) : DelegatingHandler(inner)
+{
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var response = await base.SendAsync(request, cancellationToken);
+        if (ReportedCost.Current is { } slot
+            && response.IsSuccessStatusCode
+            && request.RequestUri?.AbsolutePath.EndsWith("/chat/completions", StringComparison.Ordinal) == true)
+        {
+            slot.Value = Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        }
+
+        return response;
+    }
+
+    /// <summary>The <c>usage.cost</c> in a chat answer, or null when there is none or it is not a non-negative number.</summary>
+    public static decimal? Parse(string body)
+    {
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(body);
+            return document.RootElement.TryGetProperty("usage", out var usage)
+                && usage.ValueKind == System.Text.Json.JsonValueKind.Object
+                && usage.TryGetProperty("cost", out var cost)
+                && cost.ValueKind == System.Text.Json.JsonValueKind.Number
+                && cost.TryGetDecimal(out var value)
+                && value >= 0
+                ? value
+                : null;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+}
+
+/// <summary>
 /// Builds the clients for an organization's own model, tests a key and lists a provider's models. Every call goes through
 /// <see cref="PublicOnlyHandler"/>, so a base URL an administrator typed can never make ScreenHire reach into its own network.
 /// A deployment running the fake model (Development and tests) answers for every organization with the fake: no test needs
@@ -83,7 +126,7 @@ public sealed class OrganizationModels : IDisposable
     private readonly HttpClient http;
 
     public OrganizationModels(IOptions<VerificationOptions> options)
-        : this(options, new HttpClient(new ModelResponseLimit(PublicOnlyHandler.Create(() => false, host => new ModelAddressRefusedException(host))), disposeHandler: true)
+        : this(options, new HttpClient(new ReportedCostCapture(new ModelResponseLimit(PublicOnlyHandler.Create(() => false, host => new ModelAddressRefusedException(host)))), disposeHandler: true)
         {
             Timeout = Timeout.InfiniteTimeSpan, // the SDK clients apply LlmOptions.Timeout themselves
         })
@@ -145,8 +188,11 @@ public sealed class OrganizationModels : IDisposable
             : LlmAccess.Unavailable("The organization's own model address is not valid.");
     }
 
-    /// <summary>Proves the endpoint works: one tiny request with the key and the model.</summary>
-    public async Task<ModelTestResult> TestAsync(ModelEndpoint endpoint, CancellationToken cancellationToken)
+    /// <summary>
+    /// Proves the endpoint works: one tiny request with the key and the model. The call costs the organization a few tokens, so
+    /// with a <paramref name="recorder"/> it goes in the usage ledger like any other (the caller saves the rows).
+    /// </summary>
+    public async Task<ModelTestResult> TestAsync(ModelEndpoint endpoint, CancellationToken cancellationToken, AiUsageRecorder? recorder = null)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         if (IsFake)
@@ -162,6 +208,12 @@ public sealed class OrganizationModels : IDisposable
         try
         {
             // Not disposed: the SDK clients share this service's HttpClient, which a dispose could take with it.
+            if (recorder is not null)
+            {
+                client = recorder.Wrap(client);
+                AiUsageStep.Set(AiUsageChecks.ModelTest);
+            }
+
             await client.GetResponseAsync(
                 [new ChatMessage(ChatRole.User, "Reply with the single word OK.")],
                 new ChatOptions { ModelId = endpoint.Model, MaxOutputTokens = 16 },
@@ -193,14 +245,14 @@ public sealed class OrganizationModels : IDisposable
                 return new ModelListing(true, [.. page.Items.Select(m => m.ID).Order(StringComparer.Ordinal)]);
             }
 
-            if (BaseUrlProblem(endpoint.BaseUrl) is not null)
+            if (!ModelPresets.For(endpoint.Provider).ListsModels || ModelPresets.ResolveBaseUrl(endpoint.Provider, endpoint.BaseUrl) is null)
             {
                 return new ModelListing(false, []);
             }
 
             var openai = NewOpenAi(endpoint);
             var models = await openai.GetOpenAIModelClient().GetModelsAsync(cancellationToken);
-            return new ModelListing(true, [.. models.Value.Select(m => m.Id).Order(StringComparer.Ordinal)]);
+            return new ModelListing(true, [.. models.Value.Select(m => ModelPresets.ModelIdOf(endpoint.Provider, m.Id)).Order(StringComparer.Ordinal)]);
         }
         catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
@@ -215,7 +267,7 @@ public sealed class OrganizationModels : IDisposable
             return NewAnthropic(endpoint.ApiKey).AsIChatClient(defaultModelId: null, defaultMaxOutputTokens: llm.MaxOutputTokens);
         }
 
-        return BaseUrlProblem(endpoint.BaseUrl) is not null || string.IsNullOrWhiteSpace(endpoint.Model)
+        return ModelPresets.ResolveBaseUrl(endpoint.Provider, endpoint.BaseUrl) is null || string.IsNullOrWhiteSpace(endpoint.Model)
             ? null
             : NewOpenAi(endpoint).GetChatClient(endpoint.Model).AsIChatClient();
     }
@@ -226,7 +278,7 @@ public sealed class OrganizationModels : IDisposable
     private OpenAIClient NewOpenAi(ModelEndpoint endpoint) =>
         new(new ApiKeyCredential(endpoint.ApiKey), new OpenAIClientOptions
         {
-            Endpoint = new Uri(endpoint.BaseUrl!.Trim()),
+            Endpoint = new Uri(ModelPresets.ResolveBaseUrl(endpoint.Provider, endpoint.BaseUrl)!),
             Transport = new HttpClientPipelineTransport(http),
             NetworkTimeout = llm.Timeout,
         });

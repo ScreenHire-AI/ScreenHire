@@ -99,6 +99,8 @@ export function groupStateText(group: CheckGroupView): string {
       return 'Not checked';
     case 'TurnedOff':
       return 'Turned off';
+    case 'Paused':
+      return 'AI checks paused';
   }
 }
 
@@ -113,6 +115,7 @@ export const groupStatuses: Record<CheckGroupState, StatusName> = {
   NothingFound: 'done',
   NotChecked: 'notInEffect',
   TurnedOff: 'notInEffect',
+  Paused: 'notInEffect',
 };
 
 /**

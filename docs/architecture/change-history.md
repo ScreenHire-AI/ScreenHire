@@ -162,8 +162,8 @@ rate limit, revocation) and `InvitationFacts` (address, role, job access, revoca
 the invitation's token hash. The verification settings row holds an organization's own model API key, encrypted, so its
 describer sees `VerificationSettingsFacts`: whether a key is saved and how often it was replaced, and the model endpoint as its
 host alone (a full address can carry a token in its path). Its lines say "saved", "replaced" or "removed the API key", never the
-key; the budget alert's month on the same row is bookkeeping and changes no line. `TrackedKindsTests` fails when what a describer sees has a secret-like property (a monthly
-token budget counts a model's tokens and is the one exception it allows; a key's prefix counts as secret-like), and
+key. The monthly budget and cap and the own key's prices are lines like any setting. `TrackedKindsTests` fails when what a describer sees has a secret-like property (any name with Token
+in it, and a key's prefix, count as secret-like; usage itself lives in the ledger, not in History), and
 `ChangeHistoryTests` checks the stored lines and both new history routes against a real key, its prefix and hash,
 invitation tokens and their hashes, and a webhook secret.
 

@@ -48,6 +48,12 @@ public enum CheckGroupState
     NothingFound,
     NotChecked,
     TurnedOff,
+
+    /// <summary>
+    /// The organization's monthly AI cap paused the AI check in this group, and nothing else in it found anything: the rule-based
+    /// checks ran. Never a result about the candidate.
+    /// </summary>
+    Paused,
 }
 
 /// <summary>

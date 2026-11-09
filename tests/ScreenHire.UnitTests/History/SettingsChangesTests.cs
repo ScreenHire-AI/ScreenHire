@@ -71,12 +71,25 @@ public sealed class SettingsChangesTests
     [Fact]
     public void The_verification_settings_name_each_change_and_compare_a_first_save_with_the_defaults()
     {
-        var on = new VerificationSettings { LlmConsistencyCheckEnabled = true, MonthlyTokenBudget = 250_000 };
-        var off = new VerificationSettings { LlmConsistencyCheckEnabled = false, MonthlyTokenBudget = null };
+        var on = new VerificationSettings { LlmConsistencyCheckEnabled = true, MonthlyBudget = 250_000 };
+        var off = new VerificationSettings { LlmConsistencyCheckEnabled = false, MonthlyBudget = null };
 
-        Sentences(SettingsChanges.Verification(null, on)).Should().Equal("turned on the consistency check", "set the monthly token budget to 250,000");
-        Sentences(SettingsChanges.Verification(on, off)).Should().Equal("turned off the consistency check", "went back to ScreenHire's default token budget");
+        Sentences(SettingsChanges.Verification(null, on)).Should().Equal("turned on the consistency check", "set the monthly budget to 250,000 tokens");
+        Sentences(SettingsChanges.Verification(on, off)).Should().Equal("turned off the consistency check", "removed the monthly budget");
         SettingsChanges.Verification(null, off).Should().BeEmpty("saving the defaults changes nothing");
+    }
+
+    [Fact]
+    public void The_monthly_budget_and_cap_are_named_in_the_unit_they_are_counted_in_and_the_own_keys_prices_are_never_shown()
+    {
+        var tokens = new VerificationSettings { MonthlyBudget = 1_000_000, MonthlyCap = 2_000_000 };
+        var dollars = new VerificationSettings { BudgetUnit = UsageUnit.Money, MonthlyBudget = 50m, MonthlyCap = 120.5m };
+        var priced = new VerificationSettings { OwnKeyInputPrice = 3m, OwnKeyOutputPrice = 15m };
+
+        Sentences(SettingsChanges.Verification(null, tokens)).Should().Equal("set the monthly budget to 1,000,000 tokens", "set the monthly cap to 2,000,000 tokens");
+        Sentences(SettingsChanges.Verification(tokens, dollars)).Should().Equal("set the monthly budget to $50.00", "set the monthly cap to $120.50");
+        Sentences(SettingsChanges.Verification(new VerificationSettings { BudgetUnit = UsageUnit.Money }, new VerificationSettings())).Should().Equal("counts AI usage in tokens");
+        Sentences(SettingsChanges.Verification(null, priced)).Should().Equal("changed the price entered for the organization's own key");
     }
 
     [Fact]
@@ -105,7 +118,7 @@ public sealed class SettingsChangesTests
 
         lines.Should().Equal(
             "switched to your own AI key",
-            "set the AI provider to OpenAI-compatible",
+            "set the AI provider to Other (OpenAI-compatible)",
             "set the AI endpoint to acme.example.com",
             "set the AI model to model-one",
             "saved an API key",
@@ -131,9 +144,6 @@ public sealed class SettingsChangesTests
         Sentences(SettingsChanges.Verification(saved, replaced)).Should().Equal("replaced the API key");
         Sentences(SettingsChanges.Verification(replaced, removed)).Should().Equal("switched to ScreenHire's included AI model", "removed the API key");
         SettingsChanges.Verification(saved, saved).Should().BeEmpty();
-        // The budget alert month is bookkeeping on the row, not a change anyone made.
-        var alerted = new VerificationSettings { BudgetAlertMonth = "2026-11" };
-        SettingsChanges.Verification(removed, alerted).Should().BeEmpty();
     }
 
     [Fact]

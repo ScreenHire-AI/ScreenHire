@@ -72,6 +72,7 @@ public static class VerificationRegistration
         services.AddOptions<VerificationOptions>().BindConfiguration(VerificationOptions.Section).ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<VerificationOptions>, SignalNetworkGate>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<VerificationOptions>, RetentionLimit>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<VerificationOptions>, LlmLimitsCheck>());
         return services;
     }
 }

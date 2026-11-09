@@ -163,7 +163,7 @@ export const GetCurrentUserResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -221,7 +221,7 @@ export const CompleteOnboardingResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -252,7 +252,7 @@ export const AcceptInvitationResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -273,7 +273,7 @@ export const SwitchOrganizationResponse = zod.object({
   "role": zod.enum(['Owner', 'Admin', 'Recruiter', 'Viewer', 'Custom']).describe('The four roles ScreenHire supplies, most access first, and OrganizationRole.Custom for a role the organization made\n(CustomRole). Stored as text.'),
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
 }).describe('The signed-in user, and the organization they work in (null until onboarding).')
@@ -5666,7 +5666,7 @@ export const GetApplicationVerificationResponse = zod.object({
   "reason": zod.string().nullable()
 }).describe('Whether an action is offered, and why not when it is not.'),
   "consistencyCheck": zod.union([zod.null(),zod.object({
-  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'NotEnoughSources']),
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'Paused', 'NotEnoughSources']),
   "note": zod.string().nullable(),
   "promptVersion": zod.string(),
   "extractionModel": zod.string().nullable(),
@@ -5677,13 +5677,13 @@ export const GetApplicationVerificationResponse = zod.object({
   "checksNotRun": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "kind": zod.enum(['TurnedOff', 'Trusted']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
   "note": zod.string()
 }).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
   "checkGroups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
   "found": zod.int(),
   "notes": zod.int(),
   "checked": zod.string(),
@@ -5941,7 +5941,7 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "reason": zod.string().nullable()
 }).describe('Whether an action is offered, and why not when it is not.'),
   "consistencyCheck": zod.union([zod.null(),zod.object({
-  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'NotEnoughSources']),
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'Paused', 'NotEnoughSources']),
   "note": zod.string().nullable(),
   "promptVersion": zod.string(),
   "extractionModel": zod.string().nullable(),
@@ -5952,13 +5952,13 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "checksNotRun": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "kind": zod.enum(['TurnedOff', 'Trusted']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
   "note": zod.string()
 }).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
   "checkGroups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
   "found": zod.int(),
   "notes": zod.int(),
   "checked": zod.string(),
@@ -6188,7 +6188,7 @@ export const ExplainVerificationReasonResponse = zod.object({
   "reason": zod.string().nullable()
 }).describe('Whether an action is offered, and why not when it is not.'),
   "consistencyCheck": zod.union([zod.null(),zod.object({
-  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'NotEnoughSources']),
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'Paused', 'NotEnoughSources']),
   "note": zod.string().nullable(),
   "promptVersion": zod.string(),
   "extractionModel": zod.string().nullable(),
@@ -6199,13 +6199,13 @@ export const ExplainVerificationReasonResponse = zod.object({
   "checksNotRun": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "kind": zod.enum(['TurnedOff', 'Trusted']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
   "note": zod.string()
 }).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
   "checkGroups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
   "found": zod.int(),
   "notes": zod.int(),
   "checked": zod.string(),
@@ -6430,7 +6430,7 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "reason": zod.string().nullable()
 }).describe('Whether an action is offered, and why not when it is not.'),
   "consistencyCheck": zod.union([zod.null(),zod.object({
-  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'NotEnoughSources']),
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'Paused', 'NotEnoughSources']),
   "note": zod.string().nullable(),
   "promptVersion": zod.string(),
   "extractionModel": zod.string().nullable(),
@@ -6441,13 +6441,13 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "checksNotRun": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "kind": zod.enum(['TurnedOff', 'Trusted']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
   "note": zod.string()
 }).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
   "checkGroups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
   "found": zod.int(),
   "notes": zod.int(),
   "checked": zod.string(),
@@ -6675,7 +6675,7 @@ export const AddVerificationNoteResponse = zod.object({
   "reason": zod.string().nullable()
 }).describe('Whether an action is offered, and why not when it is not.'),
   "consistencyCheck": zod.union([zod.null(),zod.object({
-  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'NotEnoughSources']),
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'Paused', 'NotEnoughSources']),
   "note": zod.string().nullable(),
   "promptVersion": zod.string(),
   "extractionModel": zod.string().nullable(),
@@ -6686,13 +6686,13 @@ export const AddVerificationNoteResponse = zod.object({
   "checksNotRun": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "kind": zod.enum(['TurnedOff', 'Trusted']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
   "note": zod.string()
 }).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
   "checkGroups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
   "found": zod.int(),
   "notes": zod.int(),
   "checked": zod.string(),
@@ -7326,8 +7326,6 @@ export const getOrganizationVerificationSettingsResponseAlertsBudgetSlackDefault
 
 export const GetOrganizationVerificationSettingsResponse = zod.object({
   "llmConsistencyCheck": zod.boolean(),
-  "monthlyTokenBudget": zod.int().nullable(),
-  "tokensUsedThisMonth": zod.int(),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
@@ -7336,12 +7334,37 @@ export const GetOrganizationVerificationSettingsResponse = zod.object({
   "created": zod.boolean().default(getOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "modelSource": zod.enum(['Included', 'OwnKey']).describe('Whose model answers the consistency check.'),
-  "provider": zod.union([zod.null(),zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal(null)])]),
+  "provider": zod.union([zod.null(),zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)])]),
   "baseUrl": zod.string().nullable(),
   "model": zod.string().nullable(),
   "apiKeySaved": zod.boolean(),
-  "budgetApplies": zod.boolean(),
-  "effectiveMonthlyTokenBudget": zod.int(),
+  "ownKeyInputPrice": zod.number().nullable(),
+  "ownKeyOutputPrice": zod.number().nullable(),
+  "limits": zod.union([zod.null(),zod.object({
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "budget": zod.number().nullable(),
+  "cap": zod.number().nullable(),
+  "effectiveBudget": zod.union([zod.null(),zod.object({
+  "amount": zod.number(),
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "isDefault": zod.boolean(),
+  "used": zod.number(),
+  "percent": zod.int()
+}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "effectiveCap": zod.union([zod.null(),zod.object({
+  "amount": zod.number(),
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "isDefault": zod.boolean(),
+  "used": zod.number(),
+  "percent": zod.int()
+}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')]),
+  "presets": zod.array(zod.object({
+  "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)]),
+  "baseUrl": zod.string().nullable(),
+  "baseUrlEditable": zod.boolean(),
+  "listsModels": zod.boolean()
+}).describe('A provider preset: `baseUrl` is the address it fills in (null when the person enters one, or for Anthropic),\n`baseUrlEditable` says the person enters it (Azure OpenAI\'s resource, any other endpoint), and `listsModels`\nsays the provider\'s models endpoint lists what a key can use.')),
   "checks": zod.object({
   "network": zod.boolean().default(getOrganizationVerificationSettingsResponseChecksNetworkDefault),
   "contact": zod.boolean().default(getOrganizationVerificationSettingsResponseChecksContactDefault),
@@ -7362,7 +7385,7 @@ export const GetOrganizationVerificationSettingsResponse = zod.object({
 }).describe('The two notifications and the channels each goes to. Slack messages are direct messages to the people who can act.'),
   "emailAvailable": zod.boolean(),
   "slackConnected": zod.boolean()
-}).describe('The organization\'s verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `monthlyTokenBudget` caps the tokens it may use per calendar month (UTC) with ScreenHire\'s included\nmodel; null uses the deployment\'s default, which is `effectiveMonthlyTokenBudget`. `budgetApplies` is false\nwith the organization\'s own key, which the provider bills. `tokensUsedThisMonth` is what the check has used so far\nthis month, either way.')
+}).describe('The organization\'s verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `limits` is the monthly AI budget and cap with what has been used so far this month; it is null for a\nmember who cannot see AI usage (`ViewAiUsage`), and an Owner changes it with `/v1/organization/ai-usage/limits`.\n`presets` are the providers an organization can bring a key for, with the address each fills in.\n`ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization\'s own key costs it, in US dollars per million\ntokens (null when unknown, or for a member who cannot edit settings).')
 
 
 export const updateOrganizationVerificationSettingsBodyChecksTwoNetworkDefault = true;
@@ -7378,12 +7401,13 @@ export const updateOrganizationVerificationSettingsBodyAlertsTwoBudgetSlackDefau
 
 export const UpdateOrganizationVerificationSettingsBody = zod.object({
   "llmConsistencyCheck": zod.boolean(),
-  "monthlyTokenBudget": zod.int().nullish(),
   "modelSource": zod.enum(['Included', 'OwnKey']).optional().describe('Whose model answers the consistency check.'),
-  "provider": zod.union([zod.null(),zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal(null)])]).optional(),
+  "provider": zod.union([zod.null(),zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)])]).optional(),
   "baseUrl": zod.string().nullish(),
   "model": zod.string().nullish(),
   "apiKey": zod.string().nullish(),
+  "ownKeyInputPrice": zod.number().nullish(),
+  "ownKeyOutputPrice": zod.number().nullish(),
   "checks": zod.union([zod.null(),zod.object({
   "network": zod.boolean().default(updateOrganizationVerificationSettingsBodyChecksTwoNetworkDefault),
   "contact": zod.boolean().default(updateOrganizationVerificationSettingsBodyChecksTwoContactDefault),
@@ -7402,7 +7426,7 @@ export const UpdateOrganizationVerificationSettingsBody = zod.object({
   "budgetEmail": zod.boolean().default(updateOrganizationVerificationSettingsBodyAlertsTwoBudgetEmailDefault),
   "budgetSlack": zod.boolean().default(updateOrganizationVerificationSettingsBodyAlertsTwoBudgetSlackDefault)
 }).describe('The two notifications and the channels each goes to. Slack messages are direct messages to the people who can act.')]).optional()
-}).describe('Replaces the organization\'s verification settings. `apiKey` is the one place a key travels: null keeps the saved key,\ntext replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or\nmodel is tested before it is saved. `modelSource` `Included` erases the saved key and provider fields.')
+}).describe('Replaces the organization\'s verification settings. `apiKey` is the one place a key travels: null keeps the saved key,\ntext replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or\nmodel is tested before it is saved. `modelSource` `Included` erases the saved key, provider and price fields.\nA preset with a fixed address takes no `baseUrl`. The monthly budget and cap are not here: an Owner sets them with\n`/v1/organization/ai-usage/limits`.')
 
 export const updateOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault = false;
 export const updateOrganizationVerificationSettingsResponseChecksNetworkDefault = true;
@@ -7418,8 +7442,6 @@ export const updateOrganizationVerificationSettingsResponseAlertsBudgetSlackDefa
 
 export const UpdateOrganizationVerificationSettingsResponse = zod.object({
   "llmConsistencyCheck": zod.boolean(),
-  "monthlyTokenBudget": zod.int().nullable(),
-  "tokensUsedThisMonth": zod.int(),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
   "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
@@ -7428,12 +7450,37 @@ export const UpdateOrganizationVerificationSettingsResponse = zod.object({
   "created": zod.boolean().default(updateOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault)
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "modelSource": zod.enum(['Included', 'OwnKey']).describe('Whose model answers the consistency check.'),
-  "provider": zod.union([zod.null(),zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal(null)])]),
+  "provider": zod.union([zod.null(),zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)])]),
   "baseUrl": zod.string().nullable(),
   "model": zod.string().nullable(),
   "apiKeySaved": zod.boolean(),
-  "budgetApplies": zod.boolean(),
-  "effectiveMonthlyTokenBudget": zod.int(),
+  "ownKeyInputPrice": zod.number().nullable(),
+  "ownKeyOutputPrice": zod.number().nullable(),
+  "limits": zod.union([zod.null(),zod.object({
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "budget": zod.number().nullable(),
+  "cap": zod.number().nullable(),
+  "effectiveBudget": zod.union([zod.null(),zod.object({
+  "amount": zod.number(),
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "isDefault": zod.boolean(),
+  "used": zod.number(),
+  "percent": zod.int()
+}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "effectiveCap": zod.union([zod.null(),zod.object({
+  "amount": zod.number(),
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "isDefault": zod.boolean(),
+  "used": zod.number(),
+  "percent": zod.int()
+}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')]),
+  "presets": zod.array(zod.object({
+  "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)]),
+  "baseUrl": zod.string().nullable(),
+  "baseUrlEditable": zod.boolean(),
+  "listsModels": zod.boolean()
+}).describe('A provider preset: `baseUrl` is the address it fills in (null when the person enters one, or for Anthropic),\n`baseUrlEditable` says the person enters it (Azure OpenAI\'s resource, any other endpoint), and `listsModels`\nsays the provider\'s models endpoint lists what a key can use.')),
   "checks": zod.object({
   "network": zod.boolean().default(updateOrganizationVerificationSettingsResponseChecksNetworkDefault),
   "contact": zod.boolean().default(updateOrganizationVerificationSettingsResponseChecksContactDefault),
@@ -7454,11 +7501,11 @@ export const UpdateOrganizationVerificationSettingsResponse = zod.object({
 }).describe('The two notifications and the channels each goes to. Slack messages are direct messages to the people who can act.'),
   "emailAvailable": zod.boolean(),
   "slackConnected": zod.boolean()
-}).describe('The organization\'s verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `monthlyTokenBudget` caps the tokens it may use per calendar month (UTC) with ScreenHire\'s included\nmodel; null uses the deployment\'s default, which is `effectiveMonthlyTokenBudget`. `budgetApplies` is false\nwith the organization\'s own key, which the provider bills. `tokensUsedThisMonth` is what the check has used so far\nthis month, either way.')
+}).describe('The organization\'s verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `limits` is the monthly AI budget and cap with what has been used so far this month; it is null for a\nmember who cannot see AI usage (`ViewAiUsage`), and an Owner changes it with `/v1/organization/ai-usage/limits`.\n`presets` are the providers an organization can bring a key for, with the address each fills in.\n`ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization\'s own key costs it, in US dollars per million\ntokens (null when unknown, or for a member who cannot edit settings).')
 
 
 export const ListVerificationModelsBody = zod.object({
-  "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal(null)]),
+  "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)]),
   "baseUrl": zod.string().nullish(),
   "apiKey": zod.string().nullish(),
   "model": zod.string().nullish()
@@ -7471,7 +7518,7 @@ export const ListVerificationModelsResponse = zod.object({
 
 
 export const TestVerificationModelBody = zod.object({
-  "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal(null)]),
+  "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)]),
   "baseUrl": zod.string().nullish(),
   "apiKey": zod.string().nullish(),
   "model": zod.string().nullish()
@@ -7983,7 +8030,7 @@ export const ListRolesResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "lastUpdated": zod.object({
   "at": zod.iso.datetime({"offset":true}).nullable(),
@@ -7994,7 +8041,7 @@ export const ListRolesResponse = zod.object({
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.')
 }).describe('A role: built-in (`customRoleId` null), or Custom with its id. `description` is one line on what it is\nfor, generated from its permissions for a custom role. `people` counts the members who have it. A built-in role\nis last updated by ScreenHire.')),
   "permissions": zod.array(zod.object({
-  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.'),
+  "permission": zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.'),
   "group": zod.enum(['Hiring', 'Templates', 'Organization']).describe('The groups the Roles page shows permissions in.'),
   "name": zod.string(),
   "description": zod.string(),
@@ -8016,7 +8063,7 @@ export const CreateRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -8040,7 +8087,7 @@ export const GetRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -8060,7 +8107,7 @@ export const UpdateRoleParams = zod.object({
 
 export const UpdateRoleBody = zod.object({
   "name": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')).nullable()
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')).nullable()
 }).describe('Renames a custom role and sets what it can do.')
 
 export const updateRoleResponseLastUpdatedCreatedDefault = false;
@@ -8069,7 +8116,7 @@ export const UpdateRoleResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "description": zod.string(),
-  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
+  "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "people": zod.int(),
   "copiedFrom": zod.string(),
   "createdAt": zod.iso.datetime({"offset":true}),
@@ -9562,6 +9609,150 @@ export const ChangeBillingPlanResponse = zod.void()
 export const OpenBillingPortalResponse = zod.object({
   "url": zod.string()
 }).describe('Where to send the browser next: the payment provider\'s page, or the sandbox\'s.')
+
+
+export const getAiUsageSummaryQueryTimeZoneDefault = `UTC`;
+
+export const GetAiUsageSummaryQueryParams = zod.object({
+  "from": zod.iso.datetime({"offset":true}).optional(),
+  "to": zod.iso.datetime({"offset":true}).optional(),
+  "timeZone": zod.string().default(getAiUsageSummaryQueryTimeZoneDefault)
+})
+
+export const GetAiUsageSummaryResponse = zod.object({
+  "from": zod.iso.datetime({"offset":true}),
+  "to": zod.iso.datetime({"offset":true}),
+  "totals": zod.object({
+  "calls": zod.int(),
+  "inputTokens": zod.int(),
+  "outputTokens": zod.int(),
+  "cost": zod.number(),
+  "callsWithUnknownCost": zod.int(),
+  "failedCalls": zod.int()
+}).describe('Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost.'),
+  "byDay": zod.array(zod.object({
+  "date": zod.string(),
+  "calls": zod.int(),
+  "inputTokens": zod.int(),
+  "outputTokens": zod.int(),
+  "cost": zod.number()
+}).describe('One day of use, by the date in the requested time zone (`yyyy-MM-dd`).')),
+  "byModel": zod.array(zod.object({
+  "provider": zod.string(),
+  "model": zod.string(),
+  "keySource": zod.enum(['BuiltIn', 'OwnKey']).describe('Whose key paid for a call.'),
+  "calls": zod.int(),
+  "inputTokens": zod.int(),
+  "outputTokens": zod.int(),
+  "cost": zod.number(),
+  "callsWithUnknownCost": zod.int()
+}).describe('Use by one provider, model and key source.')),
+  "byKeySource": zod.array(zod.object({
+  "provider": zod.string(),
+  "model": zod.string(),
+  "keySource": zod.enum(['BuiltIn', 'OwnKey']).describe('Whose key paid for a call.'),
+  "calls": zod.int(),
+  "inputTokens": zod.int(),
+  "outputTokens": zod.int(),
+  "cost": zod.number(),
+  "callsWithUnknownCost": zod.int()
+}).describe('Use by one provider, model and key source.')),
+  "limits": zod.object({
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "budget": zod.number().nullable(),
+  "cap": zod.number().nullable(),
+  "effectiveBudget": zod.union([zod.null(),zod.object({
+  "amount": zod.number(),
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "isDefault": zod.boolean(),
+  "used": zod.number(),
+  "percent": zod.int()
+}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "effectiveCap": zod.union([zod.null(),zod.object({
+  "amount": zod.number(),
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "isDefault": zod.boolean(),
+  "used": zod.number(),
+  "percent": zod.int()
+}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')
+}).describe('This organization\'s AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester\'s days (`timeZone`). `limits` is\nthe month\'s position against the budget and cap, whatever range was asked for.')
+
+
+export const ListAiUsageCallsQueryParams = zod.object({
+  "from": zod.iso.datetime({"offset":true}).optional(),
+  "to": zod.iso.datetime({"offset":true}).optional(),
+  "keySource": zod.enum(['BuiltIn', 'OwnKey']).optional(),
+  "provider": zod.string().optional(),
+  "model": zod.string().optional(),
+  "outcome": zod.enum(['Ok', 'Error', 'TimedOut']).optional(),
+  "check": zod.string().optional(),
+  "applicationId": zod.uuid().optional(),
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const ListAiUsageCallsResponse = zod.object({
+  "calls": zod.array(zod.object({
+  "id": zod.uuid(),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "check": zod.string(),
+  "applicationId": zod.uuid().nullable(),
+  "provider": zod.string(),
+  "model": zod.string(),
+  "keySource": zod.enum(['BuiltIn', 'OwnKey']).describe('Whose key paid for a call.'),
+  "providerRequestId": zod.string().nullable(),
+  "inputTokens": zod.int().nullable(),
+  "outputTokens": zod.int().nullable(),
+  "cost": zod.number().nullable(),
+  "costBasis": zod.enum(['Reported', 'Priced', 'Unknown']).describe('Where a call\'s cost came from.'),
+  "durationMs": zod.int(),
+  "outcome": zod.enum(['Ok', 'Error', 'TimedOut']),
+  "errorKind": zod.string().nullable()
+}).describe('One model call, as it happened. `providerRequestId` is the provider\'s id for the response, which finds the call in the\nprovider\'s own logs. Tokens are null when the provider reported none. `cost` is null when `costBasis` is\n`Unknown`. `check` names the check (for example `consistency.extraction`). Holds nothing that was sent or received.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('A page of calls, newest first. `nextBefore` is the id to pass as `before` for the next page, null on the last.')
+
+
+export const ExportAiUsageCallsQueryParams = zod.object({
+  "from": zod.iso.datetime({"offset":true}).optional(),
+  "to": zod.iso.datetime({"offset":true}).optional(),
+  "keySource": zod.enum(['BuiltIn', 'OwnKey']).optional(),
+  "provider": zod.string().optional(),
+  "model": zod.string().optional(),
+  "outcome": zod.enum(['Ok', 'Error', 'TimedOut']).optional(),
+  "check": zod.string().optional(),
+  "applicationId": zod.uuid().optional()
+})
+
+export const ExportAiUsageCallsResponse = zod.unknown()
+
+
+export const UpdateAiUsageLimitsBody = zod.object({
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "budget": zod.number().nullish(),
+  "cap": zod.number().nullish()
+}).describe('Sets the monthly budget and cap. Both are in `unit` (whole tokens, or dollars to the cent); null removes one. With\n`Money` and an own key, the own key\'s prices must be set, since a call with no known cost counts as nothing.')
+
+export const UpdateAiUsageLimitsResponse = zod.object({
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "budget": zod.number().nullable(),
+  "cap": zod.number().nullable(),
+  "effectiveBudget": zod.union([zod.null(),zod.object({
+  "amount": zod.number(),
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "isDefault": zod.boolean(),
+  "used": zod.number(),
+  "percent": zod.int()
+}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "effectiveCap": zod.union([zod.null(),zod.object({
+  "amount": zod.number(),
+  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
+  "isDefault": zod.boolean(),
+  "used": zod.number(),
+  "percent": zod.int()
+}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')
 
 
 export const GetCalendarResponse = zod.object({

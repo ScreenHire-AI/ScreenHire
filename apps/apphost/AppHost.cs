@@ -26,7 +26,15 @@
 //                               worker. The worker's and the API's Development settings use the deterministic fake model
 //                               (the API tests an organization's own key with it); Provider None turns the check into
 //                               "unavailable"; in Anthropic mode the key comes from the secret parameter
-//                               anthropic-api-key, never from these keys.
+//                               anthropic-api-key, never from these keys. Prices:<modelId>:Input and :Output are what the
+//                               model costs, in US dollars per million tokens (for the usage ledger's costs; a model with no
+//                               entry has an unknown cost). DefaultMonthlyTokenBudget (2,000,000) and DefaultMonthlyTokenCap
+//                               (2,000,000, 0 turns it off) are the budget and cap ScreenHire's key falls back to when an
+//                               organization sets none; an own key has neither (docs/architecture/ai-usage.md).
+//   AiUsage:*                   the daily AI usage sweeps (ScreenHire.Application AiUsageOptions, docs/architecture/ai-usage.md),
+//                               forwarded to the API and the worker: Spike:Factor (3), Spike:LookbackDays (14), Spike:MinimumTokens
+//                               (100,000) and Spike:MinimumActiveDays (3) are the spike rule; ResumeBatchSize (200) is how many
+//                               paused AI checks one message asks again (a full batch sends the next).
 //   Webhooks:*                  webhook settings (ScreenHire.Application WebhookOptions), forwarded to the API and the
 //                               worker: AllowLoopback (appsettings.Development.json turns it on, so a receiver on this
 //                               machine works; never in production), RetryDelays:0..n, DisableAfterFailedDeliveries
@@ -70,7 +78,8 @@
 //                               applies"; Stripe:Tax:CollectTaxIds (default true with tax on) also asks a business for its tax
 //                               id, and the sandbox's Checkout records both. ApiBaseUrl and Timeout are for a test that
 //                               points the Stripe client at a stand-in. The keys come from those parameters, never from
-//                               these settings.
+//                               these settings. Ai:Margin (0.20) is the share added to the provider's price when AI use on
+//                               ScreenHire's key is billed; an organization's own key costs it nothing extra.
 //   Calendar:*                  member calendars for interview scheduling (ScreenHire.Application CalendarOptions,
 //                               docs/architecture/interview-scheduling.md), forwarded to the API and the worker. A
 //                               provider is on only when both its client id (Google:ClientId, Microsoft:ClientId) and
@@ -252,9 +261,10 @@ foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePa
     }
 }
 
-// Data requests, record retention, the candidate portal, notifications and the sending domain re-check (docs/architecture/data-requests.md,
-// docs/architecture/candidate-portal.md, docs/architecture/notifications.md): plain settings, no secrets, read by both hosts.
-foreach (var section in new[] { "DataRequests", "Portal", "Retention", "Notifications", "SendingDomainRecheck" })
+// Data requests, record retention, the candidate portal, notifications, the sending domain re-check and the AI usage sweeps
+// (docs/architecture/data-requests.md, docs/architecture/candidate-portal.md, docs/architecture/notifications.md,
+// docs/architecture/ai-usage.md): plain settings, no secrets, read by both hosts.
+foreach (var section in new[] { "DataRequests", "Portal", "Retention", "Notifications", "SendingDomainRecheck", "AiUsage" })
 {
     foreach (var (key, value) in settings.GetSection(section).AsEnumerable(makePathsRelative: true))
     {

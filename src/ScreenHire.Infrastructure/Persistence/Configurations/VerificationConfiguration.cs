@@ -263,10 +263,55 @@ internal sealed class VerificationSettingsConfiguration : IEntityTypeConfigurati
         // Native text[], replaced as a whole on each save.
         builder.PrimitiveCollection(s => s.TrustedDomains).HasColumnType("text[]").HasDefaultValueSql("'{}'");
         builder.PrimitiveCollection(s => s.TrustedNetworks).HasColumnType("text[]").HasDefaultValueSql("'{}'");
-        builder.Property(s => s.BudgetAlertMonth).HasMaxLength(7);
+        // Tokens are whole numbers and dollars have cents, so one decimal column holds either; the unit says which.
+        builder.Property(s => s.BudgetUnit).HasConversion<string>().HasMaxLength(10).HasDefaultValue(UsageUnit.Tokens);
+        builder.Property(s => s.MonthlyBudget).HasPrecision(18, 2);
+        builder.Property(s => s.MonthlyCap).HasPrecision(18, 2);
+        builder.Property(s => s.OwnKeyInputPrice).HasPrecision(12, 4);
+        builder.Property(s => s.OwnKeyOutputPrice).HasPrecision(12, 4);
         builder.HasOne<Organization>().WithOne()
             .HasForeignKey<VerificationSettings>(s => s.OrganizationId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class AiUsageCallConfiguration : IEntityTypeConfiguration<AiUsageCall>
+{
+    public void Configure(EntityTypeBuilder<AiUsageCall> builder)
+    {
+        builder.ToTable("ai_usage_calls");
+        builder.Property(c => c.CheckName).HasMaxLength(AiUsageCall.MaxCheckNameLength);
+        builder.Property(c => c.Provider).HasMaxLength(AiUsageCall.MaxProviderLength);
+        builder.Property(c => c.Model).HasMaxLength(AiUsageCall.MaxModelLength);
+        builder.Property(c => c.KeySource).HasConversion<string>().HasMaxLength(10);
+        builder.Property(c => c.ProviderRequestId).HasMaxLength(AiUsageCall.MaxRequestIdLength);
+        builder.Property(c => c.Cost).HasPrecision(18, 8);
+        builder.Property(c => c.CostBasis).HasConversion<string>().HasMaxLength(10);
+        builder.Property(c => c.Outcome).HasConversion<string>().HasMaxLength(10);
+        builder.Property(c => c.ErrorKind).HasMaxLength(AiUsageCall.MaxErrorKindLength);
+        builder.Ignore(c => c.Tokens);
+
+        builder.HasOne<Organization>().WithMany()
+            .HasForeignKey(c => c.OrganizationId)
+            .OnDelete(DeleteBehavior.Cascade);
+        // The month's and the day's sums, and the date filter on the call list.
+        builder.HasIndex(c => new { c.OrganizationId, c.OccurredAt });
+        // The call list pages by id (version 7, so by time), newest first.
+        builder.HasIndex(c => new { c.OrganizationId, c.Id });
+    }
+}
+
+internal sealed class AiUsageAlertConfiguration : IEntityTypeConfiguration<AiUsageAlert>
+{
+    public void Configure(EntityTypeBuilder<AiUsageAlert> builder)
+    {
+        builder.ToTable("ai_usage_alerts");
+        builder.Property(a => a.Key).HasMaxLength(AiUsageAlert.MaxKeyLength);
+        builder.HasOne<Organization>().WithMany()
+            .HasForeignKey(a => a.OrganizationId)
+            .OnDelete(DeleteBehavior.Cascade);
+        // The claim: one alert per organization and key.
+        builder.HasIndex(a => new { a.OrganizationId, a.Key }).IsUnique();
     }
 }
 

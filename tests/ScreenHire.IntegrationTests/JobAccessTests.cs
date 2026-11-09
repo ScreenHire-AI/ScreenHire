@@ -506,14 +506,16 @@ public sealed class JobAccessTests(AppHostFixture fixture)
 
         // A new table with a job or an application id that forgot its job_scope policy would show a member on Only jobs
         // they're on the rows of every job. Candidates are the one exception (ADR-0015), and the membership log keeps job
-        // ids of jobs a member may not see, filtered when it is read.
+        // ids of jobs a member may not see, filtered when it is read. The AI usage ledger is organization-level billing evidence
+        // for Owners and Admins: its application_id is a plain id with no foreign key, so a record outlives an erased candidate and
+        // every job's calls show in the totals (docs/architecture/ai-usage.md).
         await using var command = new Npgsql.NpgsqlCommand("""
             SELECT c.relname
             FROM pg_class c
             JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
             WHERE c.relkind = 'r'
               AND EXISTS (SELECT FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname IN ('job_id', 'application_id') AND NOT a.attisdropped)
-              AND c.relname NOT IN ('membership_events')
+              AND c.relname NOT IN ('membership_events', 'ai_usage_calls')
               AND NOT EXISTS (SELECT FROM pg_policies p
                               WHERE p.schemaname = 'public' AND p.tablename = c.relname
                                 AND p.policyname = 'job_scope' AND p.permissive = 'RESTRICTIVE')

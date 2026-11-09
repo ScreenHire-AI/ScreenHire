@@ -14,5 +14,6 @@ export const ConsistencyCheckStatus = {
   Unavailable: 'Unavailable',
   Disabled: 'Disabled',
   OverBudget: 'OverBudget',
+  Paused: 'Paused',
   NotEnoughSources: 'NotEnoughSources',
 } as const;

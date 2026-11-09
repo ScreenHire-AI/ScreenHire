@@ -38,6 +38,16 @@ public sealed class LlmAccess
 
     public static LlmAccess Unavailable(string reason) => new(null, "", "", reason);
 
+    /// <summary>
+    /// The same access with every call recorded by <paramref name="recorder"/>. An access with no client (unavailable) is
+    /// returned as it is: nothing is called, so nothing is recorded.
+    /// </summary>
+    public LlmAccess RecordedBy(AiUsageRecorder recorder)
+    {
+        ArgumentNullException.ThrowIfNull(recorder);
+        return Client is null ? this : new LlmAccess(recorder.Wrap(Client), ExtractionModel, ConsistencyModel, UnavailableReason);
+    }
+
     /// <summary>An organization's own model: one client and one model id serve extraction and comparison alike.</summary>
     public static LlmAccess ForClient(IChatClient client, string model)
     {

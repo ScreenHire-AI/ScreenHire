@@ -269,3 +269,26 @@ X-XSRF-TOKEN: {{xsrf}}
 
 # Sandbox mode only: what the local sandbox workspace received.
 GET {{api}}/v1/slack/sandbox/messages
+
+###
+
+# AI usage (Owners and Admins): this month by day, model and key, and against the budget and cap.
+GET {{api}}/v1/organization/ai-usage/summary?timeZone=UTC
+
+###
+
+# Every model call with the provider's request id, newest first; page with before=<nextBefore>.
+GET {{api}}/v1/organization/ai-usage/calls?limit=50&keySource=BuiltIn
+
+###
+
+GET {{api}}/v1/organization/ai-usage/calls/export
+
+###
+
+# An Owner sets the monthly budget (alerts at 50%, 80% and 100%) and cap (pauses the AI-based checks), in tokens or dollars.
+PUT {{api}}/v1/organization/ai-usage/limits
+Content-Type: application/json
+X-XSRF-TOKEN: {{xsrf}}
+
+{ "unit": "Tokens", "budget": 1000000, "cap": 2000000 }

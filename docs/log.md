@@ -2,6 +2,15 @@
 
 ## 2026-11-09
 
+**Built-in AI: provider presets, a usage ledger, budgets, alerts and a cap.** An organization's own model is now one of six
+presets (Anthropic, OpenAI, OpenRouter, Azure OpenAI, Google Gemini, Other), each filling in its address. Every model call is a
+row in an append-only ledger with the provider's own request id, tokens and cost, so a customer can compare ScreenHire's numbers
+with their provider's dashboard ([AI usage](architecture/ai-usage.md)). Owners and Admins see the usage, the call list and a CSV on
+the Verification page. An Owner sets a monthly budget (alerts at 50%, 80% and 100%) and a hard cap that pauses only the AI-based
+checks, a spike is flagged each morning, and the candidate's tab says when the AI checks were paused. The built-in key's margin is
+`ScreenHire:Billing:Ai:Margin` (0.20). The old token budget on the settings is replaced by these two limits. An organization that
+had its 80% alert this month may get it once more after the deploy, because the old month claim is not carried over.
+
 **Reminders before the free trial ends.** Each Owner is emailed 7 days and 1 day before the trial ends and on the day, and the bell
 carries one notification that counts the days left, becomes "ended" on the day, and goes when a plan starts. The worker schedules
 the reminders when the billing account is made and once, at start, for trials that began before ([billing](architecture/billing.md#trial-reminders)).

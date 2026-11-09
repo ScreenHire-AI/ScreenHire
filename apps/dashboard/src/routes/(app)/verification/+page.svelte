@@ -4,7 +4,7 @@
   import PlusIcon from '~icons/lucide/plus';
   import SaveIcon from '~icons/lucide/save';
   import XIcon from '~icons/lucide/x';
-  import type { CheckGroup, HttpValidationProblemDetails, UpdateVerificationSettingsRequest } from '@screenhire/api-client';
+  import type { CheckGroup, HttpValidationProblemDetails, ModelProvider as ModelProviderOrNull, UpdateVerificationSettingsRequest } from '@screenhire/api-client';
   import {
     ApiError,
     createGetOrganizationVerificationSettings,
@@ -14,10 +14,12 @@
     getGetOrganizationVerificationSettingsHistoryQueryOptions,
     getGetOrganizationVerificationSettingsQueryKey,
   } from '@screenhire/api-client/svelte-query';
+  import { page } from '$app/state';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
+  import AiUsagePanel from '#lib/components/ai-usage-panel.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistoryFact from '#lib/components/history-fact.svelte';
@@ -25,8 +27,6 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
-  import SummaryItem from '#lib/components/summary-item.svelte';
-  import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -35,7 +35,6 @@
   import { Switch } from '#lib/components/ui/switch/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { checkboxClass, selectClass } from '#lib/components/workflow/controls.js';
-  import { locales } from '#lib/dates.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError } from '#lib/query.js';
   import {
@@ -50,7 +49,10 @@
     normalizeDomain,
     type DeviceCheckChoice,
   } from '#lib/verification-settings.js';
+  import { can } from '#lib/permissions.js';
   import { aiUseLabels, aiUseName } from '#lib/workflow.js';
+
+  type ModelProvider = NonNullable<ModelProviderOrNull>;
 
   // The organization's verification settings (verification-engine.md section 10), in four panels: which model answers the
   // consistency check, which groups of checks run, the policies (AI use for new jobs, the device check, what is trusted)
@@ -83,19 +85,24 @@
   const deviceChoices = Object.keys(deviceCheckLabels) as DeviceCheckChoice[];
 
   const trimSlashes = (url: string) => url.trim().replace(/\/+$/, '');
+  const providers = Object.keys(modelProviderLabels) as [ModelProvider, ...ModelProvider[]];
+  const price = z
+    .string()
+    .trim()
+    .regex(/^\d*(\.\d{1,4})?$/, 'Enter a price in dollars, or leave it empty.');
+  // What the server says each provider preset fills in (the address, and whether the person types one).
+  const presetOf = (provider: ModelProvider) => detail?.presets.find((p) => p.provider === provider);
 
   const schema = z
     .object({
       llmConsistencyCheck: z.boolean(),
-      monthlyTokenBudget: z
-        .string()
-        .trim()
-        .regex(/^\d*$/, 'Enter a whole number of tokens, or leave it empty.'),
       modelSource: z.enum(['Included', 'OwnKey']),
-      provider: z.enum(['Anthropic', 'OpenAiCompatible']),
+      provider: z.enum(providers),
       baseUrl: z.string().trim(),
       model: z.string().trim(),
       apiKey: z.string(),
+      ownKeyInputPrice: price,
+      ownKeyOutputPrice: price,
       checks: z.object({ network: z.boolean(), contact: z.boolean(), documents: z.boolean(), answers: z.boolean(), duplicates: z.boolean(), formUse: z.boolean() }),
       defaultAiUse: z.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']),
       deviceCheck: z.enum(['ByRegion', 'Notice', 'Consent', 'Off']),
@@ -106,7 +113,7 @@
     .superRefine((value, context) => {
       if (value.modelSource !== 'OwnKey') return;
       if (!value.model) context.addIssue({ code: 'custom', path: ['model'], message: 'Enter the model to use.' });
-      if (value.provider === 'OpenAiCompatible' && !/^https:\/\/\S+$/.test(value.baseUrl)) {
+      if (presetOf(value.provider)?.baseUrlEditable && !/^https:\/\/\S+$/.test(value.baseUrl)) {
         context.addIssue({ code: 'custom', path: ['baseUrl'], message: 'Enter the full address of the endpoint, starting with https://.' });
       }
       // A saved key stays only for the same provider and address, so an old key is never sent to a new host.
@@ -114,7 +121,7 @@
         detail?.apiKeySaved === true &&
         detail.modelSource === 'OwnKey' &&
         detail.provider === value.provider &&
-        trimSlashes(detail.baseUrl ?? '') === (value.provider === 'OpenAiCompatible' ? trimSlashes(value.baseUrl) : '');
+        trimSlashes(detail.baseUrl ?? '') === (presetOf(value.provider)?.baseUrlEditable ? trimSlashes(value.baseUrl) : '');
       if (!value.apiKey.trim() && !keptKey) {
         context.addIssue({ code: 'custom', path: ['apiKey'], message: detail?.apiKeySaved ? 'Enter the API key for this provider.' : 'Enter the API key.' });
       }
@@ -127,12 +134,13 @@
     defaults(
       {
         llmConsistencyCheck: false,
-        monthlyTokenBudget: '',
         modelSource: 'Included' as 'Included' | 'OwnKey',
-        provider: 'Anthropic' as 'Anthropic' | 'OpenAiCompatible',
+        provider: 'Anthropic' as ModelProvider,
         baseUrl: '',
         model: '',
         apiKey: '',
+        ownKeyInputPrice: '',
+        ownKeyOutputPrice: '',
         checks: { network: true, contact: true, documents: true, answers: true, duplicates: true, formUse: true },
         defaultAiUse: 'AllowedWithDisclosure' as (typeof aiUses)[number],
         deviceCheck: 'ByRegion' as DeviceCheckChoice,
@@ -157,15 +165,15 @@
         if (!submitted.valid) return;
         const data = submitted.data;
         const own = data.modelSource === 'OwnKey';
-        const budget = data.monthlyTokenBudget.trim();
         const request: UpdateVerificationSettingsRequest = {
           llmConsistencyCheck: data.llmConsistencyCheck,
-          monthlyTokenBudget: budget ? Number(budget) : null,
           modelSource: data.modelSource,
           provider: own ? data.provider : null,
-          baseUrl: own && data.provider === 'OpenAiCompatible' ? data.baseUrl : null,
+          baseUrl: own && presetOf(data.provider)?.baseUrlEditable ? data.baseUrl : null,
           model: own ? data.model : null,
           apiKey: own && data.apiKey.trim() ? data.apiKey.trim() : null,
+          ownKeyInputPrice: own && data.ownKeyInputPrice.trim() ? Number(data.ownKeyInputPrice) : null,
+          ownKeyOutputPrice: own && data.ownKeyOutputPrice.trim() ? Number(data.ownKeyOutputPrice) : null,
           checks: data.checks,
           defaultAiUse: data.defaultAiUse,
           deviceCheck: data.deviceCheck === 'ByRegion' ? null : data.deviceCheck,
@@ -203,12 +211,13 @@
       reset({
         data: {
           llmConsistencyCheck: detail.llmConsistencyCheck,
-          monthlyTokenBudget: detail.monthlyTokenBudget?.toString() ?? '',
           modelSource: detail.modelSource,
           provider: detail.provider ?? 'Anthropic',
           baseUrl: detail.baseUrl ?? '',
           model: detail.model ?? '',
           apiKey: '',
+          ownKeyInputPrice: detail.ownKeyInputPrice?.toString() ?? '',
+          ownKeyOutputPrice: detail.ownKeyOutputPrice?.toString() ?? '',
           checks: {
             network: detail.checks.network ?? true,
             contact: detail.checks.contact ?? true,
@@ -232,8 +241,8 @@
     }
   });
 
-  const tokens = new Intl.NumberFormat(locales);
   const own = $derived($form.modelSource === 'OwnKey');
+  const preset = $derived(presetOf($form.provider));
 
   // Load models and Test connection use what is typed, and the saved key when the box is empty (the server decides).
   let models = $state<string[]>([]);
@@ -244,7 +253,7 @@
   let testFailure = $state('');
   const endpoint = () => ({
     provider: $form.provider,
-    baseUrl: $form.provider === 'OpenAiCompatible' ? $form.baseUrl : null,
+    baseUrl: preset?.baseUrlEditable ? $form.baseUrl : null,
     apiKey: $form.apiKey.trim() || null,
   });
   const endpointChanged = () => {
@@ -374,8 +383,8 @@
               <div class="flex flex-col gap-2">
                 <p id="model-source-label" class="text-body font-medium">Which model checks consistency</p>
                 <div role="radiogroup" aria-labelledby="model-source-label" class="grid gap-2 sm:grid-cols-2">
-                  <ChoiceCard name="modelSource" value="Included" bind:group={$form.modelSource} onchange={endpointChanged} title="ScreenHire's included model" description="Within a monthly token budget." />
-                  <ChoiceCard name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} title="Your own key" description="Anthropic or OpenAI-compatible." />
+                  <ChoiceCard name="modelSource" value="Included" bind:group={$form.modelSource} onchange={endpointChanged} title="ScreenHire's included model" description="Billed at the provider's price plus a margin." />
+                  <ChoiceCard name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} title="Your own key" description="A key from your own AI provider." />
                 </div>
               </div>
 
@@ -391,18 +400,22 @@
 
               {#if own}
                 <p class="text-muted-foreground">
-                  Your provider handles this data under your own terms, and ScreenHire's token budget does not apply.
+                  Your provider handles this data under your own terms and bills you for it. ScreenHire charges nothing extra, and the usage below shows every call so you can compare it with your provider's dashboard.
                 </p>
 
                 <Field.Field>
                   <Field.Label for="llm-provider">Provider</Field.Label>
                   <select id="llm-provider" name="provider" class={selectClass} bind:value={$form.provider} onchange={endpointChanged}>
-                    <option value="Anthropic">{modelProviderLabels.Anthropic}</option>
-                    <option value="OpenAiCompatible">{modelProviderLabels.OpenAiCompatible}</option>
+                    {#each providers as provider (provider)}
+                      <option value={provider}>{modelProviderLabels[provider]}</option>
+                    {/each}
                   </select>
+                  {#if preset?.baseUrl}
+                    <Field.Description id="llm-provider-hint">Calls go to {preset.baseUrl}.</Field.Description>
+                  {/if}
                 </Field.Field>
 
-                {#if $form.provider === 'OpenAiCompatible'}
+                {#if preset?.baseUrlEditable}
                   <Field.Field data-invalid={$errors.baseUrl ? true : undefined}>
                     <Field.Label for="llm-base-url">Endpoint address</Field.Label>
                     <Input
@@ -410,14 +423,14 @@
                       name="baseUrl"
                       type="url"
                       autocomplete="off"
-                      placeholder="https://api.openai.com/v1/"
+                      placeholder={$form.provider === 'AzureOpenAi' ? 'https://your-resource.openai.azure.com' : 'https://api.example.com/v1'}
                       bind:value={$form.baseUrl}
                       oninput={endpointChanged}
                       aria-invalid={$errors.baseUrl ? 'true' : undefined}
                       aria-describedby={describedBy('llm-base-url-hint', $errors.baseUrl && 'llm-base-url-error')}
                     />
                     <Field.Description id="llm-base-url-hint">
-                      The address of an OpenAI-compatible API, such as OpenAI or your Azure OpenAI resource's v1 address. It must be https.
+                      {#if $form.provider === 'AzureOpenAi'}Your Azure OpenAI resource's address. The model is the name of your deployment.{:else}The address of an OpenAI-compatible API. It must be https.{/if}
                     </Field.Description>
                     <Field.Error id="llm-base-url-error" errors={message($errors.baseUrl)} />
                   </Field.Field>
@@ -478,27 +491,24 @@
                   <FailureText message={testFailure} />
                 </div>
                 <p class="text-muted-foreground">Saving a changed key, provider, address or model tests it first.</p>
-              {:else}
-                <Field.Field data-invalid={$errors.monthlyTokenBudget ? true : undefined}>
-                  <Field.Label for="token-budget">Monthly token budget <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
-                  <Input
-                    id="token-budget"
-                    name="monthlyTokenBudget"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    class="tabular-nums"
-                    bind:value={$form.monthlyTokenBudget}
-                    aria-invalid={$errors.monthlyTokenBudget ? 'true' : undefined}
-                    aria-describedby={describedBy('token-budget-hint', $errors.monthlyTokenBudget && 'token-budget-error')}
-                  />
-                  <Field.Description id="token-budget-hint">Empty uses ScreenHire's default of {tokens.format(detail.effectiveMonthlyTokenBudget)} tokens.</Field.Description>
-                  <Field.Error id="token-budget-error" errors={message($errors.monthlyTokenBudget)} />
-                </Field.Field>
-              {/if}
 
-              <SummaryList>
-                <SummaryItem label="Tokens used this month"><span class="tabular-nums">{tokens.format(detail.tokensUsedThisMonth)}</span></SummaryItem>
-              </SummaryList>
+                <div class="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-4">
+                  <Field.Field data-invalid={$errors.ownKeyInputPrice ? true : undefined}>
+                    <Field.Label for="own-input-price">Input price <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
+                    <Input id="own-input-price" name="ownKeyInputPrice" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.ownKeyInputPrice} aria-invalid={$errors.ownKeyInputPrice ? 'true' : undefined} />
+                    <Field.Description>US dollars per million tokens.</Field.Description>
+                    <Field.Error errors={message($errors.ownKeyInputPrice)} />
+                  </Field.Field>
+                  <Field.Field data-invalid={$errors.ownKeyOutputPrice ? true : undefined}>
+                    <Field.Label for="own-output-price">Output price <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
+                    <Input id="own-output-price" name="ownKeyOutputPrice" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.ownKeyOutputPrice} aria-invalid={$errors.ownKeyOutputPrice ? 'true' : undefined} />
+                    <Field.Description>US dollars per million tokens.</Field.Description>
+                    <Field.Error errors={message($errors.ownKeyOutputPrice)} />
+                  </Field.Field>
+                </div>
+              {:else}
+                <p class="text-muted-foreground">ScreenHire pays the provider and bills you for what the checks use, at the provider's price plus a margin.</p>
+              {/if}
             </div>
           </Panel>
 
@@ -690,5 +700,11 @@
         </form>
       {/if}
     </div>
+
+    <!-- Usage: for who holds View AI usage (the server sends the limits only to them); only an Owner sets the limits. Outside the
+         form's column, so its tables use the page's width (S6). -->
+    {#if detail?.limits}
+      <AiUsagePanel canSetLimits={can(page.data.user, 'ManageBilling')} />
+    {/if}
   </div>
 </main>

@@ -134,4 +134,13 @@ public static class NotificationKinds
     /// them clears them when it stops being true: a trial that ended with no plan is still the case a month later.
     /// </summary>
     public static IReadOnlyList<string> KeptUntilCleared { get; } = [TrialEnding, TrialEnded];
+
+    /// <summary>The month's AI use passed 50%, 80% or 100% of the budget. Key: <c>yyyy-MM:budget-N</c>. Payload: <c>percent</c>.</summary>
+    public const string AiUsageBudget = "ai-usage-budget";
+
+    /// <summary>The month's AI use reached the cap and the AI checks paused. Key: <c>yyyy-MM:cap</c>.</summary>
+    public const string AiUsageCap = "ai-usage-cap";
+
+    /// <summary>A day's AI use was well above the recent average. Key: <c>yyyy-MM-dd:spike</c>. Payload: <c>day</c>.</summary>
+    public const string AiUsageSpike = "ai-usage-spike";
 }

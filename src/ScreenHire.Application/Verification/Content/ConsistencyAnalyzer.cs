@@ -30,6 +30,12 @@ public sealed class ConsistencyAnalyzer(IContentRecords records) : IVerification
             return AnalyzerResult.NotReady(PendingNote);
         }
 
+        if (check.Status == ConsistencyCheckStatus.Paused)
+        {
+            // The exact note, so a reviewer's tab can say the AI checks were paused (RunNotes.KindOf), never a result about the candidate.
+            return AnalyzerResult.Nothing(RunNotes.AiChecksPaused);
+        }
+
         if (check.Status != ConsistencyCheckStatus.Completed)
         {
             return AnalyzerResult.Nothing($"Consistency check {Describe(check.Status)}: {check.Note}");

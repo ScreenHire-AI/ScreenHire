@@ -13,18 +13,34 @@ vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dash
 // Superforms needs the rest of the module (beforeNavigate).
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
 
+const presets: OrganizationVerificationSettings['presets'] = [
+  { provider: 'Anthropic', baseUrl: null, baseUrlEditable: false, listsModels: true },
+  { provider: 'OpenAi', baseUrl: 'https://api.openai.com/v1', baseUrlEditable: false, listsModels: true },
+  { provider: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', baseUrlEditable: false, listsModels: true },
+  { provider: 'AzureOpenAi', baseUrl: null, baseUrlEditable: true, listsModels: false },
+  { provider: 'Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', baseUrlEditable: false, listsModels: true },
+  { provider: 'OpenAiCompatible', baseUrl: null, baseUrlEditable: true, listsModels: true },
+];
+const limits: NonNullable<OrganizationVerificationSettings['limits']> = {
+  unit: 'Tokens',
+  budget: null,
+  cap: null,
+  effectiveBudget: { amount: 2_000_000, unit: 'Tokens', isDefault: true, used: 420, percent: 0 },
+  effectiveCap: { amount: 2_000_000, unit: 'Tokens', isDefault: true, used: 420, percent: 0 },
+};
+
 const defaults: OrganizationVerificationSettings = {
   llmConsistencyCheck: false,
-  monthlyTokenBudget: null,
-  tokensUsedThisMonth: 0,
   lastUpdated,
   modelSource: 'Included',
   provider: null,
   baseUrl: null,
   model: null,
   apiKeySaved: false,
-  budgetApplies: true,
-  effectiveMonthlyTokenBudget: 2_000_000,
+  ownKeyInputPrice: null,
+  ownKeyOutputPrice: null,
+  limits: null,
+  presets,
   checks: { network: true, contact: true, documents: true, answers: true, duplicates: true, formUse: true },
   defaultAiUse: 'AllowedWithDisclosure',
   deviceCheck: null,
@@ -36,7 +52,7 @@ const defaults: OrganizationVerificationSettings = {
 };
 const settingsWith = (overrides: Partial<OrganizationVerificationSettings> = {}): OrganizationVerificationSettings => ({ ...defaults, ...overrides });
 const ownKey = (overrides: Partial<OrganizationVerificationSettings> = {}) =>
-  settingsWith({ modelSource: 'OwnKey', provider: 'Anthropic', model: 'claude-test', apiKeySaved: true, budgetApplies: false, ...overrides });
+  settingsWith({ modelSource: 'OwnKey', provider: 'Anthropic', model: 'claude-test', apiKeySaved: true, ...overrides });
 
 type Body = Record<string, unknown>;
 
@@ -60,7 +76,6 @@ function renderPage(settings: OrganizationVerificationSettings, routes: Paramete
 }
 
 const check = () => screen.findByRole('switch', { name: /Compare each application's sources/ });
-const budget = () => screen.findByLabelText(/Monthly token budget/) as Promise<HTMLInputElement>;
 const save = () => screen.findByRole('button', { name: 'Save' });
 const apiKey = () => screen.findByLabelText('API key') as Promise<HTMLInputElement>;
 const model = () => screen.findByLabelText('Model') as Promise<HTMLInputElement>;
@@ -80,58 +95,34 @@ describe('verification settings page', () => {
     await expectNoAxeViolations();
   });
 
-  it('loads the switch and the budget', async () => {
-    renderPage(settingsWith({ llmConsistencyCheck: true, monthlyTokenBudget: 250000, tokensUsedThisMonth: 420 }));
+  it('loads the switch', async () => {
+    renderPage(settingsWith({ llmConsistencyCheck: true }));
 
     expect(await check()).toBeChecked();
-    expect((await budget()).value).toBe('250000');
   });
 
-  it('loads a switch that is off and an empty budget, and names the default', async () => {
+  it('loads a switch that is off', async () => {
     renderPage(settingsWith());
 
     expect(await check()).not.toBeChecked();
-    expect((await budget()).value).toBe('');
-    expect(screen.getByText(/ScreenHire's default of 2,000,000 tokens/)).toBeInTheDocument();
   });
 
-  it('shows the tokens used this month', async () => {
-    renderPage(settingsWith({ tokensUsedThisMonth: 420 }));
-
-    expect(await screen.findByText('Tokens used this month')).toBeInTheDocument();
-    expect(screen.getByText('420')).toBeInTheDocument();
-  });
-
-  it('saves the switch and the budget as a number, with the key empty', async () => {
+  it('saves the switch with the key empty and no budget, which an Owner sets under Monthly limits', async () => {
     const bodies = renderPage(settingsWith());
     await fireEvent.click(await check());
-    await type(await budget(), '120000');
 
     await fireEvent.click(await save());
 
     await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0]).toMatchObject({ llmConsistencyCheck: true, monthlyTokenBudget: 120000, modelSource: 'Included', provider: null, model: null, apiKey: null });
+    expect(bodies[0]).toMatchObject({ llmConsistencyCheck: true, modelSource: 'Included', provider: null, model: null, apiKey: null });
+    expect(bodies[0]).not.toHaveProperty('monthlyTokenBudget');
     expect(await screen.findByText('Saved. It applies from the next application.')).toBeInTheDocument();
   });
 
-  it('saves an empty budget as null', async () => {
-    const bodies = renderPage(settingsWith({ monthlyTokenBudget: 250000 }));
-    await type(await budget(), '');
-
-    await fireEvent.click(await save());
-
-    await waitFor(() => expect(bodies).toHaveLength(1));
-    expect(bodies[0]).toMatchObject({ monthlyTokenBudget: null });
-  });
-
-  it('refuses a budget that is not a whole number, and sends nothing', async () => {
-    const bodies = renderPage(settingsWith());
-    await type(await budget(), '12.5k');
-
-    await fireEvent.click(await save());
-
-    expect(await screen.findByText('Enter a whole number of tokens, or leave it empty.')).toBeInTheDocument();
-    expect(bodies).toEqual([]);
+  it('shows the usage only when the server sent the limits, which it does for who can see AI usage', async () => {
+    renderPage(settingsWith());
+    await check();
+    expect(screen.queryByRole('heading', { name: 'AI usage' })).not.toBeInTheDocument();
   });
 
   it('says why when the API refuses the settings', async () => {
@@ -143,22 +134,54 @@ describe('verification settings page', () => {
   });
 
   describe('AI model', () => {
-    it('offers the own-key fields only when the own key is chosen, and then drops the budget', async () => {
+    it('offers the own-key fields only when the own key is chosen', async () => {
       renderPage(settingsWith());
       expect(screen.queryByLabelText('API key')).not.toBeInTheDocument();
-      expect(await budget()).toBeInTheDocument();
+      expect(await screen.findByText(/bills you for what the checks use/)).toBeInTheDocument();
 
       await fireEvent.click(await screen.findByRole('radio', { name: /^Your own key/ }));
 
       expect(await apiKey()).toHaveAttribute('type', 'password');
-      expect(screen.queryByLabelText(/Monthly token budget/)).not.toBeInTheDocument();
       expect(screen.getByText(/provider handles this data under your own terms/)).toBeInTheDocument();
-      expect(screen.getByText(/token budget does not apply/)).toBeInTheDocument();
-      expect(screen.getByText('Tokens used this month')).toBeInTheDocument();
+      expect(screen.getByText(/ScreenHire charges nothing extra/)).toBeInTheDocument();
+    });
+
+    it('lists every provider preset, fills in a fixed address and asks for the address only where the person types one', async () => {
+      renderPage(ownKey({ model: '', apiKeySaved: false }));
+      const provider = (await screen.findByLabelText('Provider')) as HTMLSelectElement;
+
+      expect(within(provider).getAllByRole('option').map((option) => option.textContent)).toEqual([
+        'Anthropic',
+        'OpenAI',
+        'OpenRouter',
+        'Azure OpenAI',
+        'Google Gemini',
+        'Other (OpenAI-compatible)',
+      ]);
+      expect(screen.queryByLabelText('Endpoint address')).not.toBeInTheDocument();
+
+      await fireEvent.change(provider, { target: { value: 'OpenRouter' } });
+      expect(await screen.findByText('Calls go to https://openrouter.ai/api/v1.')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Endpoint address')).not.toBeInTheDocument();
+
+      await fireEvent.change(provider, { target: { value: 'AzureOpenAi' } });
+      expect(await screen.findByLabelText('Endpoint address')).toBeInTheDocument();
+    });
+
+    it('sends the own key prices, and the address only for a preset that takes one', async () => {
+      const bodies = renderPage(ownKey({ provider: 'OpenRouter', apiKeySaved: false, model: 'a/b' }));
+      await type(await apiKey(), 'sk-test');
+      await type((await screen.findByLabelText(/Input price/)) as HTMLInputElement, '3');
+      await type((await screen.findByLabelText(/Output price/)) as HTMLInputElement, '15.5');
+
+      await fireEvent.click(await save());
+
+      await waitFor(() => expect(bodies).toHaveLength(1));
+      expect(bodies[0]).toMatchObject({ provider: 'OpenRouter', baseUrl: null, ownKeyInputPrice: 3, ownKeyOutputPrice: 15.5 });
     });
 
     it('never shows a saved key: the box is empty and the hint says one is saved', async () => {
-      renderPage(ownKey({ tokensUsedThisMonth: 9000 }));
+      renderPage(ownKey());
 
       const box = await apiKey();
       expect(box.value).toBe('');
@@ -166,7 +189,6 @@ describe('verification settings page', () => {
       expect(box).toHaveAttribute('placeholder', 'Enter a new key to replace it');
       expect(screen.getByText('A key is saved. Leave this empty to keep it.')).toBeInTheDocument();
       expect((await model()).value).toBe('claude-test');
-      expect(screen.getByText('9,000')).toBeInTheDocument();
       await expectNoAxeViolations();
     });
 

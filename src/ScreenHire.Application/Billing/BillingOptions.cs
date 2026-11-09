@@ -38,6 +38,9 @@ public sealed class BillingOptions
     /// </summary>
     public Dictionary<string, PlanOptions> Plans { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>What ScreenHire charges for AI use on its own key (docs/architecture/ai-usage.md, billing.md). Read by the billing of that use.</summary>
+    public BillingAiOptions Ai { get; set; } = new();
+
     /// <summary>Stripe's API. Configurable only so a test can point the real client at a stand-in.</summary>
     public Uri ApiBaseUrl { get; set; } = new("https://api.stripe.com/v1/");
 
@@ -51,6 +54,21 @@ public sealed class BillingOptions
         !string.IsNullOrWhiteSpace(SecretKey) && !string.IsNullOrWhiteSpace(WebhookSecret) ? BillingMode.Stripe
         : Sandbox.Enabled ? BillingMode.Sandbox
         : BillingMode.Off;
+}
+
+/// <summary>
+/// The charge for AI use on ScreenHire's key: the provider's price plus a margin. An organization's own key costs it nothing
+/// extra. The margin is configuration, so it changes without a release.
+/// </summary>
+public sealed class BillingAiOptions
+{
+    /// <summary>The share added to the provider's price: 0.20 is 20% on top. Between 0 and <see cref="MaxMargin"/>.</summary>
+    public decimal Margin { get; set; } = DefaultMargin;
+
+    public const decimal DefaultMargin = 0.20m;
+
+    /// <summary>The highest margin accepted, 10 for 1,000%: a larger value is a typo for a percentage (20 for 0.20).</summary>
+    public const decimal MaxMargin = 10m;
 }
 
 public sealed class BillingSandboxOptions
@@ -162,6 +180,18 @@ public sealed class BillingSandboxGate(IHostEnvironment environment) : IValidate
         return options.Mode == BillingMode.Sandbox && !environment.IsDevelopment()
             ? ValidateOptionsResult.Fail("ScreenHire:Billing:Sandbox:Enabled is true outside Development. The sandbox checkout charges nobody and is for local runs and tests only.")
             : ValidateOptionsResult.Success;
+    }
+}
+
+/// <summary>Refuses a margin that would charge less than the provider's price, or a hundredfold more by a typing slip.</summary>
+public sealed class BillingAiMarginGate : IValidateOptions<BillingOptions>
+{
+    public ValidateOptionsResult Validate(string? name, BillingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return options.Ai.Margin is >= 0m and <= BillingAiOptions.MaxMargin
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail($"ScreenHire:Billing:Ai:Margin is {options.Ai.Margin}. It must be 0 to {BillingAiOptions.MaxMargin} (0.20 is 20% on top of the provider's price).");
     }
 }
 

@@ -237,7 +237,7 @@
                 <li class="flex flex-col gap-1" data-group={group.group}>
                   <div class="flex flex-wrap items-center gap-2">
                     <h3 class="min-w-0 font-semibold">{group.label}</h3>
-                    <StatusBadge status="notInEffect" label={groupDidNotRun(group) ? groupStateText(group) : 'Not counted'} quiet />
+                    <StatusBadge status="notInEffect" label={groupDidNotRun(group) || group.state === 'Paused' ? groupStateText(group) : 'Not counted'} quiet />
                   </div>
                   {#if group.note}<p class="max-w-measure text-muted-foreground">{group.note}</p>{/if}
                 </li>

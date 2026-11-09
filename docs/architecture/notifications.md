@@ -9,6 +9,7 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/NotificationConfiguration.cs
   - resource: src/ScreenHire.Application/Notifications/Notifications.cs
   - resource: src/ScreenHire.Application/Billing/TrialReminderHandlers.cs
+  - resource: src/ScreenHire.Application/Verification/Models/VerificationAlerts.cs
   - resource: src/ScreenHire.Application/SendingDomains/RecheckSendingDomain.cs
   - resource: src/ScreenHire.Application/SendingDomains/SendingDomainService.cs
   - resource: src/ScreenHire.Application/Messaging/ScreenHireMessaging.cs
@@ -88,11 +89,16 @@ Both messages implement `ITenantMessage`, so the handler runs under the organiza
 | `sending-domain-failing` | the sending domain's id | `domain` | `/settings/sending-domain` | Owners (`ManageOwners`) |
 | `trial-ending` | `trial` | `endsAt`, `plan` | `/settings/billing` | Owners (`ManageBilling`) |
 | `trial-ended` | `trial` | `endsAt`, `plan` | `/settings/billing` | Owners (`ManageBilling`) |
+| `ai-usage-budget` | `yyyy-MM:budget-N` (N is 50, 80 or 100) | `percent` | `/verification` | who sees AI usage (`ViewAiUsage`) |
+| `ai-usage-cap` | `yyyy-MM:cap` | none | `/verification` | who sees AI usage (`ViewAiUsage`) |
+| `ai-usage-spike` | `yyyy-MM-dd:spike` | `day` | `/verification` | who sees AI usage (`ViewAiUsage`) |
 
 The two trial kinds are one story: `trial-ending` appears 7 days before the trial ends and is replaced by `trial-ended` when it
 ends, and a plan starting clears both ([billing](billing.md#trial-reminders)). Their line says the days left, which the dashboard
-works out from `endsAt` when it draws the line, so one row stays right as the days pass. Tasks that add kinds later (AI usage
-alerts) add their rows here.
+works out from `endsAt` when it draws the line, so one row stays right as the days pass.
+
+The AI usage kinds are raised by `NotifyAiUsageHandler`, which also sends the email or Slack copy when the organization chose
+one ([ai-usage](ai-usage.md)). Raising the cap clears `ai-usage-cap`.
 
 ## Storage and reading
 

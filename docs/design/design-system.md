@@ -923,7 +923,8 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   found", "Not checked" (a candidate a recruiter added by hand came through no careers form, so Network and Form use had
   nothing to look at; it goes by the application's source alone, so a careers applicant who turned telemetry off with
   the assistive-technology switch reads like any other) and "Turned off" (the organization's settings, with the note in
-  a tooltip). Group icons sit on the tiles only, never in a panel header, and a group has no description paragraph.
+  a tooltip). "AI checks paused" is the Answers tile when the organization's monthly AI cap paused the AI check and nothing
+  else in the group found anything: the rule-based checks ran, and the note says it is no result about the candidate. Group icons sit on the tiles only, never in a panel header, and a group has no description paragraph.
 - Below the map is a panel for each group that has findings, titled with the group's name. Nothing else gets a panel:
   "Nothing found" is a tile state and appears nowhere as a line. A finding is its plain sentence, short ("The resume and
   the answer give different dates for Lumen Health. Ask the candidate."), opening (A9) to its evidence as a facts row,
@@ -941,7 +942,7 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   explained, Dismiss reads Dismiss all and opens the dismiss dialog with the explained findings and their notes listed.
   A dismissed result keeps its explanations, read only.
 - A calm result (no finding in any group) is one line, "Nothing unusual in the checks that ran. No action needed.", with
-  the AI row, then one line for each group that is Turned off or Not checked, so a quiet result is never read as a clean
+  the AI row, then one line for each group that is Turned off, Not checked or AI-checks-paused, so a quiet result is never read as a clean
   one, then a collapsed "What was checked" naming the groups that ran and their checks. It has no map and no "nothing
   found" lines (W10).
 - The panel's last line is the audit line, caption size: "Assessed 2 hours ago" and "Ruleset", after "No automated

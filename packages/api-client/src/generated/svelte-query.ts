@@ -26,6 +26,9 @@ import type {
   AddFromTalentPoolRequest,
   AddVerificationNoteRequest,
   AddedFromTalentPool,
+  AiUsageCallPage,
+  AiUsageLimitsView,
+  AiUsageSummary,
   ApiKeySummary,
   ApiMeta,
   ApplicationDetail,
@@ -85,6 +88,8 @@ import type {
   EraseCandidateRequest,
   EraseDataRequestRequest,
   ExplainVerificationReasonRequest,
+  ExportAiUsageCallsParams,
+  GetAiUsageSummaryParams,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
   GetFunnelApplicationsParams,
@@ -131,6 +136,7 @@ import type {
   KeepInMindRequest,
   KeptInMind,
   LastUpdate,
+  ListAiUsageCallsParams,
   ListInterviewersParams,
   ListJobBoardJobsParams,
   ListTasksParams,
@@ -231,6 +237,7 @@ import type {
   TelemetrySnapshotInput,
   TemplateUsageList,
   TestEmailSent,
+  UpdateAiUsageLimitsRequest,
   UpdateBrandingRequest,
   UpdateCareersEmbeddingRequest,
   UpdateEmailTemplateRequest,
@@ -22976,6 +22983,430 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getOpenBillingPortalMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getAiUsageSummaryResponse200 = {
+  data: AiUsageSummary
+  status: 200
+}
+
+export type getAiUsageSummaryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getAiUsageSummaryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getAiUsageSummaryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getAiUsageSummaryResponseSuccess = (getAiUsageSummaryResponse200) & {
+  headers: Headers;
+};
+export type getAiUsageSummaryResponseError = (getAiUsageSummaryResponse400 | getAiUsageSummaryResponse401 | getAiUsageSummaryResponse403) & {
+  headers: Headers;
+};
+
+export const getGetAiUsageSummaryUrl = (params?: GetAiUsageSummaryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/ai-usage/summary?${stringifiedParams}` : `/v1/organization/ai-usage/summary`
+}
+
+export const getAiUsageSummary = async (params?: GetAiUsageSummaryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getAiUsageSummaryResponseSuccess> => {
+
+  return apiQueryFetch<getAiUsageSummaryResponseSuccess>(getGetAiUsageSummaryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAiUsageSummaryQueryKey = (params?: GetAiUsageSummaryParams,) => {
+    return [
+    'v1','organization','ai-usage','summary', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAiUsageSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getAiUsageSummary>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(params?: GetAiUsageSummaryParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getAiUsageSummary>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAiUsageSummaryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAiUsageSummary>>> = ({ signal }) => getAiUsageSummary(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getAiUsageSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAiUsageSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getAiUsageSummary>>>
+export type GetAiUsageSummaryQueryError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+
+
+
+export function createGetAiUsageSummary<TData = Awaited<ReturnType<typeof getAiUsageSummary>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(
+ params?: () =>  GetAiUsageSummaryParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getAiUsageSummary>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetAiUsageSummaryQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type listAiUsageCallsResponse200 = {
+  data: AiUsageCallPage
+  status: 200
+}
+
+export type listAiUsageCallsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type listAiUsageCallsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listAiUsageCallsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listAiUsageCallsResponseSuccess = (listAiUsageCallsResponse200) & {
+  headers: Headers;
+};
+export type listAiUsageCallsResponseError = (listAiUsageCallsResponse400 | listAiUsageCallsResponse401 | listAiUsageCallsResponse403) & {
+  headers: Headers;
+};
+
+export const getListAiUsageCallsUrl = (params?: ListAiUsageCallsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/ai-usage/calls?${stringifiedParams}` : `/v1/organization/ai-usage/calls`
+}
+
+export const listAiUsageCalls = async (params?: ListAiUsageCallsParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listAiUsageCallsResponseSuccess> => {
+
+  return apiQueryFetch<listAiUsageCallsResponseSuccess>(getListAiUsageCallsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAiUsageCallsQueryKey = (params?: ListAiUsageCallsParams,) => {
+    return [
+    'v1','organization','ai-usage','calls', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAiUsageCallsQueryOptions = <TData = Awaited<ReturnType<typeof listAiUsageCalls>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(params?: ListAiUsageCallsParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listAiUsageCalls>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAiUsageCallsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAiUsageCalls>>> = ({ signal }) => listAiUsageCalls(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listAiUsageCalls>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAiUsageCallsQueryResult = NonNullable<Awaited<ReturnType<typeof listAiUsageCalls>>>
+export type ListAiUsageCallsQueryError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+
+
+
+export function createListAiUsageCalls<TData = Awaited<ReturnType<typeof listAiUsageCalls>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(
+ params?: () =>  ListAiUsageCallsParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listAiUsageCalls>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListAiUsageCallsQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type exportAiUsageCallsResponse200 = {
+  data: string
+  status: 200
+}
+
+export type exportAiUsageCallsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type exportAiUsageCallsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type exportAiUsageCallsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type exportAiUsageCallsResponseSuccess = (exportAiUsageCallsResponse200) & {
+  headers: Headers;
+};
+export type exportAiUsageCallsResponseError = (exportAiUsageCallsResponse400 | exportAiUsageCallsResponse401 | exportAiUsageCallsResponse403) & {
+  headers: Headers;
+};
+
+export const getExportAiUsageCallsUrl = (params?: ExportAiUsageCallsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/ai-usage/calls/export?${stringifiedParams}` : `/v1/organization/ai-usage/calls/export`
+}
+
+export const exportAiUsageCalls = async (params?: ExportAiUsageCallsParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<exportAiUsageCallsResponseSuccess> => {
+
+  return apiQueryFetch<exportAiUsageCallsResponseSuccess>(getExportAiUsageCallsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportAiUsageCallsQueryKey = (params?: ExportAiUsageCallsParams,) => {
+    return [
+    'v1','organization','ai-usage','calls','export', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getExportAiUsageCallsQueryOptions = <TData = Awaited<ReturnType<typeof exportAiUsageCalls>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(params?: ExportAiUsageCallsParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof exportAiUsageCalls>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportAiUsageCallsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportAiUsageCalls>>> = ({ signal }) => exportAiUsageCalls(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof exportAiUsageCalls>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ExportAiUsageCallsQueryResult = NonNullable<Awaited<ReturnType<typeof exportAiUsageCalls>>>
+export type ExportAiUsageCallsQueryError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+
+
+
+export function createExportAiUsageCalls<TData = Awaited<ReturnType<typeof exportAiUsageCalls>>, TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>>(
+ params?: () =>  ExportAiUsageCallsParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof exportAiUsageCalls>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getExportAiUsageCallsQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type updateAiUsageLimitsResponse200 = {
+  data: AiUsageLimitsView
+  status: 200
+}
+
+export type updateAiUsageLimitsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateAiUsageLimitsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateAiUsageLimitsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateAiUsageLimitsResponseSuccess = (updateAiUsageLimitsResponse200) & {
+  headers: Headers;
+};
+export type updateAiUsageLimitsResponseError = (updateAiUsageLimitsResponse400 | updateAiUsageLimitsResponse401 | updateAiUsageLimitsResponse403) & {
+  headers: Headers;
+};
+
+export const getUpdateAiUsageLimitsUrl = () => {
+
+
+
+
+  return `/v1/organization/ai-usage/limits`
+}
+
+export const updateAiUsageLimits = async (updateAiUsageLimitsRequest: UpdateAiUsageLimitsRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateAiUsageLimitsResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateAiUsageLimitsResponseSuccess>(getUpdateAiUsageLimitsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateAiUsageLimitsRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateAiUsageLimitsMutationKey = () => ['updateAiUsageLimits'] as const;
+
+export const getUpdateAiUsageLimitsMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateAiUsageLimits>>, TError,UpdateAiUsageLimitsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateAiUsageLimits>>, TError,UpdateAiUsageLimitsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAiUsageLimitsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAiUsageLimits>>, UpdateAiUsageLimitsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAiUsageLimits(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAiUsageLimitsMutationResult = NonNullable<Awaited<ReturnType<typeof updateAiUsageLimits>>>
+    export type UpdateAiUsageLimitsMutationBody = UpdateAiUsageLimitsRequest
+    export type UpdateAiUsageLimitsMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type UpdateAiUsageLimitsMutationVariables = {data: UpdateAiUsageLimitsRequest}
+
+    export const createUpdateAiUsageLimits = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateAiUsageLimits>>, TError,UpdateAiUsageLimitsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateAiUsageLimits>>,
+        TError,
+        UpdateAiUsageLimitsMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateAiUsageLimitsMutationOptions(options?.()) }), queryClient);
     }
 
 export type getCalendarResponse200 = {
