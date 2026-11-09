@@ -110,6 +110,13 @@ describe('the Usage tab', () => {
     expect(screen.getByRole('cell', { name: 'No model calls in this range.' })).toBeInTheDocument();
   });
 
+  it('states a single day as a line, not a one-bar chart', async () => {
+    renderPage({ ...summary, byDay: [summary.byDay[0]] });
+
+    expect(await screen.findByText(/All the use in this range was on .*, so the totals above are that day's\./)).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Nov/ })).not.toBeInTheDocument();
+  });
+
   it('counts a call with no known cost as nothing, and says how many', async () => {
     renderPage({ ...summary, totals: { ...summary.totals, callsWithUnknownCost: 2 } });
 

@@ -1,19 +1,20 @@
 <script lang="ts">
   import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
-  import FileTextIcon from '~icons/lucide/file-text';
   import type { VerificationGroupCount } from '@screenhire/api-client';
   import { createGetOrganizationVerificationSettings, createGetVerificationOverview } from '@screenhire/api-client/svelte-query';
   import BarChart, { type BarRow } from '#lib/components/bar-chart.svelte';
   import ChartPanel, { type ChartColumn } from '#lib/components/chart-panel.svelte';
+  import LevelMark from '#lib/components/level-mark.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import ReportStat from '#lib/components/report-stat.svelte';
-  import { Button } from '#lib/components/ui/button/index.js';
+  import StatusIcon from '#lib/components/status-icon.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import LimitsSummary from '#lib/components/verification-area/limits-summary.svelte';
   import { locales } from '#lib/dates.js';
   import { describeError } from '#lib/query.js';
   import { canSeeUsage } from '#lib/verification-area.js';
+  import { verificationStateOf, type VerificationState } from '#lib/verification.js';
   import type { PageProps } from './$types';
 
   // The Overview tab: this month's applications by what the checks found, which groups of checks found something most, and,
@@ -28,6 +29,11 @@
   const limits = $derived(usageVisible ? settings.data?.data.limits : null);
 
   const count = new Intl.NumberFormat(locales);
+  // Each level's tile carries the level's own mark, as the chips draw it: the circle-check for Clear, the level mark for
+  // Review and Verify (design system section 3.2), so the count is icon, colour and word (T1).
+  const clear = verificationStateOf('NoConcerns', false);
+  const review = verificationStateOf('ReviewSuggested', false);
+  const verify = verificationStateOf('VerificationRecommended', false);
   const month = $derived(result ? new Intl.DateTimeFormat(locales, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(result.from)) : '');
 
   const groupRows = $derived<BarRow[]>(
@@ -66,9 +72,18 @@
       value={count.format(result.checked)}
       share={result.pending > 0 ? `${result.pending} still being checked` : null}
     />
-    <ReportStat icon={FileTextIcon} title="Clear" value={count.format(result.levels.clear)} />
-    <ReportStat icon={FileTextIcon} title="Review" value={count.format(result.levels.review)} />
-    <ReportStat icon={FileTextIcon} title="Verify" value={count.format(result.levels.verify)} />
+    {#snippet levelMark(state: VerificationState)}
+      {#if state.kind === 'review' || state.kind === 'verify'}
+        <LevelMark steps={state.steps} tone={state.kind} size="lg" />
+      {:else}
+        <StatusIcon status={state.status} class="size-4" />
+      {/if}
+    {/snippet}
+    {#each [{ state: clear, value: result.levels.clear }, { state: review, value: result.levels.review }, { state: verify, value: result.levels.verify }] as level (level.state.kind)}
+      <ReportStat title={level.state.word} value={count.format(level.value)}>
+        {#snippet mark()}{@render levelMark(level.state)}{/snippet}
+      </ReportStat>
+    {/each}
   </div>
 
   <div class="grid gap-5 @7xl:grid-cols-2">
@@ -92,7 +107,7 @@
       <Panel title="AI budget this month">
         <div class="flex flex-col gap-4">
           <LimitsSummary {limits} cap={false} />
-          <div><Button href="/verification/usage" variant="outline" size="lg">See usage</Button></div>
+          <p><a href="/verification/usage" class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">See usage</a></p>
         </div>
       </Panel>
     {/if}

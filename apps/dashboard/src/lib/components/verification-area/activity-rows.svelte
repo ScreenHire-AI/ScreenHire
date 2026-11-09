@@ -59,7 +59,7 @@
         </Table.Cell>
         <Table.Cell>
           {#if entry.applicationId}
-            <a href={`/applications/${entry.applicationId}`} class="underline underline-offset-2">{entry.jobTitle ?? 'Application'}</a>
+            <a href={`/applications/${entry.applicationId}`} class="inline-flex min-h-6 items-center whitespace-nowrap underline underline-offset-2 pointer-coarse:min-h-11">{entry.jobTitle ?? 'Application'}</a>
           {:else}
             <span class="sr-only">No application</span>
           {/if}

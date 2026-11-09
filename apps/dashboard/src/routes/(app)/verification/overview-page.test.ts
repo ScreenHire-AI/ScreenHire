@@ -52,6 +52,16 @@ describe('the Overview tab', () => {
     await expectNoAxeViolations();
   });
 
+  it('marks each level with its own icon, as the chips do: the circle-check for Clear, the level mark for Review and Verify', async () => {
+    renderPage(overview);
+
+    await screen.findByText('Applications checked');
+    const stat = (title: string) => screen.getByText(title).closest('[data-slot="report-stat"]') as HTMLElement;
+    expect(stat('Clear').querySelector('[data-status-icon]')).not.toBeNull();
+    expect(stat('Review').querySelector('[data-level-mark="2"]')).not.toBeNull();
+    expect(stat('Verify').querySelector('[data-level-mark="3"]')).not.toBeNull();
+  });
+
   it('shows a score, a percentage or an AI-assistance count nowhere', async () => {
     renderPage(overview);
     await screen.findByText('Applications checked');

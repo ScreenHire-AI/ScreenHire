@@ -185,7 +185,7 @@
               <div class="flex flex-col gap-2">
                 <p id="model-source-label" class="text-body font-medium">Which model checks consistency</p>
                 <div role="radiogroup" aria-labelledby="model-source-label" class="grid gap-2 sm:grid-cols-2">
-                  <ChoiceCard name="modelSource" value="Included" bind:group={$form.modelSource} onchange={endpointChanged} title="ScreenHire's included model" description="Billed at the provider's price plus a margin." />
+                  <ChoiceCard name="modelSource" value="Included" bind:group={$form.modelSource} onchange={endpointChanged} title="ScreenHire's included model" description="Billed through ScreenHire." />
                   <ChoiceCard name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} title="Your own key" description="A key from your own AI provider." />
                 </div>
               </div>

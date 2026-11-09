@@ -60,8 +60,8 @@
       <Button href={exportUrl} download variant="outline" size="default"><DownloadIcon aria-hidden="true" />Export CSV</Button>
     {/if}
   {/snippet}
-  <!-- The filters: a row under the header that scrolls inside the panel rather than squeezing the selects (F5). -->
-  <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+  <!-- The filters: a row under the header that wraps by content on a phone rather than cutting a select off (section 7). -->
+  <div data-filters class="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
     <select class={cn(selectClass, 'w-auto shrink-0')} value={range} onchange={(event) => chooseRange(event.currentTarget.value)} aria-label="Filter by date">
       {#each ranges as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
     </select>

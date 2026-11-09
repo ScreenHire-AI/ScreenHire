@@ -108,7 +108,7 @@
     basis="Tokens in and out of each day's model calls, on ScreenHire's key and on your own."
     tableId="verification-usage-days"
     columns={dayColumns}
-    rows={data.byDay}
+    rows={data.byDay.length > 1 ? data.byDay : []}
     rowKey={(day) => day.date}
   >
     {#snippet chart()}
@@ -122,7 +122,12 @@
       />
     {/snippet}
     {#snippet empty()}
-      <p class="text-muted-foreground">No model calls in this range.</p>
+      <!-- One day is a single figure, which the tiles above already state: a stat, never a one-bar chart (section 16). -->
+      {#if data.byDay.length === 1}
+        <p class="text-muted-foreground">All the use in this range was on {formatDay(data.byDay[0].date)}, so the totals above are that day's.</p>
+      {:else}
+        <p class="text-muted-foreground">No model calls in this range.</p>
+      {/if}
     {/snippet}
   </ChartPanel>
 
