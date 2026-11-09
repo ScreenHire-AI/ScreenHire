@@ -61,6 +61,15 @@ describe('notification bell', () => {
     expect(button.querySelector('[data-bell-count]')).toHaveTextContent('5');
   });
 
+  it('says in its tooltip that it holds setup while steps are left, so a new Owner knows why to open it', async () => {
+    stub([], 0);
+    renderBell();
+
+    await fireEvent.focus(await screen.findByRole('button', { name: 'Notifications, 4 need attention' }));
+
+    expect(await screen.findAllByText('Setup and notifications')).not.toHaveLength(0);
+  });
+
   it('shows no count when nothing needs attention, and says so when opened', async () => {
     stub([], 0);
     renderBell(userAs('Recruiter'));

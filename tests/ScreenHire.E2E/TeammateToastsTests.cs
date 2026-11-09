@@ -58,7 +58,7 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         // The Owner has the dashboard open and live.
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(Page, ownerEmail);
-        await Expect(LiveIndicator(Page)).ToContainTextAsync("Live updates: Live");
+        await Expect(LiveIndicator(Page)).ToContainTextAsync("Live updates: Connected");
         var toasts = Page.GetByRole(AriaRole.Region, new() { Name = "Notifications" });
 
         // The Recruiter moves the candidate: the toast names who, whom and where, and the name is a link to the candidate.
@@ -99,7 +99,7 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         await ReadAsync(await ownerSession.PutAsync("/v1/notification-settings", new { toasts = true, closeToasts = true, off = Array.Empty<string>() }, Ct), HttpStatusCode.OK);
         await Page.SetViewportSizeAsync(360, 740);
         await Page.GotoAsync(DashboardUrl("/"));
-        await Expect(LiveIndicator(Page)).ToContainTextAsync("Live updates: Live");
+        await Expect(LiveIndicator(Page)).ToContainTextAsync("Live updates: Connected");
         var actionBar = Page.Locator("[data-slot=action-bar]");
         await Expect(actionBar).ToBeVisibleAsync();
 
