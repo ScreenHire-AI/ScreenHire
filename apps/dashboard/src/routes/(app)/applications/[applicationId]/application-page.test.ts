@@ -355,6 +355,19 @@ describe('application page', () => {
       await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent(new RegExp(`^${longName}$`)));
     });
 
+    it('says who set a dismissed result aside, when and why, in its tooltip', async () => {
+      stubVerification(verificationAt('VerificationRecommended', true));
+      renderPage();
+
+      await fireEvent.click(await chip(await header(), 'dismissed'));
+
+      await waitFor(() =>
+        expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent(
+          /^Verification suggested, dismissed by you on Oct 20(, 2026)?: The observations do not apply\.$/,
+        ),
+      );
+    });
+
     const quiet: [string, ApplicationVerification, string, string][] = [
       ['clear', verificationAt('NoConcerns'), 'Clear', 'Verification: No concerns'],
       ['pending', { ...pendingVerification(), applicationId }, 'Pending', 'Verification: Checks pending'],
@@ -710,7 +723,10 @@ describe('application page', () => {
         const panel = await screen.findByRole('region', { name: 'Scorecards' });
         const list = await within(panel).findByRole('list', { name: 'Scorecards given' });
 
-        expect(panel).toHaveTextContent('Rated 4.6 out of 5 from 2 scorecards');
+        // The number and, in muted text, how many scorecards it comes from; the full sentence is for screen readers.
+        expect(panel).toHaveTextContent('4.6');
+        expect(panel).toHaveTextContent('(2)');
+        expect(within(panel).getByText('Rated').parentElement).toHaveTextContent(/Rated\s*4\.6\s*out of 5 from\s*\(2\)\s*2 scorecards/);
         await waitFor(() =>
           expect(within(list).getAllByRole('listitem').map(plain)).toEqual([
             expect.stringMatching(/^Robin Ashby Interview Strong yes Oct 20/),

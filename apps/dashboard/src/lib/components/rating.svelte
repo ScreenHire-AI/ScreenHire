@@ -1,5 +1,4 @@
 <script lang="ts">
-  import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
   import StarIcon from '~icons/lucide/star';
   import type { ApplicationRating } from '@screenhire/api-client';
   import Hint from '#lib/components/hint.svelte';
@@ -45,8 +44,9 @@
   <span class="sr-only">Rated</span>
   <span class="font-semibold tabular-nums">{formatRating(value)}</span>
   <span class="sr-only">out of 5 from</span>
-  <span class="inline-flex items-center gap-0.5 text-muted-foreground"><ClipboardCheckIcon class="size-3.5" aria-hidden="true" />{count}</span>
-  <span class="sr-only">{count === 1 ? 'scorecard' : 'scorecards'}</span>
+  <!-- How many scorecards it comes from is a plain muted count: an icon beside a bare number said nothing on its own. -->
+  <span aria-hidden="true" class="text-muted-foreground tabular-nums">({count})</span>
+  <span class="sr-only">{count} {count === 1 ? 'scorecard' : 'scorecards'}</span>
 {/snippet}
 
 {#if variant === 'cell' && rating?.state === 'AfterYourScorecard'}
