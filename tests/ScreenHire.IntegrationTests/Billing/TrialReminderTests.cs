@@ -182,10 +182,15 @@ public sealed class TrialReminderTests(AppHostFixture fixture)
 
     private async Task DeliverAgainAsync(Tenant owner, DateTimeOffset ends, int daysBefore)
     {
+        var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
+        var message = RemindTrialEnding.For(owner.OrganizationId, ends, daysBefore);
+        var handledBefore = await store.CountHandledAsync(message.Key, Ct, EmailType);
         await using var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
-        await publisher.Services.GetRequiredService<IMessageBus>().PublishAsync(RemindTrialEnding.For(owner.OrganizationId, ends, daysBefore));
-        // The worker drops it as the same intent, so there is no effect to wait for; the poll interval of its queue is well inside this.
-        await Task.Delay(TimeSpan.FromSeconds(4), Ct);
+        await publisher.Services.GetRequiredService<IMessageBus>().PublishAsync(message);
+        // The second envelope is received and marked handled without running (it is the same intent), so wait for that
+        // instead of for a time, then look at what it sent.
+        await WolverineStore.WaitUntilAsync(
+            async () => await store.CountHandledAsync(message.Key, Ct, EmailType) > handledBefore, "the worker to handle the redelivered reminder", Ct);
     }
 
     private static async Task<ApiResult> WaitForKindAsync(Tenant member, string kind)
