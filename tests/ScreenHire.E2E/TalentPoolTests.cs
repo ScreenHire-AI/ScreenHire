@@ -118,9 +118,9 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         await Expect(Page.GetByText("Nobody saved yet")).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" })).ToHaveCountAsync(0);
 
-        // The new application's Overview links back to the one they were kept from.
+        // The new application's Application tab links back to the one they were kept from.
         var newApplicationId = await ApplicationIdAsync(scene, scene.Second.Id);
-        await Page.GotoAsync(DashboardUrl($"/applications/{newApplicationId}"));
+        await Page.GotoAsync(DashboardUrl($"/applications/{newApplicationId}?tab=application"));
         var others = Page.GetByRole(AriaRole.Region, new() { Name = "Other applications", Exact = true });
         await Expect(others).ToBeVisibleAsync();
         await Expect(others.GetByRole(AriaRole.Link, new() { Name = scene.First.Title })).ToHaveAttributeAsync(

@@ -83,6 +83,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         // The move is recorded on the application's timeline.
         await Page.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Casey Morgan");
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("Moved from Applied to Screening by you");
         await ExpectNoAccessibilityViolationsAsync();
     }
@@ -179,7 +180,10 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.Keyboard.PressAsync("Enter");
 
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Riley Chen");
+        // The answers are on the Application tab and the timeline on Activity.
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Application") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Answers" })).ToContainTextAsync("No answers.");
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("Added to Applied by you");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-application-light");
@@ -210,7 +214,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" })).ToHaveCountAsync(0);
         // The filters are chips in one row with the Sort chip, which offers the headers' sorts (L2, section 8).
         var pipeline = Page.GetByRole(AriaRole.Region, new() { Name = "Candidates", Exact = true });
-        foreach (var chip in new[] { "Stage: All", "Authenticity: All", "Sort" })
+        foreach (var chip in new[] { "Stage: All", "Verification: All", "Sort" })
         {
             await Expect(pipeline.GetByRole(AriaRole.Button, new() { Name = chip, Exact = true })).ToBeVisibleAsync();
         }
@@ -281,7 +285,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
                     .ToBeVisibleAsync();
                 (await HeaderOverflowAsync(pipeline)).Should().Be(0, "the pipeline header fits its search and view switch");
 
-                await pipeline.GetByRole(AriaRole.Group, new() { Name = "Authenticity" }).GetByRole(AriaRole.Button, new() { NameRegex = new("^Verification suggested") }).ClickAsync();
+                await pipeline.GetByRole(AriaRole.Group, new() { Name = "Verification" }).GetByRole(AriaRole.Button, new() { NameRegex = new("^Verify") }).ClickAsync();
                 (await PageOverflowAsync(Page)).Should().Be(0, "the filter row scrolls inside the panel, never the page");
             }
         }
@@ -336,6 +340,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await palette.GetByPlaceholder("Search jobs, candidates and actions").FillAsync(email);
         await palette.GetByRole(AriaRole.Option, new() { NameRegex = new("^Morgan Ashdown") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Morgan Ashdown");
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Files") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Files", Exact = true })).ToContainTextAsync("Morgan Ashdown CV.pdf");
 
         // Added by hand, so Verification says which checks had nothing to look at, once the checks have run.
@@ -426,10 +431,10 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
     private static ILocator Board(IPage page, string boardId) =>
         page.GetByRole(AriaRole.Region, new() { Name = "Job postings" }).Locator($"[data-board='{boardId}']");
 
-    // Select, name, then the two verification columns (status first, T2) and Rating, then Stage.
+    // Select, name, then the one Verification column (status first, T2) and Rating, then Stage (Overdue follows it).
     private static ILocator StageCellOf(IPage page, string candidate) =>
         page.GetByRole(AriaRole.Row).Filter(new() { Has = page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
-            .GetByRole(AriaRole.Cell).Nth(5);
+            .GetByRole(AriaRole.Cell).Nth(4);
 
     private static ILocator LiveIndicator(IPage page) =>
         page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" });

@@ -5,7 +5,7 @@
   import { tick, type Snippet } from 'svelte';
   import { get } from 'svelte/store';
   import DateText from '#lib/components/date-text.svelte';
-  import VerificationChip from '#lib/components/verification-chip.svelte';
+  import VerificationCell from '#lib/components/verification-cell.svelte';
   import Rating from '#lib/components/rating.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import ApplicationMenu from '#lib/components/application-menu.svelte';
@@ -20,7 +20,6 @@
   import { candidateRowHeight, candidateTableFeatures, sortableColumnIds, type CandidateColumn } from '#lib/candidate-table.js';
   import { initials, sourceLabel } from '#lib/format.js';
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
-  import { chipOf } from '#lib/verification.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { hasModifier, isTypingTarget } from '#lib/shortcuts.js';
@@ -106,6 +105,22 @@
       sortDescFirst: false,
       cell: ({ row }) => renderSnippet(stageCell, row.original),
     },
+    // Overdue has its own column (L1): the Stage cell holds the stage and nothing else. The column is there only while a row is
+    // overdue, because a column of blanks is noise; the longest overdue sorts first. It is the team's own delay (section 3.2), so
+    // it never leans on verification output.
+    ...(applications.some((application) => isOverdue(application, Date.now()))
+      ? [
+          {
+            id: 'overdue',
+            header: 'Overdue',
+            accessorFn: (application) => (isOverdue(application, Date.now()) ? Date.parse(application.slaDueAt!) : undefined),
+            sortFn: 'basic',
+            sortUndefined: 'last',
+            sortDescFirst: false,
+            cell: ({ row }) => renderSnippet(overdueCell, row.original),
+          } satisfies CandidateColumn,
+        ]
+      : []),
     { id: 'source', header: 'Source', accessorFn: (application) => sourceLabel(application.source, application.sourceSite), sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(sourceCell, row.original) },
     // Applied sorts, newest first: the order every candidate table opens on (L2).
     { id: 'applied', header: 'Applied', accessorFn: (application) => application.submittedAt, sortFn: 'basic', sortDescFirst: true, cell: ({ row }) => renderSnippet(appliedCell, row.original) },
@@ -279,16 +294,18 @@
 {/snippet}
 
 {#snippet stageCell(application: ApplicationSummary)}
-  <!-- Overdue is a status, so it comes first in the cell (T2); the stage it is overdue in follows as plain text, with no
-       pill (L1). -->
+  <!-- The stage as plain text, with no pill (L1). Overdue has its own column. -->
   <span class="flex min-w-0 items-center gap-1.5">
-    <OverdueBadge dueAt={application.slaDueAt} />
     {#if application.keptInMindAt}
       <StatusBadge status="saved" label={keptInMindLabel} quiet />
     {:else}
       <TruncatedText text={application.stage.name} class="max-w-48" />
     {/if}
   </span>
+{/snippet}
+
+{#snippet overdueCell(application: ApplicationSummary)}
+  <OverdueBadge dueAt={application.slaDueAt} />
 {/snippet}
 
 {#snippet sourceCell(application: ApplicationSummary)}
@@ -319,17 +336,9 @@
 {/snippet}
 
 {#snippet listItem(application: ApplicationSummary)}
-  {@const authenticity = chipOf(application.verification, 'authenticity')}
-  {@const ai = chipOf(application.verification, 'aiAssistance')}
   <ListItem href={`/applications/${application.id}`} title={application.candidateName}>
     {#snippet status()}
-      <VerificationChip
-        kind="authenticity"
-        compact
-        level={authenticity?.level ?? null}
-        reasons={authenticity?.reasons ?? 0}
-        dismissed={authenticity?.dismissed ?? false}
-      />
+      <VerificationCell summary={application.verification} />
     {/snippet}
     {#snippet meta()}
       <DateText at={application.submittedAt} />
@@ -345,9 +354,6 @@
       {#if showJob}
         <!-- relative: above the item's link, so the full title's tooltip opens on tap. -->
         <Badge variant="muted" class="relative max-w-full"><TruncatedText text={application.jobTitle} /></Badge>
-      {/if}
-      {#if ai && ai.level.rank > 0}
-        <VerificationChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
       {/if}
       {#if application.rating?.state === 'Rated' || application.rating?.state === 'AfterYourScorecard'}
         <!-- relative: above the item's link, so the count's or "After yours"'s tooltip opens on tap. -->

@@ -15,16 +15,16 @@ const rows: ApplicationSummary[] = [
 ];
 
 function chips() {
-  return within(screen.getByRole('group', { name: 'Authenticity' }))
+  return within(screen.getByRole('group', { name: 'Verification' }))
     .getAllByRole('button')
     .map((button) => button.textContent?.replace(/\s+/g, ' ').trim());
 }
 
-describe('authenticity filter', () => {
-  it('is a chip per level with its count in words, with no status icon or colour (I2, T1)', async () => {
+describe('verification filter chips', () => {
+  it('is a chip per state, by its one word, with its count in words, with no status icon or colour (I2, T1)', async () => {
     const { container } = render(Harness, { props: { applications: rows } });
 
-    expect(chips()).toEqual(['No concerns 2', 'Review suggested 1', 'Verification suggested 1', 'Checks pending 1']);
+    expect(chips()).toEqual(['Clear 2', 'Review 1', 'Verify 1', 'Pending 1']);
     expect(screen.getByText('1 dismissed after review')).toBeInTheDocument();
     expect(container.querySelector('[data-status-icon]')).toBeNull();
     expect(container.querySelector('[class*="bg-status-"]')).toBeNull();
@@ -35,38 +35,38 @@ describe('authenticity filter', () => {
     render(Harness, { props: { applications: rows } });
     const filter = () => JSON.parse(screen.getByTestId('filter').textContent!);
 
-    await fireEvent.click(screen.getByRole('button', { name: /Review suggested/ }));
-    expect(filter()).toEqual({ authenticity: 'ReviewSuggested', aiAssistance: null });
-    expect(screen.getByRole('button', { name: /Review suggested/ })).toHaveAttribute('aria-pressed', 'true');
+    await fireEvent.click(screen.getByRole('button', { name: /Review/ }));
+    expect(filter()).toEqual({ authenticity: 'ReviewSuggested' });
+    expect(screen.getByRole('button', { name: /Review/ })).toHaveAttribute('aria-pressed', 'true');
 
-    await fireEvent.click(screen.getByRole('button', { name: /Review suggested/ }));
+    await fireEvent.click(screen.getByRole('button', { name: /Review/ }));
     expect(filter().authenticity).toBeNull();
-    expect(screen.getByRole('button', { name: /Review suggested/ })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: /Review/ })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('leaves out the pending chip once every application is assessed', () => {
     render(Harness, { props: { applications: rows.slice(0, 4) } });
 
-    expect(chips()).toEqual(['No concerns 2', 'Review suggested 1', 'Verification suggested 1']);
+    expect(chips()).toEqual(['Clear 2', 'Review 1', 'Verify 1']);
   });
 
   it('offers the same choices in a filter menu on a phone', async () => {
     render(Harness, { props: { applications: rows, menu: true } });
     const filter = () => JSON.parse(screen.getByTestId('filter').textContent!);
 
-    const trigger = screen.getByRole('button', { name: 'Authenticity: All' });
+    const trigger = screen.getByRole('button', { name: 'Verification: All' });
     await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
     const items = await screen.findAllByRole('menuitemradio');
     expect(items.map((item) => item.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
       'All 5',
-      'No concerns 2',
-      'Review suggested 1',
-      'Verification suggested 1',
-      'Checks pending 1',
+      'Clear 2',
+      'Review 1',
+      'Verify 1',
+      'Pending 1',
     ]);
 
-    await fireEvent.click(screen.getByRole('menuitemradio', { name: /Verification suggested/ }));
+    await fireEvent.click(screen.getByRole('menuitemradio', { name: /Verify/ }));
     expect(filter().authenticity).toBe('VerificationRecommended');
-    expect(screen.getByRole('button', { name: 'Authenticity: Verification suggested' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Verification: Verify' })).toBeInTheDocument();
   });
 });

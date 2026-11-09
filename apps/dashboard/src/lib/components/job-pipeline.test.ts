@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 describe('job pipeline', () => {
-  it('holds the search and the view switch in its header, and the Stage filter and authenticity chips on a row under it', () => {
+  it('holds the search and the view switch in its header, and the Stage filter and verification chips on a row under it', () => {
     renderPipeline();
     const header = panelHeader();
 
@@ -54,7 +54,7 @@ describe('job pipeline', () => {
 
     expect(within(filters()).getByRole('button', { name: 'Stage: All' })).toBeInTheDocument();
     // The fixtures have no assessment yet, so every candidate is waiting for checks.
-    expect(within(within(filters()).getByRole('group', { name: 'Authenticity' })).getByRole('button', { name: `Checks pending ${applications.length}` })).toBeInTheDocument();
+    expect(within(within(filters()).getByRole('group', { name: 'Verification' })).getByRole('button', { name: `Pending ${applications.length}` })).toBeInTheDocument();
   });
 
   it('gives the search its own row under the header on a phone, where the header has no room for it (F5)', () => {
@@ -82,14 +82,14 @@ describe('job pipeline', () => {
     expect(names()).toEqual(['Jordan Lee']);
   });
 
-  it('filters by an authenticity chip, and a new filter starts a new selection (ADR-0004)', async () => {
+  it('filters by a verification chip, and a new filter starts a new selection (ADR-0004)', async () => {
     renderPipeline();
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     expect(selectionBar()).toHaveTextContent('1 selected');
 
-    await fireEvent.click(within(filters()).getByRole('button', { name: /^Checks pending/ }));
+    await fireEvent.click(within(filters()).getByRole('button', { name: /^Pending/ }));
 
-    expect(within(filters()).getByRole('button', { name: /^Checks pending/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(filters()).getByRole('button', { name: /^Pending/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('region', { name: 'Selected candidates' })).toBeNull();
   });
 
@@ -147,7 +147,7 @@ describe('job pipeline', () => {
       { id: 'withdrawn', name: 'Withdrawn', kind: 'Withdrawn' },
     ];
     // The fixtures have no assessment yet, so the Pending filter shows every row.
-    renderPipeline({ stages: withEnds, verificationFilter: { authenticity: 'Pending', aiAssistance: null } });
+    renderPipeline({ stages: withEnds, verificationFilter: { authenticity: 'Pending' } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
 
     await fireEvent.pointerDown(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' }), { button: 0, pointerType: 'mouse' });
@@ -164,7 +164,7 @@ describe('job pipeline', () => {
     unmount();
 
     // The fixtures have no assessment yet, so the Pending filter shows every row.
-    renderPipeline({ verificationFilter: { authenticity: 'Pending', aiAssistance: null } });
+    renderPipeline({ verificationFilter: { authenticity: 'Pending' } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     expect(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -178,7 +178,7 @@ describe('job pipeline', () => {
     unmount();
 
     // The fixtures have no assessment yet, so the Pending filter shows every row.
-    renderPipeline({ verificationFilter: { authenticity: 'Pending', aiAssistance: null } });
+    renderPipeline({ verificationFilter: { authenticity: 'Pending' } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     expect(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
     expect(within(selectionBar()).queryByRole('button', { name: /Save candidate/ })).toBeNull();
@@ -235,17 +235,17 @@ describe('job pipeline', () => {
     expect(within(panelHeader()).getByRole('button', { name: 'Board' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('offers the Stage, Authenticity and Sort chips in one row above the list on a phone (L2, section 8)', () => {
+  it('offers the Stage, Verification and Sort chips in one row above the list on a phone (L2, section 8)', () => {
     stubViewport(390);
     renderPipeline();
 
     expect(screen.queryByRole('table')).toBeNull();
     const toolbar = screen.getByRole('button', { name: 'Sort' }).parentElement!;
-    expect(within(toolbar).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Stage: All', 'Authenticity: All', 'Save view', 'Sort']);
+    expect(within(toolbar).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Stage: All', 'Verification: All', 'Save view', 'Sort']);
   });
 
   it('keeps every move on a filtered board to one card: no ticks and no selection bar (ADR-0004)', async () => {
-    renderPipeline({ verificationFilter: { authenticity: 'Pending', aiAssistance: null } });
+    renderPipeline({ verificationFilter: { authenticity: 'Pending' } });
     await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Board' }));
 
     expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();
@@ -255,12 +255,12 @@ describe('job pipeline', () => {
     expect(screen.getByRole('button', { name: 'Actions for Casey Morgan' })).toBeInTheDocument();
   });
 
-  it('filters the board by an authenticity level, with no Stage filter: its columns are the stages', async () => {
+  it('filters the board by a verification state, with no Stage filter: its columns are the stages', async () => {
     renderPipeline();
     await fireEvent.click(within(panelHeader()).getByRole('button', { name: 'Board' }));
 
     expect(within(filters()).queryByRole('button', { name: /^Stage/ })).toBeNull();
-    await fireEvent.click(within(filters()).getByRole('button', { name: /^Review suggested/ }));
+    await fireEvent.click(within(filters()).getByRole('button', { name: /^Review/ }));
 
     expect(screen.getByText('No candidates match these filters.')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
@@ -302,7 +302,7 @@ describe('job pipeline views', () => {
     renderPipeline();
     expect(within(filters()).getByRole('button', { name: 'Save view' })).toBeDisabled();
 
-    await fireEvent.click(within(filters()).getByRole('button', { name: /^Checks pending/ }));
+    await fireEvent.click(within(filters()).getByRole('button', { name: /^Pending/ }));
 
     const save = within(filters()).getAllByRole('button').at(-1)!;
     expect(save).toHaveAccessibleName('Save view');
@@ -340,7 +340,7 @@ describe('job pipeline views', () => {
     renderPipeline({
       stages: [...stages, { id: 'rejected', name: 'Rejected', kind: 'Rejected' }, { id: 'withdrawn', name: 'Withdrawn', kind: 'Withdrawn' }],
     });
-    await waitFor(() => expect(within(filters()).getByRole('button', { name: /^Checks pending/ })).toHaveAttribute('aria-pressed', 'true'));
+    await waitFor(() => expect(within(filters()).getByRole('button', { name: /^Pending/ })).toHaveAttribute('aria-pressed', 'true'));
 
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -364,7 +364,7 @@ describe('job pipeline views', () => {
     );
     expect(within(filters()).getByRole('button', { name: 'Save view' })).toBeDisabled();
 
-    await fireEvent.click(within(filters()).getByRole('button', { name: /^Checks pending/ }));
+    await fireEvent.click(within(filters()).getByRole('button', { name: /^Pending/ }));
 
     await waitFor(() => expect(within(filters()).getByRole('button', { name: 'Save view' })).toBeEnabled());
   });

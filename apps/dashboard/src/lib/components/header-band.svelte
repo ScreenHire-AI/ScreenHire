@@ -35,7 +35,7 @@
     facts?: Snippet;
     /** `MetaItem` items: one line of facts that read without their labels, each with its icon. */
     meta?: Snippet;
-    /** A record's pipeline tracker and mini cards, under its meta line (section 7). */
+    /** A record's rating, tags and stage rail, under its meta line (section 7). */
     summary?: Snippet;
     /** Tabs on the band's bottom edge. */
     tabs?: Snippet;

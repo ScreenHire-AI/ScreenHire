@@ -6,7 +6,7 @@ tags: [adr, design, candidate, dashboard]
 ---
 # ADR-0025: The pipeline tracker is a bar of stages
 
-- **Status:** Accepted (2026-11-05)
+- **Status:** Accepted (2026-11-05); the bar is replaced by the stage rail of the [November 2026 redesign](../design/redesign-2026-11.md) (candidate page pick 2)
 - **Deciders:** Owner
 - **Amends:** ADR-0023 decision 3 (the tracker's dots), and the exception it made to square steps
 - **Detail:** `docs/design/design-system.md` T4 and section 11

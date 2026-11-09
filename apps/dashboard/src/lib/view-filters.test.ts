@@ -22,7 +22,7 @@ describe('what a saved view holds', () => {
       baseView: 'needs-review',
       jobIds: ['job-1'],
       stages: ['Screening'],
-      verification: { authenticity: 'Pending', aiAssistance: null },
+      verification: { authenticity: 'Pending' },
       tag: 'Referral',
       sort: { id: 'candidate', desc: false },
     });
@@ -40,12 +40,24 @@ describe('what a saved view holds', () => {
   });
 
   it('reads a verification filter back, and takes a level this build does not know as no filter', () => {
-    expect(verificationOf({ ...unfiltered('Candidates'), authenticity: 'ReviewSuggested', aiAssistance: 'SomeIndicators' })).toEqual({
-      authenticity: 'ReviewSuggested',
-      aiAssistance: 'SomeIndicators',
-    });
+    expect(verificationOf({ ...unfiltered('Candidates'), authenticity: 'ReviewSuggested' })).toEqual({ authenticity: 'ReviewSuggested' });
     expect(verificationOf({ ...unfiltered('Candidates'), authenticity: 'Pending' }).authenticity).toBe('Pending');
-    expect(verificationOf({ ...unfiltered('Candidates'), authenticity: 'Fraud', aiAssistance: 'toString' })).toEqual({ authenticity: null, aiAssistance: null });
+    expect(verificationOf({ ...unfiltered('Candidates'), authenticity: 'Fraud' })).toEqual({ authenticity: null });
+  });
+
+  it('drops the AI assistance filter a view saved before it became information, and keeps the view\'s other filters', () => {
+    const old = { ...unfiltered('Candidates'), authenticity: 'ReviewSuggested', aiAssistance: 'SomeIndicators', tag: 'Referral' };
+
+    expect(verificationOf(old)).toEqual({ authenticity: 'ReviewSuggested' });
+    // The saved filter no longer tells two views apart, and a table saves none.
+    expect(sameFilters(old, { ...old, aiAssistance: null }, 'Candidates')).toBe(true);
+    expect(filtersOf({ verification: verificationOf(old), tag: 'Referral', sort: defaultSorts.Candidates }).aiAssistance).toBeNull();
+  });
+
+  it('maps a saved sort by the old Authenticity column onto Verification, and one by AI assistance onto the default', () => {
+    expect(sortOf({ ...unfiltered('Candidates'), sortColumn: 'authenticity', sortDescending: true }, 'Candidates')).toEqual({ id: 'verification', desc: true });
+    expect(sortOf({ ...unfiltered('Candidates'), sortColumn: 'aiAssistance', sortDescending: true }, 'Candidates')).toEqual(defaultSorts.Candidates);
+    expect(sortOf({ ...unfiltered('Job'), sortColumn: 'aiAssistance', sortDescending: true }, 'Job')).toEqual(defaultSorts.Job);
   });
 
   it('opens each table on its own default sort when the view holds none', () => {
