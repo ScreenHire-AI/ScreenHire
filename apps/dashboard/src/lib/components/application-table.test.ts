@@ -369,6 +369,22 @@ describe('candidate table on a phone', () => {
     expect(items[1]!.querySelector('[data-verification-chip="authenticity"]')).toHaveAttribute('data-level', 'pending');
   });
 
+  // A job with hundreds of applications would make the page as tall as it is busy (S9): a page is listed, Show more adds one.
+  it('lists 50 applications at a time and adds the next 50 with Show more, saying how many are shown', async () => {
+    stubViewport(360);
+    const many = Array.from({ length: 120 }, (_, index) => ({ ...applications[0]!, id: `a-${index}`, candidateName: `Applicant ${index}` }));
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: many } } });
+
+    const list = () => within(screen.getByRole('list', { name: 'Candidates' })).getAllByRole('listitem');
+    expect(list()).toHaveLength(50);
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 50 of 120');
+    await fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+    expect(list()).toHaveLength(100);
+    await fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+    expect(list()).toHaveLength(120);
+    expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument();
+  });
+
   it('says why when there is nothing to show', () => {
     stubViewport(360);
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: [], emptyText: 'No candidates yet.' } } });

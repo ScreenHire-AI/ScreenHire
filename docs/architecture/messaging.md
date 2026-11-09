@@ -9,6 +9,7 @@ sources:
   - resource: src/ScreenHire.Application/Messaging/ScreenHireMessaging.cs
   - resource: src/ScreenHire.Application/Messaging/TenantMessageMiddleware.cs
   - resource: apps/worker/Program.cs
+  - resource: tests/ScreenHire.E2E/WebhookStatesTests.cs
   - resource: tests/ScreenHire.IntegrationTests/Messaging/DeadLetterTests.cs
   - resource: tests/ScreenHire.IntegrationTests/Messaging/HiringMessagingTests.cs
   - resource: tests/ScreenHire.IntegrationTests/Messaging/MessagingHost.cs
@@ -270,6 +271,7 @@ counter in process; no test reads them back from the dashboard.
 | `Automations/AutomationEmailTests` | the workflow engine through the running stack: entering a stage sends the configured email (read back from Mailpit), and replaying the same `ApplicationMoved` sends nothing twice |
 | `Automations/TimeElapsedTests` | entering a stage schedules a durable timer; the timer runs its automation when it fires, and a timer from a stage entry the application has left does nothing |
 | `Webhooks/WebhookSubscriptionTests` | webhook subscriptions through the running stack, with a receiver on loopback (`WebhookReceiver`): signed deliveries with ids only, secret rotation, retries with backoff, replay, automatic disabling and re-enabling, tenant isolation, URL and event validation |
+| `WebhookStatesTests` (end to end) | the endpoint's page in a browser through a receiver that answers 500 and recovers, hangs past the timeout, gives up, keeps failing until the endpoint is turned off, and does not know a rotated secret: each shows its status, the words for what happened and the way forward (Turn on, Replay delivery) |
 | `Automations/WorkflowEngineTests` | validate and simulate; a manual run's tag and rejection-review task; two automations moving an application back and forth stopped as a loop; and, in a private schema with no retries, a dead-lettered action reaching the automation issues list |
 | `Automations/TaskTests` | My tasks (`/v1/tasks`) on tasks a manual run made: the person's own, the team's and everyone's, completing once with who did it, reopening (Undo) once, done tasks; another organization sees, completes and reopens none, and a Viewer can do neither |
 | `Automations/ScorecardTests` | A submitted scorecard, its answers checked by kind, runs its ReviewerDecision automation once with the recommendation as a fact; the same submission again, or two at once, is one scorecard and one run; a different one conflicts; another organization reads and submits none, and a Viewer only reads |
