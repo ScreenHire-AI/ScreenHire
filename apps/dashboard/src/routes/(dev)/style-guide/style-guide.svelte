@@ -72,7 +72,6 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
-  import LevelScale from '#lib/components/level-scale.svelte';
   import MentionField from '#lib/components/mention-field.svelte';
   import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import NoteText from '#lib/components/note-text.svelte';
@@ -118,7 +117,7 @@
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import type { Tracker, TrackerStep } from '#lib/pipeline-tracker.js';
   import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
-  import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder, pendingState, verificationStateOf } from '#lib/verification.js';
+  import { pendingState, verificationStateOf } from '#lib/verification.js';
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
@@ -1551,8 +1550,6 @@
             <AiMark level="SomeIndicators" />
             <AiMark level="StrongIndicators" />
           </div>
-          <LevelScale levels={authenticityOrder.map((id) => authenticityLevels[id])} current={authenticityLevels.VerificationRecommended} name="Authenticity" />
-          <LevelScale levels={aiAssistanceOrder.map((id) => aiAssistanceLevels[id])} current={aiAssistanceLevels.NotIndicated} name="AI assistance" />
           <SignalEvidence evidence={quote} />
         </div>
       </Panel>

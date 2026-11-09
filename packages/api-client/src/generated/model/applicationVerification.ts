@@ -6,6 +6,7 @@
  */
 import type { AiAssistanceAssessmentView } from './aiAssistanceAssessmentView.ts';
 import type { AuthenticityAssessmentView } from './authenticityAssessmentView.ts';
+import type { CheckGroupView } from './checkGroupView.ts';
 import type { CheckNotRun } from './checkNotRun.ts';
 import type { ConsistencyCheckView } from './consistencyCheckView.ts';
 import type { VerificationActionAvailability } from './verificationActionAvailability.ts';
@@ -16,7 +17,7 @@ import type { VerificationStatus } from './verificationStatus.ts';
  * An application's verification: two separate assessments, each a categorical level with reason codes, the signals and
  * their evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score
  * or percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in
- * `reviewLog`.
+ * `reviewLog`, the audit trail the dashboard shows in the candidate's Activity.
  */
 export interface ApplicationVerification {
   applicationId: string;
@@ -28,4 +29,6 @@ export interface ApplicationVerification {
   consistencyCheck: null | ConsistencyCheckView;
   /** @nullable */
   checksNotRun?: CheckNotRun[] | null;
+  /** @nullable */
+  checkGroups?: CheckGroupView[] | null;
 }

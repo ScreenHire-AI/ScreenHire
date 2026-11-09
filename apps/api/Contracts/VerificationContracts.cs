@@ -9,13 +9,15 @@ namespace ScreenHire.Api.Contracts;
 /// An application's verification: two separate assessments, each a categorical level with reason codes, the signals and
 /// their evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score
 /// or percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in
-/// <c>reviewLog</c>.
+/// <c>reviewLog</c>, the audit trail the dashboard shows in the candidate's Activity.
 /// </summary>
 /// <remarks>
 /// <c>status</c> is <c>Pending</c> until the pipeline has assessed the application; both assessments are null then.
 /// <c>requestVerification</c> says whether a reviewer can ask the candidate to verify their identity (phase 2).
 /// <c>consistencyCheck</c> is the LLM consistency check's state: null until it is decided, then whether it ran and, if
 /// not, why. A check that could not run is unavailable, never a mark against the application.
+/// <c>checkGroups</c>: the six groups of checks in order, each with what it found (<see cref="CheckGroupView"/>); the
+/// dashboard's Verification tab is organised by them.
 /// </remarks>
 public sealed record ApplicationVerification(
     Guid ApplicationId,
@@ -25,7 +27,28 @@ public sealed record ApplicationVerification(
     IReadOnlyList<VerificationReviewEntry> ReviewLog,
     VerificationActionAvailability RequestVerification,
     ConsistencyCheckView? ConsistencyCheck,
-    IReadOnlyList<CheckNotRun>? ChecksNotRun = null);
+    IReadOnlyList<CheckNotRun>? ChecksNotRun = null,
+    IReadOnlyList<CheckGroupView>? CheckGroups = null);
+
+/// <summary>
+/// What one group of checks did for an application. <c>found</c> counts its signals that count toward the level; <c>notes</c>
+/// the others (AI help and context that never counts), which are information only. <c>state</c> is the one word for the group:
+/// <c>Found</c> when <c>found</c> is above 0, else <c>InformationOnly</c> when <c>notes</c> is, else <c>NotChecked</c> (the
+/// application was added by hand, so there was no careers form for this group to read), <c>TurnedOff</c> (the organization's
+/// settings) or <c>NothingFound</c>. <c>checked</c> names what the group looks at. <c>note</c> is what the organization's
+/// settings changed in it (it is turned off, or a trusted domain or network stopped a signal), when they did.
+/// </summary>
+public sealed record CheckGroupView(CheckGroup Group, string Label, CheckGroupState State, int Found, int Notes, string Checked, string? Note);
+
+/// <summary>The one word a group of checks has on the Verification tab.</summary>
+public enum CheckGroupState
+{
+    Found,
+    InformationOnly,
+    NothingFound,
+    NotChecked,
+    TurnedOff,
+}
 
 /// <summary>
 /// A group of checks that did not run, or did not count something, because of the organization's settings: its group was turned
@@ -97,7 +120,7 @@ public sealed record AiAssistanceAssessmentView(
 /// <remarks>
 /// <c>countsTowardLevel</c>: the signal is in a category another independent category backs up, so it is one of the
 /// level's reasons. <c>contextOnly</c>: shown for context and never a reason on its own (a VPN, a failed bot challenge).
-/// <c>source</c> and <c>sourceVersion</c>: the analyzer that observed it. <c>informational</c>: shown and never counted.
+/// <c>source</c> and <c>sourceVersion</c>: the analyzer that observed it. <c>group</c>: the group of checks that analyzer belongs to; a stored signal from an analyzer that no longer exists takes its category's group. <c>informational</c>: shown and never counted.
 /// <c>llm</c>: for a signal a language model helped derive, the prompt version and the models that answered.
 /// <c>explained</c>: a reviewer marked this reason explained, and nobody undid it. It decides nothing: the level and
 /// everything that reads it stay as assessed.
@@ -120,7 +143,8 @@ public sealed record VerificationSignalView(
     DateTimeOffset ObservedAt,
     bool Informational,
     LlmProvenance? Llm,
-    VerificationReasonExplanation? Explained);
+    VerificationReasonExplanation? Explained,
+    CheckGroup Group);
 
 /// <summary>A reviewer marked one reason explained. <c>actorName</c> is the reviewer's display name, when they have one.</summary>
 public sealed record VerificationReasonExplanation(
