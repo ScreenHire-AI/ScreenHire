@@ -49,18 +49,21 @@
     <Sidebar.Trigger size="icon-lg" class="-ml-1.5 lg:hidden" />
   {/if}
 
-  <nav aria-label="Breadcrumb" class="min-w-0 flex-1">
+  <!-- A top-level page is one crumb, which would say its own title again a few pixels above it (W7): its name is the
+       header band's title, so the bar keeps only where a page sits under another. The landmark stays for screen readers. -->
+  {#if crumbs.length < 2}<div aria-hidden="true" class="min-w-0 flex-1"></div>{/if}
+  <nav aria-label="Breadcrumb" class={crumbs.length < 2 ? 'sr-only' : 'min-w-0 flex-1'}>
     <ol class="flex min-w-0 items-center gap-1.5 text-body text-muted-foreground">
       {#each crumbs as crumb, index (index)}
         {@const last = index === crumbs.length - 1}
         {@const parent = index > 0 && index === crumbs.length - 2}
-        <!-- Phones show where you are; the levels above it are Back and the sidebar. Below lg every level between the first
+        <!-- A phone's detail page has Back, and its own name is the title just below, so the bar leaves it out (W7). Phones otherwise show where you are; the levels above it are Back and the sidebar. Below lg every level between the first
              and the page goes too: the parent would shrink to nothing and leave its slash. The parent gives way before the page's own name: flex shares the shrink by
              factor times width, and at 10000 the name's share stays under a layout unit, so it shows no ellipsis. -->
         <li
           class={[
             'flex items-center gap-1.5',
-            last ? 'min-w-0' : parent ? 'min-w-0 shrink-10000 max-lg:hidden' : index === 0 ? 'shrink-0 max-md:hidden' : 'shrink-0 max-lg:hidden',
+            last ? ['min-w-0', back && 'max-md:hidden'] : parent ? 'min-w-0 shrink-10000 max-lg:hidden' : index === 0 ? 'shrink-0 max-md:hidden' : 'shrink-0 max-lg:hidden',
           ]}
         >
           {#if index > 0}<span aria-hidden="true" class="max-md:hidden">/</span>{/if}

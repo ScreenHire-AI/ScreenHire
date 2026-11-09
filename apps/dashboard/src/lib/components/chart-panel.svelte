@@ -12,6 +12,12 @@
     csv?: (row: T) => string | number | null;
     /** Makes the cell a link; only the first column (the row's name) takes one. */
     href?: (row: T) => string;
+    /** A number: right-aligned under a right-aligned header, so the digits line up (the first column is never one). */
+    align?: 'end';
+    /** A tooltip for the cell, for a fact that has no column of its own (W6); null for none. */
+    hint?: (row: T) => string | null;
+    /** In the CSV export only: the table does not draw it. */
+    csvOnly?: boolean;
   }
 </script>
 
@@ -20,6 +26,7 @@
   import TableIcon from '~icons/lucide/table';
   import { createSortedRowModel, createTable, rowSortingFeature, sortFn_alphanumeric, sortFn_basic, tableFeatures, type ColumnDef, type RowData } from '@tanstack/svelte-table';
   import { untrack, type Snippet } from 'svelte';
+  import Hint from '#lib/components/hint.svelte';
   import Panel from '#lib/components/panel.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
@@ -33,7 +40,8 @@
   // A report's panel (design system section 11, Chart panel): the title, a Chart / Table switch on the header's right,
   // then the chart or the same numbers as a table. No sentence sits under the title (W9); what the numbers count is read
   // out to screen readers only. Every chart has the table (WCAG 1.1.1), and the table sorts like every other (L2),
-  // remembered per table. The first column is the row's name. A panel with no `chart` is a table alone, with no switch.
+  // remembered per table. The table view is flush, so it runs edge to edge with its first and last columns on the panel's
+  // padding (L4) and no empty band under its last row; rows are 40px, so a report shows more of its numbers at once. The first column is the row's name. A panel with no `chart` is a table alone, with no switch.
   // `empty` replaces both views when there is nothing to show; `busy` dims them while new numbers load, keeping the frame.
   let {
     title,
@@ -96,9 +104,13 @@
     getRowId: (row) => rowKey(row),
   });
   const sorted = $derived(table.getRowModel().rows.map((row) => row.original));
+  // The columns the table draws, and whether it is on screen: the empty state and the chart sit in a padded body instead.
+  const shown = $derived(columns.filter((column) => !column.csvOnly));
+  const showsTable = $derived(!(rows.length === 0 && empty) && (!chart || view === 'table'));
+  const end = (column: ChartColumn<T>) => column.align === 'end' && 'text-right';
 </script>
 
-<Panel {title} class={className} aria-busy={busy || undefined}>
+<Panel {title} class={className} flush={showsTable} fill aria-busy={busy || undefined}>
   {#snippet actions()}
     {#if chart}
       <div role="group" aria-label="View" class="flex gap-1">
@@ -119,30 +131,31 @@
       </div>
     {/if}
   {/snippet}
-  <div class={cn('flex min-w-0 flex-col gap-4 transition-opacity motion-reduce:transition-none', busy && 'opacity-60')}>
+  <div class={cn('flex min-h-0 min-w-0 flex-1 flex-col gap-4 transition-opacity motion-reduce:transition-none', busy && 'opacity-60')}>
     {#if basis}<p class="sr-only">{basis}</p>{/if}
     {#if rows.length === 0 && empty}
       {@render empty()}
     {:else if chart && view === 'chart'}
       {@render chart()}
     {:else}
-      <div class="-mx-4.5 overflow-x-auto max-md:-mx-4">
+      <div class="overflow-x-auto">
         <Table.Root>
           <Table.Header>
             {#each table.getHeaderGroups() as group (group.id)}
               <Table.Row class="bg-muted hover:bg-muted">
-                {#each group.headers as header, index (header.id)}
-                  <SortHeader {header} class={index === 0 ? 'px-4.5 max-md:px-4' : undefined} />
+                {#each group.headers as header (header.id)}
+                  {@const column = shown.find((candidate) => candidate.id === header.column.id)}
+                  {#if column}<SortHeader {header} class={cn('h-9', end(column))} />{/if}
                 {/each}
               </Table.Row>
             {/each}
           </Table.Header>
           <Table.Body>
             {#each sorted as row (rowKey(row))}
-              <Table.Row class="h-12">
-                {#each columns as column, index (column.id)}
+              <Table.Row class="h-10">
+                {#each shown as column, index (column.id)}
                   {#if index === 0}
-                    <Table.Cell class="w-full max-w-0 min-w-40 px-4.5 font-semibold max-md:px-4">
+                    <Table.Cell class="w-full max-w-0 min-w-40 font-semibold">
                       {#if column.href}
                         <a href={column.href(row)} class="inline-flex min-h-6 max-w-full min-w-0 items-center text-primary underline underline-offset-2 pointer-coarse:min-h-11"
                           ><TruncatedText text={column.text(row)} /></a
@@ -153,8 +166,11 @@
                     </Table.Cell>
                   {:else}
                     {@const text = column.text(row)}
-                    <Table.Cell class="whitespace-nowrap tabular-nums">
-                      {#if text}{text}{:else}<span class="sr-only">{column.blank ?? 'None'}</span>{/if}
+                    {@const hint = column.hint?.(row)}
+                    <Table.Cell class={cn('whitespace-nowrap tabular-nums', end(column))}>
+                      {#if hint}
+                        <Hint content={hint}>{#snippet children({ props })}<span {...props}>{text}</span>{/snippet}</Hint>
+                      {:else if text}{text}{:else}<span class="sr-only">{column.blank ?? 'None'}</span>{/if}
                     </Table.Cell>
                   {/if}
                 {/each}

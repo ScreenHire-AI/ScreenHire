@@ -8,6 +8,7 @@ import { previousInstants, rangeInstants } from '#lib/report-range.js';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub, jobs, user } from '../../../test-support/fixtures.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
+import WithTooltips from '../../../test-support/with-tooltips.svelte';
 import Page from './+page.svelte';
 
 const location = vi.hoisted(() => ({ url: new URL('http://dashboard.test/reports') }));
@@ -79,7 +80,8 @@ function renderPage(body: HiringReport = report, jobList: readonly unknown[] = j
       return others(input, init);
     }),
   );
-  render(WithQueryClient, { props: { component: Page, props: {} } });
+  // Under a tooltip provider, as the root layout has, so a cell's hint can open.
+  render(WithQueryClient, { props: { component: WithTooltips, props: { component: Page } } });
   return asked;
 }
 
@@ -113,6 +115,19 @@ describe('reports page', () => {
     // The change is muted text with an arrow: a report states how far a number moved, it does not judge it.
     expect(stats.querySelectorAll('[class*="text-status-"]')).toHaveLength(0);
     expect(stats.querySelectorAll('[data-report-change] svg')).toHaveLength(3);
+  });
+
+  it('packs each headline number into two rows: the title, then the value with its change on the same line', async () => {
+    renderPage();
+
+    const stats = await screen.findByRole('group', { name: 'Headline numbers' });
+    for (const card of stats.querySelectorAll('[data-slot="report-stat"]')) {
+      const value = card.querySelector('.text-metric')!;
+      const change = card.querySelector('[data-report-change]');
+      // The change pill sits beside the value, never in a row of its own, and no tile carries an icon chip.
+      if (change) expect(change.parentElement).toBe(value.parentElement);
+      expect(card.querySelector('.bg-secondary:not([data-report-change])')).toBeNull();
+    }
   });
 
   it('shows the funnel with each stage linked to its candidates and the biggest drop marked', async () => {
@@ -176,9 +191,17 @@ describe('reports page', () => {
     const open = screen.getByRole('region', { name: 'Open jobs' });
     const table = within(open).getByRole('table');
     expect(within(open).queryByRole('button', { name: 'Chart' })).toBeNull();
-    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(['Job', 'Opened', 'Applications', 'In interview', 'Days open', 'Hires']);
+    expect(within(table).getAllByRole('columnheader').map((header) => header.textContent?.trim())).toEqual(['Job', 'Applications', 'In interview', 'Days open', 'Hires']);
     const cells = within(table).getAllByRole('row').slice(1).map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent?.trim()));
-    expect(cells).toEqual([[jobs[0]!.title, formatDate('2026-10-19T12:00:00Z'), '6', '2', '12', '1']]);
+    // Days open says how long; the date it opened is that cell's tooltip, not a column of its own (W6, W7).
+    expect(cells).toEqual([[jobs[0]!.title, '6', '2', '12', '1']]);
+    // Numbers line up on their right edge, under right-aligned headers, and the name stays on the left.
+    for (const header of within(table).getAllByRole('columnheader').slice(1)) expect(header).toHaveClass('text-right');
+    for (const cell of within(table).getAllByRole('row')[1]!.querySelectorAll('td:not(:first-child)')) expect(cell).toHaveClass('text-right');
+    const daysOpen = within(table).getByText('12');
+    expect(daysOpen).toHaveAttribute('tabindex', '0');
+    await fireEvent.focus(daysOpen);
+    expect(document.getElementById(daysOpen.getAttribute('aria-describedby')!)).toHaveTextContent(`Opened ${formatDate('2026-10-19T12:00:00Z')}`);
     expect(within(table).getByRole('link', { name: jobs[0]!.title })).toHaveAttribute('href', `/jobs/${jobs[0]!.id}`);
     await expectNoAxeViolations();
   });
@@ -234,6 +257,8 @@ describe('reports page', () => {
     expect(titles).toEqual(['Headline numbers', 'Applications and hires by week', 'Hiring funnel', 'Time to hire', 'Sources', 'Open jobs']);
     expect(csv).toContain('Measure,These dates,Previous dates\r\nApplications,8,5\r\n');
     expect(csv).toContain('Stage,Applications,Of applicants,Moved on\r\nApplied,8,1,0.625\r\n');
+    // The date a job opened is not a column of the table, but the export keeps it.
+    expect(csv).toContain('Job,Opened,Applications,In interview,Days open,Hires\r\n');
     expect(csv).toContain('Source,Applications,Hires,Hire rate\r\nCareers page,6,1,0.167\r\nYour website,2,0,0\r\n');
     expect(csv).not.toMatch(/verif/i);
   });
