@@ -200,6 +200,17 @@ describe('billing page', () => {
     await expectNoAxeViolations();
   });
 
+  it('opens with the dialog focused, so the tooltip on the date does not open over the text by itself', async () => {
+    renderPage(active);
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
+    await waitFor(() => expect(dialog).toHaveTextContent('a month from'));
+    await waitFor(() => expect(document.activeElement).toBe(dialog));
+    expect(within(dialog).getByText('Dec 5, 2026').closest('[data-slot="tooltip-trigger"]')).not.toBe(document.activeElement);
+  });
+
   it('says nothing is due now for a cheaper plan and that the unused time is credited', async () => {
     renderPage({ ...active, currentPlan: growth, activeJobLimit: 25, nextPaymentAmount: 99 });
 
@@ -234,7 +245,7 @@ describe('billing page', () => {
     expect(within(dialog).getByRole('button', { name: 'Confirm change' })).toBeDisabled();
   });
 
-  it('says why the change was refused and leaves the dialog open', async () => {
+  it('says why the change was refused, leaves the dialog open and prices the change again', async () => {
     renderPage(active, {
       'POST /v1/organization/billing/plan': () => Response.json({ detail: 'The plan was not changed and you have not been charged.' }, { status: 502 }),
     });
@@ -247,6 +258,8 @@ describe('billing page', () => {
     expect(await within(dialog).findByText('The plan was not changed and you have not been charged.')).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByText(/Your plan is changing/)).toBeNull();
+    await waitFor(() => expect(posted.filter((call) => call.path === 'preview')).toHaveLength(2));
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Confirm change' })).toBeEnabled());
   });
 
   it('says when a subscription that will not renew ends, instead of a next payment', async () => {
@@ -255,6 +268,7 @@ describe('billing page', () => {
     expect(await screen.findByText('Ends on', { selector: 'dt' })).toBeInTheDocument();
     expect(screen.getByText('Ends on', { selector: 'dt' }).nextElementSibling).toHaveTextContent('Dec 5, 2026');
     expect(screen.queryByText('Next payment')).toBeNull();
+    expect(within(plans()).queryByRole('button', { name: /^Switch/ })).toBeNull();
   });
 
   it('shows only the count when the plan has no limit', async () => {
