@@ -14,7 +14,7 @@ const ratingCells = () =>
 beforeEach(() => localStorage.clear());
 
 describe('rating column', () => {
-  it('shows each candidate rating with stars, and sorts highest first with the unrated last either way', async () => {
+  it('shows each candidate rating as the number only, no stars (L1), and sorts highest first with the unrated last either way', async () => {
     const rows = [
       { ...applications[0]!, rating: { state: 'NotRated' as const, scorecards: 0 } },
       { ...applications[1]!, rating: { state: 'Rated' as const, value: 3.7, scorecards: 2 } },
@@ -22,12 +22,12 @@ describe('rating column', () => {
     ];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: [ratingColumn] } } });
 
-    expect(screen.getByRole('img', { name: '4.1 of 5 stars' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /of 5 stars/ })).toBeNull();
     const header = screen.getByRole('button', { name: /^Rating/ });
     await fireEvent.click(header);
-    expect(ratingCells()).toEqual(['4.1 (3) from 3 scorecards', '3.7 (2) from 2 scorecards', 'Not rated yet']);
+    expect(ratingCells()).toEqual(['4.1 out of 5, from 3 scorecards', '3.7 out of 5, from 2 scorecards', 'Not rated yet']);
     await fireEvent.click(header);
-    expect(ratingCells()).toEqual(['3.7 (2) from 2 scorecards', '4.1 (3) from 3 scorecards', 'Not rated yet']);
+    expect(ratingCells()).toEqual(['3.7 out of 5, from 2 scorecards', '4.1 out of 5, from 3 scorecards', 'Not rated yet']);
   });
 
   it('leaves the cell of an unrated candidate blank, its words for screen readers only (L1)', () => {
