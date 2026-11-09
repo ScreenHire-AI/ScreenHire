@@ -682,7 +682,7 @@ describe('review fixes', () => {
   });
 
   it('gives every trigger a subject after "When"', () => {
-    const wf = flow();
+    const wf = flow([]);
     for (const type of triggerTypes) {
       const trigger: Automation['trigger'] = { type, stageId: triggerNeedsStage(type) || type === 'SlaBreached' ? 'screening' : undefined, afterHours: type === 'TimeElapsed' ? 48 : undefined };
       const line = automationLine({ id: 'a', name: 'a', trigger, conditions: null, actions: [{ type: 'AddTag', tag: 'x' }] }, wf);
