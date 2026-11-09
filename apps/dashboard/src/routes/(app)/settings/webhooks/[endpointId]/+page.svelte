@@ -75,12 +75,21 @@
   const sidebar = Sidebar.useSidebar();
   const settled = () => invalidatePath(queryClient, webhooksPath);
 
-  const endpoint = createGetWebhookEndpoint(() => params.endpointId);
-  // The log refreshes while a delivery is still being tried, so retries show without a reload.
+  // While the endpoint is on, the page reads it and its log every few seconds (not in a hidden tab): nothing tells the
+  // dashboard that a delivery arrived, was tried again, gave up or turned the endpoint off, and someone fixing a receiver
+  // watches for exactly that. A delivery still being tried keeps the log refreshing after the endpoint is off.
+  const endpoint = createGetWebhookEndpoint(
+    () => params.endpointId,
+    () => ({ query: { refetchInterval: (query) => (query.state.data?.data.enabled ? 5000 : false) } }),
+  );
   const deliveries = createListWebhookDeliveries(
     () => params.endpointId,
     undefined,
-    () => ({ query: { refetchInterval: (query) => (query.state.data?.data.some((delivery) => delivery.status === 'Pending') ? 5000 : false) } }),
+    () => ({
+      query: {
+        refetchInterval: (query) => (endpoint.data?.data.enabled || query.state.data?.data.some((delivery) => delivery.status === 'Pending') ? 5000 : false),
+      },
+    }),
   );
   const update = createUpdateWebhookEndpoint(() => ({ mutation: { onSettled: settled } }));
   const remove = createDeleteWebhookEndpoint(() => ({ mutation: { onSettled: settled } }));
@@ -100,6 +109,8 @@
   );
   const notFound = $derived(endpoint.error instanceof ApiError && endpoint.error.status === 404);
   const log = $derived(deliveries.data?.data ?? []);
+  // How many deliveries the API returns by default (`DefaultDeliveryLimit`): a log this long may hold more.
+  const deliveryLimit = 50;
 
   // The delivery log sorts like every table (L2), newest first.
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
@@ -285,7 +296,7 @@
           {/each}
         </ul>
       </Panel>
-      <Panel title="Deliveries" count={deliveries.isSuccess ? log.length : undefined} flush footer={actionFailure || replayFailure || !detail.enabled ? deliveriesFooter : undefined}>
+      <Panel title="Deliveries" count={deliveries.isSuccess ? log.length : undefined} flush footer={actionFailure || replayFailure || !detail.enabled || log.length >= deliveryLimit ? deliveriesFooter : undefined}>
           {#if deliveries.isError}
             <div class="p-4">
               <QueryError message={describeError(deliveries.error, 'Could not load the deliveries')} onretry={() => deliveries.refetch()} inset />
@@ -397,7 +408,11 @@
   {:else if replayFailure}
     <FailureText message={replayFailure} />
   {:else}
-    <p class="text-muted-foreground">Turn the endpoint on to replay deliveries.</p>
+    <!-- The API lists the latest 50 deliveries, so the count above never says more than that. -->
+    <p class="text-muted-foreground">
+      {#if !detail?.enabled}Turn the endpoint on to replay deliveries.{/if}
+      {#if log.length >= deliveryLimit}Showing the latest {deliveryLimit} deliveries.{/if}
+    </p>
   {/if}
 {/snippet}
 

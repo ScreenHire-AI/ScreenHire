@@ -193,6 +193,7 @@ public sealed class SlackTests(AppHostFixture fixture)
         (await recruiter.DeleteAsync("/v1/slack")).Expect(HttpStatusCode.Forbidden);
         (await recruiter.PostAsync("/v1/slack/test")).Expect(HttpStatusCode.Forbidden);
         (await recruiter.GetAsync("/v1/slack/channels")).Expect(HttpStatusCode.Forbidden);
+        (await recruiter.PostAsync("/v1/slack/sandbox/break", new JsonObject { ["kind"] = "TokenRevoked" })).Expect(HttpStatusCode.Forbidden);
 
         var seen = (await recruiter.GetAsync("/v1/slack")).Expect(HttpStatusCode.OK);
         seen.Text("workspace.teamName").Should().Be("ScreenHire sandbox", "every member sees which workspace is connected");
@@ -235,7 +236,7 @@ public sealed class SlackTests(AppHostFixture fixture)
         await ConnectAsync(owner);
 
         var channels = (await owner.GetAsync("/v1/slack/channels")).Expect(HttpStatusCode.OK);
-        channels.Body.EnumerateArray().Select(c => c.GetProperty("id").GetString()).Should().Equal("C0SBANNOUNCE", "C0SBGENERAL", "C0SBHIRING", "C0SBRECRUIT");
+        channels.Body.EnumerateArray().Select(c => c.GetProperty("id").GetString()).Should().Equal("C0SBANNOUNCE", "C0SBFLAKY", "C0SBGENERAL", "C0SBHIRING", "C0SBRECRUIT");
 
         (await owner.PutAsync("/v1/slack/channel", ChannelBody("C0NOSUCH", AllEvents))).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("channelId");
         (await owner.PutAsync("/v1/slack/channel", ChannelBody("C0SBOLDHIRE", AllEvents))).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("channelId");
@@ -652,7 +653,10 @@ public sealed class SlackTests(AppHostFixture fixture)
         (await other.GetAsync("/v1/slack/channels")).Expect(HttpStatusCode.NotFound);
         (await other.PutAsync("/v1/slack/channel", ChannelBody(Hiring, AllEvents))).Expect(HttpStatusCode.NotFound);
         (await other.DeleteAsync("/v1/slack")).Expect(HttpStatusCode.NotFound);
+        (await other.PostAsync("/v1/slack/sandbox/break", new JsonObject { ["kind"] = "TokenRevoked" })).Expect(HttpStatusCode.NotFound);
         (await owner.GetAsync("/v1/slack")).At("workspace").ValueKind.Should().Be(JsonValueKind.Object);
+        // Another organization's break reached none of this one's token: the channel list still answers.
+        (await owner.GetAsync("/v1/slack/channels")).Expect(HttpStatusCode.OK);
     }
 
     // The page and the API both start from this: the install's authorize URL, then the browser's trip through the

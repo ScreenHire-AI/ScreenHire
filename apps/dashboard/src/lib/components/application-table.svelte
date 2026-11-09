@@ -15,6 +15,7 @@
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
+  import ShowMore from '#lib/components/show-more.svelte';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { candidateRowHeight, candidateTableFeatures, sortableColumnIds, type CandidateColumn } from '#lib/candidate-table.js';
   import { initials, sourceLabel } from '#lib/format.js';
@@ -150,6 +151,11 @@
   });
 
   const rows = $derived(table.getRowModel().rows);
+  // A phone has no virtual rows (a list item is two lines of text, and the page scrolls), so a long job would make the page
+  // as tall as its candidates are many (S9): it lists a page of them and Show more adds the next page.
+  const phonePageSize = 50;
+  let phoneShown = $state(phonePageSize);
+  const phoneRows = $derived(rows.slice(0, phoneShown));
   let scrollElement = $state<HTMLDivElement>();
   const virtualizer = createVirtualizer<HTMLDivElement, HTMLTableRowElement>({
     count: 0,
@@ -385,10 +391,11 @@
     {@render empty()}
   {:else}
     <ul aria-label={label}>
-      {#each rows as row (row.id)}
+      {#each phoneRows as row (row.id)}
         {@render listItem(row.original)}
       {/each}
     </ul>
+    <ShowMore shown={phoneRows.length} total={rows.length} onmore={() => (phoneShown += phonePageSize)} />
   {/if}
 {:else}
   <!-- svelte-ignore a11y_no_static_element_interactions: the keys are shortcuts for the focusable rows inside, which bubble here -->

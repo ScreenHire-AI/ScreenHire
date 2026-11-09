@@ -202,7 +202,15 @@ brackets.
   ended, as the setting says.
 
 - Only automated tests and fakes have exercised these so far: real Stripe, SendGrid, calendars, Azure and a claude.ai
-  connector; every page in dark mode; lists of 20 or more items; Candidates at phone widths; several Slack and webhook
-  states; and portal replies, the Billing page and the OAuth consent page by hand.
+  connector, and real Slack and real webhook receivers (the Slack and webhook states are proven against the sandbox
+  workspace and a local receiver); every page in dark mode; and portal replies, the Billing page and the OAuth consent
+  page by hand.
+- Large lists are proven at 1440 and 390 px up to 26 of each record, 20 webhook endpoints (the limit) and 210 applications
+  on one job (`LargeListsTests`). The 26 saved views are checked in the sidebar at 1440 only; the phone's navigation sheet
+  that holds them is not opened. The API's list routes still return every row and the dashboard sorts and filters them in
+  the browser, so an organization with thousands of candidates or applications is not proven. The tables draw only the rows
+  in view and a phone lists 50 at a time; the delivery log of an endpoint (it says it shows the latest 50) and the done tasks are limited by the API.
+- When a Slack post fails in a way a retry cannot fix and the retries run out, the message goes to the dead-letter table
+  and the Slack page says nothing about it ([slack](architecture/slack.md)).
 - With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
   startup (verification-engine.md §10.9). In the browser pane, `/preview` waits for a verification chip before it checks anything live.

@@ -176,9 +176,13 @@ layer. Slack's answers sort into (`SlackErrors`):
 `SandboxSlackClient` is Slack's part of every flow with no third party. Its "authorize page" is the API's own
 `GET /v1/slack/sandbox/authorize`, which sends the browser straight back to the callback with a code, and only there.
 The workspace is "ScreenHire sandbox", with `#hiring`, `#recruiting`, `#general`, `#announcements` (only admins may
-post, so posts fail with `restricted_action`) and an archived `#old-hiring`. What it receives lands in
-`slack_sandbox_messages`, which `GET /v1/slack/sandbox/messages` lists, newest first. Both sandbox routes are mapped only
-in sandbox mode, so the API's description never lists them.
+post, so posts fail with `restricted_action`) and an archived `#old-hiring`, plus `#flaky`, which refuses the first attempt to post each message with an answer no
+error code explains (as an unreachable Slack does) and takes the second. What it receives lands in
+`slack_sandbox_messages`, which `GET /v1/slack/sandbox/messages` lists, newest first. `POST /v1/slack/sandbox/break`
+(Manage integrations, as Disconnect needs) does to the signed-in organization's connection what Slack does on its own side without a word to the app: `TokenRevoked`
+swaps the stored token for one the sandbox answers `token_revoked` to, and `ChannelArchived` and `ChannelRemoved` point
+the saved channel at an archived or an unknown one. The app finds out at its next call, as it does from Slack (there is
+no uninstall event). The sandbox's routes are mapped only in sandbox mode, so the API's description never lists them.
 
 ## Data
 
@@ -193,7 +197,7 @@ with the workspace), `slack_messages` and `slack_sandbox_messages`.
 | `Slack/*Tests` (unit) | the wording and escaping, error codes, the Web API client against a stub handler, the token and state protection, the modes and the sandbox gate |
 | `Slack/SlackTests` (integration) | the install and link round trips through the sandbox, the state and cookie checks, permissions, channel validation, a post for each event and none when it is off, one post for a replayed event, recorded problems, direct messages and when they are not sent, disconnecting, tenant isolation |
 | `DevelopmentDemoTests` (integration) | with Slack off, `available` is false and the routes are 404s |
-| `SlackTests` (end to end) | connecting the sandbox from the page, picking a channel, linking from the menu as an Owner and as a Recruiter, disconnecting through the dialog; Send test message and a published job each reach #hiring, read back from the sandbox workspace through `SlackSandbox` (`GET /v1/slack/sandbox/messages`), not taken from the page's word |
+| `SlackTests` (end to end) | connecting the sandbox from the page, picking a channel, linking from the menu as an Owner and as a Recruiter, disconnecting through the dialog; Send test message and a published job each reach #hiring, read back from the sandbox workspace through `SlackSandbox` (`GET /v1/slack/sandbox/messages`), not taken from the page's word. The states: no workspace (Add to Slack, and the rest of the app untouched); a channel archived or deleted in Slack (Not posting, what is wrong, pick another channel, and posts arrive); a revoked token (Disconnected, Reconnect, the channel kept, hiring work unaffected); a post that fails once and is retried (one message, no problem on the page, and a failed Send test message says to try again); a member with no linked account (no direct message, and Link my Slack account in their menu turns them on) |
 
 ## Not built
 
