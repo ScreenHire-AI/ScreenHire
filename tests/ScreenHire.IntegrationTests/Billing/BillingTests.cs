@@ -35,6 +35,7 @@ public sealed class BillingTests(AppHostFixture fixture)
         billing.At("nextPaymentAmount").ValueKind.Should().Be(JsonValueKind.Null);
         billing.At("cancelsAtPeriodEnd").GetBoolean().Should().BeFalse();
         billing.At("canManage").GetBoolean().Should().BeFalse("there is nothing to manage before a subscription");
+        billing.At("taxAtCheckout").GetBoolean().Should().BeFalse("tax is off until the owner has registered in Stripe Tax");
 
         var plans = billing.At("plans").EnumerateArray().ToDictionary(p => p.GetProperty("key").GetString()!);
         plans.Keys.Should().Equal("starter", "growth", "unlimited");
@@ -105,7 +106,7 @@ public sealed class BillingTests(AppHostFixture fixture)
         var (status, location) = await fixture.FollowAsync(checkout.Text("url"));
         status.Should().Be(HttpStatusCode.Redirect);
         location!.AbsolutePath.Should().Be("/settings/billing");
-        location.Query.Should().Contain("checkout=success");
+        location.Query.Should().Contain("checkout=success").And.NotContain("tax", "the shared stack has tax off, so the checkout asks for none");
 
         var billing = await owner.BillingAsync();
         billing.Text("state").Should().Be("Active");

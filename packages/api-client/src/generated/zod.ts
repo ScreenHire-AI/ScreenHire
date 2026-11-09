@@ -9111,6 +9111,7 @@ export const GetBillingResponse = zod.object({
   "openJobs": zod.int(),
   "activeJobLimit": zod.int().nullable(),
   "canManage": zod.boolean(),
+  "taxAtCheckout": zod.boolean(),
   "plans": zod.array(zod.object({
   "key": zod.string(),
   "name": zod.string(),
@@ -9120,7 +9121,7 @@ export const GetBillingResponse = zod.object({
   "unlimited": zod.boolean(),
   "canSubscribe": zod.boolean()
 }).describe('A plan. `monthlyPrice` is null until the owner sets it. `activeJobs` is the most jobs open at once, null with\nno limit set; `unlimited` says there is none by design. `canSubscribe`: Checkout can start it here.'))
-}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.')
+}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".')
 
 
 export const StartBillingCheckoutBody = zod.object({

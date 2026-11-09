@@ -195,8 +195,8 @@ The target is the pricing band of the owner's "B + C, second pass" board, with t
 order: a dark band with the headline ("One price for your whole team. Everything included."), one sentence on the limit,
 the call to action and the three plans as rows, Growth marked as the trial; "Every plan includes", grouped by the five
 selling points plus the careers site and job posting (`includedByTopic`); "What you will not pay extra for", each line
-with what one vendor's own page says today and a link (`pricingNotes`); five questions (what counts as an open job, what
-happens at the limit and after the trial, changing and cancelling, how many users); and the close. FAQ JSON-LD matches the
+with what one vendor's own page says today and a link (`pricingNotes`); six questions (what counts as an open job, what
+happens at the limit and after the trial, changing and cancelling, whether prices are before tax, how many users); and the close. FAQ JSON-LD matches the
 questions and the offers match the priced plans.
 
 Each market line says what a page lists, with the page's name and the date it was read, in `competitors.md` under

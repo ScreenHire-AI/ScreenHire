@@ -18,7 +18,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { billingStatus, formatMoney, mayChoosePlan, openJobsText, planLimitText, priceText } from '#lib/billing.js';
+  import { billingStatus, formatMoney, mayChoosePlan, openJobsText, planLimitText, priceLine } from '#lib/billing.js';
   import { describeError } from '#lib/query.js';
 
   // The plan, the trial or the next payment, and the open jobs against the plan's limit, for an owner (ManageBilling,
@@ -142,7 +142,7 @@
               <li class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border-subtle py-3 last:border-0">
                 <div class="flex min-w-0 flex-[1_1_12rem] flex-col gap-0.5">
                   <p class="font-semibold">{plan.name}</p>
-                  <p class="text-muted-foreground">{priceText(plan)}</p>
+                  <p class="text-muted-foreground">{priceLine(plan, overview.taxAtCheckout)}</p>
                   <p class="text-muted-foreground">{planLimitText(plan)}</p>
                 </div>
                 <!-- A plan change on a live subscription goes through the portal; Checkout is for starting one. -->

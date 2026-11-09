@@ -22,7 +22,10 @@ public sealed class SandboxBillingProviderTests
     private readonly SandboxBillingProvider provider;
     private readonly Guid organization = Guid.CreateVersion7();
 
-    public SandboxBillingProviderTests() => provider = new SandboxBillingProvider(new EphemeralDataProtectionProvider(), clock);
+    public SandboxBillingProviderTests() => provider = Provider();
+
+    private SandboxBillingProvider Provider(BillingOptions? options = null) =>
+        new(new EphemeralDataProtectionProvider(), clock, Microsoft.Extensions.Options.Options.Create(options ?? new BillingOptions()));
 
     private static Plan Starter() => new("starter", "Starter", 1, 29m, "USD", 1, false, null);
 
@@ -46,6 +49,25 @@ public sealed class SandboxBillingProviderTests
         state!.OrganizationId.Should().Be(organization);
         state.PlanKey.Should().Be("starter");
         state.ReturnUrl.Should().Be(Success.ToString());
+    }
+
+    [Theory]
+    [InlineData(false, true, false, false)]
+    [InlineData(true, true, true, true)]
+    [InlineData(true, false, true, false)]
+    [InlineData(false, false, false, false)]
+    public async Task The_checkout_state_records_whether_tax_and_a_tax_id_were_asked_for(bool tax, bool taxIds, bool expectedTax, bool expectedTaxIds)
+    {
+        var options = new BillingOptions();
+        options.Stripe.Tax.Enabled = tax;
+        options.Stripe.Tax.CollectTaxIds = taxIds;
+        var taxed = Provider(options);
+
+        var link = await taxed.CreateCheckoutAsync(new CheckoutRequest(organization, Starter(), null, null, Success, Cancelled), TestContext.Current.CancellationToken);
+
+        var state = taxed.Read(StateOf(link))!;
+        state.TaxRequested.Should().Be(expectedTax);
+        state.TaxIdsRequested.Should().Be(expectedTaxIds, "a tax id is only asked for with tax on");
     }
 
     [Fact]
@@ -87,7 +109,7 @@ public sealed class SandboxBillingProviderTests
     [Fact]
     public async Task A_state_issued_by_another_key_ring_does_not_read()
     {
-        var foreign = new SandboxBillingProvider(new EphemeralDataProtectionProvider(), clock);
+        var foreign = Provider();
         var state = StateOf(await foreign.CreateCheckoutAsync(new CheckoutRequest(organization, Starter(), null, null, Success, Cancelled), TestContext.Current.CancellationToken));
 
         provider.Read(state).Should().BeNull();

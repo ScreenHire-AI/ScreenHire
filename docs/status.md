@@ -177,6 +177,11 @@ brackets.
   - Open the Stripe account in the business's own name.
   - Add each registration to Stripe Tax before it is turned on, because Stripe collects tax only where a registration is
     added, and decide how returns are filed (Tax Complete, a filing partner, or by hand).
+  - Create each Stripe price with `tax_behavior=exclusive` (`plans.json` prices exclude tax; a price's tax behavior cannot be
+    changed once set), and in the customer portal configuration turn on Billing address and Tax ID so a customer can change both.
+  - Then set `ScreenHire:Billing:Stripe:Tax:Enabled=true` where the API runs. It is built and off: Checkout then calculates
+    tax, collects the billing address and a business tax id (`Stripe:Tax:CollectTaxIds=false` skips the tax id), and the
+    Billing page says "plus tax where it applies" ([billing](architecture/billing.md#tax)).
   - Watch the UK proposal published 2026-10-28 that would make an overseas seller charge VAT to a UK business with no VAT
     number from 2027-04-01.
 - **Product.** Subscribe to Svelte Flow Pro before charging anyone. The workflow graph hides Svelte Flow's attribution, which its MIT licence allows, and its makers ask a business earning from it to subscribe first. Move jobs still on "Software

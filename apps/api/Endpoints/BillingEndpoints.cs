@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
@@ -54,11 +55,11 @@ internal static class BillingEndpoints
     }
 
     private static async Task<Ok<BillingOverview>> GetBilling(
-        BillingService billing, BillingAccess access, PlanCatalogue catalogue, ITenantContext tenant, CancellationToken cancellationToken)
+        BillingService billing, BillingAccess access, PlanCatalogue catalogue, IOptions<BillingOptions> options, ITenantContext tenant, CancellationToken cancellationToken)
     {
         if (!access.IsConfigured || await billing.StatusAsync(tenant.OrganizationId!.Value, cancellationToken) is not { } status)
         {
-            return TypedResults.Ok(new BillingOverview(false, false, null, null, null, null, null, false, 0, null, false, []));
+            return TypedResults.Ok(new BillingOverview(false, false, null, null, null, null, null, false, 0, null, false, false, []));
         }
 
         var renewing = status.State is BillingState.Active or BillingState.PastDue;
@@ -74,6 +75,7 @@ internal static class BillingEndpoints
             status.OpenJobs,
             status.Limit,
             status.HasCustomer && access.Mode == BillingMode.Stripe || renewing && access.Mode == BillingMode.Sandbox,
+            options.Value.Stripe.Tax.Enabled,
             [.. catalogue.Plans.Select(p => ToContract(p, access.Mode))]));
     }
 
@@ -172,7 +174,20 @@ internal static class BillingEndpoints
                 $"sandbox_{Guid.CreateVersion7():N}", now, data.OrganizationId, $"cus_sandbox_{organization}", $"sub_sandbox_{organization}",
                 plan.Key, SubscriptionStatus.Active, now.AddMonths(1), false),
             cancellationToken);
-        return TypedResults.Redirect(data.ReturnUrl);
+
+        // What the sandbox's Checkout was asked for, as Stripe's page would have asked it: tax, and a tax id.
+        var returnUrl = data.ReturnUrl;
+        if (data.TaxRequested)
+        {
+            returnUrl = QueryHelpers.AddQueryString(returnUrl, SandboxBillingProvider.TaxRequestedParameter, "requested");
+        }
+
+        if (data.TaxIdsRequested)
+        {
+            returnUrl = QueryHelpers.AddQueryString(returnUrl, SandboxBillingProvider.TaxIdsRequestedParameter, "requested");
+        }
+
+        return TypedResults.Redirect(returnUrl);
     }
 
     // The sandbox's portal: cancels the subscription at once, which is the one change worth trying locally (the ended state).

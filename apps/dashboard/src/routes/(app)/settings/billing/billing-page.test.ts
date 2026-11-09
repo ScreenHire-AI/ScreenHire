@@ -45,6 +45,7 @@ const trial: BillingOverview = {
   openJobs: 3,
   activeJobLimit: 25,
   canManage: false,
+  taxAtCheckout: false,
   plans: [starter, growth, unlimited],
 };
 const active: BillingOverview = {
@@ -110,6 +111,18 @@ describe('billing page', () => {
     expect(within(plans()).getByText('$99 a month')).toBeInTheDocument();
     expect(within(plans()).getByText('Price not set')).toBeInTheDocument();
     expect(within(plans()).getByText('Unlimited open jobs')).toBeInTheDocument();
+    expect(within(plans()).queryByText(/plus tax/)).not.toBeInTheDocument();
+    await expectNoAxeViolations();
+  });
+
+  it('says "plus tax where it applies" beside each price when Checkout adds tax, and not beside a price that is not set', async () => {
+    renderPage({ ...trial, taxAtCheckout: true });
+
+    await screen.findByText('Free trial');
+    expect(within(plans()).getByText('$49 a month plus tax where it applies')).toBeInTheDocument();
+    expect(within(plans()).getByText('$99 a month plus tax where it applies')).toBeInTheDocument();
+    expect(within(plans()).getByText('Price not set')).toBeInTheDocument();
+    expect(within(plans()).getAllByText(/plus tax where it applies/)).toHaveLength(2);
     await expectNoAxeViolations();
   });
 

@@ -122,6 +122,103 @@ public sealed class StripeBillingProviderTests : IDisposable
         stripe.Calls[2].Form.Should().NotContainKey("customer").And.NotContainKey("customer_email");
     }
 
+    private static readonly string[] TaxFields =
+    [
+        "automatic_tax[enabled]", "billing_address_collection", "tax_id_collection[enabled]", "customer_update[address]", "customer_update[name]",
+    ];
+
+    [Fact]
+    public async Task Checkout_with_tax_off_sends_no_tax_fields_at_all()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        stripe.Answer("""{"url":"https://checkout.stripe.com/b"}""");
+        var provider = Provider();
+        var ct = TestContext.Current.CancellationToken;
+
+        await provider.CreateCheckoutAsync(Checkout(Plan("starter"), email: "owner@example.com"), ct);
+        await provider.CreateCheckoutAsync(Checkout(Plan("starter"), customerId: "cus_fictional"), ct);
+
+        stripe.Calls.Should().HaveCount(2).And.OnlyContain(call => TaxFields.All(field => !call.Form.ContainsKey(field)));
+    }
+
+    [Fact]
+    public async Task Checkout_with_tax_on_asks_stripe_to_calculate_tax_and_collects_the_billing_address_and_a_tax_id()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        var options = Options();
+        options.Stripe.Tax.Enabled = true;
+
+        await Provider(options).CreateCheckoutAsync(Checkout(Plan("starter", options), email: "owner@example.com"), TestContext.Current.CancellationToken);
+
+        var form = stripe.Calls.Single().Form;
+        form["automatic_tax[enabled]"].Should().Be("true");
+        form["billing_address_collection"].Should().Be("required");
+        form["tax_id_collection[enabled]"].Should().Be("true", "collecting tax ids is on unless switched off");
+        form.Should().NotContainKey("customer_update[address]", "Stripe rejects customer_update without a customer")
+            .And.NotContainKey("customer_update[name]");
+    }
+
+    [Fact]
+    public async Task Checkout_with_tax_on_for_an_existing_customer_saves_the_address_and_business_name_it_collects()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        var options = Options();
+        options.Stripe.Tax.Enabled = true;
+
+        await Provider(options).CreateCheckoutAsync(Checkout(Plan("starter", options), customerId: "cus_fictional"), TestContext.Current.CancellationToken);
+
+        var form = stripe.Calls.Single().Form;
+        form["customer"].Should().Be("cus_fictional");
+        form["automatic_tax[enabled]"].Should().Be("true");
+        form["customer_update[address]"].Should().Be("auto");
+        form["customer_update[name]"].Should().Be("auto");
+        form["tax_id_collection[enabled]"].Should().Be("true");
+    }
+
+    [Fact]
+    public async Task Checkout_with_tax_on_and_tax_ids_off_calculates_tax_but_collects_no_tax_id_and_no_name()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        var options = Options();
+        options.Stripe.Tax.Enabled = true;
+        options.Stripe.Tax.CollectTaxIds = false;
+
+        await Provider(options).CreateCheckoutAsync(Checkout(Plan("starter", options), customerId: "cus_fictional"), TestContext.Current.CancellationToken);
+
+        var form = stripe.Calls.Single().Form;
+        form["automatic_tax[enabled]"].Should().Be("true");
+        form["billing_address_collection"].Should().Be("required");
+        form["customer_update[address]"].Should().Be("auto");
+        form.Should().NotContainKey("tax_id_collection[enabled]").And.NotContainKey("customer_update[name]");
+    }
+
+    [Fact]
+    public async Task Checkout_with_tax_ids_on_but_tax_off_collects_nothing_because_tax_ids_ride_on_tax()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        var options = Options();
+        options.Stripe.Tax.CollectTaxIds = true;
+
+        await Provider(options).CreateCheckoutAsync(Checkout(Plan("starter", options)), TestContext.Current.CancellationToken);
+
+        stripe.Calls.Single().Form.Keys.Should().NotIntersectWith(TaxFields);
+    }
+
+    [Fact]
+    public void Tax_is_off_by_default_and_tax_ids_follow_tax()
+    {
+        var options = new BillingOptions();
+        options.Stripe.Tax.Enabled.Should().BeFalse("tax needs the owner's Stripe Tax registrations first");
+        options.Stripe.Tax.CollectTaxIds.Should().BeTrue();
+        options.CollectTaxIds.Should().BeFalse("with tax off nothing is collected");
+
+        options.Stripe.Tax.Enabled = true;
+        options.CollectTaxIds.Should().BeTrue();
+
+        options.Stripe.Tax.CollectTaxIds = false;
+        options.CollectTaxIds.Should().BeFalse();
+    }
+
     [Fact]
     public async Task Checkout_for_a_plan_with_no_stripe_price_throws_and_calls_nobody()
     {
