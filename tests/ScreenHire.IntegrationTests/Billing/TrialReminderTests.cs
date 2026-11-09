@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ScreenHire.Application.Billing;
 using ScreenHire.Application.Notifications;
+using ScreenHire.Infrastructure.Tenancy;
 using ScreenHire.IntegrationTests.Messaging;
 using ScreenHire.IntegrationTests.Notifications;
 using ScreenHire.IntegrationTests.Scheduling;
@@ -42,6 +43,26 @@ public sealed class TrialReminderTests(AppHostFixture fixture)
             fourth => fourth.Should().BeCloseTo(TimeSpan.Zero, TimeSpan.FromSeconds(1)),
             fifth => fifth.Should().BeCloseTo(TimeSpan.Zero, TimeSpan.FromSeconds(1)));
         (await store.GetDeadLettersAsync(owner.OrganizationId.ToString(), Ct)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Scheduling_the_reminders_leaves_the_billing_account_alone_so_an_immediate_checkout_cannot_collide_with_it()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var (_, ends) = await ScheduledAsync(owner);
+        var tenant = new TenantContext();
+        tenant.SetOrganization(owner.OrganizationId);
+        await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
+
+        var account = await db.BillingAccounts.AsNoTracking().SingleAsync(Ct);
+        var records = await db.BillingEvents.AsNoTracking().Select(e => e.EventId).ToListAsync(Ct);
+
+        account.UpdatedAt.Should().Be(account.CreatedAt, "the worker wrote nothing to the row that checkouts and webhooks save with a concurrency token");
+        records.Should().Equal(TrialReminderKeys.ScheduledRecord(ends));
+
+        // A checkout straight after sign-up, while the worker is scheduling, is applied.
+        await fixture.SubscribeAsync(owner, "starter");
+        (await owner.BillingAsync()).Text("state").Should().Be("Active");
     }
 
     [Fact]

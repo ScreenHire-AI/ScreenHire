@@ -38,28 +38,9 @@ public sealed class BillingAccount : ITenantOwned
     /// <summary>The provider timestamp of the newest event applied, so a late older event cannot undo a newer one.</summary>
     public DateTimeOffset? LastEventAt { get; private set; }
 
-    /// <summary>
-    /// The <see cref="TrialEndsAt"/> the trial reminders were scheduled for, or null before they were. Scheduling them is then
-    /// a no-op, so a redelivered message or a second catch-up never schedules a trial's reminders twice.
-    /// </summary>
-    public DateTimeOffset? TrialRemindersScheduledFor { get; private set; }
-
     public DateTimeOffset CreatedAt { get; init; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
-
-    /// <summary>Records that the reminders for the current trial are scheduled. False when they already were.</summary>
-    public bool MarkTrialRemindersScheduled(DateTimeOffset now)
-    {
-        if (TrialRemindersScheduledFor == TrialEndsAt)
-        {
-            return false;
-        }
-
-        TrialRemindersScheduledFor = TrialEndsAt;
-        UpdatedAt = now;
-        return true;
-    }
 
     public static BillingAccount StartTrial(Guid organizationId, DateTimeOffset now, int trialDays) => new()
     {
@@ -110,7 +91,7 @@ public enum SubscriptionStatus
     Ended,
 }
 
-/// <summary>A provider event already applied, so a redelivery changes nothing. One row per event id and organization.</summary>
+/// <summary>An event already applied, so a redelivery changes nothing: a provider's, or ours that a trial's reminders were scheduled (<c>TrialReminderKeys.ScheduledRecord</c>). One row per event id and organization.</summary>
 public sealed class BillingEventRecord : ITenantOwned
 {
     public const int MaxEventIdLength = 100;

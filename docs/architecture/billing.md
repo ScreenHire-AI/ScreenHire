@@ -101,9 +101,11 @@ A trial used to end in silence: the first an Owner heard of it was a refused pub
 bell, while no subscription has started. Nothing here refuses or changes anything; `Entitlement` is untouched.
 
 **Scheduling.** Creating the billing account (onboarding, or the first time an organization older than billing asks) publishes
-`TrialStarted` through the outbox, in the same transaction. The worker's handler loads the account. If no subscription has started
-and `TrialRemindersScheduledFor` is not already the account's `TrialEndsAt`, it schedules these Wolverine messages and sets that
-column in the same save. `TrialReminders.Plan` (domain, pure) decides what to schedule, looked at from now:
+`TrialStarted` through the outbox, in the same transaction. The worker's handler reads the account. If no subscription has started
+and there is no `billing_events` row `trial-reminders-scheduled:<TrialEndsAt in seconds>` for the organization yet, it schedules these
+Wolverine messages and inserts that row in the same save. The handler never writes the account: that row has an optimistic concurrency
+token, and a write in the first moments after sign-up collided with a checkout or a webhook saving it (the sandbox route ignores
+such a collision, so the plan was never applied). `TrialReminders.Plan` (domain, pure) decides what to schedule, looked at from now:
 
 | Step | When | What it does |
 |---|---|---|
@@ -146,9 +148,8 @@ until the trial ends and the ended notice is raised for every Owner.
 `CatchUpTrialReminders` once when it starts (`TrialReminderCatchUp`, a one-shot hosted service registered in the worker's
 `Program.cs` only, not in the shared messaging setup, so the tests' private handler hosts cannot schedule a trial's reminders into
 a store nobody reads). It fans out one `TrialStarted` per organization, as the other fan-outs do, and the same handler does the
-work. `TrialRemindersScheduledFor` makes a restart schedule nothing twice. Two `TrialStarted` handled at the same moment (two
-workers starting together) can both find it empty and both schedule; that costs duplicate scheduled rows, not duplicate emails or
-notices, because the emails are deduplicated on their keys and the notices are upserts. The repo's other backfills are SQL inside a migration,
+work. The `billing_events` row makes a restart schedule nothing twice, and it is
+unique per organization, so two workers starting together cannot both schedule: one insert fails and its retry finds the row. The repo's other backfills are SQL inside a migration,
 which cannot write Wolverine's schedule (the migrator creates that storage after the migrations), so this one is a message.
 Changing `Trial:RemindDaysBefore` later does not move reminders already scheduled.
 
@@ -397,8 +398,8 @@ owner.
 | `StripeWebhookRouteTests` (integration) | on a stack of its own in Stripe mode, the route end to end: a signed event applied to the organization it names, a wrong or missing signature a 401, a redelivery changing nothing, an unknown organization a 200, and another organization untouched |
 | `BillingTests` (end-to-end) | an owner sees the trial and the plans and chooses one through Checkout, a publish past the limit shows the notice and its link to Billing, and a recruiter has no Billing entry |
 | `billing-page.test.ts`, `jobs-page.test.ts`, `distribution-panel.test.ts`, `job-page.test.ts`, `query.test.ts`, `settings.test.ts` (Vitest) | the page in each state, the plan change dialog (the cost before confirming, a downgrade's nothing now, the change sent with the preview's date, a failed preview and a refused change), the notice and its link for an owner and anyone else at each place a draft opens, the 402 read as a plan problem, the settings entry hidden without a provider |
-| `TrialRemindersTests` (unit) | the reminder days (7 and 1 by default, a configured list replacing them, a day below 1 refused), the steps planned for a fresh trial, one under way, one that ended and one shorter than the notice window, a reminder doing nothing after a subscription or for a changed trial, the marker, and the email's words |
-| `TrialReminderTests` (integration) | on the running worker: signing up schedules the five steps, each email reaches every Owner once and a redelivery adds none, an Admin gets nothing, one `trial-ending` notification becomes one `trial-ended` one, the retention purge keeps it, and choosing a plan clears it and makes the reminders still waiting do nothing |
+| `TrialRemindersTests` (unit) | the reminder days (7 and 1 by default, a configured list replacing them, a day below 1 refused), the steps planned for a fresh trial, one under way, one that ended and one shorter than the notice window, a reminder doing nothing after a subscription or for a changed trial, the id of the record that a trial's reminders are scheduled, and the email's words |
+| `TrialReminderTests` (integration) | on the running worker: signing up schedules the five steps, the worker leaves the account alone and an immediate checkout is applied, each email reaches every Owner once and a redelivery adds none, an Admin gets nothing, one `trial-ending` notification becomes one `trial-ended` one, the retention purge keeps it, and choosing a plan clears it and makes the reminders still waiting do nothing |
 | `RolePermissionsTests` (unit) | Manage billing is an Owner-only permission and its routes join the route table |
 
 The test stacks pin nothing: they sell the plans in `plans.json`, and a test that needs a price or a limit reads it through

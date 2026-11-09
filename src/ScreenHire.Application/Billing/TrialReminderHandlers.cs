@@ -61,6 +61,13 @@ public static class TrialReminderKeys
 {
     public static string For(Guid organizationId, DateTimeOffset trialEndsAt, int daysBefore) =>
         string.Create(CultureInfo.InvariantCulture, $"trial:{organizationId:N}:{trialEndsAt.ToUnixTimeSeconds()}:{daysBefore}");
+
+    /// <summary>
+    /// The id of the <c>billing_events</c> row that says the reminders of the trial ending at <paramref name="trialEndsAt"/> are
+    /// scheduled. It cannot be a provider's event id, which all start <c>evt_</c> or <c>sandbox_</c>.
+    /// </summary>
+    public static string ScheduledRecord(DateTimeOffset trialEndsAt) =>
+        string.Create(CultureInfo.InvariantCulture, $"trial-reminders-scheduled:{trialEndsAt.ToUnixTimeSeconds()}");
 }
 
 /// <summary>Where the trial's links and notices point: Settings, Billing.</summary>
@@ -87,17 +94,25 @@ public static partial class TrialStartedHandler
         TrialStarted message, ScreenHireDbContext db, IOptions<BillingOptions> options, TimeProvider time, ILogger<TrialStarted> logger, CancellationToken cancellationToken)
     {
         var outgoing = new OutgoingMessages();
-        var account = await db.BillingAccounts.SingleOrDefaultAsync(cancellationToken);
+        // Read only: the account has an optimistic concurrency token, and a write here would collide with a checkout or a webhook
+        // that saves the same row in the first moments after sign-up (and the sandbox route ignores that collision).
+        var account = await db.BillingAccounts.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
         if (account is null || account.Status != SubscriptionStatus.None)
         {
             return outgoing; // no trial, or a subscription already started
         }
 
+        // The record that this trial's reminders are scheduled is a row of its own, unique per organization and id: a second
+        // handling (a redelivery, a restart's catch-up) finds it and schedules nothing. A race between two inserts fails one
+        // on the unique index, and its retry finds the row.
         var now = time.GetUtcNow();
-        if (!account.MarkTrialRemindersScheduled(now))
+        var recordId = TrialReminderKeys.ScheduledRecord(account.TrialEndsAt);
+        if (await db.BillingEvents.AnyAsync(e => e.EventId == recordId, cancellationToken))
         {
             return outgoing; // scheduled before
         }
+
+        db.BillingEvents.Add(new BillingEventRecord { OrganizationId = message.OrganizationId, EventId = recordId, ReceivedAt = now });
 
         foreach (var step in TrialReminders.Plan(account.TrialEndsAt, now, options.Value.Trial.RemindDaysBefore))
         {

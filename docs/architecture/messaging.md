@@ -252,7 +252,7 @@ nothing.
   looking for the old message to delete. The key is the interview, the start and the kind.
 - **Trial reminders** ([billing.md](billing.md), "Trial reminders"). Creating a billing account publishes `TrialStarted` through the
   outbox. Its worker handler schedules the trial's reminder emails and bell notices as cascading messages
-  (`OutgoingMessages.Schedule`) and marks the account, so a second `TrialStarted` schedules nothing. Each reminder carries the trial's
+  (`OutgoingMessages.Schedule`) and records that in a `billing_events` row, so a second `TrialStarted` schedules nothing. Each reminder carries the trial's
   end and checks the account when it fires, and its key is the organization, that end and the day, so a changed trial is a new intent.
   A one-shot hosted service in the worker (`TrialReminderCatchUp`) sends `CatchUpTrialReminders` once at start, for trials that
   began before reminders existed; it is registered in `apps/worker/Program.cs`, not in `ConfigureHandler`, so a test's private handler host never runs it.

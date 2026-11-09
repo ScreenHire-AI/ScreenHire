@@ -128,14 +128,16 @@ public sealed class TrialRemindersTests
     }
 
     [Fact]
-    public void Reminders_are_marked_scheduled_for_the_trial_they_were_scheduled_for_and_only_once()
+    public void The_record_that_reminders_are_scheduled_names_the_trial_and_cannot_be_a_provider_event_id()
     {
-        var account = Trial();
-        account.TrialRemindersScheduledFor.Should().BeNull();
+        var ends = new DateTimeOffset(2026, 12, 10, 12, 0, 0, TimeSpan.Zero);
 
-        account.MarkTrialRemindersScheduled(Start).Should().BeTrue();
-        account.TrialRemindersScheduledFor.Should().Be(account.TrialEndsAt);
-        account.MarkTrialRemindersScheduled(Start.AddHours(1)).Should().BeFalse("a second catch-up changes nothing");
+        var record = TrialReminderKeys.ScheduledRecord(ends);
+
+        record.Should().Be(TrialReminderKeys.ScheduledRecord(ends), "a second handling finds the same row");
+        record.Should().NotBe(TrialReminderKeys.ScheduledRecord(ends.AddDays(1)), "a changed trial is scheduled again");
+        record.Should().NotStartWith("evt_").And.NotStartWith("sandbox_");
+        record.Length.Should().BeLessThanOrEqualTo(BillingEventRecord.MaxEventIdLength);
     }
 
     [Fact]
