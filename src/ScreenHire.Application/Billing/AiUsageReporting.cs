@@ -89,6 +89,16 @@ public static partial class ReportOrganizationAiUsageHandler
 
         var now = time.GetUtcNow();
         var floor = now - ReportWindow;
+
+        // A call with no known cost can never be billed: its cost was fixed when the row was written, so a price added later does not
+        // reprice it. Said on every run while there are any, so the owner sees a missing Verification:Llm:Prices entry.
+        var unpriced = await db.AiUsageCalls.AsNoTracking()
+            .CountAsync(c => c.KeySource == AiKeySource.BuiltIn && c.Cost == null && c.OccurredAt >= floor && c.OccurredAt <= now, cancellationToken);
+        if (unpriced > 0)
+        {
+            LogUnpriced(logger, message.OrganizationId, unpriced);
+        }
+
         var pending = await db.AiUsageCalls.AsNoTracking()
             .Where(c => c.KeySource == AiKeySource.BuiltIn && c.Cost != null && c.OccurredAt >= floor && c.OccurredAt <= now
                 && !db.AiUsageCharges.Any(x => x.Id == c.Id))
@@ -155,6 +165,9 @@ public static partial class ReportOrganizationAiUsageHandler
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Organization {OrganizationId}: AI use is not reported, {Reason}")]
     private static partial void LogNotMetered(ILogger logger, Guid organizationId, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Organization {OrganizationId}: {Calls} calls on ScreenHire's AI key in the last 34 days have no known price and are not billed (set ScreenHire:Verification:Llm:Prices for the model)")]
+    private static partial void LogUnpriced(ILogger logger, Guid organizationId, int calls);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Organization {OrganizationId}: the payment provider took {Accepted} of {Sent} AI usage events and stopped (status {Status}, code {Code}); the rest is retried in the next run")]
     private static partial void LogReportStopped(ILogger logger, Guid organizationId, int accepted, int sent, int? status, string? code);

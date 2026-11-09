@@ -341,7 +341,8 @@ does not swallow it.
   Stripe's error code and never the key or the customer.
 - **Not priced, not billed.** A call's cost is fixed when its row is written. A built-in call recorded with no price for its model
   (`Verification:Llm:Prices:<model>` unset) has no cost, is never reported, and a price added later does not reprice it. The page counts
-  these calls and says they are not charged.
+  these calls and says they are not charged, and every run of a paying organization logs how many there are from the last 34 days
+  (a warning), so a missing price shows up in the Aspire dashboard.
 - **USD only.** The ledger prices in US dollars and all items of one Stripe subscription share a currency. `BillingAiGate` refuses to
   start a host that has `Ai:StripePriceId` set beside a subscribable plan in another currency. The brief said "in the plan's currency";
   converting would need an exchange rate the ledger does not have.

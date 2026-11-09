@@ -237,6 +237,34 @@ public sealed class BillingAiUsageTests(AppHostFixture fixture)
         (await ChargesAsync(owner.OrganizationId)).Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task Built_in_calls_with_no_known_price_are_never_billed_and_each_run_says_how_many_there_are()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await ActivateAsync(owner.OrganizationId, trialEndsAt: Future.AddDays(-10));
+        await SeedAsync(owner.OrganizationId, [Unpriced(owner, Future.AddMinutes(-20)), Unpriced(owner, Future.AddMinutes(-10)), Priced(owner, Future.AddMinutes(-5), 1m)]);
+        var log = new ListLogger<ReportOrganizationAiUsage>();
+
+        await ReportAsync(owner.OrganizationId, SandboxOptions(), Future, logger: log);
+        await ReportAsync(owner.OrganizationId, SandboxOptions(), Future.AddMinutes(15), logger: log);
+
+        (await ChargesAsync(owner.OrganizationId)).Should().ContainSingle("only the priced call is settled");
+        log.Messages.Should().HaveCount(2, "the run says it every time while there are any").And.OnlyContain(m => m.Contains("2 calls", StringComparison.Ordinal) && m.Contains("not billed", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task With_every_call_priced_a_run_says_nothing_about_unpriced_calls()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await ActivateAsync(owner.OrganizationId, trialEndsAt: Future.AddDays(-10));
+        await SeedAsync(owner.OrganizationId, [Priced(owner, Future.AddMinutes(-5), 1m)]);
+        var log = new ListLogger<ReportOrganizationAiUsage>();
+
+        await ReportAsync(owner.OrganizationId, SandboxOptions(), Future, logger: log);
+
+        log.Messages.Should().BeEmpty();
+    }
+
     // ---- Isolation and the schedule ----
 
     [Fact]
@@ -420,7 +448,8 @@ public sealed class BillingAiUsageTests(AppHostFixture fixture)
 
     // Runs the handler as the worker would, with its own save, at <now>. <stripe> stands in for Stripe's servers.
     private async Task<OutgoingMessages> ReportAsync(
-        Guid organizationId, BillingOptions options, DateTimeOffset now, string slot = "slot", Guid? after = null, StubStripe? stripe = null)
+        Guid organizationId, BillingOptions options, DateTimeOffset now, string slot = "slot", Guid? after = null, StubStripe? stripe = null,
+        Microsoft.Extensions.Logging.ILogger<ReportOrganizationAiUsage>? logger = null)
     {
         var settings = Microsoft.Extensions.Options.Options.Create(options);
         var catalogue = new PlanCatalogue(settings);
@@ -430,9 +459,23 @@ public sealed class BillingAiUsageTests(AppHostFixture fixture)
         await using var db = await VerificationSupport.TenantDbAsync(fixture, organizationId);
         var outgoing = await ReportOrganizationAiUsageHandler.Handle(
             new ReportOrganizationAiUsage(organizationId, slot, after), db, access, settings, new FixedClock(now),
-            NullLogger<ReportOrganizationAiUsage>.Instance, Ct);
+            logger ?? NullLogger<ReportOrganizationAiUsage>.Instance, Ct);
         await db.SaveChangesAsync(Ct);
         return outgoing;
+    }
+
+    private sealed class ListLogger<T> : Microsoft.Extensions.Logging.ILogger<T>
+    {
+        public List<string> Messages { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Messages.Add(formatter(state, exception));
     }
 
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider

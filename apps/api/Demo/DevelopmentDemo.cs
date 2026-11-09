@@ -22,9 +22,11 @@ using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.TalentPool;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Content;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Verification;
+using ScreenHire.Infrastructure.Verification.Llm;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -154,6 +156,7 @@ internal sealed partial class DevelopmentDemo(
     {
         // Brightwater pays on the Unlimited plan, so the demo is never held to a limit (and has nothing to upgrade).
         await TryAsync(() => SeedBillingAsync(stoppingToken), stoppingToken);
+        await TryAsync(() => SeedAiUsageAsync(stoppingToken), stoppingToken);
 
         // Without Brightwater every step finds nothing to add to.
         var templateVersion = await TryAsync(() => SeedTemplateAsync(stoppingToken), stoppingToken);
@@ -736,6 +739,49 @@ internal sealed partial class DevelopmentDemo(
 
         account.Apply(step.Now, "cus_sandbox_demo", "sub_sandbox_demo", "unlimited", SubscriptionStatus.Active, step.Now.AddMonths(1), false, step.Now);
         db.BillingAccounts.Add(account);
+        await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+    }
+
+    // With billing on, a few priced calls on ScreenHire's key (the fake model's prices), so the Billing page's AI usage panel and the
+    // worker's report have something to show in the local demo. Only when the ledger is empty, so a restart adds nothing.
+    private async Task SeedAiUsageAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await BeginAsync(scope, cancellationToken) is not { } step
+            || scope.ServiceProvider.GetRequiredService<BillingService>().NewTrial(step.OrganizationId) is null)
+        {
+            return;
+        }
+
+        var db = step.Outbox.DbContext;
+        if (await db.AiUsageCalls.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        for (var i = 1; i <= 5; i++)
+        {
+            long input = 2_500 + 400 * i;
+            long output = 300 + 50 * i;
+            db.AiUsageCalls.Add(new AiUsageCall
+            {
+                OrganizationId = step.OrganizationId,
+                OccurredAt = step.Now.AddMinutes(-20 * i),
+                CheckName = AiUsageChecks.ConsistencyComparison,
+                Provider = "Fake",
+                Model = FakeConsistencyChatClient.ModelId,
+                KeySource = AiKeySource.BuiltIn,
+                ProviderRequestId = $"demo-{i}",
+                InputTokens = input,
+                OutputTokens = output,
+                // The fake model's prices (apps/worker/appsettings.Development.json): 1.00 in and 4.00 out per million tokens.
+                Cost = (input * 1.00m + output * 4.00m) / 1_000_000m,
+                CostBasis = AiCostBasis.Priced,
+                DurationMs = 800,
+                Outcome = AiCallOutcome.Ok,
+            });
+        }
+
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
     }
 
