@@ -361,7 +361,7 @@ are open to all, Usage needs View AI usage and All jobs, and AI model and Notifi
 `apps/dashboard/src/lib/verification-area.ts`). `/settings/verification` and `/settings/integrity` redirect to it. A page's menu lists only the pages of its group, and its breadcrumb is Settings, the group and
 the page; each page is behind its permission (`settingsSections` and `settingsGroups` in `apps/dashboard/src/lib/settings.ts`, the
 integrations from `integrations` in `apps/dashboard/src/lib/integrations.ts`), and the command palette finds the same settings by the
-same words (`searchSettings`). Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
+same words (`searchSettings`). Settings search also lists the pages people look for there that live in an area of their own (`settingsElsewhere`, `searchElsewhere`: Templates and the Verification tabs), only for a role that may open them. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
 settings row, `SettingsFeatures`), and so is Email domain's wherever `GET /v1/organization/sending-domain` says
 there is no email provider (shown until that answer says so, and kept when the request fails), and an address to either goes to the first page the person may use. The settings layout tells anyone who opens another page by its address that their role cannot change it.
 Hiring controls show by the permission their route needs: an Interviewer sees Add note and Fill scorecard but no Move.
