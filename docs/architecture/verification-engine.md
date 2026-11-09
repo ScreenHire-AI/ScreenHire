@@ -258,7 +258,7 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   is the page header's mark, shown once. Each finding of an authenticity result above its lowest level and not dismissed that
   counts toward the level can be *Marked explained*, with a reason (Confirmed with the candidate, Expected for this
   role, A known false positive, or Other with a note) and an optional note; it then shows closed, as Explained, with who,
-  when and why under it, and *Undo* for its author only. AI findings say "Information only" and have no action. Explaining
+  when and why under it, and *Undo* for its author only. Findings that never count (AI help, and context with nothing beside it) say "Information only" and have no action. Explaining
   decides nothing: the level, the status badge, the chips, the filters, "To review", the workflow engine's facts,
   webhooks and the MCP server never read it. Once every finding that counts is explained, Dismiss reads *Dismiss all* and
   opens the same dismiss dialog with the explained findings and their notes listed; it is still one dismissal with its

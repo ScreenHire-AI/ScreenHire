@@ -8,13 +8,13 @@
   import type { CheckGroup, CheckGroupView } from '@screenhire/api-client';
   import Hint from '#lib/components/hint.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
-  import { groupAnchor, groupStateText, groupStatuses } from '#lib/verification.js';
-  import type { StatusName } from '#lib/status.js';
+  import { groupAnchor, groupStateText, groupStatusOf, type Finding } from '#lib/verification.js';
 
   // The six groups of checks as a map (design system section 16): one tile per group with its state in icon, colour and
   // words, and, for a group with findings, a link to its panel. It says what ScreenHire looked at, never what it means about
-  // the person. A group's icon sits on its tile only; "Nothing found" is a state here and a line nowhere else.
-  let { groups, foundStatus }: { groups: readonly CheckGroupView[]; foundStatus: StatusName } = $props();
+  // the person. A group's icon sits on its tile only; "Nothing found" is a state here and a line nowhere else. The findings
+  // tell an information-only group of AI help (the sparkles mark) from one of context notes (grey).
+  let { groups, findings }: { groups: readonly CheckGroupView[]; findings: Record<CheckGroup, readonly Finding[]> } = $props();
 
   const icons: Record<CheckGroup, typeof GlobeIcon> = {
     Network: GlobeIcon,
@@ -35,19 +35,21 @@
   }
 </script>
 
-<ul aria-label="Check groups" data-group-map class="grid grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))] gap-2">
+<!-- 22rem holds the longest name beside the longest state ("Documents", "1 note, information only") on one line (F5): three
+     tiles a row on a desktop, one below that. -->
+<ul aria-label="Check groups" data-group-map class="grid grid-cols-[repeat(auto-fill,minmax(min(22rem,100%),1fr))] gap-2">
   {#each groups as group (group.group)}
     {@const Icon = icons[group.group]}
-    {@const found = group.state === 'Found'}
     {@const links = group.found + group.notes > 0}
     <li data-group={group.group} data-state={group.state} class="rounded-md border border-border-subtle">
       {#snippet tile()}
         <span class="flex min-w-0 items-center gap-2.5">
           <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground"><Icon class="size-4" /></span>
-          <span class="min-w-0 font-semibold">{group.label}</span>
+          <!-- A tile that links underlines its name on hover and focus, as navigation does (A5). -->
+          <span class="min-w-0 font-semibold group-hover/tile:underline group-focus-visible/tile:underline">{group.label}</span>
         </span>
         {#snippet badge()}
-          <StatusBadge status={found ? foundStatus : groupStatuses[group.state]} label={groupStateText(group)} quiet />
+          <StatusBadge status={groupStatusOf(group, findings[group.group] ?? [])} label={groupStateText(group)} quiet />
         {/snippet}
         {#if group.note && !links}
           <!-- What the organization's settings changed here, one hover or focus away; the state's words already say it. A tile that
@@ -63,7 +65,7 @@
         <a
           href={`#${groupAnchor(group.group)}`}
           onclick={(event) => goTo(event, group.group)}
-          class="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md px-3 py-2 hover:bg-secondary/60"
+          class="group/tile flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md px-3 py-2 hover:bg-secondary/60"
         >
           {@render tile()}
         </a>

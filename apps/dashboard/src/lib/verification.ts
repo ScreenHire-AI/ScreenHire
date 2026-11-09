@@ -48,7 +48,7 @@ export const aiAssistanceLevels: Record<AiAssistanceLevel, LevelView> = {
 };
 
 /** Authenticity's levels from lowest to highest, the order menus and counts list them in. */
-export const authenticityOrder = ['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const satisfies readonly AuthenticityLevel[];
+const authenticityOrder =['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const satisfies readonly AuthenticityLevel[];
 
 /**
  * One thing a check found, with the assessment it belongs to. The Verification tab lists findings by check group, so a
@@ -60,7 +60,10 @@ export interface Finding {
   kind: AssessmentKind;
 }
 
-const groupOrder: readonly CheckGroup[] = ['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse'];
+// Every group, in the API's order. The record makes a group the API adds fail the type check here, rather than its findings
+// going missing from the tab.
+const groupPositions = { Network: 0, Contact: 1, Documents: 2, Answers: 3, Duplicates: 4, FormUse: 5 } as const satisfies Record<CheckGroup, number>;
+const groupOrder = Object.keys(groupPositions) as CheckGroup[];
 
 /**
  * An application's findings by check group, in the groups' order. Within a group the ones that count toward the level come
@@ -99,14 +102,27 @@ export function groupStateText(group: CheckGroupView): string {
   }
 }
 
-/** The status a group tile shows as: its icon and colour. Found needs a look at the level; the rest are calm or information. */
+/**
+ * The status a group tile shows as: its icon and colour. Found needs a look, whatever the level (the header shows the level
+ * once, and a level's own icon would read as a check of its own, such as Verify's ID card); the rest are calm or
+ * information. Information only takes the AI mark only where every note is AI help (`groupStatusOf`).
+ */
 export const groupStatuses: Record<CheckGroupState, StatusName> = {
   Found: 'review',
-  InformationOnly: 'ai',
+  InformationOnly: 'information',
   NothingFound: 'done',
   NotChecked: 'notInEffect',
   TurnedOff: 'notInEffect',
 };
+
+/**
+ * A group tile's status given its findings: the sparkles mark means AI help (section 3.2), so an information-only group
+ * takes it only when all its notes are AI help. A VPN or other context note is information in grey.
+ */
+export function groupStatusOf(group: CheckGroupView, findings: readonly Finding[]): StatusName {
+  if (group.state === 'InformationOnly' && findings.length > 0 && findings.every((finding) => finding.kind === 'aiAssistance')) return 'ai';
+  return groupStatuses[group.state];
+}
 
 /** A group that did not run, or had nothing to read: a calm result names it so a quiet result is never read as a clean one. */
 export const groupDidNotRun = (group: CheckGroupView) => group.state === 'NotChecked' || group.state === 'TurnedOff';

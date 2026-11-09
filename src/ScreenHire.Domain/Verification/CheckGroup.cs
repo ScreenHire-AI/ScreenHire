@@ -60,7 +60,7 @@ public static class CheckGroups
     /// <summary>The group's name in a sentence ("contact details"), as the ruleset's summary says it.</summary>
     public static string SentenceName(CheckGroup group) => Label(group).ToLowerInvariant();
 
-    /// <summary>The name shown to people ("Network checks").</summary>
+    /// <summary>The name shown to people ("Network", "Contact details").</summary>
     public static string Label(CheckGroup group) => group switch
     {
         CheckGroup.Network => "Network",

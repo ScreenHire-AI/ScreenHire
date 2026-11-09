@@ -1,5 +1,6 @@
 <script lang="ts">
   import ChevronDownIcon from '~icons/lucide/chevron-down';
+  import InfoIcon from '~icons/lucide/info';
   import SparklesIcon from '~icons/lucide/sparkles';
   import type { VerificationSignalView } from '@screenhire/api-client';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -11,8 +12,8 @@
 
   // One finding on the Verification tab (design system section 16): its title, opening (A9) to what was observed in plain
   // words, its evidence as a facts row, any quote or comparison, the counter-evidence as the other side of the argument, and
-  // the code, which is there for support and audit (W6). Only the exception is marked: an AI note says it is information
-  // only. The one review action is Mark explained; an explanation shows under the row so it reads while the finding is
+  // the code, which is there for support and audit (W6). Only the exception is marked: a finding that never counts toward the
+  // level says it is information only, with the sparkles mark for AI help and the grey info mark for context. The one review action is Mark explained; an explanation shows under the row so it reads while the finding is
   // closed, with Undo for its author (it cannot sit inside the summary, which is itself the control, A9).
   let {
     signal,
@@ -42,6 +43,8 @@
 
   const short = $derived(signal.evidence.filter((evidence) => !isWideEvidence(evidence)));
   const wide = $derived(signal.evidence.filter(isWideEvidence));
+  // AI help never counts; nor does context that had nothing independent beside it (a VPN alone).
+  const informationOnly = $derived(ai || !signal.countsTowardLevel);
 </script>
 
 <!-- Open, the finding's title, its detail and any explanation share one soft background, with nothing boxed inside it. -->
@@ -49,9 +52,11 @@
   <details bind:open={() => open, onopenchange} class="group">
     <summary class="flex min-h-11 list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 hover:bg-secondary/60 [&::-webkit-details-marker]:hidden">
       <span class="min-w-0 flex-1 font-semibold">{signal.title}</span>
-      {#if ai}
-        <!-- The exception is marked, not the rule: AI help never changes the level. -->
-        <span data-information-only class="inline-flex items-center gap-1 text-caption text-status-ai-mark"><SparklesIcon aria-hidden="true" class="size-3.5" />Information only</span>
+      {#if informationOnly}
+        <!-- The exception is marked, not the rule: AI help and context never change the level. The sparkles mean AI help only. -->
+        <span data-information-only={ai ? 'ai' : 'context'} class={['inline-flex items-center gap-1 text-caption', ai ? 'text-status-ai-mark' : 'text-muted-foreground']}>
+          {#if ai}<SparklesIcon aria-hidden="true" class="size-3.5" />{:else}<InfoIcon aria-hidden="true" class="size-3.5" />{/if}Information only
+        </span>
       {/if}
       <!-- A state of the finding, so a badge on its row (W6); calm, so quiet (T3). -->
       {#if signal.explained}<StatusBadge status="done" label="Explained" quiet />{/if}
@@ -88,7 +93,7 @@
     <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 pb-2.5" data-explanation>
       <p class="min-w-0 max-w-measure text-muted-foreground">
         <!-- The row's Explained badge says what this is, so the line starts with who (W7). -->
-        {sentenceStart(reviewerName(explanation.actorUserId, explanation.actorName, currentUserId))} <RelativeTime at={explanation.explainedAt} class="inline" />:
+        {sentenceStart(reviewerName(explanation.actorUserId, explanation.actorName, currentUserId))}, <RelativeTime at={explanation.explainedAt} class="inline" />:
         {explainReasonLabels[explanation.reason]}{explanation.note ? `. "${explanation.note}"` : '.'}
       </p>
       {#if canUndo}

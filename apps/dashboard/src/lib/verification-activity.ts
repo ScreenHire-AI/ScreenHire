@@ -68,7 +68,8 @@ function describe({ entry, reads }: ReviewLogRow): string {
   if (entry.type === 'ExplanationUndone') return `Undid the explanation of "${finding}"`;
   // The reason is the entry's note, in words that name no other application, job or candidate (ADR-0015).
   if (entry.type === 'EvidenceChanged') return entry.note ?? 'Verification evidence changed';
-  return 'Verification note';
+  // A note names the result it was written on, as the old log did; one written before results had a kind reads plainly.
+  return entry.assessmentKind ? `Note on ${about}` : 'Verification note';
 }
 
 function actorOf({ entry }: ReviewLogRow, currentUserId: string | undefined): string {

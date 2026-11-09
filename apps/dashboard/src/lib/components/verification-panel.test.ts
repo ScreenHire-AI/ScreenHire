@@ -144,24 +144,32 @@ describe('verification tab', () => {
     expect(tile('Network').querySelector('a')).toHaveAttribute('href', '#verification-group-network');
     expect(group('Network')).toHaveAttribute('id', 'verification-group-network');
     // A state is its icon, colour and words, always together (T1).
-    expect(tile('Network').querySelector('[data-status="verify"], [data-status="review"]')).toBeInTheDocument();
-    expect(tile('Contact').querySelector('[data-status-icon]')).toBeInTheDocument();
+    // Found is the review status whatever the level: the level's own icon (Verify's ID card) would read as a check of its own.
+    expect(tile('Network').querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'eye');
+    expect(tile('FormUse').querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'eye');
+    expect(map.querySelector('[data-status-icon="id-card"]')).toBeNull();
+    expect(tile('Contact').querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'circle-check');
+    // The sparkles mean AI help: an information-only group of AI notes takes them.
+    expect(tile('Documents').querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'sparkles');
     // Following a tile moves focus to its panel.
     group('Network').scrollIntoView = vi.fn();
     await fireEvent.click(tile('Network').querySelector('a')!);
     expect(group('Network')).toHaveFocus();
   });
 
-  it('says AI help is information only on its findings, and offers no action or tag on anything else that does not count', async () => {
+  it('says a finding that never counts is information only, with the sparkles for AI help alone, and offers it no action', async () => {
     serve(botVerification());
     renderPanel();
 
     await assessed();
     for (const code of ['CNT_PROMPT_INJECTION', 'CNT_NEAR_DUPLICATE_ANSWER']) {
       expect(finding(code).querySelector('[data-information-only]')).toHaveTextContent('Information only');
+      expect(finding(code).querySelector('[data-information-only]')).toHaveAttribute('data-information-only', 'ai');
     }
-    // The exception is marked, not the rule: a finding that counts and a context signal (the VPN) carry no tag.
-    for (const code of ['NET_DATACENTER_IP', 'AUTO_WEBDRIVER', 'NET_ANON_PROXY']) {
+    // A context signal that did not count (the VPN) is information too, in grey: the sparkles would call it AI help.
+    expect(finding('NET_ANON_PROXY').querySelector('[data-information-only]')).toHaveAttribute('data-information-only', 'context');
+    // The exception is marked, not the rule: a finding that counts carries no tag.
+    for (const code of ['NET_DATACENTER_IP', 'AUTO_WEBDRIVER']) {
       expect(finding(code).querySelector('[data-information-only]')).toBeNull();
     }
     for (const code of ['CNT_PROMPT_INJECTION', 'CNT_NEAR_DUPLICATE_ANSWER', 'NET_ANON_PROXY']) {
@@ -270,6 +278,24 @@ describe('verification tab', () => {
     expect(screen.queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
   });
 
+  it('draws a group of context notes as grey information, keeping the sparkles for AI help', async () => {
+    const calm = genuineVerification();
+    const vpn = botVerification().authenticity!.signals.find((signal) => signal.code === 'NET_ANON_PROXY')!;
+    serve({
+      ...calm,
+      authenticity: { ...calm.authenticity!, signals: [vpn], summary: 'Shown for context only: one observation, never a reason on its own.' },
+      checkGroups: checkGroups({ Network: { state: 'InformationOnly', notes: 1 } }),
+    });
+    renderPanel();
+
+    await assessed();
+    const network = screen.getByRole('list', { name: 'Check groups' }).querySelector('[data-group="Network"]')!;
+    expect(network).toHaveTextContent('Network 1 note, information only');
+    expect(network.querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'info');
+    expect(screen.getByRole('list', { name: 'Check groups' }).querySelector('[data-status-icon="sparkles"]')).toBeNull();
+    expect(finding('NET_ANON_PROXY').querySelector('[data-information-only]')).toHaveAttribute('data-information-only', 'context');
+  });
+
   it('shows Expand all only for a group with more than one finding, and opens and closes them together', async () => {
     serve(botVerification());
     renderPanel();
@@ -375,7 +401,7 @@ describe('verification tab', () => {
     expect(explained.querySelector('details')!.open).toBe(false);
     expect(within(explained.querySelector('summary')!).getByText('Explained')).toBeInTheDocument();
     // The note sits under the finding it concerns.
-    expect(explained.querySelector('[data-explanation] p')).toHaveTextContent(/^You .+: Expected for this role\. "Remote role\."$/);
+    expect(explained.querySelector('[data-explanation] p')).toHaveTextContent(/^You, .+: Expected for this role\. "Remote role\."$/);
     expect(within(explained).getByRole('button', { name: 'Undo' })).toBeInTheDocument();
     // The next step, the callout's colour and the one button stay as they were: other findings are still unexplained.
     expect(summaryPanel().querySelector('[data-summary]')).toHaveClass('border-status-verify-mark');
@@ -409,7 +435,7 @@ describe('verification tab', () => {
     renderPanel();
 
     await assessed();
-    expect(finding('AUTO_WEBDRIVER').querySelector('[data-explanation]')).toHaveTextContent(/^Jordan Park /);
+    expect(finding('AUTO_WEBDRIVER').querySelector('[data-explanation]')).toHaveTextContent(/^Jordan Park, /);
     expect(within(finding('AUTO_WEBDRIVER')).queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
     await fireEvent.click(within(finding('NET_DATACENTER_IP')).getByRole('button', { name: 'Undo' }));
 
@@ -463,7 +489,7 @@ describe('verification tab', () => {
 
     await assessed();
     await openFinding('NET_DATACENTER_IP');
-    expect(finding('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
+    expect(finding('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You, /);
     expect(screen.queryByRole('button', { name: /Undo|Mark explained|Dismiss/ })).not.toBeInTheDocument();
   });
 
@@ -478,7 +504,7 @@ describe('verification tab', () => {
     expect(screen.queryByRole('button', { name: /Mark explained|Undo|Dismiss/ })).not.toBeInTheDocument();
     // Read-only says why (E3).
     expect(summaryPanel()).toHaveTextContent('Your role can read these checks; ask a reviewer to explain or dismiss them.');
-    expect(finding('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You /);
+    expect(finding('NET_DATACENTER_IP').querySelector('[data-explanation]')).toHaveTextContent(/^You, /);
   });
 
   it('asks for a note before dismissing for another reason', async () => {

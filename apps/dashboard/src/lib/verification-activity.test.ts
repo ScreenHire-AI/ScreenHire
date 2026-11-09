@@ -46,7 +46,7 @@ describe('verification activity', () => {
   it('words each kind of entry for Activity, newest first, quoting a reviewer and never a system reason', () => {
     const lines = reviewActivities(
       [
-        entry('n', { type: 'NoteAdded', note: 'Called the number.', occurredAt: '2026-10-20T10:00:00Z' }),
+        entry('n', { type: 'NoteAdded', assessmentKind: 'AiAssistance', note: 'Called the number.', occurredAt: '2026-10-20T10:00:00Z' }),
         entry('e', { type: 'ReasonExplained', signalTitle: 'Internet phone number', explainReason: 'ExpectedForRole', occurredAt: '2026-10-20T10:01:00Z' }),
         entry('u', { type: 'ExplanationUndone', signalTitle: 'Internet phone number', occurredAt: '2026-10-20T10:02:00Z' }),
         entry('d', { type: 'Dismissed', assessmentKind: 'Authenticity', dismissReason: 'VerifiedOutsideScreenHire', note: 'Video call.', occurredAt: '2026-10-20T10:03:00Z' }),
@@ -64,7 +64,7 @@ describe('verification activity', () => {
       'Dismissed the verification result: Verified outside ScreenHire',
       'Undid the explanation of "Internet phone number"',
       'Explained "Internet phone number": Expected for this role',
-      'Verification note',
+      'Note on the AI help result',
     ]);
     expect(lines.map((line) => line.actor)).toEqual(['key made by someone who has left', 'by ScreenHire', 'by you', 'by you', 'by you', 'by you']);
     expect(lines.find((line) => line.id === 'd')?.note).toBe('Video call.');

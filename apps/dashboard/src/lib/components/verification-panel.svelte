@@ -258,7 +258,7 @@
             </ul>
           </details>
         {:else}
-          <VerificationGroupMap {groups} foundStatus={level?.status ?? 'review'} />
+          <VerificationGroupMap {groups} {findings} />
         {/if}
         <p role="status" class="text-muted-foreground empty:hidden">{announcement}</p>
       </div>
