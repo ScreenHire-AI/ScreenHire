@@ -89,8 +89,10 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await GoToPageAsync("/candidates", "Candidates");
         // Every application is counted, the busy job's and the other job's, though a phone lists a page of them.
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Applications", Exact = true }).Locator("header"))
+        // The count is on the List choice in the header band; the table panel is titled Candidates and carries none (W7).
+        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "List", Exact = true }))
             .ToContainTextAsync(BusyOrganization.Number(BusyOrganization.Applications + BusyOrganization.OtherApplications));
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Candidates", Exact = true }).Locator("header [data-slot='badge']")).ToHaveCountAsync(0);
         await ExpectFitsAsync($"candidates-{width}");
         if (width < 768)
         {
