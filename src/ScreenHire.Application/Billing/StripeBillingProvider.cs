@@ -297,7 +297,9 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             if (line.TryGetProperty("proration", out var proration) && proration.ValueKind == JsonValueKind.True)
             {
                 // Stripe's advice for isolating the prorations being previewed: the ones whose period starts at the proration date.
-                // Any other proration line is an earlier pending item that the change does not invoice.
+                // Any other proration line is an earlier pending item, which a classic-billing-mode subscription (what Checkout
+                // creates at the pinned API version) leaves out of the change's invoice
+                // (https://docs.stripe.com/billing/subscriptions/pending-updates). Flexible billing mode would invoice it too.
                 if (line.GetProperty("period").GetProperty("start").GetInt64() == prorationDate.ToUnixTimeSeconds())
                 {
                     prorations += amount;

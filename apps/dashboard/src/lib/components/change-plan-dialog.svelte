@@ -6,6 +6,7 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
+  import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { formatMoney } from '#lib/billing.js';
   import { describeError } from '#lib/query.js';
   import { cn } from '#lib/utils.js';
@@ -87,7 +88,13 @@
         </p>
       </div>
     {:else}
-      <p role="status" class="text-muted-foreground">Working out the cost…</p>
+      <!-- The price block's shape while the provider works it out (E1), so the dialog does not jump when it arrives. -->
+      <div role="status" class="flex flex-col gap-2">
+        <span class="sr-only">Working out the cost…</span>
+        <Skeleton aria-hidden="true" class="h-5 w-3/4" />
+        <Skeleton aria-hidden="true" class="h-4 w-full" />
+        <Skeleton aria-hidden="true" class="h-4 w-1/2" />
+      </div>
     {/if}
     <FailureText message={failure} />
     <Dialog.Footer>

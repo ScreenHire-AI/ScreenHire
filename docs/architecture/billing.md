@@ -170,7 +170,9 @@ follows points to Manage billing without promising nothing was charged, because 
 one of the catalogue's prices, so an item that is not a plan is left alone. It then posts `invoices/create_preview`
 (https://docs.stripe.com/api/invoices/create_preview) with that item's id, the new price and `subscription_details[proration_date]`.
 The preview is an upcoming invoice: its lines marked `proration` whose period starts at the proration date (Stripe's advice for
-isolating the prorations being previewed) are the credit for unused time and the charge for the rest of the period, and the line
+isolating the prorations being previewed) are the credit for unused time and the charge for the rest of the period. Any other
+proration line is an earlier pending item, which an `always_invoice` update leaves out in classic billing mode, the mode Checkout
+gives a subscription at the pinned version (flexible billing mode would invoice it too). The line
 that is not a proration is the first full period at the new price. The prorations sum to the amount
 due now, floored at 0, because a downgrade's credit stays on the Stripe customer and is not paid out. The full-period line is
 the next regular charge, and its period start is its date. Amounts are whole minor units, so a zero-decimal currency (yen) is
