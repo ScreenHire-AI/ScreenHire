@@ -7,6 +7,7 @@ import { formatDate } from '#lib/dates.js';
 import { previousInstants, rangeInstants } from '#lib/report-range.js';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub, jobs, user } from '../../../test-support/fixtures.js';
+import { stubViewport } from '../../../test-support/viewport.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import WithTooltips from '../../../test-support/with-tooltips.svelte';
 import Page from './+page.svelte';
@@ -204,6 +205,20 @@ describe('reports page', () => {
     expect(document.getElementById(daysOpen.getAttribute('aria-describedby')!)).toHaveTextContent(`Opened ${formatDate('2026-10-19T12:00:00Z')}`);
     expect(within(table).getByRole('link', { name: jobs[0]!.title })).toHaveAttribute('href', `/jobs/${jobs[0]!.id}`);
     await expectNoAxeViolations();
+  });
+
+  it('shows the open jobs as list items on a phone, each number under its label, with a Sort chip, so none is hidden off the edge', async () => {
+    stubViewport(390);
+    renderPage();
+
+    const open = await screen.findByRole('region', { name: 'Open jobs' });
+    expect(within(open).queryByRole('table')).toBeNull();
+    const item = within(within(open).getByRole('list', { name: 'Open jobs' })).getAllByRole('listitem')[0]!;
+    expect(within(item).getByRole('link', { name: jobs[0]!.title })).toHaveAttribute('href', `/jobs/${jobs[0]!.id}`);
+    // Every number the table has, in its own words, and not the date a job opened.
+    expect([...item.querySelectorAll('dt')].map((term) => term.textContent)).toEqual(['Applications', 'In interview', 'Days open', 'Hires']);
+    expect([...item.querySelectorAll('dd')].map((value) => value.textContent?.trim())).toEqual(['6', '2', '12', '1']);
+    expect(within(open).getByRole('button', { name: 'Sort' })).toBeInTheDocument();
   });
 
   it('asks for the last 30 days and the previous 30, in the person\'s zone, for every job', async () => {

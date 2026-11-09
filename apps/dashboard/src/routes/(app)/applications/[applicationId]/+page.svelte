@@ -342,14 +342,17 @@
     if (!authenticity || !verificationState || (verificationState.kind !== 'review' && verificationState.kind !== 'verify')) return undefined;
     return { signals: authenticity.signals.filter((signal) => signal.countsTowardLevel).length };
   });
+  // A section with nothing in it shows no count: "Scorecards 0" is noise on a calm record, and the empty section says why
+  // when it opens (W6, W10).
+  const filled = (count: number | undefined) => (count ? count : undefined);
   const recordTabs = $derived<RecordTab[]>([
     { value: 'overview', label: 'Overview' },
     { value: 'application', label: 'Application' },
-    { value: 'files', label: 'Files', count: detail?.files.length },
-    { value: 'messages', label: 'Messages', count: candidateEmails.data?.data.length },
-    { value: 'scorecards', label: 'Scorecards', count: scorecards.data?.data.length },
-    { value: 'verification', label: 'Verification', count: attention?.signals },
-    { value: 'activity', label: 'Activity', count: entries ? visibleEntries(entries).length + reviewActivities(verificationLog ?? [], currentUserId).length : undefined },
+    { value: 'files', label: 'Files', count: filled(detail?.files.length) },
+    { value: 'messages', label: 'Messages', count: filled(candidateEmails.data?.data.length) },
+    { value: 'scorecards', label: 'Scorecards', count: filled(scorecards.data?.data.length) },
+    { value: 'verification', label: 'Verification', count: filled(attention?.signals) },
+    { value: 'activity', label: 'Activity', count: entries ? filled(visibleEntries(entries).length + reviewActivities(verificationLog ?? [], currentUserId).length) : undefined },
   ]);
 
   // A mention email links to its note (#note-{id} on Activity): once the timeline is in, the note scrolls into view.

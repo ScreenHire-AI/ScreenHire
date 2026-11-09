@@ -29,10 +29,12 @@
   import Hint from '#lib/components/hint.svelte';
   import Panel from '#lib/components/panel.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
+  import SortMenu from '#lib/components/sort-menu.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import * as Table from '#lib/components/ui/table/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
+  import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import type { TableSort } from '#lib/preferences.svelte.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
@@ -108,6 +110,10 @@
   const shown = $derived(columns.filter((column) => !column.csvOnly));
   const showsTable = $derived(!(rows.length === 0 && empty) && (!chart || view === 'table'));
   const end = (column: ChartColumn<T>) => column.align === 'end' && 'text-right';
+  // On a phone the table is list items with no headers, as every table is (L2, section 8): the row's name, then each number
+  // under its own label, with the Sort chip offering the headers' choices. Four numbers and a name do not fit a phone's width
+  // as columns, and a table that scrolls sideways hides the last of them.
+  const phone = new IsMobile();
 </script>
 
 <Panel {title} class={className} flush={showsTable} fill aria-busy={busy || undefined}>
@@ -137,6 +143,37 @@
       {@render empty()}
     {:else if chart && view === 'chart'}
       {@render chart()}
+    {:else if phone.current}
+      <div class="flex items-center justify-end border-b border-border-subtle px-4 py-2"><SortMenu {table} /></div>
+      <ul aria-label={title}>
+        {#each sorted as row (rowKey(row))}
+          <li class="flex flex-col gap-1.5 border-b border-border-subtle px-4 py-3 last:border-b-0">
+            <span class="flex min-w-0 font-semibold">
+              {#if shown[0]?.href}
+                <a href={shown[0].href(row)} class="inline-flex min-h-6 max-w-full min-w-0 items-center text-primary underline underline-offset-2 pointer-coarse:min-h-11"
+                  ><TruncatedText text={shown[0].text(row)} /></a
+                >
+              {:else if shown[0]}
+                <TruncatedText text={shown[0].text(row)} />
+              {/if}
+            </span>
+            <dl class="grid grid-cols-[repeat(auto-fit,minmax(5.5rem,1fr))] gap-x-3 gap-y-1">
+              {#each shown.slice(1) as column (column.id)}
+                {@const text = column.text(row)}
+                {@const hint = column.hint?.(row)}
+                <div class="flex min-w-0 flex-col">
+                  <dt class="truncate text-caption text-muted-foreground">{column.header}</dt>
+                  <dd class="tabular-nums">
+                    {#if hint}
+                      <Hint content={hint}>{#snippet children({ props })}<span {...props}>{text}</span>{/snippet}</Hint>
+                    {:else if text}{text}{:else}<span class="sr-only">{column.blank ?? 'None'}</span>{/if}
+                  </dd>
+                </div>
+              {/each}
+            </dl>
+          </li>
+        {/each}
+      </ul>
     {:else}
       <div class="overflow-x-auto">
         <Table.Root>

@@ -145,12 +145,15 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         foreach (var (title, location, status) in seeded)
         {
             var cells = rows.Filter(new() { HasText = title }).GetByRole(AriaRole.Cell);
-            // Status first (T2), then the title, location, type and publish date.
+            // Status first (T2), then the title, location, type, candidates and publish date.
             await Expect(cells.Nth(0)).ToHaveTextAsync(status);
             await Expect(cells.Nth(1)).ToHaveTextAsync(title);
             await Expect(cells.Nth(2)).ToHaveTextAsync(location);
+            // Candidates in play (column 4): a number for a job with people on it, and a blank cell, its words for screen readers
+            // only, for one with nobody (L1). This stack seeds the jobs without the demo's applicants, so each reads blank.
+            await Expect(cells.Nth(4)).ToHaveTextAsync(new Regex(@"^(No candidates|\d+)$"));
             // Published date ("Oct 20, 2026") for open jobs; a blank cell, its words for screen readers only, for the draft, which was never published (L1).
-            await Expect(cells.Nth(4)).ToHaveTextAsync(status == "Draft" ? new Regex("^Not published$") : PublishedDate());
+            await Expect(cells.Nth(5)).ToHaveTextAsync(status == "Draft" ? new Regex("^Not published$") : PublishedDate());
         }
 
         // The status filter counts each status in a count badge after its label; All's count is the header's (W4).

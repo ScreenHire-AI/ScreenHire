@@ -295,7 +295,7 @@ const interview = (overrides: Partial<ApplicationInterview> = {}): ApplicationIn
 });
 
 describe('application page', () => {
-  it('has the seven tabs in the same order, with counts, and the signals on Verification when the level needs a look', async () => {
+  it('has the seven tabs in the same order, with counts only on the ones that hold something, and the signals on Verification when the level needs a look', async () => {
     stubApi({ [`GET /v1/applications/${applicationId}/verification`]: () => Response.json({ ...botVerification(), applicationId }) });
     renderPage();
 
@@ -306,8 +306,9 @@ describe('application page', () => {
         'Overview',
         'Application',
         'Files 2',
-        'Messages 0',
-        'Scorecards 0',
+        // Nothing in them, so no count (W6): not "Messages 0" or "Scorecards 0".
+        'Messages',
+        'Scorecards',
         expect.stringMatching(/^Verification \d+$/),
         'Activity 6',
       ]),
@@ -800,9 +801,10 @@ describe('application page', () => {
         renderPage();
         const panel = await screen.findByRole('region', { name: 'Latest message' });
 
-        await within(panel).findByText('Hi Casey,');
+        // The greeting says who it is to, not what it says, so the line after it is the preview.
+        await within(panel).findByText('We would like to talk on Thursday.');
         await waitFor(() => expect(panel).toHaveTextContent('Robin Ashby emailed 3 days ago'));
-        expect(panel).not.toHaveTextContent('We would like to talk');
+        expect(panel).not.toHaveTextContent('Hi Casey,');
         expect(fetch.mock.calls.some(([url]) => String(url) === `/v1/emails/${sentId}`)).toBe(true);
       });
 
@@ -1645,13 +1647,14 @@ describe('application page', () => {
     });
 
     it('shows the phone, not when they were last contacted, for an application still in the job', async () => {
-      stubDetail({ allowsFutureRoles: true, candidate: { ...application.candidate, phone: '+44 20 7946 0000' } });
+      const fetch = stubDetail({ allowsFutureRoles: true, candidate: { ...application.candidate, phone: '+44 20 7946 0000' } });
       renderPage();
       const band = await header();
 
       expect(await within(band).findByRole('link', { name: '+44 20 7946 0000' })).toHaveAttribute('href', 'tel:+44 20 7946 0000');
-      // The emails are in once the Messages tab has its count.
-      await within(screen.getByRole('tablist', { name: 'Candidate sections' })).findByRole('tab', { name: 'Messages 0' });
+      // The emails are in once their request has been made and answered (an empty list leaves the tab with no count).
+      await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url) === `/v1/candidates/${candidateId}/emails`)).toBe(true));
+      await new Promise((resolve) => setTimeout(resolve, 0));
       expect(band).not.toHaveTextContent('Last contacted');
       expect(band).not.toHaveTextContent('Not contacted yet');
     });

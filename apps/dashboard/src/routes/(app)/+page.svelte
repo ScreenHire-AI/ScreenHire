@@ -3,7 +3,7 @@
   import PencilIcon from '~icons/lucide/pencil';
   import PlusIcon from '~icons/lucide/plus';
   import type { JobStatus, JobSummary } from '@screenhire/api-client';
-  import { createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
+  import { createListApplications, createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -44,6 +44,7 @@
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
+  import { isCurrentApplication } from '#lib/candidate-lists.js';
   import { employmentLabel } from '#lib/format.js';
   import { jobStatus } from '#lib/job-status.js';
   import { can } from '#lib/permissions.js';
@@ -54,6 +55,17 @@
   const queryClient = useQueryClient();
   // Live JobPublished, JobClosed and HiringTemplateVersionPublished events refetch this list (#lib/realtime.ts).
   const jobs = createListJobs();
+  // The Jobs overview above asks the same question, so this reads its cache. A count that has not arrived leaves its cell
+  // blank rather than showing a zero that is not true (the cell's words are for screen readers).
+  const applications = createListApplications(() => ({ query: { staleTime: 60_000 } }));
+  // Who is in play on each job: not saved for later, not at an end stage, and not on a closed job (the Current list's own rule).
+  const candidateCounts = $derived.by(() => {
+    const rows = applications.data?.data;
+    if (!rows) return undefined;
+    const counts = new Map<string, number>();
+    for (const application of rows) if (isCurrentApplication(application)) counts.set(application.jobId, (counts.get(application.jobId) ?? 0) + 1);
+    return counts;
+  });
   const publish = createPublishJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
   // Tables become list items on phones (design system section 8), with the sidebar's own phone test.
   const sidebar = Sidebar.useSidebar();
@@ -103,6 +115,16 @@
     column.accessor('title', { header: 'Title', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(titleCell, row.original) }),
     column.accessor('location', { header: 'Location', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(locationCell, row.original) }),
     column.accessor((job) => employmentLabel(job.employmentType), { id: 'type', header: 'Type', sortFn: 'alphanumeric', cell: ({ row }) => employmentLabel(row.original.employmentType) }),
+    // Who is in play on the job, so a recruiter sees which job needs them without opening each. A job with nobody, or whose
+    // count has not arrived, sorts last either way.
+    column.accessor((job) => (job.status === 'Closed' ? undefined : candidateCounts?.get(job.id) || undefined), {
+      id: 'candidates',
+      header: 'Candidates',
+      sortFn: 'basic',
+      sortDescFirst: true,
+      sortUndefined: 'last',
+      cell: ({ row }) => renderSnippet(candidatesCell, row.original),
+    }),
     // A draft has not been published, so it sorts last either way.
     column.accessor((job) => job.publishedAt ?? undefined, {
       id: 'published',
@@ -122,7 +144,7 @@
     }),
     column.display({ id: 'actions', header: () => renderSnippet(actionsHeader, undefined), cell: ({ row }) => renderSnippet(actionsCell, row.original) }),
   ];
-  const sort = createTableSort('jobs', { id: 'updatedAt', desc: true }, ['status', 'title', 'location', 'type', 'published', 'updatedAt']);
+  const sort = createTableSort('jobs', { id: 'updatedAt', desc: true }, ['status', 'title', 'location', 'type', 'candidates', 'published', 'updatedAt']);
   const table = createTable({
     ...tableSortOptions(() => sort),
     features,
@@ -270,6 +292,8 @@
                 <Badge variant="muted" class="relative max-w-full"><TruncatedText text={job.location} /></Badge>
                 <Badge variant="muted">{employmentLabel(job.employmentType)}</Badge>
                 {#if job.templateUpdateAvailable}<Badge variant="muted">Template update</Badge>{/if}
+                {@const inPlay = job.status === 'Closed' ? 0 : (candidateCounts?.get(job.id) ?? 0)}
+                {#if inPlay > 0}<Badge variant="muted">{inPlay} {inPlay === 1 ? 'candidate' : 'candidates'}</Badge>{/if}
               {/snippet}
             </ListItem>
           {/each}
@@ -291,7 +315,7 @@
                         (header.id === 'status' || header.id === 'actions') && 'px-4',
                         header.id === 'status' && 'sticky left-0 bg-muted',
                         header.id === 'actions' && 'sticky right-0 w-14 bg-muted',
-                        (header.id === 'published' || header.id === 'updatedAt' || header.id === 'actions') && 'text-right',
+                        (header.id === 'candidates' || header.id === 'published' || header.id === 'updatedAt' || header.id === 'actions') && 'text-right',
                       ]}
                     />
                   {/each}
@@ -317,7 +341,7 @@
                         cell.column.id === 'title' && 'w-full max-w-0 min-w-48',
                         cell.column.id === 'location' && 'max-w-32 text-muted-foreground @4xl/jobs:max-w-60',
                         (cell.column.id === 'type' || cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-muted-foreground',
-                        (cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
+                        (cell.column.id === 'candidates' || cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
                         // The row menu sticks at the right edge as Status does at the left, so a tablet that scrolls the table
                         // still reaches it (section 8). The cell around the menu stays part of the row's link.
                         cell.column.id === 'actions' && 'pointer-events-none sticky right-0 bg-card text-right group-hover:bg-muted',
@@ -352,6 +376,12 @@
     <TruncatedText text={job.title} href={`/jobs/${job.id}`} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" />
     {#if job.templateUpdateAvailable}<Badge variant="muted" class="shrink-0">Template update</Badge>{/if}
   </span>
+{/snippet}
+
+<!-- Nobody in play (or a closed job) leaves the cell blank, its words for screen readers only (L1). -->
+{#snippet candidatesCell(job: JobSummary)}
+  {@const count = job.status === 'Closed' ? 0 : (candidateCounts?.get(job.id) ?? 0)}
+  {#if count > 0}<span class="relative text-foreground">{count}</span>{:else}<span class="sr-only">No candidates</span>{/if}
 {/snippet}
 
 {#snippet locationCell(job: JobSummary)}<span class="relative block min-w-0"><TruncatedText text={job.location} /></span>{/snippet}
