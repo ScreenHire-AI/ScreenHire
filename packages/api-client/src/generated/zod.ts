@@ -9133,6 +9133,28 @@ export const StartBillingCheckoutResponse = zod.object({
 }).describe('Where to send the browser next: the payment provider\'s page, or the sandbox\'s.')
 
 
+export const PreviewBillingPlanChangeBody = zod.object({
+  "plan": zod.string()
+}).describe('The plan to price a switch to, by its key from the plan list.')
+
+export const PreviewBillingPlanChangeResponse = zod.object({
+  "plan": zod.string(),
+  "amountDueNow": zod.number(),
+  "nextPaymentAmount": zod.number(),
+  "nextPaymentAt": zod.iso.datetime({"offset":true}),
+  "currency": zod.string(),
+  "prorationDate": zod.iso.datetime({"offset":true})
+}).describe('What switching the live subscription to `plan` costs, in `currency`. `amountDueNow` is the prorated difference\ncharged when the owner confirms (0 when the new plan costs less: the credit stays on the account), then\n`nextPaymentAmount` a month on `nextPaymentAt`. `prorationDate` is the instant both were priced at; send it back\nwith the confirmation so the charge is the one shown.')
+
+
+export const ChangeBillingPlanBody = zod.object({
+  "plan": zod.string(),
+  "prorationDate": zod.iso.datetime({"offset":true})
+}).describe('Confirms the switch to `plan` priced at `prorationDate`, as the preview returned it.')
+
+export const ChangeBillingPlanResponse = zod.void()
+
+
 export const OpenBillingPortalResponse = zod.object({
   "url": zod.string()
 }).describe('Where to send the browser next: the payment provider\'s page, or the sandbox\'s.')

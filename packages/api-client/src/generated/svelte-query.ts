@@ -40,6 +40,7 @@ import type {
   AutomationIssue,
   AutomationRunEntry,
   BillingOverview,
+  BillingPlanChangePreview,
   BillingRedirect,
   BoardSummary,
   BrandImageUploadRequest,
@@ -52,6 +53,7 @@ import type {
   CandidateHistoryEntry,
   CandidateSummary,
   ChallengeProviderParams,
+  ChangeBillingPlanRequest,
   ChangeMemberJobAccessRequest,
   ChangeMemberRoleRequest,
   CheckBrandingContrastParams,
@@ -156,6 +158,7 @@ import type {
   PendingInvitation,
   PostingCustomization,
   PostingPreview,
+  PreviewBillingPlanChangeRequest,
   PreviewOrganizationRetentionParams,
   ProblemDetails,
   PublicApplicationDraft,
@@ -21576,6 +21579,254 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getStartBillingCheckoutMutationOptions(options?.()) }), queryClient);
+    }
+
+export type previewBillingPlanChangeResponse200 = {
+  data: BillingPlanChangePreview
+  status: 200
+}
+
+export type previewBillingPlanChangeResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type previewBillingPlanChangeResponse401 = {
+  data: void
+  status: 401
+}
+
+export type previewBillingPlanChangeResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type previewBillingPlanChangeResponse404 = {
+  data: void
+  status: 404
+}
+
+export type previewBillingPlanChangeResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type previewBillingPlanChangeResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type previewBillingPlanChangeResponseSuccess = (previewBillingPlanChangeResponse200) & {
+  headers: Headers;
+};
+export type previewBillingPlanChangeResponseError = (previewBillingPlanChangeResponse400 | previewBillingPlanChangeResponse401 | previewBillingPlanChangeResponse403 | previewBillingPlanChangeResponse404 | previewBillingPlanChangeResponse409 | previewBillingPlanChangeResponse502) & {
+  headers: Headers;
+};
+
+export const getPreviewBillingPlanChangeUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/plan/preview`
+}
+
+export const previewBillingPlanChange = async (previewBillingPlanChangeRequest: PreviewBillingPlanChangeRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<previewBillingPlanChangeResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<previewBillingPlanChangeResponseSuccess>(getPreviewBillingPlanChangeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(previewBillingPlanChangeRequest)
+  }
+);}
+
+
+
+
+
+export const getPreviewBillingPlanChangeMutationKey = () => ['previewBillingPlanChange'] as const;
+
+export const getPreviewBillingPlanChangeMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof previewBillingPlanChange>>, TError,PreviewBillingPlanChangeMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof previewBillingPlanChange>>, TError,PreviewBillingPlanChangeMutationVariables, TContext> => {
+
+const mutationKey = getPreviewBillingPlanChangeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewBillingPlanChange>>, PreviewBillingPlanChangeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewBillingPlanChange(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewBillingPlanChangeMutationResult = NonNullable<Awaited<ReturnType<typeof previewBillingPlanChange>>>
+    export type PreviewBillingPlanChangeMutationBody = PreviewBillingPlanChangeRequest
+    export type PreviewBillingPlanChangeMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type PreviewBillingPlanChangeMutationVariables = {data: PreviewBillingPlanChangeRequest}
+
+    export const createPreviewBillingPlanChange = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof previewBillingPlanChange>>, TError,PreviewBillingPlanChangeMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof previewBillingPlanChange>>,
+        TError,
+        PreviewBillingPlanChangeMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getPreviewBillingPlanChangeMutationOptions(options?.()) }), queryClient);
+    }
+
+export type changeBillingPlanResponse204 = {
+  data: void
+  status: 204
+}
+
+export type changeBillingPlanResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type changeBillingPlanResponse401 = {
+  data: void
+  status: 401
+}
+
+export type changeBillingPlanResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type changeBillingPlanResponse404 = {
+  data: void
+  status: 404
+}
+
+export type changeBillingPlanResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type changeBillingPlanResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type changeBillingPlanResponseSuccess = (changeBillingPlanResponse204) & {
+  headers: Headers;
+};
+export type changeBillingPlanResponseError = (changeBillingPlanResponse400 | changeBillingPlanResponse401 | changeBillingPlanResponse403 | changeBillingPlanResponse404 | changeBillingPlanResponse409 | changeBillingPlanResponse502) & {
+  headers: Headers;
+};
+
+export const getChangeBillingPlanUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/plan`
+}
+
+export const changeBillingPlan = async (changeBillingPlanRequest: ChangeBillingPlanRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<changeBillingPlanResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<changeBillingPlanResponseSuccess>(getChangeBillingPlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeBillingPlanRequest)
+  }
+);}
+
+
+
+
+
+export const getChangeBillingPlanMutationKey = () => ['changeBillingPlan'] as const;
+
+export const getChangeBillingPlanMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof changeBillingPlan>>, TError,ChangeBillingPlanMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof changeBillingPlan>>, TError,ChangeBillingPlanMutationVariables, TContext> => {
+
+const mutationKey = getChangeBillingPlanMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeBillingPlan>>, ChangeBillingPlanMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  changeBillingPlan(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeBillingPlanMutationResult = NonNullable<Awaited<ReturnType<typeof changeBillingPlan>>>
+    export type ChangeBillingPlanMutationBody = ChangeBillingPlanRequest
+    export type ChangeBillingPlanMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type ChangeBillingPlanMutationVariables = {data: ChangeBillingPlanRequest}
+
+    export const createChangeBillingPlan = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof changeBillingPlan>>, TError,ChangeBillingPlanMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof changeBillingPlan>>,
+        TError,
+        ChangeBillingPlanMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getChangeBillingPlanMutationOptions(options?.()) }), queryClient);
     }
 
 export type openBillingPortalResponse200 = {

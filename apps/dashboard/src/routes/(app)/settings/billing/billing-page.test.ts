@@ -59,6 +59,13 @@ const active: BillingOverview = {
   canManage: true,
 };
 
+// What the API answers for a switch from Starter: an upgrade owes the difference for the rest of the period, a downgrade owes nothing.
+const prorationDate = '2026-11-20T09:00:00Z';
+const quoteFor = (key: string) =>
+  key === 'growth'
+    ? { plan: 'growth', amountDueNow: 35.5, nextPaymentAmount: 99, nextPaymentAt: '2026-12-05T12:00:00Z', currency: 'USD', prorationDate }
+    : { plan: key, amountDueNow: 0, nextPaymentAmount: 49, nextPaymentAt: '2026-12-05T12:00:00Z', currency: 'USD', prorationDate };
+
 const assign = vi.fn();
 const posted: { path: string; body: unknown }[] = [];
 
@@ -71,6 +78,14 @@ function renderPage(overview: BillingOverview | (() => Response) = trial, routes
         'POST /v1/organization/billing/checkout': (init) => {
           posted.push({ path: 'checkout', body: JSON.parse(String(init?.body)) });
           return Response.json({ url: 'https://checkout.stripe.example.com/session' });
+        },
+        'POST /v1/organization/billing/plan/preview': (init) => {
+          posted.push({ path: 'preview', body: JSON.parse(String(init?.body)) });
+          return Response.json(quoteFor(JSON.parse(String(init?.body)).plan));
+        },
+        'POST /v1/organization/billing/plan': (init) => {
+          posted.push({ path: 'change', body: JSON.parse(String(init?.body)) });
+          return new Response(null, { status: 204 });
         },
         'POST /v1/organization/billing/portal': () => {
           posted.push({ path: 'portal', body: null });
@@ -163,15 +178,15 @@ describe('billing page', () => {
     expect(screen.getByRole('button', { name: 'Choose Growth' })).toBeEnabled();
   });
 
-  it('shows a paying organization its plan and next payment, with Manage billing as the one primary action and no Choose', async () => {
+  it('shows a paying organization its plan and next payment, with Manage billing as the one primary action and Switch on the other plans', async () => {
     renderPage(active);
 
     expect(await screen.findByText('Active', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
     expect(screen.getByText('Next payment', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$49 on Dec 5, 2026');
     expect(screen.getByText('Open jobs', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^3 of 5$/);
     expect(within(plans()).queryByText('Current plan')).toBeNull();
-    expect(within(plans()).queryByRole('button')).toBeNull();
-    expect(screen.getByText('To change your plan, use Manage billing.')).toBeInTheDocument();
+    expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Switch to Growth', 'Switch to Unlimited']);
+    expect(screen.getByText('To change your card or cancel, use Manage billing.')).toBeInTheDocument();
     expect(primaryButtons().map((button) => button.textContent?.trim())).toEqual(['Manage billing']);
     await expectNoAxeViolations();
   });
@@ -185,12 +200,88 @@ describe('billing page', () => {
     expect(posted).toEqual([{ path: 'portal', body: null }]);
   });
 
+  it('shows what a switch costs before it is made: the amount now, then the monthly price from its date', async () => {
+    renderPage(active);
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
+    await waitFor(() => expect(dialog).toHaveTextContent('$35.50 now, then $99 a month from Dec 5, 2026'));
+    expect(posted).toEqual([{ path: 'preview', body: { plan: 'growth' } }]);
+    expect(within(dialog).getByRole('button', { name: 'Confirm change' })).toBeEnabled();
+    expect(within(dialog).getByRole('button', { name: 'Keep my plan' })).toBeInTheDocument();
+    await expectNoAxeViolations();
+  });
+
+  it('opens with the dialog focused, so the tooltip on the date does not open over the text by itself', async () => {
+    renderPage(active);
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
+    await waitFor(() => expect(dialog).toHaveTextContent('a month from'));
+    await waitFor(() => expect(document.activeElement).toBe(dialog));
+    expect(within(dialog).getByText('Dec 5, 2026').closest('[data-slot="tooltip-trigger"]')).not.toBe(document.activeElement);
+  });
+
+  it('says nothing is due now for a cheaper plan and that the unused time is credited', async () => {
+    renderPage({ ...active, currentPlan: growth, activeJobLimit: 25, nextPaymentAmount: 99 });
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Starter' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Change to Starter?' });
+    await waitFor(() => expect(dialog).toHaveTextContent('Nothing now, then $49 a month from Dec 5, 2026'));
+    expect(dialog).toHaveTextContent('The unused time on your current plan is credited toward your next payment.');
+  });
+
+  it('changes the plan with the date the price was worked out at, and says the page updates once the payment is confirmed', async () => {
+    renderPage(active);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Confirm change' })).toBeEnabled());
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm change' }));
+
+    await waitFor(() => expect(posted.at(-1)).toEqual({ path: 'change', body: { plan: 'growth', prorationDate } }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(await screen.findByText('Your plan is changing to Growth. This page updates when the payment is confirmed.')).toBeInTheDocument();
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it('keeps Confirm off and says why when the cost could not be worked out', async () => {
+    renderPage(active, { 'POST /v1/organization/billing/plan/preview': () => Response.json({ detail: 'The payment provider did not answer. Try again in a moment.' }, { status: 502 }) });
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
+    expect(await within(dialog).findByText('The payment provider did not answer. Try again in a moment.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Confirm change' })).toBeDisabled();
+  });
+
+  it('says why the change was refused, leaves the dialog open and prices the change again', async () => {
+    renderPage(active, {
+      'POST /v1/organization/billing/plan': () => Response.json({ detail: 'The plan was not changed and you have not been charged.' }, { status: 502 }),
+    });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Confirm change' })).toBeEnabled());
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm change' }));
+
+    expect(await within(dialog).findByText('The plan was not changed and you have not been charged.')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByText(/Your plan is changing/)).toBeNull();
+    await waitFor(() => expect(posted.filter((call) => call.path === 'preview')).toHaveLength(2));
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Confirm change' })).toBeEnabled());
+  });
+
   it('says when a subscription that will not renew ends, instead of a next payment', async () => {
     renderPage({ ...active, cancelsAtPeriodEnd: true, nextPaymentAmount: null });
 
     expect(await screen.findByText('Ends on', { selector: 'dt' })).toBeInTheDocument();
     expect(screen.getByText('Ends on', { selector: 'dt' }).nextElementSibling).toHaveTextContent('Dec 5, 2026');
     expect(screen.queryByText('Next payment')).toBeNull();
+    expect(within(plans()).queryByRole('button', { name: /^Switch/ })).toBeNull();
   });
 
   it('shows only the count when the plan has no limit', async () => {
