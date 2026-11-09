@@ -158,14 +158,16 @@ public static partial class CheckApplicationConsistencyHandler
         var staleAfter = StaleAfter(options.Value.Llm);
         var check = await db.ConsistencyChecks
             .SingleOrDefaultAsync(c => c.ApplicationId == message.ApplicationId && c.PromptVersion == ConsistencyPrompts.Version, cancellationToken);
-        if (check is { Status: not ConsistencyCheckStatus.Running })
+        if (check is { Status: not (ConsistencyCheckStatus.Running or ConsistencyCheckStatus.Paused) })
         {
             // Finished already. A redelivery after the outcome was saved may be the only copy of the reassessment that
             // follows it (this handler has no outbox), so ask for it again; the pipeline is idempotent.
             return [new AnalyzeApplicationVerification(message.OrganizationId, message.ApplicationId)];
         }
 
-        if (check is not null && now - check.StartedAt < staleAfter)
+        // A paused check is asked again: the cap may have been raised, or the month may have changed (ResumePausedAiChecks).
+        var resumed = check is { Status: ConsistencyCheckStatus.Paused };
+        if (check is { Status: ConsistencyCheckStatus.Running } && now - check.StartedAt < staleAfter)
         {
             // Another delivery is asking the model now. Look again once its claim would be stale.
             return [message.DelayedFor(staleAfter)];
@@ -220,19 +222,38 @@ public static partial class CheckApplicationConsistencyHandler
         OutgoingMessages messages = [new AnalyzeApplicationVerification(message.OrganizationId, message.ApplicationId)];
         if (early is null)
         {
-            var outcome = await checker.CheckAsync(sources, llm, cancellationToken);
+            // Every call the check makes is recorded in the usage ledger, and saved with the check's outcome in one save, so a
+            // call is recorded once: a redelivery finds the check finished and calls nothing.
+            var recorder = new AiUsageRecorder(AiUsageContexts.For(settings, options.Value.Llm, message.OrganizationId, application.Id), time);
+            ConsistencyCheckOutcome outcome;
+            try
+            {
+                outcome = await checker.CheckAsync(sources, llm.RecordedBy(recorder), cancellationToken);
+            }
+#pragma warning disable CA1031 // Rethrown below: the calls already made still cost money, so they are saved before the failure goes on.
+            catch
+#pragma warning restore CA1031
+            {
+                db.AiUsageCalls.AddRange(recorder.Calls);
+                await db.SaveChangesAsync(CancellationToken.None);
+                throw;
+            }
+
+            db.AiUsageCalls.AddRange(recorder.Calls);
             check.Complete(outcome, time.GetUtcNow());
             await db.SaveChangesAsync(cancellationToken);
+        }
 
-            // The budget alert: once the month's tokens pass 80% of the budget. Its handler keeps the month on the settings
-            // row, so a message sent again for the same month tells nobody twice. An own key has no ScreenHire budget.
-            if (settings is { UsesOwnKey: false } && time.GetUtcNow() is var finished
-                && await db.TokensUsedThisMonthAsync(finished, cancellationToken)
-                    >= (settings.MonthlyTokenBudget ?? options.Value.Llm.DefaultMonthlyTokenBudget) * VerificationAlertWording.BudgetThreshold
-                && settings.BudgetAlertMonth != ConsistencyBudget.Month(finished))
-            {
-                messages.Add(new NotifyBudgetThreshold(message.OrganizationId, ConsistencyBudget.Month(finished)));
-            }
+        // Budget shares passed and the cap reached since the last alert, from the ledger. Each message claims its own key.
+        if (early is null or { Status: ConsistencyCheckStatus.Paused })
+        {
+            messages.AddRange(await AiUsageAlertChecks.DueAsync(db, message.OrganizationId, settings, options.Value.Llm, time.GetUtcNow(), cancellationToken));
+        }
+
+        if (resumed && check.Status != ConsistencyCheckStatus.Paused)
+        {
+            // The pipeline ran this analyzer while the check was paused; it reads the check again for the new outcome.
+            messages.Add(new RecheckApplicationConsistency(message.OrganizationId, message.ApplicationId, check.CompletedAt?.UtcTicks ?? 0));
         }
 
         LogChecked(logger, application.Id, check.Status, check.Contradictions.Count);
@@ -298,17 +319,15 @@ public static partial class CheckApplicationConsistencyHandler
             return new ConsistencyCheckOutcome(ConsistencyCheckStatus.Unavailable, llm.UnavailableReason);
         }
 
-        // With its own key, the provider bills the organization: ScreenHire's budget does not apply (usage still counts and shows).
-        if (settings.UsesOwnKey)
+        // The cap: an Owner's own, else the deployment's safety net for ScreenHire's key. The AI checks pause; the rule-based checks
+        // keep running, and the note says the pause is no result about the candidate. An own key with no cap of its own has none.
+        var (cap, unit) = AiUsageLimits.EffectiveCap(settings, options.DefaultMonthlyTokenCap);
+        if (cap is not null && AiUsageLimits.CapReached(await db.UsedThisMonthAsync(unit, now, cancellationToken), cap))
         {
-            return null;
+            return new ConsistencyCheckOutcome(ConsistencyCheckStatus.Paused, RunNotes.AiChecksPaused);
         }
 
-        var used = await db.TokensUsedThisMonthAsync(now, cancellationToken);
-        var budget = settings.MonthlyTokenBudget ?? options.DefaultMonthlyTokenBudget;
-        return used >= budget
-            ? new ConsistencyCheckOutcome(ConsistencyCheckStatus.OverBudget, "The organization's monthly budget for the consistency check is used up.")
-            : null;
+        return null;
     }
 
     private static string? Text(IReadOnlyList<ApplicationDocument> documents, DocumentKind kind) =>

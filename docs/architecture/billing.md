@@ -56,6 +56,7 @@ out the same way everywhere:
 | `Trial:Days` | `packages/plans/trial.json` (14) | The length of a new organization's trial, 0 or more. The marketing site reads the file to say how long the trial is, so a host that overrides this changes the file too |
 | `Trial:Plan` | `packages/plans/trial.json` (`growth`) | The plan whose limit applies during the trial. With billing on, a key the catalogue does not have stops the host at start (`BillingTrialGate`), as a negative `Trial:Days` does, because neither would show up any other way |
 | `Plans:<key>:*` | the catalogue | Overrides `Name`, `Order`, `MonthlyPrice`, `Currency`, `ActiveJobs`, `Unlimited` and `StripePriceId` for one plan. A field left out keeps the catalogue's value |
+| `Ai:Margin` | 0.20 | The share added to the provider's price when AI use on ScreenHire's key is billed (0.20 is 20% on top). 0 to 10; anything else stops the host at start (`BillingAiMarginGate`). An organization's own key costs it nothing extra. Billing the use is a later task; the ledger it reads is [ai-usage](ai-usage.md) |
 | `ApiBaseUrl`, `Timeout` | Stripe's API, 15 s | For a test that points the real client at a stand-in |
 
 The two keys are secrets: they come from the parameters (set with `dotnet user-secrets set Parameters:stripe-secret-key

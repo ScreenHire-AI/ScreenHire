@@ -179,10 +179,30 @@ public sealed class LlmOptions
     /// <summary>How long one call may take before the check is recorded as unavailable.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(120);
 
-    /// <summary>Tokens per organization per calendar month (UTC) when the organization sets no budget of its own.</summary>
+    /// <summary>Tokens per organization per calendar month (UTC) at which ScreenHire's key alerts, when the organization sets no budget of its own.</summary>
     public long DefaultMonthlyTokenBudget { get; set; } = 2_000_000;
 
+    /// <summary>
+    /// Tokens per organization per calendar month (UTC) at which ScreenHire's key pauses the AI checks, when the
+    /// organization sets no cap of its own. The deployment's safety net; 0 turns it off. An own key has none.
+    /// </summary>
+    public long DefaultMonthlyTokenCap { get; set; } = 2_000_000;
+
+    /// <summary>
+    /// What ScreenHire's key costs, in US dollars per million tokens, by model id (<c>Prices:&lt;modelId&gt;:Input</c> and
+    /// <c>:Output</c>). Configuration, never code: a price list in code goes stale. A model with no entry has an unknown cost.
+    /// </summary>
+    public Dictionary<string, ModelPrice> Prices { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     public AnthropicOptions Anthropic { get; set; } = new();
+}
+
+/// <summary>What one model costs ScreenHire, in US dollars per million tokens.</summary>
+public sealed class ModelPrice
+{
+    public decimal? Input { get; set; }
+
+    public decimal? Output { get; set; }
 }
 
 public enum LlmProvider

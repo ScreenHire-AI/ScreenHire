@@ -182,6 +182,7 @@ app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapSlackEndpoints();
 app.MapBillingEndpoints();
+app.MapAiUsageEndpoints();
 app.MapBillingWebhookEndpoints();
 app.MapCalendarEndpoints();
 app.MapInterviewEndpoints();

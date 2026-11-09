@@ -239,7 +239,7 @@ Two emails go to teammates when an organization turns them on on the Verificatio
 (`VerificationAlertWording`, ScreenHire's own wording like the mention email, not a template). "An application needs a closer
 look" goes once, when an application first reaches Verification suggested, to members who hold Review verification and see the
 job (ADR-0015); it names the job, says the application needs a closer look and links to it, and carries no level, candidate name,
-reason or evidence. "Verification tokens are at 80% of this month's budget" goes once a month to members who can edit settings.
+reason or evidence. The AI usage alerts ("AI usage is at 80% of this month's budget", the cap, a spike; `AiUsageAlertWording`) go once each to members who see AI usage ([ai-usage.md](ai-usage.md)).
 Nothing is sent when the host has no email sender or no dashboard address, and a Slack direct message can go beside either
 ([slack.md](slack.md), [verification engine](verification-engine.md) section 10.11).
 

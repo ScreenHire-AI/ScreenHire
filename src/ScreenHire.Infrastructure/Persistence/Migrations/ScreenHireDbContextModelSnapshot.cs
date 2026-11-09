@@ -3738,6 +3738,131 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("talent_pool_entries", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Verification.AiUsageAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("key");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTimeOffset>("RaisedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("raised_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ai_usage_alerts");
+
+                    b.HasIndex("OrganizationId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ai_usage_alerts_organization_id_key");
+
+                    b.ToTable("ai_usage_alerts", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Verification.AiUsageCall", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<string>("CheckName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("check_name");
+
+                    b.Property<decimal?>("Cost")
+                        .HasPrecision(18, 8)
+                        .HasColumnType("numeric(18,8)")
+                        .HasColumnName("cost");
+
+                    b.Property<string>("CostBasis")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("cost_basis");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<string>("ErrorKind")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("error_kind");
+
+                    b.Property<long?>("InputTokens")
+                        .HasColumnType("bigint")
+                        .HasColumnName("input_tokens");
+
+                    b.Property<string>("KeySource")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("key_source");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("model");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("outcome");
+
+                    b.Property<long?>("OutputTokens")
+                        .HasColumnType("bigint")
+                        .HasColumnName("output_tokens");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderRequestId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("provider_request_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ai_usage_calls");
+
+                    b.HasIndex("OrganizationId", "Id")
+                        .HasDatabaseName("ix_ai_usage_calls_organization_id_id");
+
+                    b.HasIndex("OrganizationId", "OccurredAt")
+                        .HasDatabaseName("ix_ai_usage_calls_organization_id_occurred_at");
+
+                    b.ToTable("ai_usage_calls", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Verification.AnswerFingerprint", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4397,14 +4522,17 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("budget_alert_email");
 
-                    b.Property<string>("BudgetAlertMonth")
-                        .HasMaxLength(7)
-                        .HasColumnType("character varying(7)")
-                        .HasColumnName("budget_alert_month");
-
                     b.Property<bool>("BudgetAlertSlack")
                         .HasColumnType("boolean")
                         .HasColumnName("budget_alert_slack");
+
+                    b.Property<string>("BudgetUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("Tokens")
+                        .HasColumnName("budget_unit");
 
                     b.Property<bool>("CheckAnswers")
                         .ValueGeneratedOnAdd()
@@ -4486,9 +4614,25 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDefaultValue("Included")
                         .HasColumnName("llm_source");
 
-                    b.Property<long?>("MonthlyTokenBudget")
-                        .HasColumnType("bigint")
-                        .HasColumnName("monthly_token_budget");
+                    b.Property<decimal?>("MonthlyBudget")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("monthly_budget");
+
+                    b.Property<decimal?>("MonthlyCap")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("monthly_cap");
+
+                    b.Property<decimal?>("OwnKeyInputPrice")
+                        .HasPrecision(12, 4)
+                        .HasColumnType("numeric(12,4)")
+                        .HasColumnName("own_key_input_price");
+
+                    b.Property<decimal?>("OwnKeyOutputPrice")
+                        .HasPrecision(12, 4)
+                        .HasColumnType("numeric(12,4)")
+                        .HasColumnName("own_key_output_price");
 
                     b.Property<string>("ProtectedLlmApiKey")
                         .HasMaxLength(4000)
@@ -5772,6 +5916,26 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_talent_pool_entries_candidates_organization_id_candidate_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Verification.AiUsageAlert", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_usage_alerts_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Verification.AiUsageCall", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ai_usage_calls_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Verification.AnswerFingerprint", b =>

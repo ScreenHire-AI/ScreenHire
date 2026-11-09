@@ -154,6 +154,12 @@ public sealed class ScreenHireDbContext
 
     public DbSet<VerificationSettings> VerificationSettings => Set<VerificationSettings>();
 
+    /// <summary>One row per model call, append-only (docs/architecture/ai-usage.md).</summary>
+    public DbSet<AiUsageCall> AiUsageCalls => Set<AiUsageCall>();
+
+    /// <summary>Claims that a budget, cap or spike alert went out.</summary>
+    public DbSet<AiUsageAlert> AiUsageAlerts => Set<AiUsageAlert>();
+
     /// <summary>Candidates' requests for a copy of their data or for it to be erased (docs/architecture/data-requests.md).</summary>
     public DbSet<DataRequest> DataRequests => Set<DataRequest>();
 

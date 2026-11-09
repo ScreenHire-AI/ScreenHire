@@ -35,6 +35,7 @@ public enum Permission
     EditAnyView,
     GrantVerificationAccess,
     ManageBilling,
+    ViewAiUsage,
 }
 
 /// <summary>The groups the Roles page shows permissions in.</summary>
@@ -101,6 +102,8 @@ public static class RolePermissions
             "Connect Slack, choose its channel and what it posts there, and disconnect it."),
         new(Permission.ManageTeam, PermissionGroup.Organization, "Manage the team",
             "Invite people, change roles and remove members, except Owners, and make roles."),
+        new(Permission.ViewAiUsage, PermissionGroup.Organization, "See AI usage and costs",
+            "The AI usage page: every model call with its tokens and cost, the budget and the usage alerts."),
         new(Permission.ManageOwners, PermissionGroup.Organization, "Manage Owners",
             "Make someone an Owner, or change or remove an Owner.", OwnerOnly: true),
         new(Permission.GrantVerificationAccess, PermissionGroup.Organization, "Give a key verification access",
@@ -134,7 +137,7 @@ public static class RolePermissions
     private static readonly Permission[] Administration =
     [
         Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
-        Permission.ManageIntegrations, Permission.ManageTeam, Permission.EraseCandidates, Permission.EditAnyView,
+        Permission.ManageIntegrations, Permission.ManageTeam, Permission.EraseCandidates, Permission.EditAnyView, Permission.ViewAiUsage,
     ];
 
     /// <summary>The built-in roles, most access first.</summary>

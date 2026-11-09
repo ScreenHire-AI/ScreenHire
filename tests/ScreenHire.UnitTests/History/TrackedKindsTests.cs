@@ -64,7 +64,7 @@ public sealed partial class TrackedKindsTests
         // An organization's own model key is held encrypted on its settings row; History sees only that one is saved.
         TrackedKinds.FindAll(typeof(VerificationSettings)).Single().ViewType.Should().Be<VerificationSettingsFacts>();
         typeof(VerificationSettingsFacts).GetProperties().Select(p => p.Name)
-            .Should().NotContain([nameof(VerificationSettings.ProtectedLlmApiKey), nameof(VerificationSettings.LlmBaseUrl), nameof(VerificationSettings.BudgetAlertMonth)]);
+            .Should().NotContain([nameof(VerificationSettings.ProtectedLlmApiKey), nameof(VerificationSettings.LlmBaseUrl)]);
     }
 
     [Fact]
@@ -111,9 +111,9 @@ public sealed partial class TrackedKindsTests
         TrackedKinds.FindAll(typeof(EmailTemplate)).Single().SubjectId(reworded).Should().Be(EmailTemplateIds.StageChange);
     }
 
-    // A token budget counts a model's tokens, not a credential, so it is the one "Token" the pattern lets through. An API
-    // key's prefix is not secret, yet it is part of the key, so it never enters a change either.
-    [GeneratedRegex("Secret|Hash|Token(?!Budget)|Password|Prefix", RegexOptions.IgnoreCase)]
+    // An API key's prefix is not secret, yet it is part of the key, so it never enters a change either. Counts of tokens a model
+    // used are never in a change (usage lives in the ledger), so "Token" in a property name always means a credential.
+    [GeneratedRegex("Secret|Hash|Token|Password|Prefix", RegexOptions.IgnoreCase)]
     private static partial Regex SecretLike();
 
     [Fact]

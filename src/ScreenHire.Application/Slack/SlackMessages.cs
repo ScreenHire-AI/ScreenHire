@@ -42,9 +42,9 @@ public static class SlackMessages
     public static string VerificationSuggested(string job, Uri? application) =>
         $"An application for {Escape(job)} needs a closer look: {Link(application, "Open it")}";
 
-    /// <summary>A direct message to a person who can change settings, when the month's tokens pass 80% of the budget.</summary>
-    public static string VerificationBudget(Uri? settings) =>
-        $"Verification tokens are at 80% of this month's budget: {Link(settings, "Open Verification settings")}";
+    /// <summary>A direct message to a person who sees AI usage: a budget share passed, the cap reached or a spike. <paramref name="line"/> is fixed text.</summary>
+    public static string AiUsage(string line, Uri? settings) =>
+        $"{Escape(line)}: {Link(settings, "Open Verification")}";
 
     /// <summary>The line Send test message posts.</summary>
     public const string Test = "ScreenHire is connected. The events your team picked will post here.";

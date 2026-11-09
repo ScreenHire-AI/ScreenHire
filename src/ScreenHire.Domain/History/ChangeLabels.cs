@@ -103,7 +103,11 @@ public static class ChangeLabels
     public static string ModelProvider(ModelProvider provider) => provider switch
     {
         Verification.ModelProvider.Anthropic => "Anthropic",
-        _ => "OpenAI-compatible",
+        Verification.ModelProvider.OpenAi => "OpenAI",
+        Verification.ModelProvider.OpenRouter => "OpenRouter",
+        Verification.ModelProvider.AzureOpenAi => "Azure OpenAI",
+        Verification.ModelProvider.Gemini => "Google Gemini",
+        _ => "Other (OpenAI-compatible)",
     };
 
     public static string Employment(EmploymentType type) => type switch

@@ -637,6 +637,18 @@ describe('verification panel', () => {
     expect(list).not.toHaveTextContent(/%|score/i);
   });
 
+  it('says the AI checks were paused, in words that put nothing on the candidate', async () => {
+    const note = 'The AI checks were paused because this organization reached its monthly AI cap. This says nothing about the candidate. The other checks ran.';
+    serve({ ...genuineVerification(), checksNotRun: [{ group: 'Answers', label: 'AI checks', kind: 'Paused', note }] });
+    renderPanel();
+
+    const list = await screen.findByRole('region', { name: 'Not checked' });
+    expect(within(list).getByText('AI checks')).toBeInTheDocument();
+    expect(within(list).getByText('Paused')).toBeInTheDocument();
+    expect(within(list).getByText(note)).toBeInTheDocument();
+    expect(list.querySelectorAll('[data-status-icon]')).toHaveLength(1);
+  });
+
   it('shows no Not checked list when the settings kept nothing back', async () => {
     serve({ ...genuineVerification(), checksNotRun: [] });
     renderPanel();

@@ -137,8 +137,7 @@ someone to a stage named for a check, or be called "Route suspected bots", so "m
 verdict. No channel message takes verification output, and there is no verification event. Two direct messages are the
 exception, added at the owner's request (Verification, Alerts), and each goes only to a member who linked Slack: "An
 application for {job} needs a closer look" goes to members who hold Review verification and see the job when an application
-first reaches Verification suggested, and "Verification tokens are at 80% of this month's budget" goes to members who can edit
-settings. Neither names the candidate and neither carries a level, reason or evidence, and neither is ever a channel post,
+first reaches Verification suggested, and the AI usage alerts (a budget share passed, the cap, a spike) go to members who see AI usage. Neither names the candidate and neither carries a level, reason or evidence, and neither is ever a channel post,
 because a channel skips permission and job scoping. One exposure stays: that an event happened at all. If a team's automation moves candidates on a Verification fact, the channel sees that a
 candidate's stage changed, without where to or why. That is accepted: the move is a hiring step the team chose to
 announce, and it carries no level, reason or evidence. Names are escaped

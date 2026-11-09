@@ -10,7 +10,11 @@ namespace ScreenHire.Domain.History;
 /// </summary>
 public sealed record VerificationSettingsFacts(
     bool ConsistencyCheck,
-    long? MonthlyTokenBudget,
+    UsageUnit BudgetUnit,
+    decimal? MonthlyBudget,
+    decimal? MonthlyCap,
+    decimal? OwnKeyInputPrice,
+    decimal? OwnKeyOutputPrice,
     LlmSource Source,
     ModelProvider? Provider,
     string? Host,
@@ -40,7 +44,11 @@ public sealed record VerificationSettingsFacts(
         ArgumentNullException.ThrowIfNull(settings);
         return new VerificationSettingsFacts(
             settings.LlmConsistencyCheckEnabled,
-            settings.MonthlyTokenBudget,
+            settings.BudgetUnit,
+            settings.MonthlyBudget,
+            settings.MonthlyCap,
+            settings.OwnKeyInputPrice,
+            settings.OwnKeyOutputPrice,
             settings.LlmSource,
             settings.LlmProvider,
             HostOf(settings.LlmBaseUrl),

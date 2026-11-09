@@ -53,14 +53,20 @@ public sealed class ConsistencyCheck : IApplicationScoped
         StartedAt = now,
     };
 
-    /// <summary>Takes over a claim whose worker stopped without finishing it.</summary>
+    /// <summary>
+    /// Takes over a claim whose worker stopped without finishing it, or asks again for a check that was paused or skipped
+    /// for the monthly budget, now that the month or the cap has changed.
+    /// </summary>
     public void Reclaim(DateTimeOffset now)
     {
-        if (Status != ConsistencyCheckStatus.Running)
+        if (Status is not (ConsistencyCheckStatus.Running or ConsistencyCheckStatus.Paused))
         {
-            throw new InvalidOperationException("Only a running check can be taken over.");
+            throw new InvalidOperationException("Only a running or paused check can be taken over.");
         }
 
+        Status = ConsistencyCheckStatus.Running;
+        Note = null;
+        CompletedAt = null;
         StartedAt = now;
     }
 
@@ -92,8 +98,14 @@ public enum ConsistencyCheckStatus
     /// <summary>The organization has the check turned off.</summary>
     Disabled,
 
-    /// <summary>The organization's monthly token budget is spent.</summary>
+    /// <summary>The organization's monthly token budget was spent. Rows from before the cap existed; new ones are <see cref="Paused"/>.</summary>
     OverBudget,
+
+    /// <summary>
+    /// The organization's monthly cap was reached, so the AI check did not run. Never a mark against the candidate: it
+    /// is asked again when the cap is raised or the month changes.
+    /// </summary>
+    Paused,
 
     /// <summary>Fewer than two sources have text to compare.</summary>
     NotEnoughSources,

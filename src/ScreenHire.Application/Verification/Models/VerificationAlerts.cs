@@ -1,14 +1,18 @@
+using System.Globalization;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Notifications;
 using ScreenHire.Application.Slack;
+using ScreenHire.Domain.Notifications;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
+using Wolverine;
 
 namespace ScreenHire.Application.Verification;
 
@@ -19,18 +23,25 @@ namespace ScreenHire.Application.Verification;
 /// <remarks><c>assessmentEventId</c> is the timeline entry of the assessment, stable across redeliveries.</remarks>
 public sealed record NotifyVerificationSuggested(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid AssessmentEventId) : ITenantMessage;
 
-/// <summary>This month's tokens reached 80% of the organization's budget. <c>month</c> is <c>yyyy-MM</c> (UTC).</summary>
-public sealed record NotifyBudgetThreshold(Guid OrganizationId, string Month) : ITenantMessage;
+/// <summary>
+/// The organization's AI use needs telling to the people who see it: a budget share passed, the cap reached, or a spike
+/// (ai-usage.md). <paramref name="Key"/> is the <see cref="AiUsageAlertKeys"/> key, which the handler claims so the alert goes out
+/// once. <paramref name="Percent"/> is the budget share for a budget alert.
+/// </summary>
+public sealed record NotifyAiUsage(Guid OrganizationId, AiUsageAlertKind Kind, string Key, int Percent = 0) : ITenantMessage;
 
-/// <summary>The wording of both alerts, shared by email and Slack. Fixed text, ids and links only.</summary>
+/// <summary>What an AI usage alert is about.</summary>
+public enum AiUsageAlertKind
+{
+    Budget,
+    Cap,
+    Spike,
+}
+
+/// <summary>The wording of the suggested-verification alert, shared by email and Slack. Fixed text, ids and links only.</summary>
 public static class VerificationAlertWording
 {
-    /// <summary>The share of the monthly token budget at which the budget alert goes out.</summary>
-    public const double BudgetThreshold = 0.8;
-
     public const string SuggestedSubject = "An application needs a closer look";
-
-    public const string BudgetSubject = "Verification tokens are at 80% of this month's budget";
 
     public static string Suggested(string job) => $"An application for {job} needs a closer look.";
 
@@ -42,12 +53,35 @@ public static class VerificationAlertWording
             $"{line}\n\nOpen it to see why: {link}",
             $"<p>{WebUtility.HtmlEncode(line)}</p><p><a href=\"{WebUtility.HtmlEncode(link.ToString())}\">Open it to see why</a>.</p>");
     }
+}
 
-    public static EmailMessage BudgetEmail(string to, string organization, Uri link) =>
-        new(
-            to, BudgetSubject,
-            $"{organization} has used 80% of this month's AI token budget for the consistency check. Past the budget the check pauses until next month, or you can use your own key.\n\nOpen Verification settings: {link}",
-            $"<p>{WebUtility.HtmlEncode(organization)} has used 80% of this month's AI token budget for the consistency check. Past the budget the check pauses until next month, or you can use your own key.</p><p><a href=\"{WebUtility.HtmlEncode(link.ToString())}\">Open Verification settings</a>.</p>");
+/// <summary>The words of the AI usage alerts, shared by the bell, email and Slack. Fixed text and numbers only.</summary>
+public static class AiUsageAlertWording
+{
+    public static string Subject(AiUsageAlertKind kind, int percent) => kind switch
+    {
+        AiUsageAlertKind.Budget => $"AI usage is at {percent}% of this month's budget",
+        AiUsageAlertKind.Cap => "AI checks are paused: this month's cap is reached",
+        _ => "AI usage yesterday was well above the recent average",
+    };
+
+    public static string Body(AiUsageAlertKind kind, int percent, string organization) => kind switch
+    {
+        AiUsageAlertKind.Budget =>
+            $"{organization} has used {percent}% of this month's AI budget. The budget only warns. Set a cap in Verification to pause the AI checks at a limit.",
+        AiUsageAlertKind.Cap =>
+            $"{organization} reached its monthly AI cap, so the AI checks are paused until next month or until the cap is raised. The rule-based checks keep running, and a paused check is never a mark against a candidate.",
+        _ => $"{organization} used much more AI yesterday than on a usual day. Open the usage page to see which calls.",
+    };
+
+    public static EmailMessage Email(string to, AiUsageAlertKind kind, int percent, string organization, Uri link)
+    {
+        var body = Body(kind, percent, organization);
+        return new EmailMessage(
+            to, Subject(kind, percent),
+            $"{body}\n\nOpen Verification: {link}",
+            $"<p>{WebUtility.HtmlEncode(body)}</p><p><a href=\"{WebUtility.HtmlEncode(link.ToString())}\">Open Verification</a>.</p>");
+    }
 }
 
 /// <summary>
@@ -114,75 +148,79 @@ public static partial class NotifyVerificationSuggestedHandler
 }
 
 /// <summary>
-/// Tells the people who can change settings that the month's tokens passed 80% of the budget, once a month: the handler claims
-/// the month on the settings row, so of two checks that finish together one sends, and a redelivery after the commit finds
-/// the month taken. A crash between the sends and the commit sends again, as with <see cref="NotifyVerificationSuggestedHandler"/>.
+/// Tells the people who see AI usage that a budget share was passed, the cap reached or a day spiked: a bell notification
+/// for each of them, and an email and a Slack direct message when the organization chose them (ai-usage.md). The handler
+/// claims the alert key first (a unique row), so two checks finishing together send once and a redelivery after the commit
+/// finds the key taken. A crash between the sends and the commit sends again, as with <see cref="NotifyVerificationSuggestedHandler"/>.
 /// </summary>
-public static partial class NotifyBudgetThresholdHandler
+public static partial class NotifyAiUsageHandler
 {
-    public static async Task Handle(
-        NotifyBudgetThreshold message,
+    public static async Task<OutgoingMessages> Handle(
+        NotifyAiUsage message,
         ScreenHireDbContext db,
         TransactionalEmail email,
         SlackAccess slack,
         SlackTokens tokens,
         IOptions<DashboardLinkOptions> links,
         TimeProvider time,
-        ILogger<NotifyBudgetThreshold> logger,
+        ILogger<NotifyAiUsage> logger,
         CancellationToken cancellationToken)
     {
-        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        if (settings is null || settings.UsesOwnKey || settings.BudgetAlertMonth == message.Month
-            || settings is not { BudgetAlertEmail: true } and not { BudgetAlertSlack: true })
-        {
-            return;
-        }
-
-        var link = links.Value.Url("/verification");
-        var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == message.OrganizationId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
-        if (link is null || organization is null)
-        {
-            LogNotSent(logger, message.OrganizationId, "no dashboard address, or the organization is gone");
-            return;
-        }
-
-        // One conditional statement in the handler's transaction, so a second check's message waits on the row and then changes
-        // nothing. An update outside the change tracker, and UpdatedAt left alone, because this is bookkeeping: nobody made this
-        // change, and History does not read this column.
-        var claimed = await db.VerificationSettings
-            .Where(s => s.BudgetAlertMonth == null || s.BudgetAlertMonth != message.Month)
-            .ExecuteUpdateAsync(set => set.SetProperty(s => s.BudgetAlertMonth, message.Month), cancellationToken);
+        var outgoing = new OutgoingMessages();
+        var now = time.GetUtcNow();
+        // One statement in the handler's transaction: a second message for the same key waits on the unique index and then does nothing.
+        var claimed = await db.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO ai_usage_alerts (id, organization_id, key, raised_at)
+            VALUES ({Guid.CreateVersion7()}, {message.OrganizationId}, {message.Key}, {now})
+            ON CONFLICT (organization_id, key) DO NOTHING
+            """,
+            cancellationToken);
         if (claimed == 0)
         {
-            return;
+            return outgoing;
         }
 
-        var recipients = await VerificationRecipients.WithPermissionAsync(db, Permission.EditSettings, message.OrganizationId, null, cancellationToken);
+        var (kind, payload) = message.Kind switch
+        {
+            AiUsageAlertKind.Budget => (NotificationKinds.AiUsageBudget, new Dictionary<string, string> { ["percent"] = message.Percent.ToString(CultureInfo.InvariantCulture) }),
+            AiUsageAlertKind.Cap => (NotificationKinds.AiUsageCap, new Dictionary<string, string>()),
+            _ => (NotificationKinds.AiUsageSpike, new Dictionary<string, string> { ["day"] = message.Key.Split(':')[0] }),
+        };
+        outgoing.Add(new RaiseNotification(message.OrganizationId, Permission.ViewAiUsage, kind, message.Key, payload, "/verification"));
+
+        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        var link = links.Value.Url("/verification");
+        var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == message.OrganizationId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
+        if (settings is not ({ BudgetAlertEmail: true } or { BudgetAlertSlack: true }) || link is null || organization is null)
+        {
+            return outgoing;
+        }
+
+        var recipients = await VerificationRecipients.WithPermissionAsync(db, Permission.ViewAiUsage, message.OrganizationId, null, cancellationToken);
         if (settings.BudgetAlertEmail && email.IsConfigured)
         {
             foreach (var to in recipients.Select(r => r.Email).Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                await email.SendAsync(VerificationAlertWording.BudgetEmail(to, organization, link), cancellationToken);
+                await email.SendAsync(AiUsageAlertWording.Email(to, message.Kind, message.Percent, organization, link), cancellationToken);
             }
         }
 
         if (settings.BudgetAlertSlack && slack.IsConfigured)
         {
-            var wording = SlackMessages.VerificationBudget(link);
+            var wording = SlackMessages.AiUsage(AiUsageAlertWording.Subject(message.Kind, message.Percent), link);
             foreach (var recipient in recipients)
             {
                 await VerificationSlackDirectMessages.SendAsync(
-                    db, slack, tokens, message.OrganizationId, recipient.UserId, $"vb:{message.Month}:{recipient.UserId}", wording, time.GetUtcNow(), cancellationToken);
+                    db, slack, tokens, message.OrganizationId, recipient.UserId, $"au:{message.Key}:{recipient.UserId}", wording, now, cancellationToken);
             }
         }
 
         LogNotified(logger, message.OrganizationId, recipients.Count);
+        return outgoing;
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Budget alert for organization {OrganizationId}: nobody was told: {Reason}")]
-    private static partial void LogNotSent(ILogger logger, Guid organizationId, string reason);
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Budget alert for organization {OrganizationId}: {Members} members could be told")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "AI usage alert for organization {OrganizationId}: {Members} members could be told")]
     private static partial void LogNotified(ILogger logger, Guid organizationId, int members);
 }
 

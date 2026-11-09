@@ -10,6 +10,9 @@ import type {
   AddFromTalentPoolRequest,
   AddVerificationNoteRequest,
   AddedFromTalentPool,
+  AiUsageCallPage,
+  AiUsageLimitsView,
+  AiUsageSummary,
   ApiKeySummary,
   ApiMeta,
   ApplicationDetail,
@@ -69,6 +72,8 @@ import type {
   EraseCandidateRequest,
   EraseDataRequestRequest,
   ExplainVerificationReasonRequest,
+  ExportAiUsageCallsParams,
+  GetAiUsageSummaryParams,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
   GetFunnelApplicationsParams,
@@ -115,6 +120,7 @@ import type {
   KeepInMindRequest,
   KeptInMind,
   LastUpdate,
+  ListAiUsageCallsParams,
   ListInterviewersParams,
   ListJobBoardJobsParams,
   ListTasksParams,
@@ -215,6 +221,7 @@ import type {
   TelemetrySnapshotInput,
   TemplateUsageList,
   TestEmailSent,
+  UpdateAiUsageLimitsRequest,
   UpdateBrandingRequest,
   UpdateCareersEmbeddingRequest,
   UpdateEmailTemplateRequest,
@@ -12782,6 +12789,241 @@ export const openBillingPortal = async ( options?: Parameters<typeof apiFetch>[1
     method: 'POST'
 
 
+  }
+);}
+
+
+
+export type getAiUsageSummaryResponse200 = {
+  data: AiUsageSummary
+  status: 200
+}
+
+export type getAiUsageSummaryResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getAiUsageSummaryResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getAiUsageSummaryResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getAiUsageSummaryResponseSuccess = (getAiUsageSummaryResponse200) & {
+  headers: Headers;
+};
+export type getAiUsageSummaryResponseError = (getAiUsageSummaryResponse400 | getAiUsageSummaryResponse401 | getAiUsageSummaryResponse403) & {
+  headers: Headers;
+};
+
+export type getAiUsageSummaryResponse = (getAiUsageSummaryResponseSuccess | getAiUsageSummaryResponseError)
+
+export const getGetAiUsageSummaryUrl = (params?: GetAiUsageSummaryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/ai-usage/summary?${stringifiedParams}` : `/v1/organization/ai-usage/summary`
+}
+
+export const getAiUsageSummary = async (params?: GetAiUsageSummaryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getAiUsageSummaryResponse> => {
+
+  return apiFetch<getAiUsageSummaryResponse>(getGetAiUsageSummaryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listAiUsageCallsResponse200 = {
+  data: AiUsageCallPage
+  status: 200
+}
+
+export type listAiUsageCallsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type listAiUsageCallsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listAiUsageCallsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listAiUsageCallsResponseSuccess = (listAiUsageCallsResponse200) & {
+  headers: Headers;
+};
+export type listAiUsageCallsResponseError = (listAiUsageCallsResponse400 | listAiUsageCallsResponse401 | listAiUsageCallsResponse403) & {
+  headers: Headers;
+};
+
+export type listAiUsageCallsResponse = (listAiUsageCallsResponseSuccess | listAiUsageCallsResponseError)
+
+export const getListAiUsageCallsUrl = (params?: ListAiUsageCallsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/ai-usage/calls?${stringifiedParams}` : `/v1/organization/ai-usage/calls`
+}
+
+export const listAiUsageCalls = async (params?: ListAiUsageCallsParams, options?: Parameters<typeof apiFetch>[1]): Promise<listAiUsageCallsResponse> => {
+
+  return apiFetch<listAiUsageCallsResponse>(getListAiUsageCallsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type exportAiUsageCallsResponse200 = {
+  data: string
+  status: 200
+}
+
+export type exportAiUsageCallsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type exportAiUsageCallsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type exportAiUsageCallsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type exportAiUsageCallsResponseSuccess = (exportAiUsageCallsResponse200) & {
+  headers: Headers;
+};
+export type exportAiUsageCallsResponseError = (exportAiUsageCallsResponse400 | exportAiUsageCallsResponse401 | exportAiUsageCallsResponse403) & {
+  headers: Headers;
+};
+
+export type exportAiUsageCallsResponse = (exportAiUsageCallsResponseSuccess | exportAiUsageCallsResponseError)
+
+export const getExportAiUsageCallsUrl = (params?: ExportAiUsageCallsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/ai-usage/calls/export?${stringifiedParams}` : `/v1/organization/ai-usage/calls/export`
+}
+
+export const exportAiUsageCalls = async (params?: ExportAiUsageCallsParams, options?: Parameters<typeof apiFetch>[1]): Promise<exportAiUsageCallsResponse> => {
+
+  return apiFetch<exportAiUsageCallsResponse>(getExportAiUsageCallsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateAiUsageLimitsResponse200 = {
+  data: AiUsageLimitsView
+  status: 200
+}
+
+export type updateAiUsageLimitsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateAiUsageLimitsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateAiUsageLimitsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateAiUsageLimitsResponseSuccess = (updateAiUsageLimitsResponse200) & {
+  headers: Headers;
+};
+export type updateAiUsageLimitsResponseError = (updateAiUsageLimitsResponse400 | updateAiUsageLimitsResponse401 | updateAiUsageLimitsResponse403) & {
+  headers: Headers;
+};
+
+export type updateAiUsageLimitsResponse = (updateAiUsageLimitsResponseSuccess | updateAiUsageLimitsResponseError)
+
+export const getUpdateAiUsageLimitsUrl = () => {
+
+
+
+
+  return `/v1/organization/ai-usage/limits`
+}
+
+export const updateAiUsageLimits = async (updateAiUsageLimitsRequest: UpdateAiUsageLimitsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateAiUsageLimitsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateAiUsageLimitsResponse>(getUpdateAiUsageLimitsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateAiUsageLimitsRequest)
   }
 );}
 

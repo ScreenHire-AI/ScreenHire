@@ -4,10 +4,12 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { AiUsageLimitsView } from './aiUsageLimitsView.ts';
 import type { AiUsePolicy } from './aiUsePolicy.ts';
 import type { DeviceCheckBasis } from './deviceCheckBasis.ts';
 import type { LastUpdate } from './lastUpdate.ts';
 import type { LlmSource } from './llmSource.ts';
+import type { ModelPresetView } from './modelPresetView.ts';
 import type { ModelProvider } from './modelProvider.ts';
 import type { VerificationAlerts } from './verificationAlerts.ts';
 import type { VerificationChecks } from './verificationChecks.ts';
@@ -15,16 +17,14 @@ import type { VerificationChecks } from './verificationChecks.ts';
 /**
  * The organization's verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM
  * consistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin
- * turns it on. `monthlyTokenBudget` caps the tokens it may use per calendar month (UTC) with ScreenHire's included
- * model; null uses the deployment's default, which is `effectiveMonthlyTokenBudget`. `budgetApplies` is false
- * with the organization's own key, which the provider bills. `tokensUsedThisMonth` is what the check has used so far
- * this month, either way.
+ * turns it on. `limits` is the monthly AI budget and cap with what has been used so far this month; it is null for a
+ * member who cannot see AI usage (`ViewAiUsage`), and an Owner changes it with `/v1/organization/ai-usage/limits`.
+ * `presets` are the providers an organization can bring a key for, with the address each fills in.
+ * `ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization's own key costs it, in US dollars per million
+ * tokens (null when unknown, or for a member who cannot edit settings).
  */
 export interface OrganizationVerificationSettings {
   llmConsistencyCheck: boolean;
-  /** @nullable */
-  monthlyTokenBudget: number | null;
-  tokensUsedThisMonth: number;
   lastUpdated: LastUpdate;
   modelSource: LlmSource;
   provider: null | ModelProvider;
@@ -33,8 +33,12 @@ export interface OrganizationVerificationSettings {
   /** @nullable */
   model: string | null;
   apiKeySaved: boolean;
-  budgetApplies: boolean;
-  effectiveMonthlyTokenBudget: number;
+  /** @nullable */
+  ownKeyInputPrice: number | null;
+  /** @nullable */
+  ownKeyOutputPrice: number | null;
+  limits: null | AiUsageLimitsView;
+  presets: ModelPresetView[];
   checks: VerificationChecks;
   defaultAiUse: AiUsePolicy;
   deviceCheck: null | DeviceCheckBasis;

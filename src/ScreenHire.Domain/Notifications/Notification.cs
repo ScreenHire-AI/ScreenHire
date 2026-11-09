@@ -116,4 +116,13 @@ public static class NotificationKinds
 {
     /// <summary>The sending domain stopped verifying. Key: the domain's id. Payload: <c>domain</c>.</summary>
     public const string SendingDomainFailing = "sending-domain-failing";
+
+    /// <summary>The month's AI use passed 50%, 80% or 100% of the budget. Key: <c>yyyy-MM:budget-N</c>. Payload: <c>percent</c>.</summary>
+    public const string AiUsageBudget = "ai-usage-budget";
+
+    /// <summary>The month's AI use reached the cap and the AI checks paused. Key: <c>yyyy-MM:cap</c>.</summary>
+    public const string AiUsageCap = "ai-usage-cap";
+
+    /// <summary>A day's AI use was well above the recent average. Key: <c>yyyy-MM-dd:spike</c>. Payload: <c>day</c>.</summary>
+    public const string AiUsageSpike = "ai-usage-spike";
 }

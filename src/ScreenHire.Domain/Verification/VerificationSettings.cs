@@ -17,8 +17,14 @@ namespace ScreenHire.Domain.Verification;
 /// </remarks>
 public sealed class VerificationSettings : ITenantOwned
 {
-    /// <summary>The highest monthly budget an organization may set, in tokens.</summary>
-    public const long MaxMonthlyTokenBudget = 1_000_000_000;
+    /// <summary>The highest monthly budget or cap an organization may set, in tokens.</summary>
+    public const long MaxMonthlyTokens = 1_000_000_000;
+
+    /// <summary>The highest monthly budget or cap an organization may set, in US dollars.</summary>
+    public const decimal MaxMonthlyMoney = 1_000_000m;
+
+    /// <summary>The highest price per million tokens an organization may enter for its own key, in US dollars.</summary>
+    public const decimal MaxPricePerMillion = 10_000m;
 
     /// <summary>The longest base URL, model id and (encrypted) key the row holds.</summary>
     public const int MaxBaseUrlLength = 2000;
@@ -34,8 +40,30 @@ public sealed class VerificationSettings : ITenantOwned
 
     public bool LlmConsistencyCheckEnabled { get; set; }
 
-    /// <summary>Tokens the check may use per calendar month (UTC), or null for the deployment's default. Not used with an own key.</summary>
-    public long? MonthlyTokenBudget { get; set; }
+    /// <summary>
+    /// What <see cref="MonthlyBudget"/> and <see cref="MonthlyCap"/> are counted in. One unit for both, so the two never
+    /// compare tokens with dollars.
+    /// </summary>
+    public UsageUnit BudgetUnit { get; set; } = UsageUnit.Tokens;
+
+    /// <summary>
+    /// What the organization expects to use per calendar month (UTC), in <see cref="BudgetUnit"/>. Alerts go out at 50%, 80%
+    /// and 100% of it; it stops nothing. Null: the deployment's default budget applies to ScreenHire's key, none to an own key.
+    /// </summary>
+    public decimal? MonthlyBudget { get; set; }
+
+    /// <summary>
+    /// The hard cap per calendar month (UTC), in <see cref="BudgetUnit"/>. At the cap the AI-based checks pause until next
+    /// month or until the cap is raised; the rule-based checks keep running. Null: the deployment's default cap applies to
+    /// ScreenHire's key, none to an own key. Only an Owner sets it.
+    /// </summary>
+    public decimal? MonthlyCap { get; set; }
+
+    /// <summary>US dollars per million input tokens the organization's own key costs it, so usage can show a cost. Null: unknown.</summary>
+    public decimal? OwnKeyInputPrice { get; set; }
+
+    /// <summary>US dollars per million output tokens the organization's own key costs it. Null: unknown.</summary>
+    public decimal? OwnKeyOutputPrice { get; set; }
 
     /// <summary>Whose model answers the check.</summary>
     public LlmSource LlmSource { get; set; } = LlmSource.Included;
@@ -88,9 +116,6 @@ public sealed class VerificationSettings : ITenantOwned
 
     public bool BudgetAlertSlack { get; set; }
 
-    /// <summary>The month (<c>yyyy-MM</c>, UTC) the 80% budget alert last went out, so it goes out once a month.</summary>
-    public string? BudgetAlertMonth { get; set; }
-
     public DateTimeOffset UpdatedAt { get; set; }
 
     /// <summary>Does the organization use its own model?</summary>
@@ -114,20 +139,42 @@ public sealed class VerificationSettings : ITenantOwned
 /// <summary>Whose model answers the consistency check.</summary>
 public enum LlmSource
 {
-    /// <summary>ScreenHire's model, within the monthly token budget.</summary>
+    /// <summary>ScreenHire's model, billed at the provider's price plus a margin.</summary>
     Included,
 
-    /// <summary>The organization's own key and model. The token budget does not apply.</summary>
+    /// <summary>The organization's own key and model. ScreenHire charges nothing for it.</summary>
     OwnKey,
 }
 
-/// <summary>The kinds of provider an organization can bring a key for.</summary>
+/// <summary>What a monthly budget or cap is counted in.</summary>
+public enum UsageUnit
+{
+    Tokens,
+
+    /// <summary>US dollars, from each call's cost (the provider's own figure, or tokens times a configured price).</summary>
+    Money,
+}
+
+/// <summary>
+/// The providers an organization can bring a key for. Each is a preset (<c>ModelPresets</c>): the address and the way the key
+/// is sent are filled in, and the person enters the key. Stored as text, so a new preset needs no data change.
+/// </summary>
 public enum ModelProvider
 {
     Anthropic,
 
-    /// <summary>Any endpoint that speaks the OpenAI chat API, which covers OpenAI and Azure OpenAI.</summary>
+    /// <summary>Any endpoint that speaks the OpenAI chat API: the person enters the address. Shown as "Other".</summary>
     OpenAiCompatible,
+
+    OpenAi,
+
+    OpenRouter,
+
+    /// <summary>Azure OpenAI: the address is the organization's own resource, and the model is its deployment name.</summary>
+    AzureOpenAi,
+
+    /// <summary>Google Gemini, through its OpenAI-compatible endpoint.</summary>
+    Gemini,
 }
 
 /// <summary>

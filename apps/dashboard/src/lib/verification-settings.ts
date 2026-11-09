@@ -37,7 +37,11 @@ export const deviceCheckLabels: Record<DeviceCheckChoice, string> = {
 /** The model providers an organization can bring a key for. */
 export const modelProviderLabels: Record<NonNullable<ModelProvider>, string> = {
   Anthropic: 'Anthropic',
-  OpenAiCompatible: 'OpenAI-compatible',
+  OpenAi: 'OpenAI',
+  OpenRouter: 'OpenRouter',
+  AzureOpenAi: 'Azure OpenAI',
+  Gemini: 'Google Gemini',
+  OpenAiCompatible: 'Other (OpenAI-compatible)',
 };
 
 /** A failed connection test, in a sentence. Never the provider's own words. The same as a refused save: `ChangeLabelsTests` compares them. */

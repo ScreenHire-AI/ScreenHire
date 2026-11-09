@@ -8,6 +8,7 @@ sources:
   - resource: src/ScreenHire.Domain/Organizations/SendingDomain.cs
   - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/NotificationConfiguration.cs
   - resource: src/ScreenHire.Application/Notifications/Notifications.cs
+  - resource: src/ScreenHire.Application/Verification/Models/VerificationAlerts.cs
   - resource: src/ScreenHire.Application/SendingDomains/RecheckSendingDomain.cs
   - resource: src/ScreenHire.Application/SendingDomains/SendingDomainService.cs
   - resource: src/ScreenHire.Application/Messaging/ScreenHireMessaging.cs
@@ -85,8 +86,13 @@ Both messages implement `ITenantMessage`, so the handler runs under the organiza
 | Kind | Key | Payload | Link | Audience |
 |---|---|---|---|---|
 | `sending-domain-failing` | the sending domain's id | `domain` | `/settings/sending-domain` | Owners (`ManageOwners`) |
+| `ai-usage-budget` | `yyyy-MM:budget-N` (N is 50, 80 or 100) | `percent` | `/verification` | who sees AI usage (`ViewAiUsage`) |
+| `ai-usage-cap` | `yyyy-MM:cap` | none | `/verification` | who sees AI usage (`ViewAiUsage`) |
+| `ai-usage-spike` | `yyyy-MM-dd:spike` | `day` | `/verification` | who sees AI usage (`ViewAiUsage`) |
 
-Tasks that add kinds later (trial reminders, AI usage alerts) add their rows here.
+The AI usage kinds are raised by `NotifyAiUsageHandler`, which also sends the email or Slack copy when the organization chose
+one ([ai-usage](ai-usage.md)). Raising the cap clears `ai-usage-cap`. Tasks that add kinds later (trial reminders) add their
+rows here.
 
 ## Storage and reading
 

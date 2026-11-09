@@ -12238,6 +12238,372 @@
         ]
       }
     },
+    "/v1/organization/ai-usage/summary": {
+      "get": {
+        "tags": [
+          "AiUsage"
+        ],
+        "operationId": "GetAiUsageSummary",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "timeZone",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "UTC"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiUsageSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/ai-usage/calls": {
+      "get": {
+        "tags": [
+          "AiUsage"
+        ],
+        "operationId": "ListAiUsageCalls",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "keySource",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiKeySource"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "model",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiCallOutcome"
+            }
+          },
+          {
+            "name": "check",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "applicationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiUsageCallPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/ai-usage/calls/export": {
+      "get": {
+        "tags": [
+          "AiUsage"
+        ],
+        "operationId": "ExportAiUsageCalls",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "keySource",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiKeySource"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "model",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiCallOutcome"
+            }
+          },
+          {
+            "name": "check",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "applicationId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/ai-usage/limits": {
+      "put": {
+        "tags": [
+          "AiUsage"
+        ],
+        "operationId": "UpdateAiUsageLimits",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAiUsageLimitsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiUsageLimitsView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/calendar": {
       "get": {
         "tags": [
@@ -14778,6 +15144,28 @@
         ],
         "description": "AI assistance levels, lowest first. Informational and relative to the job's AI policy."
       },
+      "AiCallOutcome": {
+        "enum": [
+          "Ok",
+          "Error",
+          "TimedOut"
+        ]
+      },
+      "AiCostBasis": {
+        "enum": [
+          "Reported",
+          "Priced",
+          "Unknown"
+        ],
+        "description": "Where a call's cost came from."
+      },
+      "AiKeySource": {
+        "enum": [
+          "BuiltIn",
+          "OwnKey"
+        ],
+        "description": "Whose key paid for a call."
+      },
       "AiPolicyContext": {
         "enum": [
           "AllowedByPolicy",
@@ -14787,6 +15175,365 @@
           "NotAllowed"
         ],
         "description": "Where the candidate's AI use stands against the job's policy, from the policy and the declaration only."
+      },
+      "AiUsageCallPage": {
+        "required": [
+          "calls",
+          "nextBefore"
+        ],
+        "type": "object",
+        "properties": {
+          "calls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiUsageCallView"
+            }
+          },
+          "nextBefore": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "A page of calls, newest first. `nextBefore` is the id to pass as `before` for the next page, null on the last."
+      },
+      "AiUsageCallView": {
+        "required": [
+          "id",
+          "occurredAt",
+          "check",
+          "applicationId",
+          "provider",
+          "model",
+          "keySource",
+          "providerRequestId",
+          "inputTokens",
+          "outputTokens",
+          "cost",
+          "costBasis",
+          "durationMs",
+          "outcome",
+          "errorKind"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "check": {
+            "type": "string"
+          },
+          "applicationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "keySource": {
+            "$ref": "#/components/schemas/AiKeySource"
+          },
+          "providerRequestId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inputTokens": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "outputTokens": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "cost": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "costBasis": {
+            "$ref": "#/components/schemas/AiCostBasis"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/AiCallOutcome"
+          },
+          "errorKind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One model call, as it happened. `providerRequestId` is the provider's id for the response, which finds the call in the\nprovider's own logs. Tokens are null when the provider reported none. `cost` is null when `costBasis` is\n`Unknown`. `check` names the check (for example `consistency.extraction`). Holds nothing that was sent or received."
+      },
+      "AiUsageDay": {
+        "required": [
+          "date",
+          "calls",
+          "inputTokens",
+          "outputTokens",
+          "cost"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "calls": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inputTokens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "outputTokens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cost": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "description": "One day of use, by the date in the requested time zone (`yyyy-MM-dd`)."
+      },
+      "AiUsageGroup": {
+        "required": [
+          "provider",
+          "model",
+          "keySource",
+          "calls",
+          "inputTokens",
+          "outputTokens",
+          "cost",
+          "callsWithUnknownCost"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "keySource": {
+            "$ref": "#/components/schemas/AiKeySource"
+          },
+          "calls": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inputTokens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "outputTokens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cost": {
+            "type": "number",
+            "format": "double"
+          },
+          "callsWithUnknownCost": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Use by one provider, model and key source."
+      },
+      "AiUsageLimitsView": {
+        "required": [
+          "unit",
+          "budget",
+          "cap",
+          "effectiveBudget",
+          "effectiveCap"
+        ],
+        "type": "object",
+        "properties": {
+          "unit": {
+            "$ref": "#/components/schemas/UsageUnit"
+          },
+          "budget": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "cap": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "effectiveBudget": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiUsageLimitView"
+              }
+            ]
+          },
+          "effectiveCap": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiUsageLimitView"
+              }
+            ]
+          }
+        },
+        "description": "The organization's monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire's key falls back to the deployment's defaults, in tokens. An own key has no default."
+      },
+      "AiUsageLimitView": {
+        "required": [
+          "amount",
+          "unit",
+          "isDefault",
+          "used",
+          "percent"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UsageUnit"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "used": {
+            "type": "number",
+            "format": "double"
+          },
+          "percent": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment's default for\nScreenHire's key, not one the organization set; `used` is this month's use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it)."
+      },
+      "AiUsageSummary": {
+        "required": [
+          "from",
+          "to",
+          "totals",
+          "byDay",
+          "byModel",
+          "byKeySource",
+          "limits"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/AiUsageTotals"
+          },
+          "byDay": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiUsageDay"
+            }
+          },
+          "byModel": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiUsageGroup"
+            }
+          },
+          "byKeySource": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiUsageGroup"
+            }
+          },
+          "limits": {
+            "$ref": "#/components/schemas/AiUsageLimitsView"
+          }
+        },
+        "description": "This organization's AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester's days (`timeZone`). `limits` is\nthe month's position against the budget and cap, whatever range was asked for."
+      },
+      "AiUsageTotals": {
+        "required": [
+          "calls",
+          "inputTokens",
+          "outputTokens",
+          "cost",
+          "callsWithUnknownCost",
+          "failedCalls"
+        ],
+        "type": "object",
+        "properties": {
+          "calls": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inputTokens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "outputTokens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cost": {
+            "type": "number",
+            "format": "double"
+          },
+          "callsWithUnknownCost": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedCalls": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost."
       },
       "AiUseDeclaration": {
         "enum": [
@@ -17418,7 +18165,8 @@
       "CheckNotRunKind": {
         "enum": [
           "TurnedOff",
-          "Trusted"
+          "Trusted",
+          "Paused"
         ],
         "description": "Why an analyzer's run says it did not look, or did not count something, because of the organization's settings."
       },
@@ -17504,6 +18252,7 @@
           "Unavailable",
           "Disabled",
           "OverBudget",
+          "Paused",
           "NotEnoughSources"
         ]
       },
@@ -20950,6 +21699,33 @@
         },
         "description": "One entry in the organization's membership log. `actorUserId` made the change, or `actorApiKeyId` when an\nAPI key did; `memberUserId` is who it is\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\n`role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\nor a hiring template's default team (`hiringTemplateId`, with its name now). A reader who sees only their own\njobs gets no entries about the others. The data request kinds and CandidateErased from a request set `dataRequestId`\n(an id only, never the candidate); RetentionApplied sets `itemCount`, the applications it deleted."
       },
+      "ModelPresetView": {
+        "required": [
+          "provider",
+          "baseUrl",
+          "baseUrlEditable",
+          "listsModels"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/ModelProvider"
+          },
+          "baseUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "baseUrlEditable": {
+            "type": "boolean"
+          },
+          "listsModels": {
+            "type": "boolean"
+          }
+        },
+        "description": "A provider preset: `baseUrl` is the address it fills in (null when the person enters one, or for Anthropic),\n`baseUrlEditable` says the person enters it (Azure OpenAI's resource, any other endpoint), and `listsModels`\nsays the provider's models endpoint lists what a key can use."
+      },
       "ModelProblem": {
         "enum": [
           "InvalidKey",
@@ -20964,6 +21740,10 @@
         "enum": [
           "Anthropic",
           "OpenAiCompatible",
+          "OpenAi",
+          "OpenRouter",
+          "AzureOpenAi",
+          "Gemini",
           null
         ]
       },
@@ -21499,16 +22279,16 @@
       "OrganizationVerificationSettings": {
         "required": [
           "llmConsistencyCheck",
-          "monthlyTokenBudget",
-          "tokensUsedThisMonth",
           "lastUpdated",
           "modelSource",
           "provider",
           "baseUrl",
           "model",
           "apiKeySaved",
-          "budgetApplies",
-          "effectiveMonthlyTokenBudget",
+          "ownKeyInputPrice",
+          "ownKeyOutputPrice",
+          "limits",
+          "presets",
           "checks",
           "defaultAiUse",
           "deviceCheck",
@@ -21522,17 +22302,6 @@
         "properties": {
           "llmConsistencyCheck": {
             "type": "boolean"
-          },
-          "monthlyTokenBudget": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int64"
-          },
-          "tokensUsedThisMonth": {
-            "type": "integer",
-            "format": "int64"
           },
           "lastUpdated": {
             "$ref": "#/components/schemas/LastUpdate"
@@ -21565,12 +22334,35 @@
           "apiKeySaved": {
             "type": "boolean"
           },
-          "budgetApplies": {
-            "type": "boolean"
+          "ownKeyInputPrice": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           },
-          "effectiveMonthlyTokenBudget": {
-            "type": "integer",
-            "format": "int64"
+          "ownKeyOutputPrice": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "limits": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AiUsageLimitsView"
+              }
+            ]
+          },
+          "presets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModelPresetView"
+            }
           },
           "checks": {
             "$ref": "#/components/schemas/VerificationChecks"
@@ -21610,7 +22402,7 @@
             "type": "boolean"
           }
         },
-        "description": "The organization's verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `monthlyTokenBudget` caps the tokens it may use per calendar month (UTC) with ScreenHire's included\nmodel; null uses the deployment's default, which is `effectiveMonthlyTokenBudget`. `budgetApplies` is false\nwith the organization's own key, which the provider bills. `tokensUsedThisMonth` is what the check has used so far\nthis month, either way."
+        "description": "The organization's verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `limits` is the monthly AI budget and cap with what has been used so far this month; it is null for a\nmember who cannot see AI usage (`ViewAiUsage`), and an Owner changes it with `/v1/organization/ai-usage/limits`.\n`presets` are the providers an organization can bring a key for, with the address each fills in.\n`ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization's own key costs it, in US dollars per million\ntokens (null when unknown, or for a member who cannot edit settings)."
       },
       "PageTelemetryInput": {
         "required": [
@@ -21795,7 +22587,8 @@
           "EraseCandidates",
           "EditAnyView",
           "GrantVerificationAccess",
-          "ManageBilling"
+          "ManageBilling",
+          "ViewAiUsage"
         ],
         "description": "Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions."
       },
@@ -25862,6 +26655,32 @@
           "SlaBreached"
         ]
       },
+      "UpdateAiUsageLimitsRequest": {
+        "required": [
+          "unit"
+        ],
+        "type": "object",
+        "properties": {
+          "unit": {
+            "$ref": "#/components/schemas/UsageUnit"
+          },
+          "budget": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "cap": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        },
+        "description": "Sets the monthly budget and cap. Both are in `unit` (whole tokens, or dollars to the cent); null removes one. With\n`Money` and an own key, the own key's prices must be set, since a call with no known cost counts as nothing."
+      },
       "UpdateBrandingRequest": {
         "required": [
           "brandColor"
@@ -26235,13 +27054,6 @@
           "llmConsistencyCheck": {
             "type": "boolean"
           },
-          "monthlyTokenBudget": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int64"
-          },
           "modelSource": {
             "$ref": "#/components/schemas/LlmSource"
           },
@@ -26272,6 +27084,20 @@
               "null",
               "string"
             ]
+          },
+          "ownKeyInputPrice": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "ownKeyOutputPrice": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           },
           "checks": {
             "oneOf": [
@@ -26325,7 +27151,7 @@
             ]
           }
         },
-        "description": "Replaces the organization's verification settings. `apiKey` is the one place a key travels: null keeps the saved key,\ntext replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or\nmodel is tested before it is saved. `modelSource` `Included` erases the saved key and provider fields."
+        "description": "Replaces the organization's verification settings. `apiKey` is the one place a key travels: null keeps the saved key,\ntext replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or\nmodel is tested before it is saved. `modelSource` `Included` erases the saved key, provider and price fields.\nA preset with a fixed address takes no `baseUrl`. The monthly budget and cap are not here: an Owner sets them with\n`/v1/organization/ai-usage/limits`."
       },
       "UpdateViewRequest": {
         "required": [
@@ -26503,6 +27329,13 @@
           "TemplateAutomation"
         ],
         "description": "What uses a template: a job, a hiring template, or an automation in either."
+      },
+      "UsageUnit": {
+        "enum": [
+          "Tokens",
+          "Money"
+        ],
+        "description": "What a monthly budget or cap is counted in."
       },
       "ValidateWorkflowRequest": {
         "required": [
@@ -27582,6 +28415,9 @@
     },
     {
       "name": "Billing"
+    },
+    {
+      "name": "AiUsage"
     },
     {
       "name": "Calendar"

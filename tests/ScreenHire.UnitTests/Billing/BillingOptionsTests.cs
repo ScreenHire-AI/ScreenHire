@@ -39,6 +39,26 @@ public sealed class BillingOptionsTests
     }
 
     [Fact]
+    public void ScreenHire_adds_twenty_percent_to_the_providers_price_for_its_own_key_unless_configured()
+    {
+        new BillingOptions().Ai.Margin.Should().Be(0.20m);
+    }
+
+    [Theory]
+    [InlineData("0", true)]
+    [InlineData("0.20", true)]
+    [InlineData("10", true)]
+    [InlineData("-0.01", false)]
+    [InlineData("10.01", false)]
+    [InlineData("20", false)]
+    public void The_ai_margin_is_zero_to_ten_so_a_percentage_typed_for_a_fraction_is_refused(string margin, bool valid)
+    {
+        var options = new BillingOptions { Ai = new BillingAiOptions { Margin = decimal.Parse(margin, System.Globalization.CultureInfo.InvariantCulture) } };
+
+        new BillingAiMarginGate().Validate(null, options).Succeeded.Should().Be(valid);
+    }
+
+    [Fact]
     public void The_sandbox_is_refused_outside_development()
     {
         var result = new BillingSandboxGate(new Host(Environments.Production))

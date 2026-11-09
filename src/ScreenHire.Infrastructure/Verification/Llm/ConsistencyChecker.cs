@@ -64,7 +64,7 @@ public sealed partial class ConsistencyChecker(LlmAccess deployment, ILogger<Con
                         new ChatMessage(ChatRole.System, ConsistencyPrompts.ExtractionSystem),
                         new ChatMessage(ChatRole.User, ConsistencyPrompts.ExtractionMessage(source.Source, text, nonce)),
                     ],
-                    Options(llm.ExtractionModel, ConsistencyPrompts.ExtractionSchema, "claims"),
+                    Options(llm.ExtractionModel, ConsistencyPrompts.ExtractionSchema, "claims", AiUsageChecks.ConsistencyExtraction),
                     cancellationToken);
                 usage.Add(response);
                 extractionModel ??= response.ModelId ?? llm.ExtractionModel;
@@ -108,7 +108,7 @@ public sealed partial class ConsistencyChecker(LlmAccess deployment, ILogger<Con
                         [.. claims.Select(c => new PromptClaim(c.Id, ConsistencyPrompts.SourceName(c.Source), TopicName(c.Topic), c.Quote))],
                         comparisonNonce)),
                 ],
-                Options(llm.ConsistencyModel, ConsistencyPrompts.ComparisonSchema, "contradictions"),
+                Options(llm.ConsistencyModel, ConsistencyPrompts.ComparisonSchema, "contradictions", AiUsageChecks.ConsistencyComparison),
                 cancellationToken);
             usage.Add(comparison);
             var consistencyModel = comparison.ModelId ?? llm.ConsistencyModel;
@@ -223,11 +223,13 @@ public sealed partial class ConsistencyChecker(LlmAccess deployment, ILogger<Con
     public static string TopicName(ContradictionTopic topic) =>
         ConsistencyPrompts.Topics.First(t => t.Value == topic).Key;
 
-    private static ChatOptions Options(string model, JsonElement schema, string name) => new()
+    private static ChatOptions Options(string model, JsonElement schema, string name, string check)
     {
-        ModelId = model,
-        ResponseFormat = ChatResponseFormat.ForJsonSchema(schema, name),
-    };
+        // Not in ChatOptions.AdditionalProperties: the provider adapters send those on to the provider, which can refuse an
+        // unknown field. The ledger learns which call this is from the scope the caller opens (AiUsageStep).
+        AiUsageStep.Set(check);
+        return new ChatOptions { ModelId = model, ResponseFormat = ChatResponseFormat.ForJsonSchema(schema, name) };
+    }
 
     private static string? Unusable(ChatResponse response) =>
         response.FinishReason == ChatFinishReason.ContentFilter ? "The model declined to answer."

@@ -116,6 +116,11 @@ public sealed partial class RolePermissionsTests
         ["PreviewBillingPlanChange"] = Permission.ManageBilling,
         ["ChangeBillingPlan"] = Permission.ManageBilling,
         ["GetBilling"] = Permission.ManageBilling,
+        ["GetAiUsageSummary"] = Permission.ViewAiUsage,
+        ["ListAiUsageCalls"] = Permission.ViewAiUsage,
+        ["ExportAiUsageCalls"] = Permission.ViewAiUsage,
+        // Owners set the monthly budget and cap: spend controls are billing, not general settings.
+        ["UpdateAiUsageLimits"] = Permission.ManageBilling,
         ["EraseCandidate"] = Permission.EraseCandidates,
         ["ListDataRequests"] = Permission.EraseCandidates,
         ["SendDataRequestCopy"] = Permission.EraseCandidates,
@@ -164,7 +169,7 @@ public sealed partial class RolePermissionsTests
         Permission[] admin =
         [
             .. recruiter, Permission.DeleteAnyNote, Permission.EditEmailTemplates, Permission.EditSettings, Permission.ManageApiKeys, Permission.ManageWebhooks,
-            Permission.ManageIntegrations, Permission.ManageTeam, Permission.EraseCandidates, Permission.EditAnyView,
+            Permission.ManageIntegrations, Permission.ManageTeam, Permission.EraseCandidates, Permission.EditAnyView, Permission.ViewAiUsage,
         ];
         Permission[] owner = [.. admin, Permission.ManageOwners, Permission.GrantVerificationAccess, Permission.ManageBilling];
 

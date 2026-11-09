@@ -113,7 +113,7 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
         var analyzer = analyzers.Single(a => a.Name == analyzerName);
         var runs = await db.VerificationAnalyzerRuns.AsNoTracking()
             .Where(r => r.ApplicationId == applicationId && r.Analyzer == analyzerName)
-            .Select(r => new { r.Id, r.AnalyzerVersion, r.Revision })
+            .Select(r => new { r.Id, r.AnalyzerVersion, r.Revision, r.Note })
             .ToListAsync(cancellationToken);
         var latest = runs.Where(r => r.AnalyzerVersion == analyzer.Version).OrderByDescending(r => r.Revision).FirstOrDefault();
         if (latest is null)
@@ -136,7 +136,9 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
         var runId = Guid.CreateVersion7();
         var written = ToSignals(result.Signals, context.Application, runId, analyzer, now, latest.Revision + 1);
         var before = await db.VerificationSignals.AsNoTracking().Where(s => s.AnalyzerRunId == latest.Id).ToListAsync(cancellationToken);
-        if (SameFindings(before, written))
+        var sameFindings = SameFindings(before, written);
+        var sameNote = string.Equals(latest.Note, result.Note, StringComparison.Ordinal);
+        if (sameFindings && sameNote)
         {
             return [];
         }
@@ -154,6 +156,12 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
             CompletedAt = now,
         });
         db.VerificationSignals.AddRange(written);
+        if (sameFindings)
+        {
+            // Only what the run says about itself changed (a paused AI check ran after all, and found nothing new to
+            // report): the level cannot move, so there is nothing to reassess and no reason to put in the review log.
+            return [];
+        }
 
         var all = await db.VerificationSignals.AsNoTracking().Where(s => s.ApplicationId == applicationId).ToListAsync(cancellationToken);
         all.AddRange(written);

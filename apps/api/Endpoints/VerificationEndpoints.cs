@@ -374,7 +374,12 @@ internal static class VerificationReads
             .Select(r => (Run: r, Kind: RunNotes.KindOf(r.Analyzer, r.Note)))
             .Where(r => r.Kind is not null && CheckGroups.Of(r.Run.Analyzer) is not null)
             .OrderBy(r => CheckGroups.Of(r.Run.Analyzer))
-            .Select(r => new CheckNotRun(CheckGroups.Of(r.Run.Analyzer)!.Value, CheckGroups.Label(CheckGroups.Of(r.Run.Analyzer)!.Value), r.Kind!.Value, r.Run.Note!))
+            .Select(r => new CheckNotRun(
+                CheckGroups.Of(r.Run.Analyzer)!.Value,
+                // A paused AI check is named for what paused, not for the group of checks its analyzer belongs to.
+                r.Kind == CheckNotRunKind.Paused ? RunNotes.AiChecksLabel : CheckGroups.Label(CheckGroups.Of(r.Run.Analyzer)!.Value),
+                r.Kind!.Value,
+                r.Run.Note!))
             .DistinctBy(n => (n.Group, n.Note)) // two analyzers of one group (answers, consistency) say the same thing once
             .ToList();
 
