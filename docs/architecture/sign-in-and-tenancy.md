@@ -11,6 +11,7 @@ sources:
   - resource: apps/api/Endpoints/PasskeyEndpoints.cs
   - resource: apps/api/Contracts/PasskeyContracts.cs
   - resource: src/ScreenHire.Infrastructure/Identity/ApplicationUserPasskey.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/ScreenHireDbContext.cs
   - resource: apps/dashboard/src/lib/passkeys.ts
   - resource: apps/dashboard/src/routes/(app)/account/passkeys/+page.svelte
   - resource: apps/dashboard/src/routes/(auth)/sign-in/+page.svelte
