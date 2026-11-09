@@ -77,7 +77,7 @@
   import NoteText from '#lib/components/note-text.svelte';
   import Rating from '#lib/components/rating.svelte';
   import RatingAnswer from '#lib/components/rating-answer.svelte';
-  import ScorecardList from '#lib/components/scorecard-list.svelte';
+  import ScorecardRoster from '#lib/components/candidate/scorecard-roster.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
   import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
@@ -449,7 +449,7 @@
   let richTextEditor = $state<ReturnType<typeof RichTextEditor> | null>(null);
   let richText = $state('<h2>Next steps</h2><p>Hi {{ firstName }}, thank you for applying for <strong>{{ jobTitle }}</strong>.</p><ul><li>Book a time</li><li>Bring your portfolio</li></ul>');
   const sampleTasks: TaskRow[] = [
-    { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Review this application.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
+    { id: 't1', applicationId: 'a1', kind: 'Review', note: 'Give your scorecard.', assigneeUserId: 'u1', createdAt: ago(2 * hour), completedAt: null, completedByUserId: null },
     { id: 't2', applicationId: 'a1', kind: 'RejectionReview', note: 'Not authorised to work in the UK.', assigneeUserId: null, createdAt: ago(day), completedAt: null, completedByUserId: null },
     { id: 't3', applicationId: 'a1', kind: 'Task', note: 'Call the references.', assigneeUserId: null, createdAt: ago(3 * day), completedAt: ago(5 * hour), completedByUserId: 'u2' },
     {
@@ -468,7 +468,7 @@
     {
       id: 's1',
       stageId: 'interview',
-      reviewerUserId: 'u2',
+      reviewerUserId: 'u1',
       answers: [
         { questionId: 'problem_solving', label: 'Problem solving', type: 'Rating5', rating: 5 },
         { questionId: 'dotnet', label: '.NET and C#', type: 'Rating10', rating: 8 },
@@ -484,7 +484,27 @@
       submittedAt: ago(3 * hour),
       scorecardTemplateId: 'interview',
       scorecardName: 'Interview',
+      withheld: false,
     },
+    {
+      id: 's2',
+      stageId: 'interview',
+      reviewerUserId: 'u2',
+      answers: [],
+      rating: null,
+      ratings: [],
+      recommendation: null,
+      note: null,
+      workflowVersion: 1,
+      timelineEventId: 'e2',
+      submittedAt: ago(26 * hour),
+      scorecardTemplateId: 'interview',
+      scorecardName: 'Interview',
+      withheld: true,
+    },
+  ];
+  const sampleWaiting = [
+    { taskId: 't1', assigneeUserId: 'u2', scorecard: 'Portfolio review scorecard', askedAt: ago(2 * hour), askedByUserId: 'u1' },
   ];
   // Teammates' changes as toasts (one change, then several on one job), newest first, above a notification card (section 11, Notification tray).
   let notifications = $state<TrayItem[]>([
@@ -1190,7 +1210,14 @@
           <TaskCheckboxDemo tasks={sampleTasks} members={sampleTeam} />
         </Panel>
         <Panel title="Scorecard" class="flex-[1_1_320px]">
-          <ScorecardList scorecards={sampleScorecards} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />
+          <div class="flex flex-col gap-4">
+            <!-- Given, withheld (a scorecard the reader still owes) and asked for; a given row opens ScorecardDetailSheet. -->
+            <ScorecardRoster scorecards={sampleScorecards} waiting={sampleWaiting} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />
+            <figure class="flex flex-col gap-2">
+              <figcaption class="text-caption text-muted-foreground">On a phone: list items and a Sort chip</figcaption>
+              <ScorecardRoster scorecards={sampleScorecards} waiting={sampleWaiting} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" phone />
+            </figure>
+          </div>
         </Panel>
       </div>
 

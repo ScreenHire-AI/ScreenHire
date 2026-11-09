@@ -11,8 +11,8 @@
   // The Overview's Scorecards panel (design system section 21): the candidate's rating, then one line per person who gave a
   // scorecard: their name, the scorecard, their recommendation in words and the date. The Scorecards tab has the answers.
   // It averages and lists people's own scorecards only, never verification output (ADR-0013). A reviewer with their own
-  // scorecard to give sees only a line saying so until they submit it: the API leaves the others out. Nothing is drawn
-  // while there is nothing to say.
+  // scorecard to give sees who gave the others and when, with no recommendation, until they submit it (the API marks those
+  // `withheld`). Nothing is drawn while there is nothing to say.
   let {
     rating,
     scorecards,
@@ -52,7 +52,10 @@
             <li class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2 first:pt-0 last:pb-0">
               <span class="min-w-0 truncate font-semibold">{sentenceStart(personName(scorecard.reviewerUserId, members, currentUserId))}</span>
               {#if scorecard.scorecardName}<span class="min-w-0 truncate text-muted-foreground">{scorecard.scorecardName}</span>{/if}
-              <span class="ml-auto shrink-0 font-semibold">{recommendationLabels[scorecard.recommendation]}</span>
+              <!-- A scorecard the reader may not read yet has no recommendation: the cell is blank, with its words for screen readers. -->
+              <span class="ml-auto shrink-0 font-semibold">
+                {#if scorecard.recommendation}{recommendationLabels[scorecard.recommendation]}{:else}<span class="sr-only">Hidden until you submit yours</span>{/if}
+              </span>
               <DateText at={scorecard.submittedAt} class="shrink-0 text-muted-foreground" />
             </li>
           {/each}

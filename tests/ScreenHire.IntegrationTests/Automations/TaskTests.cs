@@ -27,10 +27,16 @@ public sealed class TaskTests(AppHostFixture fixture)
         team.Text("0.jobTitle").Should().Be("Platform Engineer");
         team.Text("0.kind").Should().Be("Task");
 
-        Notes((await teammate.GetAsync("/v1/tasks?scope=Mine")).Expect(HttpStatusCode.OK)).Should().Equal("Review this application.");
+        Notes((await teammate.GetAsync("/v1/tasks?scope=Mine")).Expect(HttpStatusCode.OK)).Should().Equal("Give your scorecard.");
         Notes((await teammate.GetAsync("/v1/tasks?scope=Team")).Expect(HttpStatusCode.OK)).Should().Equal("Call the references.");
         Notes((await owner.GetAsync("/v1/tasks?scope=Everyone")).Expect(HttpStatusCode.OK))
-            .Should().BeEquivalentTo(["Call the references.", "Review this application."]);
+            .Should().BeEquivalentTo(["Call the references.", "Give your scorecard."]);
+
+        // A review names the stage it was made in, whose scorecard answers it; a to-do names none.
+        var stage = (await owner.GetAsync($"/v1/applications/{application}")).Text("stage.id");
+        var onApplication = (await owner.GetAsync($"/v1/applications/{application}/tasks")).Expect(HttpStatusCode.OK).Body.EnumerateArray().ToList();
+        onApplication.Single(t => t.GetProperty("kind").GetString() == "Review").GetProperty("stageId").GetString().Should().Be(stage);
+        onApplication.Single(t => t.GetProperty("kind").GetString() == "Task").GetProperty("stageId").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]

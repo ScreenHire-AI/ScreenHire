@@ -28,7 +28,7 @@ and, for automations, `docs/architecture/workflow-engine.md`.
    line or a test name. An internal signal weight is fine if it never leaves the rule engine. The candidate's rating
    (ADR-0013 decision 13) is not verification output and is allowed: one to five stars averaged from people's own rating
    answers on scorecards (`RatingRule`, `ApplicationRating`). Flag it as a blocker if it draws on verification output, AI
-   signals or the stage, if a reviewer with their own scorecard still to give can read it or the others' scorecards
+   signals or the stage, if a reviewer with their own scorecard still to give can read it or the content of the others' scorecards (who gave one and when is allowed: `ScorecardEntry.withheld`)
    (`ReviewerGate`, `RatingReads`), or if an automation can read it (`DefinitionValidator` refuses rating facts, with a
    test).
 2. **Level rules.** A level above the lowest needs at least two independent signal categories. Telemetry alone never

@@ -380,7 +380,7 @@ public static partial class ExecuteAutomationActionHandler
             return Skipped("The reviewer already gave a scorecard at this stage.");
         }
 
-        return AddTask(context, ApplicationTaskKind.Review, "Review this application.", assigneeUserId,
+        return AddTask(context, ApplicationTaskKind.Review, "Give your scorecard.", assigneeUserId,
             assigneeUserId is null ? "Asked the hiring team for a review." : "Assigned a reviewer.");
     }
 

@@ -498,7 +498,7 @@ public sealed class SlackTests(AppHostFixture fixture)
 
         var text = await WaitForMessageAsync(owner, DirectMessageOf(robin), "You have a new task", "the reviewer's direct message");
         text.Should().Contain("Robin Ellis").And.Contain("Platform Engineer").And.Contain($"/applications/{application}");
-        text.Should().NotContain("Ask for a review").And.NotContain("Review this application");
+        text.Should().NotContain("Ask for a review").And.NotContain("Give your scorecard");
     }
 
     [Fact]

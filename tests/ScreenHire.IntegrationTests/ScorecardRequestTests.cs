@@ -40,7 +40,18 @@ public sealed class ScorecardRequestTests(AppHostFixture fixture)
 
         // Asked for their judgement, the teammate reads neither the rating nor the others' scorecards until they give it.
         (await teammate.GetAsync($"/v1/applications/{application}")).Text("rating.state").Should().Be("AfterYourScorecard");
-        (await teammate.GetAsync(Scorecards(application))).Expect(HttpStatusCode.OK).Count().Should().Be(0);
+        // They see that the owner gave one, and when, and nothing it said (ADR-0013).
+        var hidden = (await teammate.GetAsync(Scorecards(application))).Expect(HttpStatusCode.OK);
+        hidden.Count().Should().Be(1);
+        hidden.Id("0.reviewerUserId").Should().Be(owner.UserId);
+        hidden.Text("0.stageId").Should().Be("interview");
+        hidden.At("0.submittedAt").GetDateTimeOffset().Should().BeAfter(DateTimeOffset.UtcNow.AddMinutes(-10));
+        hidden.At("0.withheld").GetBoolean().Should().BeTrue();
+        hidden.At("0.recommendation").ValueKind.Should().Be(JsonValueKind.Null);
+        hidden.At("0.rating").ValueKind.Should().Be(JsonValueKind.Null);
+        hidden.At("0.note").ValueKind.Should().Be(JsonValueKind.Null);
+        hidden.At("0.answers").GetArrayLength().Should().Be(0);
+        hidden.At("0.ratings").GetArrayLength().Should().Be(0);
         (await teammate.PostAsync($"/v1/tasks/{task.Id()}/complete")).Expect(HttpStatusCode.Conflict);
         (await owner.PostAsync($"/v1/tasks/{task.Id()}/complete")).Expect(HttpStatusCode.Conflict);
 
@@ -58,6 +69,15 @@ public sealed class ScorecardRequestTests(AppHostFixture fixture)
         rating.Text("rating.state").Should().Be("Rated");
         rating.At("rating.scorecards").GetInt32().Should().Be(2);
         (await teammate.GetAsync("/v1/tasks")).Count().Should().Be(0);
+
+        // Having submitted theirs, they read every scorecard in full; the Owner and an API key always did.
+        foreach (var reader in new[] { teammate, owner })
+        {
+            var all = (await reader.GetAsync(Scorecards(application))).Expect(HttpStatusCode.OK);
+            all.Count().Should().Be(2);
+            all.Body.EnumerateArray().Should().OnlyContain(card => !card.GetProperty("withheld").GetBoolean()
+                && card.GetProperty("recommendation").ValueKind == JsonValueKind.String && card.GetProperty("answers").GetArrayLength() > 0);
+        }
     }
 
     [Fact]

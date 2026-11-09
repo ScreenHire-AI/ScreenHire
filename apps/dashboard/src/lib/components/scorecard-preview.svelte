@@ -9,7 +9,7 @@
   const uid = $props.id();
   let values = $state<Record<string, string>>({});
   let picks = $state<Record<string, string[]>>({});
-  let recommendation = $state<Recommendation | ''>('');
+  let recommendation = $state<NonNullable<Recommendation> | ''>('');
   let note = $state('');
 </script>
 

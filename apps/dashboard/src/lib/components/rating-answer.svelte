@@ -4,8 +4,8 @@
   import { scaleOf } from '#lib/scorecards.js';
   import { cn } from '#lib/utils.js';
 
-  // A rating or yes-or-no question on one row of joined buttons, with Low and High under the two ends of a number scale
-  // (design system section 11, Rating answer). It is a single-choice ToggleGroup, so each button is a radio in a labelled
+  // A rating or yes-or-no question on one row of joined buttons, with Low and High under the two ends of a number scale,
+  // once for a run of scales (design system section 11, Rating answer). It is a single-choice ToggleGroup, so each button is a radio in a labelled
   // group: picking another moves the choice, and picking the chosen one again clears it, as an optional question allows.
   // The chosen one takes `accent`, as every pressed toggle in a labelled group does (check A6), and an inset ring, so it
   // is not told from a hovered one by a faint fill alone. A number scale is a grid of equal columns up to the control
@@ -16,6 +16,7 @@
     labelledby,
     describedby,
     invalid = false,
+    showEnds = true,
     class: className,
   }: {
     type: Extract<ScorecardQuestionType, 'Rating5' | 'Rating10' | 'RatingYesNo' | 'YesNo'>;
@@ -25,6 +26,8 @@
     labelledby: string;
     describedby?: string;
     invalid?: boolean;
+    /** Draw Low and High under the ends of a number scale: once per group of scales, so a form of several says it once. */
+    showEnds?: boolean;
     class?: string;
   } = $props();
 
@@ -62,7 +65,7 @@
       </ToggleGroup.Item>
     {/each}
   </ToggleGroup.Root>
-  {#if scale.length > 0}
+  {#if scale.length > 0 && showEnds}
     <div aria-hidden="true" class="flex justify-between text-caption text-muted-foreground"><span>Low</span><span>High</span></div>
   {/if}
 </div>

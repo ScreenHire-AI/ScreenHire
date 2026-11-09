@@ -61,6 +61,8 @@ public sealed record AutomationIssue(
 /// <c>assigneeUserId</c>: Who should do it; null for anyone on the hiring team.
 /// <c>completedByUserId</c>: Who finished it; null while it is open.
 /// <c>scorecardTemplateId</c>: The library scorecard a Scorecard task asks for; null on every other kind.
+/// <c>stageId</c>: For a review, the stage the application was in when it was made: a scorecard for that stage answers it.
+/// Null on other kinds and on reviews made before tasks kept it.
 /// </remarks>
 public sealed record ApplicationTaskEntry(
     Guid Id,
@@ -72,7 +74,8 @@ public sealed record ApplicationTaskEntry(
     DateTimeOffset CreatedAt,
     DateTimeOffset? CompletedAt,
     Guid? CompletedByUserId,
-    string? ScorecardTemplateId = null);
+    string? ScorecardTemplateId = null,
+    string? StageId = null);
 
 /// <summary>A task in a list across applications (My tasks): the task, and the candidate and job it is about.</summary>
 /// <remarks>
@@ -136,7 +139,7 @@ internal static class AutomationMappings
 
     public static ApplicationTaskEntry ToEntry(this ApplicationTask task) =>
         new(task.Id, task.ApplicationId, task.Kind, task.Note, task.AssigneeUserId, task.AutomationRunId, task.CreatedAt, task.CompletedAt,
-            task.CompletedByUserId, task.ScorecardTemplateId);
+            task.CompletedByUserId, task.ScorecardTemplateId, task.Kind == ApplicationTaskKind.Review ? task.StageId : null);
 }
 
 internal sealed class CreateApplicationTaskRequestValidator : AbstractValidator<CreateApplicationTaskRequest>

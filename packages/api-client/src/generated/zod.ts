@@ -5163,7 +5163,8 @@ export const CreateApplicationTaskResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
@@ -5181,7 +5182,8 @@ export const ListApplicationTasksResponseItem = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 export const ListApplicationTasksResponse = zod.array(ListApplicationTasksResponseItem)
 
@@ -8664,7 +8666,8 @@ export const CompleteTaskResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
@@ -8682,7 +8685,8 @@ export const ReopenTaskResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
@@ -8795,13 +8799,14 @@ export const ListApplicationScorecardsResponseItem = zod.object({
   "label": zod.string(),
   "rating": zod.union([zod.null(),zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])])
 }).describe('A v0.2 criterion as the reviewer was asked it, and their labelled rating; null when they did not rate it.')),
-  "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
+  "recommendation": zod.union([zod.null(),zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)])]),
   "note": zod.string().nullable(),
   "workflowVersion": zod.int(),
   "timelineEventId": zod.uuid(),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "scorecardTemplateId": zod.string().nullable(),
-  "scorecardName": zod.string().nullable()
+  "scorecardName": zod.string().nullable(),
+  "withheld": zod.boolean()
 }).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\nan overall recommendation.\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
 export const ListApplicationScorecardsResponse = zod.array(ListApplicationScorecardsResponseItem)
 
@@ -8818,7 +8823,7 @@ export const SubmitScorecardBody = zod.object({
   "values": zod.array(zod.string()).nullish(),
   "rating": zod.int().nullish()
 }).describe('The answer to one question: `value` for the yes-or-no kinds ("yes" or "no"), a choice (an option id) and the\ntext kinds, `values` for a multi-choice (option ids) and `rating` for a number scale.')),
-  "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
+  "recommendation": zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)]),
   "note": zod.string().nullish(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('A reviewer\'s scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage\nhas a scorecard (the job\'s own copy), or `scorecardTemplateId`, a library scorecard given at the stage the\napplication is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored\none, a different one is a 409.')
@@ -8845,13 +8850,14 @@ export const SubmitScorecardResponse = zod.object({
   "label": zod.string(),
   "rating": zod.union([zod.null(),zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])])
 }).describe('A v0.2 criterion as the reviewer was asked it, and their labelled rating; null when they did not rate it.')),
-  "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
+  "recommendation": zod.union([zod.null(),zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)])]),
   "note": zod.string().nullable(),
   "workflowVersion": zod.int(),
   "timelineEventId": zod.uuid(),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "scorecardTemplateId": zod.string().nullable(),
-  "scorecardName": zod.string().nullable()
+  "scorecardName": zod.string().nullable(),
+  "withheld": zod.boolean()
 }).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\nan overall recommendation.\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
 
 
@@ -8875,7 +8881,8 @@ export const RequestScorecardResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
