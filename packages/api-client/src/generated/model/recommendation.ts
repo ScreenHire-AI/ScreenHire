@@ -5,10 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-/**
- * A reviewer's overall recommendation for the stage. Automations test it as `reviewer.recommendation`.
- */
-export type Recommendation = typeof Recommendation[keyof typeof Recommendation];
+export type Recommendation = typeof Recommendation[keyof typeof Recommendation] | null;
 
 
 export const Recommendation = {

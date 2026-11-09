@@ -1,4 +1,6 @@
 <script lang="ts">
+  import CircleCheckIcon from '~icons/lucide/circle-check';
+  import ArrowRightIcon from '~icons/lucide/arrow-right';
   import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
   import type { Recommendation, ScorecardAnswerInput, ScorecardQuestion } from '@screenhire/api-client';
   import { ApiError, createGetScorecardTemplate, createSubmitScorecard } from '@screenhire/api-client/svelte-query';
@@ -11,17 +13,21 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { formatDate } from '#lib/dates.js';
   import { describeError } from '#lib/query.js';
-  import { scorecardWords, type ScorecardChoice } from '#lib/scorecard-choices.js';
+  import { askedFor, scorecardWords, type ScorecardChoice, type ScorecardRequest } from '#lib/scorecard-choices.js';
   import { scaleOf } from '#lib/scorecards.js';
   import { cn } from '#lib/utils.js';
 
-  // A reviewer fills a scorecard in a sheet, so the candidate stays behind it (design system section 9): a stage's own
+  // A reviewer gives a scorecard in a sheet, so the candidate stays behind it (design system section 9): a stage's own
   // (the job's copy, for a stage the candidate reached) or any library scorecard, given at the stage the candidate is in
   // now. Each question answers in its own kind: ratings and yes-or-no on one row of joined buttons (Rating answer),
   // choices as radios or checkboxes, text in a box. A question left alone is unanswered, which a required one may not be.
   // The overall recommendation is required: it is what ReviewerDecision automations test. Nothing here shows or takes
   // verification output (CLAUDE.md non-negotiable 2); the rating answers make the candidate's rating on the server.
+  // The Scorecard select shows only when more than one scorecard fits (A3). A scorecard someone asked for says who asked
+  // and when. After Submit the sheet stays open on one line, "Scorecard submitted.", with a link to the person's next
+  // open task once the task list has caught up; Submit scorecard is its only filled button (A1).
   let {
     open = $bindable(false),
     applicationId,
@@ -30,6 +36,8 @@
     loadingChoices = false,
     libraryError,
     onretrylibrary,
+    requests = [],
+    nextTaskHref,
     ondone,
   }: {
     open?: boolean;
@@ -43,6 +51,10 @@
     /** The library could not be read; the job's stages are still offered. */
     libraryError?: unknown;
     onretrylibrary?: () => void;
+    /** What the reader was asked for on this application, for the "Asked by" line. */
+    requests?: readonly ScorecardRequest[];
+    /** Where the reader's next open task is, once the tasks have refetched after a submit; none when there is no other. */
+    nextTaskHref?: string;
     /** After the scorecard was saved: a sentence for the page's status line. */
     ondone: (message: string) => void | Promise<void>;
   } = $props();
@@ -53,10 +65,14 @@
   // One value per question: a number or "yes"/"no" as text, an option id, or the text; picks for a multi-choice.
   let values = $state<Record<string, string>>({});
   let picks = $state<Record<string, string[]>>({});
-  let recommendation = $state<Recommendation | ''>('');
+  let recommendation = $state<NonNullable<Recommendation> | ''>('');
   let note = $state('');
   let tried = $state(false);
   let failure = $state('');
+  // Set once the scorecard is saved: the sheet then says so in place of the form. `settled` is when the page has
+  // refetched what the submit changed, so the next task it names is not the one just finished.
+  let submitted = $state(false);
+  let settled = $state(false);
 
   const choice = $derived(choices.find((candidate) => candidate.value === chosenValue));
   // A library scorecard's questions are read when it is chosen; a stage's come with the job's workflow.
@@ -67,6 +83,9 @@
   const questions = $derived<readonly ScorecardQuestion[]>(choice?.questions ?? (choice ? (library.data?.data.questions ?? []) : []));
   const loading = $derived(Boolean(choice && !choice.questions && library.isPending));
   const unanswered = $derived(new Set(questions.filter((question) => question.required && !answered(question)).map((question) => question.id)));
+  const asked = $derived(askedFor(choice, requests));
+  // One string, so the spaces survive: "Asked by Avery Quinn on Nov 5, 2026."
+  const askedLine = (request: ScorecardRequest) => `Asked ${request.askedBy ? `by ${request.askedBy} ` : ''}on ${formatDate(request.askedAt)}.`;
   const stageChoices = $derived(choices.filter((option) => option.group === 'stages'));
   const builtIns = $derived(choices.filter((option) => option.group === 'builtIn'));
   const own = $derived(choices.filter((option) => option.group === 'own'));
@@ -75,7 +94,9 @@
   $effect(() => {
     if (!open) return;
     untrack(() => {
-      chosenValue = choices.some((option) => option.value === initial) ? initial! : '';
+      chosenValue = choices.some((option) => option.value === initial) ? initial! : choices.length === 1 ? choices[0].value : '';
+      submitted = false;
+      settled = false;
       clear();
       recommendation = '';
       note = '';
@@ -87,8 +108,9 @@
   // A sheet opened before every choice had loaded (the job's stages, the scorecards given) starts on nothing; it takes the
   // scorecard it was opened for as soon as that choice arrives, unless the person has picked one by then.
   $effect(() => {
-    if (!open || chosenValue || !initial) return;
-    if (choices.some((option) => option.value === initial)) untrack(() => (chosenValue = initial));
+    if (!open || chosenValue || submitted) return;
+    if (initial && choices.some((option) => option.value === initial)) untrack(() => (chosenValue = initial));
+    else if (choices.length === 1) untrack(() => (chosenValue = choices[0].value));
   });
 
   function clear() {
@@ -124,8 +146,9 @@
           note: note.trim() || null,
         },
       });
-      open = false;
+      submitted = true;
       await ondone(`${scorecardWords(choice.name)} saved.`.replace(/^./, (first) => first.toUpperCase()));
+      settled = true;
     } catch (error) {
       failure =
         error instanceof ApiError && error.status === 409
@@ -138,10 +161,31 @@
 <Sheet.Root bind:open>
   <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-xl">
     <Sheet.Header>
-      <Sheet.Title>Fill in a scorecard</Sheet.Title>
-      <Sheet.Description>Your team sees it with your name, and it is final once submitted.</Sheet.Description>
+      <Sheet.Title>Give your scorecard</Sheet.Title>
+      {#if !submitted}
+        <!-- With one scorecard to give, its name is the subtitle and the select is not drawn. -->
+        <Sheet.Description>
+          {#if choices.length === 1 && choice}{scorecardWords(choice.name)}{:else}Your team sees it with your name, and it is final once submitted.{/if}
+        </Sheet.Description>
+      {/if}
     </Sheet.Header>
+    {#if submitted}
+      <div class="flex flex-col items-start gap-3 px-4 pb-4">
+        <p role="status" class="flex items-center gap-2 font-semibold">
+          <CircleCheckIcon aria-hidden="true" class="size-5" />Scorecard submitted.
+        </p>
+        {#if settled && nextTaskHref}
+          <a href={nextTaskHref} onclick={() => (open = false)} class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>
+            Open next task<ArrowRightIcon aria-hidden="true" />
+          </a>
+        {/if}
+      </div>
+    {:else}
     <form novalidate class="@container flex flex-col gap-5 px-4 pb-4" {onsubmit}>
+      {#if asked}
+        <!-- Said once, with no icon: who asked and when. A workflow's review has no one to name. -->
+        <p class="text-muted-foreground">{askedLine(asked)}</p>
+      {/if}
       {#if choices.length === 0 && loadingChoices}
         <div aria-hidden="true" class="flex flex-col gap-2">
           {#each [0, 1, 2] as row (row)}<Skeleton class="h-10 w-full" />{/each}
@@ -149,7 +193,7 @@
         <p class="sr-only" role="status">Loading the scorecards…</p>
       {:else if choices.length === 0 && !libraryError}
         <p class="text-body">You have given every scorecard you can for this candidate at this stage.</p>
-      {:else}
+      {:else if choices.length > 1}
       <Field.Field>
         <Field.Label for={`${uid}-scorecard`}>Scorecard</Field.Label>
         <select
@@ -202,5 +246,6 @@
         {/if}
       </div>
     </form>
+    {/if}
   </Sheet.Content>
 </Sheet.Root>

@@ -27,10 +27,10 @@ public sealed class TaskTests(AppHostFixture fixture)
         team.Text("0.jobTitle").Should().Be("Platform Engineer");
         team.Text("0.kind").Should().Be("Task");
 
-        Notes((await teammate.GetAsync("/v1/tasks?scope=Mine")).Expect(HttpStatusCode.OK)).Should().Equal("Review this application.");
+        Notes((await teammate.GetAsync("/v1/tasks?scope=Mine")).Expect(HttpStatusCode.OK)).Should().Equal("Give your scorecard.");
         Notes((await teammate.GetAsync("/v1/tasks?scope=Team")).Expect(HttpStatusCode.OK)).Should().Equal("Call the references.");
         Notes((await owner.GetAsync("/v1/tasks?scope=Everyone")).Expect(HttpStatusCode.OK))
-            .Should().BeEquivalentTo(["Call the references.", "Review this application."]);
+            .Should().BeEquivalentTo(["Call the references.", "Give your scorecard."]);
     }
 
     [Fact]

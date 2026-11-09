@@ -23376,9 +23376,9 @@
           "StrongNo",
           "No",
           "Yes",
-          "StrongYes"
-        ],
-        "description": "A reviewer's overall recommendation for the stage. Automations test it as `reviewer.recommendation`."
+          "StrongYes",
+          null
+        ]
       },
       "RegisterPasskeyRequest": {
         "required": [
@@ -23964,7 +23964,8 @@
           "timelineEventId",
           "submittedAt",
           "scorecardTemplateId",
-          "scorecardName"
+          "scorecardName",
+          "withheld"
         ],
         "type": "object",
         "properties": {
@@ -23999,7 +24000,14 @@
             }
           },
           "recommendation": {
-            "$ref": "#/components/schemas/Recommendation"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Recommendation"
+              }
+            ]
           },
           "note": {
             "type": [
@@ -24030,6 +24038,9 @@
               "null",
               "string"
             ]
+          },
+          "withheld": {
+            "type": "boolean"
           }
         },
         "description": "One reviewer's scorecard, given while the application was in a stage: an answer to each question as it was asked, and\nan overall recommendation.\nIts rating answers make the candidate's rating (`ApplicationRating`, ADR-0013); nothing else on it does."

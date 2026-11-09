@@ -24,6 +24,9 @@ namespace ScreenHire.Api.Contracts;
 /// <c>scorecardTemplateId</c>: The library scorecard it came from, a built-in id or the team's template id; null on a
 /// stage copy that names none and on scorecards given before submissions kept it.
 /// <c>scorecardName</c>: The scorecard's name as it was; null on scorecards given before submissions kept it.
+/// <c>withheld</c>: True when the reader has a scorecard of their own still to give (ADR-0013), so this one shows who gave it
+/// and when and nothing else: <c>recommendation</c> and <c>rating</c> are null, <c>answers</c> and <c>ratings</c> are empty
+/// and <c>note</c> is null. Always false for the reader's own scorecards and for an Owner or an API key.
 /// </remarks>
 public sealed record ScorecardEntry(
     Guid Id,
@@ -32,13 +35,14 @@ public sealed record ScorecardEntry(
     IReadOnlyList<ScorecardAnswerEntry> Answers,
     decimal? Rating,
     IReadOnlyList<ScorecardRating> Ratings,
-    Recommendation Recommendation,
+    Recommendation? Recommendation,
     string? Note,
     int WorkflowVersion,
     Guid TimelineEventId,
     DateTimeOffset SubmittedAt,
     string? ScorecardTemplateId,
-    string? ScorecardName);
+    string? ScorecardName,
+    bool Withheld);
 
 /// <summary>
 /// A question as the reviewer was asked it, and their answer. <c>value</c> is "yes" or "no" for the yes-or-no kinds, an
@@ -107,7 +111,17 @@ internal static class ScorecardMappings
             [.. scorecard.Answers.Select(a => new ScorecardAnswerEntry(a.QuestionId, a.Label, a.Type, a.Value, a.Values, a.Rating, a.Options))],
             OwnRating(scorecard),
             [.. scorecard.Ratings.Select(r => new ScorecardRating(r.CriterionId, r.Label, r.Rating))], scorecard.Recommendation, scorecard.Note,
-            scorecard.WorkflowVersion, scorecard.TimelineEventId, scorecard.SubmittedAt, scorecard.ScorecardTemplateId, scorecard.ScorecardName);
+            scorecard.WorkflowVersion, scorecard.TimelineEventId, scorecard.SubmittedAt, scorecard.ScorecardTemplateId, scorecard.ScorecardName,
+            Withheld: false);
+
+    /// <summary>
+    /// A scorecard the reader may not read yet (ADR-0013): who gave it, for which stage and scorecard, and when, with the
+    /// recommendation, rating, answers and note left out.
+    /// </summary>
+    public static ScorecardEntry ToWithheldEntry(this ApplicationScorecard scorecard) =>
+        new(scorecard.Id, scorecard.StageId, scorecard.ReviewerUserId, [], null, [], null, null,
+            scorecard.WorkflowVersion, scorecard.TimelineEventId, scorecard.SubmittedAt, scorecard.ScorecardTemplateId, scorecard.ScorecardName,
+            Withheld: true);
 
     public static Dictionary<string, ScorecardAnswerValue> ToAnswers(this SubmitScorecardRequest request) =>
         request.Answers.ToDictionary(a => a.QuestionId, a => new ScorecardAnswerValue(a.Value, a.Values, a.Rating), StringComparer.Ordinal);

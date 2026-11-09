@@ -5,6 +5,7 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
+  import { scaleOf } from '#lib/scorecards.js';
   import { recommendationLabels, recommendations } from '#lib/workflow.js';
 
   // What a reviewer fills in for a scorecard (design system section 11, Scorecard and Rating answer): each question in
@@ -26,7 +27,7 @@
     values?: Record<string, string>;
     /** A multi-choice question's picked option ids. */
     picks?: Record<string, string[]>;
-    recommendation?: Recommendation | '';
+    recommendation?: NonNullable<Recommendation> | '';
     note?: string;
     /** A submit was tried, so missing answers say so. */
     tried?: boolean;
@@ -42,6 +43,11 @@
   const maxLongText = 10_000;
   const missingRecommendation = $derived(tried && !recommendation);
   const fieldId = (question: ScorecardQuestion) => `${idPrefix}-${question.id}`;
+  // Low and High are said once per run of number scales, under the first (Rating answer): the questions after it are read
+  // the same way. A question of another kind between two scales starts a new run.
+  const withEnds = $derived(
+    new Set(questions.filter((question, index) => scaleOf(question.type).length > 0 && (index === 0 || scaleOf(questions[index - 1].type).length === 0)).map((question) => question.id)),
+  );
 
   // A multi-choice answer keeps the options in the question's order.
   function pick(question: ScorecardQuestion, optionId: string, checked: boolean) {
@@ -113,6 +119,7 @@
         labelledby={`${fieldId(question)}-label`}
         describedby={described}
         invalid={tried && unanswered.has(question.id)}
+        showEnds={withEnds.has(question.id)}
         bind:value={() => values[question.id] ?? '', (next) => (values[question.id] = next ?? '')}
       />
     </div>
@@ -131,7 +138,7 @@
       spacing={0}
       aria-labelledby={`${idPrefix}-recommendation`}
       aria-describedby={missingRecommendation ? `${idPrefix}-recommendation-error` : undefined}
-      bind:value={() => recommendation, (next) => (recommendation = (next as Recommendation) ?? '')}
+      bind:value={() => recommendation, (next) => (recommendation = (next as NonNullable<Recommendation>) ?? '')}
     >
       {#each recommendations as value (value)}
         <ToggleGroup.Item {value} class="text-foreground data-[state=on]:inset-ring-2 data-[state=on]:inset-ring-accent-foreground"

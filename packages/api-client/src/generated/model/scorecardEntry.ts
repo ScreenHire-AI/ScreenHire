@@ -21,7 +21,7 @@ export interface ScorecardEntry {
   /** @nullable */
   rating: number | null;
   ratings: ScorecardRating[];
-  recommendation: Recommendation;
+  recommendation: null | Recommendation;
   /** @nullable */
   note: string | null;
   workflowVersion: number;
@@ -31,4 +31,5 @@ export interface ScorecardEntry {
   scorecardTemplateId: string | null;
   /** @nullable */
   scorecardName: string | null;
+  withheld: boolean;
 }

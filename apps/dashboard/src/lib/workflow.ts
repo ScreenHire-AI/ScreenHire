@@ -117,14 +117,14 @@ export const ratingLabels: Record<Rating, string> = {
 };
 
 /** A reviewer's overall recommendation; automations test it as `reviewer.recommendation`. */
-export const recommendationLabels: Record<Recommendation, string> = {
+export const recommendationLabels: Record<NonNullable<Recommendation>, string> = {
   StrongNo: 'Strong no',
   No: 'No',
   Yes: 'Yes',
   StrongYes: 'Strong yes',
 };
 
-export const recommendations = Object.keys(recommendationLabels) as Recommendation[];
+export const recommendations = Object.keys(recommendationLabels) as NonNullable<Recommendation>[];
 
 /** Actions v1 runs. RequestVerification is refused at save, so not offered. */
 export const actionLabels: Partial<Record<ActionType, string>> = {

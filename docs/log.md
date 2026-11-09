@@ -2,6 +2,14 @@
 
 ## 2026-11-09
 
+**The Scorecards tab is a roster, and My tasks lands on the action.** Scorecards is a sortable table (reviewer, stage, recommendation,
+rating, submitted) whose rows open each scorecard in a side sheet with Previous and Next, and the scorecards asked for that are not
+in yet sit under their own heading. A reviewer with their own scorecard still to give now sees who submitted and when: the
+scorecards list returns those rows with `withheld: true` and no recommendation, rating, answers or note. The review task reads
+"Give your scorecard" (new tasks; existing rows keep their text), so "Review" only means the verification state. The sheet
+says who asked and when, shows the Scorecard select only when more than one fits, says Low and High once, and after Submit
+offers "Open next task". Remind for a waiting scorecard is proposed: nothing sends a teammate a notification yet.
+
 **The audit of the marketing rebuild, fixed.** The workflow picture on the product pages no longer shows a rejection
 review, and the picture of a flagged check, which showed check details the site never states, is gone from the repository.
 The never-guessing pain has its number (Monster's 2024 poll: 59% of US workers rarely hear back after applying, 33%

@@ -104,6 +104,10 @@ sources:
   - resource: apps/dashboard/src/lib/components/scorecard-builder.svelte
   - resource: apps/dashboard/src/lib/components/scorecard-sheet.svelte
   - resource: apps/dashboard/src/lib/components/ask-scorecard-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/scorecards-tab.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/scorecard-roster.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/scorecard-detail-sheet.svelte
+  - resource: apps/dashboard/src/lib/scorecard-roster.ts
   - resource: apps/dashboard/src/lib/scorecard-choices.ts
   - resource: apps/dashboard/src/lib/components/task-list.svelte
   - resource: apps/dashboard/src/lib/tasks.svelte.ts
@@ -743,7 +747,9 @@ scorecard then asks for a required overall `Recommendation` (strong no, no, yes,
   that key. A review in a stage with a scorecard is answered only by their scorecard for that stage (the task's
   `stageId`), so scoring another stage does not show it. A review in a stage without a scorecard, or one made before
   tasks kept their stage, is answered by any scorecard of theirs submitted since it was assigned. Until then the API leaves the rating (`AfterYourScorecard`, no number),
-  the other scorecards, the others' recommendations in the timeline and automation runs out of what they read. A
+  the content of the other scorecards, the others' recommendations in the timeline and automation runs out of what they read. The scorecards list still has a row for each other
+  scorecard, with `withheld: true`: who gave it, for which stage and scorecard, and when, but `recommendation` and `rating` null, `answers` and `ratings` empty
+  and `note` null, so the dashboard shows who has submitted without anchoring the reviewer. Their own scorecards are never withheld. A
   Review task for the whole team holds nothing back, and neither does an API key. Since a review is finished by any
   scorecard its reviewer gives, giving one shows them the rating.
 - The rating is on `ApplicationSummary` and `ApplicationDetail`, so the job's table, the candidates list and the

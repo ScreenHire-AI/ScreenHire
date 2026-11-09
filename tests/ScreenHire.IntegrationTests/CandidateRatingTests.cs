@@ -98,7 +98,13 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
         using (new AssertionScope())
         {
             (await RatingsAsync(recruiter.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "AfterYourScorecard - x0");
-            (await recruiter.GetAsync(url)).Expect(HttpStatusCode.OK).Count().Should().Be(0, "they read only their own scorecards");
+            var hiddenCards = (await recruiter.GetAsync(url)).Expect(HttpStatusCode.OK);
+            hiddenCards.Count().Should().Be(1, "they see that the owner gave a scorecard, and when");
+            hiddenCards.Id("0.reviewerUserId").Should().Be(owner.UserId);
+            hiddenCards.At("0.withheld").GetBoolean().Should().BeTrue();
+            hiddenCards.At("0.recommendation").ValueKind.Should().Be(JsonValueKind.Null, "nor what it said");
+            hiddenCards.At("0.rating").ValueKind.Should().Be(JsonValueKind.Null);
+            hiddenCards.At("0.answers").GetArrayLength().Should().Be(0);
             var withheldTimeline = Submitted((await recruiter.GetAsync($"/v1/applications/{application}/timeline")).Expect(HttpStatusCode.OK));
             withheldTimeline.Should().ContainSingle("they still see that a scorecard was given");
             withheldTimeline.Should().OnlyContain(e => !e.Has("recommendation") && !e.Has("scorecardId"), "nor what it said");
@@ -110,7 +116,10 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
         foreach (var reader in new[] { owner, bystander, viewer })
         {
             (await RatingsAsync(reader.GetAsync, job, application, candidate)).Values.Should().OnlyContain(r => r == "Rated 4.7 x1");
-            (await reader.GetAsync(url)).Count().Should().Be(1);
+            var cards = (await reader.GetAsync(url)).Expect(HttpStatusCode.OK);
+            cards.Count().Should().Be(1);
+            cards.At("0.withheld").GetBoolean().Should().BeFalse();
+            cards.Text("0.recommendation").Should().Be("StrongYes");
         }
 
         var key = (await owner.PostAsync("/v1/organization/api-keys", new JsonObject
@@ -120,7 +129,10 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
         using var keyClient = new HttpClient(new SocketsHttpHandler { UseCookies = false }) { BaseAddress = fixture.GetEndpoint("api") };
         keyClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", key);
         (await RatingsAsync(path => GetWithKeyAsync(keyClient, path), job, application, candidate)).Values.Should().OnlyContain(r => r == "Rated 4.7 x1");
-        (await GetWithKeyAsync(keyClient, url)).Expect(HttpStatusCode.OK).Count().Should().Be(1);
+        var keyCards = (await GetWithKeyAsync(keyClient, url)).Expect(HttpStatusCode.OK);
+        keyCards.Count().Should().Be(1);
+        keyCards.At("0.withheld").GetBoolean().Should().BeFalse();
+        keyCards.Text("0.recommendation").Should().Be("StrongYes");
         var ownerRun = RunsOf((await owner.GetAsync($"/v1/applications/{application}/automation-runs")).Expect(HttpStatusCode.OK), "tag-review");
         ownerRun.Should().ContainSingle().Which.GetProperty("facts").GetProperty("reviewerRecommendation").GetString().Should().Be("StrongYes");
 

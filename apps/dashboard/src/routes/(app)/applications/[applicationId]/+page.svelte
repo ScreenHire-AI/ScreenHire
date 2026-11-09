@@ -12,6 +12,7 @@
     createGetCandidate,
     createGetJob,
     createListApplicationScorecards,
+    createListApplicationTasks,
     createListCandidateEmails,
     createClearCandidateEmailIssue,
     createListApplicationInterviews,
@@ -19,6 +20,7 @@
     createGetJobHiringTeam,
     createListJobs,
     createListRoles,
+    createListTasks,
     createListScorecardTemplates,
     createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
@@ -76,9 +78,11 @@
   import { isTerminal } from '#lib/workflow.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { applicationsPath } from '#lib/realtime.js';
-  import { choiceFor, defaultChoice, scorecardChoices } from '#lib/scorecard-choices.js';
-  import { membersWith } from '#lib/team.js';
+  import { applicationsPath, tasksPath } from '#lib/realtime.js';
+  import { choiceFor, defaultChoice, scorecardChoices, type ScorecardRequest } from '#lib/scorecard-choices.js';
+  import { waitingRows } from '#lib/scorecard-roster.js';
+  import { taskHref } from '#lib/tasks.svelte.js';
+  import { membersWith, personName } from '#lib/team.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
@@ -106,6 +110,10 @@
   const application = createGetApplication(() => params.applicationId);
   const timeline = createGetApplicationTimeline(() => params.applicationId);
   const scorecards = createListApplicationScorecards(() => params.applicationId);
+  // The scorecards asked for that are not in yet, and what the reader was asked for (the sheet's "Asked by" line).
+  const applicationTasks = createListApplicationTasks(() => params.applicationId);
+  // The reader's open tasks, oldest first: the sheet's "Open next task" is the first one after a submit.
+  const myTasks = createListTasks(() => ({ status: 'Open', scope: 'Mine' }));
   // The Verification tab's marker; the tab shares the query.
   const verification = createGetApplicationVerification(() => params.applicationId);
   // Names the people in Activity, notes and mentions.
@@ -254,6 +262,24 @@
       alsoOffer: linkedScorecard,
     }),
   );
+  const waiting = $derived(waitingRows(applicationTasks.data?.data, timeline.data?.data, library.data?.data ?? []));
+  const requests = $derived<ScorecardRequest[]>(
+    (applicationTasks.data?.data ?? [])
+      .filter((task) => (task.kind === 'Review' || task.kind === 'Scorecard') && task.completedAt === null && task.assigneeUserId === currentUserId)
+      .map((task) => {
+        const actor = timeline.data?.data.find((entry) => entry.type === 'TaskCreated' && entry.taskId === task.id)?.actorUserId;
+        return {
+          kind: task.kind as 'Review' | 'Scorecard',
+          scorecardTemplateId: task.scorecardTemplateId ?? null,
+          askedAt: task.createdAt,
+          askedBy: actor ? personName(actor, members, currentUserId) : undefined,
+        };
+      }),
+  );
+  // The sheet shows the link only after the lists refetched (scorecardSubmitted), so the task just finished is not in it.
+  const nextTask = $derived((myTasks.data?.data ?? []).toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))[0]);
+  // Fill in shows only to someone who has not given a scorecard here yet (A3).
+  const hasScored = $derived((scorecards.data?.data ?? []).some((card) => card.reviewerUserId === currentUserId && !card.withheld));
   // Ask for one names the teammates who can see this job (ADR-0015) and whose role fills in scorecards, never yourself.
   const roles = createListRoles(() => ({ query: { enabled: mayAsk } }));
   const teammates = $derived(
@@ -272,12 +298,14 @@
 
   // A link to a scorecard opens the sheet on it once everything it needs has loaded, once per visit. A scorecard the
   // reader gave already offers nothing, so the tab simply shows.
-  let openedFromLink = false;
+  // Another task's link on this same page (Open next task) is another visit, so the sheet opens again for it.
+  let openedFromLink = '';
   $effect(() => {
     const key = linkedScorecard;
     const fill = linkedFill;
-    if ((!key && !fill) || openedFromLink || !mayScore || !detail || !job.isSuccess || !scorecards.isSuccess || !timeline.isSuccess || !library.isSuccess) return;
-    openedFromLink = true;
+    const visit = `${params.applicationId}|${key}|${fill}`;
+    if ((!key && !fill) || openedFromLink === visit || !mayScore || !detail || !job.isSuccess || !scorecards.isSuccess || !timeline.isSuccess || !library.isSuccess) return;
+    openedFromLink = visit;
     const choice = key ? choiceFor(choices, key) : defaultChoice(choices, detail.stage.id);
     if (choice) fillIn(choice.value);
   });
@@ -319,7 +347,7 @@
 
   async function scorecardSubmitted(message: string) {
     scorecardAnnouncement = message;
-    await invalidatePath(queryClient, `${applicationsPath}/${params.applicationId}`);
+    await Promise.all([invalidatePath(queryClient, `${applicationsPath}/${params.applicationId}`), invalidatePath(queryClient, tasksPath)]);
   }
 
   const notFound = $derived(application.error instanceof ApiError && application.error.status === 404);
@@ -512,6 +540,9 @@
             {#if tab === 'scorecards'}
               <ScorecardsTab
                 scorecards={scorecards.data?.data}
+                {waiting}
+                phone={sidebar.isMobile}
+                primaryFill={!mayMove}
                 error={scorecards.error}
                 onretry={() => scorecards.refetch()}
                 stageName={(id) => stageName(id)}
@@ -519,7 +550,7 @@
                 {currentUserId}
                 announcement={scorecardAnnouncement}
                 withheld={detail.rating?.state === 'AfterYourScorecard'}
-                onfill={mayScore ? () => fillIn() : undefined}
+                onfill={mayScore && !hasScored ? () => fillIn() : undefined}
                 onask={mayAsk ? () => (askOpen = true) : undefined}
               />
             {/if}
@@ -588,6 +619,8 @@
         loadingChoices={library.isPending || scorecards.isPending || !workflow}
         libraryError={library.error ?? undefined}
         onretrylibrary={() => library.refetch()}
+        {requests}
+        nextTaskHref={nextTask ? taskHref(nextTask) : undefined}
         ondone={scorecardSubmitted}
       />
     {/if}
