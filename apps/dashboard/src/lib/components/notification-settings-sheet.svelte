@@ -72,9 +72,9 @@
     try {
       await update.mutateAsync({ data: { toasts, closeToasts, off } });
       open = false;
-      onsaved?.('Your notification settings were saved.');
+      onsaved?.('Your teammate change settings were saved.');
     } catch (error) {
-      failure = describeError(error, 'Could not save your notification settings');
+      failure = describeError(error, 'Could not save your teammate change settings');
     }
   }
 </script>
@@ -88,7 +88,7 @@
     </Sheet.Header>
     {#if settings.isError}
       <div class="px-4 pb-4">
-        <QueryError message={describeError(settings.error, 'Could not load your notification settings')} onretry={() => settings.refetch()} inset />
+        <QueryError message={describeError(settings.error, 'Could not load your teammate change settings')} onretry={() => settings.refetch()} inset />
       </div>
     {:else if !filled}
       <div class="flex flex-col gap-3 px-4 pb-4"><Skeleton class="h-10 w-full" /><Skeleton class="h-40 w-full" /></div>

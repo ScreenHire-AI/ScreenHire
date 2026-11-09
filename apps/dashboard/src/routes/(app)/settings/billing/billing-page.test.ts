@@ -145,7 +145,7 @@ describe('billing page', () => {
     await expectNoAxeViolations();
   });
 
-  const trialEndWords = 'Nothing is charged during the trial and no card is needed. When it ends, open jobs stay open and a new job needs a plan.';
+  const trialEndWords = 'The trial needs no card. When it ends, open jobs stay open and a new job needs a plan.';
 
   it('tells a trialing owner what the end of the trial does', async () => {
     renderPage();

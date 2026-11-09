@@ -224,8 +224,8 @@
 {/snippet}
 
 {#snippet trialFooter()}
-  <!-- The trial is a stored date: no card is taken and nothing is charged until a plan is chosen (docs/architecture/billing.md, "The trial"). -->
-  <p class="text-muted-foreground">Nothing is charged during the trial and no card is needed. When it ends, open jobs stay open and a new job needs a plan.</p>
+  <!-- The trial is a stored date with no card (docs/architecture/billing.md, "The trial"). What AI use above its allowance costs is the AI usage panel's to say. -->
+  <p class="text-muted-foreground">The trial needs no card. When it ends, open jobs stay open and a new job needs a plan.</p>
 {/snippet}
 
 {#snippet changeFooter()}

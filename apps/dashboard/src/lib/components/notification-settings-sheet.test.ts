@@ -41,7 +41,7 @@ describe('notifications sheet', () => {
     await fireEvent.click(screen.getByRole('switch', { name: 'Close automatically' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(onsaved).toHaveBeenCalledWith('Your notification settings were saved.'));
+    await waitFor(() => expect(onsaved).toHaveBeenCalledWith('Your teammate change settings were saved.'));
     expect(saved).toEqual([{ toasts: true, closeToasts: false, off: ['Tags', 'Moves'] }]);
   });
 });
