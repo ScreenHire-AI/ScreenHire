@@ -46,7 +46,7 @@ the team. There is no account and no password. The decision is [ADR-0027](../adr
   characters, `RepliesPerDay` 10), forwarded by the AppHost to the API and the worker.
 - `CandidatePortalLinks`: the signed link, `SendPortalLink` and its email, `CandidateFunnel`, `PortalMessageText`.
 - `/v1/public/organizations/{slug}/portal`, five anonymous routes under the `portal` rate limit.
-- Five careers pages under `my-applications`, a link in every careers page's footer and on the "Application sent" page.
+- Five careers pages under `my-applications`, a link in the footer of every other careers page and on the "Application sent" page.
 - A footer on every email to a candidate, and a `MailRoute` for the interview emails, which had none.
 
 ## Getting in
@@ -193,7 +193,7 @@ the visitor's address, so the API's rate limit counts the visitor and not the ca
 
 A forged, expired, wrong-organization or erased-candidate link, or a malformed one, shows "This link has expired or is not valid"
 with a link back to the form and the line to reply to the last email (status 404); a busy network says the same in a `Notice`
-(429). Both come from `PortalLinkProblem`. The footer of every careers page links to `/my-applications`.
+(429). Both come from `PortalLinkProblem`. The footer of every careers page but these links to `/my-applications`.
 
 ## Notice
 

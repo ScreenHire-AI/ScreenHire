@@ -220,7 +220,10 @@ Authors check their screens against this list, and the `design-review` agent rep
   its notice ("Published version 2. Jobs created from now on start from it.").
 - **A12** Any file input takes a dropped file as well as Choose file, and is the Drop area (section 11), never a bare
   `<input type="file">`: the dashboard's `Input` has no file type. Every uploaded file shows its name and size with
-  Remove, and a wrong type or a file too large is refused in the field's error, in words, before it is sent.
+  Remove, and a wrong type or a file too large is refused in the field's error, in words, before it is sent. The one
+  exception is a candidate's reply on their own page, which takes several files in one post: it is the named input in the
+  Drop area's dashed frame, as the apply form's area is without JavaScript, and sending it refuses too many files or too
+  many bytes in words.
 
 **Words and type**
 
@@ -574,7 +577,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   `pointer-coarse:min-h-11` on marketing pages. Careers pages use a plain `min-h-11`, so they are 44px on any pointer.
 - Shape and space come from section 5. Radius is a token: 8px for buttons and inputs (`rounded-lg`), 12px for panels
   (`rounded-panel`), full for chips and badges, and never `rounded-[...]` or another size such as `rounded-2xl` (`public-style.test.ts` fails on any radius
-  class but those three). A card that is not a `Panel` still takes `rounded-panel` and `shadow-surface`. Margins, padding and gaps sit on the 4px grid
+  class but those three and `rounded-none`, which a square step marker has). A card that is not a `Panel` still takes `rounded-panel` and `shadow-surface`. Margins, padding and gaps sit on the 4px grid
   (4, 8, 12, 16, 20, 24, 32, 40, 48, which is `1`, `2`, `3`, `4`, `5`, `6`, `8`, `10` and `12`): no half steps, no `7`,
   `9` or `11`. A button is 44px high (`min-h-11` on careers pages, `h-11` on marketing pages), and a careers input or
   choice is 48px (`min-h-12`).
@@ -600,14 +603,16 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   content.
 - A candidate's own page shows an application's four steps as square markers on a line (T4), in one row at 390px, each
   with its name under it: a step done is filled with a tick, the step it is at is outlined with a filled centre and a bold
-  name, and the steps to come are empty. They are a list named "Where your application is", never radio-like circles in a
-  grid, which read as choices.
+  name, and the steps to come are empty. A done or current marker is in `candidate-brand-text`, an empty one and the line
+  to it in `candidate-input-border`, so each keeps 3:1, and the line runs under the markers through their centres. They are
+  a list named "Where your application is", never radio-like circles in a grid, which read as choices.
 - The footer carries "What we collect and why" and "Your applications" (not on the candidate's own pages, which it opens), so a page does not repeat either
   in its body (W7). The one exception is the notice, which links the privacy page because it is the notice. `public-style.test.ts` also
-  fails on candidate copy, and the two emails that once carried it, that says a person reads everything or that no software decides.
+  fails on candidate copy, and the two emails that once carried it, that says a person reads everything or your answer, that
+  every application or yours is reviewed, or that no software decides.
 - A claim about who reads or decides must hold for every employer's setup. An eligibility question can end an application
   with no person involved when the employer chose that, so candidate copy says what the checks never do ("our checks never
-  reject anyone") and never that no software, or always a person, decides.
+  reject anyone") and never that no software, or always a person, decides, or that the employer reviews every application.
 
 ## 5. Space, shape and size
 
@@ -867,7 +872,7 @@ Helper text only when a label cannot say it. Copy follows `.claude/rules/writing
   never "suspicious", "fake", "fraudster" or "AI-generated candidate". Every automated observation says what was
   observed, not what it means about the person.
 - **Candidates:** warm, plain, honest. Explain what we look at and what we never do, before collection; offer the
-  assistive-tech toggle; welcome declared AI use where the employer allows it. "{Employer} reviews every application. Our checks never reject anyone."
+  assistive-tech toggle; welcome declared AI use where the employer allows it. "Our checks never reject anyone."
 - **Marketing:** confident and specific; cite a source for every statistic; no invented numbers.
 
 ## 13. Dates and times
