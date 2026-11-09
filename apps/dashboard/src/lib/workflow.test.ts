@@ -187,6 +187,8 @@ describe('elements', () => {
     expect(newAutomation(workflow, 'screening').trigger).toEqual({ type: 'StageEntered', stageId: 'screening' });
     expect(newAutomation(workflow, null).trigger).toEqual({ type: 'ApplicationSubmitted' });
     expect(newAutomation(workflow, null).id).toBe('automation');
+    // Complete from the start, and valid under every trigger, so "Write your own" never opens as a problem.
+    expect(newAutomation(workflow, 'screening').actions).toEqual([{ type: 'NotifyTeam', note: 'Someone needs a look.' }]);
   });
 
   it('puts stage triggers in their stage lane and the rest in the whole-workflow lane', () => {

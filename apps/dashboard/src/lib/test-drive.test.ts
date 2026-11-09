@@ -38,7 +38,7 @@ const tagOnEntry = automation('tag-screen', { type: 'StageEntered', stageId: 'ph
 
 describe('samplesOf', () => {
   it('has four samples when a knockout and a verification route are on, in the order a person reads them', () => {
-    const samples = samplesOf(workflowWith([knockout, route, tagOnEntry]));
+    const samples = samplesOf(workflowWith([knockout, route]));
 
     expect(samples.map((sample) => [sample.id, sample.name, sample.moment])).toEqual([
       ['meets', 'Meets every requirement', 'When they apply'],
@@ -46,6 +46,19 @@ describe('samplesOf', () => {
       ['signals', 'Checks suggest a review', 'When the checks finish'],
       ['accommodation', 'Asked for an accommodation', 'When they apply'],
     ]);
+  });
+
+  it('tries a stage that has steps of its own at its own moment, before the accommodation', () => {
+    const samples = samplesOf(workflowWith([knockout, route, tagOnEntry]));
+
+    expect(samples.map((sample) => [sample.id, sample.name, sample.moment])).toEqual([
+      ['meets', 'Meets every requirement', 'When they apply'],
+      ['fails', 'Fails a knockout', 'When they apply'],
+      ['signals', 'Checks suggest a review', 'When the checks finish'],
+      ['stage:phone-screen', 'Reaches Phone screen', 'When they reach Phone screen'],
+      ['accommodation', 'Asked for an accommodation', 'When they apply'],
+    ]);
+    expect(samples[3]!.request.trigger).toEqual({ type: 'StageEntered', stageId: 'phone-screen' });
   });
 
   it('builds the requests from the template: the knockout answer that passes, and the one that fails', () => {

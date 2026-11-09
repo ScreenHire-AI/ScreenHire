@@ -563,7 +563,9 @@ export function newAutomation(workflow: HiringWorkflow, stageId: string | null):
     name: 'New automation',
     trigger: stageId ? { type: 'StageEntered', stageId } : { type: 'ApplicationSubmitted' },
     conditions: null,
-    actions: [newAction('AddTag')],
+    // A step that is complete from the start, so a new automation never opens as a problem, and one every trigger allows (a
+    // passed time limit may only remind the team). The person changes it to what they want.
+    actions: [{ type: 'NotifyTeam', note: 'Someone needs a look.' }],
     enabled: true,
     allowAutoReject: false,
   };

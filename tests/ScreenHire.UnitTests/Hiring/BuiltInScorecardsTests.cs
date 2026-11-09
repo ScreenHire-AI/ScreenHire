@@ -29,6 +29,7 @@ public sealed class BuiltInScorecardsTests
     [Theory]
     [InlineData("screening", true)]
     [InlineData("hourly-interview", true)]
+    [InlineData("trial-shift", true)]
     [InlineData("0199e8a0-0000-7000-8000-000000000001", true)]
     [InlineData("00000000-0000-0000-0000-000000000000", false)]
     [InlineData("Screening", false)]

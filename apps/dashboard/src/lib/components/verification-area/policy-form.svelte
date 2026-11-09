@@ -221,7 +221,7 @@
               <Field.Field data-invalid={networkError || networkServerError ? true : undefined}>
                 <Field.Label for="trusted-network">Trusted networks</Field.Label>
                 <Field.Description id="trusted-network-hint">
-                  An office or a partner's range, such as 203.0.113.0/24 and no wider than /16, raises no network signal.
+                  An office or a partner's address, such as 203.0.113.7, raises no network signal. A range works too, such as 203.0.113.0/24.
                 </Field.Description>
                 {#if $form.trustedNetworks.length > 0}
                   <ul class="flex flex-col gap-1" aria-label="Trusted networks">
@@ -250,7 +250,7 @@
                       autocomplete="off"
                       spellcheck="false"
                       class="tabular-nums"
-                      placeholder="203.0.113.0/24"
+                      placeholder="203.0.113.7"
                       bind:value={networkInput}
                       onkeydown={onEnter(addNetwork)}
                       aria-invalid={networkError || networkServerError ? 'true' : undefined}

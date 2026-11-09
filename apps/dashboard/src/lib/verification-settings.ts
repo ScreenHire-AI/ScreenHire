@@ -76,7 +76,7 @@ export function domainProblem(value: string): string | null {
  */
 export function networkProblem(value: string): string | null {
   const text = value.trim();
-  const invalid = 'Enter a network such as 203.0.113.0/24.';
+  const invalid = 'Enter an address such as 203.0.113.7, or a range such as 203.0.113.0/24.';
   const four = ipv4.exec(text);
   if (four) {
     if (four.slice(1, 5).some((part) => Number(part) > 255)) return invalid;

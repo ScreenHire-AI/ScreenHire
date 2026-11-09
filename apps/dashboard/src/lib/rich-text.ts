@@ -46,26 +46,29 @@ export function isBlank(html: string | null | undefined): boolean {
   return text.replace(/ /g, ' ').trim().length === 0;
 }
 
-const liquidOutput = /\{\{\s*([^{}]*?)\s*\}\}/g;
+// An output, `{{ firstName }}`, or a logic tag, `{% if meetingLink != blank %}`. Both show as a chip, so a person editing an
+// email sees "Meeting link" and "If there is a meeting link", never the braces.
+const liquidPiece = /\{\{\s*([^{}]*?)\s*\}\}|\{%\s*([^%]*?)\s*%\}/g;
 
-/** The HTML with each `{{ ... }}` in its text as a chip's element, so the editor loads it as one piece. */
+/** The HTML with each `{{ ... }}` and `{% ... %}` in its text as a chip's element, so the editor loads it as one piece. */
 export function withVariableChips(html: string): string {
   const document = new DOMParser().parseFromString(html, 'text/html');
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   const texts: Text[] = [];
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    if (liquidOutput.test(node.nodeValue ?? '')) texts.push(node as Text);
-    liquidOutput.lastIndex = 0;
+    if (liquidPiece.test(node.nodeValue ?? '')) texts.push(node as Text);
+    liquidPiece.lastIndex = 0;
   }
 
   for (const text of texts) {
     const value = text.nodeValue ?? '';
     const parts: (string | HTMLElement)[] = [];
     let start = 0;
-    for (const match of value.matchAll(liquidOutput)) {
+    for (const match of value.matchAll(liquidPiece)) {
       parts.push(value.slice(start, match.index));
       const chip = document.createElement('span');
-      chip.dataset['liquid'] = match[1]!.trim();
+      if (match[1] !== undefined) chip.dataset['liquid'] = match[1].trim();
+      else chip.dataset['liquidTag'] = match[2]!.trim();
       chip.textContent = match[0];
       parts.push(chip);
       start = match.index + match[0].length;
@@ -106,8 +109,9 @@ export function pastedLine(text: string, schema: Schema): Slice {
 export function withoutChipElements(html: string): string {
   if (!html.includes('data-liquid')) return html;
   const document = new DOMParser().parseFromString(html, 'text/html');
-  for (const chip of document.body.querySelectorAll('span[data-liquid]')) {
-    chip.replaceWith(`{{ ${chip.getAttribute('data-liquid')} }}`);
+  for (const chip of document.body.querySelectorAll('span[data-liquid], span[data-liquid-tag]')) {
+    const tag = chip.getAttribute('data-liquid-tag');
+    chip.replaceWith(tag === null ? `{{ ${chip.getAttribute('data-liquid')} }}` : `{% ${tag} %}`);
   }
 
   return document.body.innerHTML;
@@ -116,6 +120,18 @@ export function withoutChipElements(html: string): string {
 /** The words a chip shows: a variable's label, or the expression itself when it is more than a name. */
 export function chipLabel(expression: string, variables: readonly RichTextVariable[]): string {
   return variables.find((variable) => variable.name === expression)?.label ?? `{{ ${expression} }}`;
+}
+
+/**
+ * The words a logic tag's chip shows. The one kind the built-in emails use, "show this only when there is a meeting link",
+ * reads as it means; any other tag shows as written.
+ */
+export function tagLabel(tag: string, variables: readonly RichTextVariable[]): string {
+  if (/^endif$/i.test(tag)) return 'End of that part';
+  const condition = /^if\s+([A-Za-z_][\w]*)\s*(!=|==)\s*blank$/.exec(tag);
+  if (!condition) return `{% ${tag} %}`;
+  const label = (variables.find((variable) => variable.name === condition[1])?.label ?? condition[1]!).toLowerCase();
+  return condition[2] === '!=' ? `If there is a ${label}` : `If there is no ${label}`;
 }
 
 interface VariableOptions {
@@ -204,6 +220,57 @@ export const Variable = Node.create<VariableOptions>({
   },
 });
 
+/**
+ * A Liquid logic tag, `{% if meetingLink != blank %}`, as one piece the editor keeps intact, like a variable. It is stored
+ * as the tag's own text; what it shows is `tagLabel`.
+ */
+export const LiquidTag = Node.create<VariableOptions>({
+  name: 'liquidTag',
+  group: 'inline',
+  inline: true,
+  atom: true,
+  selectable: true,
+
+  addOptions() {
+    return { variables: () => [] };
+  },
+
+  addAttributes() {
+    return {
+      tag: {
+        default: '',
+        parseHTML: (element) => element.getAttribute('data-liquid-tag') ?? '',
+        renderHTML: () => ({}),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'span[data-liquid-tag]' }];
+  },
+
+  renderHTML({ node }) {
+    return ['span', { 'data-liquid-tag': node.attrs['tag'] }, `{% ${node.attrs['tag']} %}`];
+  },
+
+  renderText({ node }) {
+    return `{% ${node.attrs['tag']} %}`;
+  },
+
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement('span');
+      dom.dataset['liquidTag'] = node.attrs['tag'];
+      dom.className = 'rounded-sm bg-secondary px-1 text-muted-foreground';
+      const hidden = document.createElement('span');
+      hidden.className = 'sr-only';
+      hidden.textContent = 'condition ';
+      dom.append(hidden, tagLabel(node.attrs['tag'], this.options.variables()));
+      return { dom };
+    };
+  },
+});
+
 /** A document of one paragraph that Enter leaves alone: a single line of text, such as an email's subject. */
 const SingleLine = Node.create({
   name: 'doc',
@@ -240,6 +307,7 @@ export function singleLineExtensions(variables: () => readonly RichTextVariable[
     }),
     SingleLine,
     Variable.configure({ variables }),
+    LiquidTag.configure({ variables }),
   ];
 }
 
@@ -273,6 +341,6 @@ export function richTextExtensions(variables?: () => readonly RichTextVariable[]
         return { Enter: () => this.editor.commands.splitListItem(this.name) };
       },
     }),
-    ...(variables ? [Variable.configure({ variables })] : []),
+    ...(variables ? [Variable.configure({ variables }), LiquidTag.configure({ variables })] : []),
   ];
 }

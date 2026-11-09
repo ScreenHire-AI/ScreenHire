@@ -2,13 +2,14 @@ import type { Editor } from '@tiptap/core';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { preferences } from '#lib/preferences.svelte.js';
-import { isAllowedLink, isBlank, normalizeLinkUrl, withVariableChips } from '#lib/rich-text.js';
+import { isAllowedLink, isBlank, normalizeLinkUrl, tagLabel, withoutChipElements, withVariableChips } from '#lib/rich-text.js';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import Harness from '../../test-support/rich-text-editor-harness.svelte';
 
 const variables = [
   { name: 'firstName', label: 'First name' },
   { name: 'jobTitle', label: 'Job title' },
+  { name: 'meetingLink', label: 'Meeting link' },
 ];
 
 const textbox = () => screen.getByRole('textbox', { name: 'Message' });
@@ -111,6 +112,27 @@ describe('rich text editor', () => {
     expect(onvalue.mock.lastCall![0]).not.toContain('data-liquid');
   });
 
+  it('shows a logic tag as a chip in words, and writes it back as the tag', async () => {
+    const onvalue = vi.fn();
+    render(Harness, {
+      props: { value: '<p>Hi</p><p>{% if meetingLink != blank %}</p><p>Join {{ meetingLink }}</p><p>{% endif %}</p>', variables, onvalue },
+    });
+
+    const tags = textbox().querySelectorAll('[data-liquid-tag]');
+    // A person who never met Liquid reads "If there is a meeting link", not the braces and the operator.
+    expect([...tags].map((tag) => tag.textContent)).toEqual(['condition If there is a meeting link', 'condition End of that part']);
+    expect(textbox()).not.toHaveTextContent('{%');
+
+    textbox().focus();
+    await fireEvent.click(screen.getByRole('button', { name: 'Insert first name' }));
+
+    await waitFor(() => expect(onvalue).toHaveBeenCalled());
+    const stored = onvalue.mock.lastCall![0] as string;
+    expect(stored).toContain('{% if meetingLink != blank %}');
+    expect(stored).toContain('{% endif %}');
+    expect(stored).not.toContain('data-liquid');
+  });
+
   it('turns a typed variable into one chip, braces and all', async () => {
     const onvalue = vi.fn();
     render(Harness, { props: { value: '<p>Hi</p>', variables, onvalue } });
@@ -206,5 +228,24 @@ describe('rich text helpers', () => {
     expect(withVariableChips('<p>Hi {{firstName}} &amp; {{ jobTitle }}</p>')).toBe(
       '<p>Hi <span data-liquid="firstName">{{firstName}}</span> &amp; <span data-liquid="jobTitle">{{ jobTitle }}</span></p>',
     );
+  });
+});
+
+describe('logic tags in email text', () => {
+  it('say what they do in words, and show any other tag as written', () => {
+    expect(tagLabel('if meetingLink != blank', variables)).toBe('If there is a meeting link');
+    expect(tagLabel('if meetingLink == blank', variables)).toBe('If there is no meeting link');
+    expect(tagLabel('if unknownThing != blank', variables)).toBe('If there is a unknownthing');
+    expect(tagLabel('endif', variables)).toBe('End of that part');
+    expect(tagLabel('for x in y', variables)).toBe('{% for x in y %}');
+  });
+
+  it('wrap in a chip element and unwrap to the same text', () => {
+    const html = '<p>{% if meetingLink != blank %}Join {{ meetingLink }}{% endif %}</p>';
+    const chipped = withVariableChips(html);
+
+    expect(chipped).toContain('data-liquid-tag="if meetingLink != blank"');
+    expect(chipped).toContain('data-liquid-tag="endif"');
+    expect(withoutChipElements(chipped)).toBe(html);
   });
 });
