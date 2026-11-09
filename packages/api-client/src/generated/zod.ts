@@ -1416,7 +1416,7 @@ export const CreateJobResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1623,7 +1623,7 @@ export const GetJobResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1853,7 +1853,7 @@ export const UpdateJobResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2098,7 +2098,7 @@ export const PublishJobResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2305,7 +2305,7 @@ export const CloseJobResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2708,7 +2708,7 @@ export const UpdateJobWorkflowResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2920,7 +2920,7 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "workflowProblems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -3511,7 +3511,7 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "problems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
@@ -3667,7 +3667,7 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "problems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
@@ -3962,7 +3962,7 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "problems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
@@ -4118,7 +4118,7 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "problems": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
@@ -8075,7 +8075,7 @@ export const ValidateWorkflowResponse = zod.object({
   "errors": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('The validator\'s verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at.')
 
 
