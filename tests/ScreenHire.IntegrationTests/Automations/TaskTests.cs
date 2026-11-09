@@ -31,6 +31,12 @@ public sealed class TaskTests(AppHostFixture fixture)
         Notes((await teammate.GetAsync("/v1/tasks?scope=Team")).Expect(HttpStatusCode.OK)).Should().Equal("Call the references.");
         Notes((await owner.GetAsync("/v1/tasks?scope=Everyone")).Expect(HttpStatusCode.OK))
             .Should().BeEquivalentTo(["Call the references.", "Give your scorecard."]);
+
+        // A review names the stage it was made in, whose scorecard answers it; a to-do names none.
+        var stage = (await owner.GetAsync($"/v1/applications/{application}")).Text("stage.id");
+        var onApplication = (await owner.GetAsync($"/v1/applications/{application}/tasks")).Expect(HttpStatusCode.OK).Body.EnumerateArray().ToList();
+        onApplication.Single(t => t.GetProperty("kind").GetString() == "Review").GetProperty("stageId").GetString().Should().Be(stage);
+        onApplication.Single(t => t.GetProperty("kind").GetString() == "Task").GetProperty("stageId").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact]

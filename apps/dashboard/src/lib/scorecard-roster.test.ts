@@ -111,7 +111,7 @@ describe('waitingRows', () => {
 });
 
 describe('askedFor', () => {
-  const request = (overrides: Partial<ScorecardRequest>): ScorecardRequest => ({ kind: 'Scorecard', scorecardTemplateId: 'interview', askedAt: '2026-11-05T09:00:00Z', askedBy: 'Avery Quinn', ...overrides });
+  const request = (overrides: Partial<ScorecardRequest>): ScorecardRequest => ({ kind: 'Scorecard', scorecardTemplateId: 'interview', stageId: null, askedAt: '2026-11-05T09:00:00Z', askedBy: 'Avery Quinn', ...overrides });
   const stageChoice = { value: 'stage:interview', stageId: 'interview', key: 'interview' } as ScorecardChoice;
   const libraryChoice = { value: 'library:phone-screen', key: 'phone-screen' } as ScorecardChoice;
 
@@ -127,5 +127,13 @@ describe('askedFor', () => {
     expect(askedFor(stageChoice, [review])).toBe(review);
     expect(askedFor(libraryChoice, [review])).toBeUndefined();
     expect(askedFor(undefined, [review])).toBeUndefined();
+  });
+
+  it("matches a review for a stage only to that stage's scorecard", () => {
+    const review = request({ kind: 'Review', scorecardTemplateId: null, stageId: 'interview', askedBy: undefined });
+    const screening = { value: 'stage:screening', stageId: 'screening', key: 'screening' } as ScorecardChoice;
+
+    expect(askedFor(stageChoice, [review])).toBe(review);
+    expect(askedFor(screening, [review])).toBeUndefined();
   });
 });
