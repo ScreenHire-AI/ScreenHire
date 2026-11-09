@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { BillingAiUsage } from './billingAiUsage.ts';
 import type { BillingPlan } from './billingPlan.ts';
 import type { BillingState } from './billingState.ts';
 
@@ -16,6 +17,7 @@ import type { BillingState } from './billingState.ts';
  * `openJobs` counts the jobs open now and `activeJobLimit` is the plan's limit, null when it has none.
  * `canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.
  * `taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".
+ * `aiUsage`: this month's use of ScreenHire's AI key and what it costs (null while billing is off).
  */
 export interface BillingOverview {
   available: boolean;
@@ -35,4 +37,5 @@ export interface BillingOverview {
   canManage: boolean;
   taxAtCheckout: boolean;
   plans: BillingPlan[];
+  aiUsage: null | BillingAiUsage;
 }

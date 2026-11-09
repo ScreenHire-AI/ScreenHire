@@ -46,8 +46,11 @@ Built for small hiring teams. Simple to use. Every feature on every plan. Plain 
 - a closed job billed until it is archived.
 
 ScreenHire's answer, which is how it is billed (ADR-0029): unlimited users, every feature on every plan, a price set by
-how many jobs are open at once, and a closed job costs nothing. The AI consistency check is included on every plan, and an
-organization may bring its own key and model. Nothing is metered. The numbers live only in `packages/plans/plans.json`
+how many jobs are open at once, and a closed job costs nothing. The AI consistency check is included on every plan. The one thing
+metered on top is the use of ScreenHire's own AI key, which is billed at the provider's price plus a margin (ADR-0029, decision 12),
+and an organization may bring its own key and model and pay us nothing for it. The site never says the AI costs nothing extra, and
+it never retypes the margin: it reads it from `packages/plans/ai.json` (`aiCost` in `features.ts`), as it reads prices from the
+catalogue. The numbers live only in `packages/plans/plans.json`
 (Starter $79 and 3 open jobs, Growth $149 and 10, Unlimited $249, working values the owner confirms before launch). Copy
 never writes a price or a job limit itself: it reads them from the catalogue (`catalogPlans`), as `PlanRows` does. A plan
 the catalogue gives no price shows its name and limit and no amount, and no placeholder text ever reaches a page. The
@@ -195,8 +198,9 @@ The target is the pricing band of the owner's "B + C, second pass" board, with t
 order: a dark band with the headline ("One price for your whole team. Everything included."), one sentence on the limit,
 the call to action and the three plans as rows, Growth marked as the trial; "Every plan includes", grouped by the five
 selling points plus the careers site and job posting (`includedByTopic`); "What you will not pay extra for", each line
-with what one vendor's own page says today and a link (`pricingNotes`); six questions (what counts as an open job, what
-happens at the limit and after the trial, changing and cancelling, whether prices are before tax, how many users); and the close.
+with what one vendor's own page says today and a link (`pricingNotes`); seven questions (what counts as an open job, what
+happens at the limit and after the trial, changing and cancelling, what the AI costs, whether prices are before tax, how many users);
+and the close.
 The tax question is there however `Stripe:Tax:Enabled` is set, because the site is static and the owner turns tax on
 before launch ([billing](../architecture/billing.md#tax)). FAQ JSON-LD matches the questions and the offers match the
 priced plans.

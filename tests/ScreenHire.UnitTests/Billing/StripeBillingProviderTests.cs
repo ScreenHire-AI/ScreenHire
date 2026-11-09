@@ -805,6 +805,166 @@ public sealed class StripeBillingProviderTests : IDisposable
 
     // ---- The stand-in for Stripe ----
 
+    // ---- AI use on ScreenHire's key: the metered price and the meter events ----
+
+    private const string MeterPrice = "price_meter_fictional";
+
+    private static BillingOptions MeteredOptions()
+    {
+        var options = Options();
+        options.Ai.StripePriceId = MeterPrice;
+        return options;
+    }
+
+    private static AiUsageReport Report(string? customer, params (Guid Id, long Micros)[] events) =>
+        new(Guid.CreateVersion7(), customer, [.. events.Select(e => new AiUsageEvent(e.Id, e.Micros))], Now);
+
+    [Fact]
+    public async Task Checkout_adds_the_metered_price_beside_the_plan_with_no_quantity_when_one_is_set()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/c/pay/cs_fictional"}""");
+        var options = MeteredOptions();
+
+        await Provider(options).CreateCheckoutAsync(Checkout(Plan("starter", options)), TestContext.Current.CancellationToken);
+
+        var form = stripe.Calls.Single().Form;
+        form["line_items[0][price]"].Should().Be(StarterPrice);
+        form["line_items[1][price]"].Should().Be(MeterPrice);
+        form.Should().NotContainKey("line_items[1][quantity]", "a metered price takes no quantity");
+    }
+
+    [Fact]
+    public async Task Checkout_is_the_plan_alone_when_no_metered_price_is_set()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/c/pay/cs_fictional"}""");
+
+        await Provider().CreateCheckoutAsync(Checkout(Plan("starter")), TestContext.Current.CancellationToken);
+
+        stripe.Calls.Single().Form.Keys.Should().NotContain(k => k.StartsWith("line_items[1]", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Usage_is_posted_to_the_meter_one_event_per_call_with_the_ledger_id_as_the_identifier_and_the_charge_as_the_value()
+    {
+        stripe.Answer("{}");
+        stripe.Answer("{}");
+        var first = Guid.CreateVersion7();
+        var second = Guid.CreateVersion7();
+        var options = MeteredOptions();
+        options.Ai.MeterEventName = "ai_usage_fictional";
+
+        var result = await Provider(options).ReportAiUsageAsync(Report("cus_fictional", (first, 1_234), (second, 5)), TestContext.Current.CancellationToken);
+
+        result.Failure.Should().BeNull();
+        result.Accepted.Should().Equal(first, second);
+        stripe.Calls.Should().HaveCount(2);
+        var call = stripe.Calls[0];
+        call.Method.Should().Be(HttpMethod.Post);
+        call.Uri.Should().Be(new Uri("https://api.stripe.com/v1/billing/meter_events"));
+        call.Authorization.Should().Be($"Bearer {SecretKey}");
+        call.StripeVersion.Should().Be(StripeBillingProvider.ApiVersion);
+        call.Form["event_name"].Should().Be("ai_usage_fictional");
+        call.Form["identifier"].Should().Be(first.ToString());
+        call.Form["payload[stripe_customer_id]"].Should().Be("cus_fictional");
+        call.Form["payload[value]"].Should().Be("1234");
+        call.Form["timestamp"].Should().Be(Seconds(Now));
+        stripe.Calls[1].Form["identifier"].Should().Be(second.ToString());
+        stripe.Calls[1].Form["payload[value]"].Should().Be("5");
+    }
+
+    [Fact]
+    public async Task An_event_stripe_already_has_counts_as_taken_because_an_earlier_run_sent_it_before_it_failed_to_save()
+    {
+        stripe.Answer(HttpStatusCode.BadRequest, """{"error":{"type":"invalid_request_error","code":"duplicate_meter_event"}}""");
+        stripe.Answer("{}");
+        var first = Guid.CreateVersion7();
+        var second = Guid.CreateVersion7();
+
+        var result = await Provider(MeteredOptions()).ReportAiUsageAsync(Report("cus_fictional", (first, 10), (second, 20)), TestContext.Current.CancellationToken);
+
+        result.Failure.Should().BeNull();
+        result.Accepted.Should().Equal(first, second);
+    }
+
+    [Fact]
+    public async Task A_refusal_stops_the_batch_after_the_events_stripe_took_and_names_neither_the_key_nor_the_customer()
+    {
+        stripe.Answer("{}");
+        stripe.Answer(HttpStatusCode.Conflict, """{"error":{"type":"invalid_request_error","code":"too_many_concurrent_requests"}}""");
+        var ids = new[] { Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7() };
+
+        var result = await Provider(MeteredOptions()).ReportAiUsageAsync(
+            Report("cus_fictional", (ids[0], 10), (ids[1], 20), (ids[2], 30)), TestContext.Current.CancellationToken);
+
+        result.Accepted.Should().Equal(ids[0]);
+        result.Failure.Should().NotBeNull();
+        result.Failure!.Status.Should().Be(409);
+        result.Failure.Code.Should().Be("too_many_concurrent_requests");
+        result.Failure.Message.Should().NotContain(SecretKey).And.NotContain("cus_fictional");
+        stripe.Calls.Should().HaveCount(2, "the third event is not sent after the second was refused");
+    }
+
+    [Fact]
+    public async Task An_unreachable_stripe_stops_the_batch_without_throwing()
+    {
+        stripe.Fail(new HttpRequestException("network down"));
+
+        var result = await Provider(MeteredOptions()).ReportAiUsageAsync(Report("cus_fictional", (Guid.CreateVersion7(), 10)), TestContext.Current.CancellationToken);
+
+        result.Accepted.Should().BeEmpty();
+        result.Failure.Should().NotBeNull();
+        result.Failure!.Message.Should().NotContain(SecretKey);
+    }
+
+    [Fact]
+    public async Task Usage_for_an_organization_with_no_stripe_customer_sends_nothing()
+    {
+        var result = await Provider(MeteredOptions()).ReportAiUsageAsync(Report(null, (Guid.CreateVersion7(), 10)), TestContext.Current.CancellationToken);
+
+        result.Accepted.Should().BeEmpty();
+        result.Failure.Should().NotBeNull();
+        stripe.Calls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_preview_leaves_the_metered_line_out_of_the_next_payment_and_its_date()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice), ("si_meter", MeterPrice)));
+        var usage = Line(4_321, false, ProrationDate.ToUnixTimeSeconds() - 86_400 * 10);
+        usage["price"] = new JsonObject { ["id"] = MeterPrice };
+        var proration = Line(4500, true, ProrationDate.ToUnixTimeSeconds());
+        proration["price"] = new JsonObject { ["id"] = GrowthPrice };
+        var next = Line(14900, false, NextPeriodStart);
+        next["price"] = new JsonObject { ["id"] = GrowthPrice };
+        stripe.Answer(PreviewJson("usd", usage, proration, next));
+
+        var preview = await Provider(MeteredOptions()).PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        preview.NextPaymentAmount.Should().Be(149.00m, "the usage so far is not the plan's price");
+        preview.NextPaymentAt.Should().Be(DateTimeOffset.FromUnixTimeSeconds(NextPeriodStart), "the usage line starts earlier and must not pull the date back");
+        preview.AmountDueNow.Should().Be(45.00m);
+    }
+
+    [Fact]
+    public void The_plan_is_read_from_the_item_with_a_plan_price_whichever_item_is_listed_first()
+    {
+        var evt = Read(Event("evt_meter", "customer.subscription.updated", new JsonObject
+        {
+            ["id"] = "sub_fictional",
+            ["status"] = "active",
+            ["metadata"] = new JsonObject { ["organization_id"] = organization.ToString() },
+            ["items"] = new JsonObject
+            {
+                ["data"] = new JsonArray(
+                    new JsonObject { ["current_period_end"] = 1_000, ["price"] = new JsonObject { ["id"] = MeterPrice } },
+                    new JsonObject { ["current_period_end"] = 1_775_120_400L, ["price"] = new JsonObject { ["id"] = GrowthPrice } }),
+            },
+        })).Event!;
+
+        evt.PlanKey.Should().Be("growth");
+        evt.CurrentPeriodEnd.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1_775_120_400L));
+    }
+
     private sealed record Call(HttpMethod Method, Uri Uri, string? Authorization, string? StripeVersion, string? ContentType, Dictionary<string, string> Form, string? IdempotencyKey);
 
     private sealed class StubStripe : HttpMessageHandler

@@ -11,6 +11,7 @@ namespace ScreenHire.Api.Contracts;
 /// <c>openJobs</c> counts the jobs open now and <c>activeJobLimit</c> is the plan's limit, null when it has none.
 /// <c>canManage</c>: the provider has a customer, so the payment portal can open. <c>sandbox</c>: the local fake, not Stripe.
 /// <c>taxAtCheckout</c>: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".
+/// <c>aiUsage</c>: this month's use of ScreenHire's AI key and what it costs (null while billing is off).
 /// </summary>
 public sealed record BillingOverview(
     bool Available,
@@ -25,7 +26,29 @@ public sealed record BillingOverview(
     int? ActiveJobLimit,
     bool CanManage,
     bool TaxAtCheckout,
-    IReadOnlyList<BillingPlan> Plans);
+    IReadOnlyList<BillingPlan> Plans,
+    BillingAiUsage? AiUsage);
+
+/// <summary>
+/// This UTC month's use of ScreenHire's AI key, in US dollars (docs/architecture/billing.md, "AI usage"). <c>providerCost</c> is what
+/// the provider charged ScreenHire for the calls and <c>charge</c> is what the organization pays: each call's cost plus
+/// <c>marginPercent</c> (20 is "plus 20%"), rounded to a micro-dollar per call. A call whose cost is unknown
+/// (<c>callsWithUnknownCost</c>) is counted and charges nothing. <c>ownKeyCalls</c> are calls on the organization's own key, never
+/// charged. <c>trialAllowance</c> is what the free trial includes and <c>trialAllowanceUsed</c> what it has already covered.
+/// <c>metered</c>: the payment provider can bill the use (the sandbox always can; Stripe once the metered price is set).
+/// </summary>
+public sealed record BillingAiUsage(
+    string Month,
+    int BuiltInCalls,
+    long Tokens,
+    decimal ProviderCost,
+    decimal Charge,
+    decimal MarginPercent,
+    int CallsWithUnknownCost,
+    int OwnKeyCalls,
+    decimal TrialAllowance,
+    decimal TrialAllowanceUsed,
+    bool Metered);
 
 /// <summary>
 /// A plan. <c>monthlyPrice</c> is null until the owner sets it. <c>activeJobs</c> is the most jobs open at once, null with

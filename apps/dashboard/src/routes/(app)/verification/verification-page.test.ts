@@ -125,6 +125,41 @@ describe('verification settings page', () => {
     expect(screen.queryByRole('heading', { name: 'AI usage' })).not.toBeInTheDocument();
   });
 
+  it('scrolls the usage panel into view once it renders when the address names it, as the Billing page links to it', async () => {
+    const { page } = await import('$app/state');
+    const scrolled = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled(this.id);
+    };
+    page.url = new URL('http://dashboard.test/verification#ai-usage');
+    try {
+      renderPage(settingsWith({ limits }));
+
+      await waitFor(() => expect(scrolled).toHaveBeenCalledWith('ai-usage'));
+    } finally {
+      page.url = new URL('http://dashboard.test/verification');
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
+  it('leaves the scroll alone when the address names no anchor', async () => {
+    const scrolled = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled(this.id);
+    };
+    try {
+      renderPage(settingsWith({ limits }));
+      await check();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      expect(scrolled).not.toHaveBeenCalledWith('ai-usage');
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it('says why when the API refuses the settings', async () => {
     renderPage(settingsWith(), { 'PUT /v1/organization/verification-settings': () => Response.json({ detail: 'Only owners and admins can change this.' }, { status: 403 }) });
 

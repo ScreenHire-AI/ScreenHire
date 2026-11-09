@@ -203,6 +203,18 @@
     },
   );
 
+  // The Billing page links to the usage panel (#ai-usage). The panel renders only once the settings load, after the browser's own
+  // jump to the hash found nothing, so the panel scrolls itself into view when the address names it. Reading the hash re-runs this
+  // on a new navigation to the anchor, never on a refetch. One frame later, so the form above has its loaded height.
+  function scrollToWhenNamed(element: HTMLElement) {
+    if (page.url.hash !== `#${element.id}`) {
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => element.scrollIntoView({ block: 'start' }));
+    return () => cancelAnimationFrame(frame);
+  }
+
   // The form starts from the saved settings once they load; a refetch after that keeps what was changed.
   let started = false;
   $effect(() => {
@@ -704,7 +716,10 @@
     <!-- Usage: for who holds View AI usage (the server sends the limits only to them); only an Owner sets the limits. Outside the
          form's column, so its tables use the page's width (S6). -->
     {#if detail?.limits}
-      <AiUsagePanel canSetLimits={can(page.data.user, 'ManageBilling')} />
+      <!-- The anchor the Billing page links to for the call-by-call detail (scrollToWhenNamed). -->
+      <div id="ai-usage" class="flex w-full min-w-0 scroll-mt-20 flex-col gap-5" {@attach scrollToWhenNamed}>
+        <AiUsagePanel canSetLimits={can(page.data.user, 'ManageBilling')} />
+      </div>
     {/if}
   </div>
 </main>

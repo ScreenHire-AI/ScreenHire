@@ -316,7 +316,7 @@ organization's Owner or Admin also finds **Finish setting up** in the bell at th
 | Malware scanning | `NoMalwareScanner`, which records every file as "not scanned" | `IMalwareScanner` |
 | Email provider | Mailpit sends; no SendGrid. Replies come through the sandbox route `/v1/dev/inbound-email`, and a sending domain verifies once `/v1/dev/sending-domains/publish` publishes it | `ScreenHire:Email` |
 | Google and Outlook calendars | The sandbox calendar, on in `pnpm dev`, whose provider buttons are hidden unless the real client ids and secrets are set; busy time lives in Postgres and the meeting link is on `meet.example.org` | `ScreenHire:Calendar` |
-| Stripe | The sandbox payment provider, on in `pnpm dev`: choosing a plan "pays" at once and the portal cancels at once, and nobody is charged. Brightwater is seeded on the Unlimited plan, so the demo is never held to a limit; a new organization starts a 14-day trial | `ScreenHire:Billing` |
+| Stripe | The sandbox payment provider, on in `pnpm dev`: choosing a plan "pays" at once and the portal cancels at once, and nobody is charged. Brightwater is seeded on the Unlimited plan, so the demo is never held to a limit, with a trial that ended the day before, so its AI calls on ScreenHire's key are reported to the sandbox meter in full by the worker's 15-minute report (Settings > Billing, AI usage); a new organization starts a 14-day trial | `ScreenHire:Billing` |
 | Slack | Off, so Integrations > Slack says it is not set up; the sandbox workspace when turned on, whose messages `/v1/slack/sandbox/messages` lists | `ScreenHire:Slack` |
 
 The [MVP status](../status.md#owner-actions) lists what each of these needs before real use.

@@ -9571,8 +9571,21 @@ export const GetBillingResponse = zod.object({
   "activeJobs": zod.int().nullable(),
   "unlimited": zod.boolean(),
   "canSubscribe": zod.boolean()
-}).describe('A plan. `monthlyPrice` is null until the owner sets it. `activeJobs` is the most jobs open at once, null with\nno limit set; `unlimited` says there is none by design. `canSubscribe`: Checkout can start it here.'))
-}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".')
+}).describe('A plan. `monthlyPrice` is null until the owner sets it. `activeJobs` is the most jobs open at once, null with\nno limit set; `unlimited` says there is none by design. `canSubscribe`: Checkout can start it here.')),
+  "aiUsage": zod.union([zod.null(),zod.object({
+  "month": zod.string(),
+  "builtInCalls": zod.int(),
+  "tokens": zod.int(),
+  "providerCost": zod.number(),
+  "charge": zod.number(),
+  "marginPercent": zod.number(),
+  "callsWithUnknownCost": zod.int(),
+  "ownKeyCalls": zod.int(),
+  "trialAllowance": zod.number(),
+  "trialAllowanceUsed": zod.number(),
+  "metered": zod.boolean()
+}).describe('This UTC month\'s use of ScreenHire\'s AI key, in US dollars (docs/architecture/billing.md, "AI usage"). `providerCost` is what\nthe provider charged ScreenHire for the calls and `charge` is what the organization pays: each call\'s cost plus\n`marginPercent` (20 is "plus 20%"), rounded to a micro-dollar per call. A call whose cost is unknown\n(`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on the organization\'s own key, never\ncharged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what it has already covered.\n`metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered price is set).')])
+}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".\n`aiUsage`: this month\'s use of ScreenHire\'s AI key and what it costs (null while billing is off).')
 
 
 export const StartBillingCheckoutBody = zod.object({

@@ -326,7 +326,9 @@ done
   id, price and limit as secrets named like the setting (for example `ScreenHire--Billing--Plans--growth--StripePriceId`,
   `ScreenHire--Billing--Plans--growth--MonthlyPrice`, `ScreenHire--Billing--Plans--growth--ActiveJobs`). Leave
   `ScreenHire:Billing:Sandbox:Enabled` off: the sandbox's checkout charges nobody, and an app started outside Development with it on
-  stops at start. Add Stripe to the sub-processor list.
+  stops at start. AI use on ScreenHire's key is billed through a Stripe meter ([Billing](../architecture/billing.md#owner-actions-for-ai-usage)):
+  create the meter and its metered USD price, set `ScreenHire--Billing--Ai--StripePriceId` in the vault, and note that the worker reads the
+  same two Stripe secrets as the API, because it sends the meter events. Add Stripe to the sub-processor list.
 - **Turnstile.** `turnstile-site-key` and the vault secret `ScreenHire--Turnstile--SecretKey`. Without them the honeypot still works.
 - **Google Indexing.** A Google service account that owns the careers domain in Search Console, `google-indexing-mode` set to
   `Google`, its key JSON in the vault. The real client has never run.

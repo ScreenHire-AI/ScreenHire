@@ -8,7 +8,7 @@ import QuestionsList from '../components/shell/QuestionsList.astro';
 import Section from '../components/shell/Section.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { appLinks } from '../lib/app-links';
-import { includedByTopic, pricingNotes } from '../lib/features';
+import { aiCost, includedByTopic, pricingNotes } from '../lib/features';
 import { pages } from '../lib/pages';
 import { plans, pricedOffers, trialLabel, trialPlan } from '../lib/pricing';
 import { faqPage, softwareApplication, type Faq } from '../lib/seo';
@@ -34,6 +34,10 @@ const faqs: Faq[] = [
   {
     question: 'Can I change or cancel?',
     answer: "Any time. Your organization's Owner changes or cancels the plan from Billing. A cancelled plan runs to the end of the period you paid for.",
+  },
+  {
+    question: 'What does the AI cost?',
+    answer: `The plan includes ScreenHire's checks, the AI consistency check among them. ${aiCost.both} The Billing page shows your use for the month.`,
   },
   {
     question: 'Are prices before tax?',

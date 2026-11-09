@@ -189,6 +189,9 @@ public sealed class ScreenHireDbContext
     /// <summary>The payment provider events already applied, so a redelivery changes nothing.</summary>
     public DbSet<BillingEventRecord> BillingEvents => Set<BillingEventRecord>();
 
+    /// <summary>Ledger calls billing has settled, reported to the meter or waived; one row per call, insert-only (docs/architecture/billing.md).</summary>
+    public DbSet<AiUsageCharge> AiUsageCharges => Set<AiUsageCharge>();
+
     /// <summary>An organization's Slack workspace, one at most (docs/architecture/slack.md).</summary>
     public DbSet<SlackInstallation> SlackInstallations => Set<SlackInstallation>();
 
