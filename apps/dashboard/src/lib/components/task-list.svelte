@@ -78,7 +78,7 @@
           <span class="grid size-7 shrink-0 place-items-center">
             <!-- A round to-do tick with a 2px edge, so it reads as something to tick before anyone presses it. -->
             <Checkbox
-              class="size-5 rounded-full border-2 hover:border-foreground pointer-coarse:after:-inset-3"
+              class="size-5 rounded-full border-2 hover:border-foreground"
               checked={done}
               aria-label={`Mark done for ${task.note}`}
               onCheckedChange={(checked) => (checked ? oncomplete?.(task) : onundo?.(task.id))}

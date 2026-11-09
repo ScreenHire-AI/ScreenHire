@@ -208,7 +208,7 @@
           <SummaryItem label="Failures">Retried with a growing wait, then the endpoint turns off. Replay a delivery from its log.</SummaryItem>
           <SummaryItem label="Reference">
             {#if apiOrigin}
-              <a href={`${apiOrigin}/scalar#tag/webhooks`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary">
+              <a href={`${apiOrigin}/scalar#tag/webhooks`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary pointer-coarse:min-h-11">
                 <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">Webhooks in the API reference</span> <span class="sr-only">(opens in a new tab)</span>
               </a>
             {:else if meta.isError}

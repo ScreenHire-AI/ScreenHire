@@ -23,6 +23,8 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     private readonly List<string> pageProblems = [];
     private IBrowserContext? context;
     private bool javaScriptEnabled = true;
+    private ColorScheme colorScheme = ColorScheme.Light;
+    private bool touch;
 
     protected E2EFixture Fixture => fixture;
 
@@ -30,10 +32,21 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        context = await fixture.Browser.NewContextAsync(new() { Locale = Locale });
+        context = await fixture.Browser.NewContextAsync(ContextOptions());
         Page = await context.NewPageAsync();
         WatchForProblems(Page);
     }
+
+    private BrowserNewContextOptions ContextOptions(bool javaScript = true) => new()
+    {
+        JavaScriptEnabled = javaScript,
+        Locale = Locale,
+        // The dashboard follows the system's choice until a person picks a theme (preferences.svelte.ts), so a dark
+        // context starts dark without a click.
+        ColorScheme = colorScheme,
+        // A touch screen reports a coarse pointer, which is what gives the dashboard its 44px targets (design system F4).
+        HasTouch = touch,
+    };
 
     public async ValueTask DisposeAsync()
     {
@@ -97,6 +110,26 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     /// </summary>
     protected Task WithJavaScriptAsync() => NewContextAsync(javaScript: true);
 
+    /// <summary>
+    /// Replaces <see cref="Page"/> with one in a fresh context whose system theme is dark, so the dashboard opens in its
+    /// dark theme. Cookies start empty, so call it before signing in.
+    /// </summary>
+    protected Task UseDarkThemeAsync()
+    {
+        colorScheme = ColorScheme.Dark;
+        return NewContextAsync(javaScriptEnabled);
+    }
+
+    /// <summary>
+    /// Replaces <see cref="Page"/> with one in a fresh context with a touch screen, so <c>pointer: coarse</c> matches
+    /// as it does on a phone. The size is the test's own (<c>SetViewportSizeAsync</c>). Cookies start empty.
+    /// </summary>
+    protected Task UseTouchScreenAsync()
+    {
+        touch = true;
+        return NewContextAsync(javaScriptEnabled);
+    }
+
     private async Task NewContextAsync(bool javaScript)
     {
         if (context is not null)
@@ -104,9 +137,9 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
             await context.DisposeAsync();
         }
 
-        context = await fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = javaScript, Locale = Locale });
-        Page = await context.NewPageAsync();
         javaScriptEnabled = javaScript;
+        context = await fixture.Browser.NewContextAsync(ContextOptions(javaScript));
+        Page = await context.NewPageAsync();
     }
 
     /// <summary>Runs axe on the current page and fails with a readable list of every WCAG 2.2 AA violation.</summary>
@@ -117,18 +150,28 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     /// </remarks>
     protected async Task ExpectNoAccessibilityViolationsAsync()
     {
+        var problems = await AccessibilityProblemsAsync();
+        problems.Should().BeNull("axe found WCAG 2.2 AA violations on {0}:{1}", Page.Url, problems);
+    }
+
+    /// <summary>
+    /// Runs axe like <see cref="ExpectNoAccessibilityViolationsAsync"/> and returns the readable list of violations, or
+    /// null when there are none, so a test that walks many pages can collect every failure before it asserts.
+    /// </summary>
+    protected async Task<string?> AccessibilityProblemsAsync()
+    {
         if (javaScriptEnabled)
         {
-            await CheckAsync(Page);
-            return;
+            return await CheckAsync(Page);
         }
 
         var html = await Page.ContentAsync();
-        await using var copy = await fixture.Browser.NewContextAsync(new() { BypassCSP = true });
+        // The copy takes the theme too, or a dark page would be audited in light colours.
+        await using var copy = await fixture.Browser.NewContextAsync(new() { BypassCSP = true, ColorScheme = colorScheme });
         var page = await copy.NewPageAsync();
         await page.RouteAsync(Page.Url, route => route.FulfillAsync(new() { Body = html, ContentType = "text/html; charset=utf-8" }));
         await page.GotoAsync(Page.Url);
-        await CheckAsync(page);
+        return await CheckAsync(page);
     }
 
     /// <summary>
@@ -144,7 +187,7 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
         return path;
     }
 
-    private static async Task CheckAsync(IPage page)
+    private static async Task<string?> CheckAsync(IPage page)
     {
         // Colours ease when the theme switches or a button's state changes (disabled fades to half opacity); axe measuring
         // mid-transition reports a contrast no one sees. Two frames first, so a state change the page has just made has
@@ -163,7 +206,7 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
         var context = new AxeRunContext { Exclude = [new AxeSelector("iframe[sandbox]:not([sandbox~='allow-scripts'])")] };
         var result = await page.RunAxe(context, new AxeRunOptions { RunOnly = new RunOnlyOptions { Type = "tag", Values = WcagTags } });
 
-        result.Violations.Should().BeEmpty("axe found WCAG 2.2 AA violations on {0}:{1}", page.Url, Describe(result.Violations));
+        return result.Violations.Length == 0 ? null : Describe(result.Violations);
     }
 
     private static string Describe(IEnumerable<AxeResultItem> violations)

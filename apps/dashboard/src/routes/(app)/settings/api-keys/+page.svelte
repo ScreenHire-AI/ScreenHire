@@ -294,10 +294,10 @@
           <SummaryItem label="Reference">
             {#if apiOrigin}
               <span class="flex flex-wrap gap-x-4 gap-y-1">
-                <a href={`${apiOrigin}/scalar`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary">
+                <a href={`${apiOrigin}/scalar`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary pointer-coarse:min-h-11">
                   <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">API reference</span> <span class="sr-only">(opens in a new tab)</span>
                 </a>
-                <a href={`${apiOrigin}/openapi/v1.json`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary">
+                <a href={`${apiOrigin}/openapi/v1.json`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary pointer-coarse:min-h-11">
                   <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">OpenAPI file</span> <span class="sr-only">(opens in a new tab)</span>
                 </a>
               </span>

@@ -141,7 +141,7 @@
         <Panel title="Public page">
           <SummaryList>
             <SummaryItem label="Address">
-              <span class="flex min-w-0"><TruncatedText text={detail.careersUrl} href={detail.careersUrl} icon={ExternalLinkIcon} underlined class="text-primary" /></span>
+              <span class="flex min-w-0"><TruncatedText text={detail.careersUrl} href={detail.careersUrl} icon={ExternalLinkIcon} underlined class="text-primary pointer-coarse:-my-3.5 pointer-coarse:py-3.5" /></span>
             </SummaryItem>
           </SummaryList>
         </Panel>

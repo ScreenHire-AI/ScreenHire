@@ -212,8 +212,13 @@ brackets.
 
 - Only automated tests and fakes have exercised these so far: real Stripe, SendGrid, calendars, Azure and a claude.ai
   connector, and real Slack and real webhook receivers (the Slack and webhook states are proven against the sandbox
-  workspace and a local receiver); every page in dark mode; and portal replies, the Billing page and the OAuth consent
-  page by hand.
+  workspace and a local receiver); and portal replies, the Billing page and the OAuth consent page by hand. The dashboard
+  is proven in dark mode at 1440 px and at 390 px with a touch screen on every route and tab of one organization, and
+  on its overlays (`DashboardThemeTests`, `DashboardPhoneTests`); what that does not reach is the sign-in pages that need a
+  token (the invitation and OAuth consent pages), the onboarding page, and states a seeded organization never shows.
+- The careers and candidate pages have no dark theme: their dark tokens exist (`--candidate-*` under `.dark`) and
+  nothing applies the class. The candidate input border is about 1.6:1 against its surface in both themes, under the 3:1 that
+  WCAG 1.4.11 asks of a control's edge, and it is a field's only edge on the apply form (`packages/ui/src/questions.css`).
 - Large lists are proven at 1440 and 390 px up to 26 of each record, 20 webhook endpoints (the limit) and 210 applications
   on one job (`LargeListsTests`). The 26 saved views are checked in the sidebar at 1440 only; the phone's navigation sheet
   that holds them is not opened. The API's list routes still return every row and the dashboard sorts and filters them in

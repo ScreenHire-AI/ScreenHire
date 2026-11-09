@@ -56,7 +56,7 @@
                 type="button"
                 data-stage-open={column.stage.id}
                 aria-haspopup="dialog"
-                class="min-w-0 rounded-lg px-2 py-1 text-left pointer-coarse:py-2.5 font-semibold break-words hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                class="min-w-0 rounded-lg px-2 py-1 text-left pointer-coarse:py-3 font-semibold break-words hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 onclick={() => onopen(column.stage.id)}
               >
                 {column.stage.name}
