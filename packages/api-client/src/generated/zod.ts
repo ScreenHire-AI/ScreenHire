@@ -282,6 +282,54 @@ export const SwitchOrganizationResponse = zod.object({
 export const SignOutResponse = zod.void()
 
 
+export const MakePasskeySignInOptionsResponse = zod.object({
+  "optionsJson": zod.string()
+}).describe('The WebAuthn options the browser passes to `navigator.credentials.create` or `get`, as the JSON text the\nW3C `PublicKeyCredential*OptionsJSON` shape defines. The browser parses it with\n`PublicKeyCredential.parseCreationOptionsFromJSON` or `parseRequestOptionsFromJSON`.')
+
+
+export const SignInWithPasskeyBody = zod.object({
+  "credentialJson": zod.string()
+}).describe('The browser\'s answer to a sign-in ceremony: `credential.toJSON()` as text.')
+
+export const SignInWithPasskeyResponse = zod.void()
+
+
+export const ListPasskeysResponse = zod.object({
+  "passkeys": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One of the signed-in person\'s passkeys. `id` is the credential id, base64url.')),
+  "limit": zod.int()
+}).describe('The signed-in person\'s passkeys, newest first, and how many they may keep.')
+
+
+export const MakePasskeyRegistrationOptionsResponse = zod.object({
+  "optionsJson": zod.string()
+}).describe('The WebAuthn options the browser passes to `navigator.credentials.create` or `get`, as the JSON text the\nW3C `PublicKeyCredential*OptionsJSON` shape defines. The browser parses it with\n`PublicKeyCredential.parseCreationOptionsFromJSON` or `parseRequestOptionsFromJSON`.')
+
+
+export const RegisterPasskeyBody = zod.object({
+  "credentialJson": zod.string(),
+  "name": zod.string().nullish()
+}).describe('The browser\'s answer to a registration ceremony, and the name to give the passkey (a device, as the person typed it).')
+
+export const RegisterPasskeyResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One of the signed-in person\'s passkeys. `id` is the credential id, base64url.')
+
+
+export const RemovePasskeyParams = zod.object({
+  "passkeyId": zod.string()
+})
+
+export const RemovePasskeyResponse = zod.void()
+
+
 export const GetPublicOrganizationParams = zod.object({
   "organizationSlug": zod.string()
 })
@@ -346,6 +394,7 @@ export const ListPublicJobsResponse = zod.object({
   "salaryCurrency": zod.string().nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "description": zod.string(),
+  "summary": zod.string(),
   "department": zod.string().nullable(),
   "locations": zod.array(zod.object({
   "city": zod.string().nullable(),
@@ -414,6 +463,7 @@ export const GetPublicJobResponse = zod.object({
   "salaryCurrency": zod.string().nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "description": zod.string(),
+  "summary": zod.string(),
   "department": zod.string().nullable(),
   "locations": zod.array(zod.object({
   "city": zod.string().nullable(),
@@ -485,6 +535,7 @@ export const GetPublicApplicationFormResponse = zod.object({
   "salaryCurrency": zod.string().nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "description": zod.string(),
+  "summary": zod.string(),
   "department": zod.string().nullable(),
   "locations": zod.array(zod.object({
   "city": zod.string().nullable(),
@@ -1162,8 +1213,9 @@ export const CreateJobBody = zod.object({
   "currency": zod.string().nullish(),
   "period": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]).optional()
 }).describe('A pay range. Currency and period may come from the template\'s posting defaults on create.')]).optional(),
-  "validThrough": zod.iso.datetime({"offset":true}).nullish()
-}).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor\'s elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with "- " make a list.')
+  "validThrough": zod.iso.datetime({"offset":true}).nullish(),
+  "summary": zod.string().nullish()
+}).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor\'s elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with "- " make a list. The summary is the plain-text\nline a careers card shows under the title, at most 160 characters; leave it out and the card uses the description\'s\nfirst sentence.')
 
 export const createJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const createJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -1179,6 +1231,8 @@ export const CreateJobResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -1384,6 +1438,8 @@ export const GetJobResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -1594,8 +1650,9 @@ export const UpdateJobBody = zod.object({
   "currency": zod.string().nullish(),
   "period": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]).optional()
 }).describe('A pay range. Currency and period may come from the template\'s posting defaults on create.')]).optional(),
-  "validThrough": zod.iso.datetime({"offset":true}).nullish()
-}).describe('Replaces a job\'s posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest.')
+  "validThrough": zod.iso.datetime({"offset":true}).nullish(),
+  "summary": zod.string().nullish()
+}).describe('Replaces a job\'s posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest. A blank or missing summary goes back to following the description.')
 
 export const updateJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const updateJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -1611,6 +1668,8 @@ export const UpdateJobResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -1854,6 +1913,8 @@ export const PublishJobResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -2059,6 +2120,8 @@ export const CloseJobResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -2287,8 +2350,9 @@ export const GetJobVersionResponse = zod.object({
   "currency": zod.string(),
   "period": zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])
 }).describe('A pay range. At least one of decimal? JobSalary.Min and decimal? JobSalary.Max is set; string JobSalary.Currency is ISO 4217.')]),
-  "validThrough": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included.')
+  "validThrough": zod.iso.datetime({"offset":true}).nullable(),
+  "summary": zod.string().nullish()
+}).describe('The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included. `summary` is\nthe written summary only (null while the card follows the description); a version frozen before the field existed has none.')
 }).describe('One published version of a job: the frozen content boards were sent.')
 
 
@@ -2459,6 +2523,8 @@ export const UpdateJobWorkflowResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -2669,6 +2735,8 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -9155,6 +9223,7 @@ export const GetBillingResponse = zod.object({
   "openJobs": zod.int(),
   "activeJobLimit": zod.int().nullable(),
   "canManage": zod.boolean(),
+  "taxAtCheckout": zod.boolean(),
   "plans": zod.array(zod.object({
   "key": zod.string(),
   "name": zod.string(),
@@ -9164,7 +9233,7 @@ export const GetBillingResponse = zod.object({
   "unlimited": zod.boolean(),
   "canSubscribe": zod.boolean()
 }).describe('A plan. `monthlyPrice` is null until the owner sets it. `activeJobs` is the most jobs open at once, null with\nno limit set; `unlimited` says there is none by design. `canSubscribe`: Checkout can start it here.'))
-}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.')
+}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".')
 
 
 export const StartBillingCheckoutBody = zod.object({
@@ -9174,6 +9243,28 @@ export const StartBillingCheckoutBody = zod.object({
 export const StartBillingCheckoutResponse = zod.object({
   "url": zod.string()
 }).describe('Where to send the browser next: the payment provider\'s page, or the sandbox\'s.')
+
+
+export const PreviewBillingPlanChangeBody = zod.object({
+  "plan": zod.string()
+}).describe('The plan to price a switch to, by its key from the plan list.')
+
+export const PreviewBillingPlanChangeResponse = zod.object({
+  "plan": zod.string(),
+  "amountDueNow": zod.number(),
+  "nextPaymentAmount": zod.number(),
+  "nextPaymentAt": zod.iso.datetime({"offset":true}),
+  "currency": zod.string(),
+  "prorationDate": zod.iso.datetime({"offset":true})
+}).describe('What switching the live subscription to `plan` costs, in `currency`. `amountDueNow` is the prorated difference\ncharged when the owner confirms (0 when the new plan costs less: the credit stays on the account), then\n`nextPaymentAmount` a month on `nextPaymentAt`. `prorationDate` is the instant both were priced at; send it back\nwith the confirmation so the charge is the one shown.')
+
+
+export const ChangeBillingPlanBody = zod.object({
+  "plan": zod.string(),
+  "prorationDate": zod.iso.datetime({"offset":true})
+}).describe('Confirms the switch to `plan` priced at `prorationDate`, as the preview returned it.')
+
+export const ChangeBillingPlanResponse = zod.void()
 
 
 export const OpenBillingPortalResponse = zod.object({

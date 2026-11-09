@@ -24,6 +24,8 @@ export interface JobDetail {
   slug: string;
   status: JobStatus;
   description: string;
+  summary: string;
+  summaryFollowsDescription: boolean;
   /** @nullable */
   department: string | null;
   employmentType: EmploymentType;

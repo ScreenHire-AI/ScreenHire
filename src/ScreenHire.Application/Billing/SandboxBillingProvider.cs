@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
 
 namespace ScreenHire.Application.Billing;
 
@@ -14,11 +15,16 @@ namespace ScreenHire.Application.Billing;
 /// What the pages do is carried in a Data Protection <c>state</c> the API issued, so the routes, which are anonymous
 /// (a redirect is a plain navigation), cannot be pointed at another organization or plan by editing the address.
 /// </remarks>
-public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtection, TimeProvider time) : IBillingProvider
+public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtection, TimeProvider time, IOptions<BillingOptions> options) : IBillingProvider
 {
     public const string CheckoutPath = "/v1/billing/sandbox/checkout";
 
     public const string PortalPath = "/v1/billing/sandbox/portal";
+
+    /// <summary>The query parameters the sandbox checkout adds to its return address when tax, and a tax id, were asked for.</summary>
+    public const string TaxRequestedParameter = "tax";
+
+    public const string TaxIdsRequestedParameter = "taxId";
 
     public const string Purpose = "ScreenHire.Billing.SandboxState.v1";
 
@@ -30,7 +36,11 @@ public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtectio
     public Task<Uri> CreateCheckoutAsync(CheckoutRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var state = Issue(new SandboxBillingState(request.OrganizationId, request.Plan.Key, request.SuccessUrl.ToString()));
+        // Like Stripe's form, the checkout records that tax and a tax id were asked for, so a test can see it (the page's
+        // redirect says so, see TaxRequestedParameter).
+        var tax = options.Value.Stripe.Tax.Enabled;
+        var state = Issue(new SandboxBillingState(
+            request.OrganizationId, request.Plan.Key, request.SuccessUrl.ToString(), TaxRequested: tax, TaxIdsRequested: options.Value.CollectTaxIds));
         return Task.FromResult(new Uri($"{CheckoutPath}?state={Uri.EscapeDataString(state)}", UriKind.Relative));
     }
 
@@ -39,6 +49,43 @@ public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtectio
         ArgumentNullException.ThrowIfNull(request);
         var state = Issue(new SandboxBillingState(request.OrganizationId, null, request.ReturnUrl.ToString()));
         return Task.FromResult(new Uri($"{PortalPath}?state={Uri.EscapeDataString(state)}", UriKind.Relative));
+    }
+
+    /// <summary>
+    /// A day-based proration, so tests and the local demo show real-looking numbers: the price difference times the whole days
+    /// left in the period over the days in it, rounded to the cent. The period is the month that ends at
+    /// <see cref="PlanChangeRequest.CurrentPeriodEnd"/> (the sandbox's checkout sets it a month ahead), or at the first whole month
+    /// after it that is still to come. A downgrade is a credit,
+    /// which shows as nothing due. A plan with no price counts as free.
+    /// </summary>
+    public Task<PlanChangePreview> PreviewPlanChangeAsync(PlanChangeRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var lastKnownEnd = request.CurrentPeriodEnd ?? request.ProrationDate.AddMonths(1);
+        // The sandbox never renews, so an account older than a month has a period end in the past. Its current period ends a
+        // whole number of months on, as a renewing subscription's would.
+        var periodEnd = lastKnownEnd;
+        for (var months = 1; periodEnd <= request.ProrationDate; months++)
+        {
+            periodEnd = lastKnownEnd.AddMonths(months);
+        }
+
+        var periodDays = Math.Max(1, (periodEnd - periodEnd.AddMonths(-1)).Days);
+        var daysLeft = Math.Clamp((periodEnd.UtcDateTime.Date - request.ProrationDate.UtcDateTime.Date).Days, 0, periodDays);
+        var newPrice = request.NewPlan.MonthlyPrice ?? 0m;
+        var difference = newPrice - (request.CurrentPlan.MonthlyPrice ?? 0m);
+        var dueNow = Math.Max(0m, Math.Round(difference * daysLeft / periodDays, 2, MidpointRounding.AwayFromZero));
+        return Task.FromResult(new PlanChangePreview(dueNow, newPrice, periodEnd, request.NewPlan.Currency, request.ProrationDate));
+    }
+
+    /// <summary>
+    /// Nothing to call: the sandbox charges nobody and has no webhook, so the API's route records the new plan itself, as its
+    /// checkout page does.
+    /// </summary>
+    public Task ChangePlanAsync(PlanChangeRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Task.CompletedTask;
     }
 
     /// <summary>The sandbox has no webhook: its pages apply the change themselves.</summary>
@@ -68,5 +115,5 @@ public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtectio
     private string Issue(SandboxBillingState state) => Protector.Protect(JsonSerializer.Serialize(state), time.GetUtcNow() + Lifetime);
 }
 
-/// <summary>What a sandbox page does: start <c>PlanKey</c> (Checkout; null for the portal) for the organization, then send the browser to <c>ReturnUrl</c>, the Billing page.</summary>
-public sealed record SandboxBillingState(Guid OrganizationId, string? PlanKey, string ReturnUrl);
+/// <summary>What a sandbox page does: start <c>PlanKey</c> (Checkout; null for the portal) for the organization, then send the browser to <c>ReturnUrl</c>, the Billing page. <c>TaxRequested</c> and <c>TaxIdsRequested</c> say the checkout asked for tax and a tax id.</summary>
+public sealed record SandboxBillingState(Guid OrganizationId, string? PlanKey, string ReturnUrl, bool TaxRequested = false, bool TaxIdsRequested = false);

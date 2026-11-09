@@ -36,10 +36,18 @@ tags: [adr, dotnet, licences]
   CommunityToolkit.Aspire.Hosting.MailPit) catches email; MailKit (MIT) is the SMTP adapter. Soluto's
   oidc-server-mock was rejected: it now builds on Duende IdentityServer. Details:
   `docs/architecture/sign-in-and-tenancy.md`.
-- **Passkeys deferred.** .NET 10 has passkey support in `SignInManager`, but only the Blazor template wires the
-  WebAuthn endpoints and UI. Adding them means Identity schema version 3 (a `user_passkeys` table), our own
-  attestation and assertion endpoints, and dashboard WebAuthn calls. That is its own task; nothing in the current
-  design blocks it.
+- **Passkeys (2026-11-09).** `SignInManager`'s passkey support did the job, so no package was added. Only the Blazor
+  template wires it, so the endpoints, the migration and the dashboard calls are ours (`/v1/auth/passkeys`, a
+  `user_passkeys` table with a `last_used_at` column of ours, the browser's own WebAuthn). Three things were not obvious.
+  `IdentityUserContext` reads the Identity schema version from the API's service provider, which the migrator, `dotnet ef`
+  and the tests do not have, so `Stores.SchemaVersion = Version3` would give the API a different model from the
+  migrations; the context maps the passkey table itself and the version stays 1. The store type is named in full so it
+  uses our passkey row (the shortcut picks Identity's plain one). Identity throws when an answer arrives with no
+  ceremony underway, which the endpoints turn into the ordinary refusal. The relying party and origin come from
+  `ScreenHire:Domains`, with an exact origin match. Threat notes: `docs/architecture/sign-in-and-tenancy.md`. Tests use a
+  software authenticator in the integration tests and Chromium's virtual authenticator (DevTools `WebAuthn`) in the
+  end-to-end test, which runs headless (it needs no operating system prompt, and `localhost` is a secure context), so no
+  headed-only switch was needed.
 - **Multi-tenancy (2026-10-20).** The named query filter is `Tenant`, on every `ITenantOwned` entity. RLS settings
   are set per command by an EF command interceptor rather than once per transaction, because EF runs plain queries
   without a transaction; SaveChanges always runs in one so the setting can go first as its own command.

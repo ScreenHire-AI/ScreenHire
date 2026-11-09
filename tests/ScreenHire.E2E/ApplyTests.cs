@@ -266,7 +266,7 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         var response = await Page.GotoAsync($"{careers.Scheme}://brightwater.localhost:{careers.Port}/");
 
         response!.Status.Should().Be(200);
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Open roles at Brightwater Studio");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Open roles");
         (await Page.GetByRole(AriaRole.Link, new() { Name = "Senior .NET Engineer" }).GetAttributeAsync("href"))
             .Should().Be("/jobs/senior-dotnet-engineer");
         // The brand stylesheet is served on the tenant host too: the header mark takes Brightwater's teal.

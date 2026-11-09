@@ -1,9 +1,11 @@
 <script lang="ts">
   import ArrowRightIcon from '~icons/lucide/arrow-right';
   import CreditCardIcon from '~icons/lucide/credit-card';
+  import type { BillingPlan } from '@screenhire/api-client';
   import { createGetBilling, createOpenBillingPortal, createStartBillingCheckout } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import ChangePlanDialog from '#lib/components/change-plan-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -18,25 +20,27 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { billingStatus, formatMoney, mayChoosePlan, openJobsText, planLimitText, priceText } from '#lib/billing.js';
+  import { billingStatus, formatMoney, mayChoosePlan, openJobsText, planLimitText, priceLine } from '#lib/billing.js';
   import { describeError } from '#lib/query.js';
 
   // The plan, the trial or the next payment, and the open jobs against the plan's limit, for an owner (ManageBilling,
-  // docs/architecture/billing.md). The form template (section 7). Payment details and plan changes happen on the payment
-  // provider's own pages: Manage billing opens its portal, and a plan is chosen through Checkout. The browser comes back
-  // from Checkout to `?checkout=success` or `?checkout=cancelled`.
+  // docs/architecture/billing.md). The form template (section 7). Payment details and cancelling happen on the payment
+  // provider's own pages (Manage billing opens its portal) and a first plan is chosen through Checkout; the browser comes back
+  // from Checkout to `?checkout=success` or `?checkout=cancelled`. Switching plans on a live subscription is done here, after
+  // the dialog has shown what it costs.
   const billing = createGetBilling(() => ({ query: { refetchOnMount: 'always' } }));
   const overview = $derived(billing.data?.data);
   const checkout = createStartBillingCheckout();
   const portal = createOpenBillingPortal();
 
-  // How a round trip to Checkout ended, read once and taken out of the address, so a reload does not repeat it.
+  // How a round trip to Checkout ended, read once and taken out of the address, so a reload does not repeat it. The
+  // local sandbox's Checkout also adds `tax` and `taxId` when it asked for them (for its tests), which go with it.
   const returned = page.url.searchParams.get('checkout');
   const outcome = returned === 'success' || returned === 'cancelled' ? returned : null;
   $effect(() => {
     if (page.url.searchParams.has('checkout')) {
       const url = new URL(page.url.href);
-      url.searchParams.delete('checkout');
+      for (const key of ['checkout', 'tax', 'taxId']) url.searchParams.delete(key);
       void goto(url, { replace: true, reset: false });
     }
   });
@@ -57,9 +61,17 @@
     }
   }
 
+  // A switch to another plan: the dialog prices it when it opens and makes it on Confirm. The name stays on the page afterwards,
+  // because the provider's confirmation reaches the plan list a moment later.
+  let switching = $state<BillingPlan | null>(null);
+  let switchOpen = $state(false);
+  let switched = $state<string | null>(null);
+
   const standing = $derived(overview?.state ?? null);
   const subscribed = $derived(standing === 'Active' || standing === 'PastDue');
   const choosable = $derived(mayChoosePlan(standing));
+  // A subscription set to end is renewed with Manage billing first; the API refuses to switch it.
+  const switchable = $derived(standing === 'Active' && Boolean(overview?.canManage) && !overview?.cancelsAtPeriodEnd);
 </script>
 
 <svelte:head>
@@ -136,17 +148,29 @@
           </SummaryList>
         </Panel>
 
-        <Panel title="Plans" footer={subscribed && overview.canManage ? changeFooter : undefined}>
+        <Panel title="Plans" footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : subscribed && overview.canManage ? changeFooter : undefined}>
           <ul class="-my-3">
             {#each overview.plans as plan (plan.key)}
               <li class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border-subtle py-3 last:border-0">
                 <div class="flex min-w-0 flex-[1_1_12rem] flex-col gap-0.5">
                   <p class="font-semibold">{plan.name}</p>
-                  <p class="text-muted-foreground">{priceText(plan)}</p>
+                  <p class="text-muted-foreground">{priceLine(plan, overview.taxAtCheckout)}</p>
                   <p class="text-muted-foreground">{planLimitText(plan)}</p>
                 </div>
-                <!-- A plan change on a live subscription goes through the portal; Checkout is for starting one. -->
-                {#if choosable && plan.canSubscribe}
+                <!-- Checkout starts a subscription; a live one is switched through the change dialog, which shows the cost first. -->
+                {#if switchable && plan.canSubscribe && plan.key !== overview.currentPlan?.key}
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    disabled={leaving !== null}
+                    onclick={() => {
+                      switching = plan;
+                      switchOpen = true;
+                    }}
+                  >
+                    Switch{' '}<span class="sr-only">to {plan.name}</span><ArrowRightIcon aria-hidden="true" />
+                  </Button>
+                {:else if choosable && plan.canSubscribe}
                   <Button variant="outline" size="lg" disabled={leaving !== null} onclick={() => leave(plan.key)}>
                     Choose{' '}<span class="sr-only">{plan.name}</span><ArrowRightIcon aria-hidden="true" />
                   </Button>
@@ -167,5 +191,11 @@
 {/snippet}
 
 {#snippet changeFooter()}
-  <p class="text-muted-foreground">To change your plan, use Manage billing.</p>
+  <p class="text-muted-foreground">To change your card or cancel, use Manage billing.</p>
 {/snippet}
+
+{#snippet switchedFooter()}
+  <p role="status">Your plan is changing to {switched}. This page updates when the payment is confirmed.</p>
+{/snippet}
+
+<ChangePlanDialog plan={switching} bind:open={switchOpen} onchanged={(plan) => (switched = plan.name)} />

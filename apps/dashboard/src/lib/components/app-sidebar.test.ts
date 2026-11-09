@@ -55,6 +55,20 @@ describe("the person's block at the foot of the sidebar", () => {
     expectDivider(document.body);
   });
 
+  it('links to the Passkeys page from the menu of the signed-in person, above Sign out', async () => {
+    stubViewport(1280);
+    render(ShellHarness, { props: { user } });
+
+    await fireEvent.pointerDown(screen.getByRole('button', { name: /^Avery Quinn/ }), { button: 0, pointerType: 'mouse' });
+    const menu = await screen.findByRole('menu');
+    const names = within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim());
+    expect(names.indexOf('Passkeys')).toBeGreaterThan(-1);
+    expect(names.indexOf('Passkeys')).toBe(names.indexOf('Sign out') - 1);
+
+    // A real link, so it opens in a new tab and shows where it goes (A5).
+    expect(within(menu).getByRole('menuitem', { name: 'Passkeys' })).toHaveAttribute('href', '/account/passkeys');
+  });
+
   it('keeps the hairline in the sheet on a phone', async () => {
     stubViewport(390);
     render(ShellHarness, { props: { user } });

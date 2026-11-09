@@ -16,6 +16,19 @@ public interface IBillingProvider
     Task<Uri> CreatePortalAsync(PortalRequest request, CancellationToken cancellationToken);
 
     /// <summary>
+    /// What switching the subscription to <see cref="PlanChangeRequest.NewPlan"/> would cost, priced as of
+    /// <see cref="PlanChangeRequest.ProrationDate"/>. Changes nothing.
+    /// </summary>
+    Task<PlanChangePreview> PreviewPlanChangeAsync(PlanChangeRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Switches the subscription to <see cref="PlanChangeRequest.NewPlan"/>, invoiced at once and prorated as of
+    /// <see cref="PlanChangeRequest.ProrationDate"/>, so the charge is the one previewed with the same date. A payment that
+    /// needs the owner (a declined card, a 3-D Secure step) fails the call and leaves the subscription as it was.
+    /// </summary>
+    Task ChangePlanAsync(PlanChangeRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Checks a webhook's signature and reads the event. <see cref="BillingWebhook.Event"/> is null for a valid delivery
     /// this app does not act on (an event type it ignores), so the provider stops retrying it.
     /// </summary>
@@ -29,6 +42,21 @@ public interface IBillingProvider
 public sealed record CheckoutRequest(Guid OrganizationId, Plan Plan, string? CustomerId, string? CustomerEmail, Uri SuccessUrl, Uri CancelUrl);
 
 public sealed record PortalRequest(Guid OrganizationId, string? CustomerId, Uri ReturnUrl);
+
+/// <summary>
+/// A switch from <c>CurrentPlan</c> to <c>NewPlan</c> on a live subscription. <c>CurrentPeriodEnd</c> is where the account
+/// last saw the period end (the sandbox prorates against it; Stripe knows its own). <c>ProrationDate</c> fixes the instant
+/// the proration is worked out at, so a preview and the change that follows it agree to the cent.
+/// </summary>
+public sealed record PlanChangeRequest(
+    Guid OrganizationId, string? CustomerId, string SubscriptionId, Plan CurrentPlan, Plan NewPlan, DateTimeOffset? CurrentPeriodEnd, DateTimeOffset ProrationDate);
+
+/// <summary>
+/// The cost of a plan change in the plan's currency: <c>AmountDueNow</c> is the prorated difference charged when the owner
+/// confirms (never negative: a credit goes to the customer's balance and shows as nothing due), <c>NextPaymentAmount</c> is the
+/// regular charge on <c>NextPaymentAt</c>, and <c>ProrationDate</c> is the instant both were priced at.
+/// </summary>
+public sealed record PlanChangePreview(decimal AmountDueNow, decimal NextPaymentAmount, DateTimeOffset NextPaymentAt, string Currency, DateTimeOffset ProrationDate);
 
 /// <summary>
 /// What a provider told us, in its own terms made common. A null field says nothing about that fact and leaves it as it is.

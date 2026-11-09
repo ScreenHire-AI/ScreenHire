@@ -22,6 +22,10 @@ export function formatMoney(amount: number, currency: string): string {
 /** A plan's price, or the words for a price its owner has not set. */
 export const priceText = (plan: BillingPlan) => (plan.monthlyPrice === null ? 'Price not set' : `${formatMoney(plan.monthlyPrice, plan.currency)} a month`);
 
+/** The price as the plans list shows it. With tax at Checkout it says so, so nobody expects the amount to be the whole charge. */
+export const priceLine = (plan: BillingPlan, taxAtCheckout: boolean) =>
+  plan.monthlyPrice !== null && taxAtCheckout ? `${priceText(plan)} plus tax where it applies` : priceText(plan);
+
 const jobs = (count: number) => `${count} open ${count === 1 ? 'job' : 'jobs'}`;
 
 /** What a plan lets someone open at once. */

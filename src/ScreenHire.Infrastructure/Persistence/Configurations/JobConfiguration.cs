@@ -14,6 +14,7 @@ internal sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.Slug).HasMaxLength(120);
         // Sanitized HTML. The API caps the input; sanitizing can lengthen it a little (entity encoding), so no column cap.
         builder.Property(j => j.Description).HasColumnType("text");
+        builder.Property(j => j.Summary).HasMaxLength(JobSummaryText.MaxLength);
         builder.Property(j => j.Department).HasMaxLength(100);
         builder.Property(j => j.Locations).HasJsonColumn();
         // Country codes as a native text[].

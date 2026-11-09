@@ -24,6 +24,7 @@ import type {
   AutomationIssue,
   AutomationRunEntry,
   BillingOverview,
+  BillingPlanChangePreview,
   BillingRedirect,
   BoardSummary,
   BrandImageUploadRequest,
@@ -36,6 +37,7 @@ import type {
   CandidateHistoryEntry,
   CandidateSummary,
   ChallengeProviderParams,
+  ChangeBillingPlanRequest,
   ChangeMemberJobAccessRequest,
   ChangeMemberRoleRequest,
   CheckBrandingContrastParams,
@@ -137,9 +139,14 @@ import type {
   OrganizationRetention,
   OrganizationSendingDomain,
   OrganizationVerificationSettings,
+  PasskeyList,
+  PasskeyOptions,
+  PasskeySignInRequest,
+  PasskeySummary,
   PendingInvitation,
   PostingCustomization,
   PostingPreview,
+  PreviewBillingPlanChangeRequest,
   PreviewOrganizationRetentionParams,
   ProblemDetails,
   PublicApplicationDraft,
@@ -169,6 +176,7 @@ import type {
   PublicTalentPoolStatus,
   PublishJobRequest,
   ReceivedEmail,
+  RegisterPasskeyRequest,
   RemoveApplicationTagParams,
   RemoveFromTalentPoolRequest,
   RequestScorecardRequest,
@@ -1077,6 +1085,292 @@ export const signOut = async ( options?: Parameters<typeof apiFetch>[1]): Promis
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type makePasskeySignInOptionsResponse200 = {
+  data: PasskeyOptions
+  status: 200
+}
+
+export type makePasskeySignInOptionsResponseSuccess = (makePasskeySignInOptionsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type makePasskeySignInOptionsResponse = (makePasskeySignInOptionsResponseSuccess)
+
+export const getMakePasskeySignInOptionsUrl = () => {
+
+
+
+
+  return `/v1/auth/passkeys/sign-in/options`
+}
+
+export const makePasskeySignInOptions = async ( options?: Parameters<typeof apiFetch>[1]): Promise<makePasskeySignInOptionsResponse> => {
+
+  return apiFetch<makePasskeySignInOptionsResponse>(getMakePasskeySignInOptionsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type signInWithPasskeyResponse204 = {
+  data: void
+  status: 204
+}
+
+export type signInWithPasskeyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type signInWithPasskeyResponseSuccess = (signInWithPasskeyResponse204) & {
+  headers: Headers;
+};
+export type signInWithPasskeyResponseError = (signInWithPasskeyResponse400) & {
+  headers: Headers;
+};
+
+export type signInWithPasskeyResponse = (signInWithPasskeyResponseSuccess | signInWithPasskeyResponseError)
+
+export const getSignInWithPasskeyUrl = () => {
+
+
+
+
+  return `/v1/auth/passkeys/sign-in`
+}
+
+export const signInWithPasskey = async (passkeySignInRequest: PasskeySignInRequest, options?: Parameters<typeof apiFetch>[1]): Promise<signInWithPasskeyResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<signInWithPasskeyResponse>(getSignInWithPasskeyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(passkeySignInRequest)
+  }
+);}
+
+
+
+export type listPasskeysResponse200 = {
+  data: PasskeyList
+  status: 200
+}
+
+export type listPasskeysResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listPasskeysResponseSuccess = (listPasskeysResponse200) & {
+  headers: Headers;
+};
+export type listPasskeysResponseError = (listPasskeysResponse401) & {
+  headers: Headers;
+};
+
+export type listPasskeysResponse = (listPasskeysResponseSuccess | listPasskeysResponseError)
+
+export const getListPasskeysUrl = () => {
+
+
+
+
+  return `/v1/auth/passkeys`
+}
+
+export const listPasskeys = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listPasskeysResponse> => {
+
+  return apiFetch<listPasskeysResponse>(getListPasskeysUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type makePasskeyRegistrationOptionsResponse200 = {
+  data: PasskeyOptions
+  status: 200
+}
+
+export type makePasskeyRegistrationOptionsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type makePasskeyRegistrationOptionsResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type makePasskeyRegistrationOptionsResponseSuccess = (makePasskeyRegistrationOptionsResponse200) & {
+  headers: Headers;
+};
+export type makePasskeyRegistrationOptionsResponseError = (makePasskeyRegistrationOptionsResponse401 | makePasskeyRegistrationOptionsResponse409) & {
+  headers: Headers;
+};
+
+export type makePasskeyRegistrationOptionsResponse = (makePasskeyRegistrationOptionsResponseSuccess | makePasskeyRegistrationOptionsResponseError)
+
+export const getMakePasskeyRegistrationOptionsUrl = () => {
+
+
+
+
+  return `/v1/auth/passkeys/register/options`
+}
+
+export const makePasskeyRegistrationOptions = async ( options?: Parameters<typeof apiFetch>[1]): Promise<makePasskeyRegistrationOptionsResponse> => {
+
+  return apiFetch<makePasskeyRegistrationOptionsResponse>(getMakePasskeyRegistrationOptionsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type registerPasskeyResponse200 = {
+  data: PasskeySummary
+  status: 200
+}
+
+export type registerPasskeyResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type registerPasskeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type registerPasskeyResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type registerPasskeyResponseSuccess = (registerPasskeyResponse200) & {
+  headers: Headers;
+};
+export type registerPasskeyResponseError = (registerPasskeyResponse400 | registerPasskeyResponse401 | registerPasskeyResponse409) & {
+  headers: Headers;
+};
+
+export type registerPasskeyResponse = (registerPasskeyResponseSuccess | registerPasskeyResponseError)
+
+export const getRegisterPasskeyUrl = () => {
+
+
+
+
+  return `/v1/auth/passkeys/register`
+}
+
+export const registerPasskey = async (registerPasskeyRequest: RegisterPasskeyRequest, options?: Parameters<typeof apiFetch>[1]): Promise<registerPasskeyResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<registerPasskeyResponse>(getRegisterPasskeyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(registerPasskeyRequest)
+  }
+);}
+
+
+
+export type removePasskeyResponse204 = {
+  data: void
+  status: 204
+}
+
+export type removePasskeyResponse401 = {
+  data: void
+  status: 401
+}
+
+export type removePasskeyResponse404 = {
+  data: void
+  status: 404
+}
+
+export type removePasskeyResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type removePasskeyResponseSuccess = (removePasskeyResponse204) & {
+  headers: Headers;
+};
+export type removePasskeyResponseError = (removePasskeyResponse401 | removePasskeyResponse404 | removePasskeyResponse409) & {
+  headers: Headers;
+};
+
+export type removePasskeyResponse = (removePasskeyResponseSuccess | removePasskeyResponseError)
+
+export const getRemovePasskeyUrl = (passkeyId: string,) => {
+
+
+
+
+  return `/v1/auth/passkeys/${passkeyId}`
+}
+
+export const removePasskey = async (passkeyId: string, options?: Parameters<typeof apiFetch>[1]): Promise<removePasskeyResponse> => {
+
+  return apiFetch<removePasskeyResponse>(getRemovePasskeyUrl(passkeyId),
+  {
+    ...options,
+    method: 'DELETE'
 
 
   }
@@ -12018,6 +12312,164 @@ return apiFetch<startBillingCheckoutResponse>(getStartBillingCheckoutUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(startBillingCheckoutRequest)
+  }
+);}
+
+
+
+export type previewBillingPlanChangeResponse200 = {
+  data: BillingPlanChangePreview
+  status: 200
+}
+
+export type previewBillingPlanChangeResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type previewBillingPlanChangeResponse401 = {
+  data: void
+  status: 401
+}
+
+export type previewBillingPlanChangeResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type previewBillingPlanChangeResponse404 = {
+  data: void
+  status: 404
+}
+
+export type previewBillingPlanChangeResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type previewBillingPlanChangeResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type previewBillingPlanChangeResponseSuccess = (previewBillingPlanChangeResponse200) & {
+  headers: Headers;
+};
+export type previewBillingPlanChangeResponseError = (previewBillingPlanChangeResponse400 | previewBillingPlanChangeResponse401 | previewBillingPlanChangeResponse403 | previewBillingPlanChangeResponse404 | previewBillingPlanChangeResponse409 | previewBillingPlanChangeResponse502) & {
+  headers: Headers;
+};
+
+export type previewBillingPlanChangeResponse = (previewBillingPlanChangeResponseSuccess | previewBillingPlanChangeResponseError)
+
+export const getPreviewBillingPlanChangeUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/plan/preview`
+}
+
+export const previewBillingPlanChange = async (previewBillingPlanChangeRequest: PreviewBillingPlanChangeRequest, options?: Parameters<typeof apiFetch>[1]): Promise<previewBillingPlanChangeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<previewBillingPlanChangeResponse>(getPreviewBillingPlanChangeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(previewBillingPlanChangeRequest)
+  }
+);}
+
+
+
+export type changeBillingPlanResponse204 = {
+  data: void
+  status: 204
+}
+
+export type changeBillingPlanResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type changeBillingPlanResponse401 = {
+  data: void
+  status: 401
+}
+
+export type changeBillingPlanResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type changeBillingPlanResponse404 = {
+  data: void
+  status: 404
+}
+
+export type changeBillingPlanResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type changeBillingPlanResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type changeBillingPlanResponseSuccess = (changeBillingPlanResponse204) & {
+  headers: Headers;
+};
+export type changeBillingPlanResponseError = (changeBillingPlanResponse400 | changeBillingPlanResponse401 | changeBillingPlanResponse403 | changeBillingPlanResponse404 | changeBillingPlanResponse409 | changeBillingPlanResponse502) & {
+  headers: Headers;
+};
+
+export type changeBillingPlanResponse = (changeBillingPlanResponseSuccess | changeBillingPlanResponseError)
+
+export const getChangeBillingPlanUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/plan`
+}
+
+export const changeBillingPlan = async (changeBillingPlanRequest: ChangeBillingPlanRequest, options?: Parameters<typeof apiFetch>[1]): Promise<changeBillingPlanResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<changeBillingPlanResponse>(getChangeBillingPlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeBillingPlanRequest)
   }
 );}
 

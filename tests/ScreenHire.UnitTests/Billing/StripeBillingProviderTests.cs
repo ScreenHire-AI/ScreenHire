@@ -122,6 +122,103 @@ public sealed class StripeBillingProviderTests : IDisposable
         stripe.Calls[2].Form.Should().NotContainKey("customer").And.NotContainKey("customer_email");
     }
 
+    private static readonly string[] TaxFields =
+    [
+        "automatic_tax[enabled]", "billing_address_collection", "tax_id_collection[enabled]", "customer_update[address]", "customer_update[name]",
+    ];
+
+    [Fact]
+    public async Task Checkout_with_tax_off_sends_no_tax_fields_at_all()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        stripe.Answer("""{"url":"https://checkout.stripe.com/b"}""");
+        var provider = Provider();
+        var ct = TestContext.Current.CancellationToken;
+
+        await provider.CreateCheckoutAsync(Checkout(Plan("starter"), email: "owner@example.com"), ct);
+        await provider.CreateCheckoutAsync(Checkout(Plan("starter"), customerId: "cus_fictional"), ct);
+
+        stripe.Calls.Should().HaveCount(2).And.OnlyContain(call => TaxFields.All(field => !call.Form.ContainsKey(field)));
+    }
+
+    [Fact]
+    public async Task Checkout_with_tax_on_asks_stripe_to_calculate_tax_and_collects_the_billing_address_and_a_tax_id()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        var options = Options();
+        options.Stripe.Tax.Enabled = true;
+
+        await Provider(options).CreateCheckoutAsync(Checkout(Plan("starter", options), email: "owner@example.com"), TestContext.Current.CancellationToken);
+
+        var form = stripe.Calls.Single().Form;
+        form["automatic_tax[enabled]"].Should().Be("true");
+        form["billing_address_collection"].Should().Be("required");
+        form["tax_id_collection[enabled]"].Should().Be("true", "collecting tax ids is on unless switched off");
+        form.Should().NotContainKey("customer_update[address]", "Stripe rejects customer_update without a customer")
+            .And.NotContainKey("customer_update[name]");
+    }
+
+    [Fact]
+    public async Task Checkout_with_tax_on_for_an_existing_customer_saves_the_address_and_business_name_it_collects()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        var options = Options();
+        options.Stripe.Tax.Enabled = true;
+
+        await Provider(options).CreateCheckoutAsync(Checkout(Plan("starter", options), customerId: "cus_fictional"), TestContext.Current.CancellationToken);
+
+        var form = stripe.Calls.Single().Form;
+        form["customer"].Should().Be("cus_fictional");
+        form["automatic_tax[enabled]"].Should().Be("true");
+        form["customer_update[address]"].Should().Be("auto");
+        form["customer_update[name]"].Should().Be("auto");
+        form["tax_id_collection[enabled]"].Should().Be("true");
+    }
+
+    [Fact]
+    public async Task Checkout_with_tax_on_and_tax_ids_off_calculates_tax_but_collects_no_tax_id_and_no_name()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        var options = Options();
+        options.Stripe.Tax.Enabled = true;
+        options.Stripe.Tax.CollectTaxIds = false;
+
+        await Provider(options).CreateCheckoutAsync(Checkout(Plan("starter", options), customerId: "cus_fictional"), TestContext.Current.CancellationToken);
+
+        var form = stripe.Calls.Single().Form;
+        form["automatic_tax[enabled]"].Should().Be("true");
+        form["billing_address_collection"].Should().Be("required");
+        form["customer_update[address]"].Should().Be("auto");
+        form.Should().NotContainKey("tax_id_collection[enabled]").And.NotContainKey("customer_update[name]");
+    }
+
+    [Fact]
+    public async Task Checkout_with_tax_ids_on_but_tax_off_collects_nothing_because_tax_ids_ride_on_tax()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        var options = Options();
+        options.Stripe.Tax.CollectTaxIds = true;
+
+        await Provider(options).CreateCheckoutAsync(Checkout(Plan("starter", options)), TestContext.Current.CancellationToken);
+
+        stripe.Calls.Single().Form.Keys.Should().NotIntersectWith(TaxFields);
+    }
+
+    [Fact]
+    public void Tax_is_off_by_default_and_tax_ids_follow_tax()
+    {
+        var options = new BillingOptions();
+        options.Stripe.Tax.Enabled.Should().BeFalse("tax needs the owner's Stripe Tax registrations first");
+        options.Stripe.Tax.CollectTaxIds.Should().BeTrue();
+        options.CollectTaxIds.Should().BeFalse("with tax off nothing is collected");
+
+        options.Stripe.Tax.Enabled = true;
+        options.CollectTaxIds.Should().BeTrue();
+
+        options.Stripe.Tax.CollectTaxIds = false;
+        options.CollectTaxIds.Should().BeFalse();
+    }
+
     [Fact]
     public async Task Checkout_for_a_plan_with_no_stripe_price_throws_and_calls_nobody()
     {
@@ -204,6 +301,195 @@ public sealed class StripeBillingProviderTests : IDisposable
         call.Form["return_url"].Should().Be(Success.ToString());
         call.Authorization.Should().Be($"Bearer {SecretKey}");
         call.StripeVersion.Should().Be(StripeBillingProvider.ApiVersion);
+    }
+
+    // ---- Plan change ----
+
+    private static readonly DateTimeOffset ProrationDate = new(2026, 3, 2, 9, 0, 0, TimeSpan.Zero);
+    private static readonly long NextPeriodStart = new DateTimeOffset(2026, 3, 20, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+
+    private PlanChangeRequest Change(string from, string to, BillingOptions? options = null) =>
+        new(organization, "cus_fictional", "sub_fictional", Plan(from, options), Plan(to, options), null, ProrationDate);
+
+    // The shape of 2024-06-20's subscription: its items, each with the price it carries.
+    private static string SubscriptionJson(params (string ItemId, string PriceId)[] items) =>
+        new JsonObject
+        {
+            ["id"] = "sub_fictional",
+            ["items"] = new JsonObject
+            {
+                ["data"] = new JsonArray(items.Select(i => (JsonNode)new JsonObject { ["id"] = i.ItemId, ["price"] = new JsonObject { ["id"] = i.PriceId } }).ToArray()),
+            },
+        }.ToJsonString();
+
+    private static JsonObject Line(long amount, bool proration, long periodStart) =>
+        new() { ["amount"] = amount, ["proration"] = proration, ["period"] = new JsonObject { ["start"] = periodStart, ["end"] = periodStart + 2_592_000 } };
+
+    // An upcoming invoice as the preview returns it: the credit for unused time, the charge for the rest of the period, and the next full period.
+    private static string PreviewJson(string currency, params JsonObject[] lines) =>
+        new JsonObject { ["currency"] = currency, ["lines"] = new JsonObject { ["data"] = new JsonArray(lines.Select(l => (JsonNode)l).ToArray()) } }.ToJsonString();
+
+    private static string Seconds(DateTimeOffset at) => at.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    [Fact]
+    public async Task A_preview_finds_the_plan_item_among_the_subscriptions_and_asks_for_the_new_price_at_the_proration_date()
+    {
+        stripe.Answer(SubscriptionJson(("si_addon", "price_addon_fictional"), ("si_plan", StarterPrice)));
+        stripe.Answer(PreviewJson("usd", Line(-1000, true, ProrationDate.ToUnixTimeSeconds()), Line(4500, true, ProrationDate.ToUnixTimeSeconds()), Line(14900, false, NextPeriodStart)));
+
+        await Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        stripe.Calls.Should().HaveCount(2);
+        var lookup = stripe.Calls[0];
+        lookup.Method.Should().Be(HttpMethod.Get);
+        lookup.Uri.Should().Be(new Uri("https://api.stripe.com/v1/subscriptions/sub_fictional"));
+        var preview = stripe.Calls[1];
+        preview.Method.Should().Be(HttpMethod.Post);
+        preview.Uri.Should().Be(new Uri("https://api.stripe.com/v1/invoices/create_preview"));
+        preview.Form["subscription"].Should().Be("sub_fictional");
+        preview.Form["customer"].Should().Be("cus_fictional");
+        preview.Form["subscription_details[items][0][id]"].Should().Be("si_plan", "the add-on item is left alone");
+        preview.Form["subscription_details[items][0][price]"].Should().Be(GrowthPrice);
+        preview.Form["subscription_details[proration_date]"].Should().Be(Seconds(ProrationDate));
+        preview.Authorization.Should().Be($"Bearer {SecretKey}");
+        preview.StripeVersion.Should().Be(StripeBillingProvider.ApiVersion);
+        stripe.Calls.Should().OnlyContain(c => c.Form.Values.All(v => v != SecretKey));
+    }
+
+    [Fact]
+    public async Task A_preview_reads_the_prorations_as_due_now_and_the_full_period_as_the_next_payment()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
+        stripe.Answer(PreviewJson("usd", Line(-1000, true, ProrationDate.ToUnixTimeSeconds()), Line(4500, true, ProrationDate.ToUnixTimeSeconds()), Line(14900, false, NextPeriodStart)));
+
+        var preview = await Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        preview.AmountDueNow.Should().Be(35.00m);
+        preview.NextPaymentAmount.Should().Be(149.00m);
+        preview.NextPaymentAt.Should().Be(DateTimeOffset.FromUnixTimeSeconds(NextPeriodStart));
+        preview.Currency.Should().Be("USD");
+        preview.ProrationDate.Should().Be(ProrationDate);
+    }
+
+    [Fact]
+    public async Task A_downgrade_owes_nothing_now_because_its_credit_stays_on_the_account()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", GrowthPrice)));
+        stripe.Answer(PreviewJson("usd", Line(-7450, true, ProrationDate.ToUnixTimeSeconds()), Line(2150, true, ProrationDate.ToUnixTimeSeconds()), Line(7900, false, NextPeriodStart)));
+
+        var preview = await Provider().PreviewPlanChangeAsync(Change("growth", "starter"), TestContext.Current.CancellationToken);
+
+        preview.AmountDueNow.Should().Be(0m);
+        preview.NextPaymentAmount.Should().Be(79.00m);
+    }
+
+    [Fact]
+    public async Task A_pending_proration_from_another_moment_is_not_part_of_the_amount_due_now()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
+        stripe.Answer(PreviewJson(
+            "usd",
+            Line(-1000, true, ProrationDate.ToUnixTimeSeconds()),
+            Line(4500, true, ProrationDate.ToUnixTimeSeconds()),
+            Line(9999, true, ProrationDate.ToUnixTimeSeconds() - 86_400),
+            Line(14900, false, NextPeriodStart)));
+
+        var preview = await Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        preview.AmountDueNow.Should().Be(35.00m, "only the prorations of this change, at its proration date, are charged by it");
+    }
+
+    [Fact]
+    public async Task A_zero_decimal_currency_is_not_divided_by_a_hundred()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
+        stripe.Answer(PreviewJson("jpy", Line(3500, true, ProrationDate.ToUnixTimeSeconds()), Line(14900, false, NextPeriodStart)));
+
+        var preview = await Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        preview.AmountDueNow.Should().Be(3500m);
+        preview.NextPaymentAmount.Should().Be(14900m);
+        preview.Currency.Should().Be("JPY");
+    }
+
+    [Fact]
+    public async Task A_preview_with_no_full_period_line_is_an_exception()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
+        stripe.Answer(PreviewJson("usd", Line(3500, true, ProrationDate.ToUnixTimeSeconds())));
+
+        var act = () => Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<BillingProviderException>();
+    }
+
+    [Fact]
+    public async Task A_subscription_with_no_item_on_a_plan_price_is_an_exception_and_nothing_is_priced()
+    {
+        stripe.Answer(SubscriptionJson(("si_other", "price_not_ours_fictional")));
+
+        var act = () => Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<BillingProviderException>();
+        stripe.Calls.Should().ContainSingle("only the lookup was made");
+    }
+
+    [Fact]
+    public async Task A_plan_change_to_a_plan_with_no_stripe_price_is_an_exception_and_calls_nobody()
+    {
+        var options = Options();
+        options.Plans["growth"] = new PlanOptions { StripePriceId = "", ActiveJobs = 50 };
+        var provider = Provider(options);
+        var change = Change("starter", "growth", options);
+        var ct = TestContext.Current.CancellationToken;
+
+        (await FluentActions.Awaiting(() => provider.PreviewPlanChangeAsync(change, ct)).Should().ThrowAsync<BillingProviderException>())
+            .Which.Message.Should().Contain("StripePriceId");
+        await FluentActions.Awaiting(() => provider.ChangePlanAsync(change, ct)).Should().ThrowAsync<BillingProviderException>();
+        stripe.Calls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_plan_change_replaces_the_price_invoiced_at_once_with_the_previews_date_and_fails_on_an_unpaid_one()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
+        stripe.Answer("""{"id":"sub_fictional"}""");
+
+        await Provider().ChangePlanAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        var update = stripe.Calls[1];
+        update.Method.Should().Be(HttpMethod.Post);
+        update.Uri.Should().Be(new Uri("https://api.stripe.com/v1/subscriptions/sub_fictional"));
+        update.Form["items[0][id]"].Should().Be("si_plan");
+        update.Form["items[0][price]"].Should().Be(GrowthPrice);
+        update.Form["proration_behavior"].Should().Be("always_invoice");
+        update.Form["proration_date"].Should().Be(Seconds(ProrationDate));
+        update.Form["payment_behavior"].Should().Be("error_if_incomplete");
+        update.Form["metadata[plan]"].Should().Be("growth");
+        update.IdempotencyKey.Should().Be($"plan-change-sub_fictional-{GrowthPrice}-{Seconds(ProrationDate)}", "a second click on Confirm is the same change");
+    }
+
+    [Fact]
+    public async Task A_three_decimal_currency_is_divided_by_a_thousand()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
+        stripe.Answer(PreviewJson("kwd", Line(3500, true, ProrationDate.ToUnixTimeSeconds()), Line(14900, false, NextPeriodStart)));
+
+        var preview = await Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        preview.AmountDueNow.Should().Be(3.5m);
+        preview.NextPaymentAmount.Should().Be(14.9m);
+    }
+
+    [Fact]
+    public async Task A_declined_plan_change_is_an_exception_that_names_no_key()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
+        stripe.Answer(HttpStatusCode.PaymentRequired, $$$"""{"error":{"type":"card_error","code":"card_declined","message":"Your card was declined. {{{SecretKey}}}"}}""");
+
+        var act = () => Provider().ChangePlanAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        (await act.Should().ThrowAsync<BillingProviderException>()).Which.Message.Should().Contain("402").And.Contain("card_declined").And.NotContain(SecretKey);
     }
 
     // ---- Webhooks ----
@@ -519,7 +805,7 @@ public sealed class StripeBillingProviderTests : IDisposable
 
     // ---- The stand-in for Stripe ----
 
-    private sealed record Call(HttpMethod Method, Uri Uri, string? Authorization, string? StripeVersion, string? ContentType, Dictionary<string, string> Form);
+    private sealed record Call(HttpMethod Method, Uri Uri, string? Authorization, string? StripeVersion, string? ContentType, Dictionary<string, string> Form, string? IdempotencyKey);
 
     private sealed class StubStripe : HttpMessageHandler
     {
@@ -542,7 +828,8 @@ public sealed class StripeBillingProviderTests : IDisposable
             Calls.Add(new Call(
                 request.Method, request.RequestUri!, request.Headers.Authorization?.ToString(),
                 request.Headers.TryGetValues("Stripe-Version", out var version) ? version.Single() : null,
-                request.Content?.Headers.ContentType?.MediaType, form));
+                request.Content?.Headers.ContentType?.MediaType, form,
+                request.Headers.TryGetValues("Idempotency-Key", out var key) ? key.Single() : null));
             return answers.Dequeue()();
         }
     }

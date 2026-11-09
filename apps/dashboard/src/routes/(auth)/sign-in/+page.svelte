@@ -1,4 +1,5 @@
 <script lang="ts">
+  import KeyRoundIcon from '~icons/lucide/key-round';
   import LogInIcon from '~icons/lucide/log-in';
   import MailIcon from '~icons/lucide/mail';
   import { getChallengeProviderUrl, requestMagicLink } from '@screenhire/api-client';
@@ -6,6 +7,7 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { tick } from 'svelte';
+  import { goto } from '$app/navigation';
   import FailureText from '#lib/components/failure-text.svelte';
   import GoogleMark from '#lib/components/provider-marks/google-mark.svelte';
   import MicrosoftMark from '#lib/components/provider-marks/microsoft-mark.svelte';
@@ -14,6 +16,7 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
+  import { passkeysSupported, runPasskeySignIn } from '#lib/passkeys.js';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
@@ -66,9 +69,28 @@
     document.getElementById('email')?.focus();
   }
 
+  // A passkey needs the browser's WebAuthn, so the button is a capability check, not a server setting. The server
+  // cannot know whether this person has one; the browser's own prompt says so.
+  const passkeys = passkeysSupported();
+  let passkeyBusy = $state(false);
+  let passkeyFailed = $state(false);
+
+  async function signInWithAPasskey() {
+    passkeyBusy = true;
+    passkeyFailed = false;
+    const outcome = await runPasskeySignIn();
+    passkeyBusy = false;
+    if (outcome.kind === 'success') {
+      // The session cookie is set; the guard runs again and finds the person, on to where this visit was going.
+      await goto(data.returnUrl, { invalidateAll: true });
+    } else if (outcome.kind === 'failed') {
+      passkeyFailed = true;
+    }
+  }
+
   const providers = $derived(data.methods.providers);
   const magicLink = $derived(data.methods.magicLinkEnabled);
-  const anyMethod = $derived(providers.length > 0 || magicLink);
+  const anyMethod = $derived(providers.length > 0 || magicLink || passkeys);
 </script>
 
 <svelte:head>
@@ -93,8 +115,20 @@
       <FailureText message={data.errorMessage} />
     {/if}
 
-    {#if providers.length > 0}
+    <!-- Above the ways to try again, with a provider's own error. -->
+    {#if passkeyFailed}
+      <FailureText message="That passkey did not work. Use another way to sign in." />
+    {/if}
+
+    {#if providers.length > 0 || passkeys}
       <ul class="flex flex-col gap-2">
+        {#if passkeys}
+          <li>
+            <Button variant="outline" size="lg" class="w-full" disabled={passkeyBusy} onclick={signInWithAPasskey}>
+              <KeyRoundIcon aria-hidden="true" />Sign in with a passkey
+            </Button>
+          </li>
+        {/if}
         {#each providers as provider (provider.id)}
           {@const Mark = marks.get(provider.id)}
           <li>
@@ -113,7 +147,7 @@
       </ul>
     {/if}
 
-    {#if providers.length > 0 && magicLink}
+    {#if (providers.length > 0 || passkeys) && magicLink}
       <div data-slot="or-divider" class="flex items-center gap-3 text-muted-foreground">
         <span aria-hidden="true" class="h-px flex-1 bg-border"></span>or<span aria-hidden="true" class="h-px flex-1 bg-border"></span>
       </div>

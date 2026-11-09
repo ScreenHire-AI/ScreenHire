@@ -9,7 +9,8 @@ namespace ScreenHire.Api.Contracts;
 /// <summary>A job as shown on a public careers page.</summary>
 /// <remarks>
 /// <c>location</c> is a display label; structured data (JSON-LD, feeds) reads <c>locations</c> and
-/// <c>applicantLocationRequirements</c>. <c>description</c> is sanitized HTML. <c>updatedAt</c> is the last change to
+/// <c>applicantLocationRequirements</c>. <c>description</c> is sanitized HTML. <c>summary</c> is the plain-text line a
+/// card shows under the title: the one the team wrote, or the description's first sentence. <c>updatedAt</c> is the last change to
 /// the posting content, for sitemaps' <c>lastmod</c>. For a closed job (410 Gone), <c>validThrough</c> is when it closed,
 /// so the page's JSON-LD tells Google it has expired. <c>url</c> is the job's careers page, from the deployment's
 /// domain configuration: the canonical URL that feeds, boards and Google all use.
@@ -26,6 +27,7 @@ public sealed record PublicJob(
     string? SalaryCurrency,
     DateTimeOffset? PublishedAt,
     string Description,
+    string Summary,
     string? Department,
     IReadOnlyList<JobLocation> Locations,
     IReadOnlyList<string> ApplicantLocationRequirements,
@@ -62,6 +64,8 @@ public sealed record JobSummary(
 /// <remarks>
 /// <c>publishedVersion</c> is the newest <c>JobVersion</c> (0 before the first publish). <c>hasUnpublishedChanges</c>
 /// means the job is open and its content differs from that version: publishing again freezes a new version.
+/// <c>summary</c> is the short line a careers card shows (at most 160 characters); <c>summaryFollowsDescription</c> is
+/// true while nobody has written one, and then it is the description's first sentence.
 /// <c>postings</c> is the job on each board it was published to, with each board's state and estimate.
 /// <c>workflowProblems</c> lists what stops the workflow from being tested or the job from opening (empty when it is
 /// ready); a draft job's workflow saves with them.
@@ -72,6 +76,8 @@ public sealed record JobDetail(
     string Slug,
     JobStatus Status,
     string Description,
+    string Summary,
+    bool SummaryFollowsDescription,
     string? Department,
     EmploymentType EmploymentType,
     WorkplaceType WorkplaceType,
@@ -102,7 +108,9 @@ public sealed record JobTemplateSource(
 /// version's workflow, and every field left out here takes the template's posting default. Without a slug, one is made
 /// from the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,
 /// h3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text
-/// works too: a blank line starts a paragraph and lines starting with "- " make a list.
+/// works too: a blank line starts a paragraph and lines starting with "- " make a list. The summary is the plain-text
+/// line a careers card shows under the title, at most 160 characters; leave it out and the card uses the description's
+/// first sentence.
 /// </summary>
 public sealed record CreateJobRequest(
     string Title,
@@ -115,11 +123,12 @@ public sealed record CreateJobRequest(
     IReadOnlyList<JobLocation>? Locations = null,
     IReadOnlyList<string>? ApplicantLocationRequirements = null,
     SalaryRequest? Salary = null,
-    DateTimeOffset? ValidThrough = null);
+    DateTimeOffset? ValidThrough = null,
+    string? Summary = null);
 
 /// <summary>
 /// Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich
-/// text, as on <see cref="CreateJobRequest"/>.
+/// text, as on <see cref="CreateJobRequest"/>. A blank or missing summary goes back to following the description.
 /// </summary>
 public sealed record UpdateJobRequest(
     string Title,
@@ -131,7 +140,8 @@ public sealed record UpdateJobRequest(
     IReadOnlyList<JobLocation>? Locations = null,
     IReadOnlyList<string>? ApplicantLocationRequirements = null,
     SalaryRequest? Salary = null,
-    DateTimeOffset? ValidThrough = null);
+    DateTimeOffset? ValidThrough = null,
+    string? Summary = null);
 
 /// <summary>
 /// Replaces a job's workflow with the recruiter's edit of it: the job's own copy, tailored. <c>expectedWorkflowVersion</c>
@@ -187,7 +197,7 @@ internal static class JobMappings
 
     public static PublicJob ToPublicJob(this Job job, string url) =>
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.EmploymentType,
-            job.SalaryMin, job.SalaryMax, job.SalaryCurrency, job.PublishedAt, job.Description, job.Department,
+            job.SalaryMin, job.SalaryMax, job.SalaryCurrency, job.PublishedAt, job.Description, job.EffectiveSummary, job.Department,
             job.Locations, job.ApplicantLocationRequirements, job.Salary?.Period,
             job.Status == JobStatus.Closed ? job.ClosedAt : job.ValidThrough, job.UpdatedAt ?? job.PublishedAt, url);
 
@@ -205,7 +215,7 @@ internal static class JobMappings
     public static JobDetail ToDetail(
         this Job job, JobSnapshot? latestSnapshot, string? templateName, int? latestTemplateVersion, IReadOnlyList<JobPostingStatus> postings,
         ChangeStamp? lastChange) =>
-        new(job.Id, job.Title, job.Slug, job.Status, job.Description, job.Department, job.EmploymentType, job.WorkplaceType,
+        new(job.Id, job.Title, job.Slug, job.Status, job.Description, job.EffectiveSummary, job.Summary is null, job.Department, job.EmploymentType, job.WorkplaceType,
             job.Locations, job.ApplicantLocationRequirements, job.LocationLabel(), job.Salary, job.ValidThrough,
             job.Workflow, job.WorkflowVersion, job.ToTemplateSource(templateName, latestTemplateVersion), job.PublishedVersion,
             job.Status == JobStatus.Open && latestSnapshot != job.Snapshot(),
@@ -241,6 +251,8 @@ internal sealed class JobContentValidator : AbstractValidator<JobSnapshot>
         RuleFor(j => j.Slug).NotEmpty().MaximumLength(120).Matches("^[a-z0-9]+(-[a-z0-9]+)*$")
             .WithMessage("A slug is lowercase letters and digits separated by single hyphens.");
         RuleFor(j => j.Description).MaximumLength(MaxDescriptionLength);
+        RuleFor(j => j.Summary).MaximumLength(JobSummaryText.MaxLength)
+            .WithMessage($"Keep the summary to {JobSummaryText.MaxLength} characters or fewer.");
         RuleFor(j => j.Department).MaximumLength(100).Must(d => d is null || d.Trim().Length > 0)
             .WithMessage("Leave the department out rather than sending it blank.");
         RuleFor(j => j.EmploymentType).IsInEnum();

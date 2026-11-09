@@ -11,7 +11,7 @@ import type { WorkplaceType } from './workplaceType.ts';
 
 /**
  * Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich
- * text, as on CreateJobRequest.
+ * text, as on CreateJobRequest. A blank or missing summary goes back to following the description.
  */
 export interface UpdateJobRequest {
   title: string;
@@ -30,4 +30,6 @@ export interface UpdateJobRequest {
   salary?: null | SalaryRequest;
   /** @nullable */
   validThrough?: string | null;
+  /** @nullable */
+  summary?: string | null;
 }

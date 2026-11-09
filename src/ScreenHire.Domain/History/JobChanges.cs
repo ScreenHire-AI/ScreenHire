@@ -45,6 +45,19 @@ public static class JobChanges
                 : ChangeLine.Plain("changed the description", [new("Description", was, now, ChangeValueKind.Paragraphs)]));
         }
 
+        switch (before.Summary, after.Summary)
+        {
+            case (null, { } set):
+                lines.Add(ChangeLine.Of("set the summary to ", set));
+                break;
+            case ({ }, null):
+                lines.Add(ChangeLine.Plain("cleared the summary, so it follows the description"));
+                break;
+            case ({ } from, { } to) when from != to:
+                lines.Add(ChangeLine.Of($"changed the summary from {from} to ", to));
+                break;
+        }
+
         switch (before.Department, after.Department)
         {
             case (null, { } set):

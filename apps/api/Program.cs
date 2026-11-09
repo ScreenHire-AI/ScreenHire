@@ -145,6 +145,7 @@ app.MapOpenApi().AllowAnonymous();
 app.MapScalarApiReference(options => options.DisableTelemetry().DisableDefaultFonts().DisableAgent().DisableMcp()).AllowAnonymous();
 app.MapMetaEndpoints();
 app.MapAuthEndpoints();
+app.MapPasskeyEndpoints();
 app.MapPublicJobEndpoints();
 app.MapPublicApplicationEndpoints();
 app.MapPublicApplicationDraftEndpoints();

@@ -166,7 +166,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
                     To: page => PanelTitled(page, "Applications and hires by week"))),
 
             // 11. A branded careers page.
-            new("careers", CareersUrl(""), "Open roles at", _ => Task.CompletedTask, Public: true),
+            new("careers", CareersUrl(""), "Open roles", _ => Task.CompletedTask, Public: true),
         };
         foreach (var screen in screens)
         {

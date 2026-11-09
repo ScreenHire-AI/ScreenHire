@@ -16,9 +16,33 @@ public sealed class JobMappingsTests
 
         publicJob.Should().BeEquivalentTo(new PublicJob(
             job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, GB", WorkplaceType.Hybrid,
-            EmploymentType.Contract, 60_000, 75_000, "GBP", Published, "<p>Svelte all day.</p>", "Engineering",
+            EmploymentType.Contract, 60_000, 75_000, "GBP", Published, "<p>Svelte all day.</p>", "Svelte all day.", "Engineering",
             [new JobLocation("London", "England", "GB")], [], SalaryPeriod.Year, null, Published,
             "https://careers.example.com/acme/jobs/frontend-engineer-svelte"));
+    }
+
+    [Fact]
+    public void Public_job_shows_the_written_summary_or_the_descriptions_first_sentence()
+    {
+        var job = OpenJob();
+        job.ToPublicJob("https://careers.example.com/a").Summary.Should().Be("Svelte all day.", "nobody wrote one, so the card follows the description");
+
+        job.Revise(job.Snapshot() with { Summary = "Build the interface our recruiters live in." }, Published.AddDays(1));
+        job.ToPublicJob("https://careers.example.com/a").Summary.Should().Be("Build the interface our recruiters live in.");
+    }
+
+    [Fact]
+    public void Detail_says_whether_the_summary_follows_the_description()
+    {
+        var job = OpenJob();
+        var followed = job.ToDetail(job.Snapshot(), null, null, [], null);
+        followed.Summary.Should().Be("Svelte all day.");
+        followed.SummaryFollowsDescription.Should().BeTrue();
+
+        job.Revise(job.Snapshot() with { Summary = "Written by hand." }, Published.AddDays(1));
+        var written = job.ToDetail(job.Snapshot(), null, null, [], null);
+        written.Summary.Should().Be("Written by hand.");
+        written.SummaryFollowsDescription.Should().BeFalse();
     }
 
     [Fact]
