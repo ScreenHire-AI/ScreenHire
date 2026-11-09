@@ -26,6 +26,7 @@
   import { settingsCrumbs } from '#lib/settings.js';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
+  import StepLine from '#lib/components/step-line.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
@@ -47,6 +48,13 @@
   const meta = createGetMeta();
   const apiOrigin = $derived(meta.data?.data.apiOrigin);
   const serverUrl = $derived(apiOrigin ? `${apiOrigin}/v1/mcp` : undefined);
+
+  // A client that signs in with OAuth (a claude.ai custom connector) needs only the server URL (docs/architecture/mcp-server.md).
+  const connectSteps = [
+    'Copy the server URL below.',
+    'In your AI assistant, add a custom connector and paste the URL.',
+    'Sign in to ScreenHire when it asks, and choose what the assistant may do.',
+  ];
 
   // The server's tools in words: HiringTools.cs, and VerificationTools.cs, which only a key with the scope sees (ADR-0021).
   const tools = [
@@ -138,6 +146,19 @@
   <SettingsMenu>
     <p role="status" class="sr-only">{announcement}</p>
 
+    <!-- This one starts work in another tool, so until an assistant is connected it says what happens before anyone copies
+         anything (W9). The rows below stay for a client that signs in with a key. -->
+    {#if connections.isSuccess && list.length === 0}
+      <Panel title="How it works">
+        <div class="flex flex-col gap-4">
+          <p class="max-w-measure">An AI assistant you connect can work with your jobs and candidates.</p>
+          <StepLine items={connectSteps} label="Steps to connect an assistant" key={(step) => step}>
+            {#snippet children(step)}<p class="max-w-measure">{step}</p>{/snippet}
+          </StepLine>
+        </div>
+      </Panel>
+    {/if}
+
     <Panel title="Connect a client">
       <!-- The key it signs in with is made on API keys, so that page's own action is the one in this header (A5). -->
       {#snippet actions()}
@@ -153,9 +174,6 @@
             {:else}<Skeleton class="h-4 w-56" />{/if}
           </SummaryItem>
           <SummaryItem label="Transport">Streamable HTTP</SummaryItem>
-          <SummaryItem label="OAuth sign-in">
-            A claude.ai custom connector needs only the server URL. You sign in and choose what it may do.
-          </SummaryItem>
           <SummaryItem label="API key header"><span class="font-mono text-code break-all">Authorization: Bearer &lt;API key&gt;</span></SummaryItem>
           <SummaryItem label="API key access">Read only, or read and write, as the key allows</SummaryItem>
           <SummaryItem label="Tools" count={tools.length}>

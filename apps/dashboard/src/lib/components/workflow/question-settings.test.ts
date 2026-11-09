@@ -15,6 +15,24 @@ describe('question settings', () => {
     expect(question.acceptedFileTypes).toEqual(['.pdf', '.docx']);
   });
 
+  it('says a knockout does nothing yet, and where to add a step, until an automation reads its answer (A11)', () => {
+    const question = { id: 'licence', type: 'YesNo' as const, label: 'Do you hold a licence?', knockout: { disqualifyingAnswer: false, reason: null } };
+    const { rerender } = render(QuestionSettings, { props: { question, unhandled: true } });
+
+    expect(screen.getByText(/Nothing happens to this answer yet/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Add a step in Automations' })).toHaveAttribute('href', '?tab=automations');
+
+    rerender({ question, unhandled: false });
+    expect(screen.queryByText(/Nothing happens to this answer yet/)).toBeNull();
+  });
+
+  it('says nothing about a step for a question that is not a knockout', () => {
+    const question = { id: 'licence', type: 'YesNo' as const, label: 'Do you hold a licence?' };
+    render(QuestionSettings, { props: { question, unhandled: true } });
+
+    expect(screen.queryByText(/Nothing happens to this answer yet/)).toBeNull();
+  });
+
   it('draws nothing for a choice question, so the open question keeps even gaps', () => {
     const question = { id: 'years', type: 'SingleChoice' as const, label: 'Years in support', options: [] };
     const { container } = render(QuestionSettings, { props: { question } });

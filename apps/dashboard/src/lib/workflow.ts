@@ -551,6 +551,10 @@ export function withQuestionType(question: Question, type: QuestionType): Questi
   return next;
 }
 
+/** Whether an automation's condition reads the answer to the question `questionId` (the fact `answers.{id}`). */
+export const answerIsRead = (workflow: HiringWorkflow, questionId: string): boolean =>
+  workflow.automations.some((automation) => automation.conditions?.rules.some((rule) => rule.fact === `answers.${questionId}`));
+
 /** A new automation for a lane: a stage's entry trigger, or "an application arrives" for the whole workflow. */
 export function newAutomation(workflow: HiringWorkflow, stageId: string | null): Automation {
   const id = idFrom('automation', workflow.automations.map((automation) => automation.id), 'automation');
@@ -686,7 +690,8 @@ export function describeAction(
     return names.length > 0 ? `Schedule an interview with ${names.join(', ')}` : label;
   }
   if (action.type === 'MoveToStage') return `Move to ${workflow.stages.find((stage) => stage.id === action.stageId)?.name ?? action.stageId}`;
-  if (action.type === 'AddTag') return `Add the tag "${action.tag ?? ''}"`;
+  // A tag with no name yet reads as unfinished, never as an empty pair of quotes.
+  if (action.type === 'AddTag') return action.tag?.trim() ? `Add the tag "${action.tag}"` : 'Add a tag (no name yet)';
   if (action.type === 'SendQuestionnaire') return `Send the "${followUpName(workflow, action.questionnaireId)}" questionnaire`;
   if (action.type === 'SendEmail') {
     const name = action.emailTemplate ? templateNames.get(action.emailTemplate) : undefined;

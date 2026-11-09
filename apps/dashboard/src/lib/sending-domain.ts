@@ -1,6 +1,21 @@
 import type { SendingDomainDetail, SendingDomainRecordPurpose, SendingDomainRecordState } from '@screenhire/api-client';
 import type { StatusName } from '#lib/status.js';
 
+/**
+ * The domain inside what someone pasted: from a browser's address bar ("https://www.example.com/careers") or from an email
+ * address ("hiring@example.com"). The API stays strict about what it stores; this only saves a refusal for a value a person
+ * copied, and a value that is not a domain after all goes through unchanged so the API's message says so.
+ */
+export function tidyDomain(pasted: string): string {
+  const host = pasted
+    .trim()
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+    .split(/[/?#]/)[0]!;
+  const text = host.slice(host.lastIndexOf('@') + 1).replace(/:\d+$/, '');
+  const withoutWww = text.replace(/^www\./i, '');
+  return withoutWww.includes('.') ? withoutWww : text;
+}
+
 /** The name each record goes by on the Email domain page. */
 export const recordPurposes: Record<SendingDomainRecordPurpose, string> = {
   Dkim: 'DKIM key',

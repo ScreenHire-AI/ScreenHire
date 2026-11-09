@@ -30,7 +30,7 @@
   import type { SectionDraft } from '#lib/form-sections.js';
   import { addFormLater, APPLY_FORM_ID, laterStages, removeForm, timelineOf, type FormLater } from '#lib/forms-timeline.js';
   import { createPreviewSource } from '#lib/preview-window.svelte.js';
-  import { allQuestions, errorsAt, errorsUnder, followUpsOf, newQuestion, withQuestionType } from '#lib/workflow.js';
+  import { allQuestions, answerIsRead, errorsAt, errorsUnder, followUpsOf, newQuestion, withQuestionType } from '#lib/workflow.js';
   import AiUseRow from './ai-use-row.svelte';
   import { labelClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
@@ -186,7 +186,7 @@
             ...errorsAt(errors, `${path}.sections`),
           ]}
         >
-          {#snippet settings(question)}<QuestionSettings {question} />{/snippet}
+          {#snippet settings(question)}<QuestionSettings {question} unhandled={!answerIsRead(workflow, question.id)} />{/snippet}
           {#snippet note()}{#if !current}<AiUseRow policy={aiUse?.policy} href={aiUse?.href} />{/if}{/snippet}
         </FormBuilder>
       {/key}

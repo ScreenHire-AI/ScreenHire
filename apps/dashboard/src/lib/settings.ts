@@ -1,6 +1,7 @@
 import type { CurrentUser, JobAccess, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
 import { integrations } from '#lib/integrations.js';
 import { can, seesAllJobs } from '#lib/permissions.js';
+import { verificationTab } from '#lib/verification-area.js';
 
 /** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
 export const teamPath = '/v1/organization/team';
@@ -146,6 +147,97 @@ export const settingsSections: readonly SettingsSection[] = [
     ...(feature && { feature }),
   })),
 ];
+
+/**
+ * A page people look for in Settings because it is a setting to them, but that lives in an area of its own: the hiring
+ * template's stages and questions, the scorecards, the AI model and its budget. Settings search finds each one by the
+ * everyday words kept here and says which area it is in, so a search for "ai key" lands on the AI model tab instead of
+ * a dead end. Only what the person's role may open is offered (A3).
+ */
+export interface SettingsElsewhere {
+  label: string;
+  href: string;
+  /** The area it lives in, shown where a Settings page shows its group. */
+  group: 'Templates' | 'Verification';
+  description?: string;
+  keywords: readonly string[];
+  allowed: (user: CurrentUser | null | undefined) => boolean;
+}
+
+const everyone = () => true;
+
+export const settingsElsewhere: readonly SettingsElsewhere[] = [
+  {
+    label: 'Hiring templates',
+    href: '/templates',
+    group: 'Templates',
+    description: 'Stages, questions and automations',
+    keywords: ['stages', 'pipeline', 'questions', 'questionnaire', 'apply form', 'automation', 'automations', 'workflow', 'knockout', 'hiring process'],
+    allowed: everyone,
+  },
+  {
+    label: 'Scorecards',
+    href: '/templates?tab=scorecards',
+    group: 'Templates',
+    keywords: ['scorecard', 'rating', 'ratings', 'interview feedback', 'review form'],
+    allowed: everyone,
+  },
+  {
+    label: 'Email templates',
+    href: '/templates?tab=emails',
+    group: 'Templates',
+    keywords: ['email', 'emails', 'wording', 'rejection email', 'reminder email', 'message'],
+    allowed: everyone,
+  },
+  {
+    label: 'AI model',
+    href: '/verification/ai-model',
+    group: 'Verification',
+    description: "ScreenHire's model or your own key",
+    keywords: ['ai', 'ai key', 'key', 'openai', 'anthropic', 'claude', 'provider', 'own key'],
+    allowed: (user) => verificationTab('ai-model').allowed(user),
+  },
+  {
+    label: 'Usage',
+    href: '/verification/usage',
+    group: 'Verification',
+    description: 'What the AI checks used and cost',
+    keywords: ['ai', 'budget', 'cost', 'tokens', 'cap', 'spend', 'bill'],
+    allowed: (user) => verificationTab('usage').allowed(user),
+  },
+  {
+    label: 'Notifications',
+    href: '/verification/notifications',
+    group: 'Verification',
+    description: 'Who hears about AI budget and check alerts',
+    keywords: ['alerts', 'budget', 'warn'],
+    allowed: (user) => verificationTab('notifications').allowed(user),
+  },
+  {
+    label: 'Checks',
+    href: '/verification/checks',
+    group: 'Verification',
+    description: 'Which checks run on an applicant',
+    keywords: ['ai checks', 'turn off', 'consistency', 'duplicates', 'network'],
+    allowed: everyone,
+  },
+  {
+    label: 'Policy',
+    href: '/verification/policy',
+    group: 'Verification',
+    description: 'AI use while applying, trusted domains and networks',
+    keywords: ['ai use', 'device check', 'trusted', 'network', 'privacy', 'consent'],
+    allowed: everyone,
+  },
+];
+
+/** The pages outside Settings that a search for `query` finds, for what this person may open. An empty search finds none. */
+export const searchElsewhere = (user: CurrentUser | null | undefined, query: string): SettingsElsewhere[] =>
+  query.trim() === ''
+    ? []
+    : settingsElsewhere.filter(
+        (page) => page.allowed(user) && matchesWords([page.label, page.description ?? '', ...page.keywords, page.group].join(' '), query),
+      );
 
 /**
  * The Settings pages the person's role may use: none means no Settings item at all. API keys, webhooks, Slack and Data

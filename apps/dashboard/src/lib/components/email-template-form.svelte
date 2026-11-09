@@ -300,5 +300,5 @@
 {/snippet}
 
 <form id={formId} method="POST" use:enhance novalidate aria-label={template ? 'Edit email template' : 'New email template'} class="flex w-full flex-col gap-5">
-  <EditPreviewLayout bind:mode {onpopout} editor={wording} preview={result} />
+  <EditPreviewLayout bind:mode readOnly={!editable} readLabel="Wording" {onpopout} editor={wording} preview={result} />
 </form>

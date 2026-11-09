@@ -67,7 +67,8 @@ describe('the Settings home', () => {
     expect(row('Integrations', 'MCP server')).toHaveTextContent('Let an AI assistant work with your jobs');
     expect(row('Organization', 'Team').querySelector('p')).toBeNull();
     expect(row('Organization', 'Roles').querySelector('p')).toBeNull();
-    expect(row('Integrations', 'Webhooks').querySelector('p')).toBeNull();
+    // A plumber or a cafe owner has never met the word, so Webhooks says what it is for, as API keys does.
+    expect(row('Integrations', 'Webhooks')).toHaveTextContent('Tell another tool when something happens');
   });
 
   it('leaves out a setting the role cannot use, and a group with none left (A3)', () => {
@@ -127,6 +128,35 @@ describe('the Settings home', () => {
       await type('invite');
       expect(count()).toHaveTextContent('2 settings');
       expect(linksIn(screen.getByRole('region', { name: 'Settings that match' }))).toEqual(['Team', 'Roles']);
+    });
+
+    it('finds what lives in its own area by everyday words, and names the area where a setting has its group', async () => {
+      renderHome();
+
+      await type('ai key');
+      const results = screen.getByRole('region', { name: 'Settings that match' });
+      expect(linksIn(results)).toEqual(['AI model']);
+      expect(within(results).getByRole('link', { name: 'AI model' })).toHaveAttribute('href', '/verification/ai-model');
+      expect(results).toHaveTextContent('Verification');
+
+      // Slack asks for scorecards too, so it is a setting that matches, and it comes first.
+      await type('scorecard');
+      expect(linksIn(screen.getByRole('region', { name: 'Settings that match' }))).toEqual(['Slack', 'Scorecards']);
+      expect(screen.getByRole('link', { name: 'Scorecards' })).toHaveAttribute('href', '/templates?tab=scorecards');
+      expect(screen.getByRole('region', { name: 'Settings that match' })).toHaveTextContent('Templates');
+
+      await type('notifications');
+      expect(linksIn(screen.getByRole('region', { name: 'Settings that match' }))).toEqual(['Slack', 'Notifications']);
+    });
+
+    it('offers an area page only to a role that may open it, never a dead end (A3)', async () => {
+      renderHome(interviewer);
+
+      await type('ai key');
+
+      // An Interviewer cannot edit the AI model, so it is not offered.
+      expect(screen.getByText('No setting matches "ai key".')).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'AI model' })).toBeNull();
     });
 
     it('finds by name, by description and by group, ignoring case and the spaces at the ends', async () => {

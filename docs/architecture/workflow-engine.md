@@ -374,7 +374,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   AI-use question; a follow-up's is its questions alone, as its page shows them. The preview stacks the pages the candidate meets (each named section, or
   pages of the organization's questions per page), each opening with the step line the candidate sees ("Step 2 of 4",
   "9 of 24 answered"), so every section shows while editing. Marking a yes/no question as a knockout shows what a knockout may be (an
-  objective eligibility check, never AI use or an accommodation). The automation form offers "Send a questionnaire" and
+  objective eligibility check, never AI use or an accommodation), and, while no automation's condition reads its answer, that nothing happens to it yet, with a link to the Automations tab (A11). The automation form offers "Send a questionnaire" and
   the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
 - **Test:** `test-drive.svelte`. A moment after each change it builds up to four samples from the template (`#lib/test-drive.ts`: meets every requirement, fails a knockout, whose checks suggest a review, asked for an accommodation), runs each through `POST /v1/workflows/simulate`, and shows what happens to each in a few plain steps with a "Show in the map" link to the Automations tab. While a problem blocks the workflow the tab shows only a notice with the fix inline (`problem-notice.svelte`: type the missing tag, or remove the step). "Try your own candidate" is the guided test: a guided test, three questions one at a time (`guided-test.svelte`, rules in `#lib/simulate.ts`, design

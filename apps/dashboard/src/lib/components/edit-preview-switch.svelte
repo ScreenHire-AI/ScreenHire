@@ -16,6 +16,7 @@
     mode = $bindable('edit'),
     onpopout,
     readOnly = false,
+    readLabel = 'Questions',
     class: className,
   }: {
     mode?: 'edit' | 'preview';
@@ -23,6 +24,8 @@
     onpopout?: () => void;
     /** The content reads only: the first choice says what it shows instead of offering an edit. */
     readOnly?: boolean;
+    /** What the read-only content is, as the first choice names it: the questions of a form, the wording of an email. */
+    readLabel?: string;
     class?: string;
   } = $props();
 </script>
@@ -30,7 +33,7 @@
 <div class={cn('flex items-center gap-1', className)}>
   <div role="group" aria-label="View" class="flex gap-1">
     <Toggle bind:pressed={() => mode === 'edit', () => (mode = 'edit')}>
-      {#if readOnly}<ListIcon aria-hidden="true" />Questions{:else}<PencilIcon aria-hidden="true" />Edit{/if}
+      {#if readOnly}<ListIcon aria-hidden="true" />{readLabel}{:else}<PencilIcon aria-hidden="true" />Edit{/if}
     </Toggle>
     <Toggle bind:pressed={() => mode === 'preview', () => (mode = 'preview')}><EyeIcon aria-hidden="true" />Preview</Toggle>
   </div>

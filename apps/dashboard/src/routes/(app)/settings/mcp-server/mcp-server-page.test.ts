@@ -63,14 +63,33 @@ describe('MCP server page', () => {
     await expectNoAxeViolations();
   });
 
-  it('says a client that signs in with OAuth needs only the server URL, and keeps the API key instructions', async () => {
+  it('keeps the API key instructions for a client that signs in with a key', async () => {
     renderPage([]);
     const panel = await screen.findByRole('region', { name: 'Connect a client' });
 
     expect(await within(panel).findByText('https://api.example.com/v1/mcp')).toBeInTheDocument();
-    expect(within(panel).getByText(/A claude.ai custom connector needs only the server URL/)).toBeInTheDocument();
     expect(within(panel).getByText('Authorization: Bearer <API key>')).toBeInTheDocument();
     expect(within(panel).getByRole('link', { name: 'Create a key' })).toHaveAttribute('href', '/settings/api-keys');
+  });
+
+  it('says what happens before anything is copied, until an assistant is connected (W9)', async () => {
+    renderPage([]);
+    const steps = await screen.findByRole('region', { name: 'How it works' });
+
+    const list = within(steps).getByRole('list', { name: 'Steps to connect an assistant' });
+    expect(within(list).getAllByRole('listitem').map((item) => item.textContent?.trim())).toEqual([
+      '1 Copy the server URL below.',
+      '2 In your AI assistant, add a custom connector and paste the URL.',
+      '3 Sign in to ScreenHire when it asks, and choose what the assistant may do.',
+    ]);
+    await expectNoAxeViolations();
+  });
+
+  it('drops the steps once an assistant is connected (W10)', async () => {
+    renderPage([acme]);
+
+    expect((await screen.findAllByText('Acme Assistant')).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('region', { name: 'How it works' })).toBeNull();
   });
 
   describe('connected assistants', () => {

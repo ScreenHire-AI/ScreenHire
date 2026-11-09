@@ -253,6 +253,9 @@ describe('email template form', () => {
     expect(screen.getByRole('textbox', { name: 'Subject' })).toHaveAttribute('aria-readonly', 'true');
     expect(screen.queryByRole('toolbar')).toBeNull();
     expect(screen.getByRole('textbox', { name: 'Subject' })).toHaveTextContent('An update on variable Job title');
+    // The switch names what it shows, not an edit nobody can make (A8, E3).
+    expect(screen.getByRole('button', { name: 'Wording' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
     await showPreview();
     expect(screen.queryByRole('button', { name: 'Send me a test' })).toBeNull();
   });

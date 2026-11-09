@@ -44,7 +44,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { domainStatus, recordName, recordStatus } from '#lib/sending-domain.js';
+  import { domainStatus, recordName, recordStatus, tidyDomain } from '#lib/sending-domain.js';
 
   // Settings > Email domain (docs/architecture/email.md), on the settings template: the company's own domain that
   // candidate email comes from. ScreenHire lists the DNS records the email provider needs, looks each one up on request, and
@@ -74,7 +74,7 @@
       announcement = '';
       if (!submitted.valid) return;
       try {
-        await set.mutateAsync({ data: { domain: submitted.data.domain } });
+        await set.mutateAsync({ data: { domain: tidyDomain(submitted.data.domain) } });
         announcement = 'The domain is added. Add its DNS records, then check them.';
       } catch (error) {
         submitted.valid = false;
@@ -121,7 +121,7 @@
     'Enter the domain your company uses for email.',
     'Add the DNS records we give you where your domain is managed, or send them to whoever manages it.',
     'Press Check records. Changes can take a few hours to show.',
-    "Once they pass, email comes from hiring@ your domain. Until then it comes from ScreenHire's address, so nothing stops working.",
+    "Once they pass, email comes from hiring@ followed by your domain, such as hiring@example.com. Until then it comes from ScreenHire's address, so nothing stops working.",
   ];
 </script>
 

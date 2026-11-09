@@ -396,6 +396,8 @@
                   <span class="flex shrink-0 items-center gap-1.5 self-start text-muted-foreground">
                     {#if kind.icon}{@const Icon = kind.icon}<Icon aria-hidden="true" />{/if}<!-- The name gives way to its icon in a narrow list, so the question keeps the room (F5). -->
                     <span class="sr-only @md:not-sr-only">{kind.label}</span>
+                    <!-- The row opens in place, so it says so (A9). An open question is the editor below, which needs no chevron. -->
+                    <ChevronDownIcon aria-hidden="true" />
                   </span>
                 </span>
                 {#if help?.get(question)}<span class="block text-muted-foreground">{help.get(question)}</span>{/if}
