@@ -100,9 +100,11 @@ public sealed class WebhookStatesTests(E2EFixture fixture) : BrowserTest(fixture
         // fails in plain words. Once the receiver has the new secret, Replay sends it again, signed with the new secret only.
         receiver.RespondWith(401, 401, 401);
         var published = await PublishJobAsync(session, "Webhook four");
-        await Expect(newest).ToContainTextAsync("Failed", Slow);
-        await Expect(newest).ToContainTextAsync("HTTP 401");
-        await newest.GetByRole(AriaRole.Button, new() { Name = "Actions for the Job published delivery" }).ClickAsync();
+        // The row is found by what it says, not by its place: until the new delivery's row appears the newest row is the
+        // earlier failed delivery, which also says Failed.
+        var refused = Page.GetByRole(AriaRole.Table).GetByRole(AriaRole.Row).Filter(new() { HasText = "HTTP 401" });
+        await Expect(refused).ToContainTextAsync("Failed", Slow);
+        await refused.GetByRole(AriaRole.Button, new() { Name = "Actions for the Job published delivery" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Replay delivery" }).ClickAsync();
         await Expect(newest).ToContainTextAsync("Delivered", Slow);
         var replayed = (await receiver.WaitForAsync(r => r.Type == "job.published" && r.Body.Contains(published.ToString(), StringComparison.Ordinal), 4, "the failed attempts and the replay", Ct))[^1];
