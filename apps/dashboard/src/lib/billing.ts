@@ -1,4 +1,5 @@
-import type { BillingOverview, BillingPlan, BillingState } from '@screenhire/api-client';
+import type { BillingAiUsage, BillingOverview, BillingPlan, BillingState } from '@screenhire/api-client';
+import { formatCost } from '#lib/ai-usage.js';
 import { locales } from '#lib/dates.js';
 import type { StatusName } from '#lib/status.js';
 
@@ -37,6 +38,46 @@ export function planLimitText(plan: BillingPlan): string {
 /** The open jobs, under an Open jobs label: `3 of 5` against the plan's limit, or `3` with none (no plan after it ends, or an unlimited one). */
 export function openJobsText(overview: Pick<BillingOverview, 'openJobs' | 'activeJobLimit'>): string {
   return overview.activeJobLimit === null ? `${overview.openJobs}` : `${overview.openJobs} of ${overview.activeJobLimit}`;
+}
+
+/** The margin as people say it: `20%`, or `17.5%` when it is not a whole number. */
+export const marginText = (percent: number) => `${Number.isInteger(percent) ? percent : Number(percent.toFixed(2))}%`;
+
+/** The calls this month, as a count under a label (the panel's first sentence already names ScreenHire's key). */
+export const aiCallsText = (calls: number) => `${calls} AI ${calls === 1 ? 'call' : 'calls'}`;
+
+/**
+ * What else the AI usage panel says, one sentence each, depending on where the organization stands (docs/architecture/billing.md,
+ * "AI usage"): a provider that cannot bill it yet (before the trial's wording, which would promise an invoice line that never
+ * comes), how the trial treats its use, checks that ran on the organization's own key, and calls nothing could price.
+ */
+export function aiUsageNotes(usage: BillingAiUsage, state: BillingState | null): string[] {
+  const notes: string[] = [];
+  if (!usage.metered) {
+    notes.push('Billing for AI use is not set up here yet.');
+  } else if (state === 'Trialing') {
+    notes.push(
+      usage.trialAllowance > 0
+        ? `Your trial includes ${formatCost(usage.trialAllowance)} of AI use. Use above that is added to your first invoice.`
+        : 'AI use during your trial is added to your first invoice.',
+    );
+  } else if (state === 'Ended') {
+    notes.push('AI use is billed once you choose a plan.');
+  } else if (usage.trialAllowanceUsed > 0) {
+    notes.push(`Your trial covered ${formatCost(usage.trialAllowanceUsed)} of AI use.`);
+  }
+
+  if (usage.ownKeyCalls > 0) {
+    const n = usage.ownKeyCalls;
+    notes.push(`${n} ${n === 1 ? 'call' : 'calls'} ran on your own key, so ScreenHire charges nothing for ${n === 1 ? 'it' : 'them'}.`);
+  }
+
+  if (usage.callsWithUnknownCost > 0) {
+    const n = usage.callsWithUnknownCost;
+    notes.push(`${n} ${n === 1 ? 'call has' : 'calls have'} no known price, so ${n === 1 ? 'it is' : 'they are'} not charged.`);
+  }
+
+  return notes;
 }
 
 /** Whether someone without a subscription can start one here: on the trial, or after the subscription ended. */

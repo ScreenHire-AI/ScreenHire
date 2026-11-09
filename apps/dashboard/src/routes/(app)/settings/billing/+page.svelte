@@ -21,7 +21,8 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { billingStatus, formatMoney, mayChoosePlan, openJobsText, planLimitText, priceLine } from '#lib/billing.js';
+  import { formatCost } from '#lib/ai-usage.js';
+  import { aiCallsText, aiUsageNotes, billingStatus, formatMoney, marginText, mayChoosePlan, openJobsText, planLimitText, priceLine } from '#lib/billing.js';
   import { describeError } from '#lib/query.js';
 
   // The plan, the trial or the next payment, and the open jobs against the plan's limit, for an owner (ManageBilling,
@@ -180,6 +181,25 @@
             {/each}
           </ul>
         </Panel>
+
+        <!-- What the built-in AI key costs this month, and that bringing your own key removes the charge (docs/architecture/billing.md,
+             "AI usage"). The call-by-call detail is on Verification. -->
+        {#if overview.aiUsage}
+          {@const usage = overview.aiUsage}
+          <Panel title="AI usage" footer={aiFooter}>
+            <div class="flex flex-col gap-4">
+              <p class="max-w-measure text-muted-foreground">AI checks on ScreenHire's key are billed at the provider's price plus {marginText(usage.marginPercent)}.</p>
+              <SummaryList>
+                <SummaryItem label="This month">{aiCallsText(usage.builtInCalls)}</SummaryItem>
+                <SummaryItem label="Provider's price"><span class="tabular-nums">{formatCost(usage.providerCost)}</span></SummaryItem>
+                <SummaryItem label="Cost so far"><span class="tabular-nums">{formatCost(usage.charge)}</span></SummaryItem>
+              </SummaryList>
+              {#each aiUsageNotes(usage, standing) as note (note)}
+                <p class="max-w-measure text-muted-foreground">{note}</p>
+              {/each}
+            </div>
+          </Panel>
+        {/if}
       {/if}
     </div>
   </SettingsMenu>
@@ -189,6 +209,16 @@
   <p role="status">
     {outcome === 'success' ? 'Checkout finished. This page updates when the payment is confirmed.' : 'Checkout was cancelled. You have not been charged.'}
   </p>
+{/snippet}
+
+{#snippet aiFooter()}
+  <div class="flex flex-col gap-1 text-muted-foreground">
+    <p>Bring your own key and this charge goes away.</p>
+    <div class="flex flex-wrap gap-x-4">
+      <a href="/verification" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">Use your own key</a>
+      <a href="/verification/activity" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">See every call</a>
+    </div>
+  </div>
 {/snippet}
 
 {#snippet changeFooter()}

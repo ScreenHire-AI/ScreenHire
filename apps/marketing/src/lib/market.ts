@@ -2,7 +2,7 @@
 // that page and the day it was read (docs/research/pain-points.md holds the check of each). Word a fact as the page words
 // it. Add a vendor only with a page that says it today; never a claim from memory, from a review site or about what a
 // product lacks.
-import type { Source } from './features';
+import { aiCost, type Source } from './features';
 
 export interface MarketFact {
   vendor: string;
@@ -78,6 +78,6 @@ export const marketPains: MarketPain[] = [
         asOf: '2026-11-08',
       },
     ],
-    answer: 'The AI consistency check is on every plan, with your own key and model if you prefer. Nothing is metered.',
+    answer: `The AI consistency check is on every plan, not sold as an add-on. ${aiCost.both}`,
   },
 ];

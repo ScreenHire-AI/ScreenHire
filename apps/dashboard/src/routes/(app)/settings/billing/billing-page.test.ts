@@ -1,4 +1,4 @@
-import type { BillingOverview, BillingPlan } from '@screenhire/api-client';
+import type { BillingAiUsage, BillingOverview, BillingPlan } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
@@ -33,6 +33,20 @@ const starter = plan('starter', 'Starter', { monthlyPrice: 49, activeJobs: 5 });
 const growth = plan('growth', 'Growth', { monthlyPrice: 99, activeJobs: 25 });
 const unlimited = plan('unlimited', 'Unlimited', { unlimited: true });
 
+const aiUsage: BillingAiUsage = {
+  month: '2026-11',
+  builtInCalls: 41,
+  tokens: 120000,
+  providerCost: 3.12,
+  charge: 3.744,
+  marginPercent: 20,
+  callsWithUnknownCost: 0,
+  ownKeyCalls: 0,
+  trialAllowance: 5,
+  trialAllowanceUsed: 0,
+  metered: true,
+};
+
 const trial: BillingOverview = {
   available: true,
   sandbox: false,
@@ -47,6 +61,7 @@ const trial: BillingOverview = {
   canManage: false,
   taxAtCheckout: false,
   plans: [starter, growth, unlimited],
+  aiUsage,
 };
 const active: BillingOverview = {
   ...trial,
@@ -128,6 +143,131 @@ describe('billing page', () => {
     expect(within(plans()).getByText('Unlimited open jobs')).toBeInTheDocument();
     expect(within(plans()).queryByText(/plus tax/)).not.toBeInTheDocument();
     await expectNoAxeViolations();
+  });
+
+  describe('AI usage', () => {
+    const panel = () => screen.getByRole('region', { name: 'AI usage' });
+
+    it('states the margin plainly and shows this month: the calls, the provider\'s price and what the organization pays', async () => {
+      renderPage(active);
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText("AI checks on ScreenHire's key are billed at the provider's price plus 20%.")).toBeInTheDocument();
+      expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('41 AI calls');
+      expect(within(panel()).getByText("Provider's price", { selector: 'dt' }).nextElementSibling).toHaveTextContent('$3.12');
+      expect(within(panel()).getByText('Cost so far', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$3.744');
+      await expectNoAxeViolations();
+    });
+
+    it('takes the margin from the API, so a different setting reads as it is', async () => {
+      renderPage({ ...active, aiUsage: { ...aiUsage, marginPercent: 17.5 } });
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText(/provider's price plus 17\.5%\./)).toBeInTheDocument();
+    });
+
+    it('links to the call-by-call detail on Verification and says that bringing your own key removes the charge', async () => {
+      renderPage(active);
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText(/Bring your own key and this charge goes away\./)).toBeInTheDocument();
+      expect(within(panel()).getByRole('link', { name: 'See every call' })).toHaveAttribute('href', '/verification/activity');
+      expect(within(panel()).getByRole('link', { name: 'Use your own key' })).toHaveAttribute('href', '/verification');
+    });
+
+    it('tells a trial what it includes and that the rest comes on its first invoice', async () => {
+      renderPage(trial);
+
+      await screen.findByText('Free trial');
+      expect(within(panel()).getByText("Your trial includes $5.00 of AI use. Use above that is added to your first invoice.")).toBeInTheDocument();
+    });
+
+    it('says AI use during a trial is added to the first invoice when the trial includes none', async () => {
+      renderPage({ ...trial, aiUsage: { ...aiUsage, trialAllowance: 0 } });
+
+      await screen.findByText('Free trial');
+      expect(within(panel()).getByText('AI use during your trial is added to your first invoice.')).toBeInTheDocument();
+    });
+
+    it('says what the trial covered once a plan is paying, and nothing about a trial when it covered none', async () => {
+      renderPage({ ...active, aiUsage: { ...aiUsage, trialAllowanceUsed: 2.5 } });
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText('Your trial covered $2.50 of AI use.')).toBeInTheDocument();
+    });
+
+    it('says nothing about the trial to a paying organization it covered nothing for', async () => {
+      renderPage(active);
+
+      await screen.findByText('Active');
+      expect(within(panel()).queryByText(/trial/i)).toBeNull();
+    });
+
+    it('says AI use is billed once a plan is chosen after the trial ended', async () => {
+      renderPage({ ...trial, state: 'Ended', currentPlan: null, trialEndsAt: null });
+
+      await screen.findByText('Ended');
+      expect(within(panel()).getByText('AI use is billed once you choose a plan.')).toBeInTheDocument();
+    });
+
+    it('says billing for AI use is not set up where the payment provider has no metered price', async () => {
+      renderPage({ ...active, aiUsage: { ...aiUsage, metered: false } });
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText('Billing for AI use is not set up here yet.')).toBeInTheDocument();
+    });
+
+    it('promises a trial no invoice line when the payment provider has no metered price', async () => {
+      renderPage({ ...trial, aiUsage: { ...aiUsage, metered: false } });
+
+      await screen.findByText('Free trial');
+      expect(within(panel()).getByText('Billing for AI use is not set up here yet.')).toBeInTheDocument();
+      expect(within(panel()).queryByText(/first invoice/)).toBeNull();
+    });
+
+    it('says calls on the organization\'s own key are not charged', async () => {
+      renderPage({ ...active, aiUsage: { ...aiUsage, ownKeyCalls: 3 } });
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText('3 calls ran on your own key, so ScreenHire charges nothing for them.')).toBeInTheDocument();
+    });
+
+    it('counts a call nothing could price and says it is not charged', async () => {
+      renderPage({ ...active, aiUsage: { ...aiUsage, callsWithUnknownCost: 2 } });
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText('2 calls have no known price, so they are not charged.')).toBeInTheDocument();
+    });
+
+    it('shows no calls and no charge for a month with no use', async () => {
+      renderPage({ ...active, aiUsage: { ...aiUsage, builtInCalls: 0, tokens: 0, providerCost: 0, charge: 0 } });
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('0 AI calls');
+      expect(within(panel()).getByText('Cost so far', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$0.00');
+    });
+
+    it('says "call" in the singular for one', async () => {
+      renderPage({ ...active, aiUsage: { ...aiUsage, builtInCalls: 1, callsWithUnknownCost: 1 } });
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('1 AI call');
+      expect(within(panel()).getByText('1 call has no known price, so it is not charged.')).toBeInTheDocument();
+    });
+
+    it('is absent when the API sends no usage', async () => {
+      renderPage({ ...active, aiUsage: null });
+
+      await screen.findByText('Active');
+      expect(screen.queryByRole('region', { name: 'AI usage' })).toBeNull();
+    });
+
+    it('adds no primary button to the page (A1)', async () => {
+      renderPage(active);
+
+      await screen.findByText('Active');
+      expect(primaryButtons().map((button) => button.textContent?.trim())).toEqual(['Manage billing']);
+    });
   });
 
   it('says "plus tax where it applies" beside each price when Checkout adds tax, and not beside a price that is not set', async () => {

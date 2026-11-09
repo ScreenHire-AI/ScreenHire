@@ -43,7 +43,7 @@ public static class BillingRegistration
         services.AddOptions<BillingOptions>().BindConfiguration(BillingOptions.Section).ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<BillingOptions>, BillingSandboxGate>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<BillingOptions>, BillingTrialGate>());
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<BillingOptions>, BillingAiMarginGate>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<BillingOptions>, BillingAiGate>());
         services.TryAddSingleton<PlanCatalogue>();
         services.TryAddSingleton<StripeBillingProvider>();
         services.TryAddSingleton<SandboxBillingProvider>();

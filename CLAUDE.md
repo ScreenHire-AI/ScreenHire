@@ -23,7 +23,7 @@ subsystem.
 | `packages/api-client` | Orval-generated TS fetch client, TanStack Query hooks (`./svelte-query`) and Zod schemas (do not edit `src/generated`) |
 | `packages/telemetry` | Framework-free form telemetry for the apply flow: per-field counts only (never key values, timings per key or content), automation markers, the device fingerprint, `sendBeacon` snapshots; under 5 KB brotli, checked by its `build` |
 | `packages/realtime` | SignalR client for live updates: reconnect and re-subscribe, a runes connection-state store, Zod schemas per tenant event (checked against `contract/events.json`), cache invalidation by event type |
-| `packages/plans` | The plan catalogue, `plans.json`: each plan's name, monthly price, active job limit and Stripe price id, and the free trial, `trial.json` (days and plan), as shared defaults. The API embeds both, the marketing site reads both (`catalogPlans`, `trial`), and `ScreenHire:Billing:Plans:<key>:*` and `Trial:*` override them for the API ([`docs/architecture/billing.md`](docs/architecture/billing.md)) |
+| `packages/plans` | The plan catalogue, `plans.json`: each plan's name, monthly price, active job limit and Stripe price id, the free trial, `trial.json` (days and plan), and the margin on AI use, `ai.json`, as shared defaults. The API embeds all three, the marketing site reads them (`catalogPlans`, `trial`, `ai`), and `ScreenHire:Billing:Plans:<key>:*` and `Trial:*` override them for the API ([`docs/architecture/billing.md`](docs/architecture/billing.md)) |
 | `src/ScreenHire.Application` | Message contracts (`ITenantMessage`, `ITenantEvent`), Wolverine handlers and the shared messaging setup; referenced by API and worker |
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
@@ -87,8 +87,10 @@ subsystem.
   parameters once `Stripe:Enabled=true`, or `Sandbox:Enabled` for the local fake, on in `pnpm dev` and the test stacks; `Trial:Days`
   and `Trial:Plan` over `packages/plans/trial.json`, and `Plans:<key>:*` over `packages/plans/plans.json`; `Trial:RemindDaysBefore` (default `[7, 1]`) is
   the days before the trial ends that the Owners are emailed, besides the day it ends; `Stripe:Tax:Enabled` (off) makes Checkout calculate tax with Stripe Tax and
-  `Stripe:Tax:CollectTaxIds` (on with tax) asks a business for its tax id; hidden and limiting nothing when neither; `Ai:Margin` (0.20) is the share added to the provider's price for AI use on ScreenHire's key) goes to the API, and its `Trial:*` and
-  `Plans:*` keys to the worker, which sends the trial's reminders; see
+  `Stripe:Tax:CollectTaxIds` (on with tax) asks a business for its tax id; hidden and limiting nothing when neither; `Ai:Margin` (default `packages/plans/ai.json`, 0.20) is the share added to the provider's price for AI use on ScreenHire's key,
+  which the worker reports to a Stripe meter every 15 minutes, once per call, once `Ai:StripePriceId` (the metered price) is set; `Ai:MeterEventName`, `Ai:TrialAllowance`
+  (US dollars the trial includes, 5.00) and `Ai:ReportBatchSize` (200) tune it; an organization's own key is never charged) goes to the API, and its `Trial:*`, `Plans:*`,
+  `Ai:*`, `Sandbox:*` and `Stripe:*` keys to the worker, which sends the trial's reminders and reports the AI use, and gets both Stripe parameters; see
   [`docs/architecture/billing.md`](docs/architecture/billing.md).
   `ScreenHire:Email:*` (Mailpit sends unless `SendGrid:Enabled=true` with the `sendgrid-api-key` secret; `ReplyDomain` is the host
   replies arrive on and `SendGrid:EventWebhookPublicKey` checks SendGrid's signed events; `email-reply-key` and

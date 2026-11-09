@@ -64,8 +64,10 @@
 //                               sandbox workspace instead (Development only; the test stacks turn it on). The secret
 //                               comes from that parameter, never from these keys.
 //   Billing:*                   plans, the trial and job limits (ScreenHire.Application BillingOptions,
-//                               docs/architecture/billing.md, ADR-0029), forwarded to the API; the Trial:* and Plans:* keys
-//                               go to the worker too, which sends the trial's reminders. Hidden and limiting nothing
+//                               docs/architecture/billing.md, ADR-0029), forwarded to the API; the Trial:*, Plans:*, Ai:*,
+//                               Sandbox:* and Stripe:* keys, ApiBaseUrl and Timeout go to the worker too, which sends the
+//                               trial's reminders and reports AI use to the payment provider's meter (and gets both Stripe
+//                               parameters, as the API does). Hidden and limiting nothing
 //                               unless configured: Stripe once Stripe:Enabled=true and the stripe-secret-key and
 //                               stripe-webhook-secret parameters have the account's keys; Sandbox:Enabled=true is the local
 //                               fake instead (Development only; the test stacks turn it on). Trial:Days and Trial:Plan set
@@ -78,8 +80,11 @@
 //                               applies"; Stripe:Tax:CollectTaxIds (default true with tax on) also asks a business for its tax
 //                               id, and the sandbox's Checkout records both. ApiBaseUrl and Timeout are for a test that
 //                               points the Stripe client at a stand-in. The keys come from those parameters, never from
-//                               these settings. Ai:Margin (0.20) is the share added to the provider's price when AI use on
-//                               ScreenHire's key is billed; an organization's own key costs it nothing extra.
+//                               these settings. Ai:* is what AI use on ScreenHire's key costs (an organization's own key costs
+//                               it nothing extra): Margin (default packages/plans/ai.json, 0.20) is the share added to the
+//                               provider's price, StripePriceId the metered Stripe price Checkout adds to a subscription (USD
+//                               plans only), MeterEventName the Stripe meter's event name, TrialAllowance (5.00 US dollars) what
+//                               the free trial includes and ReportBatchSize (200) the calls one run reports for one organization.
 //   Calendar:*                  member calendars for interview scheduling (ScreenHire.Application CalendarOptions,
 //                               docs/architecture/interview-scheduling.md), forwarded to the API and the worker. A
 //                               provider is on only when both its client id (Google:ClientId, Microsoft:ClientId) and
@@ -350,8 +355,13 @@ foreach (var (key, value) in settings.GetSection("Billing").AsEnumerable(makePat
         var name = $"ScreenHire__Billing__{key.Replace(":", "__", StringComparison.Ordinal)}";
         api.WithEnvironment(name, value);
 
-        // The worker sends the trial's reminders: it needs the trial's plan and reminder days, and the plans' names.
-        if (key.StartsWith("Trial:", StringComparison.OrdinalIgnoreCase) || key.StartsWith("Plans:", StringComparison.OrdinalIgnoreCase))
+        // The worker sends the trial's reminders (the trial's plan and reminder days, and the plans' names) and reports AI use on
+        // ScreenHire's key to the payment provider's meter (the margin and meter settings, the sandbox switch, the Stripe settings and
+        // address), so it works out the same mode and prices as the API.
+        if (key.StartsWith("Trial:", StringComparison.OrdinalIgnoreCase) || key.StartsWith("Plans:", StringComparison.OrdinalIgnoreCase)
+            || key.StartsWith("Ai:", StringComparison.OrdinalIgnoreCase) || key.StartsWith("Sandbox:", StringComparison.OrdinalIgnoreCase)
+            || key.StartsWith("Stripe:", StringComparison.OrdinalIgnoreCase)
+            || key.Equals("ApiBaseUrl", StringComparison.OrdinalIgnoreCase) || key.Equals("Timeout", StringComparison.OrdinalIgnoreCase))
         {
             worker.WithEnvironment(name, value);
         }
@@ -363,8 +373,13 @@ foreach (var (key, value) in settings.GetSection("Billing").AsEnumerable(makePat
 // the setting off nothing asks for them, and billing is hidden or the sandbox.
 if (string.Equals(settings["Billing:Stripe:Enabled"], "true", StringComparison.OrdinalIgnoreCase))
 {
-    api.WithEnvironment("ScreenHire__Billing__SecretKey", builder.AddParameter("stripe-secret-key", secret: true));
-    api.WithEnvironment("ScreenHire__Billing__WebhookSecret", builder.AddParameter("stripe-webhook-secret", secret: true));
+    // Both hosts get both, so both work out the same mode (BillingOptions.Mode): the worker reports AI use to Stripe's meter.
+    var stripeSecretKey = builder.AddParameter("stripe-secret-key", secret: true);
+    var stripeWebhookSecret = builder.AddParameter("stripe-webhook-secret", secret: true);
+    api.WithEnvironment("ScreenHire__Billing__SecretKey", stripeSecretKey);
+    api.WithEnvironment("ScreenHire__Billing__WebhookSecret", stripeWebhookSecret);
+    worker.WithEnvironment("ScreenHire__Billing__SecretKey", stripeSecretKey);
+    worker.WithEnvironment("ScreenHire__Billing__WebhookSecret", stripeWebhookSecret);
 }
 
 foreach (var (key, value) in settings.GetSection("Calendar").AsEnumerable(makePathsRelative: true))

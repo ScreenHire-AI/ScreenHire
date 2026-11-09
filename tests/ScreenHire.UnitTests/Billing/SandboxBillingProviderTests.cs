@@ -204,6 +204,18 @@ public sealed class SandboxBillingProviderTests
     }
 
     [Fact]
+    public async Task Reported_usage_is_taken_whole_and_in_order_because_the_sandbox_charges_nobody()
+    {
+        var ids = new[] { Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7() };
+        var report = new AiUsageReport(organization, null, [.. ids.Select((id, i) => new AiUsageEvent(id, 10 * (i + 1)))], Start);
+
+        var result = await provider.ReportAiUsageAsync(report, TestContext.Current.CancellationToken);
+
+        result.Accepted.Should().Equal(ids);
+        result.Failure.Should().BeNull();
+    }
+
+    [Fact]
     public void The_sandbox_has_no_webhook_so_a_post_to_the_provider_reads_as_unsigned()
     {
         var webhook = provider.ReadWebhook("{}", "t=1,v1=abc", clock.Now);

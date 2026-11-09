@@ -55,7 +55,57 @@ public sealed class BillingOptionsTests
     {
         var options = new BillingOptions { Ai = new BillingAiOptions { Margin = decimal.Parse(margin, System.Globalization.CultureInfo.InvariantCulture) } };
 
-        new BillingAiMarginGate().Validate(null, options).Succeeded.Should().Be(valid);
+        new BillingAiGate().Validate(null, options).Succeeded.Should().Be(valid);
+    }
+
+    [Fact]
+    public void The_margin_default_is_the_one_the_marketing_site_reads_from_the_shared_catalogue()
+    {
+        // packages/plans/ai.json is embedded and is the site's source for "plus 20%", so the two cannot differ.
+        AiDefaults.Shipped.Margin.Should().Be(0.20m);
+        new BillingAiOptions().Margin.Should().Be(AiDefaults.Shipped.Margin);
+    }
+
+    [Fact]
+    public void The_trial_includes_five_dollars_of_ai_use_and_a_run_reports_two_hundred_calls_unless_configured()
+    {
+        var ai = new BillingAiOptions();
+
+        ai.TrialAllowance.Should().Be(5.00m);
+        ai.ReportBatchSize.Should().Be(200);
+        ai.MeterEventName.Should().Be("screenhire_ai_usage");
+        ai.StripePriceId.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(-0.01, 200, "meter", false)]
+    [InlineData(0, 200, "meter", true)]
+    [InlineData(5, 0, "meter", false)]
+    [InlineData(5, 1001, "meter", false)]
+    [InlineData(5, 1000, "meter", true)]
+    [InlineData(5, 200, " ", false)]
+    public void The_allowance_the_batch_and_the_meter_name_are_checked_at_start(double allowance, int batch, string meter, bool valid)
+    {
+        var options = new BillingOptions { Ai = new BillingAiOptions { TrialAllowance = (decimal)allowance, ReportBatchSize = batch, MeterEventName = meter } };
+
+        new BillingAiGate().Validate(null, options).Succeeded.Should().Be(valid);
+    }
+
+    [Fact]
+    public void A_metered_price_beside_a_plan_that_is_not_in_dollars_stops_the_host_because_one_subscription_has_one_currency()
+    {
+        var options = new BillingOptions
+        {
+            Ai = new BillingAiOptions { StripePriceId = "price_meter" },
+            Plans = new Dictionary<string, PlanOptions>(StringComparer.OrdinalIgnoreCase) { ["starter"] = new() { Currency = "EUR" } },
+        };
+
+        var result = new BillingAiGate().Validate(null, options);
+
+        result.Failed.Should().BeTrue();
+        result.FailureMessage.Should().Contain("starter").And.Contain("USD");
+        // With no metered price there is nothing to mix, so a euro plan is fine.
+        new BillingAiGate().Validate(null, new BillingOptions { Plans = options.Plans }).Succeeded.Should().BeTrue();
     }
 
     [Fact]

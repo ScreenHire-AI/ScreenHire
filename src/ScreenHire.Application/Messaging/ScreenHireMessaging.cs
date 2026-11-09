@@ -211,6 +211,8 @@ public static class ScreenHireMessaging
         opts.Services.AddScreenHireTrialReminders();
         // The AI usage sweeps: the spike rule, the retention floor and asking again for paused AI checks.
         opts.Services.AddScreenHireAiUsage();
+        // Reporting AI use on ScreenHire's key to the payment provider's meter: its settings, checks and both providers.
+        opts.Services.AddScreenHireAiUsageBilling();
         // The daily re-check of sending domains looks them up and asks the provider, as the API does.
         opts.Services.AddScreenHireSendingDomains();
         opts.Services.TryAddSingleton<IDataExportStore, NoDataExportStore>();
@@ -318,6 +320,8 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<CheckAiUsageSpikes>("7 6 * * *");
         opts.Schedules.ScheduleRecurring<PurgeExpiredAiUsage>("42 4 * * *");
         opts.Schedules.ScheduleRecurring<ResumePausedAiChecks>("12 5 * * *");
+        // AI use on ScreenHire's key reported to the payment provider's meter, every 15 minutes (docs/architecture/billing.md, "AI usage").
+        opts.Schedules.ScheduleRecurring<ReportAiUsage>("*/15 * * * *");
         // Job distribution (docs/architecture/job-distribution.md): the reconciliation sweep, and the Indexing API queue.
         opts.Schedules.ScheduleRecurring<ReconcileJobPostings>("*/5 * * * *");
         opts.Schedules.ScheduleRecurring<DispatchIndexingNotifications>("* * * * *");
