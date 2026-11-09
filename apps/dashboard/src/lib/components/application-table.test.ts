@@ -263,8 +263,8 @@ describe('candidate table', () => {
     for (const cell of [header(''), ...within(rowOf('Casey Morgan')).getAllByRole('cell').slice(0, 1)]) {
       expect(cell).toHaveClass('sticky', 'left-0');
     }
-    expect(header('Candidate')).toHaveClass('sticky', 'left-10');
-    expect(rowOf('Casey Morgan').querySelector('td:nth-child(2)')).toHaveClass('sticky', 'left-10', 'bg-card');
+    expect(header('Candidate')).toHaveClass('sticky', 'left-12.5');
+    expect(rowOf('Casey Morgan').querySelector('td:nth-child(2)')).toHaveClass('sticky', 'left-12.5', 'bg-card');
     expect(header('Job')).not.toHaveClass('sticky');
   });
 

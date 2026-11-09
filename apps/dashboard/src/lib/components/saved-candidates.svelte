@@ -6,13 +6,19 @@
   import SendIcon from '~icons/lucide/send';
   import UserPlusIcon from '~icons/lucide/user-plus';
   import type { TalentPoolMember } from '@screenhire/api-client';
-  import { createListApplications, createListEmailTemplates, createListTalentPool, createRemoveFromTalentPool } from '@screenhire/api-client/svelte-query';
+  import {
+    createListApplications,
+    createListEmailTemplates,
+    createListJobs,
+    createListTalentPool,
+    createRemoveFromTalentPool,
+  } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { createSortedRowModel, createTable, rowSortingFeature, sortFn_alphanumeric, sortFn_basic, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
   import { mergeProps } from 'bits-ui';
   import { page } from '$app/state';
   import AddToJobSheet from '#lib/components/add-to-job-sheet.svelte';
-  import { listCounts } from '#lib/candidate-lists.js';
+  import { closedJobIds, listCounts } from '#lib/candidate-lists.js';
   import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
@@ -57,6 +63,7 @@
   const saved = createListTalentPool();
   // Only for the Current and All choices' counts.
   const applications = createListApplications();
+  const jobList = createListJobs();
   const people = $derived<TalentPoolMember[]>(saved.data?.data.people ?? []);
   const emailTemplates = createListEmailTemplates();
   const mayInvite = $derived(Boolean(emailTemplates.data?.data.sendingEnabled) && can(page.data.user, 'EmailCandidates'));
@@ -149,9 +156,9 @@
       scroller.removeEventListener('scroll', onscroll);
     };
   });
-  const selectColumn = 'w-10 min-w-10 px-2 pointer-coarse:w-15 pointer-coarse:min-w-15';
+  const selectColumn = 'w-12.5 min-w-12.5 px-2 pointer-coarse:w-17.5 pointer-coarse:min-w-17.5';
   const stuckSelect = $derived(overflowing ? 'sticky left-0 z-10' : 'relative z-10');
-  const stuckName = $derived(overflowing ? ['sticky left-10 z-[1] pointer-coarse:left-15', scrolledSideways && 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border'] : '');
+  const stuckName = $derived(overflowing ? ['sticky left-12.5 z-[1] pointer-coarse:left-17.5', scrolledSideways && 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border'] : '');
   const href = (person: TalentPoolMember) => `/applications/${person.applicationId}`;
 
   // A selection, for inviting or adding several at once. Only the rows on screen count.
@@ -382,7 +389,7 @@
 </main>
 
 {#snippet listSwitch()}
-  <CandidatesListSwitch list="saved" counts={listCounts(applications.data?.data, saved.data?.data.people.length)} />
+  <CandidatesListSwitch list="saved" counts={listCounts(applications.data?.data, saved.data?.data.people.length, closedJobIds(jobList.data?.data))} />
 {/snippet}
 
 {#snippet personMenu(person: TalentPoolMember)}

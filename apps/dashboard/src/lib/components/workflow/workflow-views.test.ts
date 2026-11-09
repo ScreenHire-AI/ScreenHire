@@ -201,11 +201,13 @@ describe('workflow builder', () => {
     await waitFor(() => expect(sheet).toContainElement(document.activeElement as HTMLElement));
   });
 
-  it('makes the problem count beside the title a button to the first Fix', async () => {
+  it('puts a Fix button beside the problem count, which stays a badge, and takes the focus to the first Fix', async () => {
     renderViews('editor', 'pipeline', [{ path: 'stages[1].name', message: 'Give the stage a name.' }]);
     render(ValidationBadge, { props: { errors: [{ path: 'stages[1].name', message: 'Give the stage a name.' }] } });
 
-    await fireEvent.click(screen.getByRole('button', { name: '1 problem to fix' }));
+    // Badges are never clickable (principle 4).
+    expect(screen.queryByRole('button', { name: '1 problem to fix' })).toBeNull();
+    await fireEvent.click(screen.getByRole('button', { name: 'Fix 1 problem' }));
 
     expect(document.activeElement).toHaveAccessibleName('Fix: Stage "Phone screen"');
   });

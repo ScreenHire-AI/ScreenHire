@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ApplicationSummary, SavedViewSummary } from '@screenhire/api-client';
 import { goto } from '$app/navigation';
-import { apiStub, applications, savedView, user, userAs, viewList } from '../../../test-support/fixtures.js';
+import { apiStub, applications, jobs, savedView, user, userAs, viewList } from '../../../test-support/fixtures.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -19,10 +19,13 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const closedJob = { ...jobs[1]!, id: '01a157d4-0000-7000-8000-0000000000c1', title: 'Support Engineer', slug: 'support-engineer', status: 'Closed' as const };
+
 const render_ = (rows: ApplicationSummary[] = applications, reachedIds: string[] = []) => {
   const stub = apiStub({
     'GET /v1/applications': () => Response.json(rows),
     'GET /v1/talent-pool': () => Response.json({ people: [] }),
+    'GET /v1/jobs': () => Response.json([...jobs, closedJob]),
     'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
     'GET /v1/views': () => Response.json(viewList()),
   });
@@ -52,17 +55,17 @@ describe('candidates page', () => {
     expect(within(panel.querySelector('header')!).getByText(`${applications.length}`, { selector: '[data-slot="badge"]' })).toBeInTheDocument();
   });
 
-  it('leaves saved people and ended applications out of Current and shows them under All', async () => {
+  it('leaves saved people, ended applications and closed jobs out of Current and shows them under All', async () => {
     const saved = { ...applications[0]!, id: 'saved-1', candidateName: 'Grace Adeyemi', keptInMindAt: '2026-10-21T09:00:00Z' };
     const hired = { ...applications[1]!, id: 'hired-1', candidateName: 'Ruth Mwangi', stage: { ...applications[1]!.stage, kind: 'Hired' as const, name: 'Hired' } };
-    render_([...applications, saved, hired]);
+    const closed = { ...applications[2]!, id: 'closed-1', candidateName: 'Noor Haddad', jobId: closedJob.id, jobTitle: closedJob.title };
+    render_([...applications, saved, hired, closed]);
     await screen.findByRole('link', { name: 'Casey Morgan' });
 
-    expect(screen.queryByRole('link', { name: 'Grace Adeyemi' })).toBeNull();
-    expect(screen.queryByRole('link', { name: 'Ruth Mwangi' })).toBeNull();
     const list = screen.getByRole('group', { name: 'List' });
-    expect(within(list).getByRole('link', { name: `Current ${applications.length}` })).toBeInTheDocument();
-    expect(within(list).getByRole('link', { name: `All ${applications.length + 2}` })).toHaveAttribute('href', '/candidates?list=all');
+    await waitFor(() => expect(within(list).getByRole('link', { name: `Current ${applications.length}` })).toBeInTheDocument());
+    for (const name of ['Grace Adeyemi', 'Ruth Mwangi', 'Noor Haddad']) expect(screen.queryByRole('link', { name })).toBeNull();
+    expect(within(list).getByRole('link', { name: `All ${applications.length + 3}` })).toHaveAttribute('href', '/candidates?list=all');
   });
 
   it('shows every application under All', async () => {
@@ -434,6 +437,7 @@ describe('candidates page, Current and Saved', () => {
         apiStub({
           'GET /v1/talent-pool': () => Response.json({ people: [] }),
           'GET /v1/applications': () => Response.json(applications),
+          'GET /v1/jobs': () => Response.json(jobs),
           'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
         }),
       ),

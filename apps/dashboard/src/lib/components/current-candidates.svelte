@@ -5,6 +5,7 @@
     createGetFunnelApplications,
     createListApplications,
     createListEmailTemplates,
+    createListJobs,
     createListTalentPool,
     createListViews,
   } from '@screenhire/api-client/svelte-query';
@@ -41,7 +42,7 @@
   import { matchesTag, tagsOf } from '#lib/tags.js';
   import { jobOptions, readReached, reachedLabel, stageOptions } from '#lib/candidate-filters.js';
   import { stageLabel } from '#lib/talent-pool.js';
-  import { isCurrentApplication, listCounts } from '#lib/candidate-lists.js';
+  import { closedJobIds, isCurrentApplication, listCounts } from '#lib/candidate-lists.js';
   import { defaultSorts, differsFromView, filtersOf, sortOf, verificationOf } from '#lib/view-filters.js';
 
   // Every application in the organization, newest first; new ones, stage moves and verification levels arrive live
@@ -52,6 +53,9 @@
   const applications = createListApplications();
   // Only for the Saved choice's count.
   const savedPeople = createListTalentPool();
+  // Which jobs are closed, from the shell's job list (one query): their applications are not current.
+  const jobList = createListJobs();
+  const closedJobs = $derived(closedJobIds(jobList.data?.data));
   // The address names a view: a built-in one (code), or one that a person saved (the server's list, docs/architecture/saved-views.md).
   const viewId = $derived(page.url.searchParams.get('view'));
   const builtIn = $derived(findSavedView(viewId));
@@ -65,10 +69,10 @@
   const viewGone = $derived(Boolean(viewId) && !builtIn && !saved && savedViews.isSuccess);
   const viewLoading = $derived(Boolean(viewId) && !builtIn && !saved && savedViews.isPending);
   const all = $derived(applications.data?.data ?? []);
-  // Current is the people in a hiring process now: neither saved for future roles nor at an end stage. All is every
+  // Current is the people in a hiring process now: on a job that is not closed, neither saved nor at an end stage. All is every
   // application, for finding someone whose process ended. A view (built-in or saved) keeps its own rules over every
   // application, so it and its sidebar count agree.
-  const pool = $derived(view || scope === 'all' ? all : all.filter(isCurrentApplication));
+  const pool = $derived(view || scope === 'all' ? all : all.filter((application) => isCurrentApplication(application, closedJobs)));
   // The sidebar counts use the same clock, so a view and its count agree.
   let verificationFilter = $state<VerificationFilter>({ ...noVerificationFilter });
   let tagFilter = $state<string | null>(null);
@@ -291,7 +295,7 @@
 {/snippet}
 
 {#snippet listSwitch()}
-  <CandidatesListSwitch list={scope} counts={listCounts(applications.data?.data, savedPeople.data?.data.people.length)} />
+  <CandidatesListSwitch list={scope} counts={listCounts(applications.data?.data, savedPeople.data?.data.people.length, closedJobs)} />
 {/snippet}
 
 {#snippet addButton()}

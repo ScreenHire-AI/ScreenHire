@@ -125,10 +125,10 @@
   // Phones get two-line list items in place of the table (design system section 8), at the shell's own phone width.
   const phone = new IsMobile();
   // The checkbox and name columns stay put while a tablet scrolls the table sideways (design system section 8). The
-  // checkbox column's width is fixed, so the name column knows where to stick: its 24px hit area (44px on touch) plus
-  // padding.
-  const selectColumn = 'sticky left-0 w-10 min-w-10 px-2 pointer-coarse:w-15 pointer-coarse:min-w-15';
-  const nameColumn = 'sticky left-10 pointer-coarse:left-15';
+  // checkbox column's width is fixed, so the name column knows where to stick: its 24px hit area (44px on touch), the
+  // panel's 18px edge (L4) and 8px before the name.
+  const selectColumn = 'sticky left-0 w-12.5 min-w-12.5 px-2 pointer-coarse:w-17.5 pointer-coarse:min-w-17.5';
+  const nameColumn = 'sticky left-12.5 pointer-coarse:left-17.5';
   // Source is an optional column (section 8): it shows only where the table has room, so a job's pipeline beside its
   // side column fits a laptop without scrolling sideways. The table across jobs has a Job column as well, so Source steps
   // aside sooner there: with it, Candidates beside the full sidebar on a 1440px laptop was 19px too wide.

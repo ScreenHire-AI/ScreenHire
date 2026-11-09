@@ -119,8 +119,8 @@ candidate.
 
 `GET /v1/talent-pool` lists everyone saved whose permission still holds. **Saved candidates** is the Saved choice on the
 Candidates page, beside its title (G then S goes to `/candidates?list=saved`; `/saved` and `/talent-pool` redirect there).
-The page's other two lists are Current, the people in a hiring process now (an application that is neither saved nor at
-an end stage), and All, every application (`?list=all`). A saved person shows only under Saved and All.
+The page's other two lists are Current, the people in a hiring process now (an application on a job that is not closed,
+neither saved nor at an end stage), and All, every application (`?list=all`). A saved person shows only under Saved and All.
 It is the list template: search over name, email, job
 and note; Saved from and Tag filters; columns Candidate, Rating, Note, Tags, Saved from, Saved and Last contacted; and a
 row menu with Invite to apply, Add to a job, Message, Edit note and Remove from saved. There is no Verification

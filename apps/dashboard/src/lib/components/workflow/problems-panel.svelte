@@ -4,8 +4,8 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import { describePath } from '#lib/workflow.js';
 
-  // The validator's errors in words, above a workflow's tabs; the `ValidationBadge` beside the title counts them and
-  // brings the focus here. Where the workflow can be edited, each problem has a Fix button that opens the place it is in
+  // The validator's errors in words, above a workflow's tabs; the `ValidationBadge` beside the title counts them, and
+  // its Fix button brings the focus here. Where the workflow can be edited, each problem has a Fix button that opens the place it is in
   // and focuses the field (`onfix`), so nobody has to work out where "action 2" is. Nothing renders while there are none.
   let {
     title,

@@ -72,6 +72,8 @@ function renderPage(options: { who?: TalentPoolMember[]; as?: CurrentUser; sendi
       'GET /v1/talent-pool': () => Response.json({ people: options.who ?? people }),
       'GET /v1/email-templates': () => Response.json({ sendingEnabled: options.sending ?? true, templates: [], variables: [] }),
       'GET /v1/jobs': () => Response.json(jobs),
+      // The list switch's Current and All counts.
+      'GET /v1/applications': () => Response.json([]),
       'GET /v1/organization/members': () => Response.json([]),
       ...options.routes,
     }),
@@ -122,7 +124,9 @@ describe('saved candidates page', () => {
     expect(within(row).getByText('Oct 28, 2026')).toHaveAttribute('datetime', casey.lastContactedAt);
     // There is no permission end any more: a saved candidate stays until the team removes them or they ask to stop.
     expect(screen.queryByRole('columnheader', { name: /permission/i })).toBeNull();
-    expect(screen.getByRole('heading', { level: 1, name: 'Candidates' }).closest('[data-slot="header-band"]')).toHaveTextContent('3 people');
+    // The list's size is on its choice beside the title, and what the search shows on the panel (S8).
+    expect(within(screen.getByRole('group', { name: 'List' })).getByRole('link', { name: 'Saved 3' })).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'People' }).querySelector('header')!).getByText('3', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
   });
 
   it('shows the rating from the scorecards, and "After yours" while the reviewer owes their own scorecard', async () => {
@@ -186,7 +190,7 @@ describe('saved candidates page', () => {
 
     await search('jordan');
     expect(nameLinks()).toEqual(['Jordan Lee']);
-    expect(screen.getByRole('heading', { level: 1, name: 'Candidates' }).closest('[data-slot="header-band"]')).toHaveTextContent('1 person');
+    expect(within(screen.getByRole('region', { name: 'People' }).querySelector('header')!).getByText('1', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
 
     await search('wrong timing');
     expect(nameLinks()).toEqual(['Casey Morgan']);
