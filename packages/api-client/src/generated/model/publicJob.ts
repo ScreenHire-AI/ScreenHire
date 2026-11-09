@@ -28,6 +28,7 @@ export interface PublicJob {
   /** @nullable */
   publishedAt: string | null;
   description: string;
+  summary: string;
   /** @nullable */
   department: string | null;
   locations: JobLocation[];

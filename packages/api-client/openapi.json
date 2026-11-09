@@ -17226,9 +17226,15 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list."
+        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list. The summary is the plain-text\nline a careers card shows under the title, at most 160 characters; leave it out and the card uses the description's\nfirst sentence."
       },
       "CreateRoleRequest": {
         "required": [
@@ -19150,6 +19156,8 @@
           "slug",
           "status",
           "description",
+          "summary",
+          "summaryFollowsDescription",
           "department",
           "employmentType",
           "workplaceType",
@@ -19187,6 +19195,12 @@
           },
           "description": {
             "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "summaryFollowsDescription": {
+            "type": "boolean"
           },
           "department": {
             "type": [
@@ -19570,9 +19584,15 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included."
+        "description": "The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included. string? JobSnapshot.Summary is\nthe written summary only (null while the card follows the description); a version frozen before the field existed has none."
       },
       "JobStatus": {
         "enum": [
@@ -21853,6 +21873,7 @@
           "salaryCurrency",
           "publishedAt",
           "description",
+          "summary",
           "department",
           "locations",
           "applicantLocationRequirements",
@@ -21910,6 +21931,9 @@
             "format": "date-time"
           },
           "description": {
+            "type": "string"
+          },
+          "summary": {
             "type": "string"
           },
           "department": {
@@ -25170,9 +25194,15 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest."
+        "description": "Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest. A blank or missing summary goes back to following the description."
       },
       "UpdateJobWorkflowRequest": {
         "required": [

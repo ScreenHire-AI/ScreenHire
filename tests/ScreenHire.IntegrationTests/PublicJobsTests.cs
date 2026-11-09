@@ -56,6 +56,31 @@ public sealed class PublicJobsTests(AppHostFixture fixture)
             .Should().Equal("newer", "older");
     }
 
+    [Fact]
+    public async Task Board_and_job_page_carry_the_written_summary_or_the_descriptions_first_sentence()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var now = DateTimeOffset.UtcNow;
+        var organization = await fixture.CreateOrganizationAsync(org =>
+        {
+            var written = TestData.NewJob(org, "written");
+            written.Summary = "Fix leaks across Leeds.";
+            written.Publish(now.AddDays(-1));
+            var followed = TestData.NewJob(org, "followed");
+            followed.Description = "<p>Learn the trade on real jobs. Day release is paid.</p>";
+            followed.Publish(now);
+            return [written, followed];
+        }, cancellationToken);
+        using var client = fixture.CreateHttpClient("api");
+
+        var board = await client.GetFromJsonAsync<JsonElement>($"/v1/public/organizations/{organization.Slug}/jobs", cancellationToken);
+        var job = await client.GetFromJsonAsync<JsonElement>($"/v1/public/organizations/{organization.Slug}/jobs/followed", cancellationToken);
+
+        board.GetProperty("jobs").EnumerateArray().Select(j => j.GetProperty("summary").GetString())
+            .Should().Equal("Learn the trade on real jobs.", "Fix leaks across Leeds.");
+        job.GetProperty("summary").GetString().Should().Be("Learn the trade on real jobs.");
+    }
+
     // A closed job that was public is 410 Gone (teardown); one closed before it was ever published never existed publicly.
     [Theory]
     [InlineData("open", HttpStatusCode.OK)]

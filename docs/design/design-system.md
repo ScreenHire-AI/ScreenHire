@@ -55,6 +55,7 @@ sources:
   - resource: apps/dashboard/src/lib/simulate.ts
   - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
   - resource: apps/careers/src/components/JobFacts.astro
+  - resource: apps/careers/src/components/JobCard.astro
   - resource: apps/careers/src/components/Notice.astro
   - resource: apps/careers/src/components/Panel.astro
   - resource: apps/careers/src/styles/global.css
@@ -517,8 +518,13 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   notice version.
 - No cursor class on a component. Buttons, summaries, selects and switch labels get the hand from `theme.css` (A10).
 - A kicker adds to the breadcrumb and never repeats it (W7): a page whose kicker would be its own name has none.
-- A job's facts (where, how, contract, pay) are chips from one component, `JobFacts`, on the board, the job and the apply
-  form. The workplace type is left out when the location already says it. Chips are never links or buttons (A5).
+- A job's facts are at most three chips (place, contract, pay) from one component, `JobFacts`, on the board, the job and the
+  apply form. The workplace type goes into the place chip ("London, England, GB (Hybrid)"), and is left out when the job is
+  on-site or the location already says it. Chips are never links or buttons (A5).
+- A job card on the board (`JobCard`) reads title, the job's short summary clamped to three lines with `line-clamp-3`
+  (CSS only, no script), then the chips. The summary is at most 160 characters, about the job rather than the company; until
+  a person writes one it is the description's first sentence. The job page does not repeat it: the description is right below, and
+  until someone writes a summary the two start with the same sentence. The card takes no employer colour. The board's heading is "Open roles" (the header already names the employer) over one sentence.
 - A message about what just happened is `Notice`: an icon, the message, and one quieter line for what to do next. A page
   never builds its own bordered block for it.
 - Every step of a form names itself in a visible heading, so "Step 2 of 3" is never the only clue. The review step says

@@ -15,6 +15,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
+  import { Textarea } from '#lib/components/ui/textarea/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { countryOptions } from '#lib/countries.js';
   import { locales } from '#lib/dates.js';
@@ -37,6 +38,9 @@
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
   import { isBlank } from '#lib/rich-text.js';
+
+  // The API's limit (JobSummaryText.MaxLength): what a careers card can show of it is three lines.
+  const summaryMax = 160;
 
   // "Edit details": the job's posting content after it was created (PUT /v1/jobs/{id}), on the form template. The
   // workflow has its own page. An open job's edit is live on the careers page at once; boards get it when the job is
@@ -66,6 +70,7 @@
       currency: z.string(),
       period: z.enum(periodValues),
       closingDate: z.string(),
+      summary: z.string().max(summaryMax, `Keep the summary to ${summaryMax} characters or fewer.`),
       description: z.string(),
     })
     .superRefine((value, context) => {
@@ -89,9 +94,15 @@
       currency: detail.salary?.currency ?? 'GBP',
       period: detail.salary?.period ?? 'Year',
       closingDate: closingDate(detail.validThrough),
+      // The one the careers card shows: the team's own, or the description's first sentence until someone edits it.
+      summary: detail.summary ?? '',
       description: detail.description,
     };
   }
+
+  // While the summary follows the description, an untouched field goes back as nothing, so it keeps following it.
+  const startedSummary = untrack(() => job.summary ?? '');
+  const startedFollowing = untrack(() => job.summaryFollowsDescription ?? false);
 
   // The form starts from the job as it is when the page opens. The page hands over a new `job` whenever the query
   // refetches (a live event, a board confirming the job), and that must not wipe what the person has typed.
@@ -116,6 +127,7 @@
             workplaceType: value.workplaceType || job.workplaceType,
             salary: salaryBody(value),
             validThrough: closingInstant(value.closingDate, job.validThrough),
+            summary: startedFollowing && value.summary === startedSummary ? null : value.summary.trim() || null,
             description: value.description,
           },
         });
@@ -223,6 +235,24 @@
         <Field.Label for="job-closing">Closing date <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
         <Input id="job-closing" name="closingDate" type="date" bind:value={$form.closingDate} aria-invalid={$errors.closingDate ? 'true' : undefined} aria-describedby={describedBy('job-closing-error', $errors.closingDate)} />
         <Field.Error id="job-closing-error" errors={$errors.closingDate?.map((message) => ({ message }))} />
+      </Field.Field>
+
+      <Field.Field data-invalid={$errors.summary ? true : undefined}>
+        <Field.Label for="job-summary">Short summary</Field.Label>
+        <Textarea
+          id="job-summary"
+          name="summary"
+          rows={3}
+          maxlength={summaryMax}
+          bind:value={$form.summary}
+          aria-invalid={$errors.summary ? 'true' : undefined}
+          aria-describedby={describedBy('job-summary-error', $errors.summary, 'job-summary-hint')}
+        />
+        <Field.Description id="job-summary-hint">
+          About the job, not the company. Up to {summaryMax} characters.
+          {#if startedFollowing}Until you edit it, it is the description's first sentence.{/if}
+        </Field.Description>
+        <Field.Error id="job-summary-error" errors={$errors.summary?.map((message) => ({ message }))} />
       </Field.Field>
 
       <Field.Field data-invalid={$errors.description ? true : undefined}>

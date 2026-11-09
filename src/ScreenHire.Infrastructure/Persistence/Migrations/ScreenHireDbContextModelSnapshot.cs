@@ -2064,6 +2064,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
 
+                    b.Property<string>("Summary")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("summary");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)

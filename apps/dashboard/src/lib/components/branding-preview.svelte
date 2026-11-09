@@ -63,7 +63,7 @@
           <span class="shrink-0 font-semibold">All jobs</span>
         </div>
         <div class="flex flex-col gap-4 px-5 py-6">
-          <p class="font-display text-candidate-title">Open roles at {draft.organizationName}</p>
+          <p class="font-display text-candidate-title">Open roles</p>
           <div class="flex flex-col gap-3 rounded-panel border border-candidate-border bg-candidate-surface p-5 shadow-surface">
             <p class="font-display text-panel-title">Product designer</p>
             <p class="text-candidate-muted-foreground">Remote, full time</p>

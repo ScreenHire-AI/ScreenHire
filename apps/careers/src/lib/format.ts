@@ -27,9 +27,9 @@ export function formatSalary(min?: number | null, max?: number | null, currency?
 }
 
 /**
- * The facts a job shows under its title, in order: where, how, what kind of contract and the pay. A remote job's location
- * often already says so ("Remote (GB, IE)"), and saying it twice is noise, so the workplace type is dropped when the
- * location names it.
+ * The chips a job shows: at most three, in order. Place (the workplace type goes into it, as "London, GB (Hybrid)",
+ * unless the job is on-site or the location already says so, as "Remote (GB, IE)" does), the kind of contract, and the
+ * pay when there is one.
  */
 export function jobFacts(job: {
   location: string;
@@ -39,13 +39,14 @@ export function jobFacts(job: {
   salaryMax?: number | null;
   salaryCurrency?: string | null;
 }): string[] {
-  const workplace = label(job.workplaceType);
-  const facts = [job.location];
-  if (!job.location.toLowerCase().includes(workplace.toLowerCase())) facts.push(workplace);
-  facts.push(label(job.employmentType));
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
-  if (salary) facts.push(salary);
-  return facts;
+  return [place(job), label(job.employmentType), salary].filter((fact): fact is string => !!fact);
+}
+
+function place({ location, workplaceType }: { location: string; workplaceType: string }): string {
+  const workplace = label(workplaceType);
+  if (workplaceType === 'Onsite' || location.toLowerCase().includes(workplace.toLowerCase())) return location;
+  return location ? `${location} (${workplace})` : workplace;
 }
 
 /**
