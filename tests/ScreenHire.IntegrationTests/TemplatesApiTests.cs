@@ -7,22 +7,26 @@ namespace ScreenHire.IntegrationTests;
 public sealed class TemplatesApiTests(AppHostFixture fixture)
 {
     [Fact]
-    public async Task A_new_organization_lists_exactly_the_two_system_templates()
+    public async Task A_new_organization_lists_exactly_the_five_system_templates()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
 
         var list = (await recruiter.GetAsync("/v1/templates")).Expect(HttpStatusCode.OK);
 
-        list.Count().Should().Be(2);
-        var byName = Enumerable.Range(0, 2).ToDictionary(i => list.Text($"{i}.name"), i => list.At($"{i}"));
-        byName.Keys.Should().BeEquivalentTo("Software engineer", "Hourly role");
+        list.Count().Should().Be(5);
+        var byName = Enumerable.Range(0, 5).ToDictionary(i => list.Text($"{i}.name"), i => list.At($"{i}"));
+        byName.Keys.Should().BeEquivalentTo("Software engineer", "Hourly role", "Office role", "Trade role with a trial shift", "High volume");
         byName["Software engineer"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.SoftwareEngineer);
         byName["Software engineer"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.SoftwareEngineerVersion5);
         byName["Hourly role"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.HourlyRole);
         byName["Hourly role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HourlyRoleVersion3);
+        byName["Office role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.OfficeRoleVersion1);
+        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.TradeRoleVersion1);
+        byName["High volume"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HighVolumeVersion1);
         byName.Values.Should().OnlyContain(t => t.GetProperty("isSystem").GetBoolean());
         byName["Software engineer"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(5);
         byName["Hourly role"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(3);
+        byName["Trade role with a trial shift"].GetProperty("description").GetString().Should().Be("Plumber, electrician, driver");
     }
 
     [Fact]
@@ -33,10 +37,10 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
 
         var list = (await recruiter.GetAsync("/v1/templates")).Expect(HttpStatusCode.OK);
 
-        list.Count().Should().Be(3);
-        list.Text("2.name").Should().Be("Aardvark pipeline", "system templates come first even when an own name sorts earlier");
-        list.At("2.isSystem").GetBoolean().Should().BeFalse();
-        list.At("2.draftVersion").GetInt32().Should().Be(1);
+        list.Count().Should().Be(6);
+        list.Text("5.name").Should().Be("Aardvark pipeline", "system templates come first even when an own name sorts earlier");
+        list.At("5.isSystem").GetBoolean().Should().BeFalse();
+        list.At("5.draftVersion").GetInt32().Should().Be(1);
     }
 
     [Fact]
@@ -77,7 +81,7 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task A_definition_that_breaks_a_structural_rule_is_rejected_with_definition_keys()
+    public async Task A_definition_that_breaks_a_structural_rule_saves_as_a_draft_with_its_problems_and_cannot_be_published()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var firstStageNotApplied = Samples.Definition();
@@ -85,14 +89,62 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         var duplicateStageId = Samples.Definition();
         duplicateStageId["workflow"]!["stages"]![1]!["id"] = "applied";
 
-        var kind = await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Bad kind", ["definition"] = firstStageNotApplied });
-        var duplicate = await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Bad id", ["definition"] = duplicateStageId });
+        var kind = (await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Bad kind", ["definition"] = firstStageNotApplied })).Expect(HttpStatusCode.Created);
+        var duplicate = (await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Bad id", ["definition"] = duplicateStageId })).Expect(HttpStatusCode.Created);
 
-        kind.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("definition.workflow.stages[0].kind");
-        duplicate.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("definition.workflow.stages[1].id");
-        duplicate.ProblemKeys().Should().OnlyContain(k => k.StartsWith("definition.", StringComparison.Ordinal));
-        (await recruiter.GetAsync("/v1/templates")).Count().Should().Be(2, "rejected definitions save nothing");
+        var kindDraft = (await recruiter.GetAsync($"/v1/templates/{kind.Id()}/versions/1")).Expect(HttpStatusCode.OK);
+        var duplicateDraft = (await recruiter.GetAsync($"/v1/templates/{duplicate.Id()}/versions/1")).Expect(HttpStatusCode.OK);
+        ProblemPaths(kindDraft).Should().Contain("workflow.stages[0].kind");
+        ProblemPaths(duplicateDraft).Should().Contain("workflow.stages[1].id");
+        (await recruiter.PostAsync($"/v1/templates/{kind.Id()}/versions/1/publish")).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Contain("definition.workflow.stages[0].kind");
+        (await recruiter.GetAsync($"/v1/templates/{kind.Id()}/versions/1")).Text("status").Should().Be("Draft");
     }
+
+    [Fact]
+    public async Task A_definition_missing_its_stages_cannot_be_stored()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var noStages = Samples.Definition();
+        ((JsonObject)noStages["workflow"]!).Remove("stages");
+
+        var rejected = await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "No stages", ["definition"] = noStages });
+
+        rejected.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("definition.workflow.stages");
+        (await recruiter.GetAsync("/v1/templates")).Count().Should().Be(5, "nothing was saved");
+    }
+
+    // A draft saves with its problems, but change history matches parts by id and words each rule, so a part with no id
+    // or a null step is refused rather than stored (DraftShape). Before drafts saved with problems the validator refused them.
+    [Theory]
+    [InlineData("stage")]
+    [InlineData("automation")]
+    [InlineData("rule")]
+    [InlineData("step")]
+    public async Task A_draft_with_a_part_that_has_no_id_or_a_null_step_is_refused_and_the_stored_draft_still_reads(string part)
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var template = await recruiter.CreateTemplateAsync("Missing ids");
+        var before = (await recruiter.GetAsync($"/v1/templates/{template.Id()}/versions/1")).Expect(HttpStatusCode.OK);
+        var definition = Samples.DefinitionWith(Samples.EmailOnTag("vip"));
+        var workflow = definition["workflow"]!;
+        switch (part)
+        {
+            case "stage": ((JsonObject)workflow["stages"]![1]!).Remove("id"); break;
+            case "automation": ((JsonObject)workflow["automations"]![0]!).Remove("id"); break;
+            case "rule": ((JsonObject)workflow["automations"]![0]!["conditions"]!["rules"]![0]!).Remove("fact"); break;
+            default: workflow["automations"]![0]!["actions"]!.AsArray().Add(null); break;
+        }
+
+        var saved = await recruiter.PutAsync($"/v1/templates/{template.Id()}/versions/1", new JsonObject { ["definition"] = definition });
+
+        saved.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().ContainSingle(key => key.StartsWith("definition.workflow.", StringComparison.Ordinal));
+        var stored = (await recruiter.GetAsync($"/v1/templates/{template.Id()}/versions/1")).Expect(HttpStatusCode.OK);
+        stored.At("definition.workflow").GetRawText().Should().Be(before.At("definition.workflow").GetRawText(), "the refused draft did not replace the stored one");
+    }
+
+    private static IEnumerable<string> ProblemPaths(ApiResult version) =>
+        version.At("problems").EnumerateArray().Select(p => p.GetProperty("path").GetString()!);
 
     [Fact]
     public async Task A_definition_and_a_version_to_copy_together_are_rejected()
@@ -114,19 +166,42 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
     [Theory]
     [InlineData("Reject")]
     [InlineData("QueueForRejectionReview")]
-    public async Task A_verification_signal_cannot_drive_a_rejection(string actionType)
+    public async Task A_verification_signal_cannot_drive_a_rejection_so_the_draft_saves_with_the_problem_and_cannot_be_published(string actionType)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var action = new JsonObject { ["type"] = actionType, ["reason"] = "Not a fit" };
         var definition = Samples.DefinitionWith(Samples.VerificationAutomation(action));
 
-        var create = await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Auto reject", ["definition"] = definition.DeepClone() });
+        var create = (await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Auto reject", ["definition"] = definition.DeepClone() })).Expect(HttpStatusCode.Created);
         var draft = await recruiter.CreateTemplateAsync("Draft to edit");
-        var update = await recruiter.PutAsync($"/v1/templates/{draft.Id()}/versions/1", new JsonObject { ["definition"] = definition.DeepClone() });
+        var update = (await recruiter.PutAsync($"/v1/templates/{draft.Id()}/versions/1", new JsonObject { ["definition"] = definition.DeepClone() })).Expect(HttpStatusCode.OK);
 
-        create.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("definition.workflow.automations[0].actions[0]");
-        update.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("definition.workflow.automations[0].actions[0]");
-        create.At("errors").EnumerateObject().Single().Value[0].GetString().Should().Contain("Verification signals never drive rejection");
+        ProblemPaths(update).Should().Equal("workflow.automations[0].actions[0]");
+        update.At("problems")[0].GetProperty("message").GetString().Should().Contain("never drives a rejection");
+        foreach (var id in new[] { create.Id(), draft.Id() })
+        {
+            var publish = await recruiter.PostAsync($"/v1/templates/{id}/versions/1/publish");
+            publish.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("definition.workflow.automations[0].actions[0]");
+            publish.At("errors").EnumerateObject().Single().Value[0].GetString().Should().Contain("never drives a rejection");
+        }
+    }
+
+    [Fact]
+    public async Task Saving_a_draft_with_problems_returns_them_and_fixing_it_lets_it_publish()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var template = await recruiter.CreateTemplateAsync("Blank tag");
+        var blankTag = Samples.DefinitionWith(Samples.VerificationAutomation(new JsonObject { ["type"] = "AddTag" }));
+
+        var saved = (await recruiter.PutAsync($"/v1/templates/{template.Id()}/versions/1", new JsonObject { ["definition"] = blankTag })).Expect(HttpStatusCode.OK);
+        (await recruiter.PostAsync($"/v1/templates/{template.Id()}/versions/1/publish")).Expect(HttpStatusCode.BadRequest);
+        var fixedTag = Samples.DefinitionWith(Samples.VerificationAutomation(new JsonObject { ["type"] = "AddTag", ["tag"] = "needs-review" }));
+        var fixedSave = (await recruiter.PutAsync($"/v1/templates/{template.Id()}/versions/1", new JsonObject { ["definition"] = fixedTag })).Expect(HttpStatusCode.OK);
+        var published = (await recruiter.PostAsync($"/v1/templates/{template.Id()}/versions/1/publish")).Expect(HttpStatusCode.OK);
+
+        saved.At("problems")[0].GetProperty("message").GetString().Should().Contain("has no name").And.Contain("remove that step");
+        fixedSave.At("problems").GetArrayLength().Should().Be(0);
+        published.Text("status").Should().Be("Published");
     }
 
     [Fact]
@@ -152,8 +227,12 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         var unrelated = await recruiter.PostAsync(
             "/v1/templates", new JsonObject { ["name"] = "Unrelated tag", ["definition"] = Samples.DefinitionWith(AddTag(), Samples.EmailOnTag("referral")) });
 
-        laundered.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("definition.workflow.automations[1].actions[0]");
-        unrelated.Expect(HttpStatusCode.Created);
+        // Both save as drafts; the laundering one carries the problem and cannot be published.
+        var launderedId = laundered.Expect(HttpStatusCode.Created).Id();
+        var unrelatedId = unrelated.Expect(HttpStatusCode.Created).Id();
+        (await recruiter.PostAsync($"/v1/templates/{launderedId}/versions/1/publish")).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("definition.workflow.automations[1].actions[0]");
+        (await recruiter.PostAsync($"/v1/templates/{unrelatedId}/versions/1/publish")).Expect(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -259,10 +338,12 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
 
         var version2 = (await recruiter.PostAsync($"/v1/templates/{templateId}/versions")).Expect(HttpStatusCode.Created);
         var second = await recruiter.PostAsync($"/v1/templates/{templateId}/versions");
-        var edited = (await recruiter.PutAsync($"/v1/templates/{templateId}/versions/2", new JsonObject { ["definition"] = nextDefinition })).Expect(HttpStatusCode.OK);
+        var edited = (await recruiter.PutAsync($"/v1/templates/{templateId}/versions/2", new JsonObject { ["definition"] = nextDefinition.DeepClone() })).Expect(HttpStatusCode.OK);
         var invalid = Samples.Definition();
         invalid["workflow"]!["stages"] = new JsonArray();
-        var rejected = await recruiter.PutAsync($"/v1/templates/{templateId}/versions/2", new JsonObject { ["definition"] = invalid });
+        var savedInvalid = (await recruiter.PutAsync($"/v1/templates/{templateId}/versions/2", new JsonObject { ["definition"] = invalid })).Expect(HttpStatusCode.OK);
+        var refused = await recruiter.PostAsync($"/v1/templates/{templateId}/versions/2/publish");
+        var restored = (await recruiter.PutAsync($"/v1/templates/{templateId}/versions/2", new JsonObject { ["definition"] = nextDefinition.DeepClone() })).Expect(HttpStatusCode.OK);
         var published = (await recruiter.PostAsync($"/v1/templates/{templateId}/versions/2/publish")).Expect(HttpStatusCode.OK);
 
         version2.At("version").GetInt32().Should().Be(2);
@@ -270,7 +351,9 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         version2.Text("definition.workflow.stages.2.name").Should().Be("Interview", "a new draft starts as a copy of the newest version");
         second.Expect(HttpStatusCode.Conflict);
         edited.Text("definition.workflow.stages.2.name").Should().Be("Panel interview");
-        rejected.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("definition.workflow.stages");
+        ProblemPaths(savedInvalid).Should().Contain("workflow.stages", "a draft with problems saves and lists them");
+        refused.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("definition.workflow.stages");
+        restored.At("problems").GetArrayLength().Should().Be(0);
         published.Text("status").Should().Be("Published");
         (await recruiter.GetAsync($"/v1/templates/{templateId}")).At("latestPublishedVersion").GetInt32().Should().Be(2);
         (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/1")).Text("definition.workflow.stages.2.name")

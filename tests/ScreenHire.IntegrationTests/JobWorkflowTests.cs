@@ -122,10 +122,42 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task A_workflow_that_breaks_a_structural_rule_is_rejected_with_workflow_keys_and_saves_nothing()
+    public async Task A_draft_jobs_workflow_saves_with_its_problems_and_the_job_cannot_open_until_they_are_fixed()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Invalid workflow"));
+        var duplicateId = WorkflowOf(job);
+        duplicateId["stages"]![1]!["id"] = "applied";
+
+        var saved = (await recruiter.PutAsync($"/v1/jobs/{job.Id()}/workflow", WorkflowRequest(duplicateId, 1))).Expect(HttpStatusCode.OK);
+        var publish = await recruiter.PostAsync($"/v1/jobs/{job.Id()}/publish");
+
+        saved.At("workflowVersion").GetInt32().Should().Be(2);
+        saved.At("workflowProblems").EnumerateArray().Select(p => p.GetProperty("path").GetString()).Should().Contain("stages[1].id");
+        publish.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("workflow.stages[1].id");
+        (await recruiter.GetAsync($"/v1/jobs/{job.Id()}")).Text("status").Should().Be("Draft");
+    }
+
+    [Fact]
+    public async Task A_draft_jobs_workflow_with_a_stage_that_has_no_id_is_refused_and_saves_nothing()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Stage without an id"));
+        var noId = WorkflowOf(job);
+        ((JsonObject)noId["stages"]![1]!).Remove("id");
+
+        var saved = await recruiter.PutAsync($"/v1/jobs/{job.Id()}/workflow", WorkflowRequest(noId, 1));
+
+        saved.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("workflow.stages");
+        (await recruiter.GetAsync($"/v1/jobs/{job.Id()}")).At("workflowVersion").GetInt32().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task An_open_jobs_workflow_is_live_so_a_save_with_problems_is_rejected_with_workflow_keys_and_saves_nothing()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Open and invalid"));
+        await recruiter.PublishJobAsync(job.Id());
         var noStages = WorkflowOf(job);
         noStages["stages"] = new JsonArray();
         var duplicateId = WorkflowOf(job);
@@ -148,6 +180,7 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
         var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Guardrail"));
+        await recruiter.PublishJobAsync(job.Id());
         var automation = Samples.VerificationAutomation(new JsonObject { ["type"] = actionType, ["reason"] = "Not a fit" });
         automation["conditions"]!["rules"]![0]!["value"] = "VerificationRecommended";
         var workflow = WorkflowOf(job);
@@ -158,7 +191,7 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
         update.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("workflow.automations[0].actions[0]");
         update.ProblemKeys().Should().OnlyContain(k => k.StartsWith("workflow.", StringComparison.Ordinal));
         update.At("errors").GetProperty("workflow.automations[0].actions[0]")[0].GetString()
-            .Should().Contain("Verification signals never drive rejection");
+            .Should().Contain("never drives a rejection");
         var stored = (await recruiter.GetAsync($"/v1/jobs/{job.Id()}")).Expect(HttpStatusCode.OK);
         stored.At("workflowVersion").GetInt32().Should().Be(1);
         stored.Count("workflow.automations").Should().Be(0);
@@ -191,7 +224,7 @@ public sealed class JobWorkflowTests(AppHostFixture fixture)
         var apply = await recruiter.PostAsync($"/v1/jobs/{job.Id()}/workflow/apply-template-update", ApplyRequest(version2, 1));
 
         apply.Expect(HttpStatusCode.BadRequest).At("errors").GetProperty("workflow.automations[0].actions[0]")[0].GetString()
-            .Should().Contain("Verification signals never drive rejection");
+            .Should().Contain("never drives a rejection");
         var stored = await recruiter.GetAsync($"/v1/jobs/{job.Id()}");
         stored.At("workflowVersion").GetInt32().Should().Be(1);
         stored.At("template.version").GetInt32().Should().Be(1);

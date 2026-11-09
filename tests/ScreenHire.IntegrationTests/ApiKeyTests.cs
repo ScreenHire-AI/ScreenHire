@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ScreenHire.Application.Verification;
+using ScreenHire.Domain.Hiring;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -42,7 +43,7 @@ public sealed class ApiKeyTests(AppHostFixture fixture)
         timeline.Body.EnumerateArray().Select(e => e.GetProperty("actorApiKeyId").GetGuid())
             .Should().AllBeEquivalentTo(created.Id("key.id"), "the timeline records which key added and moved the application");
         candidates.Count().Should().Be(1);
-        templates.Count().Should().Be(2, "the system templates");
+        templates.Count().Should().Be(SystemTemplates.All.Count, "the system templates");
         (await owner.GetAsync($"/v1/jobs/{added.Id()}")).Expect(HttpStatusCode.OK).Text("title").Should().Be("Added by the API");
         var listed = (await owner.GetAsync("/v1/organization/api-keys")).Expect(HttpStatusCode.OK);
         listed.Count().Should().Be(1);

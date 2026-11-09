@@ -20,8 +20,8 @@ namespace ScreenHire.Api.Endpoints;
 /// <summary>
 /// Hiring templates (docs/architecture/workflow-engine.md §1, §5). An organization sees its own templates and the system
 /// templates; the tenant filter and row-level security decide which, so no handler filters by organization. System
-/// templates are read-only (409); another organization's template is a 404. Every definition is validated before it is
-/// saved, guardrails included, and a published version never changes.
+/// templates are read-only (409); another organization's template is a 404. A draft saves with its problems (the response lists
+/// them) and publishing validates it, guardrails included; a published version never changes.
 /// </summary>
 internal static class TemplateEndpoints
 {
@@ -149,7 +149,8 @@ internal static class TemplateEndpoints
         }
 
         definition ??= HiringTemplateDefinition.Default;
-        if ((await TemplateReferences.ValidateAsync(db, definition, cancellationToken)).ToProblems("definition") is { } definitionProblems)
+        // A draft saves with problems; only publishing waits for them. What cannot be stored at all is refused.
+        if (DraftShape.Problems(definition).ToProblems("definition") is { } definitionProblems)
         {
             return TypedResults.ValidationProblem(definitionProblems);
         }
@@ -230,7 +231,7 @@ internal static class TemplateEndpoints
         }
 
         var definition = request.Definition ?? template.Versions.MaxBy(v => v.Version)?.Definition ?? HiringTemplateDefinition.Default;
-        if ((await TemplateReferences.ValidateAsync(db, definition, cancellationToken)).ToProblems("definition") is { } problems)
+        if (DraftShape.Problems(definition).ToProblems("definition") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
@@ -291,11 +292,13 @@ internal static class TemplateEndpoints
             return TypedResults.Problem(ArchivedReadOnly, statusCode: StatusCodes.Status409Conflict);
         }
 
-        if ((await TemplateReferences.ValidateAsync(db, request.Definition, cancellationToken)).ToProblems("definition") is { } problems)
+        if (DraftShape.Problems(request.Definition).ToProblems("definition") is { } shape)
         {
-            return TypedResults.ValidationProblem(problems);
+            return TypedResults.ValidationProblem(shape);
         }
 
+        // The draft saves whatever else is wrong with it and the problems come back with it; publishing waits for them.
+        var problems = await TemplateReferences.ValidateAsync(db, request.Definition, cancellationToken);
         found.Revise(Sanitize(request.Definition));
         try
         {
@@ -307,11 +310,11 @@ internal static class TemplateEndpoints
             return PublishedMeanwhile(version);
         }
 
-        return TypedResults.Ok(found.ToDetail());
+        return TypedResults.Ok(found.ToDetail(problems));
     }
 
-    // Publishing a published version changes nothing and raises no second event. The draft is validated again first: it
-    // was valid when saved, but the rules (the guardrails above all) may have tightened since.
+    // Publishing a published version changes nothing and raises no second event. The draft is validated here, because a
+    // draft saves with problems and the rules (the guardrails above all) may have tightened since it was saved.
     private static async Task<Results<Ok<HiringTemplateVersionDetail>, NotFound, ValidationProblem, ProblemHttpResult>> PublishVersion(
         Guid templateId,
         int version,

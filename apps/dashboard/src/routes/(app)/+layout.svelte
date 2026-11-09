@@ -26,6 +26,7 @@
   import NotificationSettingsSheet from '#lib/components/notification-settings-sheet.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
   import UndoNotice from '#lib/components/undo-notice.svelte';
+  import { setUndo } from '#lib/undo-context.js';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
@@ -207,6 +208,7 @@
   const savedViewList = createListViews();
   const jobList = createListJobs();
   const undo = new UndoOffer();
+  setUndo(undo);
   const viewActions = createViewActions({ undo, hiddenBuiltIns: () => savedViewList.data?.data.hiddenBuiltIns ?? [] });
   const views = $derived(
     sidebarViews({

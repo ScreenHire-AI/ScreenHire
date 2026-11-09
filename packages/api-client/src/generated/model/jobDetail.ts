@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { DefinitionError } from './definitionError.ts';
 import type { EmploymentType } from './employmentType.ts';
 import type { HiringWorkflow } from './hiringWorkflow.ts';
 import type { JobLocation } from './jobLocation.ts';
@@ -49,4 +50,5 @@ export interface JobDetail {
   closedAt: string | null;
   postings: JobPostingStatus[];
   lastUpdated: LastUpdate;
+  workflowProblems: DefinitionError[];
 }

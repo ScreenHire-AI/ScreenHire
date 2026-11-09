@@ -121,7 +121,7 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
         job.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("templateVersionId");
         copy.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("copyFromVersionId");
         (await a.GetAsync("/v1/jobs")).Count().Should().Be(0);
-        (await a.GetAsync("/v1/templates")).Count().Should().Be(2, "only the system templates");
+        (await a.GetAsync("/v1/templates")).Count().Should().Be(SystemTemplates.All.Count, "only the system templates");
     }
 
     [Fact]
@@ -160,8 +160,8 @@ public sealed class HiringTenantIsolationTests(AppHostFixture fixture)
 
         Ids(jobsA).Should().Equal(aJob.Id());
         Ids(jobsB).Should().Equal(scene.BJobId);
-        Ids(templatesA).Should().BeEquivalentTo([SystemTemplates.SoftwareEngineer, SystemTemplates.HourlyRole, aTemplate.Id()]);
-        Ids(templatesB).Should().BeEquivalentTo([SystemTemplates.SoftwareEngineer, SystemTemplates.HourlyRole, scene.BTemplateId]);
+        Ids(templatesA).Should().BeEquivalentTo([.. SystemTemplates.All, aTemplate.Id()]);
+        Ids(templatesB).Should().BeEquivalentTo([.. SystemTemplates.All, scene.BTemplateId]);
         candidatesA.Count().Should().Be(1);
         candidatesA.Text("0.fullName").Should().Be("Jordan Lee");
         Ids(candidatesB).Should().Equal(scene.BCandidateId);

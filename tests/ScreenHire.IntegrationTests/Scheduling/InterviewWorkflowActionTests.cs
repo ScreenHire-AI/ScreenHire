@@ -19,7 +19,7 @@ public sealed class InterviewWorkflowActionTests(AppHostFixture fixture)
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task A_workflow_naming_someone_outside_the_organization_as_an_interviewer_is_refused_at_every_save_site()
+    public async Task A_workflow_naming_someone_outside_the_organization_as_an_interviewer_saves_as_a_draft_but_cannot_be_published_or_opened()
     {
         using var world = await InterviewWorld.CreateAsync(fixture, connectCalendars: false);
         var stranger = Guid.CreateVersion7();
@@ -35,35 +35,38 @@ public sealed class InterviewWorkflowActionTests(AppHostFixture fixture)
         (await world.Owner.PostAsync("/v1/workflows/validate", new JsonObject { ["workflow"] = Samples.DefinitionWith(Copy(fine))["workflow"]!.DeepClone() }))
             .Expect(HttpStatusCode.OK).At("valid").GetBoolean().Should().BeTrue();
 
-        // A template's draft and its publish.
-        var refused = await world.Owner.PostAsync("/v1/templates", new JsonObject { ["name"] = "Stranger", ["definition"] = Samples.DefinitionWith(Copy(offending)) });
+        // A template's draft saves, and its publish is refused.
+        var drafted = (await world.Owner.PostAsync("/v1/templates", new JsonObject { ["name"] = "Stranger", ["definition"] = Samples.DefinitionWith(Copy(offending)) })).Expect(HttpStatusCode.Created);
+        var refused = await world.Owner.PostAsync($"/v1/templates/{drafted.Id()}/versions/1/publish");
         refused.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain($"definition.workflow.{path}");
         var (_, versionId) = await world.Owner.CreatePublishedTemplateAsync("Members", Samples.DefinitionWith(Copy(fine)));
         versionId.Should().NotBeEmpty("members are accepted");
 
-        // A job's own workflow.
+        // A draft job's own workflow saves too, and the job cannot open until it is fixed.
         var jobId = (await world.Owner.CreateJobAsync(Samples.RemoteJob("Job save"))).Id();
         var job = (await world.Owner.GetAsync($"/v1/jobs/{jobId}")).Expect(HttpStatusCode.OK);
         var workflow = JsonNode.Parse(job.At("workflow").GetRawText())!.AsObject();
         workflow["automations"] = new JsonArray(offending.DeepClone());
-        var update = await world.Owner.PutAsync($"/v1/jobs/{jobId}/workflow", new JsonObject { ["workflow"] = workflow.DeepClone(), ["expectedWorkflowVersion"] = 1 });
-        update.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain($"workflow.{path}");
+        var update = (await world.Owner.PutAsync($"/v1/jobs/{jobId}/workflow", new JsonObject { ["workflow"] = workflow.DeepClone(), ["expectedWorkflowVersion"] = 1 })).Expect(HttpStatusCode.OK);
+        update.At("workflowProblems").EnumerateArray().Select(p => p.GetProperty("path").GetString()).Should().Contain(path);
+        (await world.Owner.PostAsync($"/v1/jobs/{jobId}/publish")).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain($"workflow.{path}");
 
         workflow["automations"] = new JsonArray(fine.DeepClone());
-        (await world.Owner.PutAsync($"/v1/jobs/{jobId}/workflow", new JsonObject { ["workflow"] = workflow.DeepClone(), ["expectedWorkflowVersion"] = 1 })).Expect(HttpStatusCode.OK);
+        (await world.Owner.PutAsync($"/v1/jobs/{jobId}/workflow", new JsonObject { ["workflow"] = workflow.DeepClone(), ["expectedWorkflowVersion"] = 2 })).Expect(HttpStatusCode.OK);
     }
 
     [Fact]
-    public async Task A_verification_signal_automation_that_schedules_an_interview_is_refused_at_save()
+    public async Task A_verification_signal_automation_that_schedules_an_interview_saves_as_a_draft_and_is_refused_at_publish()
     {
         using var world = await InterviewWorld.CreateAsync(fixture, connectCalendars: false);
         var automation = ScheduleOnStage("screening", world.Owner.UserId);
         automation["trigger"] = new JsonObject { ["type"] = "VerificationAssessed" };
 
-        var refused = await world.Owner.PostAsync("/v1/templates", new JsonObject { ["name"] = "Signal", ["definition"] = Samples.DefinitionWith(automation) });
+        var drafted = (await world.Owner.PostAsync("/v1/templates", new JsonObject { ["name"] = "Signal", ["definition"] = Samples.DefinitionWith(automation) })).Expect(HttpStatusCode.Created);
+        var refused = await world.Owner.PostAsync($"/v1/templates/{drafted.Id()}/versions/1/publish");
 
         refused.Expect(HttpStatusCode.BadRequest).At("errors").GetProperty("definition.workflow.automations[0].actions[0]")[0].GetString()
-            .Should().Contain("Verification signals never drive rejection");
+            .Should().Contain("never drives a rejection");
     }
 
     [Fact]

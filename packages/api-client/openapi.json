@@ -18113,7 +18113,7 @@
             "type": "string"
           }
         },
-        "description": "A problem with a definition, at a JSON path such as `workflow.stages[1].id`."
+        "description": "A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is."
       },
       "DeviceCheckBasis": {
         "enum": [
@@ -18851,7 +18851,8 @@
           "definition",
           "createdAt",
           "publishedAt",
-          "publishedBy"
+          "publishedBy",
+          "problems"
         ],
         "type": "object",
         "properties": {
@@ -18890,9 +18891,15 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DefinitionError"
+            }
           }
         },
-        "description": "One version of a hiring template with its full definition. The definition's JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`."
+        "description": "One version of a hiring template with its full definition. The definition's JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator's words (an empty list when it is ready), so a client need not call\nthe validate route after a save."
       },
       "HiringTemplateVersionSummary": {
         "required": [
@@ -19609,7 +19616,8 @@
           "publishedAt",
           "closedAt",
           "postings",
-          "lastUpdated"
+          "lastUpdated",
+          "workflowProblems"
         ],
         "type": "object",
         "properties": {
@@ -19736,6 +19744,12 @@
           },
           "lastUpdated": {
             "$ref": "#/components/schemas/LastUpdate"
+          },
+          "workflowProblems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DefinitionError"
+            }
           }
         },
         "description": "Everything about one job: posting content, lifecycle, its workflow copy and where that came from."

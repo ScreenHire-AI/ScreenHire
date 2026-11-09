@@ -5,9 +5,10 @@ import { problemErrors } from '#lib/workflow.js';
 import { createLiveValidation } from '#lib/workflow-validation.svelte.js';
 
 /**
- * The workflow being edited on a builder page, held locally until it is saved: the API refuses to save an invalid
- * workflow, so work in progress can only live here. It knows whether there are unsaved changes, checks each change with
- * the API's validator, and keeps the errors a save answered with until the workflow changes again. Call during
+ * The workflow being edited on a builder page, held locally until it is saved. A draft saves with problems (only testing
+ * and publishing wait for them), so being invalid never stops a save; the API still refuses a body it cannot store, a
+ * stage still in use, and any save to a job that is open. It knows whether there are unsaved changes, checks each change
+ * with the API's validator, and keeps the errors a save answered with until the workflow changes again. Call during
  * component setup.
  */
 export function createWorkflowDraft() {
@@ -100,6 +101,10 @@ export function createWorkflowDraft() {
     },
     get checking() {
       return live.checking;
+    },
+    /** The workflow has no problems, checked for what is on screen: Test and Publish wait until it does. */
+    get ready() {
+      return live.valid && saveErrors?.snapshot !== snapshot;
     },
   };
 }

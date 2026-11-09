@@ -97,7 +97,7 @@ public sealed class ScorecardTests
         var workflow = WithStage(new WorkflowStage("panel", "Panel", StageKind.Interview, Scorecard: Card(Rating("c", label))));
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle()
-            .Which.Message.Should().Contain("never rate personality, emotion or honesty");
+            .Which.Message.Should().Contain("never personality, emotion or honesty").And.Contain(label).And.Contain("\"Panel\"");
     }
 
     [Theory]
@@ -136,7 +136,7 @@ public sealed class ScorecardTests
         DefinitionValidator.Validate(Workflow(On("offer"))).Should().ContainSingle()
             .Which.Should().Match<DefinitionError>(e => e.Path == "automations[0].trigger.stageId" && e.Message.Contains("has no scorecard"));
         DefinitionValidator.Validate(Workflow(On("nowhere"))).Should().ContainSingle()
-            .Which.Message.Should().Contain("No stage has the id");
+            .Which.Message.Should().Contain("stage that does not exist").And.Contain("\"Decision\"");
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public sealed class ScorecardTests
 
         DefinitionValidator.Validate(Workflow(On(TriggerType.ReviewerDecision))).Should().BeEmpty();
         DefinitionValidator.Validate(Workflow(On(TriggerType.StageEntered))).Should().ContainSingle()
-            .Which.Should().Match<DefinitionError>(e => e.Path == "automations[0].conditions.rules[0].fact" && e.Message.Contains("ReviewerDecision"));
+            .Which.Should().Match<DefinitionError>(e => e.Path == "automations[0].conditions.rules[0].fact" && e.Message.Contains("reviewer decision") && e.Message.Contains("\"A\""));
     }
 
     [Theory]
@@ -199,7 +199,7 @@ public sealed class ScorecardTests
 
         DefinitionValidator.Validate(Workflow(With(ActionType.QueueForRejectionReview))).Should().BeEmpty();
         DefinitionValidator.Validate(Workflow(With(ActionType.Reject, optIn: true))).Should().ContainSingle()
-            .Which.Message.Should().Contain("Only a knockout automation may reject");
+            .Which.Message.Should().Contain("only a knockout automation may do").And.Contain("\"No\"");
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public sealed class ScorecardTests
             [new AutomationAction(ActionType.QueueForRejectionReview, Reason: "No")]));
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle()
-            .Which.Message.Should().Contain("never drive rejection");
+            .Which.Message.Should().Contain("never drives a rejection");
     }
 
     // A signal that routes candidates into a stage taints that stage's reviewer decisions, and an any-stage reviewer

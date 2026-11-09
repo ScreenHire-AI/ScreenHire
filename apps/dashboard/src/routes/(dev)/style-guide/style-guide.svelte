@@ -131,6 +131,7 @@
   import CustomizePostingDemo from './customize-posting-demo.svelte';
   import BrandingDemo from './branding-demo.svelte';
   import GraphDemo from './graph-demo.svelte';
+  import TemplateBuilderDemo from './template-builder-demo.svelte';
   import DropAreaDemo from './drop-area-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
@@ -903,6 +904,8 @@
           </figure>
         </div>
       </Panel>
+
+      <TemplateBuilderDemo />
 
       <Panel title="Stage rail">
         <div class="flex flex-col gap-5">

@@ -423,6 +423,13 @@ internal static class JobEndpoints
             return TypedResults.ValidationProblem(problems);
         }
 
+        // A draft job's workflow saves with problems (UpdateJobWorkflow); an open job runs nothing for a workflow that
+        // does not validate, so opening one waits for them to be fixed.
+        if ((await TemplateReferences.ValidateAsync(db, job.Workflow, cancellationToken)).ToProblems("workflow") is { } workflowProblems)
+        {
+            return TypedResults.ValidationProblem(workflowProblems);
+        }
+
         var latest = await db.JobVersions.AsNoTracking()
             .Where(v => v.JobId == job.Id)
             .OrderByDescending(v => v.Version)
@@ -593,9 +600,10 @@ internal static class JobEndpoints
             WorkflowDiff.Compare(job.Workflow, latestWorkflow)));
     }
 
-    // Tailors the job's own copy of its workflow (workflow-engine.md §1). Validated like a template, guardrails included,
-    // so a job can never hold a definition a template could not. It does not republish the job: the careers form reads
-    // the workflow live, and boards never see it.
+    // Tailors the job's own copy of its workflow (workflow-engine.md §1). A draft job's workflow saves with its problems
+    // (the response lists them) and the job cannot be opened until they are fixed. A save on an open job is live at once,
+    // so it is validated like a template, guardrails included: a job can never run a definition a template could not.
+    // It does not republish the job: the careers form reads the workflow live, and boards never see it.
     private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJobWorkflow(
         Guid jobId,
         UpdateJobWorkflowRequest request,
@@ -616,8 +624,14 @@ internal static class JobEndpoints
             return conflict;
         }
 
-        // A stage that picks a library scorecard names it; the job takes its own copy of the questions here.
+        // A draft's shape is checked before anything reads its stages, so a part with no id is refused, never a 500.
         var workflow = request.Workflow;
+        if (job.Status == JobStatus.Draft && DraftShape.Problems(workflow, "workflow").ToProblems("") is { } shape)
+        {
+            return TypedResults.ValidationProblem(shape);
+        }
+
+        // A stage that picks a library scorecard names it; the job takes its own copy of the questions here.
         if (workflow?.Stages is not null)
         {
             (workflow, var missing) = await ScorecardReferences.CopyAsync(db, workflow, "workflow", cancellationToken);
@@ -627,7 +641,8 @@ internal static class JobEndpoints
             }
         }
 
-        if ((await TemplateReferences.ValidateAsync(db, workflow, cancellationToken)).ToProblems("workflow") is { } problems)
+        if (job.Status != JobStatus.Draft
+            && (await TemplateReferences.ValidateAsync(db, workflow, cancellationToken)).ToProblems("workflow") is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
         }
@@ -642,8 +657,11 @@ internal static class JobEndpoints
             return occupied;
         }
 
+        // The problems come back with the save, the named members and email templates checked too.
+        var references = await TemplateReferences.ValidateAsync(db, workflow, cancellationToken);
         job.ReviseWorkflow(workflow!, time.GetUtcNow());
-        return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
+        var saved = await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
+        return saved.Result is Ok<JobDetail> { Value: { } detail } ? TypedResults.Ok(detail with { WorkflowProblems = references }) : saved;
     }
 
     // "Apply update": the job takes a published version of its source template, replacing its own edits as the diff

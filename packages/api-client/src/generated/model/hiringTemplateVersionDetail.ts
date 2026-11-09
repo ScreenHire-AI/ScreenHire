@@ -4,12 +4,15 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { DefinitionError } from './definitionError.ts';
 import type { HiringTemplateDefinition } from './hiringTemplateDefinition.ts';
 import type { TemplateVersionStatus } from './templateVersionStatus.ts';
 
 /**
  * One version of a hiring template with its full definition. The definition's JSON Schema is served at
- * `/v1/schemas/hiring-template-definition.json`.
+ * `/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it
+ * from being tested or published, in the validator's words (an empty list when it is ready), so a client need not call
+ * the validate route after a save.
  */
 export interface HiringTemplateVersionDetail {
   id: string;
@@ -22,4 +25,5 @@ export interface HiringTemplateVersionDetail {
   publishedAt: string | null;
   /** @nullable */
   publishedBy: string | null;
+  problems: DefinitionError[];
 }
