@@ -1,6 +1,7 @@
 import type { Automation, AutomationAction, AutomationCondition, HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import {
+  automationLine,
   blanksOf,
   breaks,
   changeTrigger,
@@ -20,6 +21,7 @@ import {
   type Blank,
   type ChoiceBlank,
   type SentenceContext,
+  type TextBlank,
 } from './automation-sentence.js';
 import { factsFor } from './workflow.js';
 
@@ -645,5 +647,37 @@ describe('thenChoices', () => {
       'ScheduleInterview',
       'QueueForRejectionReview',
     ]);
+  });
+});
+
+describe('review fixes', () => {
+  it('does not offer a passed time limit while a condition reads the hours in the stage', () => {
+    const waits = flow([
+      automation('a', { type: 'StageEntered', stageId: 'screening' }, [{ type: 'NotifyTeam', note: 'Late' }], [
+        { fact: 'application.hoursInStage', operator: 'GreaterThan', value: '24' },
+      ]),
+    ]);
+
+    expect(ids(choice(waits, 'trigger'))).not.toContain('SlaBreached');
+  });
+
+  it("caps a typed tag and note at the validator's limits", () => {
+    const tagged = flow([automation('a', { type: 'ApplicationSubmitted' }, [{ type: 'AddTag', tag: 'x' }, { type: 'NotifyTeam', note: 'hi' }])]);
+
+    expect((blankOf(tagged, 'action-0-arg') as TextBlank).maxLength).toBe(50);
+    expect((blankOf(tagged, 'action-1-arg') as TextBlank).maxLength).toBe(1000);
+  });
+
+  it("reads an automation in one line for the list, in the map's words", () => {
+    const wf = flow([
+      automation('a', { type: 'ApplicationSubmitted' }, [{ type: 'AddTag', tag: 'Not eligible' }], [{ fact: 'verification.authenticity', operator: 'In', values: ['ReviewSuggested', 'VerificationRecommended'] }]),
+      automation('b', { type: 'StageEntered', stageId: 'screening' }, [mail]),
+      automation('c', { type: 'ApplicationSubmitted' }, [{ type: 'AssignReviewer' }], [checkRule, { fact: 'application.tags', operator: 'Exists' }], 'Any'),
+    ]);
+    const names = new Map([['stage-change', 'Moved to the next step']]);
+
+    expect(automationLine(wf.automations[0]!, wf)).toBe('When someone applies and Verification is Review or Verify, add the tag "Not eligible".');
+    expect(automationLine(wf.automations[1]!, wf, undefined, names)).toBe('When moves to Phone call, send the "Moved to the next step" email.');
+    expect(automationLine(wf.automations[2]!, wf)).toMatch(/^When someone applies and one of .+ or .+, ask the team to review\.$/);
   });
 });

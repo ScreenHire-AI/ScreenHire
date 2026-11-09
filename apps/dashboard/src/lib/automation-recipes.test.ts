@@ -185,3 +185,25 @@ describe('the recipes after a check', () => {
     expect(titles(workflow([negated]))).not.toContain('Tag anyone the checks say to verify');
   });
 });
+
+describe('recipe ids', () => {
+  const identifier = /^[a-z][a-z0-9_-]{0,39}$/;
+
+  it('keep the short form when it fits', () => {
+    expect(recipeId('knockout-felony')).toBe('recipe-knockout-felony');
+  });
+
+  it("stay within the validator's 40 characters for a 40-character stage or question id, and stay apart", () => {
+    const long = 'do_you_have_the_right_to_work_in_the_cou';
+    const other = 'do_you_have_the_right_to_work_in_the_uk_';
+    expect(long).toHaveLength(40);
+
+    const flow = workflow();
+    flow.stages.splice(1, 0, { id: long, name: 'A long stage', kind: 'Screening' });
+    flow.questionnaire.questions.push({ id: long, type: 'YesNo', label: 'Right to work here?', knockout: { disqualifyingAnswer: false, reason: null } });
+
+    for (const recipe of allRecipes(flow)) expect(recipe.automation.id).toMatch(identifier);
+    expect(recipeId(`knockout-${long}`)).not.toBe(recipeId(`knockout-${other}`));
+    expect(recipeId(`knockout-${long}`)).toBe(recipeId(`knockout-${long}`));
+  });
+});
