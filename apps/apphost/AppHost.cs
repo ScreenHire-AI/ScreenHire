@@ -61,7 +61,8 @@
 //                               owner's registrations first; off by default) and the Billing page say "plus tax where it
 //                               applies"; Stripe:Tax:CollectTaxIds (default true with tax on) also asks a business for its tax
 //                               id, and the sandbox's Checkout records both. ApiBaseUrl and Timeout are for a test that
-//                               points the Stripe client at a stand-in. The keys come from those parameters, never from these settings.
+//                               points the Stripe client at a stand-in. The keys come from those parameters, never from
+//                               these settings.
 //   Calendar:*                  member calendars for interview scheduling (ScreenHire.Application CalendarOptions,
 //                               docs/architecture/interview-scheduling.md), forwarded to the API and the worker. A
 //                               provider is on only when both its client id (Google:ClientId, Microsoft:ClientId) and
