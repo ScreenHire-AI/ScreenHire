@@ -137,6 +137,11 @@ Organization
   fork the copy. When a template gets a new version, jobs show "update available" and the recruiter can diff and apply —
   live jobs are never mutated silently.
 - **System templates** ship with the product (SMB quick-start), customers clone and edit them.
+  Three of them are the starting points of the new hiring template screen (`/templates/new`): "Office role", "Trade role with a
+  trial shift" and "High volume" (`AddStartingPointTemplates`, ids in `SystemTemplates.cs`, listed by the dashboard in
+  `starting-points.ts`, which a unit test keeps in step). Each is published version 1 with its questions, the built-in thank-you
+  email, a reminder for the team on every stage with a time limit, and nothing that rejects anyone on a check; its description is the
+  card's example line. Choosing one is `POST /v1/templates` with `copyFromVersionId`; "Start from nothing" is the basic pipeline.
 - **Archived templates.** An organization archives its own hiring template or library scorecard
   (`POST .../archive`, `.../unarchive`): it leaves the pickers, no new job starts from it (`POST /v1/jobs` answers 400),
   and it reads only until restored (409 on an edit). Jobs keep the copy they took, and stages that name an archived
