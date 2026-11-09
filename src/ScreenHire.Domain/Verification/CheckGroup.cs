@@ -45,9 +45,17 @@ public static class CheckGroups
 
     /// <summary>
     /// The group of a stored signal: its source analyzer's, or the catalogue's for a code whose source this map does not know.
-    /// Null for a retired code from an analyzer that no longer exists.
+    /// A retired code from an analyzer that no longer exists takes the group of its category, so a stored signal always has one.
     /// </summary>
-    public static CheckGroup? OfSignal(VerificationSignal signal) => Of(signal.Source) ?? SignalCatalogue.GroupOf(signal.Code);
+    public static CheckGroup OfSignal(VerificationSignal signal) =>
+        Of(signal.Source) ?? SignalCatalogue.GroupOf(signal.Code) ?? signal.Category switch
+        {
+            SignalCategory.Network => CheckGroup.Network,
+            SignalCategory.Identity => CheckGroup.Contact,
+            SignalCategory.Document => CheckGroup.Documents,
+            SignalCategory.Content => CheckGroup.Answers,
+            _ => CheckGroup.FormUse,
+        };
 
     /// <summary>The group's name in a sentence ("contact details"), as the ruleset's summary says it.</summary>
     public static string SentenceName(CheckGroup group) => Label(group).ToLowerInvariant();

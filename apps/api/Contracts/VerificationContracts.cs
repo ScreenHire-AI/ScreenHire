@@ -120,7 +120,7 @@ public sealed record AiAssistanceAssessmentView(
 /// <remarks>
 /// <c>countsTowardLevel</c>: the signal is in a category another independent category backs up, so it is one of the
 /// level's reasons. <c>contextOnly</c>: shown for context and never a reason on its own (a VPN, a failed bot challenge).
-/// <c>source</c> and <c>sourceVersion</c>: the analyzer that observed it. <c>group</c>: the group of checks that analyzer belongs to. <c>informational</c>: shown and never counted.
+/// <c>source</c> and <c>sourceVersion</c>: the analyzer that observed it. <c>group</c>: the group of checks that analyzer belongs to; a stored signal from an analyzer that no longer exists takes its category's group. <c>informational</c>: shown and never counted.
 /// <c>llm</c>: for a signal a language model helped derive, the prompt version and the models that answered.
 /// <c>explained</c>: a reviewer marked this reason explained, and nobody undid it. It decides nothing: the level and
 /// everything that reads it stay as assessed.

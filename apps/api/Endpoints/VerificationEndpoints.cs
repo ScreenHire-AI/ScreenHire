@@ -398,7 +398,7 @@ internal static class VerificationReads
                 s.Id, s.Code, TitleOf(s), s.Category, s.Weight,
                 s.Confidence, assessment.CountedSignalIds.Contains(s.Id), s.ContextOnly, s.AccessibilitySensitive, s.Explanation, s.Evidence,
                 s.CounterEvidence, s.Source, s.SourceVersion, s.ObservedAt, s.Informational, s.Llm, ExplanationOf(assessment, s.Id),
-                CheckGroups.OfSignal(s)!.Value)),
+                CheckGroups.OfSignal(s))),
         ];
 
         var authenticitySignals = authenticity is null ? [] : SignalsOf(authenticity);

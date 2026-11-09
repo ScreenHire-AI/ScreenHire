@@ -50,6 +50,27 @@ public sealed class SignalGroupTests
     }
 
     [Theory]
+    [InlineData("retired", "NET_RETIRED", SignalCategory.Network, CheckGroup.Network)]
+    [InlineData("retired", "ID_RETIRED", SignalCategory.Identity, CheckGroup.Contact)]
+    [InlineData("retired", "DOC_RETIRED", SignalCategory.Document, CheckGroup.Documents)]
+    [InlineData("retired", "CNT_RETIRED", SignalCategory.Content, CheckGroup.Answers)]
+    [InlineData("retired", "AUTO_RETIRED", SignalCategory.Automation, CheckGroup.FormUse)]
+    [InlineData("retired", "BEH_RETIRED", SignalCategory.Behavioural, CheckGroup.FormUse)]
+    public void A_stored_signal_from_a_retired_analyzer_takes_its_categorys_group(string source, string code, SignalCategory category, CheckGroup expected)
+    {
+        var signal = new VerificationSignal
+        {
+            OrganizationId = Guid.NewGuid(),
+            ApplicationId = Guid.NewGuid(),
+            Code = code,
+            Category = category,
+            Source = source,
+            Explanation = "Explanation.",
+        };
+        CheckGroups.OfSignal(signal).Should().Be(expected);
+    }
+
+    [Theory]
     [InlineData(CheckGroup.Network, "network")]
     [InlineData(CheckGroup.Contact, "contact details")]
     [InlineData(CheckGroup.Documents, "documents")]

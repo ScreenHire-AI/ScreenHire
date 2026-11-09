@@ -224,7 +224,7 @@ public static class VerificationRuleset
         // is organised by, in their enum order.
         private static string Categories(IEnumerable<VerificationSignal> signals)
         {
-            var names = signals.Select(CheckGroups.OfSignal).OfType<CheckGroup>().Distinct().Order().Select(CheckGroups.SentenceName).ToList();
+            var names = signals.Select(CheckGroups.OfSignal).Distinct().Order().Select(CheckGroups.SentenceName).ToList();
             return names.Count <= 1 ? names.FirstOrDefault() ?? "" : $"{string.Join(", ", names[..^1])} and {names[^1]}";
         }
     }
