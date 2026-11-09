@@ -525,7 +525,8 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   (CSS only, no script), then the chips. The summary is at most 160 characters, about the job rather than the company; until
   a person writes one it is the description's first sentence. The job page does not repeat it: the description is right below, and
   until someone writes a summary the two start with the same sentence. The card takes no employer colour. The branding
-  preview's sample card has the same shape.
+  preview's sample card starts with the same title, summary and chips, then adds the job page's link and Apply button,
+  because those are what the brand colour paints.
 - The board's heading is "Open roles", because the header already names the employer, over a lede of one sentence.
 - A message about what just happened is `Notice`: an icon, the message, and one quieter line for what to do next. A page
   never builds its own bordered block for it.
