@@ -1,5 +1,7 @@
+import { ai, aiMarginPercent } from '@screenhire/plans';
 import { describe, expect, it } from 'vitest';
-import { automation, careersSite, hero, includedByTopic, integrations, notPaidExtra, pricingNotes, sellingPoints } from './features';
+import { aiCost, automation, careersSite, hero, includedByTopic, integrations, notPaidExtra, pricingNotes, sellingPoints } from './features';
+import { marketPains } from './market';
 
 // The site's own words. The same rules are in docs/design/marketing-site.md (copy rules) and CLAUDE.md (non-negotiables 1 to 3).
 const bannedWords = ['AI-powered', 'supercharge', 'revolutionize', 'seamless', 'unlock', 'effortless', 'next-generation'];
@@ -76,3 +78,34 @@ describe('pricing page words', () => {
     expect(elsewhere).not.toMatch(/\b(?:no API|has no|lacks|does not (?:have|offer))\b/i);
   });
 });
+
+describe('what the AI costs', () => {
+  it('states the margin the product charges, read from the shared catalogue and not retyped', () => {
+    expect(aiCost.marginPercent).toBe(aiMarginPercent);
+    expect(aiMarginPercent).toBe(Math.round(ai.margin * 100));
+    expect(aiCost.billed).toBe(`Use of our AI key is billed at the provider's price plus ${aiMarginPercent}%.`);
+    expect(aiCost.both).toContain(aiCost.billed);
+    expect(aiCost.both).toContain(aiCost.ownKey);
+  });
+
+  it('says on what every plan includes that the AI check is billed on our key and costs nothing extra on your own', () => {
+    const real = includedByTopic.find((topic) => topic.id === 'real-people')!;
+    const line = real.items.find((item) => item.includes('AI consistency check'))!;
+    expect(line).toContain(`plus ${aiMarginPercent}%`);
+    expect(line).toContain('your own AI key');
+  });
+
+  it('never lists the AI among what you will not pay extra for', () => {
+    expect(notPaidExtra.join(' ')).not.toMatch(/AI/);
+  });
+
+  it('answers "AI sold as an add-on" with the cost stated, never that nothing is metered', () => {
+    const answer = marketAnswer();
+    expect(answer).toContain(aiCost.both);
+    expect(answer).not.toMatch(/nothing is metered/i);
+  });
+});
+
+function marketAnswer(): string {
+  return marketPains.find((entry) => entry.id === 'ai-sold-apart')!.answer;
+}

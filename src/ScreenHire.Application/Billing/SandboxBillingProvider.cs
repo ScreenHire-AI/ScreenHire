@@ -88,6 +88,16 @@ public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtectio
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Takes every event: the sandbox charges nobody and keeps no meter of its own. The caller's record of what it reported
+    /// (<c>ai_usage_charges</c>, with the provider <c>Sandbox</c>) is what shows the usage was reported.
+    /// </summary>
+    public Task<AiUsageReportResult> ReportAiUsageAsync(AiUsageReport request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Task.FromResult(new AiUsageReportResult([.. request.Events.Select(e => e.Id)], null));
+    }
+
     /// <summary>The sandbox has no webhook: its pages apply the change themselves.</summary>
     public BillingWebhook ReadWebhook(string body, string? signature, DateTimeOffset now) => new(false, null);
 

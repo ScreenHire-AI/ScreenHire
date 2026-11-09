@@ -61,6 +61,7 @@ export * from './automationIssue.ts';
 export * from './automationRunEntry.ts';
 export * from './automationRunStatus.ts';
 export * from './automationTrigger.ts';
+export * from './billingAiUsage.ts';
 export * from './billingOverview.ts';
 export * from './billingPlan.ts';
 export * from './billingPlanChangePreview.ts';

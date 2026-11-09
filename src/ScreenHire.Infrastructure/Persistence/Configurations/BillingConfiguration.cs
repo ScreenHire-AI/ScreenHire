@@ -23,6 +23,23 @@ internal sealed class BillingAccountConfiguration : IEntityTypeConfiguration<Bil
     }
 }
 
+internal sealed class AiUsageChargeConfiguration : IEntityTypeConfiguration<AiUsageCharge>
+{
+    public void Configure(EntityTypeBuilder<AiUsageCharge> builder)
+    {
+        builder.ToTable("ai_usage_charges");
+        // The id is the ledger call's, assigned by the caller: the primary key is what makes a call settle once.
+        builder.Property(c => c.Id).ValueGeneratedNever();
+        builder.Property(c => c.State).HasConversion<string>().HasMaxLength(10);
+        builder.Property(c => c.Provider).HasConversion<string>().HasMaxLength(10);
+        builder.Property(c => c.Margin).HasPrecision(8, 4);
+
+        builder.HasOne<Organization>().WithMany().HasForeignKey(c => c.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        // The Billing page's "reported so far" and the trial allowance already used.
+        builder.HasIndex(c => new { c.OrganizationId, c.State });
+    }
+}
+
 internal sealed class BillingEventRecordConfiguration : IEntityTypeConfiguration<BillingEventRecord>
 {
     public void Configure(EntityTypeBuilder<BillingEventRecord> builder)

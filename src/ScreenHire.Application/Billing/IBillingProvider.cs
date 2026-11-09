@@ -29,6 +29,14 @@ public interface IBillingProvider
     Task ChangePlanAsync(PlanChangeRequest request, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Reports AI use on ScreenHire's key to the provider's meter, so the subscription's next invoice charges it. Events are sent one at a
+    /// time in order, and the first failure stops the batch: the result lists the ids the provider took (and so will bill) and the
+    /// failure, if any, so the caller records what was sent before it retries the rest. An id the provider has already seen counts as
+    /// taken. Never throws for a refusal or an unreachable provider; that is in the result.
+    /// </summary>
+    Task<AiUsageReportResult> ReportAiUsageAsync(AiUsageReport request, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Checks a webhook's signature and reads the event. <see cref="BillingWebhook.Event"/> is null for a valid delivery
     /// this app does not act on (an event type it ignores), so the provider stops retrying it.
     /// </summary>
@@ -57,6 +65,18 @@ public sealed record PlanChangeRequest(
 /// regular charge on <c>NextPaymentAt</c>, and <c>ProrationDate</c> is the instant both were priced at.
 /// </summary>
 public sealed record PlanChangePreview(decimal AmountDueNow, decimal NextPaymentAmount, DateTimeOffset NextPaymentAt, string Currency, DateTimeOffset ProrationDate);
+
+/// <summary>One AI call to meter: the ledger call's id (the event's identifier at the provider) and its charge in micro-dollars (positive).</summary>
+public sealed record AiUsageEvent(Guid Id, long Micros);
+
+/// <summary>
+/// Usage to meter for one organization's provider customer, stamped <c>At</c> (the moment of the report, from the host's clock).
+/// <c>CustomerId</c> is null in the sandbox, which has no customers.
+/// </summary>
+public sealed record AiUsageReport(Guid OrganizationId, string? CustomerId, IReadOnlyList<AiUsageEvent> Events, DateTimeOffset At);
+
+/// <summary>The ids the provider took, in order, and what stopped the rest (null when every event went through).</summary>
+public sealed record AiUsageReportResult(IReadOnlyList<Guid> Accepted, BillingProviderException? Failure);
 
 /// <summary>
 /// What a provider told us, in its own terms made common. A null field says nothing about that fact and leaves it as it is.
@@ -94,4 +114,10 @@ public sealed class BillingProviderException : Exception
         : base(message, innerException)
     {
     }
+
+    /// <summary>The provider's HTTP status when it answered, else null.</summary>
+    public int? Status { get; init; }
+
+    /// <summary>The provider's error code when it gave one (for example <c>duplicate_meter_event</c>), else null.</summary>
+    public string? Code { get; init; }
 }

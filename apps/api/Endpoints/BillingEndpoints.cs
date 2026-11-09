@@ -10,6 +10,7 @@ using ScreenHire.Domain.Billing;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
+using ScreenHire.Infrastructure.Verification.Llm;
 using Wolverine.EntityFrameworkCore;
 
 namespace ScreenHire.Api.Endpoints;
@@ -67,12 +68,35 @@ internal static class BillingEndpoints
     }
 
     private static async Task<Ok<BillingOverview>> GetBilling(
-        BillingService billing, BillingAccess access, PlanCatalogue catalogue, IOptions<BillingOptions> options, ITenantContext tenant, CancellationToken cancellationToken)
+        BillingService billing,
+        BillingAccess access,
+        PlanCatalogue catalogue,
+        IOptions<BillingOptions> options,
+        ScreenHireDbContext db,
+        TimeProvider time,
+        ITenantContext tenant,
+        CancellationToken cancellationToken)
     {
         if (!access.IsConfigured || await billing.StatusAsync(tenant.OrganizationId!.Value, cancellationToken) is not { } status)
         {
-            return TypedResults.Ok(new BillingOverview(false, false, null, null, null, null, null, false, 0, null, false, false, []));
+            return TypedResults.Ok(new BillingOverview(false, false, null, null, null, null, null, false, 0, null, false, false, [], null));
         }
+
+        var now = time.GetUtcNow();
+        var ai = options.Value.Ai;
+        var usage = await AiUsageBillingQueries.ThisMonthAsync(db, now, ai.Margin, cancellationToken);
+        var aiUsage = new BillingAiUsage(
+            AiUsageQueries.Month(now),
+            usage.BuiltInCalls,
+            usage.Tokens,
+            usage.ProviderCost,
+            AiCharge.Dollars(usage.ChargeMicros),
+            ai.Margin * 100m,
+            usage.CallsWithUnknownCost,
+            usage.OwnKeyCalls,
+            ai.TrialAllowance,
+            AiCharge.Dollars(usage.TrialAllowanceUsedMicros),
+            access.Mode == BillingMode.Sandbox || !string.IsNullOrWhiteSpace(ai.StripePriceId));
 
         var renewing = status.State is BillingState.Active or BillingState.PastDue;
         return TypedResults.Ok(new BillingOverview(
@@ -88,7 +112,8 @@ internal static class BillingEndpoints
             status.Limit,
             status.HasCustomer && access.Mode == BillingMode.Stripe || renewing && access.Mode == BillingMode.Sandbox,
             options.Value.Stripe.Tax.Enabled,
-            [.. catalogue.Plans.Select(p => ToContract(p, access.Mode))]));
+            [.. catalogue.Plans.Select(p => ToContract(p, access.Mode))],
+            aiUsage));
     }
 
     private static async Task<Results<Ok<BillingRedirect>, NotFound, ValidationProblem, ProblemHttpResult>> StartBillingCheckout(

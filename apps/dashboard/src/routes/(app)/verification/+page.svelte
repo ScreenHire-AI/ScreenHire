@@ -704,7 +704,10 @@
     <!-- Usage: for who holds View AI usage (the server sends the limits only to them); only an Owner sets the limits. Outside the
          form's column, so its tables use the page's width (S6). -->
     {#if detail?.limits}
-      <AiUsagePanel canSetLimits={can(page.data.user, 'ManageBilling')} />
+      <!-- The anchor the Billing page links to for the call-by-call detail. -->
+      <div id="ai-usage" class="flex w-full min-w-0 flex-col gap-5">
+        <AiUsagePanel canSetLimits={can(page.data.user, 'ManageBilling')} />
+      </div>
     {/if}
   </div>
 </main>

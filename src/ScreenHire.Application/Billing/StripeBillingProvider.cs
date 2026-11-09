@@ -56,6 +56,16 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             new("mode", "subscription"),
             new("line_items[0][price]", request.Plan.StripePriceId),
             new("line_items[0][quantity]", "1"),
+        };
+        // The meter's price, so the subscription bills AI use on ScreenHire's key. A metered price takes no quantity. With none set
+        // the subscription is the plan alone and nothing is reported (ReportAiUsageAsync is not called without it).
+        if (!string.IsNullOrWhiteSpace(options.Ai.StripePriceId))
+        {
+            form.Add(new("line_items[1][price]", options.Ai.StripePriceId));
+        }
+
+        form.AddRange(
+        [
             new("success_url", request.SuccessUrl.ToString()),
             new("cancel_url", request.CancelUrl.ToString()),
             new("client_reference_id", organization),
@@ -63,7 +73,7 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             new("metadata[plan]", request.Plan.Key),
             new("subscription_data[metadata][organization_id]", organization),
             new("subscription_data[metadata][plan]", request.Plan.Key),
-        };
+        ]);
         if (!string.IsNullOrEmpty(request.CustomerId))
         {
             form.Add(new("customer", request.CustomerId));
@@ -119,6 +129,53 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             "billing_portal/sessions",
             [new("customer", request.CustomerId), new("return_url", request.ReturnUrl.ToString())],
             cancellationToken);
+    }
+
+    /// <summary>
+    /// One meter event per call (https://docs.stripe.com/api/billing/meter-event/create), sent one after the other: Stripe answers 409
+    /// when two events for one customer and meter arrive at once. The ledger call's id is the event's <c>identifier</c>, which Stripe
+    /// deduplicates for 24 hours (a repeat is a 400 <c>duplicate_meter_event</c>, and counts as taken: it was). The value is the charge
+    /// in micro-dollars, a positive whole number, which the metered price turns into money at 0.0001 cents a unit. The timestamp is
+    /// now, so a call backfilled from the trial lands in the first paid period (Stripe takes up to 35 days back, and ignores usage
+    /// from before a subscription started). Any other refusal stops the batch.
+    /// </summary>
+    public async Task<AiUsageReportResult> ReportAiUsageAsync(AiUsageReport request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var accepted = new List<Guid>();
+        if (string.IsNullOrEmpty(request.CustomerId))
+        {
+            return new AiUsageReportResult(accepted, new BillingProviderException("There is no Stripe customer to report AI use for yet."));
+        }
+
+        var now = request.At.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
+        foreach (var usage in request.Events)
+        {
+            List<KeyValuePair<string, string>> form =
+            [
+                new("event_name", options.Ai.MeterEventName),
+                new("identifier", usage.Id.ToString()),
+                new("timestamp", now),
+                new("payload[stripe_customer_id]", request.CustomerId),
+                new("payload[value]", usage.Micros.ToString(CultureInfo.InvariantCulture)),
+            ];
+            try
+            {
+                await SendAsync(HttpMethod.Post, "billing/meter_events", form, null, cancellationToken);
+            }
+            catch (BillingProviderException e) when (e.Status == 400 && e.Code == "duplicate_meter_event")
+            {
+                // Stripe has this event already: an earlier run sent it and then failed before saving that it did.
+            }
+            catch (BillingProviderException e)
+            {
+                return new AiUsageReportResult(accepted, e);
+            }
+
+            accepted.Add(usage.Id);
+        }
+
+        return new AiUsageReportResult(accepted, null);
     }
 
     /// <summary>
@@ -257,7 +314,7 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
         // The price is the truth: a plan switched in the portal changes the price but keeps the metadata the subscription was
         // created with. So a price no plan lists names no plan (the stored one stands), and the metadata covers only an event
         // that carries no items (the Checkout session).
-        if (FirstItem(item) is { } first && first.TryGetProperty("price", out var price) && Text(price, "id") is { } priceId)
+        if (PlanItem(item) is { } first && first.TryGetProperty("price", out var price) && Text(price, "id") is { } priceId)
         {
             return catalogue.Plans.FirstOrDefault(p => p.StripePriceId == priceId)?.Key;
         }
@@ -267,9 +324,9 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
 
     // API version 2025-03-31 moved the period from the subscription to its items. An endpoint created at another version than
     // ApiVersion sends the later shape, and the next payment must not silently disappear because of it.
-    private static DateTimeOffset? PeriodEnd(JsonElement item)
+    private DateTimeOffset? PeriodEnd(JsonElement item)
     {
-        if (!item.TryGetProperty("current_period_end", out var end) && FirstItem(item) is { } first)
+        if (!item.TryGetProperty("current_period_end", out var end) && PlanItem(item) is { } first)
         {
             first.TryGetProperty("current_period_end", out end);
         }
@@ -277,8 +334,26 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
         return end.ValueKind == JsonValueKind.Number ? DateTimeOffset.FromUnixTimeSeconds(end.GetInt64()) : null;
     }
 
-    private static JsonElement? FirstItem(JsonElement item) =>
-        item.TryGetProperty("items", out var items) && items.TryGetProperty("data", out var list) && list.GetArrayLength() > 0 ? list[0] : null;
+    // The item that carries one of the plans' prices, else the first. A subscription also has the metered item for AI use, and
+    // Stripe does not promise which one is listed first.
+    private JsonElement? PlanItem(JsonElement item)
+    {
+        if (!item.TryGetProperty("items", out var items) || !items.TryGetProperty("data", out var list) || list.GetArrayLength() == 0)
+        {
+            return null;
+        }
+
+        var planPrices = PlanPrices();
+        foreach (var candidate in list.EnumerateArray())
+        {
+            if (candidate.TryGetProperty("price", out var price) && Text(price, "id") is { } id && planPrices.Contains(id))
+            {
+                return candidate;
+            }
+        }
+
+        return list[0];
+    }
 
     private static string? Text(JsonElement element, string name) =>
         element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
@@ -298,10 +373,25 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
 
     // The item that carries one of our plans' prices, not simply the first, so another item on the subscription (a later add-on)
     // is left alone. Stripe needs its id to replace the price instead of adding a second item.
+    private HashSet<string?> PlanPrices() =>
+        catalogue.Plans.Select(p => p.StripePriceId).Where(id => !string.IsNullOrEmpty(id)).ToHashSet();
+
+    // An invoice line's price id: `price.id` at the pinned version, `pricing.price_details.price` from the later ones. Null when the
+    // line names none (a line that is not a priced item), which is then counted as before.
+    private static string? PriceOfLine(JsonElement line)
+    {
+        if (line.TryGetProperty("price", out var price) && price.ValueKind == JsonValueKind.Object && Text(price, "id") is { } id)
+        {
+            return id;
+        }
+
+        return line.TryGetProperty("pricing", out var pricing) && pricing.TryGetProperty("price_details", out var details) ? Text(details, "price") : null;
+    }
+
     private async Task<string> SubscriptionItemIdAsync(string subscriptionId, CancellationToken cancellationToken)
     {
         var subscription = await SendAsync(HttpMethod.Get, $"subscriptions/{Uri.EscapeDataString(subscriptionId)}", null, null, cancellationToken);
-        var planPrices = catalogue.Plans.Select(p => p.StripePriceId).Where(id => !string.IsNullOrEmpty(id)).ToHashSet();
+        var planPrices = PlanPrices();
         if (subscription.TryGetProperty("items", out var items) && items.TryGetProperty("data", out var list) && list.ValueKind == JsonValueKind.Array)
         {
             foreach (var item in list.EnumerateArray())
@@ -317,13 +407,20 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
         throw new BillingProviderException("The Stripe subscription has no item on one of the plans' prices.");
     }
 
-    private static PlanChangePreview ReadPreview(JsonElement invoice, DateTimeOffset prorationDate)
+    private PlanChangePreview ReadPreview(JsonElement invoice, DateTimeOffset prorationDate)
     {
         long prorations = 0;
         long regular = 0;
         long? regularStart = null;
         foreach (var line in invoice.GetProperty("lines").GetProperty("data").EnumerateArray())
         {
+            // The metered item (AI use so far this period) is on the invoice too. It is usage, not the plan: it is neither a
+            // proration nor the next plan charge, and its period would pull the next payment's date back to the period's start.
+            if (PriceOfLine(line) is { } linePrice && !PlanPrices().Contains(linePrice))
+            {
+                continue;
+            }
+
             var amount = line.GetProperty("amount").GetInt64();
             if (line.TryGetProperty("proration", out var proration) && proration.ValueKind == JsonValueKind.True)
             {
@@ -396,7 +493,11 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             if (!response.IsSuccessStatusCode)
             {
                 var code = document.RootElement.TryGetProperty("error", out var error) ? Text(error, "code") ?? Text(error, "type") : null;
-                throw new BillingProviderException($"Stripe answered {(int)response.StatusCode} {code ?? "unknown"}.");
+                throw new BillingProviderException($"Stripe answered {(int)response.StatusCode} {code ?? "unknown"}.")
+                {
+                    Status = (int)response.StatusCode,
+                    Code = document.RootElement.TryGetProperty("error", out var failure) ? Text(failure, "code") : null,
+                };
             }
 
             return document.RootElement.Clone();

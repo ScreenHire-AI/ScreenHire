@@ -4,6 +4,23 @@
 // competitors.md hold the sources and the date each was read), and nothing here says how a check works or gives a score
 // (public-copy.test.ts guards it).
 
+import { aiMarginPercent } from '@screenhire/plans';
+
+/**
+ * What the AI consistency check costs beyond the plan, in the words every page uses. The plan includes ScreenHire's checks. The AI
+ * check calls a model, and use of ScreenHire's own AI key is billed at the provider's price plus a margin, which is the share in
+ * packages/plans/ai.json that the product reads too (docs/architecture/billing.md, "AI usage"). With the customer's own AI key
+ * ScreenHire charges nothing for it. Never say the AI is free, and never retype the margin: it comes from the catalogue.
+ */
+export const aiCost = {
+  /** The margin as a whole percentage, from the catalogue. */
+  marginPercent: aiMarginPercent,
+  billed: `Use of our AI key is billed at the provider's price plus ${aiMarginPercent}%.`,
+  ownKey: 'Bring your own AI key and we charge nothing for it.',
+  /** Both sentences, for a place with room for them. */
+  both: `Use of our AI key is billed at the provider's price plus ${aiMarginPercent}%. Bring your own AI key and we charge nothing for it.`,
+};
+
 export interface Source {
   label: string;
   href: string;
@@ -203,7 +220,7 @@ export const includedByTopic: { id: string; title: string; items: string[] }[] =
     items: [
       'A check on every application',
       'A level for every applicant, with the evidence, what speaks for them and a suggested next step',
-      'The AI consistency check, with your own key and model if you prefer',
+      `The AI consistency check, on our AI key at the provider's price plus ${aiMarginPercent}%, or on your own AI key at no charge from us`,
     ],
   },
   {
@@ -258,7 +275,7 @@ export const pricingNotes: { ours: string; elsewhere: string; source: Source; to
   },
   {
     topic: 'real-people',
-    ours: 'Fraud and bot checks, or the AI that helps with them.',
+    ours: 'Fraud and bot checks.',
     elsewhere: 'Gem sells fraud detection as checks you purchase separately.',
     source: {
       label: 'Gem help center, read 8 November 2026',

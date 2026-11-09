@@ -12,7 +12,7 @@ import QuestionsList from '../../components/shell/QuestionsList.astro';
 import RuledList from '../../components/shell/RuledList.astro';
 import Section from '../../components/shell/Section.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { sellingPoints } from '../../lib/features';
+import { aiCost, sellingPoints } from '../../lib/features';
 import { pages } from '../../lib/pages';
 import { faqPage, type Faq } from '../../lib/seo';
 
@@ -25,7 +25,7 @@ const yours = [
   { term: 'Questionnaires', detail: 'Ask what you need to know, in sections. The apply form shows one section a page, and a candidate can save it and finish later from an emailed link.' },
   { term: 'Scorecards', detail: 'Build a library of scorecards with your own questions and a required recommendation. Each stage picks one, and a reviewer fills it in or you ask a teammate for it.' },
   { term: 'Email templates', detail: 'Write the subject and message in your own words, with the candidate and job names dropped in. Preview it, and send yourself a test.' },
-  { term: 'Your own AI key', detail: 'The AI consistency check is included. Use your own key and model if you prefer.' },
+  { term: 'Your own AI key', detail: `The AI consistency check is included in the plan. ${aiCost.billed} Use your own key and model and we charge nothing for it.` },
 ];
 
 const access = [

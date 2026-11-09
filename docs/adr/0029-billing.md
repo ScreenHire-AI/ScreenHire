@@ -86,6 +86,13 @@ about payment may reach it. A payment problem must not lock a team out of candid
 11. **Candidates never see any of it.** No careers page, email, notice or realtime event for a candidate mentions plans,
     limits or payment. A job that a lapsed plan cannot open is simply not published, and the one that is open keeps
     taking applications.
+12. **Update 2026-11-09: AI use on ScreenHire's key is metered on top of the plan.** The owner's model is a built-in key charged at the
+    provider's price plus a margin (20%, `packages/plans/ai.json`), or the customer's own key at no charge from us. The worker reports each
+    built-in call from the usage ledger to a Stripe meter (`POST /v1/billing/meter_events`, plain `HttpClient` and the pinned version like
+    the rest; one more endpoint does not reopen the SDK question) in whole micro-dollars, once, with the ledger id as the event's
+    identifier and `ai_usage_charges` as the record. The plan includes the checks. The trial includes an allowance of AI use (5.00 US dollars
+    by default) and the rest is on the first paid invoice, because a trial has no Stripe customer. USD only, enforced at start, because
+    a subscription has one currency and the ledger prices in dollars. Detail: `docs/architecture/billing.md`, "AI usage".
 
 ## Consequences
 

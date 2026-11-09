@@ -58,17 +58,62 @@ public sealed class BillingOptions
 
 /// <summary>
 /// The charge for AI use on ScreenHire's key: the provider's price plus a margin. An organization's own key costs it nothing
-/// extra. The margin is configuration, so it changes without a release.
+/// extra. The margin is configuration, so it changes without a release. Reported to the payment provider's meter by the worker
+/// (docs/architecture/billing.md, "AI usage").
 /// </summary>
 public sealed class BillingAiOptions
 {
-    /// <summary>The share added to the provider's price: 0.20 is 20% on top. Between 0 and <see cref="MaxMargin"/>.</summary>
-    public decimal Margin { get; set; } = DefaultMargin;
-
-    public const decimal DefaultMargin = 0.20m;
+    /// <summary>
+    /// The share added to the provider's price: 0.20 is 20% on top. Between 0 and <see cref="MaxMargin"/>. Defaults to
+    /// packages/plans/ai.json, the file the marketing site reads to say what the margin is.
+    /// </summary>
+    public decimal Margin { get; set; } = AiDefaults.Shipped.Margin;
 
     /// <summary>The highest margin accepted, 10 for 1,000%: a larger value is a typo for a percentage (20 for 0.20).</summary>
     public const decimal MaxMargin = 10m;
+
+    /// <summary>The name of the Stripe meter's events. The owner creates the meter with this <c>event_name</c>.</summary>
+    public string MeterEventName { get; set; } = "screenhire_ai_usage";
+
+    /// <summary>
+    /// The Stripe price on the meter (metered, USD, 0.0001 cents per unit, a unit being a micro-dollar). Checkout adds it to the
+    /// subscription. With none, Stripe mode reports no usage and says so in the log; the sandbox needs none.
+    /// </summary>
+    public string? StripePriceId { get; set; }
+
+    /// <summary>
+    /// US dollars of AI use on ScreenHire's key the free trial includes. Calls that started before the trial ended count toward it, in
+    /// time order, and the rest is billed from the first paid invoice. Zero includes none.
+    /// </summary>
+    public decimal TrialAllowance { get; set; } = 5.00m;
+
+    /// <summary>The most calls one run reports for one organization; a full batch sends the next.</summary>
+    public int ReportBatchSize { get; set; } = 200;
+
+    public const int MaxReportBatchSize = 1000;
+}
+
+/// <summary>
+/// The margin as the catalogue ships it (packages/plans/ai.json, embedded), the file the marketing site reads to say what the margin
+/// is. Configuration (<see cref="BillingAiOptions.Margin"/>) overrides it for the API and worker alone, so a host that changes it
+/// changes the file too, or the site states a different margin from the one an organization pays.
+/// </summary>
+public sealed record AiDefaults(decimal Margin)
+{
+    private const string ResourceName = "ai.json";
+
+    // Before Shipped: static fields initialize in the order they are written.
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    public static AiDefaults Shipped { get; } = Load();
+
+    private static AiDefaults Load()
+    {
+        using var stream = typeof(AiDefaults).Assembly.GetManifestResourceStream(ResourceName)
+            ?? throw new InvalidOperationException($"The embedded {ResourceName} (packages/plans/ai.json) is missing.");
+        return JsonSerializer.Deserialize<AiDefaults>(stream, Json)
+            ?? throw new InvalidOperationException($"The embedded {ResourceName} is empty.");
+    }
 }
 
 public sealed class BillingSandboxOptions
@@ -183,15 +228,51 @@ public sealed class BillingSandboxGate(IHostEnvironment environment) : IValidate
     }
 }
 
-/// <summary>Refuses a margin that would charge less than the provider's price, or a hundredfold more by a typing slip.</summary>
-public sealed class BillingAiMarginGate : IValidateOptions<BillingOptions>
+/// <summary>
+/// Refuses AI billing settings that would fail silently: a margin that would charge less than the provider's price, or a hundredfold
+/// more by a typing slip; a negative allowance; a batch size the run cannot work with; and a metered price beside a plan that is not
+/// in US dollars. The ledger prices a call in US dollars and all items of one Stripe subscription share a currency, so a euro plan
+/// with the metered price would fail at Checkout, or bill the wrong amount.
+/// </summary>
+public sealed class BillingAiGate : IValidateOptions<BillingOptions>
 {
     public ValidateOptionsResult Validate(string? name, BillingOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return options.Ai.Margin is >= 0m and <= BillingAiOptions.MaxMargin
-            ? ValidateOptionsResult.Success
-            : ValidateOptionsResult.Fail($"ScreenHire:Billing:Ai:Margin is {options.Ai.Margin}. It must be 0 to {BillingAiOptions.MaxMargin} (0.20 is 20% on top of the provider's price).");
+        var ai = options.Ai;
+        var problems = new List<string>();
+        if (ai.Margin is < 0m or > BillingAiOptions.MaxMargin)
+        {
+            problems.Add($"ScreenHire:Billing:Ai:Margin is {ai.Margin}. It must be 0 to {BillingAiOptions.MaxMargin} (0.20 is 20% on top of the provider's price).");
+        }
+
+        if (ai.TrialAllowance < 0m)
+        {
+            problems.Add($"ScreenHire:Billing:Ai:TrialAllowance is {ai.TrialAllowance}. It must be 0 or more US dollars.");
+        }
+
+        if (ai.ReportBatchSize is < 1 or > BillingAiOptions.MaxReportBatchSize)
+        {
+            problems.Add($"ScreenHire:Billing:Ai:ReportBatchSize is {ai.ReportBatchSize}. It must be 1 to {BillingAiOptions.MaxReportBatchSize}.");
+        }
+
+        if (string.IsNullOrWhiteSpace(ai.MeterEventName))
+        {
+            problems.Add("ScreenHire:Billing:Ai:MeterEventName must not be empty.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(ai.StripePriceId))
+        {
+            var notDollars = new PlanCatalogue(Options.Create(options)).Plans
+                .Where(p => !string.Equals(p.Currency, "USD", StringComparison.OrdinalIgnoreCase)).Select(p => p.Key).ToList();
+            if (notDollars.Count > 0)
+            {
+                problems.Add(
+                    $"ScreenHire:Billing:Ai:StripePriceId is set, but the plans {string.Join(", ", notDollars)} are not in USD. AI use is priced in US dollars and a Stripe subscription has one currency.");
+            }
+        }
+
+        return problems.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(problems);
     }
 }
 

@@ -2,6 +2,14 @@
 
 ## 2026-11-09
 
+**Billing: built-in AI use charged at the provider's price plus a margin.** The worker reports each call on ScreenHire's key to a Stripe
+meter every 15 minutes, once, in whole micro-dollars (cost times 1.20), and an organization's own key is never charged
+([billing](architecture/billing.md#ai-usage)). The free trial includes `ScreenHire:Billing:Ai:TrialAllowance` (US dollars, 5.00) of AI use;
+the rest is on the first paid invoice. The Billing page shows the month, the margin in words and a link to Verification for the call-by-call
+detail; the pricing page, the home page and the product pages stop saying the AI costs nothing extra and say what it costs, with the margin
+read from `packages/plans/ai.json`. The sandbox records what it reported in `ai_usage_charges`. Owner actions: create the meter and its
+price in Stripe ([status](status.md#owner-actions)).
+
 **Built-in AI: provider presets, a usage ledger, budgets, alerts and a cap.** An organization's own model is now one of six
 presets (Anthropic, OpenAI, OpenRouter, Azure OpenAI, Google Gemini, Other), each filling in its address. Every model call is a
 row in an append-only ledger with the provider's own request id, tokens and cost, so a customer can compare ScreenHire's numbers

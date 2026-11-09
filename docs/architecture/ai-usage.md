@@ -32,7 +32,8 @@ The consistency check ([verification engine](verification-engine.md) section 10.
 model today. People are wary of token use, and a provider's own dashboard shows only the provider's side, so ScreenHire records
 every call itself and shows it: the same numbers an organization can put next to its provider's bill, one to one, with the
 provider's own id for each response. The built-in key is billed at the provider's price plus a margin
-([billing](billing.md), a later task bills it). An organization's own key costs it nothing extra.
+([billing](billing.md#ai-usage): the worker reports each call to the payment provider's meter every 15 minutes). An organization's own
+key costs it nothing extra.
 
 ## Providers
 
@@ -86,7 +87,9 @@ A call's cost, in US dollars, is found in this order (`AiUsageCost`):
 3. Otherwise the cost is unknown (`CostBasis` `Unknown`, a null cost), never a made-up zero. A money budget or cap counts an unknown
    cost as nothing, and the usage page says how many calls there are.
 
-The margin is `ScreenHire:Billing:Ai:Margin` (default 0.20, 0 to 10), read by the billing of this use.
+The margin is `ScreenHire:Billing:Ai:Margin` (default 0.20 from `packages/plans/ai.json`, 0 to 10). A built-in call is charged its cost times
+(1 + margin) in whole micro-dollars, once, and `ai_usage_charges` records which ledger calls are settled, because this table is
+append-only and its rows commit late ([billing](billing.md#ai-usage)). A call whose cost is unknown is never charged.
 
 ## Budget, alerts and the cap
 
@@ -144,7 +147,7 @@ billing. With no retention set, nothing is deleted.
 ## Settings
 
 `ScreenHire:Verification:Llm:Prices`, `:DefaultMonthlyTokenBudget` and `:DefaultMonthlyTokenCap` go to the worker, `ScreenHire:AiUsage:*`
-to the API and the worker, and `ScreenHire:Billing:Ai:Margin` to the API; the header of `apps/apphost/AppHost.cs` lists them. The
+to the API and the worker, and `ScreenHire:Billing:Ai:*` to the API and the worker; the header of `apps/apphost/AppHost.cs` lists them. The
 worker's Development settings price the fake model so the local demo and the tests show costs. Prices for the deployed models are
 the owner's to set.
 
