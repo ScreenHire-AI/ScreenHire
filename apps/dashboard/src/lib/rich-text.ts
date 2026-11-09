@@ -47,8 +47,10 @@ export function isBlank(html: string | null | undefined): boolean {
 }
 
 // An output, `{{ firstName }}`, or a logic tag, `{% if meetingLink != blank %}`. Both show as a chip, so a person editing an
-// email sees "Meeting link" and "If there is a meeting link", never the braces.
-const liquidPiece = /\{\{\s*([^{}]*?)\s*\}\}|\{%\s*([^%]*?)\s*%\}/g;
+// email sees "Meeting link" and "If there is a meeting link", never the braces. A piece with Liquid's whitespace control,
+// `{%- ... -%}` or `{{- ... -}}`, stays text as written: a chip stores only what is inside and would drop the dashes.
+// The last character inside may not be a dash, which keeps the expression free of lookbehind for older browsers.
+const liquidPiece = /\{\{(?!-)\s*([^{}]*?[^{}\s-])\s*\}\}|\{%(?!-)\s*([^%]*?[^%\s-])\s*%\}/g;
 
 /** The HTML with each `{{ ... }}` and `{% ... %}` in its text as a chip's element, so the editor loads it as one piece. */
 export function withVariableChips(html: string): string {
@@ -211,7 +213,7 @@ export const Variable = Node.create<VariableOptions>({
     const type = this.type;
     return [
       new InputRule({
-        find: /\{\{\s*([^{}]+?)\s*\}\}$/,
+        find: /\{\{(?!-)\s*([^{}]*?[^{}\s-])\s*\}\}$/,
         handler: ({ state, range, match }) => {
           state.tr.replaceWith(range.from, range.to, type.create({ expression: match[1]!.trim() }));
         },

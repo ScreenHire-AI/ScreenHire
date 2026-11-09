@@ -248,4 +248,11 @@ describe('logic tags in email text', () => {
     expect(chipped).toContain('data-liquid-tag="endif"');
     expect(withoutChipElements(chipped)).toBe(html);
   });
+
+  it('leave a piece with whitespace control as text, so its dashes survive a save', () => {
+    const html = '<p>{%- if meetingLink != blank -%}Join {{- meetingLink -}}{%- endif %}</p>';
+
+    expect(withVariableChips(html)).toBe(html);
+    expect(withoutChipElements(withVariableChips(html))).toBe(html);
+  });
 });

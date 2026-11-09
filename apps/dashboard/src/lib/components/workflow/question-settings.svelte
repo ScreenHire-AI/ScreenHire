@@ -7,7 +7,11 @@
   // `settings`): a yes-or-no question's knockout, a number's range, a text answer's longest length and a file's types.
   // A knockout marks an answer and does nothing by itself: what happens to it is an automation. `unhandled` says no
   // automation reads this question's answer yet, so the knockout says so and where to add one (A11).
-  let { question, unhandled = false }: { question: Question; unhandled?: boolean } = $props();
+  let {
+    question,
+    unhandled = false,
+    automationsHref = '?tab=automations',
+  }: { question: Question; unhandled?: boolean; automationsHref?: string } = $props();
 
   const uid = $props.id();
   const numberOrNull = (value: string) => (value.trim() === '' ? null : Number(value));
@@ -29,7 +33,7 @@
         <p class="text-muted-foreground">A knockout is an objective eligibility check only, such as the right to work, never AI use or an accommodation.</p>
         {#if question.knockout && unhandled}
           <p>
-            Nothing happens to this answer yet. <a href="?tab=automations" class="underline underline-offset-2 hover:text-primary">Add a step in Automations</a>.
+            Nothing happens to this answer yet. <a href={automationsHref} class="underline underline-offset-2 hover:text-primary">Add a step in Automations</a>.
           </p>
         {/if}
         {#if question.knockout}

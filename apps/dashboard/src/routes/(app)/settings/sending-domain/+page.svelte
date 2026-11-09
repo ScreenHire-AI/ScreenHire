@@ -121,7 +121,7 @@
     'Enter the domain your company uses for email.',
     'Add the DNS records we give you where your domain is managed, or send them to whoever manages it.',
     'Press Check records. Changes can take a few hours to show.',
-    "Once they pass, email comes from hiring@ followed by your domain, such as hiring@example.com. Until then it comes from ScreenHire's address, so nothing stops working.",
+    "Once they pass, email comes from an address at your domain, such as hiring@example.com. Until then it comes from ScreenHire's address, so nothing stops working.",
   ];
 </script>
 

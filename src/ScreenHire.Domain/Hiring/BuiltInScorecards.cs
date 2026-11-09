@@ -58,7 +58,7 @@ public static class BuiltInScorecards
     /// </summary>
     public static BuiltInScorecard TrialShift { get; } = new("trial-shift", "Trial shift",
     [
-        Rating("task_quality", "Does the tasks well", "The quality of the work they did on the shift."),
+        Rating("task_quality", "Does the work well", "The quality of the work they did on the shift."),
         Rating("pace", "Keeps a good pace", "How much they got done for the time, and how well it held up."),
         Rating("safe_working", "Works safely", "The safety and hygiene steps this job's tasks need."),
         Rating("follows_instructions", "Follows instructions", "Whether they did the work the way they were shown."),

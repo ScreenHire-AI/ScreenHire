@@ -75,6 +75,9 @@ describe('an answer an automation reads', () => {
     expect(answerIsRead(workflow, 'work_authorization')).toBe(true);
     expect(answerIsRead(workflow, 'shift')).toBe(false);
     expect(answerIsRead({ ...workflow, automations: [] }, 'work_authorization')).toBe(false);
+    // An automation that is switched off does nothing with the answer, so the knockout still says nothing happens.
+    const off = { ...workflow, automations: workflow.automations.map((automation) => ({ ...automation, enabled: false })) };
+    expect(answerIsRead(off, 'work_authorization')).toBe(false);
   });
 });
 

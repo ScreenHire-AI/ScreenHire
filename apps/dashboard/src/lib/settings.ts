@@ -1,7 +1,7 @@
 import type { CurrentUser, JobAccess, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
 import { integrations } from '#lib/integrations.js';
 import { can, seesAllJobs } from '#lib/permissions.js';
-import { verificationTab } from '#lib/verification-area.js';
+import { verificationTab, type VerificationTabValue } from '#lib/verification-area.js';
 
 /** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
 export const teamPath = '/v1/organization/team';
@@ -166,6 +166,12 @@ export interface SettingsElsewhere {
 
 const everyone = () => true;
 
+/** A Verification tab as a search result: its name, address and who may open it come from the tab itself, so search never offers one the tab bar hides (A3). */
+function verificationPage(value: VerificationTabValue, description: string, keywords: readonly string[]): SettingsElsewhere {
+  const tab = verificationTab(value);
+  return { label: tab.label, href: tab.href, group: 'Verification', description, keywords, allowed: tab.allowed };
+}
+
 export const settingsElsewhere: readonly SettingsElsewhere[] = [
   {
     label: 'Hiring templates',
@@ -189,46 +195,11 @@ export const settingsElsewhere: readonly SettingsElsewhere[] = [
     keywords: ['email', 'emails', 'wording', 'rejection email', 'reminder email', 'message'],
     allowed: everyone,
   },
-  {
-    label: 'AI model',
-    href: '/verification/ai-model',
-    group: 'Verification',
-    description: "ScreenHire's model or your own key",
-    keywords: ['ai', 'ai key', 'key', 'openai', 'anthropic', 'claude', 'provider', 'own key'],
-    allowed: (user) => verificationTab('ai-model').allowed(user),
-  },
-  {
-    label: 'Usage',
-    href: '/verification/usage',
-    group: 'Verification',
-    description: 'What the AI checks used and cost',
-    keywords: ['ai', 'budget', 'cost', 'tokens', 'cap', 'spend', 'bill'],
-    allowed: (user) => verificationTab('usage').allowed(user),
-  },
-  {
-    label: 'Notifications',
-    href: '/verification/notifications',
-    group: 'Verification',
-    description: 'Who hears about AI budget and check alerts',
-    keywords: ['alerts', 'budget', 'warn'],
-    allowed: (user) => verificationTab('notifications').allowed(user),
-  },
-  {
-    label: 'Checks',
-    href: '/verification/checks',
-    group: 'Verification',
-    description: 'Which checks run on an applicant',
-    keywords: ['ai checks', 'turn off', 'consistency', 'duplicates', 'network'],
-    allowed: everyone,
-  },
-  {
-    label: 'Policy',
-    href: '/verification/policy',
-    group: 'Verification',
-    description: 'AI use while applying, trusted domains and networks',
-    keywords: ['ai use', 'device check', 'trusted', 'network', 'privacy', 'consent'],
-    allowed: everyone,
-  },
+  verificationPage('ai-model', "ScreenHire's model or your own key", ['ai', 'ai key', 'key', 'openai', 'anthropic', 'claude', 'provider', 'own key']),
+  verificationPage('usage', 'What the AI checks used and cost', ['ai', 'budget', 'cost', 'tokens', 'cap', 'spend', 'bill']),
+  verificationPage('notifications', 'Who hears about AI budget and check alerts', ['alerts', 'budget', 'warn']),
+  verificationPage('checks', 'Which checks run on an applicant', ['ai checks', 'turn off', 'consistency', 'duplicates', 'network']),
+  verificationPage('policy', 'AI use while applying, trusted domains and networks', ['ai use', 'device check', 'trusted', 'network', 'privacy', 'consent']),
 ];
 
 /** The pages outside Settings that a search for `query` finds, for what this person may open. An empty search finds none. */

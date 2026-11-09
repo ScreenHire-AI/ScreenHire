@@ -551,9 +551,11 @@ export function withQuestionType(question: Question, type: QuestionType): Questi
   return next;
 }
 
-/** Whether an automation's condition reads the answer to the question `questionId` (the fact `answers.{id}`). */
+/** Whether an automation that is on has a condition that reads the answer to the question `questionId` (the fact `answers.{id}`). */
 export const answerIsRead = (workflow: HiringWorkflow, questionId: string): boolean =>
-  workflow.automations.some((automation) => automation.conditions?.rules.some((rule) => rule.fact === `answers.${questionId}`));
+  workflow.automations.some(
+    (automation) => automation.enabled !== false && automation.conditions?.rules.some((rule) => rule.fact === `answers.${questionId}`),
+  );
 
 /** A new automation for a lane: a stage's entry trigger, or "an application arrives" for the whole workflow. */
 export function newAutomation(workflow: HiringWorkflow, stageId: string | null): Automation {
