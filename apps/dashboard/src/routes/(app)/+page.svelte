@@ -223,7 +223,10 @@
 
   <!-- The content container (S6): the list template's one table panel. -->
   <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
-    <JobsOverview jobs={jobs.isError ? null : jobs.data?.data} user={page.data.user} />
+    <!-- Four zeros say nothing to a new team: the overview starts with the first job, and the empty state below says what to do. -->
+    {#if !(jobs.isSuccess && all.length === 0)}
+      <JobsOverview jobs={jobs.isError ? null : jobs.data?.data} user={page.data.user} />
+    {/if}
     {#if refused}<PlanProblemNotice problem={refused} />{/if}
     <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
       {#snippet tools()}
@@ -273,7 +276,7 @@
             <Empty.Header>
               <Empty.Media variant="icon"><BriefcaseIcon /></Empty.Media>
               <Empty.Title>No jobs yet</Empty.Title>
-              <Empty.Description>A new job starts as a draft that only your team sees.</Empty.Description>
+              <Empty.Description>Start from a template, then publish it to your careers page and the job boards.</Empty.Description>
             </Empty.Header>
             <Empty.Content>
               <Button href="/jobs/new" variant="outline" size="lg"><PlusIcon aria-hidden="true" />New job</Button>

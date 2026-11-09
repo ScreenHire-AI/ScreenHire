@@ -55,7 +55,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         var other = await otherContext.NewPageAsync();
         await SignInAsync(other, scene.Email);
         await GoToJobAsync(other, scene.JobId);
-        await Expect(LiveIndicator(other)).ToContainTextAsync("Live updates: Live");
+        await Expect(LiveIndicator(other)).ToContainTextAsync("Live updates: Connected");
         await Expect(await StageCellOfAsync(other, "Casey Morgan")).ToHaveTextAsync("Applied");
         await other.EvaluateAsync("() => { window.__screenhireNoReload = true; }");
 
@@ -142,6 +142,9 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await more.ClickAsync();
         await closeItem.ClickAsync();
+        // The tooltip that More's focus opened is still fading out as the dialog opens, and axe scores a half-faded tooltip as
+        // low contrast. Wait for it to go, so the check is of the page and not of an animation frame.
+        await Expect(Page.Locator("[data-slot='tooltip-content']")).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Close & remove everywhere" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();

@@ -53,6 +53,7 @@
     error,
     onretry,
     moves,
+    draft = false,
     verificationFilter = $bindable({ ...noVerificationFilter }),
     view = $bindable('table'),
   }: {
@@ -65,9 +66,14 @@
     error: unknown;
     onretry: () => unknown;
     moves: Moves;
+    /** A draft takes no applications yet, so its empty state says to publish. */
+    draft?: boolean;
     verificationFilter?: VerificationFilter;
     view?: 'table' | 'board';
   } = $props();
+
+  // A draft is not on the careers page, so nobody can apply to it until it is published.
+  const emptyText = $derived(draft ? 'Nobody can apply until you publish this job.' : 'Applications appear here as they arrive.');
 
   // The sidebar's own phone test (under md), where the search moves out of the header and the filters become menus.
   const sidebar = Sidebar.useSidebar();
@@ -261,7 +267,7 @@
       extraColumns={tableColumns}
       bind:selectedIds
       emptyTitle={filtering ? undefined : 'No candidates yet'}
-      emptyText={filtering ? 'No candidates match these filters.' : 'Applications appear here as they arrive.'}
+      emptyText={filtering ? 'No candidates match these filters.' : emptyText}
       onclearfilters={filtering ? clearFilters : undefined}
     >
       {#snippet filters()}
@@ -278,7 +284,7 @@
         <Empty.Header>
           <Empty.Media variant="icon"><UsersIcon /></Empty.Media>
           <Empty.Title>No candidates yet</Empty.Title>
-          <Empty.Description>Applications appear here as they arrive.</Empty.Description>
+          <Empty.Description>{emptyText}</Empty.Description>
         </Empty.Header>
       {/if}
       {#if filtering}<Button variant="outline" size="lg" onclick={clearFilters}>Clear filters</Button>{/if}

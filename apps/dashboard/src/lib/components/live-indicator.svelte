@@ -5,7 +5,7 @@
   // Icon, colour and label together (design system section 3.2): live is done, (re)connecting is ScreenHire at work, and
   // offline is not in effect. All but live are grey: the page still works, and it reconnects on its own.
   export const liveStatus: Record<ConnectionStatus, { label: string; status: StatusName; text: string }> = {
-    connected: { label: 'Live', status: 'done', text: 'text-status-clear' },
+    connected: { label: 'Connected', status: 'done', text: 'text-status-clear' },
     connecting: { label: 'Connecting…', status: 'working', text: 'text-muted-foreground' },
     reconnecting: { label: 'Reconnecting…', status: 'working', text: 'text-muted-foreground' },
     disconnected: { label: 'Offline', status: 'notInEffect', text: 'text-muted-foreground' },

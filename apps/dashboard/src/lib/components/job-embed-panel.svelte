@@ -31,12 +31,12 @@
         <CodeBlock code={embedSnippet(detail.careersUrl, slug)} label="Embed code for this job" />
         <p class="text-muted-foreground">
           Paste it where this job should show. The code for every job is on
-          <a href="/settings/careers-site" class="font-semibold text-primary underline underline-offset-2">Careers site settings</a>.
+          <a href="/settings/careers-site" class="font-semibold text-primary underline underline-offset-2">Careers page settings</a>.
         </p>
       {:else}
         <p class="text-muted-foreground">
           Add your website on
-          <a href="/settings/careers-site" class="font-semibold text-primary underline underline-offset-2">Careers site settings</a>
+          <a href="/settings/careers-site" class="font-semibold text-primary underline underline-offset-2">Careers page settings</a>
           to get this job's embed code.
         </p>
       {/if}

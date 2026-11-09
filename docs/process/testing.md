@@ -12,6 +12,7 @@ sources:
   - resource: tests/ScreenHire.E2E/ProofWalk.cs
   - resource: tests/ScreenHire.E2E/DashboardThemeTests.cs
   - resource: tests/ScreenHire.E2E/DashboardPhoneTests.cs
+  - resource: tests/ScreenHire.E2E/CandidatePhoneTests.cs
   - resource: tests/ScreenHire.E2E/SeparatorTests.cs
   - resource: tests/ScreenHire.E2E/FormEdgesTests.cs
   - resource: apps/dashboard/src/theme-contrast.test.ts
@@ -307,6 +308,10 @@ run lists every page to fix.
   at least 44 px to touch. A control passes at 44 px by its own box, by its label, or by a 44 px `::after` (a link stretched
   over its row, a checkbox's square); inline links in a sentence are exempt (WCAG 2.5.8). Under an open dialog only the
   dialog's controls count. A step that finds the pointer no longer coarse reloads the page first.
+- `CandidatePhoneTests` is the same walk for the candidate's side, with `ProofWalk`'s collectors and no signed link: the board, the job,
+  the privacy page, the two pages that ask for an emailed link, every kind of dead link, and every step of the apply form with
+  its errors and the confirmation, at 390 px with a touch screen; the same pages in dark mode; and a 1440 px pass. It also
+  pins the voice of the notice and the confirmation (no "thorough checks", no claim that no software decides).
 - `theme-contrast.test.ts` (Vitest) computes what axe cannot read from the tokens, in both themes: the focus ring at 3:1,
   status icons at 3:1, status labels at 4.5:1 and the chart colour at 3:1.
 - Each class also signs a new person in, checks the onboarding page they land on, sets up an organization there and walks

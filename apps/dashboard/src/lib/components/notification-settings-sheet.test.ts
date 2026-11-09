@@ -27,7 +27,7 @@ describe('notifications sheet', () => {
     const onsaved = vi.fn();
     render(WithQueryClient, { props: { component: NotificationSettingsSheet, props: { open: true, onsaved } } });
 
-    const dialog = await screen.findByRole('dialog', { name: 'Notifications' });
+    const dialog = await screen.findByRole('dialog', { name: 'Teammate changes' });
     const moves = await screen.findByRole('switch', { name: 'Moves' });
     expect(moves).toBeChecked();
     expect(screen.getByRole('switch', { name: 'Tags' })).not.toBeChecked();
@@ -41,7 +41,7 @@ describe('notifications sheet', () => {
     await fireEvent.click(screen.getByRole('switch', { name: 'Close automatically' }));
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(onsaved).toHaveBeenCalledWith('Your notification settings were saved.'));
+    await waitFor(() => expect(onsaved).toHaveBeenCalledWith('Your teammate change settings were saved.'));
     expect(saved).toEqual([{ toasts: true, closeToasts: false, off: ['Tags', 'Moves'] }]);
   });
 });

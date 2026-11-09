@@ -4,6 +4,7 @@
 // follow-up questionnaire, an interview to book) and a link to the messages. Server rendered with no client JavaScript.
 // The link is the candidate's alone: never cached, indexed or sent on as a referrer. It collects nothing about the browser.
 // It shows the employer's name and the job's title, never a stage name, a rating, a note or anything about verification.
+import Panel from '../../../../components/Panel.astro';
 import PortalLinkProblem from '../../../../components/PortalLinkProblem.astro';
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
 import { getPublicOrganization, getPublicPortal } from '../../../../lib/api';
@@ -35,6 +36,10 @@ const heading = { open: 'Your applications', busy: 'Too many attempts', expired:
 const mine = `${base}/my-applications/${token}`;
 const waitingText = { Questionnaire: 'Answer the follow-up questions', Interview: 'Pick a time for your interview' };
 const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' };
+// The four steps are square markers on a line (design-system T4): a step done is filled with a tick, the step the application
+// is at is outlined with a filled centre, and the steps to come are empty. The name is under each marker, and a screen reader
+// hears where the candidate is. Each step draws the line back to the one before it, under the markers (z-10), through their
+// centres; the line to a step to come takes the input edge so it keeps 3:1.
 ---
 
 <CareersLayout
@@ -55,95 +60,96 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
     portal && (
       <>
         <p class="mt-3 text-candidate-body">
-          Hi {portal.firstName}. Only you can see this page.
+          Hi {portal.firstName}. This page is yours alone, so please do not share its link.
         </p>
 
         {portal.drafts.length > 0 && (
-          <section aria-labelledby="saved" class="mt-8">
-            <h2 id="saved" class="font-display text-panel-title">Saved to finish later</h2>
-            <ul class="mt-3 flex flex-col gap-3">
-              {portal.drafts.map((draft) => (
-                <li class="rounded-2xl border border-candidate-border bg-candidate-surface p-5">
-                  <p class="font-semibold">{draft.jobTitle}</p>
-                  <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">
-                    Saved until {longDate(draft.expiresAt)}. Your files are attached again when you finish.
-                  </p>
-                  <a href={`${base}/jobs/${draft.jobSlug}/apply?draft=${draft.token}`} class="button-secondary mt-3">Finish this application</a>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <Panel id="saved" title="Saved to finish later" class="mt-6" bodyClass="flex flex-col gap-5">
+            {portal.drafts.map((draft) => (
+              <div>
+                <p class="font-semibold">{draft.jobTitle}</p>
+                <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">
+                  Saved until {longDate(draft.expiresAt)}. Your files are attached again when you finish.
+                </p>
+                <a href={`${base}/jobs/${draft.jobSlug}/apply?draft=${draft.token}`} class="button-secondary mt-3">Finish this application</a>
+              </div>
+            ))}
+          </Panel>
         )}
 
-        <section aria-labelledby="applications" class="mt-8">
-          <h2 id="applications" class="font-display text-panel-title">Applications</h2>
-          {portal.applications.length === 0 && (
-            <p class="mt-3 text-candidate-body text-candidate-muted-foreground">There are no applications to show yet.</p>
-          )}
-          <ul class="mt-3 flex flex-col gap-4">
-            {portal.applications.map((application) => {
-              const ended = application.funnel.ended === 'None' ? null : ENDED[application.funnel.ended];
-              return (
-                <li class="rounded-2xl border border-candidate-border bg-candidate-surface p-5">
-                  <h3 class="font-display text-heading">{application.jobTitle}</h3>
-                  {ended ? (
-                    <div class="mt-4 flex items-start gap-3" role="status">
-                      <svg aria-hidden="true" class:list={['mt-1 size-5 flex-none', ended.tone]} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d={ended.mark === 'check' ? 'M9 12l2 2 4-4' : 'M8 12h8'} />
-                      </svg>
-                      <div>
-                        <p class="font-semibold">{ended.label}</p>
-                        <p class="text-candidate-hint text-candidate-muted-foreground">{ended.detail}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <ol class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4" aria-label="Where your application is">
-                      {stepStates(application.funnel.steps, application.funnel.current).map((step) => (
-                        <li class="flex items-center gap-2" aria-current={step.state === 'current' ? 'step' : undefined}>
-                          <svg aria-hidden="true" class:list={['size-5 flex-none', { done: 'text-status-clear-mark', current: 'text-candidate-brand-text', upcoming: 'text-candidate-muted-foreground' }[step.state]]} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            {step.state === 'done' && <path d="M9 12l2 2 4-4" />}
-                            {step.state === 'current' && <circle cx="12" cy="12" r="4" fill="currentColor" />}
+        {portal.applications.length === 0 && (
+          <p class="mt-6 text-candidate-body text-candidate-muted-foreground">There are no applications to show yet.</p>
+        )}
+
+        {portal.applications.map((application) => {
+          const ended = application.funnel.ended === 'None' ? null : ENDED[application.funnel.ended];
+          return (
+            <Panel id={`application-${application.id}`} title={application.jobTitle} class="mt-6">
+              {ended ? (
+                <div class="flex items-start gap-3" role="status">
+                  <svg aria-hidden="true" class:list={['mt-1 size-5 flex-none', ended.tone]} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d={ended.mark === 'check' ? 'M9 12l2 2 4-4' : 'M8 12h8'} />
+                  </svg>
+                  <div>
+                    <p class="font-semibold">{ended.label}</p>
+                    <p class="text-candidate-hint text-candidate-muted-foreground">{ended.detail}</p>
+                  </div>
+                </div>
+              ) : (
+                <ol class="grid grid-cols-4" aria-label="Where your application is">
+                  {stepStates(application.funnel.steps, application.funnel.current).map((step, index) => (
+                    <li class="relative flex flex-col items-center gap-2 text-center" aria-current={step.state === 'current' ? 'step' : undefined}>
+                      {index > 0 && (
+                        <span aria-hidden="true" class:list={['absolute top-2.5 right-1/2 h-0.5 w-full -translate-y-1/2', step.state === 'upcoming' ? 'bg-candidate-input-border' : 'bg-candidate-brand-text']} />
+                      )}
+                      <span
+                        aria-hidden="true"
+                        class:list={[
+                          'relative z-10 grid size-5 place-items-center border-2',
+                          step.state === 'done' ? 'border-candidate-brand-text bg-candidate-brand-text text-candidate-surface' : step.state === 'current' ? 'border-candidate-brand-text bg-candidate-surface' : 'border-candidate-input-border bg-candidate-surface',
+                        ]}
+                      >
+                        {step.state === 'done' && (
+                          <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12l5 5 9-10" />
                           </svg>
-                          <span class:list={['text-candidate-body', step.state === 'current' ? 'font-bold' : step.state === 'upcoming' && 'text-candidate-muted-foreground']}>
-                            {step.name}
-                            <span class="sr-only">{step.state === 'done' ? ' (done)' : step.state === 'current' ? ' (where you are now)' : ' (next)'}</span>
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
+                        )}
+                        {step.state === 'current' && <span class="size-2 bg-candidate-brand-text" />}
+                      </span>
+                      <span class:list={['text-candidate-hint', step.state === 'current' ? 'font-bold text-candidate-foreground' : step.state === 'upcoming' && 'text-candidate-muted-foreground']}>
+                        {step.name}
+                        <span class="sr-only">{step.state === 'done' ? ' (done)' : step.state === 'current' ? ' (where you are now)' : ' (next)'}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
 
-                  <p class="mt-3 text-candidate-hint text-candidate-muted-foreground">Applied {longDate(application.appliedAt)}</p>
+              <p class="mt-4 text-candidate-hint text-candidate-muted-foreground">Applied {longDate(application.appliedAt)}</p>
 
-                  {application.waiting.length > 0 && (
-                    <ul class="mt-4 flex flex-col gap-2">
-                      {application.waiting.map((item) => (
-                        <li>
-                          <a href={`${base}/${waitingPath[item.kind]}/${item.token}`} class="button-secondary">{waitingText[item.kind]}</a>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+              {application.waiting.length > 0 && (
+                <ul class="mt-4 flex flex-col gap-2">
+                  {application.waiting.map((item) => (
+                    <li>
+                      <a href={`${base}/${waitingPath[item.kind]}/${item.token}`} class="button-secondary">{waitingText[item.kind]}</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
-                  <p class="mt-4 text-candidate-body">
-                    {application.hasMessages ? (
-                      <a href={`${mine}/${application.id}`} class="text-link inline-flex min-h-11 items-center">Read and answer your messages</a>
-                    ) : (
-                      <span class="text-candidate-muted-foreground">No messages yet. When the team writes to you, it appears here.</span>
-                    )}
-                  </p>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+              <p class="mt-4 text-candidate-body">
+                {application.hasMessages ? (
+                  <a href={`${mine}/${application.id}`} class="text-link inline-flex min-h-11 items-center">Read and answer your messages</a>
+                ) : (
+                  <span class="text-candidate-muted-foreground">No messages yet. When the team writes to you, it appears here.</span>
+                )}
+              </p>
+            </Panel>
+          );
+        })}
       </>
     )
   }
 
-  <p class="mt-8 text-candidate-hint">
-    <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
-  </p>
 </CareersLayout>

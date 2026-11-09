@@ -36,7 +36,7 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await Page.SetViewportSizeAsync(DesignWidth, DesignHeight);
         await SignInAsync(scene.Email);
         await Page.GotoAsync(DashboardUrl($"/jobs/{scene.JobId}"));
-        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Live");
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Connected");
         await Page.EvaluateAsync("() => { window.__screenhireNoReload = true; }");
 
         var genuine = SyntheticApplicants.GenuineHuman;

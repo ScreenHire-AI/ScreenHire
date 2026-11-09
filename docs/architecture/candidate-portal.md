@@ -46,7 +46,7 @@ the team. There is no account and no password. The decision is [ADR-0027](../adr
   characters, `RepliesPerDay` 10), forwarded by the AppHost to the API and the worker.
 - `CandidatePortalLinks`: the signed link, `SendPortalLink` and its email, `CandidateFunnel`, `PortalMessageText`.
 - `/v1/public/organizations/{slug}/portal`, five anonymous routes under the `portal` rate limit.
-- Five careers pages under `my-applications`, a link in every careers page's footer and on the "Application sent" page.
+- Five careers pages under `my-applications`, a link in the footer of every other careers page and on the "Application sent" page.
 - A footer on every email to a candidate, and a `MailRoute` for the interview emails, which had none.
 
 ## Getting in
@@ -116,7 +116,7 @@ Interview until the team decides, and a check after the offer shows Offer. The s
 the application back. Offer shows as soon as the team moves an application there, so a team moves it when it extends the
 offer, as a rejection shows the moment it is made.
 
-An application the team kept in mind for future roles reads as Not moving forward, with no word about a list or a reason. An
+Not moving forward says the application is not moving forward and that the candidate can ask the employer to have a person review it, because an eligibility automation can end an application with no person involved. An application the team kept in mind for future roles reads as Not moving forward, with no word about a list or a reason. An
 ending stage decides first, so a withdrawn application that was once saved is still Withdrawn. Once an application has ended
 no step is drawn, only the status.
 
@@ -188,12 +188,12 @@ the visitor's address, so the API's rate limit counts the visitor and not the ca
 |---|---|
 | `index.astro` | What happens, then one email field and "Email me a link". With the portal disabled, or any answer but 200 from `GET ""`, it says the page is not available and to reply to the last email. |
 | `sent.astro` | The one answer after asking: "If we have an application from that address, we have emailed a link". The same for an address that applied, one that did not and one in its cooldown. |
-| `[token]/index.astro` | The overview: saved applications to finish, then each application with its job, date and four steps (icon, text and `aria-current`, never colour alone) or its ended status, anything waiting as a button, and a link to its messages. |
-| `[token]/[application].astro` | The thread and a reply form. A redirect after a send (`?sent=1`) so a refresh never posts twice. |
+| `[token]/index.astro` | The overview: a panel of saved applications to finish, then one panel per application titled with its job, holding its date and four steps (square markers on a line with the name under each, and `aria-current`, never colour alone) or its ended status, anything waiting as a button, and a link to its messages. |
+| `[token]/[application].astro` | The thread and a reply panel. Its files go in one multi-file input inside the apply form's dashed frame (the shared Drop area takes one file, so a reply has no per-file Remove yet). A redirect after a send (`?sent=1`) so a refresh never posts twice. |
 
 A forged, expired, wrong-organization or erased-candidate link, or a malformed one, shows "This link has expired or is not valid"
 with a link back to the form and the line to reply to the last email (status 404); a busy network says the same in a `Notice`
-(429). Both come from `PortalLinkProblem`. The footer of every careers page links to `/my-applications`.
+(429). Both come from `PortalLinkProblem`. The footer of every careers page but these links to `/my-applications`.
 
 ## Notice
 

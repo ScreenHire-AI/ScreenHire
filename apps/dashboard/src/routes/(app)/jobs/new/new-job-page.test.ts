@@ -97,6 +97,21 @@ describe('new job page', () => {
     expect(bodies[0]).toMatchObject({ templateVersionId: versionId, description: null });
   });
 
+  // A template's description can be a prompt to fill in, so the form says to edit it, and says what a template brings and why a city matters.
+  it('says what a template brings, to edit its description before publishing, and why an on-site job wants a city', async () => {
+    const versionId = '01a157d4-0000-7000-8000-0000000000a2';
+    stubCreate([{ id: '01a157d4-0000-7000-8000-0000000000a1', name: 'Software engineer', latestPublishedVersionId: versionId, latestPublishedVersion: 2, archived: false }]);
+    const form = await openForm();
+
+    const template = within(form).getByLabelText('Hiring template');
+    expect(template).toHaveAccessibleDescription('A template sets the stages, questions and emails.');
+    await fireEvent.change(await within(form).findByRole('option', { name: 'Software engineer (v2)' }).then(() => template), { target: { value: versionId } });
+    expect(within(form).getByText("Leave it empty to start from the template's description, and edit it before you publish.")).toBeInTheDocument();
+
+    await fireEvent.change(within(form).getByLabelText('Workplace'), { target: { value: 'Onsite' } });
+    expect(await within(form).findByLabelText('City')).toHaveAccessibleDescription('Some job boards refuse an on-site or hybrid job without a city.');
+  });
+
   it('asks where the work happens, and for a description when no template brings one, before sending anything', async () => {
     const { fetchMock } = stubCreate();
     const form = await openForm();

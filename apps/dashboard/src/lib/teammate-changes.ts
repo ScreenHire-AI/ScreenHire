@@ -24,7 +24,7 @@ export interface ChangeContext {
   settings: MemberNotificationSettings;
 }
 
-/** Everything on: a member who never opened the Notifications sheet, and the fallback while it cannot be read. */
+/** Everything on: a member who never opened the Teammate changes sheet, and the fallback while it cannot be read. */
 export const defaultNotificationSettings: MemberNotificationSettings = { toasts: true, closeToasts: true, off: [] };
 
 const candidateEvents: Partial<Record<RealtimeEvent['type'], CandidateKind>> = {

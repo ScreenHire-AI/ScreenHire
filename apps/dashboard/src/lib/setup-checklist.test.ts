@@ -39,15 +39,16 @@ const fresh: SetupInputs = {
 const done = (inputs: SetupInputs) => Object.fromEntries((setupSteps(inputs) ?? []).map((step) => [step.id, step.done]));
 
 describe('the setup checklist', () => {
-  it('lists the five steps in order, each linking to its page, all open for a new organization', () => {
+  it('lists the five steps in the order a team does them, each linking to its page, all open for a new organization', () => {
     const steps = setupSteps(fresh)!;
 
+    // What candidates see, the first job, the team, then the settings that can wait. The DNS step is last.
     expect(steps.map((step) => [step.label, step.href, step.done])).toEqual([
-      ['Invite your team', '/settings/team', false],
       ['Set your branding', '/settings/branding', false],
-      ['Set up your careers site', '/settings/careers-site', false],
-      ['Add your email domain', '/settings/sending-domain', false],
       ['Publish your first job', '/jobs/new', false],
+      ['Invite your team', '/settings/team', false],
+      ['Set up your careers page', '/settings/careers-site', false],
+      ['Send email from your own domain', '/settings/sending-domain', false],
     ]);
   });
 
@@ -84,7 +85,7 @@ describe('the setup checklist', () => {
   it('ticks the email step only for a verified domain, and leaves the step out where this installation cannot send (A3)', () => {
     expect(done({ ...fresh, sendingDomain: withDomain('Pending') }).email).toBe(false);
     expect(done({ ...fresh, sendingDomain: withDomain('Verified') }).email).toBe(true);
-    expect(setupSteps({ ...fresh, sendingDomain: { ...noDomain, available: false } })!.map((step) => step.id)).toEqual(['team', 'branding', 'careers', 'job']);
+    expect(setupSteps({ ...fresh, sendingDomain: { ...noDomain, available: false } })!.map((step) => step.id)).toEqual(['branding', 'job', 'team', 'careers']);
   });
 
   it('ticks the job step for a job that was published, not for a draft', () => {

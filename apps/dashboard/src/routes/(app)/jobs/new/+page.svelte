@@ -123,13 +123,14 @@
               class={selectClass}
               bind:value={$form.templateVersionId}
               aria-invalid={$errors.templateVersionId ? 'true' : undefined}
-              aria-describedby={describedBy('new-job-template-error', $errors.templateVersionId)}
+              aria-describedby={describedBy('new-job-template-error', $errors.templateVersionId, 'new-job-template-hint')}
             >
               <option value="">No template, a basic pipeline</option>
               {#each usable as template (template.id)}
                 <option value={template.latestPublishedVersionId}>{template.name} (v{template.latestPublishedVersion})</option>
               {/each}
             </select>
+            <Field.Description id="new-job-template-hint">A template sets the stages, questions and emails.</Field.Description>
             <Field.Error id="new-job-template-error" errors={$errors.templateVersionId?.map((message) => ({ message }))} />
           </Field.Field>
           <Field.Field data-invalid={$errors.workplaceType ? true : undefined}>
@@ -170,8 +171,9 @@
                     maxlength={100}
                     bind:value={$form.city}
                     aria-invalid={$errors.city ? 'true' : undefined}
-                    aria-describedby={describedBy('new-job-city-error', $errors.city)}
+                    aria-describedby={describedBy('new-job-city-error', $errors.city, 'new-job-city-hint')}
                   />
+                  <Field.Description id="new-job-city-hint">Some job boards refuse an on-site or hybrid job without a city.</Field.Description>
                   <Field.Error id="new-job-city-error" errors={$errors.city?.map((message) => ({ message }))} />
                 </Field.Field>
                 <Field.Field data-invalid={$errors.country ? true : undefined}>
@@ -205,7 +207,7 @@
               invalid={!!$errors.description}
             />
             {#if $form.templateVersionId}
-              <Field.Description id="new-job-description-hint">Leave it empty to keep the template's description.</Field.Description>
+              <Field.Description id="new-job-description-hint">Leave it empty to start from the template's description, and edit it before you publish.</Field.Description>
             {/if}
             <Field.Error id="new-job-description-error" errors={$errors.description?.map((message) => ({ message }))} />
           </Field.Field>

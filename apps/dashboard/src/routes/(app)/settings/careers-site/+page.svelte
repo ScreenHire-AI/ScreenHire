@@ -130,13 +130,13 @@
     <div class="flex w-full max-w-form flex-col gap-5">
       {#if organization.isError && !detail}
         <Panel title="Public page">
-          <QueryError message={describeError(organization.error, 'Could not load the careers site')} onretry={() => organization.refetch()} inset />
+          <QueryError message={describeError(organization.error, 'Could not load the careers page')} onretry={() => organization.refetch()} inset />
         </Panel>
       {:else if !detail}
         {#each ['Public page', 'Apply form', 'Embed on your website'] as title (title)}
           <Panel {title}><div aria-hidden="true"><Skeleton class="h-10 w-full" /></div></Panel>
         {/each}
-        <p class="sr-only" role="status">Loading the careers site…</p>
+        <p class="sr-only" role="status">Loading the careers page…</p>
       {:else}
         <Panel title="Public page">
           <SummaryList>
