@@ -1,31 +1,20 @@
 import { renderComponent } from '@tanstack/svelte-table';
 import { candidateColumns, type CandidateColumn } from '#lib/candidate-table.js';
-import VerificationChip from '#lib/components/verification-chip.svelte';
-import { chipOf, rankOf, type AssessmentKind } from '#lib/verification.js';
+import VerificationCell from '#lib/components/verification-cell.svelte';
+import { verificationRank } from '#lib/verification.js';
 
-function verificationColumn(kind: AssessmentKind, header: string): CandidateColumn {
-  return candidateColumns.accessor((application) => rankOf(application, kind), {
-    id: kind,
-    header,
-    // The first click puts the highest level first; pending rows stay at the end either way.
+/**
+ * The candidate table's one Verification column, for its `extraColumns` slot (design system section 21): the state as one
+ * word, with the AI mark beside it for Some and Strong signs. It sorts Verify, Review, Dismissed, Clear, then Pending; the
+ * first click puts the highest first and pending rows stay at the end either way. AI help never sorts.
+ */
+export const verificationColumns: readonly CandidateColumn[] = [
+  candidateColumns.accessor((application) => verificationRank(application), {
+    id: 'verification',
+    header: 'Verification',
     sortFn: 'basic',
     sortDescFirst: true,
     sortUndefined: 'last',
-    cell: ({ row }) => {
-      const chip = chipOf(row.original.verification, kind);
-      return renderComponent(VerificationChip, {
-        kind,
-        compact: true,
-        level: chip?.level ?? null,
-        reasons: chip?.reasons ?? 0,
-        dismissed: chip?.dismissed ?? false,
-        // AI assistance is information, so its lowest level is the default and a calm row says nothing (section 21).
-        // Authenticity keeps its quiet "No concerns": the column's one status (T3).
-        hideCalm: kind === 'aiAssistance',
-      });
-    },
-  });
-}
-
-/** The candidate table's Authenticity and AI assistance chips, for its `extraColumns` slot; both sort by level. */
-export const verificationColumns: readonly CandidateColumn[] = [verificationColumn('authenticity', 'Authenticity'), verificationColumn('aiAssistance', 'AI assistance')];
+    cell: ({ row }) => renderComponent(VerificationCell, { summary: row.original.verification }),
+  }),
+];

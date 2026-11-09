@@ -197,8 +197,8 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(row).ToContainTextAsync("Interviewer");
         await Expect(row).Not.ToContainTextAsync("Custom");
 
-        // The colleague can now add a note to the candidate, and is not offered a move.
-        await theirPage.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
+        // The colleague can now add a note to the candidate, on the Activity tab, and is not offered a move.
+        await theirPage.GotoAsync(DashboardUrl($"/applications/{applicationId}?tab=activity"));
         await Expect(theirPage.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Casey Morgan");
         await Expect(theirPage.GetByRole(AriaRole.Region, new() { Name = "Activity" }).GetByLabel("Note for the hiring team")).ToBeVisibleAsync();
         await Expect(theirPage.GetByRole(AriaRole.Button, new() { Name = "Move to stage, Casey Morgan" })).ToHaveCountAsync(0);

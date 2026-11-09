@@ -30,7 +30,9 @@
   import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
   import AskScorecardSheet from '#lib/components/ask-scorecard-sheet.svelte';
   import ApplicationTab from '#lib/components/candidate/application-tab.svelte';
-  import HeaderCards from '#lib/components/candidate/header-cards.svelte';
+  import FilesTab from '#lib/components/candidate/files-tab.svelte';
+  import HeaderMeta from '#lib/components/candidate/header-meta.svelte';
+  import HeaderTags from '#lib/components/candidate/header-tags.svelte';
   import MessagesTab from '#lib/components/candidate/messages-tab.svelte';
   import OverviewTab from '#lib/components/candidate/overview-tab.svelte';
   import ScorecardsTab from '#lib/components/candidate/scorecards-tab.svelte';
@@ -40,21 +42,22 @@
   import InviteToApplySheet from '#lib/components/invite-to-apply-sheet.svelte';
   import VerificationPanel from '#lib/components/verification-panel.svelte';
   import SaveCandidateSheet from '#lib/components/save-candidate-sheet.svelte';
-  import MetaItem from '#lib/components/meta-item.svelte';
+  import ManualAutomations from '#lib/components/manual-automations.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import Notice from '#lib/components/notice.svelte';
   import ScheduleInterviewSheet from '#lib/components/schedule-interview-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
-  import PipelineTracker from '#lib/components/pipeline-tracker.svelte';
+  import Rating from '#lib/components/rating.svelte';
+  import StageRail from '#lib/components/stage-rail.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import ReviewLog from '#lib/components/review-log.svelte';
   import ScorecardSheet from '#lib/components/scorecard-sheet.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
-  import TruncatedText from '#lib/components/truncated-text.svelte';
+  import VerificationChip from '#lib/components/verification-chip.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
@@ -64,7 +67,8 @@
   import { visibleEntries, type ActivityNames } from '#lib/activity.js';
   import { clock } from '#lib/clock.svelte.js';
   import { emailIssueNotice } from '#lib/email-issue.js';
-  import { authenticityLevels } from '#lib/verification.js';
+  import { shortDate } from '#lib/dates.js';
+  import { authenticityLevels, dismissReasonLabels, reviewerName, verificationStateOf } from '#lib/verification.js';
   import { createMoves } from '#lib/moves.svelte.js';
   import { endedStatus, trackerFor } from '#lib/pipeline-tracker.js';
   import { canKeepInMind } from '#lib/talent-pool.js';
@@ -79,11 +83,11 @@
 
   let { params }: PageProps = $props();
 
-  // A candidate (design system sections 7 and 22): the header band holds who they are and where they stand (the name and one
-  // status, the pipeline tracker, then the Contact, Application and Also applied to or Rating mini cards) above the same six
-  // tabs in the same order for everyone, so the facts sit where the eye starts on every tab. The tab is in the address (?tab=), so a link can open
+  // A candidate (design system sections 7 and 21): the header band holds who they are and where they stand (the name and the
+  // verification state, one meta line, the rating and tags, then the stage rail) above the same seven tabs in the same order
+  // for everyone, so the facts sit where the eye starts on every tab. The tab is in the address (?tab=), so a link can open
   // one: the Overview's "All in Activity", a mention email's link to the note. Each tab's body is its own component.
-  const tabs = ['overview', 'application', 'messages', 'scorecards', 'verification', 'activity'] as const;
+  const tabs = ['overview', 'application', 'files', 'messages', 'scorecards', 'verification', 'activity'] as const;
   type Tab = (typeof tabs)[number];
   // ?tab=integrity is the tab's address from before it was called Verification, kept so an old link still opens it.
   const requested = $derived(page.url.searchParams.get('tab') === 'integrity' ? 'verification' : page.url.searchParams.get('tab'));
@@ -162,7 +166,7 @@
   // The sheet opens once the More menu has closed, so focus can go back to the menu's button.
   let emailChosen = false;
   let emailed = $state('');
-  // The Overview's Interview panel reads the same query. A booked time is a fact in the header; InterviewChanged refetches it live.
+  // The Overview's Interview panel reads the same query; InterviewChanged refetches it live.
   const interviews = createListApplicationInterviews(() => params.applicationId);
   // Schedule interview (docs/architecture/interview-scheduling.md) goes where Email goes: it emails the candidate a link, so
   // it takes the same permission and a deployment that can send. It is hidden once the application has ended (rejected,
@@ -179,7 +183,6 @@
   let scheduleOpen = $state(false);
   let scheduleChosen = false;
   let scheduled = $state('');
-  const booked = $derived(interviews.data?.data.find((interview) => interview.status === 'Booked' && interview.startsAt));
 
   // Messages: every email to the candidate, about any of their applications. ApplicationEmailed refetches it live.
   const candidateEmails = createListCandidateEmails(
@@ -200,9 +203,9 @@
   const names: ActivityNames = { stageName, followUpName, jobName };
   const entries = $derived(timeline.data?.data);
 
-  // The pipeline tracker under the name: the job's stages, where the candidate has been and is, or how they left.
+  // The stage rail under the name: the job's stages, where the candidate has been and is, or how they left.
   const tracker = $derived(detail && stages.length > 0 ? trackerFor(stages, detail, entries, clock.now) : undefined);
-  // Once they left the job a status says how, in place of the authenticity level beside the name.
+  // Once they left the job a status says how, in place of the verification state beside the name.
   const ended = $derived(detail ? endedStatus(detail) : undefined);
 
   // A saved candidate has left the job, so the header offers to reach them or invite them to another job in place of Email
@@ -279,17 +282,28 @@
     if (choice) fillIn(choice.value);
   });
 
-  // A count on each tab where one fits (E2). When the authenticity level needs a look, Verification's count is the signals
-  // behind it, in the same grey as every tab, and the level is the candidate's status beside the name (W7).
+  // The verification state beside the name: one word, with the level mark when it needs a look (design system section 3.2). Its
+  // tooltip is the level's name and nothing more; a dismissed result says who set it aside and why.
   const authenticity = $derived(verification.data?.data.authenticity);
+  const verificationState = $derived(verification.data ? verificationStateOf(authenticity?.level, Boolean(authenticity?.dismissal)) : undefined);
+  const stateTooltip = $derived.by(() => {
+    if (!verificationState) return undefined;
+    if (verificationState.kind === 'review' || verificationState.kind === 'verify') return verificationState.label;
+    const dismissal = authenticity?.dismissal;
+    if (verificationState.kind !== 'dismissed' || !dismissal || !verificationState.assessedAs) return undefined;
+    const who = reviewerName(dismissal.actorUserId, dismissal.actorName, currentUserId);
+    return `${authenticityLevels[verificationState.assessedAs].label}, dismissed by ${who} on ${shortDate(dismissal.dismissedAt, clock.now)}: ${dismissReasonLabels[dismissal.reason]}.`;
+  });
+  // A count on each tab where one fits (E2). When the verification state needs a look, Verification's count is the signals
+  // behind it, in the same grey as every tab, and the state is the candidate's status beside the name (W7).
   const attention = $derived.by(() => {
-    if (!authenticity || authenticity.dismissal) return undefined;
-    const level = authenticityLevels[authenticity.level];
-    return level.rank === 0 ? undefined : { level, signals: authenticity.signals.filter((signal) => signal.countsTowardLevel).length };
+    if (!authenticity || !verificationState || (verificationState.kind !== 'review' && verificationState.kind !== 'verify')) return undefined;
+    return { signals: authenticity.signals.filter((signal) => signal.countsTowardLevel).length };
   });
   const recordTabs = $derived<RecordTab[]>([
     { value: 'overview', label: 'Overview' },
     { value: 'application', label: 'Application' },
+    { value: 'files', label: 'Files', count: detail?.files.length },
     { value: 'messages', label: 'Messages', count: candidateEmails.data?.data.length },
     { value: 'scorecards', label: 'Scorecards', count: scorecards.data?.data.length },
     { value: 'verification', label: 'Verification', count: attention?.signals },
@@ -371,9 +385,8 @@
   {#if !sidebar.isMobile}{#if saved}{@render invite()}{:else}{@render moveToStage()}{/if}{/if}
 {/snippet}
 
-<!-- Saved stays once they leave the list, so this says they are still on it. A badge is never a link (A5). -->
-{#snippet savedLink()}
-  <MetaItem label="Saved candidates"><TruncatedText text="In Saved candidates" href="/candidates?list=saved" underlined /></MetaItem>
+{#snippet headerMeta()}
+  {#if detail}<HeaderMeta {detail} emails={candidateEmails.data?.data} />{/if}
 {/snippet}
 
 {#snippet headerTabs()}
@@ -414,30 +427,28 @@
     <p class="sr-only" role="status">Loading the application…</p>
   {:else}
     <Tabs.Root bind:value={() => tab, selectTab}>
-      <HeaderBand title={detail.candidate.fullName} actions={bandActions} tabs={headerTabs} meta={detail.inTalentPool ? savedLink : undefined}>
+      <HeaderBand title={detail.candidate.fullName} actions={bandActions} tabs={headerTabs} meta={headerMeta}>
         {#snippet status()}
-          <!-- The first line is the name and one status badge (S2, T2), on every tab. Once they left the job it says how
-               (Saved, Rejected, Withdrawn, Hired); until then it is the authenticity level when it needs a look, and a
-               calm level says nothing. A badge, never a link (A5); Next steps links to the reasons. The overdue and
-               email-issue badges sit where they apply: beside "Here 3 days" and the address. -->
-          {#if ended}<StatusBadge {...ended} />{:else if attention}<StatusBadge status={attention.level.status} label={attention.level.label} />{/if}
+          <!-- The first line is the name and one status (S2, T2), on every tab. Once they left the job it says how (Saved,
+               Rejected, Withdrawn, Hired); until then it is the verification state in one word (Clear, Review, Verify, Pending
+               or Dismissed). A badge, never a link (A5); Needs you links to the reasons. The overdue and email-issue
+               badges sit where they apply: beside "Here 3 days" and the address. -->
+          {#if ended}<StatusBadge {...ended} />{:else if verificationState}<VerificationChip state={verificationState} size="lg" tooltip={stateTooltip} />{/if}
         {/snippet}
         {#snippet summary()}
-          {#if tracker}<PipelineTracker {tracker} overdueAt={detail.slaDueAt} />{/if}
-          <HeaderCards
-            {detail}
-            emails={candidateEmails.data?.data}
-            scorecards={scorecards.data?.data}
-            stageName={(id) => stageName(id)}
-            {members}
-            {currentUserId}
-            interview={booked}
-          />
+          {#if detail.rating?.state === 'Rated' || detail.tags.length > 0 || mayNote}
+            <div class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2">
+              <!-- From people's scorecards only (ADR-0013); a link to them (A5). -->
+              <Rating rating={detail.rating} variant="link" href="?tab=scorecards" />
+              <HeaderTags applicationId={detail.id} tags={detail.tags} editable={mayNote} />
+            </div>
+          {/if}
+          {#if tracker}<StageRail {tracker} overdueAt={detail.slaDueAt} />{/if}
         {/snippet}
       </HeaderBand>
 
       <div class="@container w-full px-4 py-5 md:px-6 md:py-6">
-        <!-- A move that worked shows in the pipeline tracker and in Activity, so only screen readers hear it. A failure
+        <!-- A move that worked shows in the stage rail and in Activity, so only screen readers hear it. A failure
              shows in the header band, beside Move to stage. -->
         <p role="status" class="sr-only">{moves.failure ? '' : moves.announcement}</p>
         <p role="status" class="sr-only">{emailed}</p>
@@ -445,7 +456,7 @@
         <p role="status" class="sr-only">{keptMessage}</p>
 
         <!-- The address was flagged by the email provider (E2): what it means for the team, and the way back. The badge on
-             the Contact card's email says which, so the sentence does not repeat it (W7). -->
+             the meta line's email says which, so the sentence does not repeat it (W7). -->
         {#if emailIssue !== 'None'}
           {@const sentence = emailIssueNotice(detail.candidate.emailIssue, detail.candidate.emailIssueReason)}
           <div class="mb-5 flex flex-col items-start gap-3">
@@ -463,17 +474,13 @@
             {#if tab === 'overview'}
               <OverviewTab
                 {detail}
-                timeline={entries}
-                timelineError={timeline.error}
-                onretrytimeline={() => timeline.refetch()}
                 {members}
-                {mentionable}
                 {currentUserId}
                 {permissions}
-                {names}
-                {questions}
-                {manualAutomations}
-                tagsEditable={mayNote}
+                scorecards={scorecards.data?.data}
+                withheld={detail.rating?.state === 'AfterYourScorecard'}
+                emails={candidateEmails.data?.data}
+                onfill={mayScore ? () => fillIn() : undefined}
                 oninterviewchanged={(message) => (scheduled = message)}
               />
             {/if}
@@ -481,6 +488,11 @@
           <Tabs.Content value="application" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'application'}
               <ApplicationTab {detail} {questions} />
+            {/if}
+          </Tabs.Content>
+          <Tabs.Content value="files" class="flex min-w-0 flex-col gap-5">
+            {#if tab === 'files'}
+              <FilesTab {detail} />
             {/if}
           </Tabs.Content>
           <Tabs.Content value="messages" class="flex min-w-0 flex-col gap-5">
@@ -520,6 +532,10 @@
           </Tabs.Content>
           <Tabs.Content value="activity" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'activity'}
+              <!-- Run by hand on this candidate, with what they did: an action's result lands in the timeline below. -->
+              {#if permissions.includes('RunAutomations') && manualAutomations.length > 0}
+                <ManualAutomations applicationId={detail.id} automations={manualAutomations} />
+              {/if}
               <ActivityPanel
                 applicationId={detail.id}
                 {entries}

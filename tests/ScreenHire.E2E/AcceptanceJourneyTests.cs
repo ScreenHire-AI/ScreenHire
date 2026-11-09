@@ -113,8 +113,8 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         // Both arrive in the open table, then their levels when the worker has assessed them.
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = genuine.FullName, Exact = true })).ToBeVisibleAsync();
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = bot.FullName, Exact = true })).ToBeVisibleAsync();
-        await Expect(Chip(genuine.FullName, "authenticity")).ToContainTextAsync("Authenticity: No concerns", Assessed);
-        await Expect(Chip(bot.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
+        await Expect(Chip(genuine.FullName)).ToContainTextAsync("Verification: No concerns", Assessed);
+        await Expect(Chip(bot.FullName)).ToContainTextAsync("Verification: Verification suggested", Assessed);
         (await Page.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the table updated in place");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "acceptance-job-with-candidates-light");
@@ -269,9 +269,10 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(candidate);
     }
 
-    private ILocator Chip(string candidate, string kind) =>
+    // The row's one Verification state, in one word; its long name is the chip's screen-reader text ("Verification: Verification suggested").
+    private ILocator Chip(string candidate) =>
         Page.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
-            .Locator($"[data-verification-chip='{kind}']");
+            .Locator("[data-verification-chip]");
 
     // The job page's header band: its title, status badge, actions and facts.
     private ILocator HeaderBand => Page.Locator("[data-slot='header-band']");

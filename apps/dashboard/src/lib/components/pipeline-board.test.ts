@@ -209,10 +209,10 @@ describe('pipeline board', () => {
     renderBoard();
 
     await screen.findByRole('list', { name: 'Applied stage' });
-    expect(card('Casey Morgan')).not.toHaveTextContent(/No concerns|No signs/);
-    expect(card('Casey Morgan').querySelector('[data-quiet], [data-status]')).toBeNull();
-    expect(within(card('Sam Taylor')).getByText('Verification suggested')).toBeInTheDocument();
-    expect(within(card('Sam Taylor')).getByText('Some signs')).toBeInTheDocument();
+    expect(card('Casey Morgan')).not.toHaveTextContent(/Clear|No concerns|No signs/);
+    expect(card('Casey Morgan').querySelector('[data-quiet], [data-status], [data-ai-mark]')).toBeNull();
+    expect(within(card('Sam Taylor')).getByText('Verify')).toBeInTheDocument();
+    expect(card('Sam Taylor').querySelector('[data-ai-mark]')).toHaveAttribute('data-ai-mark', 'SomeIndicators');
   });
 
   it('moves a card into a closed stage from the keyboard, and focus follows to that stage', async () => {

@@ -232,13 +232,14 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   panel with evidence + counter-evidence, and actions: *Dismiss (reason required)*, *Request verification*, *Add review note*.
   Every action is audit-logged. No "reject" button sits in the verification panel, the candidate's Verification tab.
 
-  Built in v1 (`apps/dashboard`), where people see this feature as Verification (ADR-0017): Authenticity and AI
-  assistance chip columns in every candidate table, sortable by level and filterable from a "Verification" menu on the
-  Candidates list, with calm authenticity quiet, calm AI assistance empty but for its words for screen readers, and the
-  reason count heard by screen readers only; a job's authenticity filter chips, one per level with its count, which
-  filter the job's table and board; the "To review" and "To verify" saved views (authenticity above its lowest level,
+  Built in v1 (`apps/dashboard`), where people see this feature as Verification (ADR-0017): one Verification column in
+  every candidate table, each level as one word (Clear, Review, Verify, with Pending and Dismissed muted) and the
+  three-step level mark on Review and Verify, with a bare AI mark beside it for Some and Strong signs only, sortable
+  (Verify, Review, Dismissed, Clear, then Pending) and filterable from a "Verification" menu on the Candidates list, with
+  calm Clear quiet and the reason count and long names heard by screen readers only; a job's verification filter chips,
+  one per state with its count, which filter the job's table and board; the "To review" and "To verify" saved views (authenticity above its lowest level,
   not dismissed; AI assistance is information, not a queue); and the candidate's Verification tab. While authenticity
-  needs a look and is not dismissed, its level is the candidate's status badge beside their name and the tab's grey
+  needs a look and is not dismissed, its state is the candidate's status beside their name and the tab's grey
   count is the signals behind it. Each assessment is one panel: its level, its three-step scale and, for AI assistance,
   the job's AI policy as a pill in the header; the suggested next step leading in a callout in the level's colour with
   the summary under it (one quiet line for a calm result); then the reasons grouped by the kind of check that found them

@@ -44,7 +44,7 @@ at the same moment:
 |---|---|
 | `baseView` | A built-in view it narrows, by id. A view saved while on To review keeps To review's rule and adds the filters. Candidates page only. |
 | `jobIds`, `stages` | The jobs and stages picked. Stage names on the Candidates page (they match across jobs), stage ids on a job's table, which takes no `jobIds`. |
-| `authenticity`, `aiAssistance` | The verification filter's levels, by name; `Pending` for checks not yet run. |
+| `authenticity`, `aiAssistance` | The verification filter's state, by level name (Clear, Review and Verify show as one word); `Pending` for checks not yet run. `aiAssistance` is kept in the API but never written or read: AI assistance is information and never filters, so a view saved with one keeps its other filters and drops that one. A saved sort by the old `authenticity` column opens on the Verification column, and one by `aiAssistance` on the table's default. |
 | `tag`, `sortColumn`, `sortDescending` | The tag filter and the table's sort. |
 
 Search text is not part of a view: it is a lookup, not a filter. The built-in views stay in code, so the server knows only

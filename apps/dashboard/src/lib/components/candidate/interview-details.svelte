@@ -8,7 +8,7 @@
 
   // What the Interview panel says about one interview (docs/architecture/interview-scheduling.md): its status badge, then who
   // interviews and the meeting link while it is booked, the days the candidate can choose from while it waits, or how it
-  // ended. The time of a booked interview is the header's one fact and is not said again here (W7). Split from the panel so the
+  // ended. A booked interview's time is its first fact, in the reader's own zone, because the header no longer carries it. Split from the panel so the
   // style guide can draw each state without the data behind it.
   let { interview, candidateName }: { interview: ApplicationInterview; candidateName?: string } = $props();
 
@@ -34,6 +34,12 @@
 {:else if interview.status === 'Booked'}
   <div class="flex flex-col items-start gap-4">
     <StatusBadge status="booked" label="Booked" />
+    {#if interview.startsAt}
+      <p class="font-semibold">
+        <time datetime={interview.startsAt}>{formatDateTime(interview.startsAt)}</time>
+        <span class="font-normal text-muted-foreground">{interview.durationMinutes} minutes</span>
+      </p>
+    {/if}
     {#if interview.newTimesOfferedAt}
       <!-- The booked time stays held until the candidate picks one of the new times, so this says what is being waited for. -->
       <div class="flex flex-col items-start gap-1.5">

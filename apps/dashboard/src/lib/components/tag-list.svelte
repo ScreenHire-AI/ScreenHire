@@ -30,6 +30,7 @@
     inputmode,
     missing: missingMessage = 'Name the tag first.',
     empty = 'No tags yet.',
+    compact = false,
   }: {
     tags: readonly string[];
     /** Adds a tag; true when it worked, which clears the field. */
@@ -50,22 +51,80 @@
     missing?: string;
     /** What the list says with nothing in it. */
     empty?: string;
+    /**
+     * A candidate's header: the pills in a wrapping row, each Remove button shown on hover, focus and tap only (a touch
+     * screen has no hover), and Add tag a text button that opens its field in place. Nothing says "No tags yet".
+     */
+    compact?: boolean;
   } = $props();
 
   const inputId = $props.id();
   let draft = $state('');
   let missing = $state(false);
   const message = $derived(missing ? missingMessage : failure);
+  let adding = $state(false);
+  const focusOnMount = (node: HTMLElement) => node.focus();
 
   async function onsubmit(event: SubmitEvent) {
     event.preventDefault();
     const tag = draft.trim();
     missing = !tag;
     if (!tag || !onadd) return;
-    if (await onadd(tag)) draft = '';
+    if (await onadd(tag)) {
+      draft = '';
+      adding = false;
+    }
   }
 </script>
 
+{#if compact}
+  <div class="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1.5">
+    {#if tags.length > 0}
+      <ul aria-label={label} class="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1.5">
+        {#each tags as tag (tag)}
+          <li class="group/tag flex max-w-full min-w-0 items-center">
+            <Badge variant="muted" class="min-w-0"><TruncatedText text={tag} /></Badge>
+            {#if onremove}
+              <!-- Shown on hover, focus and tap only: the pills stay quiet until someone reaches for one (F4). -->
+              <IconButton
+                label={`Remove ${noun} ${tag}`}
+                size="icon-xs"
+                disabled={busy}
+                class="opacity-0 group-focus-within/tag:opacity-100 group-hover/tag:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
+                onclick={() => onremove(tag)}><XIcon aria-hidden="true" /></IconButton
+              >
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    {/if}
+    {#if onadd}
+      {#if adding}
+        <form class="flex min-w-0 items-center gap-2" novalidate {onsubmit}>
+          <label for={inputId} class="sr-only">New {noun}</label>
+          <Input
+            id={inputId}
+            bind:value={draft}
+            {maxlength}
+            {placeholder}
+            autocomplete="off"
+            class="h-7 w-40 min-w-0"
+            aria-invalid={message ? 'true' : undefined}
+            oninput={() => (missing = false)}
+            onkeydown={(event) => {
+              if (event.key === 'Escape') ((adding = false), (draft = ''), (missing = false));
+            }}
+            {@attach focusOnMount}
+          />
+          <Button type="submit" variant="outline" size="sm" class="shrink-0" disabled={busy}>Add {noun}</Button>
+        </form>
+      {:else}
+        <Button variant="ghost" size="xs" disabled={busy} onclick={() => (adding = true)}><PlusIcon aria-hidden="true" />Add {noun}</Button>
+      {/if}
+    {/if}
+    <FailureText {message} />
+  </div>
+{:else}
 <div class="flex flex-col gap-3">
   {#if tags.length === 0}
     <p class="text-muted-foreground">{empty}</p>
@@ -101,3 +160,4 @@
   {/if}
   <FailureText {message} />
 </div>
+{/if}

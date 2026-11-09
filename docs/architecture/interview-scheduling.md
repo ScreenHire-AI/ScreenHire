@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Interview scheduling on team calendars"
-description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off. The recruiter's side in the dashboard: the Schedule interview sheet on the candidate's page, the booked time in the page's header and the Interview panel on Overview. Reminders to the candidate and the interviewers a day before a booked interview, and to the candidate an hour before. Moving a booked interview: the team offers new days, the booked time stays held until the candidate picks one, and the events in every calendar then move."
+description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off. The recruiter's side in the dashboard: the Schedule interview sheet on the candidate's page, the Interview panel on Overview, whose first fact is the booked time. Reminders to the candidate and the interviewers a day before a booked interview, and to the candidate an hour before. Moving a booked interview: the team offers new days, the booked time stays held until the candidate picks one, and the events in every calendar then move."
 tags: [scheduling, calendar, integrations, oauth]
 sources:
   - resource: src/ScreenHire.Domain/Scheduling/CalendarConnection.cs
@@ -457,11 +457,11 @@ It opens `ScheduleInterviewSheet`, which lists the members who see the job from 
   becomes one sentence naming the interviewers whose calendars do not work, under the list. A 409 shows the API's own words
   (an interview is already open or booked, or the application has ended), and a 404 says scheduling is not set up here.
 
-**The header** gets a mini card, Interview, only while an interview is booked: the time in the reader's own zone, then the
-length and how many interviewers. The time is said nowhere else on the screen except Activity, which records the time each
-entry was about.
+**The header** says nothing about the interview: the candidate's header holds the verification state, one meta line, the rating,
+tags and the stage rail. A booked time is the Interview panel's first fact, in the reader's own zone with the length, and
+Activity records the time each entry was about.
 
-**The Interview panel** sits under Next steps on Overview and is not drawn while no interview was ever offered. Each
+**The Interview panel** sits in the right column of Overview, beside Needs you, and is not drawn while no interview was ever offered. Each
 state has a status badge (design system section 3.2): Waiting for the candidate (grey), Booked (clear), Cancelled and Expired
 (grey). An open interview gives the days the candidate can choose from, in the interview's zone. A booked
 one lists the interviewers with the organizer marked in words when there are two or more, the meeting link, and a note under an interviewer whose
@@ -473,7 +473,7 @@ days, and says the booked time stays until the candidate picks one. Cancel is a 
 tells the candidate and removes the event from every calendar.
 
 Activity lists the five interview entries under an Interviews filter. A booking or a move says the time it was about, so a
-move is history the header no longer shows.
+move is history the panel no longer shows.
 
 ## Tenancy
 

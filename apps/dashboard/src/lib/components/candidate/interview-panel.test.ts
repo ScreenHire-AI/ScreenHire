@@ -128,7 +128,7 @@ describe('Interview panel', () => {
     expect(within(people).getByRole('listitem')).toHaveTextContent(/^Avery Quinn$/);
   });
 
-  it('shows who interviews with the organizer marked in words and the meeting link, and never the time', async () => {
+  it('shows who interviews with the organizer marked in words and the meeting link, and the booked time first', async () => {
     const { panel } = renderPanel([booked()]);
 
     const region = await panel();
@@ -137,9 +137,9 @@ describe('Interview panel', () => {
     const join = within(region).getByRole('link', { name: /Join the meeting/ });
     expect(join).toHaveAttribute('href', 'https://meet.example.org/abc-defg');
     expect(join).toHaveAttribute('rel', 'noopener noreferrer');
-    // The time is the header's one fact (W7).
-    expect(region.textContent).not.toContain(formatDateTime('2026-11-05T15:00:00Z'));
-    expect(region.textContent).not.toMatch(/Nov 5/);
+    // The header no longer carries the time, so the panel's first fact is the booked time, in the reader's own zone.
+    expect(within(region).getByText(formatDateTime('2026-11-05T15:00:00Z'))).toHaveAttribute('datetime', '2026-11-05T15:00:00Z');
+    expect(region).toHaveTextContent('30 minutes');
     await expectNoAxeViolations();
   });
 

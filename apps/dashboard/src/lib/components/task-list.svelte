@@ -44,6 +44,7 @@
     undoable = () => false,
     work,
     label,
+    plain = false,
   }: {
     tasks: readonly TaskRow[];
     members: readonly TeamMember[] | undefined;
@@ -55,6 +56,11 @@
     /** A link to where an open task that is not ticked by hand gets done, when the reader can do it there. */
     work?: (task: TaskRow) => { href: string; label: string } | undefined;
     label: string;
+    /**
+     * The title and nothing else (a candidate's Overview, W6): no kind or assignee pills and no time ago, because the
+     * page is already about this candidate and the person reading it.
+     */
+    plain?: boolean;
   } = $props();
 </script>
 
@@ -87,13 +93,15 @@
         <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 pt-1">
           <p class={['min-w-0 max-w-measure font-semibold break-words', undo && 'text-muted-foreground line-through']}>{task.note}</p>
           <div class="flex flex-wrap items-center gap-2">
-            <Badge variant="muted">{taskKindLabels[task.kind]}</Badge>
-            <Badge variant="muted">{assigneeText(task.assigneeUserId, members, currentUserId)}</Badge>
+            {#if !plain}
+              <Badge variant="muted">{taskKindLabels[task.kind]}</Badge>
+              <Badge variant="muted">{assigneeText(task.assigneeUserId, members, currentUserId)}</Badge>
+            {/if}
             {#if done && task.completedAt}
               <span class="text-caption text-muted-foreground">
                 Done <RelativeTime at={task.completedAt} />{task.completedByUserId ? ` by ${personName(task.completedByUserId, members, currentUserId)}` : ''}
               </span>
-            {:else}
+            {:else if !plain}
               <RelativeTime at={task.createdAt} class="text-caption text-muted-foreground" />
             {/if}
           </div>

@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { candidateColumns } from '#lib/candidate-table.js';
+import { ratingColumn } from '#lib/rating-column.js';
 import { verificationColumns } from '#lib/verification-columns.js';
 import type { Moves } from '#lib/moves.svelte.js';
 import { preferences } from '#lib/preferences.svelte.js';
@@ -43,34 +44,70 @@ describe('candidate table', () => {
     expect(screen.getByRole('link', { name: 'Casey Morgan' })).toHaveClass('font-semibold');
   });
 
-  // Overdue comes first in the stage cell, as a status (T2), on the table and on a phone's list items.
-  it('shows Overdue before the stage of an application past its time limit, with the due time on hover', async () => {
+  // Overdue has its own column (L1): a cell holds one thing, so the Stage cell is the stage and nothing else.
+  it('shows Overdue in its own column, blank when within the time limit, with the due time on hover', async () => {
     const rows = [{ ...applications[1]!, slaDueAt: new Date(Date.now() - 5 * 3_600_000 - 60_000).toISOString() }, applications[0]!];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows } } });
 
-    const stageCell = within(rowOf('Jordan Lee')).getAllByRole('cell')[2]!;
-    expect(stageCell.textContent?.replace(/\s+/g, ' ').trim()).toBe('Overdue by 5 hours Screening');
-    expect(within(stageCell).getByText('Overdue by 5 hours')).toHaveAttribute('data-status', 'review');
-    expect(rowOf('Casey Morgan')).not.toHaveTextContent('Overdue');
-    const trigger = within(stageCell).getByText('Overdue by 5 hours').parentElement!;
+    const cells = within(rowOf('Jordan Lee')).getAllByRole('cell');
+    expect(headerTexts()).toContain('Overdue');
+    expect(cells[2]!.textContent?.trim()).toBe('Screening');
+    const overdueCell = cells[3]!;
+    expect(overdueCell.textContent?.replace(/\s+/g, ' ').trim()).toBe('Overdue by 5 hours');
+    expect(within(overdueCell).getByText('Overdue by 5 hours')).toHaveAttribute('data-status', 'review');
+    expect(within(rowOf('Casey Morgan')).getAllByRole('cell')[3]!.textContent?.trim()).toBe('');
+    const trigger = within(overdueCell).getByText('Overdue by 5 hours').parentElement!;
     trigger.focus();
     await waitFor(() => expect(trigger).toHaveAttribute('data-state', expect.stringMatching(/open/)));
     expect(document.getElementById(trigger.getAttribute('aria-describedby')!)).toHaveTextContent(/^Time limit passed /);
   });
 
-  it('says nothing for AI assistance on a calm row, and keeps the words for screen readers (section 21)', () => {
+  it('has no Overdue column while nothing is overdue: a column of blanks is noise', () => {
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications } } });
+
+    expect(screen.queryByRole('columnheader', { name: 'Overdue' })).toBeNull();
+  });
+
+  it('sorts Overdue with the longest overdue first and the rows within their limit last', async () => {
+    const day = 86_400_000;
+    const due = (daysAgo: number) => new Date(Date.now() - daysAgo * day).toISOString();
+    const rows = [
+      { ...applications[0]!, slaDueAt: due(-3) },
+      { ...applications[1]!, slaDueAt: due(1) },
+      { ...applications[2]!, slaDueAt: due(2) },
+    ];
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows } } });
+    const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Overdue' }));
+    expect(names()).toEqual(['Sam Taylor', 'Jordan Lee', 'Casey Morgan']);
+  });
+
+  // A cell holds one thing (L1): the one-word state, with the AI mark beside it only for Some and Strong signs.
+  it('shows one Verification cell: a quiet Clear for a calm row, and the AI mark only for signs of AI help (section 21)', () => {
     const rows = [
       { ...applications[0]!, verification: summary() },
       { ...applications[1]!, verification: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['A'] }) },
     ];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: verificationColumns } } });
 
-    const aiCell = (name: string) => within(rowOf(name)).getAllByRole('cell')[3]!;
-    expect(aiCell('Casey Morgan').querySelector('[data-calm]')).toHaveClass('sr-only');
-    expect(aiCell('Casey Morgan')).toHaveTextContent('AI assistance: No signs of AI help');
-    expect(within(aiCell('Jordan Lee')).getByText('Some signs')).toBeVisible();
-    // Authenticity keeps its quiet calm state: the column's one status (T3).
-    expect(within(rowOf('Casey Morgan')).getAllByRole('cell')[2]!.querySelector('[data-quiet]')).not.toBeNull();
+    const cell = (name: string) => within(rowOf(name)).getAllByRole('cell')[2]!;
+    expect(cell('Casey Morgan').querySelector('[data-verification-chip]')).toHaveAttribute('data-level', 'clear');
+    expect(cell('Casey Morgan').querySelector('[data-quiet]')).not.toBeNull();
+    expect(cell('Casey Morgan').querySelector('[data-ai-mark]')).toBeNull();
+    expect(cell('Casey Morgan')).toHaveTextContent('Clear');
+    expect(cell('Jordan Lee').querySelector('[data-ai-mark]')).toHaveAttribute('data-ai-mark', 'SomeIndicators');
+    // The mark is outside any badge, and the cell has one badge: the state.
+    expect(cell('Jordan Lee').querySelectorAll('[data-slot="badge"]')).toHaveLength(1);
+  });
+
+  it('shows no stars in a rating cell: the number only (L1)', () => {
+    const rows = [{ ...applications[0]!, rating: { state: 'Rated' as const, value: 4.2, scorecards: 3 } }];
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: [ratingColumn] } } });
+
+    const cell = within(rowOf('Casey Morgan')).getAllByRole('cell')[2]!;
+    expect(cell).toHaveTextContent('4.2');
+    expect(cell.querySelector('svg')).toBeNull();
   });
 
   it('adds the job column for the table across jobs', () => {
@@ -91,7 +128,7 @@ describe('candidate table', () => {
     expect(within(rowOf('Jordan Lee')).getByText('Level for Jordan Lee')).toBeInTheDocument();
   });
 
-  it('shows the verification chips and sorts by level, highest first, with pending rows last either way', async () => {
+  it('shows the one Verification column and sorts Verify, Review, Dismissed, Clear, with pending rows last either way', async () => {
     const rows = [
       { ...applications[0]!, verification: summary({ aiAssistance: 'SomeIndicators', aiAssistanceReasons: ['CNT_TEMPLATED_ANSWER'] }) },
       { ...applications[1]!, verification: null },
@@ -99,24 +136,25 @@ describe('candidate table', () => {
     ];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, extraColumns: verificationColumns } } });
     const names = () => dataRows().map((row) => within(row).getAllByRole('link')[0]!.textContent);
-    const header = () => screen.getByRole('columnheader', { name: /Authenticity/ });
+    const header = () => screen.getByRole('columnheader', { name: /Verification/ });
 
-    expect(headerTexts()).toEqual(['', 'Candidate', 'Authenticity', 'AI assistance', 'Stage', 'Source', 'Applied', 'Last activity']);
-    expect(within(rowOf('Sam Taylor')).getByText('Authenticity: Verification suggested, 2 reasons')).toBeInTheDocument();
-    expect(within(rowOf('Casey Morgan')).getByText('AI assistance: Some signs of AI help, 1 reason')).toBeInTheDocument();
-    expect(within(rowOf('Jordan Lee')).getByText('Authenticity: Checks pending')).toBeInTheDocument();
+    expect(headerTexts()).toEqual(['', 'Candidate', 'Verification', 'Stage', 'Source', 'Applied', 'Last activity']);
+    expect(within(rowOf('Sam Taylor')).getByText('Verification: Verification suggested, 2 reasons')).toBeInTheDocument();
+    expect(within(rowOf('Sam Taylor')).getByText('Verify')).toBeVisible();
+    expect(within(rowOf('Casey Morgan')).getByText('Some signs of AI help')).toBeInTheDocument();
+    expect(within(rowOf('Jordan Lee')).getByText('Verification: Checks pending')).toBeInTheDocument();
     expect(header()).not.toHaveAttribute('aria-sort');
 
-    await fireEvent.click(within(header()).getByRole('button', { name: 'Authenticity' }));
+    await fireEvent.click(within(header()).getByRole('button', { name: 'Verification' }));
     expect(names()).toEqual(['Sam Taylor', 'Casey Morgan', 'Jordan Lee']);
     expect(header()).toHaveAttribute('aria-sort', 'descending');
 
-    await fireEvent.click(within(header()).getByRole('button', { name: 'Authenticity' }));
+    await fireEvent.click(within(header()).getByRole('button', { name: 'Verification' }));
     expect(names()).toEqual(['Casey Morgan', 'Sam Taylor', 'Jordan Lee']);
     expect(header()).toHaveAttribute('aria-sort', 'ascending');
 
     // A third click reverses it again: a sorted table never goes back to unsorted (L2).
-    await fireEvent.click(within(header()).getByRole('button', { name: 'Authenticity' }));
+    await fireEvent.click(within(header()).getByRole('button', { name: 'Verification' }));
     expect(names()).toEqual(['Sam Taylor', 'Casey Morgan', 'Jordan Lee']);
     expect(header()).toHaveAttribute('aria-sort', 'descending');
   });
@@ -191,13 +229,13 @@ describe('candidate table', () => {
     const props = { applications: rows, extraColumns: verificationColumns, sortId: 'job-candidates' };
     const first = render(WithTooltips, { props: { component: ApplicationTable, props } });
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Authenticity' }));
-    await fireEvent.click(screen.getByRole('button', { name: 'Authenticity' }));
-    expect(JSON.parse(localStorage.getItem('screenhire:sort:job-candidates')!)).toEqual({ id: 'authenticity', desc: false });
+    await fireEvent.click(screen.getByRole('button', { name: 'Verification' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Verification' }));
+    expect(JSON.parse(localStorage.getItem('screenhire:sort:job-candidates')!)).toEqual({ id: 'verification', desc: false });
     first.unmount();
 
     render(WithTooltips, { props: { component: ApplicationTable, props } });
-    expect(screen.getByRole('columnheader', { name: /Authenticity/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(screen.getByRole('columnheader', { name: /Verification/ })).toHaveAttribute('aria-sort', 'ascending');
   });
 
   it('moves the cursor with J and K, focusing and tinting the row', async () => {
@@ -281,10 +319,10 @@ describe('candidate table', () => {
     expect(items.map((item) => within(item).getAllByRole('link')[0]!.textContent)).toEqual(['Casey Morgan', 'Jordan Lee']);
     expect(within(items[0]!).getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
     // Attention gets a filled badge and a count pill; a calm level stays quiet (T3, T4).
-    const casey = items[0]!.querySelector('[data-verification-chip="authenticity"]')!;
+    const casey = items[0]!.querySelector('[data-verification-chip]')!;
     expect(casey.querySelector('[data-slot="badge"]')).toHaveClass('bg-status-review-soft');
-    expect(casey).toHaveTextContent('2');
-    expect(items[1]!.querySelector('[data-verification-chip="authenticity"]')).toHaveAttribute('data-quiet');
+    expect(casey).toHaveTextContent('Review');
+    expect(items[1]!.querySelector('[data-verification-chip]')).toHaveAttribute('data-quiet');
     expect(within(items[1]!).getByText('Screening')).toHaveAttribute('data-slot', 'badge');
     expect(within(items[0]!).getByText('Oct 20, 2026')).toBeInTheDocument();
   });
@@ -352,7 +390,7 @@ describe('candidate table', () => {
 });
 
 describe('candidate table on a phone', () => {
-  it('shows each application as a list item: authenticity first, the name as the link, facts as pills', () => {
+  it('shows each application as a list item: verification first, the name as the link, facts as pills', () => {
     stubViewport(360);
     const rows = [{ ...applications[0]!, verification: summary({ authenticity: 'ReviewSuggested' }) }, applications[1]!];
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: rows, label: 'Candidates for Senior .NET Engineer', showJob: true } } });
@@ -361,12 +399,12 @@ describe('candidate table on a phone', () => {
     const items = within(screen.getByRole('list', { name: 'Candidates for Senior .NET Engineer' })).getAllByRole('listitem');
     expect(items).toHaveLength(2);
     expect(within(items[0]!).getByRole('link', { name: 'Casey Morgan' })).toHaveAttribute('href', `/applications/${applications[0]!.id}`);
-    expect(items[0]!.querySelector('[data-verification-chip="authenticity"]')).toHaveAttribute('data-level', 'Review suggested');
+    expect(items[0]!.querySelector('[data-verification-chip]')).toHaveAttribute('data-level', 'review');
     expect(items[0]).toHaveTextContent('Applied');
     expect(items[0]).toHaveTextContent('Senior .NET Engineer');
     // The canvas's phone item has no source pill; the source is a column on wider screens and on the application page.
     expect(items[0]).toHaveTextContent('Oct 20, 2026');
-    expect(items[1]!.querySelector('[data-verification-chip="authenticity"]')).toHaveAttribute('data-level', 'pending');
+    expect(items[1]!.querySelector('[data-verification-chip]')).toHaveAttribute('data-level', 'pending');
   });
 
   it('says why when there is nothing to show', () => {

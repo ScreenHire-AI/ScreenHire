@@ -9,15 +9,20 @@
 
   // The candidate's other applications to the organization, each a link to its page (docs/architecture/talent-pool.md):
   // an application added from saved candidates links back to the one the candidate was saved from, and that one
-  // forward to it. Only the jobs the reader sees (ADR-0015). Hidden when there are none, which is most candidates.
+  // forward to it. Only the jobs the reader sees (ADR-0015). With none, which is most candidates, only the link to their
+  // profile shows, because nothing else on the page links there (A5).
   let { candidateId, applicationId }: { candidateId: string; applicationId: string } = $props();
 
   const candidate = createGetCandidate(() => candidateId);
   const others = $derived((candidate.data?.data.applications ?? []).filter((application) => application.id !== applicationId));
 </script>
 
+{#snippet profileLink()}
+  <a href={`/candidates/${candidateId}`} class="inline-flex min-h-6 w-fit items-center font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">Candidate profile</a>
+{/snippet}
+
 {#if others.length > 0}
-  <Panel title="Other applications" count={others.length}>
+  <Panel title="Other applications" count={others.length} actions={profileLink}>
     <ul class="flex flex-col divide-y divide-border-subtle">
       {#each others as application (application.id)}
         <li class="flex min-w-0 items-center gap-3 py-2 first:pt-0 last:pb-0">
@@ -32,4 +37,6 @@
       {/each}
     </ul>
   </Panel>
+{:else}
+  {@render profileLink()}
 {/if}

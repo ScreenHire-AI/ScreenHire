@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ApplicationDetail, Question } from '@screenhire/api-client';
   import AnswersPanel, { answerText } from '#lib/components/candidate/answers-panel.svelte';
+  import OtherApplications from '#lib/components/candidate/other-applications.svelte';
   import Panel from '#lib/components/panel.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
@@ -8,7 +9,7 @@
 
   // The whole application (design system section 21): the answers, with what the candidate declared, then each
   // follow-up questionnaire an automation sent with its answers once given, read against the questions as the candidate
-  // saw them.
+  // saw them, and the candidate's other applications, which link to their profile.
   let { detail, questions }: { detail: ApplicationDetail; questions: ReadonlyMap<string, Question> } = $props();
 </script>
 
@@ -35,3 +36,5 @@
     {/if}
   </Panel>
 {/each}
+
+<OtherApplications candidateId={detail.candidate.id} applicationId={detail.id} />

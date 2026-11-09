@@ -1,59 +1,45 @@
 <script lang="ts">
-  import type { ApplicationDetail, ApplicationTimelineEntry, Automation, Permission, Question, TeamMember } from '@screenhire/api-client';
+  import type { ApplicationDetail, CandidateEmailEntry, Permission, ScorecardEntry, TeamMember } from '@screenhire/api-client';
   import { createGetApplicationVerification, createListApplicationTasks } from '@screenhire/api-client/svelte-query';
-  import ApplicationTags from '#lib/components/application-tags.svelte';
-  import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
-  import AnswersPanel from '#lib/components/candidate/answers-panel.svelte';
-  import FailureText from '#lib/components/failure-text.svelte';
-  import FileRow from '#lib/components/file-row.svelte';
   import InterviewPanel from '#lib/components/candidate/interview-panel.svelte';
-  import ManualAutomations from '#lib/components/manual-automations.svelte';
-  import OtherApplications from '#lib/components/candidate/other-applications.svelte';
+  import LatestMessagePanel from '#lib/components/candidate/latest-message-panel.svelte';
+  import ScorecardsSummary from '#lib/components/candidate/scorecards-summary.svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
+  import LevelMark from '#lib/components/level-mark.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
-  import StatusIcon from '#lib/components/status-icon.svelte';
   import TaskList, { type TaskRow } from '#lib/components/task-list.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import type { ActivityNames } from '#lib/activity.js';
-  import { authenticityLevels } from '#lib/verification.js';
+  import { overviewStepOf, verificationStateOf } from '#lib/verification.js';
   import { describeError } from '#lib/query.js';
   import { completesByHand, createTaskCompletion, reviewLink, scorecardLink } from '#lib/tasks.svelte.js';
 
-  // A candidate's Overview (design system section 22): a grid of panels that uses the width. On the left, what needs you
-  // now (Next steps: the application's tasks and, when the verification level needs a look, its suggested next step), the
-  // interview once one is offered, and the last five things anyone did with a box for a note; on the right, the files, the
-  // tags and the answers. One column when the page is narrow. The verification step links to its reasons and is never a
-  // reason to reject on its own (ADR-0004).
+  // A candidate's Overview (design system section 21): four panels, and nothing a tab already holds. On the left, Needs you (the
+  // application's tasks and, when the verification state needs a look, its one-sentence step) and the Scorecards given; on the
+  // right, the Interview once one is offered and the Latest message. One column when the page is narrow. The verification step
+  // links to its reasons and is never a reason to reject on its own (ADR-0004).
   let {
     detail,
-    timeline,
-    timelineError,
-    onretrytimeline,
     members,
-    mentionable,
     currentUserId,
     permissions,
-    names,
-    questions,
-    manualAutomations,
-    tagsEditable,
+    scorecards,
+    withheld = false,
+    emails,
+    onfill,
     oninterviewchanged,
   }: {
     detail: ApplicationDetail;
-    timeline: readonly ApplicationTimelineEntry[] | undefined;
-    timelineError?: unknown;
-    onretrytimeline: () => void;
     members: readonly TeamMember[] | undefined;
-    /** The teammates a note may mention (ActivityPanel). */
-    mentionable?: readonly TeamMember[];
     currentUserId: string | undefined;
     /** What the person's role allows; each control shows only with the permission its route needs (ADR-0014). */
     permissions: readonly Permission[];
-    names: ActivityNames;
-    questions: ReadonlyMap<string, Question>;
-    manualAutomations: readonly Automation[];
-    /** The person may add and remove tags. */
-    tagsEditable: boolean;
+    scorecards: readonly ScorecardEntry[] | undefined;
+    /** The reader has a scorecard to give: the others show once they submit theirs. */
+    withheld?: boolean;
+    /** Every email to or from the candidate, newest first; undefined while they load. */
+    emails: readonly CandidateEmailEntry[] | undefined;
+    onfill?: () => void;
     /** After the interview was changed from its panel (new times offered): a sentence for the page's status line. */
     oninterviewchanged?: (message: string) => void;
   } = $props();
@@ -65,8 +51,8 @@
   const completion = createTaskCompletion(() => currentUserId);
 
   const authenticity = $derived(verification.data?.data.authenticity);
-  const level = $derived(authenticity ? authenticityLevels[authenticity.level] : undefined);
-  const verificationStep = $derived(authenticity && level && level.rank > 0 && !authenticity.dismissal ? { view: authenticity, level } : undefined);
+  const verificationState = $derived(authenticity ? verificationStateOf(authenticity.level, Boolean(authenticity.dismissal)) : undefined);
+  const step = $derived(verificationState ? overviewStepOf(verificationState) : undefined);
   const taskRows = $derived(completion.withHeld(tasks.data?.data.toReversed() ?? []));
 
   // A review or a requested scorecard is done on the Scorecards tab, by the person it is for (anyone, for a review for
@@ -79,91 +65,58 @@
 </script>
 
 <div class="grid items-start gap-5 @5xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-<div class="flex min-w-0 flex-col gap-5">
-<Panel title="Next steps">
-  <div class="flex flex-col gap-4">
-    {#if tasks.isError}
-      <QueryError message={describeError(tasks.error, 'Could not load the tasks')} onretry={() => tasks.refetch()} inset />
-    {:else if tasks.isPending}
-      <!-- Rows of the list's shape while it loads (E1). -->
-      <div aria-hidden="true" class="flex gap-3">
-        <Skeleton class="size-7 shrink-0 rounded-full" />
-        <div class="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
-          <Skeleton class="h-4 w-3/4" />
-          <Skeleton class="h-5 w-32" />
-        </div>
-      </div>
-    {:else if taskRows.length > 0}
-      <TaskList
-        label="Tasks"
-        tasks={taskRows}
-        {members}
-        {currentUserId}
-        oncomplete={permissions.includes('CompleteTasks') ? (task) => completion.complete(task) : undefined}
-        onundo={(taskId) => completion.undo(taskId)}
-        undoable={(taskId) => completion.undoable(taskId)}
-        work={permissions.includes('FillInScorecards') ? scorecardWork : undefined}
-      />
-      <FailureText message={completion.failure} />
-    {/if}
-    {#if verificationStep}
-      <!-- One row, as a task is: the level's icon, the step, and the link to the reasons on the right (under the step in a
-           narrow container, so the text keeps the row's width, F2). The level is the badge beside the name (W7), so the
-           row does not say it again. The caveat shows once: the next step's own words often carry it, and the row adds it
-           only when they do not (ADR-0004). -->
-      <div class="@container/step flex items-start gap-3 border-t border-border-subtle pt-3" data-verification-step>
-        <span class="grid size-7 shrink-0 place-items-center"><StatusIcon status={verificationStep.level.status} class="size-5" /></span>
-        <div class="grid min-w-0 flex-1 items-start gap-x-3 gap-y-1 @md/step:grid-cols-[minmax(0,1fr)_auto]">
-          <div class="flex min-w-0 flex-col gap-0.5 pt-1">
-            <p class="max-w-measure font-semibold">{verificationStep.view.nextStep}</p>
-            {#if !/reject/i.test(verificationStep.view.nextStep)}
-              <p class="max-w-measure text-muted-foreground">Not a reason to reject on its own.</p>
-            {/if}
+  <div class="flex min-w-0 flex-col gap-5">
+    <Panel title="Needs you">
+      <div class="flex flex-col gap-4">
+        {#if tasks.isError}
+          <QueryError message={describeError(tasks.error, 'Could not load the tasks')} onretry={() => tasks.refetch()} inset />
+        {:else if tasks.isPending}
+          <!-- Rows of the list's shape while it loads (E1). -->
+          <div aria-hidden="true" class="flex gap-3">
+            <Skeleton class="size-7 shrink-0 rounded-full" />
+            <div class="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
+              <Skeleton class="h-4 w-3/4" />
+            </div>
           </div>
-          <a href="?tab=verification" class="inline-flex min-h-6 items-center justify-self-start pt-1 font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">See the reasons</a>
-        </div>
+        {:else if taskRows.length > 0}
+          <TaskList
+            label="Tasks"
+            plain
+            tasks={taskRows}
+            {members}
+            {currentUserId}
+            oncomplete={permissions.includes('CompleteTasks') ? (task) => completion.complete(task) : undefined}
+            onundo={(taskId) => completion.undo(taskId)}
+            undoable={(taskId) => completion.undoable(taskId)}
+            work={permissions.includes('FillInScorecards') ? scorecardWork : undefined}
+          />
+          <FailureText message={completion.failure} />
+        {/if}
+        {#if verificationState && step && (verificationState.kind === 'review' || verificationState.kind === 'verify')}
+          <!-- One row, as a task is: the level mark, the step in one sentence, and the link to the reasons on the right (under the
+               step in a narrow container, so the text keeps the row's width, F2). The state is the badge beside the name (W7), so
+               the row does not say it again, and it never speaks of rejecting (ADR-0004). -->
+          <div class={['@container/step flex items-start gap-3', taskRows.length > 0 && 'border-t border-border-subtle pt-3']} data-verification-step>
+            <span class="grid size-7 shrink-0 place-items-center"><LevelMark steps={verificationState.steps} tone={verificationState.kind} size="lg" /></span>
+            <div class="grid min-w-0 flex-1 items-start gap-x-3 gap-y-1 @md/step:grid-cols-[minmax(0,1fr)_auto]">
+              <p class="max-w-measure pt-1 font-semibold">{step}</p>
+              <a href="?tab=verification" class="inline-flex min-h-6 items-center justify-self-start pt-1 font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">See the reasons</a>
+            </div>
+          </div>
+        {/if}
+        {#if !tasks.isPending && !tasks.isError && !verification.isPending && taskRows.length === 0 && !step}
+          <p class="text-muted-foreground">Nothing needs you right now.</p>
+        {/if}
+        <p role="status" class="sr-only">{completion.announcement}</p>
       </div>
-    {/if}
-    {#if !tasks.isPending && !tasks.isError && taskRows.length === 0 && !verificationStep}
-      <p class="text-muted-foreground">Nothing needs you right now.</p>
-    {/if}
-    <p role="status" class="sr-only">{completion.announcement}</p>
+    </Panel>
+
+    <ScorecardsSummary rating={detail.rating} {scorecards} {members} {currentUserId} {withheld} {onfill} />
   </div>
-</Panel>
 
-<!-- The interview offered to the candidate, once there is one (docs/architecture/interview-scheduling.md). -->
-<InterviewPanel applicationId={detail.id} candidateName={detail.candidate.fullName} mayChange={permissions.includes('EmailCandidates')} ondone={oninterviewchanged} />
-
-{#if permissions.includes('RunAutomations') && manualAutomations.length > 0}
-  <ManualAutomations applicationId={detail.id} automations={manualAutomations} />
-{/if}
-
-<ActivityPanel
-  applicationId={detail.id}
-  entries={timeline}
-  error={timelineError}
-  onretry={onretrytimeline}
-  {members}
-  {mentionable}
-  {currentUserId}
-  {permissions}
-  {names}
-  limit={5}
-  allHref="?tab=activity"
-/>
-</div>
-
-<div class="flex min-w-0 flex-col gap-5">
-<!-- A file opens in the full-window viewer from its row; the page never embeds one (section 9). -->
-<Panel title="Files" count={detail.files.length}>
-  {#each detail.files as file (file.id)}
-    <FileRow applicationId={detail.id} {file} description={`${detail.candidate.fullName}, ${detail.jobTitle}`} />
-  {:else}
-    <p class="text-muted-foreground">No files.</p>
-  {/each}
-</Panel>
-<ApplicationTags applicationId={detail.id} tags={detail.tags} editable={tagsEditable} />
-<AnswersPanel {detail} {questions} fullHref="?tab=application" />
-<OtherApplications candidateId={detail.candidate.id} applicationId={detail.id} />
-</div>
+  <div class="flex min-w-0 flex-col gap-5">
+    <!-- The interview offered to the candidate, once there is one (docs/architecture/interview-scheduling.md). -->
+    <InterviewPanel applicationId={detail.id} candidateName={detail.candidate.fullName} mayChange={permissions.includes('EmailCandidates')} ondone={oninterviewchanged} />
+    <LatestMessagePanel applicationId={detail.id} {emails} {members} {currentUserId} />
+  </div>
 </div>
