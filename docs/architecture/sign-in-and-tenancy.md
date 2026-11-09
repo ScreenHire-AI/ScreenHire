@@ -350,7 +350,9 @@ permissions (`RolePermissions.Summarize`), so it always says what the role allow
 
 The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item, shown for anyone whose
 role has a permission for at least one setting, and it opens the Settings home at `/settings`: every setting the role may use, in
-three groups, with a search box that reads each setting's name, its one line and a short list of everyday words. Under
+three groups, with a search box that reads each setting's name, its one line and a short list of everyday words. The
+search also finds the Templates and Verification pages people look for there (`settingsElsewhere`), each only for a role
+that may open it. Under
 `/settings/*`, Organization holds General, Team, Roles, Email domain, Data requests and Billing; Careers site holds Careers page and
 Branding; Integrations holds Slack, MCP server, Webhooks and API keys. Email templates are on the Templates page, and their old
 `/settings/email-templates` addresses redirect there; the old Integrations directory (`/settings/integrations`) redirects to the home.

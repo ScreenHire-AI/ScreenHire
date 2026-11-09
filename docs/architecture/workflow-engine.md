@@ -282,7 +282,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     its column, along a lane above the stages (lanes are shared by moves that do not overlap) and down into the target
     stage, labelled "Moves to", the only words a line carries. A line crosses another where it must, never a node.
   - **Nodes.** Each kind has its own look and its word (When, If, Then, and the lane and stage headers), and no icon. A
-    When node's title is what starts the automation in a few words (`triggerTitle`: "Someone applies", "Moves to Phone
+    When node's title is what starts the automation in a few words (`triggerTitle`: "Someone applies", "Moves into Phone
     call") with the automation's name under it, an If node's is its conditions (`ruleTitle`: "Right to work is No",
     "Verification is Review or Verify") and a Then node's the step. A node's accessible name keeps the automation's name
     right after the word, so "When Fast-track referrals" names the trigger node. With the editor the whole node is one
@@ -340,7 +340,8 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     sets `checkSafeActions` and `checkSafeStageKinds` copy `SignalSafeActions` and `SignalSafeStages`, and
     `timeLimitActions` copies `SlaBreachActions`: change them together, or the sentence offers what the save refuses.
   - **Recipes.** `#lib/automation-recipes.ts` builds ready-made automations from the template's own questions and stages,
-    in four groups (the last two are about the must-haves and the checks). A stage past the first also offers "Ask the team to review at X". A recipe is hidden when the workflow already has an automation that does the same thing (`covers`:
+    in four groups: Keep candidates in the loop, Get the team to act, Check the must-haves, and Look closer when the checks
+    suggest it. Every open stage after Applied offers "Ask the team to review at X" in the second group. A recipe is hidden when the workflow already has an automation that does the same thing (`covers`:
     the same trigger and conditions and at least its actions) or one with its id `recipe-<key>` (cut, with a short hash of the key, to the validator's 40 characters), and when adding it
     would create a refused step.
 - **Questions:** the Form timeline across the top (`form-timeline.svelte`, design system section 11) has a card for the
