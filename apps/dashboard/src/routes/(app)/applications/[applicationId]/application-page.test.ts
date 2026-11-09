@@ -709,6 +709,18 @@ describe('application page', () => {
       expect(within(needs).queryByText('Nothing needs you right now.')).toBeNull();
     });
 
+    it('says the verification state failed to load, not that nothing needs you, when its request fails', async () => {
+      stubApi({
+        [`GET /v1/applications/${applicationId}/tasks`]: () => Response.json([]),
+        [`GET /v1/applications/${applicationId}/verification`]: () => new Response(null, { status: 500 }),
+      });
+      renderPage();
+      const needs = await needsYou();
+
+      expect(await within(needs).findByText(/Could not load the verification state/)).toBeInTheDocument();
+      expect(within(needs).queryByText('Nothing needs you right now.')).toBeNull();
+    });
+
     describe('Scorecards', () => {
       it('shows the rating, then one line per scorecard: who, which scorecard, the recommendation in words and the date', async () => {
         stubApi({

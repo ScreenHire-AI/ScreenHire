@@ -25,8 +25,6 @@ import type { StatusName } from '#lib/status.js';
 export interface LevelView {
   /** The level in words, always in full (section 16): "Verification suggested", "Some signs of AI help". */
   label: string;
-  /** The words in a table's cell, where the column header names the assessment: "Some signs". */
-  short: string;
   /** The status the level shows as: its icon and colour (section 3.2). */
   status: StatusName;
   /** 0 for the lowest level; sorting puts the highest first. */
@@ -34,17 +32,17 @@ export interface LevelView {
 }
 
 export const authenticityLevels: Record<AuthenticityLevel, LevelView> = {
-  NoConcerns: { label: 'No concerns', short: 'No concerns', status: 'done', rank: 0 },
-  ReviewSuggested: { label: 'Review suggested', short: 'Review suggested', status: 'review', rank: 1 },
-  VerificationRecommended: { label: 'Verification suggested', short: 'Verification suggested', status: 'verification', rank: 2 },
+  NoConcerns: { label: 'No concerns', status: 'done', rank: 0 },
+  ReviewSuggested: { label: 'Review suggested', status: 'review', rank: 1 },
+  VerificationRecommended: { label: 'Verification suggested', status: 'verification', rank: 2 },
 };
 
 // AI assistance is information, not a status, so every level takes the AI colour and the sparkles icon, and the words
-// carry the level. In a table "No signs" is quiet, so a column of them does not draw the eye.
+// carry the level. In lists only Some and Strong signs show, as the bare AI mark (`aiMarkOf`).
 export const aiAssistanceLevels: Record<AiAssistanceLevel, LevelView> = {
-  NotIndicated: { label: 'No signs of AI help', short: 'No signs', status: 'ai', rank: 0 },
-  SomeIndicators: { label: 'Some signs of AI help', short: 'Some signs', status: 'ai', rank: 1 },
-  StrongIndicators: { label: 'Strong signs of AI help', short: 'Strong signs', status: 'ai', rank: 2 },
+  NotIndicated: { label: 'No signs of AI help', status: 'ai', rank: 0 },
+  SomeIndicators: { label: 'Some signs of AI help', status: 'ai', rank: 1 },
+  StrongIndicators: { label: 'Strong signs of AI help', status: 'ai', rank: 2 },
 };
 
 /** Each assessment's levels from lowest to highest, the order legends and menus list them in. */
@@ -96,9 +94,6 @@ export function checkSummaries(signals: readonly VerificationSignalView[]): Chec
     .filter((kind) => kind.always || kind.signals.length > 0)
     .map(({ category, title, signals: found }) => ({ category, title, signals: found }));
 }
-
-/** An application whose checks have not finished: the API sends no verification summary yet. */
-export const pendingLevel: LevelView = { label: 'Checks pending', short: 'Checks pending', status: 'working', rank: -1 };
 
 export type AssessmentKind = 'authenticity' | 'aiAssistance';
 

@@ -382,11 +382,12 @@
     slaDays: index % 3 === 0 ? index + 1 : null,
   }));
 
-  // A candidate's pipeline tracker, as `trackerFor` builds it from the job's stages and the application's history.
+  // A candidate's stage rail, as `trackerFor` builds it from the job's stages and the application's history: no date under a
+  // passed stage, since the meta line says when they applied (W7).
   const trackerStep = (name: string, state: TrackerStep['state'], note?: string): TrackerStep => ({ id: name, name, state, note });
   const trackerInPipeline: Tracker = {
     steps: [
-      trackerStep('Applied', 'passed', 'Oct 20'),
+      trackerStep('Applied', 'passed'),
       trackerStep('Screening', 'current', 'Here 3 days'),
       trackerStep('Interview', 'upcoming'),
       trackerStep('Offer', 'upcoming'),
@@ -397,8 +398,8 @@
   };
   const trackerSaved: Tracker = {
     steps: [
-      trackerStep('Applied', 'passed', 'Oct 20'),
-      trackerStep('Screening', 'passed', 'Oct 22'),
+      trackerStep('Applied', 'passed'),
+      trackerStep('Screening', 'passed'),
       trackerStep('Interview', 'left', 'Saved Oct 31'),
       trackerStep('Offer', 'upcoming'),
       trackerStep('Hired', 'upcoming'),
@@ -587,16 +588,15 @@
   <title>Style guide · ScreenHire</title>
 </svelte:head>
 
-<!-- A candidate header's fact lines: the email and phone as links, the job, and when and where from. -->
+<!-- A candidate header's fact lines: the email and phone as links, the job, and when and where from. Items only: the header
+     band's meta is already a list, and the Fact lines panel wraps them in one. -->
 {#snippet factLines()}
-  <dl class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2">
-    <MetaItem label="Email" icon={MailIcon}>
-      <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" underlined />
-    </MetaItem>
-    <MetaItem label="Phone" icon={PhoneIcon}><TruncatedText text="+1 555 0142" href="tel:+15550142" underlined /></MetaItem>
-    <MetaItem label="Job"><TruncatedText text="Senior product designer" href="#fact-lines" underlined /></MetaItem>
-    <MetaItem label="Applied"><span class="text-muted-foreground">Applied <RelativeTime at={ago(6 * day)} class="inline" /> via the careers page</span></MetaItem>
-  </dl>
+  <MetaItem label="Email" icon={MailIcon}>
+    <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" underlined />
+  </MetaItem>
+  <MetaItem label="Phone" icon={PhoneIcon}><TruncatedText text="+1 555 0142" href="tel:+15550142" underlined /></MetaItem>
+  <MetaItem label="Job"><TruncatedText text="Senior product designer" href="#fact-lines" underlined /></MetaItem>
+  <MetaItem label="Applied"><span class="text-muted-foreground">Applied <RelativeTime at={ago(6 * day)} class="inline" /> via the careers page</span></MetaItem>
 {/snippet}
 
 <ShortcutsDialog bind:open={shortcutsOpen} />
@@ -652,7 +652,7 @@
       <Panel title="Header band">
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Candidate: the name and one status, actions, the pipeline tracker and mini cards</figcaption>
+            <figcaption class="text-caption text-muted-foreground">Candidate: the name and verification state, actions, the meta line and the stage rail</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
               <HeaderBand level={3} title="Samuel Okonkwo-Hartley">
                 {#snippet status()}<VerificationChip state={verificationStateOf('VerificationRecommended', false)} size="lg" tooltip="Verification suggested" />{/snippet}
@@ -930,7 +930,7 @@
       </Panel>
 
       <Panel title="Fact lines">
-        {@render factLines()}
+        <dl class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2">{@render factLines()}</dl>
       </Panel>
 
       <Panel title="Interview panel">

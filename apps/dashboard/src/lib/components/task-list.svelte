@@ -34,7 +34,7 @@
   // marks the task done and changes nothing else, and for 10 seconds (`undoable`) the row stays ticked with Undo, as
   // does unticking it. Without it (a Viewer, A3) there is no checkbox. Only a to-do and a rejection review are ticked: a
   // review and a requested scorecard are done when the scorecard is submitted (ADR-0017 decision 11), so `work` links
-  // such a row to where that happens, on the right, as Next steps' other links sit.
+  // such a row to where that happens, on the right, as the other links in Needs you sit.
   let {
     tasks,
     members,

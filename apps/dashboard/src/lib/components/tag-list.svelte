@@ -119,7 +119,7 @@
           <Button type="submit" variant="outline" size="sm" class="shrink-0" disabled={busy}>Add {noun}</Button>
         </form>
       {:else}
-        <Button variant="ghost" size="xs" disabled={busy} onclick={() => (adding = true)}><PlusIcon aria-hidden="true" />Add {noun}</Button>
+        <Button variant="outline" size="xs" disabled={busy} onclick={() => (adding = true)}><PlusIcon aria-hidden="true" />Add {noun}</Button>
       {/if}
     {/if}
     <FailureText {message} />

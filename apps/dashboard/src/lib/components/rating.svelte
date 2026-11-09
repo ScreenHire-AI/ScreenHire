@@ -61,7 +61,7 @@
   <a
     {href}
     data-rating-link
-    class="inline-flex min-h-8 items-center gap-1.5 rounded-lg px-1 hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
+    class="inline-flex min-h-8 items-center gap-1.5 rounded-lg px-1 underline underline-offset-2 hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
   >
     {@render facts(rated.value, rated.count)}
   </a>

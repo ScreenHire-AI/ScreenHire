@@ -11,7 +11,7 @@
   import { siteName } from '#lib/format.js';
 
   // A candidate's meta line, under their name (design system section 11, Fact lines): the email and phone as links, the job
-  // as a link, and "Applied 11 days ago via the careers page". Each reads on its own with an icon, the label for screen
+  // as a link, and "Applied 4 days ago via the careers page" (a date past 7 days, section 13). Each reads on its own with an icon, the label for screen
   // readers only (W9). The email is the Email action too, so there are no copy buttons. A saved candidate's phone stays on
   // their profile, and the line says when they last heard from the team instead. Render it inside `HeaderBand`'s `meta`.
   let {

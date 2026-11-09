@@ -103,8 +103,11 @@
               <a href="?tab=verification" class="inline-flex min-h-6 items-center justify-self-start pt-1 font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">See the reasons</a>
             </div>
           </div>
+        {:else if verification.isError}
+          <!-- Without the verification state the panel cannot say nothing needs the reader, so it says what failed. -->
+          <QueryError message={describeError(verification.error, 'Could not load the verification state')} onretry={() => verification.refetch()} inset />
         {/if}
-        {#if !tasks.isPending && !tasks.isError && !verification.isPending && taskRows.length === 0 && !step}
+        {#if !tasks.isPending && !tasks.isError && !verification.isPending && !verification.isError && taskRows.length === 0 && !step}
           <p class="text-muted-foreground">Nothing needs you right now.</p>
         {/if}
         <p role="status" class="sr-only">{completion.announcement}</p>
