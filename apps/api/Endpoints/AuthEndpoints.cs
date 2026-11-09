@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using ScreenHire.Application.Billing;
@@ -17,6 +16,7 @@ using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Identity;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
+using Wolverine.EntityFrameworkCore;
 
 namespace ScreenHire.Api.Endpoints;
 
@@ -373,8 +373,9 @@ internal static class AuthEndpoints
 
     private static async Task<Results<Ok<CurrentUser>, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> CompleteOnboarding(
         OnboardingRequest request, IValidator<OnboardingRequest> validator, HttpContext context, UserManager<ApplicationUser> users,
-        TenantContext tenant, ScreenHireDbContext db, BillingService billing, TimeProvider time, CancellationToken cancellationToken)
+        TenantContext tenant, IDbContextOutbox<ScreenHireDbContext> outbox, BillingService billing, TimeProvider time, CancellationToken cancellationToken)
     {
+        var db = outbox.DbContext;
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
@@ -405,14 +406,15 @@ internal static class AuthEndpoints
                 return AlreadyOnboarded();
             }
 
-            return await CreateOrganizationAsync(request, user, tenant, db, billing, time, transaction, cancellationToken);
+            return await CreateOrganizationAsync(request, user, tenant, outbox, billing, time, cancellationToken);
         });
     }
 
     private static async Task<Results<Ok<CurrentUser>, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> CreateOrganizationAsync(
-        OnboardingRequest request, ApplicationUser user, TenantContext tenant, ScreenHireDbContext db, BillingService billing, TimeProvider time,
-        IDbContextTransaction transaction, CancellationToken cancellationToken)
+        OnboardingRequest request, ApplicationUser user, TenantContext tenant, IDbContextOutbox<ScreenHireDbContext> outbox, BillingService billing, TimeProvider time,
+        CancellationToken cancellationToken)
     {
+        var db = outbox.DbContext;
         if (await db.Organizations.AnyAsync(o => o.Slug == request.Slug, cancellationToken))
         {
             return SlugTaken();
@@ -433,12 +435,17 @@ internal static class AuthEndpoints
         if (billing.NewTrial(organization.Id) is { } trial)
         {
             db.BillingAccounts.Add(trial);
+            // The worker schedules the trial's reminders once this commits (docs/architecture/billing.md, "Trial reminders").
+            await outbox.PublishAsync(new TrialStarted(organization.Id));
         }
 
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            if (db.Database.CurrentTransaction is { } open)
+            {
+                await open.CommitAsync(cancellationToken); // the outbox commits one it finds, and leaves none to commit here
+            }
         }
         catch (DbUpdateException exception) when (IsUniqueViolation(exception))
         {

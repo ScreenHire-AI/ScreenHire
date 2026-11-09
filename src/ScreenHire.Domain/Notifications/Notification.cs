@@ -116,4 +116,22 @@ public static class NotificationKinds
 {
     /// <summary>The sending domain stopped verifying. Key: the domain's id. Payload: <c>domain</c>.</summary>
     public const string SendingDomainFailing = "sending-domain-failing";
+
+    /// <summary>
+    /// The free trial ends within <c>TrialReminders.NoticeDays</c> days. Key: <see cref="TrialKey"/>. Payload: <c>endsAt</c> (ISO 8601) and
+    /// <c>plan</c>. The dashboard works out the days left from <c>endsAt</c>, so the one row stays right as the days pass.
+    /// </summary>
+    public const string TrialEnding = "trial-ending";
+
+    /// <summary>The free trial ended and no plan has started. Key: <see cref="TrialKey"/>. Payload: <c>endsAt</c> and <c>plan</c>.</summary>
+    public const string TrialEnded = "trial-ended";
+
+    /// <summary>The key of both trial kinds: an organization has one trial.</summary>
+    public const string TrialKey = "trial";
+
+    /// <summary>
+    /// Kinds the daily retention purge keeps. They say something that stays true until a person acts, and the code that raises
+    /// them clears them when it stops being true: a trial that ended with no plan is still the case a month later.
+    /// </summary>
+    public static IReadOnlyList<string> KeptUntilCleared { get; } = [TrialEnding, TrialEnded];
 }

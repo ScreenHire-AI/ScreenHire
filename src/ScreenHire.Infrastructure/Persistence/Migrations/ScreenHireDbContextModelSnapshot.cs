@@ -1253,6 +1253,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("trial_ends_at");
 
+                    b.Property<DateTimeOffset?>("TrialRemindersScheduledFor")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trial_reminders_scheduled_for");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");

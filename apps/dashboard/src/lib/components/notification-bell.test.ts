@@ -188,6 +188,40 @@ describe('notification bell', () => {
     expect(link).toHaveAttribute('href', '/settings/billing');
   });
 
+  it('tells an Owner the days left in the trial and links to Billing, one notification that counts once', async () => {
+    const endsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString();
+    stub([{ ...unreadItem, kind: 'trial-ending', payload: { endsAt, plan: 'Growth' }, link: '/settings/billing' }], 1);
+    renderBell(); // the Owner
+    const panel = await openBell();
+
+    const alerts = await within(panel).findByRole('list', { name: 'Alerts' });
+    const link = within(alerts).getByRole('link');
+    expect(link).toHaveTextContent('Unread: Your free trial ends in 4 days. Choose a plan to keep opening jobs');
+    expect(link).toHaveAttribute('href', '/settings/billing');
+    expect(within(alerts).getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('says the trial has ended, with the link to Billing, once the server has swapped the notification', async () => {
+    const endsAt = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    stub([{ ...unreadItem, kind: 'trial-ended', payload: { endsAt, plan: 'Growth' }, link: '/settings/billing' }], 1);
+    renderBell();
+    const panel = await openBell();
+
+    const link = await within(panel).findByRole('link', { name: /free trial has ended/ });
+    expect(link).toHaveAttribute('href', '/settings/billing');
+  });
+
+  it('shows a member who is not an Owner no trial notification, because the server sends them none', async () => {
+    // The server picks the audience (Manage billing, Owner only), so a Recruiter's list holds no trial notification.
+    stub([], 0);
+    renderBell(userAs('Recruiter'));
+    const panel = await openBell();
+
+    expect(await within(panel).findByText('Nothing needs attention.')).toBeInTheDocument();
+    expect(within(panel).queryByText(/free trial/)).toBeNull();
+    expect(screen.queryByRole('link', { name: /free trial/ })).toBeNull();
+  });
+
   it('says when the notifications cannot load and offers another try', async () => {
     stub([], 0, { 'GET /v1/notifications': () => new Response(null, { status: 500 }) });
     renderBell(userAs('Recruiter'));
