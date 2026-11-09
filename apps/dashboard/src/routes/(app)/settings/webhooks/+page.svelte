@@ -19,6 +19,7 @@
   import HeaderBand from '#lib/components/header-band.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
@@ -48,7 +49,12 @@
   const eventTypes = createListWebhookEventTypes();
   const meta = createGetMeta();
   const apiOrigin = $derived(meta.data?.data.apiOrigin);
-  const list = $derived(endpoints.data?.data ?? []);
+  const all = $derived(endpoints.data?.data ?? []);
+  let search = $state('');
+  const list = $derived.by(() => {
+    const words = search.trim().toLowerCase();
+    return words ? all.filter((endpoint) => [endpoint.description ?? '', endpoint.url].some((text) => text.toLowerCase().includes(words))) : all;
+  });
   const name = (endpoint: WebhookEndpointEntry) => endpoint.description ?? endpoint.url;
 
   // The table sorts (L2), endpoints by name first.
@@ -85,8 +91,8 @@
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
     title="Webhooks"
-    count={endpoints.isSuccess ? list.length : undefined}
-    countLabel={list.length === 1 ? 'endpoint' : 'endpoints'}
+    count={endpoints.isSuccess ? all.length : undefined}
+    countLabel={all.length === 1 ? 'endpoint' : 'endpoints'}
     actions={sidebar.isMobile ? undefined : addButton}
   />
 
@@ -97,6 +103,10 @@
       </Panel>
     {:else}
       <Panel title="Endpoints" flush>
+      {#snippet tools()}
+        <!-- Past about ten, a list has a search, so adding one never changes the layout (S9). -->
+        {#if all.length > 10}<SearchField bind:value={search} label="Search endpoints" class="ml-auto flex-[0_1_15rem]" />{/if}
+      {/snippet}
         {#if endpoints.isPending}
           <div aria-hidden="true" class="flex flex-col">
             {#each [0, 1] as row (row)}
@@ -108,7 +118,7 @@
             {/each}
           </div>
           <p class="sr-only" role="status">Loading the webhooks…</p>
-        {:else if list.length === 0}
+        {:else if all.length === 0}
           <Empty.Root>
             <Empty.Header>
               <Empty.Media variant="icon"><WebhookIcon /></Empty.Media>
@@ -118,6 +128,9 @@
           </Empty.Root>
         {:else}
           <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
+          {#if list.length === 0}
+            <p class="border-b border-border-subtle px-4.5 py-3 text-muted-foreground max-md:px-4">No endpoint matches the search.</p>
+          {/if}
           <ul class="md:hidden">
             {#each sorted as endpoint (endpoint.id)}
               <ListItem href={href(endpoint.id)} title={name(endpoint)}>

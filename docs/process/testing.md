@@ -6,6 +6,8 @@ tags: [testing, xunit, playwright, vitest]
 sources:
   - resource: tests/ScreenHire.Testing/AppHostFixture.cs
   - resource: tests/ScreenHire.E2E/E2EFixture.cs
+  - resource: tests/ScreenHire.E2E/BusyOrganization.cs
+  - resource: tests/ScreenHire.E2E/LargeListsTests.cs
   - resource: tests/ScreenHire.E2E/MarketingDemoFixture.cs
   - resource: tests/ScreenHire.E2E/MarketingScreenshotsTests.cs
   - resource: tests/ScreenHire.Testing/ScheduledMessages.cs
@@ -112,7 +114,8 @@ board's acceptance and removal delay to `AppHostFixture.SandboxDelay` (4 s), so 
 and `GoogleIndexing:Mode=Local`, the in-process Indexing API fake, so the Google queue runs with no account. For
 webhooks ([workflow-engine.md](../architecture/workflow-engine.md) §5) it sets `Webhooks:AllowLoopback`, so the worker
 may post to a `WebhookReceiver` (a Kestrel server on `127.0.0.1` that a test starts), and shortens the retry delays
-(`AppHostFixture.WebhookRetryDelays`, 1 s and 3 s) and the disable limit (two failed deliveries).
+(`AppHostFixture.WebhookRetryDelays`, 1 s and 3 s), the disable limit (two failed deliveries) and the timeout
+(`AppHostFixture.WebhookTimeout`, 5 s), which a receiver started with `DelayResponses` outlasts.
 
 A fixture that needs a stack of its own subclasses `AppHostFixture` and takes it as a class fixture: `ExtraArguments`
 adds AppHost settings (`DevelopmentDemoFixture` turns the demo on), and `Configure` changes the resources before the
@@ -261,6 +264,24 @@ test writes the marketing site's product pictures and only checks that they exis
 
 Read the diff before committing a rewrite: it is the review of what changed for a person reading the output. For the
 pictures that means opening them.
+
+### Busy organizations and the states behind a page
+
+Three end-to-end classes prove what a small team meets once it has used the product for a while, which the demo's
+handful of records never shows (design system S9).
+
+- `LargeListsTests` builds one organization through the API as its Owner (`BusyOrganization`, once per run): 26 jobs,
+  hiring templates, scorecards, email templates, saved views, tasks, API keys and team members (each one a real
+  accepted invitation), 20 webhook endpoints (the most an organization may have) and 210 applications on one job.
+  It opens every list and the job's table and board at 1440 and 390 px and checks the count, that the page does not
+  scroll sideways, that search narrows, that a phone lists 50 at a time with Show more, and that the board's stage
+  scrolls inside its column. It sends no public applications, so the worker has no verification backlog to delay the
+  other classes.
+- `SlackTests` goes through the sandbox workspace's states: not connected, an archived or deleted channel, a revoked
+  token, a post that fails once and is retried, and a member with no linked account
+  ([slack.md](../architecture/slack.md)).
+- `WebhookStatesTests` runs a receiver that answers 500, hangs past the timeout, recovers and refuses a rotated
+  secret, and reads each state off the endpoint's page ([messaging.md](../architecture/messaging.md)).
 
 ### Marketing screenshots
 

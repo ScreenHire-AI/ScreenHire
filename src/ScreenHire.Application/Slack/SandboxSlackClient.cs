@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,10 @@ namespace ScreenHire.Application.Slack;
 /// <remarks>
 /// Its channels exercise each answer the page explains: <c>#old-hiring</c> is archived (never listed, refused on
 /// save) and <c>#announcements</c> only lets admins post, so a post there fails with <c>restricted_action</c>.
+/// <c>#flaky</c> fails the first attempt to post each message with an answer no retry policy can classify (as a Slack
+/// outage does) and takes the second, so a retried post is seen from outside. The API's sandbox route <c>break</c>
+/// does to a workspace what Slack does on its own side, which the app learns only at its next call (no uninstall
+/// events, slack.md): it revokes the token, archives the saved channel or removes it.
 /// The tenant is the concrete <see cref="TenantContext"/>, not <see cref="ITenantContext"/>: <c>SlackAccess</c> holds this
 /// client, so Wolverine's generated handler code builds it, and a handler that takes both types gets two variables of the
 /// same name and does not compile (the tenant middleware already takes <see cref="TenantContext"/>).
@@ -43,11 +48,28 @@ public sealed class SandboxSlackClient(ScreenHireDbContext db, TenantContext ten
         new("C0SBRECRUIT", "recruiting", IsPrivate: false, IsArchived: false, IsMember: false),
         new("C0SBGENERAL", "general", IsPrivate: false, IsArchived: false, IsMember: false),
         new("C0SBANNOUNCE", "announcements", IsPrivate: false, IsArchived: false, IsMember: false),
+        new(FlakyChannelId, "flaky", IsPrivate: false, IsArchived: false, IsMember: true),
         new("C0SBOLDHIRE", "old-hiring", IsPrivate: false, IsArchived: true, IsMember: false),
     ];
 
     /// <summary>The channel where only admins may post, so the app's posts fail.</summary>
     public const string RestrictedChannelId = "C0SBANNOUNCE";
+
+    /// <summary>The channel that refuses each message once, as an unreachable Slack would, then takes it.</summary>
+    public const string FlakyChannelId = "C0SBFLAKY";
+
+    /// <summary>A channel id Slack no longer knows, as after someone deleted the channel.</summary>
+    public const string RemovedChannelId = "C0SBGONE";
+
+    /// <summary>The archived channel the sandbox lists no more, as after someone archived the channel the team picked.</summary>
+    public const string ArchivedChannelId = "C0SBOLDHIRE";
+
+    /// <summary>The token of a workspace that took the app away: Slack answers <c>token_revoked</c> to it.</summary>
+    public static string RevokedToken(Guid organizationId) => $"{TokenPrefix}revoked-{organizationId:N}";
+
+    // How many times each message was tried, per organization and text. Retries run in the worker that sent the first
+    // attempt, so memory is enough.
+    private static readonly ConcurrentDictionary<(Guid, string, string), int> Attempts = new();
 
     /// <summary>The sandbox's id for a ScreenHire user: stable, so linking twice gives the same account.</summary>
     public static string SlackUserIdFor(Guid userId) =>
@@ -108,6 +130,11 @@ public sealed class SandboxSlackClient(ScreenHireDbContext db, TenantContext ten
             throw new SlackApiException("restricted_action");
         }
 
+        if (conversation == FlakyChannelId && Attempts.AddOrUpdate((tenant.OrganizationId ?? Guid.Empty, conversation, text), 1, (_, tried) => tried + 1) == 1)
+        {
+            throw new SlackApiException("internal_error");
+        }
+
         if (Channels.FirstOrDefault(c => c.Id == conversation) is { IsArchived: true })
         {
             throw new SlackApiException("is_archived");
@@ -133,6 +160,11 @@ public sealed class SandboxSlackClient(ScreenHireDbContext db, TenantContext ten
     // A token of another organization is refused as Slack refuses a token of another workspace.
     private void Check(string token)
     {
+        if (token == RevokedToken(tenant.OrganizationId ?? Guid.Empty))
+        {
+            throw new SlackApiException("token_revoked");
+        }
+
         if (token != $"{TokenPrefix}{tenant.OrganizationId:N}")
         {
             throw new SlackApiException("invalid_auth");

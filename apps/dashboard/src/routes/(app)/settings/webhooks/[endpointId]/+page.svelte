@@ -74,12 +74,21 @@
   const sidebar = Sidebar.useSidebar();
   const settled = () => invalidatePath(queryClient, webhooksPath);
 
-  const endpoint = createGetWebhookEndpoint(() => params.endpointId);
-  // The log refreshes while a delivery is still being tried, so retries show without a reload.
+  // While the endpoint is on, the page reads it and its log every few seconds (not in a hidden tab): nothing tells the
+  // dashboard that a delivery arrived, was tried again, gave up or turned the endpoint off, and someone fixing a receiver
+  // watches for exactly that. A delivery still being tried keeps the log refreshing after the endpoint is off.
+  const endpoint = createGetWebhookEndpoint(
+    () => params.endpointId,
+    () => ({ query: { refetchInterval: (query) => (query.state.data?.data.enabled ? 5000 : false) } }),
+  );
   const deliveries = createListWebhookDeliveries(
     () => params.endpointId,
     undefined,
-    () => ({ query: { refetchInterval: (query) => (query.state.data?.data.some((delivery) => delivery.status === 'Pending') ? 5000 : false) } }),
+    () => ({
+      query: {
+        refetchInterval: (query) => (endpoint.data?.data.enabled || query.state.data?.data.some((delivery) => delivery.status === 'Pending') ? 5000 : false),
+      },
+    }),
   );
   const update = createUpdateWebhookEndpoint(() => ({ mutation: { onSettled: settled } }));
   const remove = createDeleteWebhookEndpoint(() => ({ mutation: { onSettled: settled } }));

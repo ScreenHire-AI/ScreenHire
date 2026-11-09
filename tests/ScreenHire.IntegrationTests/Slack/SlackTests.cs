@@ -235,7 +235,7 @@ public sealed class SlackTests(AppHostFixture fixture)
         await ConnectAsync(owner);
 
         var channels = (await owner.GetAsync("/v1/slack/channels")).Expect(HttpStatusCode.OK);
-        channels.Body.EnumerateArray().Select(c => c.GetProperty("id").GetString()).Should().Equal("C0SBANNOUNCE", "C0SBGENERAL", "C0SBHIRING", "C0SBRECRUIT");
+        channels.Body.EnumerateArray().Select(c => c.GetProperty("id").GetString()).Should().Equal("C0SBANNOUNCE", "C0SBFLAKY", "C0SBGENERAL", "C0SBHIRING", "C0SBRECRUIT");
 
         (await owner.PutAsync("/v1/slack/channel", ChannelBody("C0NOSUCH", AllEvents))).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("channelId");
         (await owner.PutAsync("/v1/slack/channel", ChannelBody("C0SBOLDHIRE", AllEvents))).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("channelId");

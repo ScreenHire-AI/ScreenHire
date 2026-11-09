@@ -43,6 +43,7 @@
   import MemberAccessSheet from '#lib/components/member-access-sheet.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
@@ -106,6 +107,11 @@
   const actorSeesAllJobs = $derived(seesAllJobs(data.user));
   const myId = $derived(data.user?.id);
   const memberList = $derived(members.data?.data ?? []);
+  let search = $state('');
+  const visibleMembers = $derived.by(() => {
+    const words = search.trim().toLowerCase();
+    return words ? memberList.filter((member) => [member.displayName, member.email, member.roleName].some((text) => text.toLowerCase().includes(words))) : memberList;
+  });
   const invitationList = $derived(invitations.data?.data ?? []);
   const roleList = $derived<RoleSummary[]>(catalogue.data?.data.roles ?? []);
   const offered = $derived(assignableRoles(actor, roleList));
@@ -152,7 +158,7 @@
     features,
     columns: memberColumns,
     get data() {
-      return memberList;
+      return visibleMembers;
     },
     getRowId: (member) => member.id,
   });
@@ -333,6 +339,10 @@
     <p role="status" class="sr-only">{announcement}</p>
 
     <Panel title="Members" flush footer={memberFailure ? memberFooter : undefined}>
+      {#snippet tools()}
+        <!-- Past about ten, a list has a search, so adding one never changes the layout (S9). -->
+        {#if memberList.length > 10}<SearchField bind:value={search} label="Search members" class="ml-auto flex-[0_1_15rem]" />{/if}
+      {/snippet}
       {#if members.isError}
         <div class="p-4"><QueryError message={describeError(members.error, 'Could not load the team')} onretry={() => members.refetch()} inset /></div>
       {:else if members.isPending}
@@ -349,6 +359,9 @@
       {:else}
         <!-- Phones get two-line items and the Sort chip (design system section 8, L2); wider screens the table. -->
         <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu table={memberTable} /></div>
+        {#if visibleMembers.length === 0}
+          <p class="border-b border-border-subtle px-4.5 py-3 text-muted-foreground max-md:px-4">No member matches the search.</p>
+        {/if}
         <ul class="md:hidden">
           {#each sortedMembers as member (member.id)}
             <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
