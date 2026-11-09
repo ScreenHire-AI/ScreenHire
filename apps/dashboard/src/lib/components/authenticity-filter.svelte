@@ -3,9 +3,9 @@
   import FilterMenu from '#lib/components/filter-menu.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
-  import { authenticityLevels, authenticityOrder, verificationOverview, pendingLevel, type VerificationFilter } from '#lib/verification.js';
+  import { verificationFilterOptions, verificationOverview, type VerificationFilter } from '#lib/verification.js';
 
-  // A job's authenticity levels as filter chips with counts (design system section 21): one toggle per level, which
+  // A job's verification states as filter chips with counts (design system section 21): one toggle per state, which
   // filters the candidates, and a second click clears it. The chips carry words and counts only: status icons belong in
   // status badges (I2), and a status colour never comes without them (T1). On a phone, where the chips do not fit, the
   // same choices sit in a filter menu.
@@ -25,10 +25,11 @@
 
   const overview = $derived(verificationOverview(applications));
 
-  const entries = $derived([
-    ...authenticityOrder.map((id) => ({ id, view: authenticityLevels[id], count: overview.levels[id] })),
-    ...(overview.pending > 0 ? [{ id: 'Pending' as const, view: pendingLevel, count: overview.pending }] : []),
-  ]);
+  const entries = $derived(
+    verificationFilterOptions
+      .map((option) => ({ id: option.value, word: option.word, count: option.value === 'Pending' ? overview.pending : overview.levels[option.value] }))
+      .filter((entry) => entry.id !== 'Pending' || entry.count > 0),
+  );
 
   function choose(id: AuthenticityLevel | 'Pending' | null) {
     onchange({ ...filter, authenticity: filter.authenticity === id ? null : id });
@@ -37,17 +38,17 @@
 
 {#if menu}
   <FilterMenu
-    label="Authenticity"
+    label="Verification"
     total={overview.total}
-    options={entries.map((entry) => ({ value: entry.id, label: entry.view.label, count: entry.count }))}
+    options={entries.map((entry) => ({ value: entry.id, label: entry.word, count: entry.count }))}
     value={filter.authenticity}
     onchange={(value) => onchange({ ...filter, authenticity: value as AuthenticityLevel | 'Pending' | null })}
   />
 {:else}
-  <div role="group" aria-label="Authenticity" class="flex shrink-0 items-center gap-1">
+  <div role="group" aria-label="Verification" class="flex shrink-0 items-center gap-1">
     {#each entries as entry (entry.id)}
       <Toggle size="lg" bind:pressed={() => filter.authenticity === entry.id, () => choose(entry.id)}>
-        {entry.view.label}
+        {entry.word}
         <Badge variant="count">{entry.count}</Badge>
       </Toggle>
     {/each}

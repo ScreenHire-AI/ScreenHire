@@ -5,19 +5,19 @@ import { keptInMindLabel } from '#lib/talent-pool.js';
 import { isTerminal } from '#lib/workflow.js';
 
 /**
- * The pipeline tracker in a candidate's header (design system section 11): every stage of the job's workflow in order,
+ * The stage rail in a candidate's header (design system section 11): every stage of the job's workflow in order,
  * where the candidate has been and where they are now, or how they left. It reads stages, dates and the stage kind
  * only, never Verification output (ADR-0004).
  */
 
-/** Passed: tinted, with the date they reached it. Current: solid, "Here 3 days". Left: solid and dark, "Saved Oct 31". */
+/** Passed: a filled marker with a check, and nothing under it. Current: "Here 3 days". Left: dark, "Saved Oct 31". */
 export type TrackerState = 'passed' | 'current' | 'upcoming' | 'left';
 
 export interface TrackerStep {
   id: string;
   name: string;
   state: TrackerState;
-  /** The date reached, "Here 3 days", or how they left; absent for a stage not yet reached or reached on no known date. */
+  /** "Here 3 days" on the current stage, or how they left on the one they left from; absent on every other (W7). */
   note?: string;
 }
 
@@ -37,7 +37,7 @@ export interface Tracker {
 
 /**
  * The status badge beside the name once the candidate has left the job: Saved, Rejected, Withdrawn or Hired. It takes the
- * place of the authenticity level, which is about an application still in the pipeline. Rejected and Withdrawn are "not in
+ * place of the verification state, which is about an application still in the pipeline. Rejected and Withdrawn are "not in
  * effect" (grey, design system section 3.2); Hired is Done. Undefined while they are in the pipeline.
  */
 export function endedStatus(detail: Pick<ApplicationDetail, 'stage' | 'keptInMindAt'>): { status: StatusName; label: string } | undefined {
@@ -87,8 +87,7 @@ export function trackerFor(
     const base = { id: stage.id, name: stage.name };
     if (anchor < 0 || index > anchor) return { ...base, state: 'upcoming' };
     if (index < anchor) {
-      const at = reachedAt.get(stage.id);
-      return { ...base, state: 'passed', note: at ? shortDate(at, now) : undefined };
+      return { ...base, state: 'passed' };
     }
     return ended ? { ...base, state: 'left', note: left } : { ...base, state: 'current', note: `Here ${here}` };
   });

@@ -135,7 +135,9 @@ describe('saved candidates page', () => {
 
     const rated = within(table).getByRole('link', { name: 'Casey Morgan' }).closest('tr')!;
     expect(within(rated).getByText('4.2')).toBeInTheDocument();
-    expect(within(rated).getByText('from 3 scorecards')).toBeInTheDocument();
+    expect(within(rated).getByText('out of 5, from 3 scorecards')).toBeInTheDocument();
+    // The number only, no stars (L1).
+    expect(rated.querySelector('svg[data-icon="lucide-star"], [class*="fill-current"]')).toBeNull();
     const gated = within(table).getByRole('link', { name: 'Sam Taylor' }).closest('tr')!;
     expect(within(gated).getByText('After yours')).toBeInTheDocument();
     expect(within(gated).queryByText(/\d\.\d/)).toBeNull();

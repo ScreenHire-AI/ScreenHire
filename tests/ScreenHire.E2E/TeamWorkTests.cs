@@ -7,10 +7,10 @@ using System.Text.RegularExpressions;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// A hiring team organizing candidates in the dashboard: a note in the Overview's box, a tag, the candidates list filtered by that
-/// tag, a manual automation run from the application with the team notified, and completing the task it made on My
-/// tasks. Signs in as a new person with a new organization, whose job has a Manual automation that creates a to-do and
-/// notifies the team.
+/// A hiring team organizing candidates in the dashboard: a note in Activity's box, a tag in the candidate's header, the
+/// candidates list filtered by that tag, a manual automation run from Activity with the team notified, and completing the
+/// task it made, in Overview's Needs you, from My tasks. Signs in as a new person with a new organization, whose job has a
+/// Manual automation that creates a to-do and notifies the team.
 /// </summary>
 public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -27,8 +27,8 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(email);
 
-        // A note, written in the box on Overview, lands in Activity with its author.
-        await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
+        // A note, written in the box on the Activity tab, lands in the timeline below it with its author.
+        await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}?tab=activity"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(Tagged);
         var activity = Region("Activity");
         await activity.GetByLabel("Note for the hiring team").FillAsync("Strong portfolio. Ask about the notice period.");
@@ -37,23 +37,39 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(activity).ToContainTextAsync("Note by you");
         await Expect(activity).ToContainTextAsync("Strong portfolio. Ask about the notice period.");
 
-        // A tag, as a pill with its own Remove button.
-        var tags = Region("Tags");
-        await tags.GetByLabel("New tag").FillAsync("Referral");
-        await tags.GetByRole(AriaRole.Button, new() { Name = "Add tag" }).ClickAsync();
-        await Expect(tags.GetByRole(AriaRole.List, new() { Name = "Tags" })).ToContainTextAsync("Referral");
-        await Expect(tags.GetByRole(AriaRole.Button, new() { Name = "Remove tag Referral" })).ToBeVisibleAsync();
+        // A tag, in the candidate's header: "Add tag" is a text button that opens its field in place, and Escape closes it.
+        var header = Page.Locator("[data-slot='header-band']");
+        var addTag = header.GetByRole(AriaRole.Button, new() { Name = "Add tag", Exact = true });
+        var newTag = header.GetByLabel("New tag");
+        await Expect(newTag).ToHaveCountAsync(0);
+        await addTag.ClickAsync();
+        await Expect(newTag).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(newTag).ToHaveCountAsync(0);
+        await addTag.ClickAsync();
+        await newTag.FillAsync("Referral");
+        await header.GetByRole(AriaRole.Button, new() { Name = "Add tag", Exact = true }).ClickAsync();
+        // The tag is a muted pill, and its own Remove button is hidden until the pill is hovered (or focused, or tapped).
+        var tags = header.GetByRole(AriaRole.List, new() { Name = "Tags", Exact = true });
+        await Expect(tags).ToContainTextAsync("Referral");
+        var remove = header.GetByRole(AriaRole.Button, new() { Name = "Remove tag Referral" });
+        await Page.Mouse.MoveAsync(0, 0);
+        await Expect(remove).ToHaveCSSAsync("opacity", "0");
+        await tags.GetByRole(AriaRole.Listitem).First.HoverAsync();
+        await Expect(remove).ToHaveCSSAsync("opacity", "1");
         await Expect(activity).ToContainTextAsync("Tagged \"Referral\" by you");
         // The Activity line can arrive before the tag's request has settled. Both buttons are disabled until it has, and
         // enabling one eases its colours back; axe measuring mid-ease reports a button at half contrast.
-        await Expect(tags.GetByRole(AriaRole.Button, new() { Name = "Add tag" })).ToBeEnabledAsync();
+        await Expect(addTag).ToBeEnabledAsync();
+        await Expect(remove).ToBeEnabledAsync();
+        await Page.Mouse.MoveAsync(0, 0);
         await Expect(activity.GetByRole(AriaRole.Button, new() { Name = "Save note", Exact = true })).ToBeEnabledAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-team-work-application");
 
         // The candidates list, filtered by the tag, shows only the tagged candidate.
         await Page.GotoAsync(DashboardUrl("/candidates"));
-        var applications = Region("Applications");
+        var applications = Region("Candidates");
         await Expect(applications.GetByRole(AriaRole.Link, new() { Name = Untagged, Exact = true })).ToBeVisibleAsync();
         await applications.GetByRole(AriaRole.Button, new() { Name = "Tag: all" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitemradio, new() { Name = "Referral" }).ClickAsync();
@@ -63,12 +79,16 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(applications.GetByRole(AriaRole.Link, new() { Name = Untagged, Exact = true })).ToHaveCountAsync(0);
         await Expect(applications.GetByRole(AriaRole.Link, new() { Name = Tagged, Exact = true })).ToBeVisibleAsync();
 
-        // A manual automation runs from the application and makes a task, which appears live.
+        // A manual automation runs from the application's Activity tab and makes a task, which Overview's Needs you shows.
         await applications.GetByRole(AriaRole.Link, new() { Name = Tagged, Exact = true }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(Tagged);
+        await Expect(Region("Needs you")).ToBeVisibleAsync();
+        await Expect(Region("Automations")).ToHaveCountAsync(0); // the manual automations are on Activity, not Overview
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         await Region("Automations").GetByRole(AriaRole.Button, new() { Name = "Run, Prepare the interview" }).ClickAsync();
         await Expect(Region("Automations")).ToContainTextAsync("Asked to run \"Prepare the interview\"");
-        await Expect(Region("Next steps")).ToContainTextAsync("Call the references.", new() { Timeout = 30_000 });
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Overview") }).ClickAsync();
+        await Expect(Region("Needs you")).ToContainTextAsync("Call the references.", new() { Timeout = 30_000 });
         // Its NotifyTeam action reaches the open dashboard's notification tray, with the action's note.
         var notifications = Region("Notifications");
         await Expect(notifications).ToContainTextAsync("Interview prep has started.", new() { Timeout = 30_000 });
@@ -76,7 +96,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await notifications.GetByRole(AriaRole.Button, new() { Name = "Dismiss notification" }).ClickAsync();
         await Expect(notifications.GetByRole(AriaRole.Listitem)).ToHaveCountAsync(0);
 
-        // My tasks lists it under For the team, and its row links to the candidate, where Next steps ticks it off: Undo
+        // My tasks lists it under For the team, and its row links to the candidate, where Needs you ticks it off: Undo
         // for 10 seconds, then the task is done, and it leaves My tasks' open list for Done.
         await Page.GotoAsync(DashboardUrl("/tasks"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("My tasks");
@@ -95,7 +115,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await SaveScreenshotAsync(Page, "dashboard-my-tasks-phone");
         await Page.SetViewportSizeAsync(1440, 1000);
         await open.GetByRole(AriaRole.Link, new() { Name = "Call the references.", Exact = true }).ClickAsync();
-        var steps = Region("Next steps");
+        var steps = Region("Needs you");
         await steps.GetByRole(AriaRole.Checkbox, new() { Name = "Mark done for Call the references." }).ClickAsync();
         await Expect(steps.GetByRole(AriaRole.Button, new() { Name = "Undo, Call the references." })).ToBeVisibleAsync();
         await Expect(steps.GetByRole(AriaRole.Button, new() { Name = "Undo, Call the references." })).ToHaveCountAsync(0, new() { Timeout = 20_000 });

@@ -6,7 +6,9 @@
  */
 
 /**
- * A problem with a definition, at a JSON path such as `workflow.stages[1].id`.
+ * A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;
+ * Message is a whole sentence for a person that names the thing and says what to do, so a screen can
+ * show it as it is.
  */
 export interface DefinitionError {
   path: string;

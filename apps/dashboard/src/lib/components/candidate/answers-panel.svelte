@@ -19,17 +19,13 @@
   // The candidate's answers to the job's questions, read against the questions as the job asks them, then their answers
   // to the questions every application asks: AI use, the assistive-technology switch and future roles. Only what they
   // declared is a row; no answer is the default and shows nothing (W6). A file answer names the file; its row, with View
-  // and Download, is in the details rail (every fact has one home, W6). On Overview it links to the Application tab,
-  // which holds the whole application.
+  // and Download, is on the Files tab (every fact has one home, W6).
   let {
     detail,
     questions,
-    fullHref,
   }: {
     detail: ApplicationDetail;
     questions: ReadonlyMap<string, Question>;
-    /** The Application tab, from Overview. */
-    fullHref?: string;
   } = $props();
 
   const answers = $derived(detail.answers.filter((answer) => answer.questionId !== 'resume'));
@@ -54,9 +50,6 @@
 </script>
 
 <Panel title="Answers" count={answers.length + declarations.length}>
-  {#snippet actions()}
-    {#if fullHref}<a href={fullHref} class="inline-flex min-h-6 items-center font-semibold text-primary underline underline-offset-2 pointer-coarse:min-h-11">Full application</a>{/if}
-  {/snippet}
   {#if answers.length === 0 && declarations.length === 0}
     <p class="text-muted-foreground">No answers.</p>
   {:else}

@@ -142,7 +142,7 @@ public sealed class FollowUpQuestionnaireTests
         DefinitionValidator.Validate(Workflow(followUps: [Availability], automations: [Knockout(optIn: false)])).Should().ContainSingle()
             .Which.Path.Should().Be("automations[0].allowAutoReject");
         DefinitionValidator.Validate(Workflow(followUps: [Availability], automations: [Knockout(optIn: true, "start_date")])).Should().ContainSingle()
-            .Which.Message.Should().Contain("Only a knockout automation may reject");
+            .Which.Message.Should().Contain("only a knockout automation may do");
     }
 
     // Guardrail 1 (ADR-0004): a signal may route, tag, assign or request verification. Asking the candidate for more is

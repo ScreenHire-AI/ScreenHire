@@ -1,4 +1,5 @@
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Jobs;
 
 namespace ScreenHire.UnitTests.Hiring;
 
@@ -223,7 +224,7 @@ public sealed class DefinitionValidatorTests
         ]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
-            .Which.Message.Should().Contain("ADR-0004");
+            .Which.Message.Should().Contain("never drives a rejection");
     }
 
     // ADR-0019 decision 5: a definition that still says integrity.* after the rename is held to the same guardrail.
@@ -239,7 +240,7 @@ public sealed class DefinitionValidatorTests
         ]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
-            .Which.Message.Should().Contain("ADR-0004");
+            .Which.Message.Should().Contain("never drives a rejection");
     }
 
     [Theory]
@@ -568,7 +569,8 @@ public sealed class DefinitionValidatorTests
 
         errors.Should().ContainSingle().Which.Should().Match<DefinitionError>(e => e.Path == "automations[0].actions[0]"
             && e.Message.Contains("hiring team's delay, not the candidate", StringComparison.Ordinal)
-            && e.Message.Contains("notify the team, assign a reviewer, create a task or add a tag", StringComparison.Ordinal));
+            && e.Message.Contains("tell the team, ask a teammate to review, add a task or add a tag", StringComparison.Ordinal)
+            && e.Message.Contains("\"Automation slow\"", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -696,9 +698,180 @@ public sealed class DefinitionValidatorTests
         var errors = DefinitionValidator.Validate(workflow);
 
         errors.Should().ContainSingle(e => e.Path == actionPath).Which.Message
-            .Should().Contain("uses a verification signal").And.Contain("Verification signals never drive rejection (ADR-0004)");
+            .Should().Contain("acts on a check result").And.Contain("never drives a rejection");
         errors.Should().HaveCount(1);
     }
+
+    // The validator writes whole sentences for people: each names the thing by the name they gave it and says what to do.
+    [Fact]
+    public void A_blank_tag_message_names_the_automation_and_says_what_to_do()
+    {
+        var workflow = Workflow(automations:
+        [
+            new("queue", "Queue for review if no right to work", new AutomationTrigger(TriggerType.QuestionnaireCompleted), null,
+                [new AutomationAction(ActionType.AddTag, Tag: " ")]),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0].tag")
+            .Which.Message.Should().Be("The tag in \"Queue for review if no right to work\" has no name. Type one, or remove that step.");
+    }
+
+    [Fact]
+    public void A_missing_tag_reads_like_a_blank_one_and_numbers_the_step_when_there_are_several()
+    {
+        var workflow = Workflow(automations:
+        [
+            new("two", "Two steps", new AutomationTrigger(TriggerType.QuestionnaireCompleted), null,
+                [new AutomationAction(ActionType.NotifyTeam, Note: "Hi"), new AutomationAction(ActionType.AddTag)]),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[1].tag")
+            .Which.Message.Should().Be("The tag in step 2 of \"Two steps\" has no name. Type one, or remove that step.");
+    }
+
+    [Fact]
+    public void A_step_with_a_missing_part_names_the_step_in_words_the_screen_uses()
+    {
+        var workflow = Workflow(automations:
+        [
+            new("move", "Fast track", new AutomationTrigger(TriggerType.QuestionnaireCompleted), null, [new AutomationAction(ActionType.MoveToStage)]),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0].stageId")
+            .Which.Message.Should().Be("The \"Move to a stage\" step in \"Fast track\" needs a stage. Choose one, or remove that step.");
+    }
+
+    [Fact]
+    public void A_stage_problem_names_the_stage_or_says_this_stage_when_it_has_no_name()
+    {
+        var named = Workflow(stages:
+        [
+            new("applied", "Applied", StageKind.Applied),
+            new("hired", "Hired", StageKind.Hired, Scorecard: new Scorecard("Offer card", [new ScorecardQuestion("q", ScorecardQuestionType.YesNo, "Ready?")])),
+            new("late", "Waiting list", StageKind.Custom, SlaDays: 0),
+        ]);
+        var blank = Workflow(stages: [new("applied", "Applied", StageKind.Applied), new("later", " ", StageKind.Custom, SlaDays: 500)]);
+
+        var errors = DefinitionValidator.Validate(named);
+
+        errors.Should().Contain(e => e.Path == "stages[2].slaDays" && e.Message.Contains("\"Waiting list\"") && e.Message.Contains("between 1 and 365 days"));
+        errors.Single(e => e.Path.StartsWith("stages[1]", StringComparison.Ordinal)).Message.Should().StartWith("\"Hired\" ends the application");
+        DefinitionValidator.Validate(blank).Should().Contain(e => e.Path == "stages[1].slaDays" && e.Message.Contains("this stage"));
+    }
+
+    [Fact]
+    public void A_question_problem_names_the_question_and_the_questionnaire_it_is_in()
+    {
+        var workflow = Workflow(questions: [new("pick", QuestionType.SingleChoice, "Which team?", Options: [new("only", "Only")])]);
+
+        DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "questionnaire.questions[0].options")
+            .Which.Message.Should().Be("The question \"Which team?\" in the application questionnaire needs at least 2 options. Add some.");
+    }
+
+    // Every message is read by a person on a Windows machine: no dashes as separators, no curly quotes, no enum names.
+    [Fact]
+    public void No_message_on_a_deliberately_broken_definition_has_a_dash_a_curly_quote_or_an_internal_name()
+    {
+        var errors = DefinitionValidator.Validate(Broken()).Concat(DefinitionValidator.Validate(BrokenTemplate())).ToList();
+        errors.Should().HaveCountGreaterThan(60, "the definition is broken in many places on purpose");
+
+        char[] forbidden = ['\u2014', '\u2013', '\u2018', '\u2019', '\u201C', '\u201D'];
+        var internalNames = Enum.GetNames<ActionType>().Where(n => n != nameof(ActionType.Reject))
+            .Concat(Enum.GetNames<TriggerType>()).Concat(["answers.", "application.", "verification.", "reviewer."]).ToList();
+        foreach (var error in errors)
+        {
+            error.Message.Should().NotBeNullOrWhiteSpace(error.Path);
+            error.Message.IndexOfAny(forbidden).Should().Be(-1, $"{error.Path}: {error.Message}");
+            error.Message.Should().NotContain("--", error.Path);
+            error.Message.Should().NotContain("  ", error.Path);
+            internalNames.Where(n => error.Message.Contains(n, StringComparison.Ordinal)).Should().BeEmpty($"{error.Path}: {error.Message}");
+        }
+
+        DefinitionValidator.ValidateScorecardQuestions(
+            [new ScorecardQuestion("Bad id", ScorecardQuestionType.Rating5, " ", Options: [new("a", "A")]), null!], "card")
+            .Select(e => e.Message).Should().OnlyContain(m => m.IndexOfAny(forbidden) < 0 && !m.Contains("--", StringComparison.Ordinal));
+    }
+
+    private static HiringWorkflow Broken()
+    {
+        var yes = new Question("dup", QuestionType.YesNo, "Right to work?", Knockout: new Knockout(false));
+        Question[] questions =
+        [
+            yes,
+            yes,
+            new("pick", QuestionType.SingleChoice, "Which team?", Options: [new("a", "A")]),
+            new("txt", QuestionType.ShortText, " ", HelpText: " ", Options: [new("a", "A"), new("b", "B")], Min: 1, MaxLength: 9000),
+            new("num", QuestionType.Number, "How many?", Min: 5, Max: 1, Knockout: new Knockout(true), AcceptedFileTypes: ["pdf"]),
+            new("up", QuestionType.File, "CV", AcceptedFileTypes: ["pdf"]),
+        ];
+        FollowUpQuestionnaire[] followUps =
+        [
+            new("more", "More details", [new("resume", QuestionType.File, "Another CV"), new("dup", QuestionType.ShortText, "Again")],
+                [new("s1", "One", ["resume", "ghost"]), new("s1", " ", [])]),
+            new("more", "", []),
+        ];
+        var stages = new List<WorkflowStage>
+        {
+            new("Applied!", "Intake", StageKind.Screening, SlaDays: 0, Scorecard: new Scorecard(" ", [])),
+            new("applied", "Applied", StageKind.Applied),
+            new("applied", "", StageKind.Applied, SlaDays: 1000),
+            new("end", "Done", StageKind.Hired, ScorecardTemplateId: "x"),
+            new("odd", "Odd one", (StageKind)99),
+        };
+        var reviewerRule = new AutomationCondition(FactSchema.ReviewerRecommendation, ConditionOperator.EqualTo, "Yes");
+        Automation[] automations =
+        [
+            new("a", "Bad parts", new AutomationTrigger(TriggerType.StageEntered, QuestionnaireId: "nope", AfterHours: 3),
+                new AutomationConditions(ConditionMatch.All,
+                [
+                    new AutomationCondition("answers.ghost", ConditionOperator.Exists),
+                    new AutomationCondition("application.rating", ConditionOperator.GreaterThan, "3"),
+                    new AutomationCondition("application.tags", ConditionOperator.GreaterThan, "3"),
+                    new AutomationCondition("application.hoursInStage", ConditionOperator.GreaterThan, "soon"),
+                    new AutomationCondition("answers.dup", ConditionOperator.EqualTo, "maybe"),
+                    new AutomationCondition("answers.pick", ConditionOperator.In, Values: ["zzz"]),
+                    new AutomationCondition("application.source", ConditionOperator.EqualTo),
+                    new AutomationCondition("nothing.here", ConditionOperator.EqualTo, "x"),
+                    reviewerRule,
+                    null!,
+                ]),
+                [
+                    new AutomationAction(ActionType.AddTag),
+                    new AutomationAction(ActionType.AddTag, Tag: new string('t', 80), Url: "http://example.com"),
+                    new AutomationAction(ActionType.MoveToStage, StageId: "nowhere", Tag: ""),
+                    new AutomationAction(ActionType.SendQuestionnaire, QuestionnaireId: "ghost"),
+                    new AutomationAction(ActionType.SendEmail, EmailTemplate: "application-rejected"),
+                    new AutomationAction(ActionType.SendEmail, EmailTemplate: "interview-invitation"),
+                    new AutomationAction(ActionType.SendEmail, EmailTemplate: "nonsense"),
+                    new AutomationAction(ActionType.Reject, Reason: " ", EmailTemplate: "stage-change"),
+                    new AutomationAction(ActionType.ScheduleInterview, InterviewerUserIds: [], InterviewMinutes: 7, InterviewWindowDays: 99, InterviewTimeZone: "Nope"),
+                    new AutomationAction(ActionType.CallWebhook, Url: "ftp://example.com"),
+                ]),
+            new("a", "Verification waits", new AutomationTrigger(TriggerType.VerificationCompleted), null,
+                [new AutomationAction(ActionType.RequestVerification), new AutomationAction(ActionType.CreateTask, Note: " ")]),
+            new("sig", "Signal rejects", new AutomationTrigger(TriggerType.VerificationAssessed), null, [new AutomationAction(ActionType.Reject, Reason: "No")]),
+            new("sla", "Slow", new AutomationTrigger(TriggerType.SlaBreached, "applied"),
+                new AutomationConditions(ConditionMatch.All, [new AutomationCondition("application.hoursInStage", ConditionOperator.GreaterThan, "5")]),
+                [new AutomationAction(ActionType.SendEmail, EmailTemplate: "stage-change")]),
+            new("rej", "Rejects", new AutomationTrigger(TriggerType.StageEntered, "applied"), null,
+                [new AutomationAction(ActionType.Reject, Reason: "No"), new AutomationAction(ActionType.MoveToStage, StageId: "end")], AllowAutoReject: false),
+            new("bad", "", new AutomationTrigger((TriggerType)99), null, []),
+            new("none", "No trigger", null!, null, [new AutomationAction((ActionType)99), null!]),
+            null!,
+        ];
+        return new HiringWorkflow(stages, new Questionnaire(questions, [new("only", "Only", ["dup"])]), new VerificationPolicy((AiUsePolicy)9), automations, followUps);
+    }
+
+    private static HiringTemplateDefinition BrokenTemplate() => new(
+        HiringWorkflow.Default with
+        {
+            Stages =
+            [
+                new("applied", "Applied", StageKind.Applied),
+                new("screening", "Screening", StageKind.Screening, Scorecard: new Scorecard("Own copy", [new ScorecardQuestion("q", ScorecardQuestionType.YesNo, "Skills?")]), ScorecardTemplateId: "ghost card!"),
+            ],
+        },
+        new PostingDefaults(EmploymentType: (EmploymentType)99, WorkplaceType: (WorkplaceType)99, SalaryPeriod: (SalaryPeriod)99, SalaryCurrency: "pounds", ValidForDays: 400, Department: " "));
 
     private static IEnumerable<string> Paths(HiringWorkflow workflow) => DefinitionValidator.Validate(workflow).Select(e => e.Path);
 

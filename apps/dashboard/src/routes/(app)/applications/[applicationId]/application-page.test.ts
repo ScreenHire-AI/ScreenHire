@@ -2,6 +2,7 @@ import type {
   ApplicationDetail,
   ApplicationInterview,
   ApplicationTaskEntry,
+  ApplicationVerification,
   CandidateEmailEntry,
   ApplicationTimelineEntry,
   JobDetail,
@@ -9,6 +10,7 @@ import type {
   ScorecardTemplateSummary,
   TeamMember,
 } from '@screenhire/api-client';
+import { QueryClient } from '@tanstack/svelte-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, interviewer, jobId, roleCatalogue, stages, user, userAs } from '../../../../test-support/fixtures.js';
@@ -203,11 +205,21 @@ afterEach(() => {
   page.url = new URL('http://dashboard.test/');
 });
 
+// The page's own query cache, kept so a test can wait until every request the page made has been answered.
+let client: QueryClient;
+
 /** Renders the page on `tab`, as its address (?tab=) says; Playwright switches tabs by clicking. */
 function renderPage(tab?: string) {
   page.url = new URL(`http://dashboard.test/applications/${applicationId}${tab ? `?tab=${tab}` : ''}`);
-  return render(WithQueryClient, { props: { component: Page, props: { params: { applicationId } } } });
+  client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  return render(WithQueryClient, { props: { component: Page, props: { params: { applicationId } }, client } });
 }
+
+/**
+ * Every request the page made has been answered. Call it once something that only shows after the page has loaded is on the
+ * screen, so a panel that should be there by now is really absent and not still on its way.
+ */
+const settled = () => waitFor(() => expect(client.isFetching()).toBe(0));
 
 const asRole = (role: 'Owner' | 'Admin' | 'Recruiter' | 'Viewer') => (page.data.user = userAs(role));
 
@@ -227,8 +239,62 @@ const noteItem = (noteId: string) =>
 
 const lines = (region: HTMLElement) => within(region).getAllByRole('listitem').map((item) => item.querySelector('p')?.textContent?.replace(/\s+/g, ' ').trim());
 
+const plain = (element: Element) => element.textContent?.replace(/\s+/g, ' ').trim();
+
+/** The header band, once the page has loaded. */
+const header = async () => (await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).closest<HTMLElement>('[data-slot="header-band"]')!;
+
+/** The first line of the header: the name and the one status badge beside it. */
+const firstLine = async () => (await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).parentElement!;
+
+/** The titles of the panels on the page, in document order. */
+const panelNames = () => [...document.querySelectorAll('[data-slot="panel"] > header h2')].map((heading) => heading.textContent?.trim());
+
+type Level = 'NoConcerns' | 'ReviewSuggested' | 'VerificationRecommended';
+
+/** The verification answer for an authenticity level, dismissed by a reviewer or not. */
+function verificationAt(level: Level, dismissed = false): ApplicationVerification {
+  const bot = botVerification();
+  const dismissal = { actionId: 'd1', reason: 'FalsePositive' as const, note: null, actorUserId: user.id, actorName: 'Avery Quinn', dismissedAt: '2026-10-20T11:00:00Z' };
+  return { ...bot, applicationId, authenticity: { ...bot.authenticity!, level, dismissal: dismissed ? dismissal : null } };
+}
+
+const stubVerification = (verification: ApplicationVerification) =>
+  stubApi({ [`GET /v1/applications/${applicationId}/verification`]: () => Response.json(verification) });
+
+/** The verification chip beside the name, once it shows `kind`: clear, review, verify, pending or dismissed. */
+const chip = (band: HTMLElement, kind: string) =>
+  waitFor(() => {
+    const found = band.querySelector<HTMLElement>(`[data-verification-chip][data-level="${kind}"]`);
+    if (!found) throw new Error(`No ${kind} chip yet`);
+    return found;
+  });
+
+// An interview the candidate was offered, for the Overview and the Schedule interview tests.
+const interviewId = '01a157d4-0000-7000-8000-000000000400';
+const startsAt = '2026-11-05T15:00:00Z';
+const interview = (overrides: Partial<ApplicationInterview> = {}): ApplicationInterview => ({
+  id: interviewId,
+  status: 'Open',
+  startsAt: null,
+  endsAt: null,
+  windowStart: '2026-11-03T05:00:00Z',
+  windowEnd: '2026-11-17T05:00:00Z',
+  timeZone: 'America/New_York',
+  durationMinutes: 30,
+  dayStart: '09:00',
+  dayEnd: '17:00',
+  meetingUrl: null,
+  interviewers: [{ userId: user.id, displayName: 'Avery Quinn', isOrganizer: true, syncStatus: 'Synced', syncProblem: null }],
+  createdAt: '2026-10-20T12:00:00Z',
+  createdByUserId: user.id,
+  cancelledByCandidate: false,
+  newTimesOfferedAt: null,
+  ...overrides,
+});
+
 describe('application page', () => {
-  it('has the same six tabs in the same order, with counts, and the signals on Verification when the level needs a look', async () => {
+  it('has the seven tabs in the same order, with counts, and the signals on Verification when the level needs a look', async () => {
     stubApi({ [`GET /v1/applications/${applicationId}/verification`]: () => Response.json({ ...botVerification(), applicationId }) });
     renderPage();
 
@@ -238,6 +304,7 @@ describe('application page', () => {
       expect(within(tabs).getAllByRole('tab').map((tab) => tab.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
         'Overview',
         'Application',
+        'Files 2',
         'Messages 0',
         'Scorecards 0',
         expect.stringMatching(/^Verification \d+$/),
@@ -247,87 +314,550 @@ describe('application page', () => {
     expect(within(tabs).getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('puts who they are and where they stand in the header, and the files and tags on Overview', async () => {
-    renderPage();
-    const heading = await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' });
-    const band = heading.closest<HTMLElement>('[data-slot="header-band"]')!;
+  it('opens the Files tab from ?tab=files', async () => {
+    renderPage('files');
+    const tabs = await screen.findByRole('tablist', { name: 'Candidate sections' });
 
-    // Above the tabs, where the eye starts on every tab: the name, the pipeline tracker, then three mini cards. There is no
-    // meta line and no rail at the window's far edge.
-    expect(within(band).queryAllByRole('term')).toHaveLength(0);
-    // The tracker draws once the job's workflow is in.
-    const steps = within(await within(band).findByRole('list', { name: 'Pipeline' })).getAllByRole('listitem');
-    expect(steps.map((step) => step.getAttribute('data-state'))).toEqual(['passed', 'current', 'upcoming', 'upcoming']);
-    expect(steps[1]).toHaveAttribute('aria-current', 'step');
-    expect(steps[1]).toHaveTextContent(/^Screening, step 2 of 4.*Here .+/);
-    expect(steps[0]).toHaveTextContent(/^Applied, step 1 of 4.*Oct 20(, 2026)?$/);
-
-    const contact = within(band).getByRole('group', { name: 'Contact' });
-    expect(within(contact).getByRole('link', { name: 'casey.morgan@example.com' })).toHaveAttribute('href', 'mailto:casey.morgan@example.com');
-    expect(within(contact).getByRole('button', { name: 'Copy email address' })).toBeInTheDocument();
-    const applied = within(band).getByRole('group', { name: 'Application' });
-    expect(within(applied).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobId}`);
-    expect(applied).toHaveTextContent(/Applied .+ via the careers page$/);
-    // Nobody scored them, so the third card is their other applications, and nothing says "Not rated yet".
-    const others = within(band).getByRole('group', { name: 'Also applied to' });
-    expect(within(others).getByRole('link', { name: 'Candidate profile' })).toHaveAttribute('href', `/candidates/${candidateId}`);
-    expect(within(band).queryByRole('group', { name: 'Rating' })).toBeNull();
-    expect(band).not.toHaveTextContent('Not rated yet');
-    // jsdom has no container queries, so this only checks the two layouts are declared: on a phone the cards are one row that
-    // scrolls sideways (a fixed width each, snapping), from a 36rem band a grid. The widths themselves are the E2E test's.
-    const cards = band.querySelector<HTMLElement>('[data-header-cards]')!;
-    expect(cards).toHaveClass('flex', 'overflow-x-auto', '@xl:grid');
-    expect(cards.querySelectorAll('[role="group"]')).toHaveLength(3);
-    for (const card of cards.querySelectorAll('[role="group"]')) expect(card).toHaveClass('w-64', 'shrink-0', '@xl:w-auto');
-    expect(screen.queryByRole('complementary', { name: 'Details' })).toBeNull();
-    const files = await screen.findByRole('region', { name: 'Files' });
-    expect(within(files).getByRole('button', { name: 'View Casey Morgan CV.pdf' })).toBeInTheDocument();
-    // The scan withheld the portfolio, so its row says why and offers neither View nor Download.
-    expect(files).toHaveTextContent('Unsafe file');
-    expect(screen.getByRole('region', { name: 'Tags' })).toBeInTheDocument();
-    expect(await within(band).findByRole('button', { name: 'Move to stage, Casey Morgan' })).toBeInTheDocument();
+    expect(within(tabs).getByRole('tab', { name: /^Files/ })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('region', { name: 'Files' })).toBeInTheDocument();
   });
 
-  it("links the resume through the API's download route, as a full navigation", async () => {
-    renderPage();
+  describe('the header', () => {
+    const phone = '+44 20 7946 0000';
+    const withPhone = { ...application, candidate: { ...application.candidate, phone } };
+    const rated = { ...application, rating: { state: 'Rated', value: 4.6, scorecards: 1 } };
+    const needsALook = [
+      ['ReviewSuggested', 'review', 'Review', '2', 'Review suggested'],
+      ['VerificationRecommended', 'verify', 'Verify', '3', 'Verification suggested'],
+    ] as const;
 
-    const link = await screen.findByRole('link', { name: 'Download Casey Morgan CV.pdf' });
-    expect(link).toHaveAttribute('href', `/v1/applications/${applicationId}/files/${resumeId}`);
-    expect(link).toHaveAttribute('data-sveltekit-reload');
+    it.each(needsALook)('shows %s as a filled badge with its one word and the level mark, and the long name for screen readers only', async (level, kind, word, steps, longName) => {
+      stubVerification(verificationAt(level));
+      renderPage();
+      const shown = await chip(await header(), kind);
+
+      expect(shown.querySelector('span[aria-hidden="true"]:not([data-level-mark])')).toHaveTextContent(new RegExp(`^${word}$`));
+      // Three squares, filled to the level: two for Review, three for Verify.
+      expect(shown.querySelector('[data-level-mark]')).toHaveAttribute('data-level-mark', steps);
+      expect(shown.querySelectorAll('[data-level-mark] > span')).toHaveLength(3);
+      expect(shown.querySelectorAll('[data-level-mark] > span.bg-current')).toHaveLength(Number(steps));
+      expect(shown.querySelector('.sr-only')).toHaveTextContent(`Verification: ${longName}`);
+      // On the first line, beside the name.
+      expect(await firstLine()).toContainElement(shown);
+    });
+
+    it.each(needsALook)('says exactly the level name in the tooltip for %s', async (level, kind, _word, _steps, longName) => {
+      stubVerification(verificationAt(level));
+      renderPage();
+
+      await fireEvent.click(await chip(await header(), kind));
+
+      await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent(new RegExp(`^${longName}$`)));
+    });
+
+    it('says who set a dismissed result aside, when and why, in its tooltip', async () => {
+      stubVerification(verificationAt('VerificationRecommended', true));
+      renderPage();
+
+      await fireEvent.click(await chip(await header(), 'dismissed'));
+
+      await waitFor(() =>
+        expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent(
+          /^Verification suggested, dismissed by you on Oct 20(, 2026)?: The observations do not apply\.$/,
+        ),
+      );
+    });
+
+    const quiet: [string, ApplicationVerification, string, string][] = [
+      ['clear', verificationAt('NoConcerns'), 'Clear', 'Verification: No concerns'],
+      ['pending', { ...pendingVerification(), applicationId }, 'Pending', 'Verification: Checks pending'],
+      ['dismissed', verificationAt('VerificationRecommended', true), 'Dismissed', 'Verification: Verification suggested, dismissed after review'],
+    ];
+
+    it.each(quiet)('keeps %s quiet: a muted word and no level mark', async (kind, verification, word, spoken) => {
+      stubVerification(verification);
+      renderPage();
+      const shown = await chip(await header(), kind);
+
+      expect(shown).toHaveAttribute('data-quiet');
+      expect(shown.querySelector('[data-level-mark]')).toBeNull();
+      expect(shown.querySelector('[data-slot="badge"]')).toHaveClass('text-muted-foreground');
+      expect(shown.querySelector('span[aria-hidden="true"]:not([data-level-mark])')).toHaveTextContent(new RegExp(`^${word}$`));
+      expect(shown.querySelector('.sr-only')).toHaveTextContent(spoken);
+    });
+
+    it('shows how they left in place of the verification state, even when verification is suggested', async () => {
+      stubApi({
+        [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, stage: { id: 'rejected', name: 'Rejected', kind: 'Rejected' } }),
+        [`GET /v1/applications/${applicationId}/verification`]: () => Response.json(verificationAt('VerificationRecommended')),
+      });
+      renderPage();
+      const band = await header();
+
+      // The tab counts the signals behind the level, so its number says the verification answer is in.
+      await within(screen.getByRole('tablist', { name: 'Candidate sections' })).findByRole('tab', { name: /^Verification \d+$/ });
+      expect(await firstLine()).toHaveTextContent('Rejected');
+      expect(band.querySelector('[data-verification-chip]')).toBeNull();
+    });
+
+    it('puts the email, phone, job and when they applied on one meta line, with no copy buttons', async () => {
+      stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json(withPhone) });
+      renderPage();
+      const band = await header();
+
+      expect(await within(band).findByRole('link', { name: 'casey.morgan@example.com' })).toHaveAttribute('href', 'mailto:casey.morgan@example.com');
+      expect(within(band).getByRole('link', { name: phone })).toHaveAttribute('href', `tel:${phone}`);
+      expect(within(band).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobId}`);
+      expect(band.querySelectorAll('dl')).toHaveLength(1);
+      expect([...band.querySelectorAll('dt')].map((label) => label.textContent)).toEqual(['Email', 'Phone', 'Job', 'Applied']);
+      expect(band.querySelector('dl')).toHaveTextContent(/Applied .+ via the careers page$/);
+      expect(within(band).queryByRole('button', { name: /copy/i })).toBeNull();
+    });
+
+    it('shows the rating as a link to the Scorecards tab, not a popover', async () => {
+      stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json(rated) });
+      renderPage();
+      const band = await header();
+
+      const rating = await within(band).findByRole('link', { name: 'Rated 4.6 out of 5 from 1 scorecard' });
+      expect(rating).toHaveAttribute('href', '?tab=scorecards');
+      expect(rating).toHaveAttribute('data-rating-link');
+      expect(within(band).queryByRole('button', { name: /^Rated/ })).toBeNull();
+    });
+
+    it('has no rating link until a scorecard counts', async () => {
+      renderPage();
+      const band = await header();
+      await within(band).findByRole('list', { name: 'Pipeline' });
+      await settled();
+
+      expect(band.querySelector('[data-rating-link]')).toBeNull();
+    });
+
+    describe('tags', () => {
+      const tagged = { ...application, tags: ['Referral'] };
+
+      it('opens a field in place from Add tag, then adds the tag and closes the field', async () => {
+        const fetch = stubApi({ [`POST /v1/applications/${applicationId}/tags`]: () => Response.json(tagged) });
+        renderPage();
+        const band = await header();
+        expect(within(band).queryByLabelText('New tag')).toBeNull();
+
+        await fireEvent.click(await within(band).findByRole('button', { name: 'Add tag' }));
+        const field = within(band).getByLabelText('New tag');
+        expect(field).toHaveFocus();
+        await fireEvent.input(field, { target: { value: 'Referral' } });
+        await fireEvent.click(within(band).getByRole('button', { name: 'Add tag' }));
+
+        await waitFor(() => expect(within(band).queryByLabelText('New tag')).toBeNull());
+        const post = fetch.mock.calls.find(([url, init]) => String(url).endsWith('/tags') && init?.method === 'POST');
+        expect(JSON.parse(String(post![1]!.body))).toEqual({ tag: 'Referral' });
+        expect(within(band).getByRole('button', { name: 'Add tag' })).toBeInTheDocument();
+      });
+
+      it('closes the field on Escape and brings Add tag back, adding nothing', async () => {
+        const fetch = stubApi();
+        renderPage();
+        const band = await header();
+
+        await fireEvent.click(await within(band).findByRole('button', { name: 'Add tag' }));
+        await fireEvent.keyDown(within(band).getByLabelText('New tag'), { key: 'Escape' });
+
+        expect(within(band).queryByLabelText('New tag')).toBeNull();
+        expect(within(band).getByRole('button', { name: 'Add tag' })).toBeInTheDocument();
+        expect(fetch.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+      });
+
+      it('keeps Remove reachable by keyboard, and declares it shown on hover, focus and tap', async () => {
+        stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json(tagged) });
+        renderPage();
+        const remove = await within(await header()).findByRole('button', { name: 'Remove tag Referral' });
+
+        expect(remove).not.toHaveAttribute('tabindex', '-1');
+        remove.focus();
+        expect(remove).toHaveFocus();
+        // jsdom has no hover and no touch media, so this only checks that the reveal is declared: hidden at rest.
+        expect(remove).toHaveClass('opacity-0', 'group-hover/tag:opacity-100', 'group-focus-within/tag:opacity-100', 'focus-visible:opacity-100', 'pointer-coarse:opacity-100');
+      });
+
+      it('removes a tag with its own button beside the pill', async () => {
+        const fetch = stubApi({
+          [`GET /v1/applications/${applicationId}`]: () => Response.json(tagged),
+          [`DELETE /v1/applications/${applicationId}/tags?tag=Referral`]: () => Response.json(application),
+        });
+        renderPage();
+
+        await fireEvent.click(await within(await header()).findByRole('button', { name: 'Remove tag Referral' }));
+
+        await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url).endsWith('/tags?tag=Referral') && init?.method === 'DELETE')).toBe(true));
+      });
+    });
+
+    describe('stage rail', () => {
+      // "Today" is fixed: the application entered Screening on Oct 20 at 10:00, so it has been there three days.
+      beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-23T12:00:00Z') });
+      });
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it("draws the job's stages in order, with how long they have been in the current one and no dates on the others", async () => {
+        renderPage();
+        const rail = await within(await header()).findByRole('list', { name: 'Pipeline' });
+
+        expect(rail).toHaveAttribute('data-stage-rail');
+        const steps = within(rail).getAllByRole('listitem');
+        expect(steps.map((step) => step.getAttribute('data-state'))).toEqual(['passed', 'current', 'upcoming', 'upcoming']);
+        expect(steps[1]).toHaveAttribute('aria-current', 'step');
+        // A passed stage says nothing under its name: the meta line says when they applied.
+        expect(steps[0]).toHaveTextContent(/^Applied, step 1 of 4$/);
+        expect(steps[1]).toHaveTextContent(/^Screening, step 2 of 4.*Here 3 days$/);
+        expect(steps[2]).toHaveTextContent(/^Interview, step 3 of 4$/);
+        expect(steps[3]).toHaveTextContent(/^Offer, step 4 of 4$/);
+      });
+    });
+
+    it('reads top to bottom: the name, the meta line, the rating and tags, then the stage rail', async () => {
+      stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...rated, tags: ['Referral'] }) });
+      renderPage();
+      const band = await header();
+      await within(band).findByRole('list', { name: 'Pipeline' });
+
+      const parts = [
+        within(band).getByRole('heading', { level: 1 }),
+        band.querySelector('dl')!,
+        band.querySelector('[data-rating-link]')!,
+        within(band).getByRole('list', { name: 'Tags' }),
+        band.querySelector('[data-stage-rail]')!,
+      ];
+      parts.slice(1).forEach((part, index) => expect(parts[index]!.compareDocumentPosition(part) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy());
+    });
+
+    it('has no mini cards, no link to the candidate profile and no Details rail', async () => {
+      renderPage();
+      const band = await header();
+      await within(band).findByRole('list', { name: 'Pipeline' });
+      await settled();
+
+      expect(band.querySelector('[data-header-cards]')).toBeNull();
+      for (const name of ['Contact', 'Application', 'Also applied to', 'Rating', 'Interview']) expect(within(band).queryByRole('group', { name })).toBeNull();
+      expect(within(band).queryByRole('link', { name: 'Candidate profile' })).toBeNull();
+      expect(screen.queryByRole('complementary', { name: 'Details' })).toBeNull();
+    });
   });
 
-  it('puts what needs you now, the last five things anyone did and the answers on Overview', async () => {
-    renderPage();
+  describe('Files tab', () => {
+    it('lists each file the candidate gave, and withholds one the scan flagged', async () => {
+      renderPage('files');
+      const files = await screen.findByRole('region', { name: 'Files' });
 
-    const steps = await screen.findByRole('region', { name: 'Next steps' });
-    await within(steps).findByText('Call the references.');
-    const activity = screen.getByRole('region', { name: 'Activity' });
-    await waitFor(() => expect(within(activity).getAllByRole('listitem')).toHaveLength(5));
-    expect(within(activity).getByRole('link', { name: 'All 6 in Activity' })).toHaveAttribute('href', '?tab=activity');
-    await screen.findByRole('region', { name: 'Automations' });
-    const panels = [...document.querySelectorAll('[data-slot="panel"] > header h2')].map((heading) => heading.textContent?.trim());
-    expect(panels).toEqual(['Next steps', 'Automations', 'Activity', 'Files', 'Tags', 'Answers']);
+      expect(within(files).getByRole('button', { name: 'View Casey Morgan CV.pdf' })).toBeInTheDocument();
+      // The scan withheld the portfolio, so its row says why and offers neither View nor Download.
+      expect(files).toHaveTextContent('Unsafe file');
+      expect(within(files).queryByRole('button', { name: 'View portfolio.pdf' })).toBeNull();
+      expect(within(files).queryByRole('link', { name: 'Download portfolio.pdf' })).toBeNull();
+    });
+
+    it("links the resume through the API's download route, as a full navigation", async () => {
+      renderPage('files');
+
+      const link = await screen.findByRole('link', { name: 'Download Casey Morgan CV.pdf' });
+      expect(link).toHaveAttribute('href', `/v1/applications/${applicationId}/files/${resumeId}`);
+      expect(link).toHaveAttribute('data-sveltekit-reload');
+    });
   });
 
-  it('shows the verification next step on Overview when the level needs a look, never as a reason to reject', async () => {
-    stubApi({ [`GET /v1/applications/${applicationId}/verification`]: () => Response.json({ ...botVerification(), applicationId }) });
-    renderPage();
-    const steps = await screen.findByRole('region', { name: 'Next steps' });
+  describe('Overview', () => {
+    const needsYou = () => screen.findByRole('region', { name: 'Needs you' });
+    const ratedBy = (scorecards: number) => ({ ...application, rating: { state: 'Rated', value: 4.6, scorecards } });
+    const scorecard = (reviewerUserId: string, overrides: Partial<ScorecardEntry> = {}): ScorecardEntry => ({
+      id: crypto.randomUUID(),
+      stageId: 'interview',
+      reviewerUserId,
+      answers: [],
+      rating: 4.6,
+      ratings: [],
+      recommendation: 'StrongYes',
+      note: null,
+      workflowVersion: 1,
+      timelineEventId: crypto.randomUUID(),
+      submittedAt: '2026-10-20T11:45:00Z',
+      scorecardTemplateId: 'interview',
+      scorecardName: 'Interview',
+      ...overrides,
+    });
+    const sentId = '01a157d4-0000-7000-8000-0000000003b0';
+    const replyId = '01a157d4-0000-7000-8000-0000000003b1';
+    const otherApplicationId = '01a157d4-0000-7000-8000-0000000003b2';
+    const emailEntry = (id: string, overrides: Partial<CandidateEmailEntry> = {}): CandidateEmailEntry => ({
+      id,
+      applicationId,
+      jobTitle: 'Senior .NET Engineer',
+      templateId: null,
+      subject: 'Next steps',
+      actorUserId: teammate,
+      automationRunId: null,
+      sentAt: '2026-10-27T12:00:00Z',
+      kept: true,
+      ...overrides,
+    });
+    const sentBody = {
+      id: sentId,
+      applicationId,
+      templateId: null,
+      to: 'casey.morgan@example.com',
+      subject: 'Next steps',
+      html: '<p>Hi Casey,</p>',
+      text: '\n\nHi Casey,\nWe would like to talk on Thursday.',
+      sentAt: '2026-10-27T12:00:00Z',
+    };
 
-    await within(steps).findByText(/Confirm the candidate is who they say they are/);
-    // The caveat shows exactly once: this step's own words carry it, so the row adds none of its own (ADR-0004).
-    expect(steps.textContent?.match(/not a reason to reject/gi)).toHaveLength(1);
-    // The level is the badge beside the name, so the row does not repeat it (W7).
-    expect(steps).not.toHaveTextContent('Verification suggested by the checks.');
-    expect(within(steps).getByRole('link', { name: 'See the reasons' })).toHaveAttribute('href', '?tab=verification');
-    // The level is also the candidate's status, beside the name on every tab (S2, T2).
-    const band = screen.getByRole('heading', { level: 1 }).closest<HTMLElement>('[data-slot="header-band"]')!;
-    expect(within(band).getByText('Verification suggested')).toBeInTheDocument();
-    expect(within(band).queryByRole('button', { name: /reject/i })).toBeNull();
+    it('is four panels: Needs you and Scorecards, then Interview and Latest message', async () => {
+      stubApi({
+        [`GET /v1/applications/${applicationId}`]: () => Response.json(ratedBy(1)),
+        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([scorecard(teammate)]),
+        [`GET /v1/applications/${applicationId}/interviews`]: () => Response.json([interview({ status: 'Booked', startsAt, endsAt: '2026-11-05T15:30:00Z' })]),
+        [`GET /v1/candidates/${candidateId}/emails`]: () => Response.json([emailEntry(sentId)]),
+        [`GET /v1/emails/${sentId}`]: () => Response.json(sentBody),
+      });
+      renderPage();
+
+      // No Verification, Answers, Files, Tags, Activity, Automations or Other applications panel: each has a tab or the header.
+      await waitFor(() => expect(panelNames()).toEqual(['Needs you', 'Scorecards', 'Interview', 'Latest message']));
+    });
+
+    it('draws only Needs you when there is no scorecard, interview or email to say anything about', async () => {
+      renderPage();
+      await within(await needsYou()).findByText('Call the references.');
+      await settled();
+
+      expect(panelNames()).toEqual(['Needs you']);
+    });
+
+    it('has no note box, no Run control and no link to the candidate profile: those are on other tabs', async () => {
+      renderPage();
+      await within(await needsYou()).findByText('Call the references.');
+      await settled();
+
+      expect(screen.queryByLabelText('Note for the hiring team')).toBeNull();
+      expect(screen.queryByRole('button', { name: /^Run,/ })).toBeNull();
+      expect(screen.queryByRole('link', { name: 'Candidate profile' })).toBeNull();
+    });
+
+    it('lists a task by its title only, with no kind or assignee pill', async () => {
+      renderPage();
+      const tasks = await within(await needsYou()).findByRole('list', { name: 'Tasks' });
+
+      const rows = within(tasks).getAllByRole('listitem');
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveTextContent(/^Call the references\.$/);
+    });
+
+    it.each([
+      ['VerificationRecommended', 'Confirm who they are on a short video call before interviewing.', '3'],
+      ['ReviewSuggested', 'Read the evidence before the first screen.', '2'],
+    ] as const)('adds a step for %s with its level mark and a link to the reasons, and never speaks of rejecting', async (level, sentence, steps) => {
+      stubVerification(verificationAt(level));
+      renderPage();
+      const needs = await needsYou();
+
+      const row = await waitFor(() => {
+        const found = needs.querySelector<HTMLElement>('[data-verification-step]');
+        if (!found) throw new Error('No verification step yet');
+        return found;
+      });
+      expect(within(row).getByText(sentence)).toBeInTheDocument();
+      expect(row.querySelector('[data-level-mark]')).toHaveAttribute('data-level-mark', steps);
+      expect(within(row).getByRole('link', { name: 'See the reasons' })).toHaveAttribute('href', '?tab=verification');
+      expect(needs).not.toHaveTextContent(/reject/i);
+      expect(within(await header()).queryByRole('button', { name: /reject/i })).toBeNull();
+    });
+
+    it.each([
+      ['clear', verificationAt('NoConcerns')],
+      ['pending', { ...pendingVerification(), applicationId }],
+      ['dismissed', verificationAt('VerificationRecommended', true)],
+    ] as [string, ApplicationVerification][])('adds no step while the state is %s', async (kind, verification) => {
+      stubVerification(verification);
+      renderPage();
+      const needs = await needsYou();
+      await chip(await header(), kind);
+      await within(needs).findByText('Call the references.');
+
+      expect(needs.querySelector('[data-verification-step]')).toBeNull();
+    });
+
+    it('says nothing needs you when there is no task and no step', async () => {
+      stubApi({ [`GET /v1/applications/${applicationId}/tasks`]: () => Response.json([]) });
+      renderPage();
+      const needs = await needsYou();
+      await chip(await header(), 'pending');
+
+      expect(await within(needs).findByText('Nothing needs you right now.')).toBeInTheDocument();
+    });
+
+    it('shows the verification step, not "Nothing needs you right now.", when only that is waiting', async () => {
+      stubApi({
+        [`GET /v1/applications/${applicationId}/tasks`]: () => Response.json([]),
+        [`GET /v1/applications/${applicationId}/verification`]: () => Response.json(verificationAt('VerificationRecommended')),
+      });
+      renderPage();
+      const needs = await needsYou();
+
+      await within(needs).findByText('Confirm who they are on a short video call before interviewing.');
+      expect(within(needs).queryByText('Nothing needs you right now.')).toBeNull();
+    });
+
+    it('says the verification state failed to load, not that nothing needs you, when its request fails', async () => {
+      stubApi({
+        [`GET /v1/applications/${applicationId}/tasks`]: () => Response.json([]),
+        [`GET /v1/applications/${applicationId}/verification`]: () => new Response(null, { status: 500 }),
+      });
+      renderPage();
+      const needs = await needsYou();
+
+      expect(await within(needs).findByText(/Could not load the verification state/)).toBeInTheDocument();
+      expect(within(needs).queryByText('Nothing needs you right now.')).toBeNull();
+    });
+
+    describe('Scorecards', () => {
+      it('shows the rating, then one line per scorecard: who, which scorecard, the recommendation in words and the date', async () => {
+        stubApi({
+          [`GET /v1/applications/${applicationId}`]: () => Response.json(ratedBy(2)),
+          [`GET /v1/applications/${applicationId}/scorecards`]: () =>
+            Response.json([
+              scorecard(teammate),
+              scorecard(user.id, { scorecardName: 'Phone screen', recommendation: 'Yes', submittedAt: '2026-10-21T11:45:00Z' }),
+            ]),
+        });
+        renderPage();
+        const panel = await screen.findByRole('region', { name: 'Scorecards' });
+        const list = await within(panel).findByRole('list', { name: 'Scorecards given' });
+
+        // The number and, in muted text, how many scorecards it comes from; the full sentence is for screen readers.
+        expect(panel).toHaveTextContent('4.6');
+        expect(panel).toHaveTextContent('(2)');
+        expect(within(panel).getByText('Rated').parentElement).toHaveTextContent(/Rated\s*4\.6\s*out of 5 from\s*\(2\)\s*2 scorecards/);
+        await waitFor(() =>
+          expect(within(list).getAllByRole('listitem').map(plain)).toEqual([
+            expect.stringMatching(/^Robin Ashby Interview Strong yes Oct 20/),
+            expect.stringMatching(/^You Phone screen Yes Oct 21/),
+          ]),
+        );
+      });
+
+      it('is left out until someone has given a scorecard', async () => {
+        renderPage();
+        await within(await needsYou()).findByText('Call the references.');
+        await settled();
+
+        expect(screen.queryByRole('region', { name: 'Scorecards' })).toBeNull();
+      });
+
+      it('says the rating comes after your scorecard while you have one to give, and offers Fill in your scorecard', async () => {
+        stubApi({
+          [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, rating: { state: 'AfterYourScorecard', scorecards: 0 } }),
+          'GET /v1/scorecard-templates': () => Response.json([]),
+        });
+        renderPage();
+        const panel = await screen.findByRole('region', { name: 'Scorecards' });
+
+        expect(within(panel).getByText('Rating after your scorecard.')).toBeInTheDocument();
+        expect(panel).not.toHaveTextContent('Rated');
+        await fireEvent.click(within(panel).getByRole('button', { name: 'Fill in your scorecard' }));
+        expect(await screen.findByRole('dialog', { name: 'Fill in a scorecard' })).toBeInTheDocument();
+      });
+
+      it('offers no Fill in your scorecard to a role that does not fill in scorecards', async () => {
+        asRole('Viewer');
+        stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, rating: { state: 'AfterYourScorecard', scorecards: 0 } }) });
+        renderPage();
+        const panel = await screen.findByRole('region', { name: 'Scorecards' });
+        await settled();
+
+        expect(within(panel).getByText('Rating after your scorecard.')).toBeInTheDocument();
+        expect(within(panel).queryByRole('button', { name: 'Fill in your scorecard' })).toBeNull();
+      });
+    });
+
+    describe('Latest message', () => {
+      // "Today" is fixed so relative times read the same on every run.
+      beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-30T12:00:00Z') });
+      });
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it('says who emailed and how long ago, with the first line of the email, read by its own id', async () => {
+        const fetch = stubApi({
+          [`GET /v1/candidates/${candidateId}/emails`]: () => Response.json([emailEntry(sentId)]),
+          [`GET /v1/emails/${sentId}`]: () => Response.json(sentBody),
+        });
+        renderPage();
+        const panel = await screen.findByRole('region', { name: 'Latest message' });
+
+        await within(panel).findByText('Hi Casey,');
+        await waitFor(() => expect(panel).toHaveTextContent('Robin Ashby emailed 3 days ago'));
+        expect(panel).not.toHaveTextContent('We would like to talk');
+        expect(fetch.mock.calls.some(([url]) => String(url) === `/v1/emails/${sentId}`)).toBe(true);
+      });
+
+      it("says who replied, from the sender's name, with the first line of the reply, read by its own id", async () => {
+        const fetch = stubApi({
+          [`GET /v1/candidates/${candidateId}/emails`]: () =>
+            Response.json([emailEntry(replyId, { direction: 'Received', fromAddress: 'casey.morgan@example.com', actorUserId: null, subject: 'Re: Next steps' })]),
+          [`GET /v1/replies/${replyId}`]: () =>
+            Response.json({
+              id: replyId,
+              applicationId,
+              fromAddress: 'casey.morgan@example.com',
+              fromName: 'Casey Morgan',
+              subject: 'Re: Next steps',
+              html: '',
+              text: 'Thursday works for me.\nSee you then.',
+              receivedAt: '2026-10-27T12:00:00Z',
+              autoReply: false,
+              attachments: [],
+            }),
+        });
+        renderPage();
+        const panel = await screen.findByRole('region', { name: 'Latest message' });
+
+        await within(panel).findByText('Thursday works for me.');
+        expect(panel).toHaveTextContent('Casey Morgan replied 3 days ago');
+        expect(panel).not.toHaveTextContent('See you then.');
+        expect(fetch.mock.calls.some(([url]) => String(url) === `/v1/replies/${replyId}`)).toBe(true);
+      });
+
+      it("is about this application: an email about the candidate's other application does not count", async () => {
+        stubApi({
+          [`GET /v1/candidates/${candidateId}/emails`]: () =>
+            Response.json([emailEntry('01a157d4-0000-7000-8000-0000000003b4', { applicationId: otherApplicationId, sentAt: '2026-10-29T12:00:00Z' }), emailEntry(sentId)]),
+          [`GET /v1/emails/${sentId}`]: () => Response.json(sentBody),
+        });
+        renderPage();
+        const panel = await screen.findByRole('region', { name: 'Latest message' });
+
+        await waitFor(() => expect(panel).toHaveTextContent('Robin Ashby emailed 3 days ago'));
+      });
+
+      it('is left out when no email is about this application', async () => {
+        stubApi({
+          [`GET /v1/candidates/${candidateId}/emails`]: () => Response.json([emailEntry('01a157d4-0000-7000-8000-0000000003b4', { applicationId: otherApplicationId })]),
+        });
+        renderPage();
+        await within(await screen.findByRole('tablist', { name: 'Candidate sections' })).findByRole('tab', { name: 'Messages 1' });
+        await settled();
+
+        expect(screen.queryByRole('region', { name: 'Latest message' })).toBeNull();
+      });
+    });
   });
 
   it("labels each answer with the job's question and shows choices by their labels", async () => {
-    renderPage();
+    renderPage('application');
     const answers = await screen.findByRole('region', { name: 'Answers' });
 
     await within(answers).findByText('Do you have the right to work in the UK?');
@@ -346,9 +876,9 @@ describe('application page', () => {
     expect(rows[0]![1]).toBe('Yes');
     expect(rows[1]![1]).toBe('3 to 5 years');
     expect(rows[3]![1]).toBe('Small teams.\nReal problems.');
-    // A file answer names the file; its row is in the details rail.
+    // A file answer names the file; its row, with View and Download, is on the Files tab.
     expect(rows[2]![1]).toBe('portfolio.pdf');
-    expect(within(answers).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(['?tab=application']);
+    expect(within(answers).queryAllByRole('link')).toHaveLength(0);
   });
 
   it('tells the activity newest first, saying who made each change', async () => {
@@ -443,7 +973,6 @@ describe('application page', () => {
 
     await fireEvent.click(within(await openMenu(document.getElementById(`note-${teammatesNote}`)!)).getByRole('menuitem', { name: 'Delete' }));
     const dialog = await screen.findByRole('dialog', { name: 'Delete this note?' });
-    expect(dialog).toHaveTextContent('It leaves Overview and Activity for the whole team.');
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete note' }));
     await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url).endsWith(`/notes/${teammatesNote}`) && init?.method === 'DELETE')).toBe(true));
   });
@@ -607,11 +1136,13 @@ describe('application page', () => {
       candidate: { ...application.candidate, emailIssue: issue, emailIssueAt: '2026-10-21T08:00:00Z', emailIssueReason: '550 mailbox not found' },
     });
 
-    it('says so on the Contact card and in a notice that names the way back, and offers no email box', async () => {
+    it('says so beside the email on the meta line and in a notice that names the way back, and offers no email box', async () => {
       stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json(flagged('Bounced')) });
       renderPage('messages');
+      const band = await header();
 
-      expect(await within(await screen.findByRole('group', { name: 'Contact' })).findByText('Email bounced')).toBeInTheDocument();
+      const email = await within(band).findByRole('link', { name: 'casey.morgan@example.com' });
+      expect(within(email.closest<HTMLElement>('[data-slot="meta-item"]')!).getByText('Email bounced')).toBeInTheDocument();
       expect(screen.getByText(/ScreenHire does not email this address any more/)).toHaveTextContent('(550 mailbox not found)');
       expect(screen.getByRole('button', { name: 'Allow email again' })).toBeInTheDocument();
       expect(screen.queryByRole('form', { name: /Email Casey Morgan/ })).not.toBeInTheDocument();
@@ -661,11 +1192,11 @@ describe('application page', () => {
     expect(await screen.findByRole('region', { name: 'Review log' })).toBeInTheDocument();
   });
 
-  it('adds a note from the box, mentioning a teammate picked from the list by keyboard', async () => {
+  it('adds a note from the box on Activity, mentioning a teammate picked from the list by keyboard', async () => {
     const fetch = stubApi({
       [`POST /v1/applications/${applicationId}/notes`]: () => Response.json(entry({ type: 'NoteAdded', note: 'Great call.' }), { status: 201 }),
     });
-    renderPage();
+    renderPage('activity');
     const activity = await screen.findByRole('region', { name: 'Activity' });
     const field = (await within(activity).findByLabelText('Note for the hiring team')) as HTMLTextAreaElement;
 
@@ -685,43 +1216,14 @@ describe('application page', () => {
     expect(JSON.parse(String(post![1]!.body))).toEqual({ note: `Great call, @[${teammate}]` });
   });
 
-  it('adds a tag and removes one, each with its own button beside the pill', async () => {
-    const fetch = stubApi({
-      [`POST /v1/applications/${applicationId}/tags`]: () => Response.json({ ...application, tags: ['Referral'] }),
-      [`DELETE /v1/applications/${applicationId}/tags?tag=Referral`]: () => Response.json(application),
-    });
-    renderPage();
-    const tags = await screen.findByRole('region', { name: 'Tags' });
-    expect(within(tags).getByText('No tags yet.')).toBeInTheDocument();
-
-    await fireEvent.input(within(tags).getByLabelText('New tag'), { target: { value: 'Referral' } });
-    await fireEvent.click(within(tags).getByRole('button', { name: 'Add tag' }));
-    await within(tags).findByText('Tagged "Referral".');
-    const post = fetch.mock.calls.find(([url, init]) => String(url).endsWith('/tags') && init?.method === 'POST');
-    expect(JSON.parse(String(post![1]!.body))).toEqual({ tag: 'Referral' });
-
-    application.tags = ['Referral'];
-    try {
-      cleanup();
-      renderPage();
-      const tagged = await screen.findByRole('region', { name: 'Tags' });
-      await fireEvent.click(await within(tagged).findByRole('button', { name: 'Remove tag Referral' }));
-      await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url).endsWith('/tags?tag=Referral') && init?.method === 'DELETE')).toBe(true));
-    } finally {
-      application.tags = [];
-    }
-  });
-
-  it('completes a task an automation made, naming who it is for', async () => {
+  it('completes a task from Needs you', async () => {
     const fetch = stubApi({
       [`POST /v1/tasks/${taskId}/complete`]: () => Response.json({ ...task, completedAt: '2026-10-20T12:00:00Z', completedByUserId: user.id }),
     });
     renderPage();
-    const tasks = await screen.findByRole('region', { name: 'Next steps' });
+    const tasks = await screen.findByRole('region', { name: 'Needs you' });
 
     expect(await within(tasks).findByText('Call the references.')).toBeInTheDocument();
-    expect(within(tasks).getByText('To-do')).toBeInTheDocument();
-    expect(within(tasks).getByText('For the team')).toBeInTheDocument();
     await fireEvent.click(within(tasks).getByRole('checkbox', { name: 'Mark done for Call the references.' }));
     await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url) === `/v1/tasks/${taskId}/complete` && init?.method === 'POST')).toBe(true));
     expect(await within(tasks).findByRole('button', { name: 'Undo, Call the references.' })).toBeInTheDocument();
@@ -746,7 +1248,7 @@ describe('application page', () => {
         ]),
     });
     renderPage();
-    const tasks = await screen.findByRole('region', { name: 'Next steps' });
+    const tasks = await screen.findByRole('region', { name: 'Needs you' });
 
     await within(tasks).findByText('Fill in the Interview scorecard.');
     expect(within(tasks).getAllByRole('checkbox').map((box) => box.getAttribute('aria-label'))).toEqual(['Mark done for Call the references.']);
@@ -757,7 +1259,7 @@ describe('application page', () => {
     expect(within(tasks).queryByRole('link', { name: 'Fill in: Fill in the Screening scorecard.' })).not.toBeInTheDocument();
   });
 
-  describe('ticking a task on Next steps', () => {
+  describe('ticking a task on Needs you', () => {
     const tick = 'Mark done for Call the references.';
     const undo = 'Undo, Call the references.';
     const posted = (fetch: ReturnType<typeof stubApi>, url: string) =>
@@ -777,7 +1279,7 @@ describe('application page', () => {
         },
       });
       renderPage();
-      const steps = await screen.findByRole('region', { name: 'Next steps' });
+      const steps = await screen.findByRole('region', { name: 'Needs you' });
 
       await fireEvent.click(await within(steps).findByRole('checkbox', { name: tick }));
       expect(await screen.findByText('Marked "Call the references." done.')).toBeInTheDocument();
@@ -795,7 +1297,7 @@ describe('application page', () => {
         [`POST /v1/tasks/${taskId}/reopen`]: () => Response.json(task),
       });
       renderPage();
-      const steps = await screen.findByRole('region', { name: 'Next steps' });
+      const steps = await screen.findByRole('region', { name: 'Needs you' });
 
       await fireEvent.click(await within(steps).findByRole('checkbox', { name: tick }));
       await fireEvent.click(await within(steps).findByRole('button', { name: undo }));
@@ -828,7 +1330,7 @@ describe('application page', () => {
           }),
       });
       renderPage();
-      const steps = await screen.findByRole('region', { name: 'Next steps' });
+      const steps = await screen.findByRole('region', { name: 'Needs you' });
 
       await fireEvent.click(await within(steps).findByRole('checkbox', { name: tick }));
       await fireEvent.click(await within(steps).findByRole('button', { name: undo }));
@@ -848,7 +1350,7 @@ describe('application page', () => {
     it('unticks the task and says why when completing fails', async () => {
       stubApi({ [`POST /v1/tasks/${taskId}/complete`]: () => new Response(null, { status: 500 }) });
       renderPage();
-      const steps = await screen.findByRole('region', { name: 'Next steps' });
+      const steps = await screen.findByRole('region', { name: 'Needs you' });
 
       await fireEvent.click(await within(steps).findByRole('checkbox', { name: tick }));
 
@@ -857,12 +1359,12 @@ describe('application page', () => {
     });
   });
 
-  it('runs a manual automation with its own idempotency key, and offers only manual ones', async () => {
+  it('runs a manual automation from Activity with its own idempotency key, and offers only manual ones', async () => {
     const fetch = stubApi({
       [`POST /v1/applications/${applicationId}/automations/ask-references/run`]: () =>
         Response.json({ applicationId, automationId: 'ask-references', eventId: crypto.randomUUID() }, { status: 202 }),
     });
-    renderPage();
+    renderPage('activity');
     const automations = await screen.findByRole('region', { name: 'Automations' });
 
     expect(within(automations).queryByText('On arrival')).not.toBeInTheDocument();
@@ -870,6 +1372,18 @@ describe('application page', () => {
     await within(automations).findByText(/Asked to run "Ask for references"/);
     const run = fetch.mock.calls.find(([url]) => String(url).endsWith('/automations/ask-references/run'));
     expect(new Headers(run![1]!.headers).get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('puts the manual automations and the note box above the timeline on Activity', async () => {
+    renderPage('activity');
+    const automations = await screen.findByRole('region', { name: 'Automations' });
+    const activity = await screen.findByRole('region', { name: 'Activity' });
+    const box = await within(activity).findByLabelText('Note for the hiring team');
+    const firstEvent = (await within(activity).findAllByRole('listitem'))[0]!;
+
+    const follows = (first: Element, second: Element) => Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(automations, activity)).toBe(true);
+    expect(follows(box, firstEvent)).toBe(true);
   });
 
   it('moves with a note from Move to stage, in a sheet', async () => {
@@ -894,30 +1408,55 @@ describe('application page', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Move Casey Morgan' })).not.toBeInTheDocument());
   });
 
-  it('leaves out the controls that change hiring data for a viewer', async () => {
+  it('leaves the controls that change hiring data off Overview and the header for a viewer', async () => {
     asRole('Viewer');
-    stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json([...timeline, ...notes]) });
+    stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, tags: ['Referral'] }) });
     renderPage();
-    const tasks = await screen.findByRole('region', { name: 'Next steps' });
+    const band = await header();
+    const tasks = await screen.findByRole('region', { name: 'Needs you' });
     await within(tasks).findByText('Call the references.');
+    await within(band).findByRole('list', { name: 'Tags' });
+    await settled();
 
     expect(within(tasks).queryByRole('checkbox', { name: /^Mark done/ })).not.toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Tags' })).queryByRole('button', { name: 'Add tag' })).not.toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Activity' })).queryByLabelText('Note for the hiring team')).not.toBeInTheDocument();
+    expect(within(band).queryByRole('button', { name: 'Add tag' })).not.toBeInTheDocument();
+    expect(within(band).queryByRole('button', { name: 'Remove tag Referral' })).not.toBeInTheDocument();
+    expect(within(band).queryByRole('button', { name: 'Move to stage, Casey Morgan' })).not.toBeInTheDocument();
+  });
+
+  it('leaves the note box, the note menus and the automations off Activity for a viewer', async () => {
+    asRole('Viewer');
+    stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json([...timeline, ...notes]) });
+    renderPage('activity');
+    const activity = await screen.findByRole('region', { name: 'Activity' });
+    await noteItem(ownNote);
+    await settled();
+
+    expect(within(activity).queryByLabelText('Note for the hiring team')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'More actions for this note' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Automations' })).not.toBeInTheDocument();
   });
 
-  it('gives an Interviewer notes and tags but no Move, task or automation controls', async () => {
+  it('gives an Interviewer tags but no Move or task controls on Overview', async () => {
     page.data.user = interviewer;
     renderPage();
-    const tasks = await screen.findByRole('region', { name: 'Next steps' });
+    const band = await header();
+    const tasks = await screen.findByRole('region', { name: 'Needs you' });
     await within(tasks).findByText('Call the references.');
+    await settled();
 
-    expect(within(screen.getByRole('region', { name: 'Activity' })).getByLabelText('Note for the hiring team')).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Tags' })).getByRole('button', { name: 'Add tag' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Move to stage, Casey Morgan' })).not.toBeInTheDocument();
+    expect(within(band).getByRole('button', { name: 'Add tag' })).toBeInTheDocument();
+    expect(within(band).queryByRole('button', { name: 'Move to stage, Casey Morgan' })).not.toBeInTheDocument();
     expect(within(tasks).queryByRole('checkbox', { name: /^Mark done/ })).not.toBeInTheDocument();
+  });
+
+  it('gives an Interviewer the note box on Activity but no automations', async () => {
+    page.data.user = interviewer;
+    renderPage('activity');
+    const activity = await screen.findByRole('region', { name: 'Activity' });
+
+    expect(await within(activity).findByLabelText('Note for the hiring team')).toBeInTheDocument();
+    await settled();
     expect(screen.queryByRole('region', { name: 'Automations' })).not.toBeInTheDocument();
   });
 
@@ -969,9 +1508,6 @@ describe('application page', () => {
       await fireEvent.pointerDown(await screen.findByRole('button', { name: 'Move to stage, Casey Morgan' }), { button: 0, pointerType: 'mouse' });
       return screen.findByRole('menu');
     };
-    const header = async () => (await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).closest<HTMLElement>('[data-slot="header-band"]')!;
-    /** The first line: the name and the one status badge beside it. */
-    const firstLine = async () => (await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).parentElement!;
     const sending = { 'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }) };
 
     it('offers Save candidate in Move to stage when the candidate allowed it', async () => {
@@ -1044,33 +1580,37 @@ describe('application page', () => {
       expect(await screen.findByRole('link', { name: 'In Saved candidates' })).toHaveAttribute('href', '/candidates?list=saved');
     });
 
-    it('says when they were last contacted on the Contact card, from the newest email either way', async () => {
+    it('says when they were last contacted on the meta line, from the newest email either way, in place of the phone', async () => {
       const email = (id: string, sentAt: string): CandidateEmailEntry => ({ id, applicationId, jobTitle: 'Senior .NET Engineer', subject: 'Hello', sentAt, direction: 'Sent' }) as CandidateEmailEntry;
       stubDetail(
-        { keptInMindAt: keptAt, allowsFutureRoles: true },
+        { keptInMindAt: keptAt, allowsFutureRoles: true, candidate: { ...application.candidate, phone: '+44 20 7946 0000' } },
         { [`GET /v1/candidates/${candidateId}/emails`]: () => Response.json([email('a', '2026-10-27T09:00:00Z'), email('b', '2026-10-20T09:00:00Z')]) },
       );
       renderPage();
+      const band = await header();
 
-      const contact = await screen.findByRole('group', { name: 'Contact' });
-      expect(await within(contact).findByText(/Last contacted/)).toHaveTextContent('Last contacted 3 days ago');
+      // The meta item's label for screen readers says it too, so the visible phrase is the span.
+      expect(await within(band).findByText(/Last contacted/, { selector: 'span' })).toHaveTextContent('Last contacted 3 days ago');
+      expect(within(band).queryByRole('link', { name: '+44 20 7946 0000' })).toBeNull();
     });
 
     it('says they were not contacted yet when no email went either way', async () => {
       stubDetail({ keptInMindAt: keptAt, allowsFutureRoles: true });
       renderPage();
 
-      expect(await within(await screen.findByRole('group', { name: 'Contact' })).findByText('Not contacted yet')).toBeInTheDocument();
+      expect(await within(await header()).findByText('Not contacted yet')).toBeInTheDocument();
     });
 
-    it('does not say last contacted for an application still in the job', async () => {
-      stubDetail({ allowsFutureRoles: true });
+    it('shows the phone, not when they were last contacted, for an application still in the job', async () => {
+      stubDetail({ allowsFutureRoles: true, candidate: { ...application.candidate, phone: '+44 20 7946 0000' } });
       renderPage();
+      const band = await header();
 
-      const contact = await screen.findByRole('group', { name: 'Contact' });
-      await waitFor(() => expect(within(contact).getByRole('link', { name: 'casey.morgan@example.com' })).toBeInTheDocument());
-      expect(contact).not.toHaveTextContent('Last contacted');
-      expect(contact).not.toHaveTextContent('Not contacted yet');
+      expect(await within(band).findByRole('link', { name: '+44 20 7946 0000' })).toHaveAttribute('href', 'tel:+44 20 7946 0000');
+      // The emails are in once the Messages tab has its count.
+      await within(screen.getByRole('tablist', { name: 'Candidate sections' })).findByRole('tab', { name: 'Messages 0' });
+      expect(band).not.toHaveTextContent('Last contacted');
+      expect(band).not.toHaveTextContent('Not contacted yet');
     });
 
     it('offers Message and Invite to another job in place of Email and Move to stage', async () => {
@@ -1112,9 +1652,10 @@ describe('application page', () => {
     it.each([
       ['Rejected', 'rejected'],
       ['Withdrawn', 'withdrawn'],
+      ['Hired', 'hired'],
     ])('says %s beside the name and leaves the dark dot on the stage the last move left from', async (label, id) => {
       stubDetail(
-        { stage: { id, name: label, kind: label as 'Rejected' | 'Withdrawn' }, stageEnteredAt: '2026-10-28T09:00:00Z' },
+        { stage: { id, name: label, kind: label as 'Rejected' | 'Withdrawn' | 'Hired' }, stageEnteredAt: '2026-10-28T09:00:00Z' },
         {
           [`GET /v1/applications/${applicationId}/timeline`]: () =>
             Response.json([...timeline, entry({ type: 'StageChanged', occurredAt: '2026-10-28T09:00:00Z', fromStageId: 'interview', toStageId: id })]),
@@ -1181,7 +1722,7 @@ describe('application page', () => {
       });
     });
 
-    describe('Other applications on Overview', () => {
+    describe('Other applications on the Application tab', () => {
       const summaryOf = (id: string, jobId_: string, jobTitle: string, patch: Record<string, unknown> = {}) => ({
         id,
         jobId: jobId_,
@@ -1201,22 +1742,33 @@ describe('application page', () => {
       it('links to the candidate\'s other applications, with the stage as it reads now', async () => {
         const other = summaryOf(otherApplicationId, jobId, 'Senior .NET Engineer', { keptInMindAt: keptAt, stage: { id: 'screening', name: 'Screening', kind: 'Screening' } });
         stubApi({ [`GET /v1/candidates/${candidateId}`]: () => Response.json(candidate([thisOne, other])) });
-        renderPage();
+        renderPage('application');
 
         const panel = await screen.findByRole('region', { name: 'Other applications' });
 
-        expect(within(panel).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/applications/${otherApplicationId}`);
+        expect(await within(panel).findByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/applications/${otherApplicationId}`);
         // The saved application read Screening when it was saved; the panel says it has left the job.
         expect(panel).toHaveTextContent('Saved');
         expect(panel).not.toHaveTextContent('Screening');
         expect(within(panel).queryByRole('link', { name: 'Support Engineer' })).toBeNull();
+        expect(within(panel).getByRole('link', { name: 'Candidate profile' })).toHaveAttribute('href', `/candidates/${candidateId}`);
       });
 
-      it('has no panel when the candidate has only this application', async () => {
-        stubApi({ [`GET /v1/candidates/${candidateId}`]: () => Response.json(candidate([thisOne])) });
-        renderPage();
-        await screen.findByRole('region', { name: 'Files' });
+      it('comes after the answers and the follow-ups', async () => {
+        const other = summaryOf(otherApplicationId, jobId, 'Senior .NET Engineer');
+        stubApi({ [`GET /v1/candidates/${candidateId}`]: () => Response.json(candidate([thisOne, other])) });
+        renderPage('application');
 
+        await waitFor(() => expect(panelNames()).toEqual(['Answers', 'Follow-up: Availability', 'Follow-up: References', 'Other applications']));
+      });
+
+      it('has no panel, only the link to the candidate profile, when the candidate has only this application', async () => {
+        stubApi({ [`GET /v1/candidates/${candidateId}`]: () => Response.json(candidate([thisOne])) });
+        renderPage('application');
+        const link = await screen.findByRole('link', { name: 'Candidate profile' });
+        await settled();
+
+        expect(link).toHaveAttribute('href', `/candidates/${candidateId}`);
         expect(screen.queryByRole('region', { name: 'Other applications' })).toBeNull();
       });
     });
@@ -1333,23 +1885,6 @@ describe('application page', () => {
         ['Notes on the exercise', 'Not answered'],
       ]);
       expect(panel).toHaveTextContent('"Clear walk-through of the design."');
-    });
-
-    it("shows the candidate's rating beside the title and opens it to each scorecard", async () => {
-      stubApi({
-        [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, rating: { state: 'Rated', value: 4.6, scorecards: 1 } }),
-        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
-        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([older, submitted]),
-      });
-      renderPage('overview');
-
-      const rating = await screen.findByRole('button', { name: 'Rated 4.6 out of 5 from 1 scorecard' });
-      await fireEvent.click(rating);
-      const list = (await screen.findByText('From 1 scorecard')).closest<HTMLElement>('[data-slot="popover-content"]')!;
-      expect(list).toHaveTextContent('Robin Ashby');
-      expect(list).toHaveTextContent('4.6');
-      // Only scorecards that count: the v0.2 one has no number.
-      expect(within(list).getAllByRole('listitem')).toHaveLength(1);
     });
 
     it('says the rating comes after your scorecard while you have a review to give', async () => {
@@ -1589,34 +2124,12 @@ describe('application page', () => {
   });
 
   describe('interviews', () => {
-    const interviewId = '01a157d4-0000-7000-8000-000000000400';
-    const interview = (overrides: Partial<ApplicationInterview> = {}): ApplicationInterview => ({
-      id: interviewId,
-      status: 'Open',
-      startsAt: null,
-      endsAt: null,
-      windowStart: '2026-11-03T05:00:00Z',
-      windowEnd: '2026-11-17T05:00:00Z',
-      timeZone: 'America/New_York',
-      durationMinutes: 30,
-      dayStart: '09:00',
-      dayEnd: '17:00',
-      meetingUrl: null,
-      interviewers: [{ userId: user.id, displayName: 'Avery Quinn', isOrganizer: true, syncStatus: 'Synced', syncProblem: null }],
-      createdAt: '2026-10-20T12:00:00Z',
-      createdByUserId: user.id,
-      cancelledByCandidate: false,
-      newTimesOfferedAt: null,
-      ...overrides,
-    });
-    const startsAt = '2026-11-05T15:00:00Z';
     const sending = { 'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }) };
     // A query the page asked for has been answered, so a control that should have appeared by now is really absent.
     const answered = async (fetch: ReturnType<typeof stubApi>, path: string) => {
       await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url) === path)).toBe(true));
       await new Promise((resolve) => setTimeout(resolve, 50));
     };
-    const header = async () => (await screen.findByRole('heading', { level: 1, name: 'Casey Morgan' })).closest<HTMLElement>('[data-slot="header-band"]')!;
 
     it('offers Schedule interview beside Email, to someone who may email candidates, where this deployment can send', async () => {
       stubApi(sending);
@@ -1700,28 +2213,24 @@ describe('application page', () => {
       expect(await screen.findByRole('dialog', { name: 'Schedule interview' })).toBeInTheDocument();
     });
 
-    it('puts a booked time in the header once, in the reader zone, and the Interview panel under Next steps without it', async () => {
+    it('puts a booked time first in the Interview panel, once and in the reader zone, and not in the header', async () => {
       stubApi({ [`GET /v1/applications/${applicationId}/interviews`]: () => Response.json([interview({ status: 'Booked', startsAt, endsAt: '2026-11-05T15:30:00Z' })]) });
       renderPage();
       const band = await header();
 
-      // The header's Interview mini card holds the time and nothing else about the interview.
-      const card = await within(band).findByRole('group', { name: 'Interview' });
-      expect(card).toHaveTextContent(formatDateTime(startsAt));
-      expect(card).toHaveTextContent('30 minutes with 1 interviewer');
-
-      const panels = await waitFor(() => {
-        const names = [...document.querySelectorAll('[data-slot="panel"] > header h2')].map((heading) => heading.textContent?.trim());
-        if (!names.includes('Interview')) throw new Error('No interview panel yet');
-        return names;
-      });
-      expect(panels.slice(0, 3)).toEqual(['Next steps', 'Interview', 'Automations']);
-      expect(screen.getByRole('region', { name: 'Interview' }).textContent).not.toContain(formatDateTime(startsAt));
+      const panel = await screen.findByRole('region', { name: 'Interview' });
+      const time = within(panel).getByText(formatDateTime(startsAt));
+      expect(time).toHaveAttribute('datetime', startsAt);
+      expect(time.parentElement).toHaveTextContent('30 minutes');
+      // The first fact, ahead of who interviews.
+      expect(time.compareDocumentPosition(within(panel).getByRole('list', { name: 'Interviewers' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(band).not.toHaveTextContent(formatDateTime(startsAt));
+      expect(within(band).queryByRole('group', { name: 'Interview' })).toBeNull();
       // Said once on the whole screen.
       expect(document.body.textContent?.split(formatDateTime(startsAt))).toHaveLength(2);
     });
 
-    it('shows no interview card while the candidate has yet to pick a time, only the panel saying so', async () => {
+    it('says in the Interview panel that it is waiting for the candidate to pick a time, and says nothing in the header', async () => {
       stubApi({ [`GET /v1/applications/${applicationId}/interviews`]: () => Response.json([interview()]) });
       renderPage();
       const band = await header();
@@ -1729,6 +2238,7 @@ describe('application page', () => {
       const region = await screen.findByRole('region', { name: 'Interview' });
       expect(region).toHaveTextContent('Waiting for the candidate');
       expect(within(band).queryByRole('group', { name: 'Interview' })).toBeNull();
+      expect(band).not.toHaveTextContent('Waiting for the candidate');
     });
 
     it('lists an interview in Activity with its time and counts it under Interviews', async () => {

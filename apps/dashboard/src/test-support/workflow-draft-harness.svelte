@@ -1,10 +1,12 @@
 <script lang="ts">
   import type { HiringWorkflow } from '@screenhire/api-client';
+  import { ApiError } from '@screenhire/api-client/svelte-query';
   import { untrack } from 'svelte';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
 
   // A builder page's local draft without the page. The stored workflow is what the job query returns; the buttons
-  // stand in for an edit, for another person's save arriving by refetch, and for the newer-version prompt. Render
+  // stand in for an edit, for another person's save arriving by refetch, for a save the API refused with a problem, and for
+  // the newer-version prompt. Render
   // inside with-query-client.svelte.
   let { first, theirs }: { first: HiringWorkflow; theirs: HiringWorkflow } = $props();
 
@@ -23,7 +25,10 @@
   }}>Someone else saves</button
 >
 <button type="button" onclick={() => draft.discardForNewer()}>Load theirs</button>
+<button type="button" onclick={() => draft.failed(new ApiError(400, { errors: { 'workflow.stages': ['Screening still has 1 candidate.'] } }), 'Could not save')}>Fail the save</button>
 <p data-testid="second-stage">{draft.workflow?.stages[1]?.name}</p>
 <p data-testid="dirty">{draft.dirty ? 'unsaved' : 'saved'}</p>
 <p data-testid="source">{draft.source}</p>
 <p data-testid="outdated">{draft.outdated ? 'outdated' : 'current'}</p>
+<p data-testid="ready">{draft.ready ? 'ready' : 'not ready'}</p>
+<p data-testid="errors">{draft.errors.map((error) => error.message).join(' | ')}</p>

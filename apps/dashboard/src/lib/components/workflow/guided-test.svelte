@@ -27,7 +27,7 @@
     triggerFor,
     type SampleCandidate,
   } from '#lib/simulate.js';
-  import { aiAssistanceLevels, authenticityLevels, describePath, emailTemplateNames, problemErrors, recommendationLabels, recommendations, sources } from '#lib/workflow.js';
+  import { aiAssistanceLevels, authenticityLevels, emailTemplateNames, problemErrors, recommendationLabels, recommendations, sources } from '#lib/workflow.js';
   import { definitionStamp } from '#lib/workflow-graph.js';
   import { checkboxClass, labelClass, selectClass } from './controls.js';
   import OptionCard from './option-card.svelte';
@@ -175,8 +175,8 @@
       failure =
         error instanceof ApiError && error.status === 400
           ? {
-              message: 'Fix the problems in this workflow first: a workflow that cannot be saved cannot be tested.',
-              problems: problemErrors(error.body).map((problem) => `${describePath(workflow, problem.path)}: ${problem.message}`),
+              message: 'Fix the problems in this workflow first: it cannot be tested until it is valid.',
+              problems: problemErrors(error.body).map((problem) => problem.message),
             }
           : { message: describeError(error, 'Could not run the test'), problems: [] };
     } finally {

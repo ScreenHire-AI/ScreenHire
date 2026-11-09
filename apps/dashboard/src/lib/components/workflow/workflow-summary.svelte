@@ -12,18 +12,25 @@
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import type { Question } from '@screenhire/api-client';
   import { aiUseLabels, emailTemplateNames, followUpsOf, isTerminal, questionTypeLabels, summarize } from '#lib/workflow.js';
+  import type { WorkflowTab } from '#lib/workflow-tabs.js';
   import { rowClass } from './controls.js';
+  import JourneyOverview from './journey-overview.svelte';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnairePreview from './questionnaire-preview.svelte';
   import ScorecardName from './scorecard-name.svelte';
-  import SimulatePanel from './simulate-panel.svelte';
+  import TestDrive from './test-drive.svelte';
   import StageFlow from './stage-flow.svelte';
   import WorkflowGraph from './workflow-graph.svelte';
 
   // A workflow that cannot be edited here (a ScreenHire template, a published version, a closed job's), read as content
   // (design system section 7, read-only view): the same views as the builder, as panes of the page's `Tabs.Root`, with
-  // data as text and pills, never disabled inputs. Simulate still runs: it changes nothing.
-  let { workflow, errors, tab }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; tab: string } = $props();
+  // data as text and pills, never disabled inputs. The test drive still runs: it changes nothing.
+  let {
+    workflow,
+    errors,
+    tab,
+    hrefOf,
+  }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; tab: WorkflowTab; hrefOf: (tab: WorkflowTab) => string } = $props();
   // Names an AssignReviewer action's reviewer.
   const team = createListTeamMembers();
 
@@ -52,10 +59,14 @@
   </div>
 {/snippet}
 
+<Tabs.Content value="overview">
+  <JourneyOverview {workflow} questionsHref={hrefOf('questions')} />
+</Tabs.Content>
+
 <Tabs.Content value="pipeline">
   <div class="flex flex-wrap items-start gap-5">
     <!-- A row of its own, so the stages have the page's width to sit side by side in. -->
-    <Panel title="Stages" count={workflow.stages.length} footer={ends.length > 0 ? endStages : undefined} class="flex-[1_1_100%]">
+    <Panel title="Stages" footer={ends.length > 0 ? endStages : undefined} class="flex-[1_1_100%]">
       <StageFlow stages={steps} automations={workflow.automations} />
     </Panel>
 
@@ -102,10 +113,10 @@
   </div>
 </Tabs.Content>
 
-<Tabs.Content value="graph">
+<Tabs.Content value="automations">
   <!-- Mounted only while shown, as in the builder: the graph measures its nodes when it mounts. -->
   <Panel title="Stages and automations" flush>
-    {#if tab === 'graph'}<WorkflowGraph {workflow} {errors} />{/if}
+    {#if tab === 'automations'}<WorkflowGraph {workflow} {errors} />{/if}
   </Panel>
 </Tabs.Content>
 
@@ -130,7 +141,7 @@
   </ol>
 {/snippet}
 
-<Tabs.Content value="questionnaire">
+<Tabs.Content value="questions">
   <!-- Content and the candidate's form never share the screen (A8): the switch swaps them in place. -->
   <div class="flex flex-col gap-5">
     <EditPreviewSwitch bind:mode readOnly />
@@ -160,6 +171,6 @@
   </div>
 </Tabs.Content>
 
-<Tabs.Content value="simulate">
-  <SimulatePanel {workflow} />
+<Tabs.Content value="test">
+  <TestDrive {workflow} {errors} automationsHref={hrefOf('automations')} onfix={() => {}} editable={false} />
 </Tabs.Content>

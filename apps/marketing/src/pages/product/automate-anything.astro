@@ -60,11 +60,11 @@ const faqs: Faq[] = [
   },
   {
     question: 'Can an automation reject a candidate because of a check?',
-    answer: 'No. An automation can tag a candidate or ask the team to review when a check finishes, and a workflow that tries to reject on one is refused when you save it.',
+    answer: 'No. An automation can tag a candidate or ask the team to review when a check finishes, and a workflow that tries to reject on one cannot be published.',
   },
   {
     question: 'Can I see what an automation will do before it runs on real candidates?',
-    answer: 'Yes. Run it on a sample application first, and a problem in the workflow shows on the step that has it before you save.',
+    answer: 'Yes. Sample candidates run through your template after every change and show what happens to each, and a problem in the workflow shows on the step that has it before you publish.',
   },
 ];
 ---
@@ -102,8 +102,8 @@ const faqs: Faq[] = [
         draft.
       </p>
       <p class="max-w-measure text-pretty text-secondary-foreground">
-        Before it goes live, run it on a sample application and see what it would do. A problem shows on the step that has it
-        before you save.
+        Before it goes live, see what it would do: sample candidates run through your template after every change. A problem
+        shows on the step that has it, and the template cannot be published until it is fixed.
       </p>
     </div>
     <ProductFrame class="flex-[1_1_32rem]" src={workflow} phoneSrc={workflowPhone} alt="A job's workflow: its stages with their time limits, and the automations that run on them." sizes="(min-width: 80rem) 44rem, 100vw" />
@@ -135,7 +135,7 @@ const faqs: Faq[] = [
     <h2 id="guardrails-title" class="flex-[1_1_22rem] font-display text-band text-balance">A check never rejects anyone.</h2>
     <p class="max-w-measure flex-[2_1_26rem] text-pretty text-secondary-foreground">
       An automation can tag a candidate or ask your team to review when a check finishes. It cannot reject on one, and a
-      workflow that tries is refused when you save it. A person decides.
+      workflow that tries cannot be published. A person decides.
     </p>
   </Section>
 

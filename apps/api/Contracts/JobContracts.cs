@@ -67,6 +67,8 @@ public sealed record JobSummary(
 /// <c>summary</c> is the short line a careers card shows (at most 160 characters); <c>summaryFollowsDescription</c> is
 /// true while nobody has written one, and then it is the description's first sentence.
 /// <c>postings</c> is the job on each board it was published to, with each board's state and estimate.
+/// <c>workflowProblems</c> lists what stops the workflow from being tested or the job from opening (empty when it is
+/// ready); a draft job's workflow saves with them.
 /// </remarks>
 public sealed record JobDetail(
     Guid Id,
@@ -94,7 +96,8 @@ public sealed record JobDetail(
     DateTimeOffset? PublishedAt,
     DateTimeOffset? ClosedAt,
     IReadOnlyList<JobPostingStatus> Postings,
-    LastUpdate LastUpdated);
+    LastUpdate LastUpdated,
+    IReadOnlyList<DefinitionError> WorkflowProblems);
 
 /// <summary>The template version a job's workflow was copied from, and whether a newer one is published.</summary>
 public sealed record JobTemplateSource(
@@ -216,7 +219,8 @@ internal static class JobMappings
             job.Locations, job.ApplicantLocationRequirements, job.LocationLabel(), job.Salary, job.ValidThrough,
             job.Workflow, job.WorkflowVersion, job.ToTemplateSource(templateName, latestTemplateVersion), job.PublishedVersion,
             job.Status == JobStatus.Open && latestSnapshot != job.Snapshot(),
-            job.CreatedAt, job.UpdatedAt, job.PublishedAt, job.ClosedAt, postings, LastUpdate.From(lastChange, job.CreatedAt, job.UpdatedAt));
+            job.CreatedAt, job.UpdatedAt, job.PublishedAt, job.ClosedAt, postings, LastUpdate.From(lastChange, job.CreatedAt, job.UpdatedAt),
+            DefinitionValidator.Validate(job.Workflow));
 
     private static JobTemplateSource? ToTemplateSource(this Job job, string? templateName, int? latestTemplateVersion) =>
         job is { SourceTemplateId: { } templateId, SourceTemplateVersionId: { } versionId, SourceTemplateVersion: { } version }

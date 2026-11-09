@@ -85,7 +85,7 @@ new route is the `/add-dashboard-page` skill.
   dialog lists.
 - The candidate table (`#lib/components/application-table.svelte`) takes extra TanStack columns through
   `extraColumns`, right after Candidate (status first, T2); build them with `candidateColumns` from `#lib/candidate-table.ts`. The
-  verification chips are `verificationColumns` (`#lib/verification-columns.ts`). The table sorts (a column with an accessor gets
+  one Verification column is `verificationColumns` (`#lib/verification-columns.ts`). The table sorts (a column with an accessor gets
   a header button and `aria-sort`, through `SortHeader`) but never filters: pages filter the rows they pass in (stage, saved view,
   `VerificationFilter`, search with `matchesSearch`), so the count and "select all" match what is shown. The built-in
   views are the list in `#lib/saved-views.ts`; the views people save live on the server (`createListViews()`,
@@ -98,7 +98,7 @@ new route is the `/add-dashboard-page` skill.
   phone's Sort chip on the same table.
 - Reorderable lists are `ReorderList` with its `ReorderGrip`s (design system A7), never up and down buttons. Each list
   is its own svelte-dnd-action zone with its own type; the library's settings live once in `#lib/dnd.ts`.
-- Verification levels are drawn from `#lib/verification.ts` (label, short label, status) through `VerificationChip`;
+- Verification states are drawn from `#lib/verification.ts` (`stateOf`: one word, long name, status, level mark steps) through `VerificationChip`, with the three-step `LevelMark` as the icon of Review and Verify and the bare `AiMark` for Some and Strong signs of AI help (which never sorts, filters or counts);
   evidence is drawn by its kind through `SignalEvidence`, never per signal code.
 
 ## Checks

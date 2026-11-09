@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -145,12 +146,12 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(questions.GetByRole(AriaRole.Textbox, new() { Name = "Section 2 name" })).ToBeFocusedAsync();
         await questions.GetByRole(AriaRole.Textbox, new() { Name = "Section 2 name" }).FillAsync("Eligibility");
         await questions.GetByRole(AriaRole.Textbox, new() { Name = "Section 1 name" }).FillAsync("About you");
-        await Expect(questions.GetByText("Add a question to this section or delete it.")).ToBeVisibleAsync();
+        await Expect(questions.GetByText(new Regex(@"has no questions\. Add one, or delete the section\."))).ToBeVisibleAsync();
 
         // Move down past the section row puts the question in that section (A7, no drag needed).
         await questions.GetByRole(AriaRole.Button, new() { Name = $"Reorder {RightToWork}" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Move down" }).ClickAsync();
-        await Expect(questions.GetByText("Add a question to this section or delete it.")).ToHaveCountAsync(0);
+        await Expect(questions.GetByText(new Regex(@"has no questions\. Add one, or delete the section\."))).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-form-builder-sections");
 
@@ -203,7 +204,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
     {
         await Page.GotoAsync(new Uri(Fixture.GetEndpoint("dashboard"), $"/jobs/{jobId}/workflow").ToString());
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync(" workflow");
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Questionnaire" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Questions" }).ClickAsync();
         await Expect(Region("Screening questions")).ToContainTextAsync("No questions yet.");
     }
 

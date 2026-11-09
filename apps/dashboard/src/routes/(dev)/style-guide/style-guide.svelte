@@ -42,7 +42,6 @@
   import DateRangeFilter from '#lib/components/date-range-filter.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EmailPreview from '#lib/components/email-preview.svelte';
-  import CopyButton from '#lib/components/copy-button.svelte';
   import Fact from '#lib/components/fact.svelte';
   import FilterMenu from '#lib/components/filter-menu.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -51,7 +50,9 @@
   import HistorySheet from '#lib/components/history-sheet.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import InterviewDetails from '#lib/components/candidate/interview-details.svelte';
-  import MiniCard from '#lib/components/mini-card.svelte';
+  import MetaItem from '#lib/components/meta-item.svelte';
+  import AiMark from '#lib/components/ai-mark.svelte';
+  import LevelMark from '#lib/components/level-mark.svelte';
   import VerificationChip from '#lib/components/verification-chip.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import ListItem from '#lib/components/list-item.svelte';
@@ -86,7 +87,7 @@
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
-  import PipelineTracker from '#lib/components/pipeline-tracker.svelte';
+  import StageRail from '#lib/components/stage-rail.svelte';
   import StepLine from '#lib/components/step-line.svelte';
   import StepMarkers, { type Step } from '#lib/components/step-markers.svelte';
   import SummaryBand from '#lib/components/summary-band.svelte';
@@ -117,7 +118,7 @@
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import type { Tracker, TrackerStep } from '#lib/pipeline-tracker.js';
   import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
-  import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder } from '#lib/verification.js';
+  import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder, pendingState, verificationStateOf } from '#lib/verification.js';
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
@@ -130,6 +131,7 @@
   import CustomizePostingDemo from './customize-posting-demo.svelte';
   import BrandingDemo from './branding-demo.svelte';
   import GraphDemo from './graph-demo.svelte';
+  import TemplateBuilderDemo from './template-builder-demo.svelte';
   import DropAreaDemo from './drop-area-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
@@ -381,11 +383,12 @@
     slaDays: index % 3 === 0 ? index + 1 : null,
   }));
 
-  // A candidate's pipeline tracker, as `trackerFor` builds it from the job's stages and the application's history.
+  // A candidate's stage rail, as `trackerFor` builds it from the job's stages and the application's history: no date under a
+  // passed stage, since the meta line says when they applied (W7).
   const trackerStep = (name: string, state: TrackerStep['state'], note?: string): TrackerStep => ({ id: name, name, state, note });
   const trackerInPipeline: Tracker = {
     steps: [
-      trackerStep('Applied', 'passed', 'Oct 20'),
+      trackerStep('Applied', 'passed'),
       trackerStep('Screening', 'current', 'Here 3 days'),
       trackerStep('Interview', 'upcoming'),
       trackerStep('Offer', 'upcoming'),
@@ -396,8 +399,8 @@
   };
   const trackerSaved: Tracker = {
     steps: [
-      trackerStep('Applied', 'passed', 'Oct 20'),
-      trackerStep('Screening', 'passed', 'Oct 22'),
+      trackerStep('Applied', 'passed'),
+      trackerStep('Screening', 'passed'),
       trackerStep('Interview', 'left', 'Saved Oct 31'),
       trackerStep('Offer', 'upcoming'),
       trackerStep('Hired', 'upcoming'),
@@ -586,30 +589,15 @@
   <title>Style guide · ScreenHire</title>
 </svelte:head>
 
-<!-- A candidate header's three mini cards: Contact, Application, then Also applied to (or Rating once someone scored them). -->
-{#snippet candidateCards()}
-  <div class="@container">
-    <div class="-m-1 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto p-1 [scrollbar-width:none] @xl:m-0 @xl:grid @xl:snap-none @xl:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] @xl:overflow-visible @xl:p-0">
-      <MiniCard class="w-64 shrink-0 snap-start @xl:w-auto" title="Contact">
-        <div class="flex min-w-0 items-center gap-1">
-          <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" icon={MailIcon} underlined />
-          <CopyButton value="samuel.okonkwo@example.com" label="Copy email address" />
-        </div>
-        <div class="flex min-w-0 items-center gap-1">
-          <TruncatedText text="+1 555 0142" href="tel:+15550142" icon={PhoneIcon} underlined />
-          <CopyButton value="+1 555 0142" label="Copy phone number" />
-        </div>
-      </MiniCard>
-      <MiniCard class="w-64 shrink-0 snap-start @xl:w-auto" title="Application">
-        <TruncatedText text="Senior product designer" href="#mini-card" underlined />
-        <p class="text-muted-foreground">Applied <RelativeTime at={ago(6 * day)} class="inline" /> via the careers page</p>
-      </MiniCard>
-      <MiniCard class="w-64 shrink-0 snap-start @xl:w-auto" title="Also applied to">
-        <p class="text-muted-foreground">2 other jobs</p>
-        <a href="#mini-card" class="inline-flex min-h-6 w-fit items-center underline underline-offset-2 pointer-coarse:min-h-11">Candidate profile</a>
-      </MiniCard>
-    </div>
-  </div>
+<!-- A candidate header's fact lines: the email and phone as links, the job, and when and where from. Items only: the header
+     band's meta is already a list, and the Fact lines panel wraps them in one. -->
+{#snippet factLines()}
+  <MetaItem label="Email" icon={MailIcon}>
+    <TruncatedText text="samuel.okonkwo@example.com" href="mailto:samuel.okonkwo@example.com" underlined />
+  </MetaItem>
+  <MetaItem label="Phone" icon={PhoneIcon}><TruncatedText text="+1 555 0142" href="tel:+15550142" underlined /></MetaItem>
+  <MetaItem label="Job"><TruncatedText text="Senior product designer" href="#fact-lines" underlined /></MetaItem>
+  <MetaItem label="Applied"><span class="text-muted-foreground">Applied <RelativeTime at={ago(6 * day)} class="inline" /> via the careers page</span></MetaItem>
 {/snippet}
 
 <ShortcutsDialog bind:open={shortcutsOpen} />
@@ -665,17 +653,17 @@
       <Panel title="Header band">
         <div class="flex flex-col gap-4">
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">Candidate: the name and one status, actions, the pipeline tracker and mini cards</figcaption>
+            <figcaption class="text-caption text-muted-foreground">Candidate: the name and verification state, actions, the meta line and the stage rail</figcaption>
             <div class="overflow-hidden rounded-lg bg-secondary">
               <HeaderBand level={3} title="Samuel Okonkwo-Hartley">
-                {#snippet status()}<StatusBadge status="verification" label="Verification suggested" />{/snippet}
+                {#snippet status()}<VerificationChip state={verificationStateOf('VerificationRecommended', false)} size="lg" tooltip="Verification suggested" />{/snippet}
                 {#snippet actions()}
                   <Button variant="outline" size="lg"><MailIcon aria-hidden="true" />Email</Button>
                   <Button size="lg"><ArrowRightIcon aria-hidden="true" />Move to stage</Button>
                 {/snippet}
+                {#snippet meta()}{@render factLines()}{/snippet}
                 {#snippet summary()}
-                  <PipelineTracker tracker={trackerInPipeline} />
-                  {@render candidateCards()}
+                  <StageRail tracker={trackerInPipeline} />
                 {/snippet}
               </HeaderBand>
             </div>
@@ -917,33 +905,35 @@
         </div>
       </Panel>
 
-      <Panel title="Pipeline tracker">
+      <TemplateBuilderDemo />
+
+      <Panel title="Stage rail">
         <div class="flex flex-col gap-5">
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">In the pipeline: passed with the date, current ringed with how long, later empty</figcaption>
-            <PipelineTracker tracker={trackerInPipeline} />
+            <figcaption class="text-caption text-muted-foreground">In the pipeline: passed with a check, current ringed with how long, later empty</figcaption>
+            <StageRail tracker={trackerInPipeline} />
           </figure>
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Overdue stays beside the current stage</figcaption>
-            <PipelineTracker tracker={trackerInPipeline} overdueAt={ago(day)} />
+            <StageRail tracker={trackerInPipeline} overdueAt={ago(day)} />
           </figure>
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Left: the stage they left from is dark, with how and when</figcaption>
-            <PipelineTracker tracker={trackerSaved} />
+            <StageRail tracker={trackerSaved} />
           </figure>
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">No stage to mark: their stage left the workflow, so a line says where they stand</figcaption>
-            <PipelineTracker tracker={trackerUnplaced} />
+            <StageRail tracker={trackerUnplaced} />
           </figure>
           <figure class="flex max-w-80 flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Narrow: the current stage and its place</figcaption>
-            <PipelineTracker tracker={trackerInPipeline} />
+            <StageRail tracker={trackerInPipeline} />
           </figure>
         </div>
       </Panel>
 
-      <Panel title="Mini card">
-        {@render candidateCards()}
+      <Panel title="Fact lines">
+        <dl class="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2">{@render factLines()}</dl>
       </Panel>
 
       <Panel title="Interview panel">
@@ -959,7 +949,6 @@
           <IconButton label="More actions"><EllipsisIcon /></IconButton>
           <IconButton label="Edit"><PencilIcon /></IconButton>
           <IconButton label="Remove"><Trash2Icon /></IconButton>
-          <CopyButton value="samuel.okonkwo@example.com" label="Copy email address" />
         </div>
       </Panel>
 
@@ -1482,11 +1471,11 @@
             <div class="flex flex-wrap items-center gap-3">
               <dt class="text-muted-foreground">On a candidate</dt>
               <dd>
-                <Rating rating={{ state: 'Rated', value: 4.6, scorecards: 1 }} scorecards={sampleScorecards} stageName={() => 'Interview'} members={sampleTeam} currentUserId="u1" />
+                <Rating rating={{ state: 'Rated', value: 4.6, scorecards: 1 }} variant="link" href="#rating" />
               </dd>
             </div>
             <div class="flex flex-wrap items-center gap-3">
-              <dt class="text-muted-foreground">In a table</dt>
+              <dt class="text-muted-foreground">In a table, the number only</dt>
               <dd><Rating rating={{ state: 'Rated', value: 3.7, scorecards: 2 }} /></dd>
             </div>
             <div class="flex flex-wrap items-center gap-3">
@@ -1517,12 +1506,25 @@
 
       <Panel title="Verification chip and evidence">
         <div class="flex flex-col gap-4">
-          <div class="flex flex-wrap gap-2">
-            {#each Object.values(authenticityLevels) as level (level.label)}<VerificationChip kind="authenticity" {level} />{/each}
-            <VerificationChip kind="authenticity" level={null} compact />
+          <div class="flex flex-wrap items-center gap-3">
+            {#each ['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const as level (level)}
+              <VerificationChip state={verificationStateOf(level, false)} />
+            {/each}
+            <VerificationChip state={pendingState} />
+            <VerificationChip state={verificationStateOf('VerificationRecommended', true)} />
           </div>
-          <div class="flex flex-wrap gap-2">
-            {#each Object.values(aiAssistanceLevels) as level (level.label)}<VerificationChip kind="aiAssistance" {level} />{/each}
+          <div class="flex flex-wrap items-center gap-3">
+            {#each ['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const as level (level)}
+              <VerificationChip state={verificationStateOf(level, false)} size="lg" />
+            {/each}
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <LevelMark steps={2} tone="review" />
+            <LevelMark steps={3} tone="verify" />
+            <LevelMark steps={2} tone="review" size="lg" />
+            <LevelMark steps={3} tone="verify" size="lg" />
+            <AiMark level="SomeIndicators" />
+            <AiMark level="StrongIndicators" />
           </div>
           <LevelScale levels={authenticityOrder.map((id) => authenticityLevels[id])} current={authenticityLevels.VerificationRecommended} name="Authenticity" />
           <LevelScale levels={aiAssistanceOrder.map((id) => aiAssistanceLevels[id])} current={aiAssistanceLevels.NotIndicated} name="AI assistance" />

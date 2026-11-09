@@ -4,7 +4,6 @@ import { findSavedView } from '#lib/saved-views.js';
 import { matchesTag } from '#lib/tags.js';
 import { stageLabel } from '#lib/talent-pool.js';
 import {
-  aiAssistanceLevels,
   authenticityLevels,
   matchesVerificationFilter,
   noVerificationFilter,
@@ -47,29 +46,42 @@ export function filtersOf(parts: FilterParts): ViewFilters {
     jobIds: [...(parts.jobIds ?? [])],
     stages: [...(parts.stages ?? [])],
     authenticity: verification.authenticity,
-    aiAssistance: verification.aiAssistance,
+    // AI assistance is information and never filters (design system section 3.2), so a view stores none.
+    aiAssistance: null,
     tag: parts.tag ?? null,
     sortColumn: parts.sort.id,
     sortDescending: parts.sort.desc,
   };
 }
 
-/** The verification filter a view holds; a level this build does not know counts as no filter. */
+/**
+ * The verification filter a view holds; a level this build does not know counts as no filter. A view saved when AI
+ * assistance was a filter keeps its other filters and drops that one: the field stays in the API, and nothing reads it.
+ */
 export function verificationOf(filters: ViewFilters): VerificationFilter {
   const authenticity = filters.authenticity;
-  const aiAssistance = filters.aiAssistance;
   return {
     authenticity:
       authenticity === 'Pending' || (authenticity && Object.hasOwn(authenticityLevels, authenticity))
         ? (authenticity as VerificationFilter['authenticity'])
         : null,
-    aiAssistance: aiAssistance && Object.hasOwn(aiAssistanceLevels, aiAssistance) ? (aiAssistance as VerificationFilter['aiAssistance']) : null,
   };
+}
+
+/**
+ * The column a saved sort names now. The Authenticity and AI assistance columns became one Verification column, so a view
+ * sorted by Authenticity sorts by it, and one sorted by AI assistance, which no longer sorts, falls back to the default.
+ */
+export function currentSortColumn(id: string | null | undefined): string | null {
+  if (id === 'authenticity') return 'verification';
+  if (id === 'aiAssistance') return null;
+  return id ?? null;
 }
 
 /** The sort a view holds, or the table's own default when it holds none. */
 export function sortOf(filters: ViewFilters, scope: ViewScope): SortChoice {
-  return filters.sortColumn ? { id: filters.sortColumn, desc: filters.sortDescending } : defaultSorts[scope];
+  const column = currentSortColumn(filters.sortColumn);
+  return column ? { id: column, desc: filters.sortDescending } : defaultSorts[scope];
 }
 
 const sorted = (values: readonly string[]) => [...values].toSorted();
@@ -83,7 +95,6 @@ export function sameFilters(a: ViewFilters, b: ViewFilters, scope: ViewScope): b
     sorted(a.jobIds).join() === sorted(b.jobIds).join() &&
     sorted(a.stages).join() === sorted(b.stages).join() &&
     (a.authenticity ?? null) === (b.authenticity ?? null) &&
-    (a.aiAssistance ?? null) === (b.aiAssistance ?? null) &&
     (a.tag ?? null) === (b.tag ?? null) &&
     sortA.id === sortB.id &&
     sortA.desc === sortB.desc
