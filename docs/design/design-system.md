@@ -1133,7 +1133,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
 - **Account pages:** what belongs to the person, whatever organization they work in, is a page under `/account` that the
   person's menu in the sidebar links to, and not a Settings page: it has no Settings menu, no permission and a breadcrumb
   that starts with Account. Passkeys (`/account/passkeys`) is the first, on the List template: a table of Name, Added and
-  Last used (newest use first; a passkey never used has a blank cell that reads "Never used" to a screen reader), a row
+  Last used (newest use first; a passkey never used says Never used, a value and not a blank, L1), a row
   menu with Remove passkey, and Add a passkey in the title's row, in the bar on a phone. Adding names the passkey in a
   dialog (pre-filled with the device), then the browser asks. The limit is said in the panel's footer only when two or
   fewer are left; at the limit Add is off and the sentence beside it says why. A browser without WebAuthn gets a notice

@@ -44,6 +44,9 @@ internal static class PasskeyLimits
     /// <summary>A credential with its attestation is a few kilobytes; this bounds what the handler parses.</summary>
     public const int CredentialJsonLength = 20_000;
 
+    /// <summary>The largest request body the passkey routes read: the credential, its JSON escaping and the name, with room.</summary>
+    public const long BodyBytes = 64 * 1024;
+
     public const int NameLength = 60;
 
     public const string DefaultName = "Passkey";

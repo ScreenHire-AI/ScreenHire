@@ -170,9 +170,11 @@ menu (`/account/passkeys`, outside Settings because it is the person's own, not 
 - **One credential, one person.** A credential id is the table's key and is registered once. Registering an id that already
   belongs to someone else fails and changes nothing (`PasskeyTests` checks the victim's row and sign-in are untouched).
 - **Ceremony state.** The challenge waits in the `sh.passkey` cookie (HttpOnly, SameSite=Lax, five minutes, the session's secure
-  policy). The answer uses it up, so an answer cannot be replayed, and an answer sent without the cookie of the browser that
-  asked finds no ceremony: Identity throws then, and the endpoints turn that, and a body that is not a credential, into the
-  refusal, logging the exception type (never the body).
+  policy), so it is bound to the browser that asked. An answer sent without that browser's cookie finds no ceremony: Identity
+  throws then, and the endpoints turn that, and a body that is not a credential, into the refusal, logging the exception type
+  (never the body). The state is in the cookie, not on the server, so someone who copied both the cookie and the answer
+  could send them again within the five minutes. Copying the cookie takes the browser itself, which holds the session the
+  answer is about to create anyway.
 - **Refusals say nothing.** Every sign-in failure is the same 401: no challenge, wrong origin, bad signature, an unknown
   passkey, a locked-out user. It never says whether a credential exists or whose it is.
 - **Counters and last use.** After a sign-in the store keeps the passkey's new signature counter (a cloned authenticator shows
@@ -183,13 +185,15 @@ menu (`/account/passkeys`, outside Settings because it is the person's own, not 
   so two removals at once cannot both see two passkeys and leave none.
 - **Registration needs a session.** A signed-in session can add a passkey, with no step-up check in v1. A stolen session could
   therefore add one that outlives it. The mitigations are that the person sees every passkey on their page and can remove it,
-  and that there are at most ten. Asking for a fresh sign-in before adding one is the next step if the threat grows.
+  and that there are at most ten (counted under the same per-user lock as a removal, so two adds at once cannot pass it).
+  Asking for a fresh sign-in before adding one is the next step if the threat grows.
 - **Sessions.** Adding or removing a credential may rotate the security stamp, which would sign the person out of their own
   session within the validator's interval, so the endpoints refresh the sign-in when the stamp changed. Removing a passkey
   does not end other sessions.
 - **Abuse.** Antiforgery on every POST and DELETE. The two anonymous routes have their own per-IP limit,
   `ScreenHire:Auth:PasskeyPermitsPerMinute` (default 20), which Development does not raise, so each test uses a unique
-  `X-Forwarded-For`. The rest use the `auth` limit. A credential body over 20,000 characters is a 400.
+  `X-Forwarded-For`. The rest use the `auth` limit. A request body over 64 KB is a 413 before it is read, and a
+  credential over 20,000 characters is a 400.
 - **Phishing.** A passkey is bound to the relying party id, so a look-alike site cannot ask for an assertion for it. That is
   the reason to offer it beside the email link.
 
@@ -518,7 +522,7 @@ Two layers, so one mistake is not a breach.
    filters candidates itself (`JobScope`), and a job's history is read only through the job. `JobAccessTests` checks that
    every table with a `job_id` or `application_id` has the policy, and that the policies alone hide a job.
 
-`users`, `user_logins`, `user_claims`, `user_tokens` and `magic_link_tokens` have no row-level security, because
+`users`, `user_logins`, `user_claims`, `user_tokens`, `user_passkeys` and `magic_link_tokens` have no row-level security, because
 sign-in finds a user by email before any organization is known. An endpoint that lists people therefore starts from
 `OrganizationMembers` (tenant-filtered) and joins to users, never from `Users`.
 

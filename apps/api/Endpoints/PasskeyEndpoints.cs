@@ -27,8 +27,11 @@ internal static partial class PasskeyEndpoints
 
     public static IEndpointRouteBuilder MapPasskeyEndpoints(this IEndpointRouteBuilder app)
     {
+        // The body cap stops an anonymous caller making the API buffer and parse megabytes before the validator's length
+        // check refuses them; a credential with its attestation is a few kilobytes.
         var group = app.MapGroup("/v1/auth/passkeys").WithTags("Auth").RequireAntiforgeryToken()
-            .RequireRateLimiting(AuthenticationSetup.RateLimitPolicy);
+            .RequireRateLimiting(AuthenticationSetup.RateLimitPolicy)
+            .WithMetadata(new RequestSizeLimitAttribute(PasskeyLimits.BodyBytes));
 
         // Sign-in comes before anyone is known, so these two are open; the closest rate-limit metadata wins.
         group.MapPost("/sign-in/options", MakeSignInOptions).WithName("MakePasskeySignInOptions").AllowAnonymous()
@@ -140,7 +143,7 @@ internal static partial class PasskeyEndpoints
 
     private static async Task<Results<Ok<PasskeySummary>, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> Register(
         RegisterPasskeyRequest request, IValidator<RegisterPasskeyRequest> validator, HttpContext context,
-        UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, ILoggerFactory loggers,
+        UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, ScreenHireDbContext db, ILoggerFactory loggers,
         CancellationToken cancellationToken)
     {
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
@@ -179,9 +182,22 @@ internal static partial class PasskeyEndpoints
         var passkey = attestation.Passkey;
         passkey.Name = PasskeyLimits.CleanName(request.Name);
         var stamp = await users.GetSecurityStampAsync(user);
-        if (!(await users.AddOrUpdatePasskeyAsync(user, passkey)).Succeeded)
+        // The count and the add run under the per-user lock Remove takes, so two registrations at once cannot both see
+        // nine passkeys and leave eleven. The count above only spares the person a ceremony that would be refused.
+        await using (var transaction = await db.Database.BeginTransactionAsync(cancellationToken))
         {
-            return NotAddedProblem();
+            await LockUserAsync(db, user, cancellationToken);
+            if ((await users.GetPasskeysAsync(user)).Count >= PasskeyLimits.PerUser)
+            {
+                return AtLimit();
+            }
+
+            if (!(await users.AddOrUpdatePasskeyAsync(user, passkey)).Succeeded)
+            {
+                return NotAddedProblem();
+            }
+
+            await transaction.CommitAsync(cancellationToken);
         }
 
         await KeepSessionAsync(signIn, users, user, stamp);
@@ -209,7 +225,7 @@ internal static partial class PasskeyEndpoints
         var stamp = await users.GetSecurityStampAsync(user);
         await using (var transaction = await db.Database.BeginTransactionAsync(cancellationToken))
         {
-            await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({user.Id.ToString()}, 0))", cancellationToken);
+            await LockUserAsync(db, user, cancellationToken);
             var passkeys = (await users.GetPasskeysAsync(user)).Count;
             var usableLogins = (await users.GetLoginsAsync(user)).Count(login => providers.Find(login.LoginProvider) is not null);
             if (!PasskeyLimits.MayRemove(passkeys, usableLogins, services.GetService<MagicLinks>() is not null))
@@ -244,6 +260,10 @@ internal static partial class PasskeyEndpoints
             await signIn.RefreshSignInAsync(user);
         }
     }
+
+    // A transaction-scoped advisory lock on the person: their passkey count stays still until the transaction ends.
+    private static async Task LockUserAsync(ScreenHireDbContext db, ApplicationUser user, CancellationToken cancellationToken) =>
+        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({user.Id.ToString()}, 0))", cancellationToken);
 
     private static bool TryDecode(string id, out byte[] credentialId)
     {

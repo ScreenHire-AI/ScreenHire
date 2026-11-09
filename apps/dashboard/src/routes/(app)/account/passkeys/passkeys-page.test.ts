@@ -58,13 +58,13 @@ describe('Passkeys page', () => {
     const table = await screen.findByRole('table');
     const [header, ...rows] = within(table).getAllByRole('row');
     expect(within(header!).getAllByRole('columnheader').map((cell) => cell.textContent?.trim())).toEqual(['Name', 'Added', 'Last used', 'Actions']);
-    // Most recently used first; one never used is last, and says so to a screen reader only.
+    // Most recently used first; one never used is last, and says so (a value, not a blank cell: design system L1).
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent('Chrome on Windows');
     expect(rows[0]).toHaveTextContent('Oct 1, 2026');
     expect(rows[0]).toHaveTextContent('3 hours ago');
     expect(rows[1]).toHaveTextContent('Safari on iOS');
-    expect(within(rows[1]!).getByText('Never used')).toHaveClass('sr-only');
+    expect(within(rows[1]!).getByText('Never used')).not.toHaveClass('sr-only');
     // Far from the limit, nothing says so.
     expect(screen.queryByText(/You can keep up to/)).not.toBeInTheDocument();
     await expectNoAxeViolations(document.body);

@@ -207,7 +207,7 @@
                     <Table.Cell class="w-full max-w-0 px-4.5"><TruncatedText text={passkey.name} class="font-semibold" /></Table.Cell>
                     <Table.Cell class="text-muted-foreground"><DateText at={passkey.createdAt} /></Table.Cell>
                     <Table.Cell class="text-muted-foreground">
-                      {#if passkey.lastUsedAt}<RelativeTime at={passkey.lastUsedAt} />{:else}<span class="sr-only">Never used</span>{/if}
+                      {#if passkey.lastUsedAt}<RelativeTime at={passkey.lastUsedAt} />{:else}Never used{/if}
                     </Table.Cell>
                     <Table.Cell class="pr-4.5 text-right">{@render passkeyMenu(passkey)}</Table.Cell>
                   </Table.Row>
