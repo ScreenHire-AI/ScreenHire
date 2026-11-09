@@ -2,6 +2,7 @@
 
 Research written before a decision, as a snapshot of 2026-10-18. Each ADR names the research behind it.
 
+* [Billing Providers and Sales Tax for a US SaaS Seller](billing-providers.md) - Stripe Payments, Billing, Tax and Managed Payments, Paddle, Lemon Squeezy and Azure Marketplace compared on fees and tax duties as read on each vendor's own page on 2026-11-08, a state-by-state table of whether SaaS sold to businesses is taxed and each state's economic nexus threshold, how a seller's own presence creates nexus, EU and UK reverse charge, what Stripe Tax does and does not do, the monthly cost of each plan under each option, and the recommendation behind ADR-0029.
 * [Competitive Teardown](competitors.md) - ATS competitors' prices, AI features and fraud defences as of 2026-10-18, the AI and fraudulent applicant threat landscape, the gaps in the market, and ScreenHire's positioning against GoHire.
 * [Svelte 5 UI Libraries: Evaluation](component-libraries.md) - Whether the Svelte 5 ecosystem covers the dashboard's needs, shadcn-svelte against the other component libraries with sizes and ARIA gaps, the recommendation behind ADR-0009, risks, and an ecosystem map with versions and downloads.
 * [Recruiter Dashboard: Svelte 5 vs Angular 22](dashboard-framework.md) - The scored comparison behind ADR-0006: Svelte 5 with SvelteKit against Angular 22 on speed, measured fit with the Astro candidate pages, component libraries and risks.
