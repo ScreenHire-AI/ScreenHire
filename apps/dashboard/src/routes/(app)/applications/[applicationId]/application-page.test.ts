@@ -2036,7 +2036,7 @@ describe('application page', () => {
       await waitFor(() => expect(within(sheet).getByRole('combobox', { name: 'Scorecard' })).toHaveValue('stage:interview'));
     });
 
-    it("opens the sheet on the scorecard a link names: a teammate's request from My tasks", async () => {
+    it("opens the sheet on the scorecard a link names, and only that one: a teammate's request from My tasks", async () => {
       stubApi({
         [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
         'GET /v1/scorecard-templates': () => Response.json(library),
@@ -2045,9 +2045,18 @@ describe('application page', () => {
       render(WithQueryClient, { props: { component: Page, props: { params: { applicationId } } } });
 
       const sheet = await screen.findByRole('dialog', { name: 'Give your scorecard' });
-      expect(within(sheet).getByRole('combobox', { name: 'Scorecard' })).toHaveValue('stage:interview');
-      expect(within(sheet).getByRole('group', { name: /^Skills the role needs/ })).toBeInTheDocument();
+      // The library offers more, but the task asks for this one: its name is the subtitle and there is no select (pick 6).
+      expect(await within(sheet).findByRole('group', { name: /^Skills the role needs/ })).toBeInTheDocument();
+      expect(within(sheet).queryByRole('combobox', { name: 'Scorecard' })).not.toBeInTheDocument();
+      expect(within(sheet).getByText('Interview scorecard')).toBeInTheDocument();
       await expectNoAxeViolations(sheet);
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+      // Fill in, from the panel, offers every scorecard the reader can give.
+      await fireEvent.click(await screen.findByRole('button', { name: 'Fill in' }));
+      const again = await screen.findByRole('dialog', { name: 'Give your scorecard' });
+      expect(within(again).getByRole('combobox', { name: 'Scorecard' })).toBeInTheDocument();
     });
 
     it('shows who gave a scorecard and when while yours is still to give, with the rest blank and nothing to open', async () => {
@@ -2162,6 +2171,20 @@ describe('application page', () => {
       await within(viewed).findByText('No scorecards yet.');
       expect(within(viewed).queryByRole('button', { name: 'Fill in' })).not.toBeInTheDocument();
       expect(within(viewed).queryByRole('button', { name: 'Ask for one' })).not.toBeInTheDocument();
+    });
+
+    it('offers Fill in your scorecard to a reviewer still held back, even with a scorecard of theirs at another stage', async () => {
+      stubApi({
+        [`GET /v1/applications/${applicationId}`]: () => Response.json({ ...application, rating: { state: 'AfterYourScorecard', scorecards: 0 } }),
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(scoredJob),
+        [`GET /v1/applications/${applicationId}/scorecards`]: () => Response.json([{ ...older, reviewerUserId: user.id }]),
+        'GET /v1/scorecard-templates': () => Response.json(library),
+      });
+      renderPage('scorecards');
+      const panel = await screen.findByRole('region', { name: 'Scorecards' });
+      await within(panel).findByText('Submit yours to see the others.');
+
+      expect(await within(panel).findByRole('button', { name: 'Fill in your scorecard' })).toBeInTheDocument();
     });
 
     it('offers no Fill in to a reader who has given a scorecard already', async () => {

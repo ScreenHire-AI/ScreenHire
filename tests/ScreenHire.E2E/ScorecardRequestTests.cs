@@ -125,7 +125,9 @@ public sealed class ScorecardRequestTests(E2EFixture fixture) : BrowserTest(fixt
 
         var sheet = recruiterPage.GetByRole(AriaRole.Dialog, new() { Name = "Give your scorecard" });
         await Expect(sheet).ToContainTextAsync(new Regex(@"Asked by .+ on "));
-        await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Scorecard" })).ToHaveValueAsync("stage:interview");
+        // The task asks for one scorecard, so the sheet is on it with no Scorecard select (redesign pick 6).
+        await Expect(Question(sheet, "Skills the role needs")).ToBeVisibleAsync();
+        await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Scorecard" })).ToHaveCountAsync(0);
         await Question(sheet, "Skills the role needs").GetByRole(AriaRole.Radio, new() { Name = "4", Exact = true }).ClickAsync();
         await Question(sheet, "Problem solving").GetByRole(AriaRole.Radio, new() { Name = "3", Exact = true }).ClickAsync();
         await Question(sheet, "Overall recommendation").GetByRole(AriaRole.Radio, new() { Name = "Yes", Exact = true }).ClickAsync();

@@ -62,9 +62,9 @@ describe('the Scorecards roster', () => {
     const [first] = within(screen.getByRole('table', { name: 'Scorecards' })).getAllByRole('row').slice(1);
     expect(first).toHaveTextContent('Strong yes');
     expect(first).toHaveTextContent('4.8');
-    // Words in ink, never a status colour (it must not read like a verification result).
+    // Words in ink, semibold, never a status colour (it must not read like a verification result).
     expect(first!.querySelector('[data-status]')).toBeNull();
-    expect(within(first!).getByText('Strong yes')).not.toHaveClass('font-semibold');
+    expect(within(first!).getByText('Strong yes')).toHaveClass('font-semibold', 'text-foreground');
     expect(within(first!).queryByRole('img')).not.toBeInTheDocument();
   });
 
