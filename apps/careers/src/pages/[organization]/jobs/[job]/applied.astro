@@ -44,8 +44,5 @@ const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
     </ul>
   </Panel>
 
-  <p class="mt-6 text-candidate-body">
-    <a href={withEmbed(`${base}/privacy`, embed)} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
-  </p>
   <a href={withEmbed(base || '/', embed)} class="button-secondary mt-4">See other open roles</a>
 </CareersLayout>

@@ -70,6 +70,17 @@ describe('public page markup', () => {
     expect(offenders(/(?<![\w-])(?:[a-z0-9-]+:)*rounded-(?!panel(?![\w-])|lg(?![\w-])|full(?![\w-])|none(?![\w-]))[\w[]+/g)).toEqual([]);
   });
 
+  it('never promises that a person reads or that no software decides (design system 4.4, voice)', () => {
+    // An employer's eligibility question can end an application with no person involved, so candidate copy says what the
+    // checks never do. The two emails that used to carry the claim are read with the pages.
+    const promise = /A person (?:at S+ )?(?:reads|reviews) (?:every application|your (?:application|answers))|No software makes|a person reads your answers/;
+    const emails = ['talent-pool-invitation', 'questionnaire-request'].map((name) => ({
+      path: `src/ScreenHire.Infrastructure/Email/Templates/${name}.body.liquid`,
+      text: readFileSync(fileURLToPath(new URL(`../../../../src/ScreenHire.Infrastructure/Email/Templates/${name}.body.liquid`, import.meta.url)), 'utf8'),
+    }));
+    expect([...careersMarkup, ...emails].filter((file) => promise.test(file.text)).map((file) => file.path)).toEqual([]);
+  });
+
   it('keeps margins, padding and gaps on the 4px grid (section 5): no half steps, 28px or 36px', () => {
     const offGrid = /(?<![\w-])(?:[a-z0-9-]+:)*-?(?:p|px|py|pt|pb|pl|pr|ps|pe|m|mx|my|mt|mb|ml|mr|ms|me|gap|gap-x|gap-y|space-x|space-y)-(?:0\.5|1\.5|2\.5|3\.5|7|9|11)(?![\w.])/g;
     expect(offenders(offGrid)).toEqual([]);

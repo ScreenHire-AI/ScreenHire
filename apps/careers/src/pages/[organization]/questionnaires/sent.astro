@@ -25,8 +25,5 @@ const base = basePath(Astro.request, employer.slug);
 >
   <h1 class="font-display text-candidate-title">Answers sent</h1>
   <p class="mt-3 text-candidate-body">Thank you. {employer.name} has your answers.</p>
-  <p class="mt-6 text-candidate-body">
-    <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
-  </p>
   <a href={base || '/'} class="button-secondary mt-4">See other open roles</a>
 </CareersLayout>

@@ -602,6 +602,9 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   with its name under it: a step done is filled with a tick, the step it is at is outlined with a filled centre and a bold
   name, and the steps to come are empty. They are a list named "Where your application is", never radio-like circles in a
   grid, which read as choices.
+- The footer carries "What we collect and why" and "Your applications" (not on the candidate's own pages, which it opens), so a page does not repeat either
+  in its body (W7). The one exception is the notice, which links the privacy page because it is the notice. `public-style.test.ts` also
+  fails on candidate copy, and the two emails that once carried it, that says a person reads everything or that no software decides.
 - A claim about who reads or decides must hold for every employer's setup. An eligibility question can end an application
   with no person involved when the employer chose that, so candidate copy says what the checks never do ("our checks never
   reject anyone") and never that no software, or always a person, decides.

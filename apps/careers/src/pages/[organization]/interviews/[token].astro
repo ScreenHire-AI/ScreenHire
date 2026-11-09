@@ -231,8 +231,11 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
                 <a href={interviewPath(base, token!, { tz: here.tz, change: true })} class="button-primary">{newTimes ? 'Pick a new time' : 'Pick another time'}</a>
               </div>
               <Panel id="cancel-heading" title="Cannot make it?" class="mt-8">
-                <details>
-                  <summary class="button-secondary w-fit">Cancel this interview</summary>
+                <details class="group">
+                  <summary class="button-secondary w-fit gap-2">
+                    Cancel this interview
+                    <svg aria-hidden="true" class="size-4 flex-none group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                  </summary>
                   <form method="POST" action={actions.interviewCancel} class="mt-4 flex flex-col items-start gap-3">
                     <input type="hidden" name="organization" value={employer.slug} />
                     <input type="hidden" name="token" value={token} />

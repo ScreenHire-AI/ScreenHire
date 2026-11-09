@@ -61,6 +61,11 @@ public sealed class CandidatePhoneTests(E2EFixture fixture) : ProofWalk(fixture)
             await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync(heading);
             await SettleAsync();
             await Check($"/{organization.Slug}{path}".TrimEnd('/'));
+            if (path is "/data-request" or "/my-applications")
+            {
+                // The footer has the privacy link, so these pages do not repeat it in the page (W7).
+                await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "What we collect and why" })).ToHaveCountAsync(1);
+            }
         }
 
         // The notice leads with why applications are checked, never how thorough the checks are (an honest applicant reads
@@ -76,6 +81,12 @@ public sealed class CandidatePhoneTests(E2EFixture fixture) : ProofWalk(fixture)
             response.Status.Should().BeOneOf([404, 410], $"{dead} opens nothing");
             await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToBeVisibleAsync();
             await SettleAsync();
+            if (dead.StartsWith("/my-applications", StringComparison.Ordinal))
+            {
+                // This page is what the footer's "Your applications" opens, so the footer does not offer it here.
+                await Expect(Page.GetByRole(AriaRole.Contentinfo).GetByRole(AriaRole.Link, new() { Name = "Your applications" })).ToHaveCountAsync(0);
+            }
+
             await Check($"dead {dead}");
         }
 

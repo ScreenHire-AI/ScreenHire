@@ -32,8 +32,5 @@ const base = basePath(Astro.request, employer.slug);
     The email can take a few minutes, and may land in your spam folder. If nothing arrives, write to {employer.name} through the
     email address they use to write to you.
   </p>
-  <p class="mt-6 text-candidate-body">
-    <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
-  </p>
   <a href={base || '/'} class="button-secondary mt-4">See open roles</a>
 </CareersLayout>
