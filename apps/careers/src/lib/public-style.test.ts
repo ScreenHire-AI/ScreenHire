@@ -70,10 +70,20 @@ describe('public page markup', () => {
     expect(offenders(/(?<![\w-])(?:[a-z0-9-]+:)*rounded-(?!panel(?![\w-])|lg(?![\w-])|full(?![\w-])|none(?![\w-]))[\w[]+/g)).toEqual([]);
   });
 
-  it('never promises that a person reads or that no software decides (design system 4.4, voice)', () => {
+  it('never promises that a person reads, that every application is reviewed or that no software decides (design system 4.4, voice)', () => {
     // An employer's eligibility question can end an application with no person involved, so candidate copy says what the
-    // checks never do. The two emails that used to carry the claim are read with the pages.
-    const promise = /A person (?:at S+ )?(?:reads|reviews) (?:every application|your (?:application|answers))|No software makes|a person reads your answers/;
+    // checks never do. The two emails that used to carry the claim are read with the pages. Prose is hard-wrapped, so any
+    // whitespace separates the words.
+    const promise =
+      /\ba\s+person\s+(?:at\s+\S+\s+)?(?:reads|reviews)\s+(?:every\s+application|your\s+(?:application|answers?))|\breviews\s+(?:every|your)\s+application|\bno\s+software\s+makes/i;
+    for (const sample of [
+      'A person at {employer.name} reviews every application.',
+      'and a person reads your\n        answer alongside',
+      '{{ organizationName }} reviews every application.',
+      'No software makes a decision about you.',
+    ]) {
+      expect(promise.test(sample), sample).toBe(true);
+    }
     const emails = ['talent-pool-invitation', 'questionnaire-request'].map((name) => ({
       path: `src/ScreenHire.Infrastructure/Email/Templates/${name}.body.liquid`,
       text: readFileSync(fileURLToPath(new URL(`../../../../src/ScreenHire.Infrastructure/Email/Templates/${name}.body.liquid`, import.meta.url)), 'utf8'),

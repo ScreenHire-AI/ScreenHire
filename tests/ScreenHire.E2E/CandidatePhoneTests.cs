@@ -61,6 +61,13 @@ public sealed class CandidatePhoneTests(E2EFixture fixture) : ProofWalk(fixture)
             await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync(heading);
             await SettleAsync();
             await Check($"/{organization.Slug}{path}".TrimEnd('/'));
+            if (path == "/privacy")
+            {
+                // The page says that an employer's eligibility question can end an application, so nothing else may promise
+                // that a person always decides (design system 4.4).
+                await Expect(Page.GetByRole(AriaRole.Main)).ToContainTextAsync("an eligibility question on a job");
+            }
+
             if (path is "/data-request" or "/my-applications")
             {
                 // The footer has the privacy link, so these pages do not repeat it in the page (W7).
@@ -86,6 +93,9 @@ public sealed class CandidatePhoneTests(E2EFixture fixture) : ProofWalk(fixture)
                 // This page is what the footer's "Your applications" opens, so the footer does not offer it here.
                 await Expect(Page.GetByRole(AriaRole.Contentinfo).GetByRole(AriaRole.Link, new() { Name = "Your applications" })).ToHaveCountAsync(0);
             }
+
+            // A dead link's page has no notice, so its one privacy link is the footer's (W7).
+            await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "What we collect and why" })).ToHaveCountAsync(1);
 
             await Check($"dead {dead}");
         }
