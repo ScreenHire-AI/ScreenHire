@@ -225,7 +225,7 @@ brackets.
   border is about 1.6:1 against its surface (`packages/ui/src/questions.css`), where it is the field's only edge, and the
   dashboard's `input` token is about 1.4:1 on the card in light and dark (the checkbox draws its own edge at 70% of
   `muted-foreground`). Neither was changed.
-- A phone has no way to list the shortcuts, so the walk skips that dialog there; its Switch is 32 by 18 px on touch.
+- A phone has no keyboard and no way to list the shortcuts, so the walk skips that dialog there.
 - Large lists are proven at 1440 and 390 px up to 26 of each record, 20 webhook endpoints (the limit) and 210 applications
   on one job (`LargeListsTests`). The 26 saved views are checked in the sidebar at 1440 only; the phone's navigation sheet
   that holds them is not opened. The API's list routes still return every row and the dashboard sorts and filters them in
