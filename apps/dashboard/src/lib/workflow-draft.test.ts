@@ -1,5 +1,5 @@
 import type { HiringWorkflow } from '@screenhire/api-client';
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiStub } from '../test-support/fixtures.js';
 import WorkflowDraftHarness from '../test-support/workflow-draft-harness.svelte';
@@ -48,5 +48,52 @@ describe('createWorkflowDraft', () => {
     expect(text('source')).toBe('job:2');
     expect(text('dirty')).toBe('saved');
     expect(text('outdated')).toBe('current');
+  });
+});
+
+// Test and Publish wait for the workflow to be valid; Save never does (a draft saves with problems).
+describe('ready', () => {
+  const renderWith = (validate: () => Response) => {
+    cleanup();
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'POST /v1/workflows/validate': validate })));
+    render(WithQueryClient, { props: { component: WorkflowDraftHarness, props: { first: workflow('Screening'), theirs: workflow('Recruiter call') } } });
+  };
+
+  it('is not ready until the validator has checked what is on screen, then is', async () => {
+    renderWith(() => Response.json({ valid: true, errors: [] }));
+
+    expect(text('ready')).toBe('not ready');
+    await waitFor(() => expect(text('ready')).toBe('ready'));
+  });
+
+  it('is not ready again the moment the workflow changes, until that change is checked', async () => {
+    renderWith(() => Response.json({ valid: true, errors: [] }));
+    await waitFor(() => expect(text('ready')).toBe('ready'));
+
+    await click('Rename');
+
+    expect(text('ready')).toBe('not ready');
+    await waitFor(() => expect(text('ready')).toBe('ready'));
+  });
+
+  it('is not ready while the validator reports a problem, which is shown', async () => {
+    renderWith(() => Response.json({ valid: false, errors: [{ path: 'stages[1].name', message: 'Give the stage a name.' }] }));
+
+    await waitFor(() => expect(text('errors')).toBe('Give the stage a name.'));
+    expect(text('ready')).toBe('not ready');
+  });
+
+  it('is not ready after the API refused a save with a problem, until the workflow changes and is checked again', async () => {
+    renderWith(() => Response.json({ valid: true, errors: [] }));
+    await waitFor(() => expect(text('ready')).toBe('ready'));
+
+    await click('Fail the save');
+
+    expect(text('errors')).toBe('Screening still has 1 candidate.');
+    expect(text('ready')).toBe('not ready');
+
+    await click('Rename');
+    await waitFor(() => expect(text('ready')).toBe('ready'));
+    expect(text('errors')).toBe('');
   });
 });

@@ -32,7 +32,6 @@
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
-  import NewHiringTemplateDialog from '#lib/components/new-hiring-template-dialog.svelte';
   import NewScorecardDialog from '#lib/components/new-scorecard-dialog.svelte';
   import RecordTabs from '#lib/components/record-tabs.svelte';
   import TemplateList, { type TemplateRow } from '#lib/components/template-list.svelte';
@@ -248,7 +247,6 @@
   // The rejection and follow-up questions emails use variables only their own actions fill, so a copy could never send.
   const duplicable = (template: EmailTemplateEntry | undefined) => Boolean(template && !template.rejectOnly && !template.questionnaireOnly && !template.invitationOnly);
 
-  let creatingHiring = $state(false);
   let creatingScorecard = $state(false);
   const offersNew = $derived(editsHiring || editsEmails);
 </script>
@@ -279,7 +277,7 @@
         {currentUserId}
         menu={hiringMenu}
         hasMenu={() => editsHiring}
-        oncreate={editsHiring ? () => (creatingHiring = true) : undefined}
+        createHref={editsHiring ? '/templates/new' : undefined}
         message={messages.hiring}
         failure={failures.hiring}
       />
@@ -330,7 +328,7 @@
     <DropdownMenu.Trigger class={cn(buttonVariants({ size: 'lg' }))}><PlusIcon aria-hidden="true" />New template<ChevronDownIcon aria-hidden="true" /></DropdownMenu.Trigger>
     <DropdownMenu.Content align="end" class="w-56">
       {#if editsHiring}
-        <DropdownMenu.Item onSelect={() => (creatingHiring = true)}>Hiring template</DropdownMenu.Item>
+        <DropdownMenu.Item>{#snippet child({ props })}<a href="/templates/new" {...props}>Hiring template</a>{/snippet}</DropdownMenu.Item>
         <DropdownMenu.Item onSelect={() => (creatingScorecard = true)}>Scorecard</DropdownMenu.Item>
       {/if}
       {#if editsEmails}
@@ -383,7 +381,6 @@
   </MoreMenu>
 {/snippet}
 
-<NewHiringTemplateDialog bind:open={creatingHiring} />
 <NewScorecardDialog bind:open={creatingScorecard} />
 
 <ConfirmDialog

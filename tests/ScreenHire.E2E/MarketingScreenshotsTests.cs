@@ -106,7 +106,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         var bookingLink = await InterviewLinkAsync(OtherEmail) + "?tz=Europe%2FLondon";
 
         // Where the phone pictures stop: between elements, never through the middle of one.
-        static ILocator Stage4(IPage page) => page.GetByRole(AriaRole.Group, new() { Name = "Stage 4:" });
+        static ILocator Stage4(IPage page) => page.GetByRole(AriaRole.List, new() { Name = "Stages in order" }).Locator("> li").Nth(3);
         static ILocator Entry(IPage page, string text) => page.Locator("main ol[aria-label] > li").Filter(new() { HasText = text });
 
         var screens = new List<Screen>
@@ -131,14 +131,13 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
             // 5. The candidate's own page, from the link in the email they ask for.
             new("candidate-portal", portalLink, "Your applications", PreparePortalAsync, Public: true),
 
-            // 6. A workflow's stages and automations, in the pipeline view. It is the product designer job's, given automations
+            // 6. A workflow's stages and automations, in the Overview (the candidate journey). It is the product designer job's, given automations
             // from a thank-you email to a reminder when Screening runs late (WorkflowShowcaseAsync); the engineer job's queues an
             // answer for rejection review, which a page that says nothing is rejected on a check must not show.
-            // The pipeline view (the graph's phone layout is read-only and too small to read).
             // On a phone, the stages down to the fourth, with their automations.
             new("workflow", DashboardUrl($"/jobs/{showcaseJobId}/workflow"), "workflow",
-                page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Workflow automations" })).ToBeVisibleAsync(), Height: 1480,
-                Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Stages"), To: Stage4)),
+                page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Candidate journey" })).ToBeVisibleAsync(), Height: 1480,
+                Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Candidate journey"), To: Stage4)),
 
             // 7. The candidate's interview booking page, before they pick a time. Both pictures end after the second day of times;
             // the window is tall enough for two whole days when the run starts early and today has times all day.

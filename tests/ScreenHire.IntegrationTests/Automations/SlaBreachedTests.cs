@@ -175,7 +175,8 @@ public sealed class SlaBreachedTests(AppHostFixture fixture)
         result.Count("errors").Should().Be(1);
         result.Text("errors.0.path").Should().Be("automations[0].actions[0]");
         result.Text("errors.0.message").Should().Contain("hiring team's delay, not the candidate");
-        (await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Refused", ["definition"] = Samples.DefinitionWith(queue.DeepClone().AsObject()) }))
-            .Expect(HttpStatusCode.BadRequest);
+        var drafted = (await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Refused", ["definition"] = Samples.DefinitionWith(queue.DeepClone().AsObject()) }))
+            .Expect(HttpStatusCode.Created);
+        (await recruiter.PostAsync($"/v1/templates/{drafted.Id()}/versions/1/publish")).Expect(HttpStatusCode.BadRequest);
     }
 }

@@ -74,7 +74,22 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-flow.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-form.svelte
-  - resource: apps/dashboard/src/lib/components/workflow/pipeline-view.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/stage-cards.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/stage-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/journey-overview.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/test-drive.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/problem-notice.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/problems-panel.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/validation-badge.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/workflow-tabs.svelte
+  - resource: apps/dashboard/src/lib/components/starting-point-card.svelte
+  - resource: apps/dashboard/src/routes/(app)/templates/new/+page.svelte
+  - resource: apps/dashboard/src/lib/journey-text.ts
+  - resource: apps/dashboard/src/lib/test-drive.ts
+  - resource: apps/dashboard/src/lib/starting-points.ts
+  - resource: apps/dashboard/src/lib/workflow-tabs.ts
+  - resource: apps/dashboard/src/lib/workflow-draft.svelte.ts
+  - resource: apps/api/Hiring/DraftShape.cs
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
   - resource: apps/dashboard/src/lib/components/workflow/question-settings.svelte
   - resource: apps/dashboard/src/lib/components/form-builder.svelte
@@ -188,33 +203,39 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
 
 ## 4. Builder UX (dashboard)
 
-- **Pipeline view** (default, SMB-friendly): horizontal stages, each with an "automations" drawer — "When a candidate
-  enters *Screening* → send *Questionnaire A*; if *work authorisation = No* → queue for rejection review".
+- **Overview** (default, SMB-friendly): the template read back as what happens to an applicant, a column per stage
+  with its time limit, scorecard and automations in plain sentences ("When a candidate enters *Screening* → send
+  *Questionnaire A*" reads "Sends the *Questionnaire A* form"), and the end stages on one line.
+- **Pipeline view**: the stages as cards, each opening a sheet for its name, time limit, scorecard and automations.
 - **Graph view** (power users): node-graph editor showing triggers → conditions → actions across stages. Same
   underlying model; the graph is a projection, not a separate format.
 - **Questionnaire builder** with a preview rendering the **same question components** the candidate sees on the
   Astro apply page (shared component package, a factor in the dashboard framework decision).
-- **Simulation**: "test this workflow" runs a sample application through the definition and shows which automations
-  would fire — essential trust feature, cheap because evaluation is deterministic.
+- **Test**: four sample candidates built from the template run through the definition after each change and show
+  what happens to each. It is an essential trust feature, and cheap because evaluation is deterministic.
 
 What the dashboard builds (`apps/dashboard`, routes `/templates`, `/templates/{id}` and `/jobs/{id}/workflow`). The
 Templates page has a tab each for hiring templates, library scorecards (`/templates/scorecards/{id}`, the form builder
 with its preview beside it, or behind an Edit / Preview switch where both do not fit) and email templates
 ([email.md](email.md)), each listed by `template-list.svelte` with where it is used, from `GET /v1/template-usage`. The
 workflow builder is one editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own
-copy, with four tabs on the page's header band. A workflow that cannot be edited there (a ScreenHire template, a
+copy, with five tabs on the page's header band (Overview, Pipeline, Questions, Automations, Test; `#lib/workflow-tabs.ts`,
+kept in the address as `?tab=`). A workflow that cannot be edited there (a ScreenHire template, a
 published version, a closed job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no
-form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (design system section 11, Stage flow). The validation result is a status badge beside the page title.
+form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (design system section 11, Stage flow). The validation result is a Needs fixes badge beside the page title, shown only when there is a problem, with a Fix button beside it on every tab but Test.
 
-- **Pipeline:** the stages in order (reordered by dragging a grip, or from the menu the grip opens, `ReorderList`), and an automation's actions the same way and, per stage, its automations
+- **Overview:** `journey-overview.svelte`, words from `#lib/journey-text.ts`. A column per open stage (up to five, else the
+  vertical list) with its number, time limit, scorecard and automations; only automations carry an icon. An automation
+  with no stage (the checks finishing, a manual run) is under "Any time"; an arriving application belongs to the first
+  stage. Generated text never names a person: a reviewer is "the team". A stage's header opens its sheet.
+- **Pipeline:** `stage-cards.svelte`, the stages as cards (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`), with a plus between cards to insert one. A card opens `stage-sheet.svelte`: name, time limit as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other), scorecard, the automations that run there and More options with the stage's kind. A stage's kind follows its name (`kindFromName`) until it is set by hand. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
   team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, never in
   the workflow: on the Templates page's Scorecards tab (`/templates/scorecards/{id}`), in the form builder
   (`scorecard-builder.svelte`), or through `/v1/scorecard-templates`. An archived scorecard leaves the picker unless the
   stage already names it. A stage that ends the application offers no
   scorecard. Automations whose trigger
-  has no stage (an arriving application, the verification checks, a manual run, any stage's time limit) sit in a "Workflow
-  automations" panel under the stages. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
+  has no stage (an arriving application, the verification checks, a manual run, any stage's time limit) are listed in the Automations tab. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
 - **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`). The
   stages run left to right as the backbone, after a "Whole workflow" lane that is not part of the pipeline (no line
@@ -288,7 +309,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   objective eligibility check, never AI use or an accommodation). The automation form offers "Send a questionnaire" and
   the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
-- **Simulate:** a guided test, three questions one at a time (`guided-test.svelte`, rules in `#lib/simulate.ts`, design
+- **Test:** `test-drive.svelte`. A moment after each change it builds up to four samples from the template (`#lib/test-drive.ts`: meets every requirement, fails a knockout, whose checks suggest a review, asked for an accommodation), runs each through `POST /v1/workflows/simulate`, and shows what happens to each in a few plain steps with a "Show in the map" link to the Automations tab. While a problem blocks the workflow the tab shows only a notice with the fix inline (`problem-notice.svelte`: type the missing tag, or remove the step). "Try your own candidate" is the guided test: a guided test, three questions one at a time (`guided-test.svelte`, rules in `#lib/simulate.ts`, design
   system section 11, Guided test). What happened: a moment in plain words, offered only where an automation that is on
   reacts to it, with a second question (which stage or questionnaire) only when automations react in more than one. Who
   is the candidate: ready-made candidates built from the workflow (one who meets every requirement, one who fails a
@@ -301,10 +322,16 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   to add one. A result says when the workflow changed after it ran and offers to run it again.
 
 Every change is checked with `POST /v1/workflows/validate` after a short pause, and each message shows on the control
-its path names, so the guardrail refusal of a verification-driven rejection appears on that action. A draft that does
-not validate cannot be saved, so the editor holds unsaved work in the page and asks before leaving it. The editor lists
-the open problems in a "Problems to fix" panel above every tab; a read-only view lists a stored version's in a
-"Problems" panel. Saving with no changes sends nothing, because each save of a job's workflow is a new version.
+its path names, so the guardrail refusal of a verification-driven rejection appears on that action. Each message is a
+whole sentence that names the thing and says what to do (`DefinitionValidator`). A draft with problems still saves:
+the API stores a template draft, and a draft job's workflow, whatever the validator finds (only a body it cannot store
+is refused, `DraftShape`), and returns the problems with the save (`problems` on the template version, `workflowProblems`
+on the job). Only the Test tab and Publish wait for the fix: a template publish and a job's first publish validate
+again and refuse. A save to an open job's workflow is live at once, so it is validated like a publish. The editor still
+holds unsaved work in the page and asks before leaving it. It lists the open problems in a "Problems to fix" panel above
+every tab but Test; a read-only view lists a stored version's in a "Problems" panel. An Add a tag step asks for its tag
+first, and a step left empty is dropped with Undo, so a blank step is never a problem. Saving with no changes sends
+nothing, because each save of a job's workflow is a new version.
 
 ## 5. API surface (public, same API the dashboard uses)
 

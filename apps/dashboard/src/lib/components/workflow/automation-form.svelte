@@ -2,6 +2,7 @@
   import type { ActionType, Automation, ConditionOperator, DefinitionError, HiringWorkflow, TriggerType } from '@screenhire/api-client';
   import { createListEmailTemplates, createListRoles, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import Trash2Icon from '~icons/lucide/trash-2';
+  import { tick } from 'svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import ReorderList from '#lib/components/reorder-list.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -34,6 +35,7 @@
   import { sendableTemplates } from '#lib/email.js';
   import { durationLabel, durations, maxInterviewers, timeZoneOptions, toggleInterviewer } from '#lib/schedule-interview.js';
   import { membersWith } from '#lib/team.js';
+  import { getUndo } from '#lib/undo-context.js';
   import { checkboxClass, insetClass, kickerClass, labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
 
@@ -111,6 +113,33 @@
   }
 
   const describedBy = (...ids: (string | false)[]) => ids.filter(Boolean).join(' ') || undefined;
+
+  // A step that asks for text (a tag, a note, a web address, a reason) and is left empty is dropped, with Undo, so a blank
+  // step is never a problem to fix. A new Add a tag step starts with its tag field in focus: the tag is the first thing it
+  // asks for.
+  const undo = getUndo();
+  const textFields = ['tag', 'note', 'url', 'reason'] as const;
+  let steps = $state<HTMLElement>();
+
+  function leaveStep(event: FocusEvent, index: number) {
+    const next = event.relatedTarget;
+    if (next instanceof Node && event.currentTarget instanceof HTMLElement && event.currentTarget.contains(next)) return;
+    const action = automation.actions[index];
+    const field = action ? actionField[action.type] : undefined;
+    if (!action || !field || !textFields.includes(field as (typeof textFields)[number]) || (action[field] ?? '').trim() !== '') return;
+    automation.actions = removeAt(automation.actions, index);
+    undo?.offer('Removed the empty step.', async () => {
+      automation.actions = [...automation.actions.slice(0, index), action, ...automation.actions.slice(index)];
+      return null;
+    });
+  }
+
+  async function addAction() {
+    automation.actions = [...automation.actions, newAction('AddTag')];
+    await tick();
+    const fields = steps?.querySelectorAll<HTMLElement>('[data-step-field]');
+    fields?.[fields.length - 1]?.focus();
+  }
 </script>
 
 <article aria-labelledby={`${uid}-heading`} class="flex flex-col gap-3 border-b border-border-subtle pb-6 last-of-type:border-0">
@@ -282,7 +311,7 @@
     <div><Button variant="outline" size="lg" onclick={addRule}>Add condition</Button></div>
   </fieldset>
 
-  <fieldset class="flex flex-col gap-2">
+  <fieldset bind:this={steps} class="flex flex-col gap-2">
     <legend class={kickerClass}>Then</legend>
     <!-- Actions run in order and reorder with a grip (A7). They have no ids of their own, so a position names each. -->
     <ReorderList
@@ -301,7 +330,7 @@
         {@const at = (name: keyof typeof interviewFieldLabels) => errorsAt(errors, `${actionPath}.${name}`)}
         <!-- The four interview fields show their messages under themselves (F6), so the action's own list holds the rest. -->
         {@const actionErrors = errorsUnder(errors, actionPath).filter((error) => !interviewPaths.includes(error.path)).map((error) => error.message)}
-        <div class={insetClass}>
+        <div class={insetClass} onfocusout={(event) => leaveStep(event, actionIndex)}>
           <div class="grid items-end gap-2 @xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]">
             <label class={labelClass}>
               Action {actionIndex + 1}
@@ -366,7 +395,7 @@
             {:else if field}
               <label class={labelClass}>
                 {actionFieldLabels[field]}
-                <Input bind:value={() => action[field] ?? '', (value) => (action[field] = value)} maxlength={field === 'url' ? 2000 : 500} />
+                <Input data-step-field bind:value={() => action[field] ?? '', (value) => (action[field] = value)} maxlength={field === 'url' ? 2000 : 500} />
               </label>
             {:else}
               <!-- ScheduleInterview draws its four fields below. -->
@@ -479,7 +508,7 @@
         </div>
       {/snippet}
     </ReorderList>
-    <div><Button variant="outline" size="lg" onclick={() => (automation.actions = [...automation.actions, newAction('AddTag')])}>Add action</Button></div>
+    <div><Button variant="outline" size="lg" onclick={addAction}>Add action</Button></div>
   </fieldset>
 
   {#if rejects}

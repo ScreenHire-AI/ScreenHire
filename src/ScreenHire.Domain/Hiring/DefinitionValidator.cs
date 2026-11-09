@@ -5,7 +5,11 @@ using ScreenHire.Domain.Scheduling;
 
 namespace ScreenHire.Domain.Hiring;
 
-/// <summary>A problem with a definition, at a JSON path such as <c>workflow.stages[1].id</c>.</summary>
+/// <summary>
+/// A problem with a definition. <paramref name="Path"/> is a JSON path such as <c>workflow.stages[1].id</c> for code;
+/// <paramref name="Message"/> is a whole sentence for a person that names the thing and says what to do, so a screen can
+/// show it as it is.
+/// </summary>
 public sealed record DefinitionError(string Path, string Message);
 
 /// <summary>
@@ -14,6 +18,11 @@ public sealed record DefinitionError(string Path, string Message);
 /// it again before executing. Request bodies arrive through a serializer that does not enforce nullability, so every
 /// member is checked for null here.
 /// </summary>
+/// <remarks>
+/// Every message is written for someone who has never seen the JSON: it names the stage, automation, step, question or
+/// scorecard by the name they gave it (<see cref="Quote"/>, with a plain noun when the name is blank), says what to do,
+/// and uses the words of the screen (a "Send a form" step, not <c>SendQuestionnaire</c>).
+/// </remarks>
 public static partial class DefinitionValidator
 {
     /// <summary>Facts a condition may test besides <c>answers.{questionId}</c>; their types are in <see cref="FactSchema"/>.</summary>
@@ -26,16 +35,16 @@ public static partial class DefinitionValidator
 
     // Kinds the definition model names but the engine does not run yet. Refused at save, so no definition carries one
     // the engine would silently ignore. Verification is phase 2 (CLAUDE.md non-negotiable 3); candidate replies are not
-    // tracked yet.
+    // tracked yet. Each value is the first sentence of the message; the fix follows it.
     private static readonly Dictionary<ActionType, string> UnavailableActions = new()
     {
-        [ActionType.RequestVerification] = "Verification requests arrive in phase 2 and cannot be used yet.",
+        [ActionType.RequestVerification] = "Asking for a check is not available yet.",
     };
 
     private static readonly Dictionary<TriggerType, string> UnavailableTriggers = new()
     {
-        [TriggerType.VerificationCompleted] = "Verification arrives in phase 2; this trigger cannot be used yet.",
-        [TriggerType.CandidateReplied] = "Candidate replies are not tracked yet; this trigger cannot be used yet.",
+        [TriggerType.VerificationCompleted] = "Starting when a check finishes is not available yet.",
+        [TriggerType.CandidateReplied] = "Starting when a candidate replies is not available yet.",
     };
 
     // What an automation that uses a verification signal may do: route and step up, never reject
@@ -77,7 +86,7 @@ public static partial class DefinitionValidator
         var errors = new List<DefinitionError>();
         if (definition is null)
         {
-            errors.Add(new("", "A definition is required."));
+            errors.Add(new("", "This template is empty. Add at least one stage."));
             return errors;
         }
 
@@ -98,7 +107,7 @@ public static partial class DefinitionValidator
     {
         if (workflow is null)
         {
-            errors.Add(new(path, "A workflow is required."));
+            errors.Add(new(path, "The hiring process is missing. Add its stages and questions."));
             return;
         }
 
@@ -108,11 +117,11 @@ public static partial class DefinitionValidator
 
         if (workflow.VerificationPolicy is null)
         {
-            errors.Add(new(Join(path, "verificationPolicy"), "A verification policy is required."));
+            errors.Add(new(Join(path, "verificationPolicy"), "The setting for whether applicants may use AI is missing. Choose one."));
         }
         else if (!Enum.IsDefined(workflow.VerificationPolicy.AiUse))
         {
-            errors.Add(new(Join(path, "verificationPolicy.aiUse"), "Unknown AI-use policy."));
+            errors.Add(new(Join(path, "verificationPolicy.aiUse"), "The setting for whether applicants may use AI is not recognised. Choose another."));
         }
 
         ValidateAutomations(workflow.Automations, Join(path, "automations"), new(stages, questions, followUps), errors);
@@ -124,13 +133,13 @@ public static partial class DefinitionValidator
         var byId = new Dictionary<string, WorkflowStage>(StringComparer.Ordinal);
         if (stages is null || stages.Count == 0)
         {
-            errors.Add(new(path, "A workflow needs at least one stage."));
+            errors.Add(new(path, "Add at least one stage. Applications need somewhere to start."));
             return byId;
         }
 
         if (stages.Count > MaxStages)
         {
-            errors.Add(new(path, $"A workflow has at most {MaxStages} stages."));
+            errors.Add(new(path, $"There are too many stages. Keep it to {MaxStages} or fewer."));
         }
 
         for (var i = 0; i < stages.Count; i++)
@@ -143,20 +152,21 @@ public static partial class DefinitionValidator
                 continue;
             }
 
-            if (ValidateId(stage.Id, Join(stagePath, "id"), errors) && !byId.TryAdd(stage.Id, stage))
+            var stageName = Quote(stage.Name, "this stage");
+            if (ValidateId(stage.Id, Join(stagePath, "id"), stageName, errors) && !byId.TryAdd(stage.Id, stage))
             {
-                errors.Add(new(Join(stagePath, "id"), $"Stage id '{stage.Id}' is used twice."));
+                errors.Add(new(Join(stagePath, "id"), $"The id '{stage.Id}' of {stageName} is already used by another stage. Use a different id."));
             }
 
-            ValidateText(stage.Name, Join(stagePath, "name"), 80, required: true, errors);
+            ValidateText(stage.Name, Join(stagePath, "name"), 80, required: true, $"The name of stage {i + 1}", errors);
             if (!Enum.IsDefined(stage.Kind))
             {
-                errors.Add(new(Join(stagePath, "kind"), "Unknown stage kind."));
+                errors.Add(new(Join(stagePath, "kind"), $"The type of {stageName} is not recognised. Choose another type."));
             }
 
             if (stage.SlaDays is < 1 or > 365)
             {
-                errors.Add(new(Join(stagePath, "slaDays"), "An SLA is between 1 and 365 days."));
+                errors.Add(new(Join(stagePath, "slaDays"), $"The time limit for {stageName} must be between 1 and 365 days. Change it, or clear it."));
             }
 
             ValidateStageScorecard(stage, stagePath, template, errors);
@@ -165,12 +175,13 @@ public static partial class DefinitionValidator
         // Applications start in the first stage, so it has to be the one Applied stage.
         if (stages[0] is { } first && first.Kind != StageKind.Applied)
         {
-            errors.Add(new($"{path}[0].kind", "The first stage must be the Applied stage, where new applications start."));
+            errors.Add(new($"{path}[0].kind",
+                $"The first stage must be the Applied stage, where new applications start. Change the type of {Quote(first.Name, "this stage")}, or move the Applied stage to the top."));
         }
 
         if (stages.Count(s => s?.Kind == StageKind.Applied) > 1)
         {
-            errors.Add(new(path, "A workflow has exactly one Applied stage."));
+            errors.Add(new(path, "There can be only one Applied stage. Change the type of the extra ones."));
         }
 
         return byId;
@@ -183,16 +194,17 @@ public static partial class DefinitionValidator
             return;
         }
 
+        var stageName = Quote(stage.Name, "this stage");
         if (Enum.IsDefined(stage.Kind) && stage.Kind.IsTerminal())
         {
             errors.Add(new(Join(path, stage.ScorecardTemplateId is null ? "scorecard" : "scorecardTemplateId"),
-                "A hired, rejected or withdrawn stage ends the application, so it has no scorecard."));
+                $"{Cap(stageName)} ends the application, so it cannot have a scorecard. Remove the scorecard."));
         }
 
         if (stage.ScorecardTemplateId is { } key && !BuiltInScorecards.IsWellFormed(key))
         {
             errors.Add(new(Join(path, "scorecardTemplateId"),
-                $"Unknown scorecard. Use one of {string.Join(", ", BuiltInScorecards.All.Select(b => b.Id))}, or the id of one of the organization's scorecards."));
+                $"The scorecard chosen for {stageName} does not exist. Choose one from the list."));
         }
 
         if (template)
@@ -200,7 +212,7 @@ public static partial class DefinitionValidator
             if (stage.Scorecard is not null)
             {
                 errors.Add(new(Join(path, "scorecard"),
-                    "A hiring template's stage names a scorecard from the library in scorecardTemplateId; each job copies its questions."));
+                    $"{Cap(stageName)} holds its own scorecard, but a template can only point to one from the library. Choose a library scorecard instead."));
             }
 
             return;
@@ -213,8 +225,9 @@ public static partial class DefinitionValidator
             return;
         }
 
-        ValidateText(scorecard.Name, Join(path, "scorecard.name"), ScorecardTemplate.MaxNameLength, required: true, errors);
-        errors.AddRange(ValidateScorecardQuestions(scorecard.Questions, Join(path, "scorecard.questions")));
+        var owner = $"the scorecard on {stageName}";
+        ValidateText(scorecard.Name, Join(path, "scorecard.name"), ScorecardTemplate.MaxNameLength, required: true, $"The name of {owner}", errors);
+        errors.AddRange(ScorecardQuestionProblems(scorecard.Questions, Join(path, "scorecard.questions"), owner));
     }
 
     /// <summary>
@@ -222,12 +235,22 @@ public static partial class DefinitionValidator
     /// <see cref="MaxScorecardQuestions"/> questions with unique ids, options on the choice kinds only, and nothing that
     /// rates the person rather than the job. The library's scorecards and a job's copy share these rules.
     /// </summary>
-    public static IReadOnlyList<DefinitionError> ValidateScorecardQuestions(IReadOnlyList<ScorecardQuestion>? questions, string path)
+    public static IReadOnlyList<DefinitionError> ValidateScorecardQuestions(IReadOnlyList<ScorecardQuestion>? questions, string path) =>
+        ScorecardQuestionProblems(questions, path, "this scorecard");
+
+    // owner is a phrase such as "this scorecard" or "the scorecard on \"Screening\"", so each message says where it is.
+    private static List<DefinitionError> ScorecardQuestionProblems(IReadOnlyList<ScorecardQuestion>? questions, string path, string owner)
     {
         var errors = new List<DefinitionError>();
-        if (questions is not { Count: > 0 and <= MaxScorecardQuestions })
+        if (questions is null or { Count: 0 })
         {
-            errors.Add(new(path, $"A scorecard asks between 1 and {MaxScorecardQuestions} questions; leave the scorecard out for none."));
+            errors.Add(new(path, $"{Cap(owner)} has no questions. Add at least one, or remove the scorecard."));
+            return errors;
+        }
+
+        if (questions.Count > MaxScorecardQuestions)
+        {
+            errors.Add(new(path, $"{Cap(owner)} has too many questions. Keep it to {MaxScorecardQuestions} or fewer."));
             return errors;
         }
 
@@ -237,28 +260,30 @@ public static partial class DefinitionValidator
             var questionPath = $"{path}[{i}]";
             if (questions[i] is not { } question)
             {
-                errors.Add(new(questionPath, "A question is required."));
+                errors.Add(new(questionPath, $"A question in {owner} is missing. Remove the empty one."));
                 continue;
             }
 
-            if (ValidateId(question.Id, Join(questionPath, "id"), errors) && !ids.Add(question.Id))
+            var described = Described(question.Label, i + 1, owner);
+            if (ValidateId(question.Id, Join(questionPath, "id"), described, errors) && !ids.Add(question.Id))
             {
-                errors.Add(new(Join(questionPath, "id"), $"Question id '{question.Id}' is used twice."));
+                errors.Add(new(Join(questionPath, "id"), $"The id '{question.Id}' of {described} is already used by another question. Use a different id."));
             }
 
-            ValidateText(question.Label, Join(questionPath, "label"), 120, required: true, errors);
-            ValidateText(question.Guidance, Join(questionPath, "guidance"), 500, required: false, errors);
+            ValidateText(question.Label, Join(questionPath, "label"), 120, required: true, $"The text of question {i + 1} in {owner}", errors);
+            ValidateText(question.Guidance, Join(questionPath, "guidance"), 500, required: false, $"The guidance for {described}", errors);
             if (!Enum.IsDefined(question.Type))
             {
-                errors.Add(new(Join(questionPath, "type"), "Unknown answer kind."));
+                errors.Add(new(Join(questionPath, "type"), $"The answer type of {described} is not recognised. Choose another type."));
             }
             else if (question.Type is ScorecardQuestionType.SingleChoice or ScorecardQuestionType.MultiChoice)
             {
-                ValidateOptions(question.Options, Join(questionPath, "options"), errors);
+                ValidateOptions(question.Options, Join(questionPath, "options"), described, errors);
             }
             else if (question.Options is { Count: > 0 })
             {
-                errors.Add(new(Join(questionPath, "options"), "Only choice questions have options."));
+                errors.Add(new(Join(questionPath, "options"),
+                    $"{Cap(described)} is not a choice question, so it cannot have options. Remove the options, or change its answer type to a choice."));
             }
 
             var texts = new List<(string? Text, string Member)> { (question.Label, "label"), (question.Guidance, "guidance") };
@@ -268,8 +293,8 @@ public static partial class DefinitionValidator
                 if (text is not null && PersonalJudgement().Match(text) is { Success: true } match)
                 {
                     errors.Add(new(Join(questionPath, member),
-                        $"Ask about what the job needs, such as a skill or experience, not \"{match.Value}\". Scorecards never rate " +
-                        "personality, emotion or honesty (CLAUDE.md non-negotiable 3)."));
+                        $"{Cap(described)} asks about \"{match.Value}\". Scorecards rate what the job needs, such as a skill or experience, " +
+                        "never personality, emotion or honesty. Reword it."));
                 }
             }
         }
@@ -282,12 +307,13 @@ public static partial class DefinitionValidator
         var byId = new Dictionary<string, Question>(StringComparer.Ordinal);
         if (questionnaire?.Questions is not { } questions)
         {
-            errors.Add(new(path, "A questionnaire is required; use an empty question list for none."));
+            errors.Add(new(path, "The application questionnaire is missing. Add one, or use an empty one for no questions."));
             return byId;
         }
 
-        ValidateQuestions(questions, path, followUp: false, byId, errors);
-        ValidateSections(questionnaire.Sections, questions, path, errors);
+        const string owner = "the application questionnaire";
+        ValidateQuestions(questions, path, followUp: false, owner, byId, errors);
+        ValidateSections(questionnaire.Sections, questions, path, owner, errors);
         return byId;
     }
 
@@ -304,7 +330,7 @@ public static partial class DefinitionValidator
 
         if (followUps.Count > MaxFollowUpQuestionnaires)
         {
-            errors.Add(new(path, $"A workflow has at most {MaxFollowUpQuestionnaires} follow-up questionnaires."));
+            errors.Add(new(path, $"There are too many follow-up questionnaires. Keep it to {MaxFollowUpQuestionnaires} or fewer."));
         }
 
         for (var i = 0; i < followUps.Count; i++)
@@ -312,35 +338,36 @@ public static partial class DefinitionValidator
             var followUpPath = $"{path}[{i}]";
             if (followUps[i] is not { } followUp)
             {
-                errors.Add(new(followUpPath, "A questionnaire is required."));
+                errors.Add(new(followUpPath, "A follow-up questionnaire is missing. Remove the empty one."));
                 continue;
             }
 
-            if (ValidateId(followUp.Id, Join(followUpPath, "id"), errors) && !byId.TryAdd(followUp.Id, followUp))
+            var owner = Ref("follow-up questionnaire", followUp.Name);
+            if (ValidateId(followUp.Id, Join(followUpPath, "id"), Quote(followUp.Name, "this follow-up questionnaire"), errors) && !byId.TryAdd(followUp.Id, followUp))
             {
-                errors.Add(new(Join(followUpPath, "id"), $"Questionnaire id '{followUp.Id}' is used twice."));
+                errors.Add(new(Join(followUpPath, "id"), $"{Cap(owner)} has the id '{followUp.Id}', which another follow-up questionnaire already has. Use a different id."));
             }
 
-            ValidateText(followUp.Name, Join(followUpPath, "name"), 80, required: true, errors);
+            ValidateText(followUp.Name, Join(followUpPath, "name"), 80, required: true, $"The name of follow-up questionnaire {i + 1}", errors);
             if (followUp.Questions is not { Count: > 0 } followUpQuestions)
             {
-                errors.Add(new(Join(followUpPath, "questions"), "A follow-up questionnaire asks at least one question."));
+                errors.Add(new(Join(followUpPath, "questions"), $"{Cap(owner)} has no questions. Add one, or delete it."));
                 continue;
             }
 
-            ValidateQuestions(followUpQuestions, followUpPath, followUp: true, questions, errors);
-            ValidateSections(followUp.Sections, followUpQuestions, followUpPath, errors);
+            ValidateQuestions(followUpQuestions, followUpPath, followUp: true, owner, questions, errors);
+            ValidateSections(followUp.Sections, followUpQuestions, followUpPath, owner, errors);
         }
 
         return byId;
     }
 
     private static void ValidateQuestions(
-        IReadOnlyList<Question> questions, string path, bool followUp, Dictionary<string, Question> byId, List<DefinitionError> errors)
+        IReadOnlyList<Question> questions, string path, bool followUp, string owner, Dictionary<string, Question> byId, List<DefinitionError> errors)
     {
         if (questions.Count > MaxQuestions)
         {
-            errors.Add(new(Join(path, "questions"), $"A questionnaire has at most {MaxQuestions} questions."));
+            errors.Add(new(Join(path, "questions"), $"{Cap(owner)} has too many questions. Keep it to {MaxQuestions} or fewer."));
         }
 
         for (var i = 0; i < questions.Count; i++)
@@ -349,29 +376,32 @@ public static partial class DefinitionValidator
             var question = questions[i];
             if (question is null)
             {
-                errors.Add(new(questionPath, "A question is required."));
+                errors.Add(new(questionPath, $"A question in {owner} is missing. Remove the empty one."));
                 continue;
             }
 
-            if (ValidateId(question.Id, Join(questionPath, "id"), errors))
+            var described = Described(question.Label, i + 1, owner);
+            if (ValidateId(question.Id, Join(questionPath, "id"), described, errors))
             {
                 if (followUp && ApplyFormQuestionIds.Contains(question.Id))
                 {
-                    errors.Add(new(Join(questionPath, "id"), $"'{question.Id}' is a question on the apply form. Choose another id."));
+                    errors.Add(new(Join(questionPath, "id"),
+                        $"The id '{question.Id}' of {described} belongs to a question on the application form. Choose another id."));
                 }
                 else if (!byId.TryAdd(question.Id, question))
                 {
                     errors.Add(new(Join(questionPath, "id"), followUp
-                        ? $"Question id '{question.Id}' is used twice. Ids are unique across all of a workflow's questionnaires."
-                        : $"Question id '{question.Id}' is used twice."));
+                        ? $"The id '{question.Id}' of {described} is already used by another question. Ids must be different across all questionnaires."
+                        : $"The id '{question.Id}' of {described} is already used by another question. Use a different id."));
                 }
             }
 
-            ValidateQuestion(question, questionPath, errors);
+            ValidateQuestion(question, questionPath, i + 1, owner, described, errors);
             if (followUp && question.Type == QuestionType.File)
             {
                 // The follow-up page works without JavaScript and takes no uploads (workflow-engine.md §8).
-                errors.Add(new(Join(questionPath, "type"), "A follow-up questionnaire cannot ask for a file. Ask for files on the apply form."));
+                errors.Add(new(Join(questionPath, "type"),
+                    $"{Cap(described)} asks for a file, which a follow-up questionnaire cannot do. Ask for files on the application form, or change the question type."));
             }
         }
     }
@@ -379,7 +409,7 @@ public static partial class DefinitionValidator
     // Named pages of a questionnaire (careers apply-flow.md §7). The questions stay one flat list, which every reader of
     // answers.{id} uses; the sections only group it, so they must cover it exactly, once each and in its order.
     private static void ValidateSections(
-        IReadOnlyList<QuestionSection>? sections, IReadOnlyList<Question> questions, string path, List<DefinitionError> errors)
+        IReadOnlyList<QuestionSection>? sections, IReadOnlyList<Question> questions, string path, string owner, List<DefinitionError> errors)
     {
         if (sections is not { Count: > 0 })
         {
@@ -389,31 +419,40 @@ public static partial class DefinitionValidator
         var sectionsPath = Join(path, "sections");
         if (sections.Count > MaxSections)
         {
-            errors.Add(new(sectionsPath, $"A questionnaire has at most {MaxSections} sections."));
+            errors.Add(new(sectionsPath, $"{Cap(owner)} has too many sections. Keep it to {MaxSections} or fewer."));
         }
 
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var placed = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var known = questions.Where(q => q is not null).Select(q => q.Id).ToHashSet(StringComparer.Ordinal);
+        var labels = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var question in questions.Where(q => q is not null && q.Id is not null))
+        {
+            labels.TryAdd(question.Id, question.Label);
+        }
+
+        string QuestionName(string? id) => id is not null && labels.TryGetValue(id, out var label) ? Quote(label, $"'{id}'") : $"'{id}'";
+
         for (var i = 0; i < sections.Count; i++)
         {
             var sectionPath = $"{sectionsPath}[{i}]";
             if (sections[i] is not { } section)
             {
-                errors.Add(new(sectionPath, "A section is required."));
+                errors.Add(new(sectionPath, $"A section in {owner} is missing. Remove the empty one."));
                 continue;
             }
 
-            if (ValidateId(section.Id, Join(sectionPath, "id"), errors) && !ids.Add(section.Id))
+            var sectionName = Ref("section", section.Name);
+            if (ValidateId(section.Id, Join(sectionPath, "id"), Quote(section.Name, "this section"), errors) && !ids.Add(section.Id))
             {
-                errors.Add(new(Join(sectionPath, "id"), $"Section id '{section.Id}' is used twice."));
+                errors.Add(new(Join(sectionPath, "id"), $"{Cap(sectionName)} has the id '{section.Id}', which another section already has. Use a different id."));
             }
 
-            ValidateText(section.Name, Join(sectionPath, "name"), 80, required: true, errors);
+            ValidateText(section.Name, Join(sectionPath, "name"), 80, required: true, $"The name of section {i + 1} in {owner}", errors);
             if (section.QuestionIds is not { Count: > 0 } questionIds)
             {
-                errors.Add(new(sectionPath, "Add a question to this section or delete it."));
+                errors.Add(new(sectionPath, $"{Cap(sectionName)} has no questions. Add one, or delete the section."));
                 continue;
             }
 
@@ -421,11 +460,13 @@ public static partial class DefinitionValidator
             {
                 if (questionId is null || !known.Contains(questionId))
                 {
-                    errors.Add(new(Join(sectionPath, "questionIds"), $"This questionnaire has no question '{questionId}'."));
+                    errors.Add(new(Join(sectionPath, "questionIds"),
+                        $"{Cap(sectionName)} lists a question ('{questionId}') that is not in {owner}. Remove it from the section."));
                 }
                 else if (!seen.Add(questionId))
                 {
-                    errors.Add(new(Join(sectionPath, "questionIds"), $"Question '{questionId}' is in two sections."));
+                    errors.Add(new(Join(sectionPath, "questionIds"),
+                        $"The question {QuestionName(questionId)} is in {sectionName} and in an earlier section. Keep it in one section."));
                 }
                 else
                 {
@@ -434,56 +475,59 @@ public static partial class DefinitionValidator
             }
         }
 
-        if (known.Except(seen, StringComparer.Ordinal).Any())
+        if (known.Except(seen, StringComparer.Ordinal).FirstOrDefault() is { } missing)
         {
-            errors.Add(new(sectionsPath, "Every question belongs to a section. Put each question in one."));
+            errors.Add(new(sectionsPath, $"Every question in {owner} must be in a section, and {QuestionName(missing)} is in none. Put each question in one."));
         }
         else if (!placed.SequenceEqual(questions.Where(q => q is not null).Select(q => q.Id), StringComparer.Ordinal))
         {
-            errors.Add(new(sectionsPath, "The sections list the questions in a different order from the questionnaire."));
+            errors.Add(new(sectionsPath, $"The sections of {owner} list the questions in a different order from the questionnaire. Put them in the same order."));
         }
     }
 
-    private static void ValidateQuestion(Question question, string path, List<DefinitionError> errors)
+    private static void ValidateQuestion(Question question, string path, int number, string owner, string described, List<DefinitionError> errors)
     {
-        ValidateText(question.Label, Join(path, "label"), 500, required: true, errors);
-        ValidateText(question.HelpText, Join(path, "helpText"), 1000, required: false, errors);
+        ValidateText(question.Label, Join(path, "label"), 500, required: true, $"The text of question {number} in {owner}", errors);
+        ValidateText(question.HelpText, Join(path, "helpText"), 1000, required: false, $"The help text for {described}", errors);
         if (!Enum.IsDefined(question.Type))
         {
-            errors.Add(new(Join(path, "type"), "Unknown question type."));
+            errors.Add(new(Join(path, "type"), $"The type of {described} is not recognised. Choose another type."));
             return;
         }
 
         var isChoice = question.Type is QuestionType.SingleChoice or QuestionType.MultiChoice;
         if (isChoice)
         {
-            ValidateOptions(question.Options, Join(path, "options"), errors);
+            ValidateOptions(question.Options, Join(path, "options"), described, errors);
         }
         else if (question.Options is { Count: > 0 })
         {
-            errors.Add(new(Join(path, "options"), "Only choice questions have options."));
+            errors.Add(new(Join(path, "options"),
+                $"{Cap(described)} is not a choice question, so it cannot have options. Remove the options, or change the question type to a choice."));
         }
 
         if (question.Knockout is not null)
         {
             if (question.Type != QuestionType.YesNo)
             {
-                errors.Add(new(Join(path, "knockout"), "Only yes/no questions can be knockouts."));
+                errors.Add(new(Join(path, "knockout"),
+                    $"{Cap(described)} is a knockout question, but only yes or no questions can be. Turn knockout off, or change the question type to yes or no."));
             }
 
-            ValidateText(question.Knockout.Reason, Join(path, "knockout.reason"), 500, required: false, errors);
+            ValidateText(question.Knockout.Reason, Join(path, "knockout.reason"), 500, required: false, $"The knockout reason for {described}", errors);
         }
 
         if (question.Type == QuestionType.Number)
         {
             if (question.Min is { } min && question.Max is { } max && min > max)
             {
-                errors.Add(new(Join(path, "max"), "The maximum is below the minimum."));
+                errors.Add(new(Join(path, "max"), $"The maximum for {described} is lower than its minimum. Raise the maximum or lower the minimum."));
             }
         }
         else if (question.Min is not null || question.Max is not null)
         {
-            errors.Add(new(Join(path, question.Min is not null ? "min" : "max"), "Only number questions have a minimum or maximum."));
+            errors.Add(new(Join(path, question.Min is not null ? "min" : "max"),
+                $"{Cap(described)} is not a number question, so it cannot have a minimum or maximum. Remove them."));
         }
 
         var textLimit = question.Type switch
@@ -495,28 +539,36 @@ public static partial class DefinitionValidator
         if (question.MaxLength is { } maxLength && (textLimit == 0 || maxLength < 1 || maxLength > textLimit))
         {
             errors.Add(new(Join(path, "maxLength"), textLimit == 0
-                ? "Only text questions have a maximum length."
-                : $"A maximum length is between 1 and {textLimit.ToString(CultureInfo.InvariantCulture)}."));
+                ? $"{Cap(described)} is not a text question, so it has no maximum length. Remove it."
+                : $"The maximum length for {described} must be between 1 and {textLimit.ToString(CultureInfo.InvariantCulture)} characters. Change the number."));
         }
 
         if (question.AcceptedFileTypes is { Count: > 0 } fileTypes)
         {
             if (question.Type != QuestionType.File)
             {
-                errors.Add(new(Join(path, "acceptedFileTypes"), "Only file questions have accepted file types."));
+                errors.Add(new(Join(path, "acceptedFileTypes"),
+                    $"{Cap(described)} is not a file question, so it cannot list file types. Remove them."));
             }
             else if (fileTypes.Count > 20 || fileTypes.Any(t => t is null || !FileExtension().IsMatch(t)))
             {
-                errors.Add(new(Join(path, "acceptedFileTypes"), "Accepted file types are up to 20 extensions such as .pdf."));
+                errors.Add(new(Join(path, "acceptedFileTypes"),
+                    $"The file types for {described} must be up to 20 extensions such as .pdf. Fix the list."));
             }
         }
     }
 
-    private static void ValidateOptions(IReadOnlyList<QuestionOption>? options, string path, List<DefinitionError> errors)
+    private static void ValidateOptions(IReadOnlyList<QuestionOption>? options, string path, string owner, List<DefinitionError> errors)
     {
-        if (options is null || options.Count < 2 || options.Count > MaxOptions)
+        if (options is null || options.Count < 2)
         {
-            errors.Add(new(path, $"A choice question has between 2 and {MaxOptions} options."));
+            errors.Add(new(path, $"{Cap(owner)} needs at least 2 options. Add some."));
+            return;
+        }
+
+        if (options.Count > MaxOptions)
+        {
+            errors.Add(new(path, $"{Cap(owner)} has too many options. Keep it to {MaxOptions} or fewer."));
             return;
         }
 
@@ -526,16 +578,17 @@ public static partial class DefinitionValidator
             var optionPath = $"{path}[{i}]";
             if (options[i] is not { } option)
             {
-                errors.Add(new(optionPath, "An option is required."));
+                errors.Add(new(optionPath, $"An option in {owner} is missing. Remove the empty one."));
                 continue;
             }
 
-            if (ValidateId(option.Id, Join(optionPath, "id"), errors) && !ids.Add(option.Id))
+            var optionName = Quote(option.Label, $"option {i + 1}");
+            if (ValidateId(option.Id, Join(optionPath, "id"), $"{optionName} in {owner}", errors) && !ids.Add(option.Id))
             {
-                errors.Add(new(Join(optionPath, "id"), $"Option id '{option.Id}' is used twice."));
+                errors.Add(new(Join(optionPath, "id"), $"The id '{option.Id}' of the option {optionName} in {owner} is already used by another option. Use a different id."));
             }
 
-            ValidateText(option.Label, Join(optionPath, "label"), 200, required: true, errors);
+            ValidateText(option.Label, Join(optionPath, "label"), 200, required: true, $"The text of option {i + 1} in {owner}", errors);
         }
     }
 
@@ -545,13 +598,13 @@ public static partial class DefinitionValidator
         var (stages, questions, _) = parts;
         if (automations is null)
         {
-            errors.Add(new(path, "Automations are required; use an empty list for none."));
+            errors.Add(new(path, "The automations list is missing. Use an empty list for none."));
             return;
         }
 
         if (automations.Count > MaxAutomations)
         {
-            errors.Add(new(path, $"A workflow has at most {MaxAutomations} automations."));
+            errors.Add(new(path, $"There are too many automations. Keep it to {MaxAutomations} or fewer."));
         }
 
         var ids = new HashSet<string>(StringComparer.Ordinal);
@@ -561,19 +614,21 @@ public static partial class DefinitionValidator
             var automation = automations[i];
             if (automation is null)
             {
-                errors.Add(new(automationPath, "An automation is required."));
+                errors.Add(new(automationPath, "An automation is missing. Remove the empty one."));
                 continue;
             }
 
-            if (ValidateId(automation.Id, Join(automationPath, "id"), errors) && !ids.Add(automation.Id))
+            var quoted = Quote(automation.Name, "this automation");
+            var named = Ref("automation", automation.Name);
+            if (ValidateId(automation.Id, Join(automationPath, "id"), quoted, errors) && !ids.Add(automation.Id))
             {
-                errors.Add(new(Join(automationPath, "id"), $"Automation id '{automation.Id}' is used twice."));
+                errors.Add(new(Join(automationPath, "id"), $"The id '{automation.Id}' of {quoted} is already used by another automation. Use a different id."));
             }
 
-            ValidateText(automation.Name, Join(automationPath, "name"), 120, required: true, errors);
-            ValidateTrigger(automation.Trigger, Join(automationPath, "trigger"), parts, errors);
-            ValidateConditions(automation.Conditions, Join(automationPath, "conditions"), automation.Trigger?.Type, questions, errors);
-            ValidateActions(automation.Actions, Join(automationPath, "actions"), parts, errors);
+            ValidateText(automation.Name, Join(automationPath, "name"), 120, required: true, $"The name of automation {i + 1}", errors);
+            ValidateTrigger(automation.Trigger, Join(automationPath, "trigger"), quoted, named, parts, errors);
+            ValidateConditions(automation.Conditions, Join(automationPath, "conditions"), quoted, named, automation.Trigger?.Type, questions, errors);
+            ValidateActions(automation.Actions, Join(automationPath, "actions"), quoted, named, parts, errors);
         }
 
         var signalDriven = DrivenAutomations(automations, DrivenBySignal);
@@ -664,38 +719,44 @@ public static partial class DefinitionValidator
         taintedTags.Count > 0
         && (rule.Negate || taintedTags.Any(tag => AutomationEvaluator.Holds(rule, new AutomationFacts([], [tag]))));
 
-    private static void ValidateTrigger(AutomationTrigger? trigger, string path, WorkflowParts parts, List<DefinitionError> errors)
+    // quoted is the automation's name in quotes (or "this automation"), for "in X"; named is "the automation \"X\"", for
+    // the start of a sentence.
+    private static void ValidateTrigger(
+        AutomationTrigger? trigger, string path, string quoted, string named, WorkflowParts parts, List<DefinitionError> errors)
     {
         var stages = parts.Stages;
         if (trigger is null)
         {
-            errors.Add(new(path, "A trigger is required."));
+            errors.Add(new(path, $"{Cap(named)} has no trigger. Choose what starts it."));
             return;
         }
 
         if (!Enum.IsDefined(trigger.Type))
         {
-            errors.Add(new(Join(path, "type"), "Unknown trigger."));
+            errors.Add(new(Join(path, "type"), $"{Cap(named)} has a trigger that is not recognised. Choose another trigger."));
             return;
         }
 
+        var triggerContext = $"the trigger of {quoted}";
+        var triggerName = TriggerName(trigger.Type);
         if (UnavailableTriggers.TryGetValue(trigger.Type, out var unavailable))
         {
-            errors.Add(new(Join(path, "type"), unavailable));
+            errors.Add(new(Join(path, "type"), $"{unavailable} Choose another trigger for {named}."));
         }
 
         var needsStage = trigger.Type is TriggerType.StageEntered or TriggerType.StageExited or TriggerType.TimeElapsed;
         if (needsStage)
         {
-            ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, errors);
+            ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, triggerContext, errors);
         }
         else if (trigger.Type == TriggerType.ReviewerDecision && trigger.StageId is not null)
         {
             // Optional: a decision on any stage's scorecard, or only on this one's.
-            ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, errors);
+            ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, triggerContext, errors);
             if (stages.GetValueOrDefault(trigger.StageId) is { } stage && !stage.HasScorecard())
             {
-                errors.Add(new(Join(path, "stageId"), $"{stage.Name} has no scorecard, so no reviewer decision is recorded there."));
+                errors.Add(new(Join(path, "stageId"),
+                    $"{Cap(Quote(stage.Name, "this stage"))} has no scorecard, so no reviewer decision is recorded there. Choose a stage with a scorecard, or leave the stage empty."));
             }
         }
         else if (trigger.Type == TriggerType.SlaBreached)
@@ -703,22 +764,23 @@ public static partial class DefinitionValidator
             // Optional: any stage's time limit, or only this one's.
             if (trigger.StageId is not null)
             {
-                ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, errors);
+                ValidateStageReference(trigger.StageId, Join(path, "stageId"), stages, triggerContext, errors);
                 if (stages.GetValueOrDefault(trigger.StageId) is { } stage && !stage.HasSla())
                 {
+                    var stageName = Cap(Quote(stage.Name, "this stage"));
                     errors.Add(new(Join(path, "stageId"), Enum.IsDefined(stage.Kind) && stage.Kind.IsTerminal()
-                        ? $"{stage.Name} ends the application, so its time limit never passes."
-                        : $"{stage.Name} has no time limit, so it is never overdue. Set its time limit in days."));
+                        ? $"{stageName} ends the application, so its time limit never passes. Choose another stage."
+                        : $"{stageName} has no time limit, so it is never overdue. Set its time limit in days, or choose another stage."));
                 }
             }
             else if (stages.Count > 0 && !stages.Values.Any(s => s.HasSla()))
             {
-                errors.Add(new(Join(path, "type"), "No stage has a time limit, so this never fires. Set a stage's time limit in days."));
+                errors.Add(new(Join(path, "type"), $"No stage has a time limit, so {named} never starts. Set a time limit in days on a stage."));
             }
         }
         else if (trigger.StageId is not null)
         {
-            errors.Add(new(Join(path, "stageId"), $"A {trigger.Type} trigger has no stage."));
+            errors.Add(new(Join(path, "stageId"), $"The \"{triggerName}\" trigger in {quoted} does not use a stage. Remove the stage."));
         }
 
         if (trigger.Type == TriggerType.QuestionnaireCompleted)
@@ -727,29 +789,30 @@ public static partial class DefinitionValidator
             // definitions saved before follow-ups existed valid.
             if (trigger.QuestionnaireId is not null)
             {
-                ValidateFollowUpReference(trigger.QuestionnaireId, Join(path, "questionnaireId"), parts.FollowUps, errors);
+                ValidateFollowUpReference(trigger.QuestionnaireId, Join(path, "questionnaireId"), parts.FollowUps, triggerContext, errors);
             }
         }
         else if (trigger.QuestionnaireId is not null)
         {
-            errors.Add(new(Join(path, "questionnaireId"), $"A {trigger.Type} trigger has no questionnaire."));
+            errors.Add(new(Join(path, "questionnaireId"), $"The \"{triggerName}\" trigger in {quoted} does not use a form. Remove it."));
         }
 
         if (trigger.Type == TriggerType.TimeElapsed)
         {
             if (trigger.AfterHours is not (>= 1 and <= 8760))
             {
-                errors.Add(new(Join(path, "afterHours"), "A time trigger waits between 1 and 8760 hours."));
+                errors.Add(new(Join(path, "afterHours"), $"The wait in {quoted} must be between 1 and 8760 hours. Change the number of hours."));
             }
         }
         else if (trigger.AfterHours is not null)
         {
-            errors.Add(new(Join(path, "afterHours"), "Only a TimeElapsed trigger waits."));
+            errors.Add(new(Join(path, "afterHours"), $"The \"{triggerName}\" trigger in {quoted} does not wait, so it has no hours. Remove the hours."));
         }
     }
 
     private static void ValidateConditions(
-        AutomationConditions? conditions, string path, TriggerType? trigger, Dictionary<string, Question> questions, List<DefinitionError> errors)
+        AutomationConditions? conditions, string path, string quoted, string named, TriggerType? trigger,
+        Dictionary<string, Question> questions, List<DefinitionError> errors)
     {
         if (conditions is null)
         {
@@ -758,12 +821,13 @@ public static partial class DefinitionValidator
 
         if (!Enum.IsDefined(conditions.Match))
         {
-            errors.Add(new(Join(path, "match"), "Match is All or Any."));
+            errors.Add(new(Join(path, "match"), $"The conditions of {quoted} must match all rules or any rule. Choose one."));
         }
 
         if (conditions.Rules is not { Count: > 0 and <= MaxRules } rules)
         {
-            errors.Add(new(Join(path, "rules"), $"Conditions have between 1 and {MaxRules} rules; omit them to always run."));
+            errors.Add(new(Join(path, "rules"),
+                $"The conditions of {quoted} need between 1 and {MaxRules} rules. Add one, or remove the conditions so it always runs."));
             return;
         }
 
@@ -772,46 +836,51 @@ public static partial class DefinitionValidator
             var rulePath = $"{path}.rules[{i}]";
             if (rules[i] is not { } rule)
             {
-                errors.Add(new(rulePath, "A rule is required."));
+                errors.Add(new(rulePath, $"A condition in {quoted} is empty. Remove it."));
                 continue;
             }
 
+            var condition = $"condition {i + 1} of {quoted}";
             if (FactSchema.IsRating(rule.Fact))
             {
                 // Not an unknown fact: a refused one. The candidate's rating informs people and is never a condition.
                 errors.Add(new(Join(rulePath, "fact"),
-                    "The candidate's rating informs people, who decide: no automation acts on it or on a scorecard's answers (ADR-0013). " +
-                    "Use a ReviewerDecision trigger and reviewer.recommendation to act on one reviewer's recommendation."));
+                    $"{Cap(condition)} uses a rating. A rating helps people decide, so no automation acts on it or on a scorecard's answers (ADR-0013). " +
+                    "To act on a reviewer's recommendation, start the automation on a reviewer decision and test the reviewer's recommendation."));
                 continue;
             }
 
             var fact = FactSchema.Find(rule.Fact, questions);
             if (fact is null)
             {
-                errors.Add(new(Join(rulePath, "fact"), rule.Fact?.StartsWith(AnswersPrefix, StringComparison.Ordinal) == true
-                    ? $"No question has the id '{rule.Fact[AnswersPrefix.Length..]}'."
-                    : $"Unknown fact '{rule.Fact}'."));
+                errors.Add(new(Join(rulePath, "fact"), rule.Fact is null
+                    ? $"{Cap(condition)} has nothing to test. Choose what it tests."
+                    : rule.Fact.StartsWith(AnswersPrefix, StringComparison.Ordinal)
+                        ? $"{Cap(condition)} tests an answer to a question that does not exist ('{rule.Fact[AnswersPrefix.Length..]}'). Choose another question."
+                        : $"{Cap(condition)} tests something that is not available ('{rule.Fact}'). Choose another."));
             }
             else if (fact.Category == FactCategory.Reviewer && trigger != TriggerType.ReviewerDecision)
             {
-                errors.Add(new(Join(rulePath, "fact"), "Only a ReviewerDecision automation has a reviewer's recommendation to test."));
+                errors.Add(new(Join(rulePath, "fact"),
+                    $"{Cap(named)} cannot test a reviewer's recommendation, because only an automation that starts on a reviewer decision has one. Change the trigger, or remove {condition}."));
             }
             else if (trigger == TriggerType.SlaBreached && FactSchema.IsTimingOrTelemetry(fact.Name))
             {
                 // The engine skips an automation with a timing condition for an application with an accommodation, and a
                 // skipped reminder would leave that candidate waiting with nobody told (workflow-engine.md section 8).
                 errors.Add(new(Join(rulePath, "fact"),
-                    "A time limit passing already says how long the candidate waited. A timing condition here would skip the " +
-                    "reminder for a candidate with an accommodation, who would then wait with nobody told."));
+                    $"{Cap(named)} starts when a time limit passes, which already says how long the candidate waited. A condition on time would skip the " +
+                    $"reminder for a candidate with an accommodation, who would then wait with nobody told. Remove {condition}."));
             }
             else if (Enum.IsDefined(rule.Operator) && !FactSchema.OperatorsFor(fact.Type).Contains(rule.Operator))
             {
                 errors.Add(new(Join(rulePath, "operator"),
-                    $"{rule.Operator} does not apply to {fact.Name}, a {Describe(fact.Type)} fact. Use {string.Join(", ", FactSchema.OperatorsFor(fact.Type).Order())}."));
+                    $"{Cap(condition)} cannot test {FactLabel(fact, questions)} with \"{OperatorLabel(rule.Operator)}\". " +
+                    $"Choose one of: {string.Join(", ", FactSchema.OperatorsFor(fact.Type).Order().Select(OperatorLabel))}."));
             }
             else
             {
-                ValidateOperands(rule, fact, rulePath, questions, errors);
+                ValidateOperands(rule, fact, rulePath, condition, questions, errors);
             }
 
             switch (rule.Operator)
@@ -819,36 +888,44 @@ public static partial class DefinitionValidator
                 case ConditionOperator.Exists:
                     if (rule.Value is not null || rule.Values is not null)
                     {
-                        errors.Add(new(rulePath, "Exists takes no value."));
+                        errors.Add(new(rulePath, $"{Cap(condition)} only checks that something is filled in, so it takes no value. Remove the value."));
                     }
 
                     break;
                 case ConditionOperator.In:
                     if (rule.Value is not null || rule.Values is not { Count: > 0 and <= 50 } || rule.Values.Any(v => v is null || v.Length > 200))
                     {
-                        errors.Add(new(Join(rulePath, "values"), "In takes between 1 and 50 values in values, and no value."));
+                        errors.Add(new(Join(rulePath, "values"),
+                            $"{Cap(condition)} needs between 1 and 50 values to choose from, each up to 200 characters. Fix the list."));
                     }
 
                     break;
                 case var known when Enum.IsDefined(known):
                     if (rule.Values is not null || string.IsNullOrEmpty(rule.Value) || rule.Value.Length > 200)
                     {
-                        errors.Add(new(Join(rulePath, "value"), $"{rule.Operator} takes one value of up to 200 characters, and no values."));
+                        errors.Add(new(Join(rulePath, "value"), $"{Cap(condition)} needs one value of up to 200 characters. Type a single value."));
                     }
 
                     break;
                 default:
-                    errors.Add(new(Join(rulePath, "operator"), "Unknown operator."));
+                    errors.Add(new(Join(rulePath, "operator"), $"{Cap(condition)} has a comparison that is not recognised. Choose another."));
                     break;
             }
         }
     }
 
-    private static void ValidateActions(IReadOnlyList<AutomationAction>? actions, string path, WorkflowParts parts, List<DefinitionError> errors)
+    private static void ValidateActions(
+        IReadOnlyList<AutomationAction>? actions, string path, string quoted, string named, WorkflowParts parts, List<DefinitionError> errors)
     {
-        if (actions is not { Count: > 0 and <= MaxActions })
+        if (actions is null || actions.Count == 0)
         {
-            errors.Add(new(path, $"An automation has between 1 and {MaxActions} actions."));
+            errors.Add(new(path, $"{Cap(named)} has no steps. Add at least one."));
+            return;
+        }
+
+        if (actions.Count > MaxActions)
+        {
+            errors.Add(new(path, $"{Cap(named)} has too many steps. Keep it to {MaxActions} or fewer."));
             return;
         }
 
@@ -857,28 +934,29 @@ public static partial class DefinitionValidator
             var actionPath = $"{path}[{i}]";
             if (actions[i] is not { } action)
             {
-                errors.Add(new(actionPath, "An action is required."));
+                errors.Add(new(actionPath, $"Step {i + 1} in {quoted} is empty. Remove it."));
                 continue;
             }
 
             if (!Enum.IsDefined(action.Type))
             {
-                errors.Add(new(Join(actionPath, "type"), "Unknown action."));
+                errors.Add(new(Join(actionPath, "type"), $"Step {i + 1} in {quoted} is not a step the product knows. Choose another step."));
                 continue;
             }
 
+            var step = new Step(quoted, i + 1, actions.Count, action.Type);
             if (UnavailableActions.TryGetValue(action.Type, out var unavailable))
             {
-                errors.Add(new(Join(actionPath, "type"), unavailable));
+                errors.Add(new(Join(actionPath, "type"), $"{unavailable} Remove {step.Phrase}."));
             }
 
-            ValidateActionFields(action, actionPath, parts, errors);
+            ValidateActionFields(action, actionPath, step, parts, errors);
         }
     }
 
     // Each action type's required and optional fields; anything else set on it is an error, so a definition never
     // carries a value the engine would silently ignore.
-    private static void ValidateActionFields(AutomationAction action, string path, WorkflowParts parts, List<DefinitionError> errors)
+    private static void ValidateActionFields(AutomationAction action, string path, Step step, WorkflowParts parts, List<DefinitionError> errors)
     {
         var stages = parts.Stages;
         var (required, optional) = action.Type switch
@@ -916,95 +994,125 @@ public static partial class DefinitionValidator
         foreach (var field in Enum.GetValues<ActionField>().Where(f => f != ActionField.None))
         {
             var name = JsonName(field);
+            var (need, plain, fix) = FieldWords(field);
             if (required.HasFlag(field) && !present.HasFlag(field))
             {
-                errors.Add(new(Join(path, name), $"{action.Type} needs {name}."));
+                errors.Add(new(Join(path, name), field == ActionField.Tag
+                    ? $"The tag in {step.Where} has no name. Type one, or remove that step."
+                    : $"{Cap(step.Phrase)} needs {need}. {fix}, or remove that step."));
             }
             else if (present.HasFlag(field) && !required.HasFlag(field) && !optional.HasFlag(field))
             {
-                errors.Add(new(Join(path, name), $"{action.Type} does not take {name}."));
+                errors.Add(new(Join(path, name), $"The {plain} is not used by {step.Phrase}. Remove it."));
             }
         }
 
         if (action.StageId is not null && action.Type == ActionType.MoveToStage)
         {
-            ValidateStageReference(action.StageId, Join(path, "stageId"), stages, errors);
+            ValidateStageReference(action.StageId, Join(path, "stageId"), stages, step.Phrase, errors);
         }
 
         if (action.QuestionnaireId is not null && action.Type == ActionType.SendQuestionnaire)
         {
-            ValidateFollowUpReference(action.QuestionnaireId, Join(path, "questionnaireId"), parts.FollowUps, errors);
+            ValidateFollowUpReference(action.QuestionnaireId, Join(path, "questionnaireId"), parts.FollowUps, step.Phrase, errors);
         }
 
         if (action.EmailTemplate is not null && !EmailTemplateIds.IsWellFormed(action.EmailTemplate))
         {
-            errors.Add(new(Join(path, "emailTemplate"),
-                $"Unknown email template. Use one of {string.Join(", ", EmailTemplateIds.All.Order(StringComparer.Ordinal))}, or the id of one of the organization's templates."));
+            errors.Add(new(Join(path, "emailTemplate"), $"{Cap(step.Phrase)} uses an email template that does not exist. Choose one from the list."));
         }
         else if (action.Type == ActionType.SendEmail && action.EmailTemplate == EmailTemplateIds.ApplicationRejected)
         {
             // The rejection email tells a candidate they are out, so it goes only with a Reject action, which the
             // knockout and opt-in rules guard (workflow-engine.md §2, guardrail 2).
-            errors.Add(new(Join(path, "emailTemplate"), "The rejection email is sent only by a Reject action. Use QueueForRejectionReview so a person decides."));
+            errors.Add(new(Join(path, "emailTemplate"),
+                $"{Cap(step.Phrase)} cannot send the rejection email. Only a \"{StepName(ActionType.Reject)}\" step sends it. Use \"{StepName(ActionType.QueueForRejectionReview)}\" so a person decides."));
         }
         else if (action.Type == ActionType.SendEmail && action.EmailTemplate == EmailTemplateIds.QuestionnaireRequest)
         {
             // Its link is made for one questionnaire request, which only a SendQuestionnaire action creates.
-            errors.Add(new(Join(path, "emailTemplate"), "The follow-up questions email is sent only by a SendQuestionnaire action, with its link."));
+            errors.Add(new(Join(path, "emailTemplate"),
+                $"{Cap(step.Phrase)} cannot send the follow-up questions email. Only a \"{StepName(ActionType.SendQuestionnaire)}\" step sends it, with its link."));
         }
         else if (action.EmailTemplate == EmailTemplateIds.TalentPoolInvitation)
         {
             // Its links are for one candidate and one job, which only a person's Invite to apply chooses.
-            errors.Add(new(Join(path, "emailTemplate"), "The invitation to apply is sent only from saved candidates, by a person."));
+            errors.Add(new(Join(path, "emailTemplate"),
+                $"{Cap(step.Phrase)} cannot send the invitation to apply. A person sends it from saved candidates."));
         }
         else if (action.EmailTemplate is not null && EmailTemplateIds.IsInterview(action.EmailTemplate))
         {
             // Their links are for one interview request, which only scheduling an interview creates.
-            errors.Add(new(Join(path, "emailTemplate"), "The interview emails are sent only when an interview is scheduled, with their links."));
+            errors.Add(new(Join(path, "emailTemplate"),
+                $"{Cap(step.Phrase)} cannot send an interview email. Those go out when an interview is offered, with their links."));
         }
         else if (action.Type == ActionType.Reject && action.EmailTemplate is not null && action.EmailTemplate != EmailTemplateIds.ApplicationRejected)
         {
-            errors.Add(new(Join(path, "emailTemplate"), $"A Reject action sends {EmailTemplateIds.ApplicationRejected}, with its reason; leave emailTemplate out."));
+            errors.Add(new(Join(path, "emailTemplate"),
+                $"{Cap(step.Phrase)} always sends the rejection email, with its reason. Remove the email template."));
         }
 
-        ValidateText(action.Tag, Join(path, "tag"), 50, required: false, errors);
-        ValidateText(action.Reason, Join(path, "reason"), 500, required: false, errors);
-        ValidateText(action.Note, Join(path, "note"), 1000, required: false, errors);
-        ValidateText(action.VerificationProvider, Join(path, "verificationProvider"), 50, required: false, errors);
+        ValidateActionText(action.Tag, Join(path, "tag"), 50, ActionField.Tag, step, errors);
+        ValidateActionText(action.Reason, Join(path, "reason"), 500, ActionField.Reason, step, errors);
+        ValidateActionText(action.Note, Join(path, "note"), 1000, ActionField.Note, step, errors);
+        ValidateActionText(action.VerificationProvider, Join(path, "verificationProvider"), 50, ActionField.VerificationProvider, step, errors);
         if (action.Type == ActionType.ScheduleInterview)
         {
-            ValidateInterviewFields(action, path, errors);
+            ValidateInterviewFields(action, path, step, errors);
         }
 
         if (action.Url is not null && !(Uri.TryCreate(action.Url, UriKind.Absolute, out var url) && url.Scheme == Uri.UriSchemeHttps && action.Url.Length <= 2000))
         {
-            errors.Add(new(Join(path, "url"), "The URL must be an absolute https URL."));
+            errors.Add(new(Join(path, "url"), $"The web address of {step.Phrase} must be a full address that starts with https://. Fix it."));
+        }
+    }
+
+    // A text member that is present but blank, or longer than the engine stores. Whether it is required is the field
+    // check's job in ValidateActionFields.
+    private static void ValidateActionText(string? text, string path, int maxLength, ActionField field, Step step, List<DefinitionError> errors)
+    {
+        var (_, plain, fix) = FieldWords(field);
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            if (text is not null)
+            {
+                errors.Add(new(path, field == ActionField.Tag
+                    ? $"The tag in {step.Where} has no name. Type one, or remove that step."
+                    : $"The {plain} of {step.Phrase} is blank. {fix}, or remove that step."));
+            }
+        }
+        else if (text.Length > maxLength)
+        {
+            errors.Add(new(path, $"The {plain} of {step.Phrase} is too long. Keep it to {maxLength.ToString(CultureInfo.InvariantCulture)} characters or fewer."));
         }
     }
 
     // The shape of a ScheduleInterview action. That each interviewer is a member is checked where there is a database
     // (the API at save, the worker at run time); this class has none.
-    private static void ValidateInterviewFields(AutomationAction action, string path, List<DefinitionError> errors)
+    private static void ValidateInterviewFields(AutomationAction action, string path, Step step, List<DefinitionError> errors)
     {
         if (action.InterviewerUserIds is { } interviewers
             && (interviewers.Count is < 1 or > MaxInterviewers || interviewers.Distinct().Count() != interviewers.Count || interviewers.Contains(Guid.Empty)))
         {
-            errors.Add(new(Join(path, "interviewerUserIds"), $"Choose 1 to {MaxInterviewers} interviewers."));
+            errors.Add(new(Join(path, "interviewerUserIds"),
+                $"{Cap(step.Phrase)} needs between 1 and {MaxInterviewers} different interviewers. Choose who should interview."));
         }
 
         if (action.InterviewMinutes is { } minutes && !InterviewRequest.AllowedDurations.Contains(minutes))
         {
-            errors.Add(new(Join(path, "interviewMinutes"), $"An interview lasts {string.Join(", ", InterviewRequest.AllowedDurations)} minutes."));
+            errors.Add(new(Join(path, "interviewMinutes"),
+                $"The interview length of {step.Phrase} must be {string.Join(", ", InterviewRequest.AllowedDurations)} minutes. Choose one."));
         }
 
         if (action.InterviewWindowDays is { } days && (days < 1 || days > MaxInterviewWindowDays))
         {
-            errors.Add(new(Join(path, "interviewWindowDays"), $"The candidate gets between 1 and {MaxInterviewWindowDays} days to pick a time."));
+            errors.Add(new(Join(path, "interviewWindowDays"),
+                $"The days the candidate gets to pick a time in {step.Phrase} must be between 1 and {MaxInterviewWindowDays}. Change the number."));
         }
 
         if (action.InterviewTimeZone is not null && !InterviewRequest.TryFindZone(action.InterviewTimeZone, out _))
         {
-            errors.Add(new(Join(path, "interviewTimeZone"), "Choose a time zone."));
+            errors.Add(new(Join(path, "interviewTimeZone"), $"The time zone of {step.Phrase} is not recognised. Choose one from the list."));
         }
     }
 
@@ -1026,6 +1134,8 @@ public static partial class DefinitionValidator
             return;
         }
 
+        var quoted = Quote(automation.Name, "this automation");
+        var named = Ref("automation", automation.Name);
         var rules = automation.Conditions?.Rules?.Where(r => r is not null).ToList() ?? [];
 
         for (var i = 0; i < automation.Actions.Count; i++)
@@ -1036,21 +1146,22 @@ public static partial class DefinitionValidator
             }
 
             var actionPath = $"{path}.actions[{i}]";
+            var step = new Step(quoted, i + 1, automation.Actions.Count, action.Type);
             if (action is { Type: ActionType.SendEmail, EmailTemplate: EmailTemplateIds.StageChange }
                 && automation.Trigger is { Type: TriggerType.StageEntered, StageId: { } enteredId }
                 && stages.GetValueOrDefault(enteredId)?.Kind is StageKind.Rejected or StageKind.Withdrawn)
             {
                 // The worker skips it anyway (the email says "the next step"); refusing it here says why at save.
                 errors.Add(new(Join(actionPath, "emailTemplate"),
-                    "The stage-change email tells the candidate they moved to the next step, so it is not sent on entering a rejected or withdrawn stage."));
+                    $"{Cap(step.Phrase)} would tell the candidate they moved to the next step, so it is not sent when an application enters a rejected or withdrawn stage. Remove that step."));
                 continue;
             }
 
             if (automation.Trigger?.Type == TriggerType.SlaBreached && !SlaBreachActions.Contains(action.Type))
             {
                 errors.Add(new(actionPath,
-                    "A time limit passing measures the hiring team's delay, not the candidate, so this automation may only notify " +
-                    "the team, assign a reviewer, create a task or add a tag. Nothing it does may count against the candidate."));
+                    $"{Cap(step.Phrase)} is not allowed after a time limit passes. A time limit measures the hiring team's delay, not the candidate, so {named} may only " +
+                    $"tell the team, ask a teammate to review, add a task or add a tag, and nothing it does may count against the candidate. Remove that step."));
                 continue;
             }
 
@@ -1059,9 +1170,9 @@ public static partial class DefinitionValidator
                 || (action.Type == ActionType.MoveToStage && target is not null && !SignalSafeStages.Contains(target.Kind))))
             {
                 errors.Add(new(actionPath,
-                    "An automation that uses a verification signal, directly or through a tag or stage another such " +
-                    "automation sets, may only request verification, assign a reviewer, add a tag or move to a screening, " +
-                    "assessment, verification or interview stage. Verification signals never drive rejection (ADR-0004)."));
+                    $"{Cap(step.Phrase)} is not allowed, because {named} acts on a check result, directly or through a tag or stage that another such automation sets. " +
+                    "It may only ask for a check, ask a teammate to review, add a tag or move to a screening, assessment, verification or interview stage. " +
+                    "A check can only ask for a closer look and never drives a rejection. A person decides."));
                 continue;
             }
 
@@ -1072,9 +1183,9 @@ public static partial class DefinitionValidator
                 && !(action.Type == ActionType.MoveToStage && target is not null && SignalSafeStages.Contains(target.Kind)))
             {
                 errors.Add(new(actionPath,
-                    "This automation acts on a tag or stage that a passed time limit sets. A time limit measures the hiring " +
-                    "team's delay and never counts against the candidate, so this automation may only notify the team, assign " +
-                    "a reviewer, create a task, add a tag or move to a screening, assessment, verification or interview stage."));
+                    $"{Cap(step.Phrase)} is not allowed, because {named} acts on a tag or stage that a passed time limit sets. A time limit measures the hiring " +
+                    "team's delay and never counts against the candidate, so it may only tell the team, ask a teammate to review, add a task, " +
+                    "add a tag or move to a screening, assessment, verification or interview stage."));
                 continue;
             }
 
@@ -1090,17 +1201,19 @@ public static partial class DefinitionValidator
             if (!onlyKnockouts)
             {
                 errors.Add(new(actionPath,
-                    "Only a knockout automation may reject: every condition must be a knockout question equal to its " +
-                    "disqualifying answer. Use QueueForRejectionReview so a person decides."));
+                    $"{Cap(step.Phrase)} rejects candidates, which only a knockout automation may do: every condition must be a knockout question " +
+                    $"answered with its disqualifying answer. Use \"{StepName(ActionType.QueueForRejectionReview)}\" so a person decides."));
             }
             else if (!automation.AllowAutoReject)
             {
                 errors.Add(new(Join(path, "allowAutoReject"),
-                    "Rejecting without a person needs an explicit opt-in: set allowAutoReject, or use QueueForRejectionReview."));
+                    $"{Cap(named)} would reject candidates without a person, which needs an explicit opt-in. " +
+                    $"Turn on automatic rejection for it, or use \"{StepName(ActionType.QueueForRejectionReview)}\" so a person decides."));
             }
             else if (action.Type == ActionType.MoveToStage)
             {
-                errors.Add(new(actionPath, "Reject with a reason the candidate sees instead of moving to a rejected stage."));
+                errors.Add(new(actionPath,
+                    $"{Cap(step.Phrase)} moves candidates to a rejected or withdrawn stage. Use a \"{StepName(ActionType.Reject)}\" step with a reason the candidate sees instead."));
             }
         }
     }
@@ -1109,75 +1222,67 @@ public static partial class DefinitionValidator
     {
         if (defaults is null)
         {
-            errors.Add(new(path, "Posting defaults are required; use an empty object for none."));
+            errors.Add(new(path, "The job posting defaults are missing. Use an empty set for none."));
             return;
         }
 
         if (defaults.EmploymentType is { } employmentType && !Enum.IsDefined(employmentType))
         {
-            errors.Add(new(Join(path, "employmentType"), "Unknown employment type."));
+            errors.Add(new(Join(path, "employmentType"), "The default employment type is not recognised. Choose another."));
         }
 
         if (defaults.WorkplaceType is { } workplaceType && !Enum.IsDefined(workplaceType))
         {
-            errors.Add(new(Join(path, "workplaceType"), "Unknown workplace type."));
+            errors.Add(new(Join(path, "workplaceType"), "The default workplace type is not recognised. Choose another."));
         }
 
         if (defaults.SalaryPeriod is { } period && !Enum.IsDefined(period))
         {
-            errors.Add(new(Join(path, "salaryPeriod"), "Unknown salary period."));
+            errors.Add(new(Join(path, "salaryPeriod"), "The default salary period is not recognised. Choose another."));
         }
 
-        ValidateText(defaults.Department, Join(path, "department"), 100, required: false, errors);
+        ValidateText(defaults.Department, Join(path, "department"), 100, required: false, "The default department", errors);
         if (defaults.SalaryCurrency is not null && !CurrencyCode().IsMatch(defaults.SalaryCurrency))
         {
-            errors.Add(new(Join(path, "salaryCurrency"), "A currency is an ISO 4217 code such as GBP."));
+            errors.Add(new(Join(path, "salaryCurrency"), "The default currency must be a three-letter code such as GBP. Fix it."));
         }
 
         if (defaults.ValidForDays is < 1 or > 365)
         {
-            errors.Add(new(Join(path, "validForDays"), "A posting runs for between 1 and 365 days."));
+            errors.Add(new(Join(path, "validForDays"), "The default posting length must be between 1 and 365 days. Change the number."));
         }
 
-        ValidateText(defaults.Description, Join(path, "description"), 50_000, required: false, errors);
+        ValidateText(defaults.Description, Join(path, "description"), 50_000, required: false, "The default job description", errors);
     }
 
     // The operands a typed fact can hold: yes or no for a yes/no answer, option ids for a choice answer, a number for a
     // number fact. Anything else could never match, which is a silent bug in a saved rule.
     private static void ValidateOperands(
-        AutomationCondition rule, FactDefinition fact, string path, Dictionary<string, Question> questions, List<DefinitionError> errors)
+        AutomationCondition rule, FactDefinition fact, string path, string condition, Dictionary<string, Question> questions, List<DefinitionError> errors)
     {
         var operands = rule.Operator == ConditionOperator.In ? rule.Values ?? [] : rule.Value is null ? [] : [rule.Value];
         var operandPath = Join(path, rule.Operator == ConditionOperator.In ? "values" : "value");
         switch (fact.Type)
         {
             case FactType.YesNo when operands.Any(o => o is not ("yes" or "no")):
-                errors.Add(new(operandPath, "A yes/no answer is \"yes\" or \"no\"."));
+                errors.Add(new(operandPath, $"{Cap(condition)} tests a yes or no answer, so its value must be \"yes\" or \"no\"."));
                 break;
             case FactType.Number when operands.Any(o => !FactSchema.TryParseNumber(o, out _)):
-                errors.Add(new(operandPath, $"{fact.Name} is a number; compare it with a number such as 48."));
+                errors.Add(new(operandPath, $"{Cap(condition)} tests a number, so its value must be a number such as 48."));
                 break;
             case FactType.Recommendation when operands.FirstOrDefault(o => o is null || !Enum.GetNames<Recommendation>().Contains(o, StringComparer.Ordinal)) is { } notRecommendation:
-                errors.Add(new(operandPath, $"'{notRecommendation}' is not a recommendation. Use {string.Join(", ", Enum.GetNames<Recommendation>())}."));
+                errors.Add(new(operandPath, $"{Cap(condition)} compares with '{notRecommendation}', which is not a recommendation. Use one of: {string.Join(", ", Enum.GetNames<Recommendation>())}."));
                 break;
             case FactType.Choice or FactType.MultiChoice:
                 var options = questions[fact.Name[AnswersPrefix.Length..]].Options?.Where(o => o is not null).Select(o => o.Id).ToHashSet(StringComparer.Ordinal) ?? [];
                 if (operands.FirstOrDefault(o => o is not null && !options.Contains(o)) is { } unknown)
                 {
-                    errors.Add(new(operandPath, $"The question has no option with the id '{unknown}'; compare option ids, not labels."));
+                    errors.Add(new(operandPath, $"{Cap(condition)} compares an answer with '{unknown}', which is not one of the question's options. Choose one of its options."));
                 }
 
                 break;
         }
     }
-
-    private static string Describe(FactType type) => type switch
-    {
-        FactType.TextList => "list",
-        FactType.MultiChoice => "multiple-choice",
-        FactType.YesNo => "yes/no",
-        _ => type.ToString().ToLowerInvariant(),
-    };
 
     // answers.{id} EqualTo the knockout's disqualifying answer ("yes" or "no"), not negated: anything else could reject
     // an eligible candidate.
@@ -1189,54 +1294,149 @@ public static partial class DefinitionValidator
         && rule is { Operator: ConditionOperator.EqualTo, Negate: false }
         && rule.Value == (knockout.DisqualifyingAnswer ? "yes" : "no");
 
+    // context is a phrase that says where the reference is, such as "the trigger of \"Chase\"".
     private static void ValidateFollowUpReference(
-        string questionnaireId, string path, Dictionary<string, FollowUpQuestionnaire> followUps, List<DefinitionError> errors)
+        string questionnaireId, string path, Dictionary<string, FollowUpQuestionnaire> followUps, string context, List<DefinitionError> errors)
     {
         if (!followUps.ContainsKey(questionnaireId))
         {
-            errors.Add(new(path, $"No follow-up questionnaire has the id '{questionnaireId}'."));
+            errors.Add(new(path, $"{Cap(context)} points to a form that does not exist. Choose another."));
         }
     }
 
-    private static void ValidateStageReference(string? stageId, string path, Dictionary<string, WorkflowStage> stages, List<DefinitionError> errors)
+    private static void ValidateStageReference(
+        string? stageId, string path, Dictionary<string, WorkflowStage> stages, string context, List<DefinitionError> errors)
     {
         if (stageId is null)
         {
-            errors.Add(new(path, "A stage id is required."));
+            errors.Add(new(path, $"{Cap(context)} needs a stage. Choose one."));
         }
         else if (!stages.ContainsKey(stageId))
         {
-            errors.Add(new(path, $"No stage has the id '{stageId}'."));
+            errors.Add(new(path, $"{Cap(context)} points to a stage that does not exist. Choose another stage."));
         }
     }
 
-    private static bool ValidateId(string? id, string path, List<DefinitionError> errors)
+    // subject is the thing the id belongs to, already quoted: "this stage", or "\"Screening\"".
+    private static bool ValidateId(string? id, string path, string subject, List<DefinitionError> errors)
     {
         if (id is not null && Identifier().IsMatch(id))
         {
             return true;
         }
 
-        errors.Add(new(path, "An id is 1 to 40 lowercase letters, digits, '-' or '_', starting with a letter."));
+        errors.Add(new(path, $"The id of {subject} must be 1 to 40 characters: lowercase letters, digits, '-' or '_', starting with a letter. Change it."));
         return false;
     }
 
-    private static void ValidateText(string? text, string path, int maxLength, bool required, List<DefinitionError> errors)
+    // what is the start of a sentence naming the text ("The name of stage 2"), so the message can say which one.
+    private static void ValidateText(string? text, string path, int maxLength, bool required, string what, List<DefinitionError> errors)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
             if (required || text is not null)
             {
-                errors.Add(new(path, required ? "This is required." : "This is blank. Fill it in or remove it."));
+                errors.Add(new(path, required ? $"{what} is blank. Fill it in." : $"{what} is blank. Fill it in, or remove it."));
             }
         }
         else if (text.Length > maxLength)
         {
-            errors.Add(new(path, $"At most {maxLength.ToString(CultureInfo.InvariantCulture)} characters."));
+            errors.Add(new(path, $"{what} is too long. Keep it to {maxLength.ToString(CultureInfo.InvariantCulture)} characters or fewer."));
         }
     }
 
     private static string Join(string path, string member) => path.Length == 0 ? member : $"{path}.{member}";
+
+    // A name in straight quotes, or the plain noun the caller gives when the person left it blank. Names are cut at 50
+    // characters so one long name cannot bury the fix.
+    private static string Quote(string? name, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return fallback;
+        }
+
+        var trimmed = name.Trim();
+        return trimmed.Length <= 50 ? $"\"{trimmed}\"" : $"\"{trimmed[..47]}...\"";
+    }
+
+    // "the stage \"Screening\"", or "this stage" without a name.
+    private static string Ref(string noun, string? name) =>
+        string.IsNullOrWhiteSpace(name) ? $"this {noun}" : $"the {noun} {Quote(name, "")}";
+
+    // "the question \"Why this job?\" in the application questionnaire", or "question 2 in ..." without a label.
+    private static string Described(string? label, int number, string owner) =>
+        string.IsNullOrWhiteSpace(label) ? $"question {number} in {owner}" : $"the question {Quote(label, "")} in {owner}";
+
+    private static string Cap(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
+
+    // What the dashboard calls each step, so a message says "Add a tag" and not AddTag.
+    private static string StepName(ActionType type) => type switch
+    {
+        ActionType.SendEmail => "Send an email",
+        ActionType.SendQuestionnaire => "Send a form",
+        ActionType.RequestVerification => "Ask for a check",
+        ActionType.MoveToStage => "Move to a stage",
+        ActionType.AddTag => "Add a tag",
+        ActionType.AssignReviewer => "Ask a teammate to review",
+        ActionType.NotifyTeam => "Tell the team",
+        ActionType.ScheduleInterview => "Offer an interview",
+        ActionType.CreateTask => "Add a task",
+        ActionType.CallWebhook => "Call a web address",
+        ActionType.QueueForRejectionReview => "Queue for rejection review",
+        ActionType.Reject => "Reject",
+        _ => "Step",
+    };
+
+    private static string TriggerName(TriggerType type) => type switch
+    {
+        TriggerType.ApplicationSubmitted => "Application received",
+        TriggerType.StageEntered => "Moved into a stage",
+        TriggerType.StageExited => "Moved out of a stage",
+        TriggerType.QuestionnaireCompleted => "Form completed",
+        TriggerType.VerificationAssessed => "Check result ready",
+        TriggerType.VerificationCompleted => "Check finished",
+        TriggerType.ReviewerDecision => "Reviewer decision",
+        TriggerType.TimeElapsed => "Time passed",
+        TriggerType.CandidateReplied => "Candidate replied",
+        TriggerType.InterviewScheduled => "Interview scheduled",
+        TriggerType.Manual => "Started by hand",
+        TriggerType.SlaBreached => "Time limit passed",
+        _ => "Trigger",
+    };
+
+    private static string OperatorLabel(ConditionOperator op) => op switch
+    {
+        ConditionOperator.EqualTo => "is",
+        ConditionOperator.In => "is one of",
+        ConditionOperator.Contains => "contains",
+        ConditionOperator.GreaterThan => "is more than",
+        ConditionOperator.GreaterThanOrEqual => "is at least",
+        ConditionOperator.LessThan => "is less than",
+        ConditionOperator.LessThanOrEqual => "is at most",
+        ConditionOperator.Exists => "is filled in",
+        _ => op.ToString(),
+    };
+
+    private static string FactLabel(FactDefinition fact, Dictionary<string, Question> questions)
+    {
+        if (fact.Category == FactCategory.Answer && questions.TryGetValue(fact.Name[AnswersPrefix.Length..], out var question))
+        {
+            return $"the answer to {Quote(question.Label, "that question")}";
+        }
+
+        return fact.Name switch
+        {
+            FactSchema.Tags => "the tags",
+            FactSchema.Source => "the source",
+            FactSchema.HoursInStage => "the hours in the stage",
+            FactSchema.VerificationAuthenticity => "the authenticity check",
+            FactSchema.VerificationAiAssistance => "the AI-assistance check",
+            FactSchema.VerificationResult => "the check result",
+            FactSchema.ReviewerRecommendation => "the reviewer's recommendation",
+            _ => fact.Name,
+        };
+    }
 
     private static string JsonName(ActionField field) => field switch
     {
@@ -1256,6 +1456,25 @@ public static partial class DefinitionValidator
         _ => field.ToString(),
     };
 
+    // What a step field is called on screen: what a step "needs" (with its article), the bare name, and the fix.
+    private static (string Need, string Plain, string Fix) FieldWords(ActionField field) => field switch
+    {
+        ActionField.StageId => ("a stage", "stage", "Choose one"),
+        ActionField.EmailTemplate => ("an email template", "email template", "Choose one"),
+        ActionField.Tag => ("a tag name", "tag name", "Type one"),
+        ActionField.Reason => ("a reason", "reason", "Type one"),
+        ActionField.Url => ("a web address", "web address", "Type one"),
+        ActionField.Note => ("a note", "note", "Type one"),
+        ActionField.AssigneeUserId => ("a teammate", "teammate", "Choose one"),
+        ActionField.VerificationProvider => ("a check provider", "check provider", "Choose one"),
+        ActionField.QuestionnaireId => ("a form", "form", "Choose one"),
+        ActionField.InterviewerUserIds => ("at least one interviewer", "interviewer list", "Choose at least one"),
+        ActionField.InterviewMinutes => ("an interview length", "interview length", "Choose one"),
+        ActionField.InterviewWindowDays => ("a number of days for the candidate to pick a time", "number of days to pick a time", "Type a number"),
+        ActionField.InterviewTimeZone => ("a time zone", "time zone", "Choose one"),
+        _ => (field.ToString(), field.ToString(), "Fill it in"),
+    };
+
     [Flags]
     private enum ActionField
     {
@@ -1273,6 +1492,20 @@ public static partial class DefinitionValidator
         InterviewMinutes = 1024,
         InterviewWindowDays = 2048,
         InterviewTimeZone = 4096,
+    }
+
+    /// <summary>
+    /// One step of an automation, for the words in its messages. <paramref name="Automation"/> is the automation's name
+    /// already in quotes. With one step the message says "the "Add a tag" step"; with several it adds the number, so
+    /// "remove that step" is never ambiguous.
+    /// </summary>
+    private sealed record Step(string Automation, int Number, int Count, ActionType Type)
+    {
+        public string Phrase => Count > 1
+            ? $"step {Number} (\"{StepName(Type)}\") in {Automation}"
+            : $"the \"{StepName(Type)}\" step in {Automation}";
+
+        public string Where => Count > 1 ? $"step {Number} of {Automation}" : Automation;
     }
 
     /// <summary>What the automations of one workflow may refer to: its stages, every question by id, and its follow-ups.</summary>

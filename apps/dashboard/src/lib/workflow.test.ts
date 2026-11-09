@@ -8,20 +8,32 @@ import {
   describePath,
   errorsUnder,
   factsFor,
+  canRemindIn,
+  hasReminder,
   idFrom,
+  insertionIndex,
+  insertStage,
+  kindFromName,
   laneOf,
   newAction,
   newAutomation,
   newFollowUp,
   newQuestion,
   newRule,
+  newStage,
+  newStageName,
   operatorsFor,
   problemErrors,
+  reminderId,
   ruleOperand,
   summarize,
+  syncReminder,
+  timeLimitChoices,
+  timeLimitLabel,
   triggerLabels,
   triggerTypes,
   withQuestionType,
+  withoutStage,
   workflowPath,
 } from './workflow.js';
 import { zoneName } from './report-range.js';
@@ -196,10 +208,14 @@ describe('validator paths', () => {
   });
 
   it('words where an error is', () => {
-    expect(describePath(workflow, 'automations[0].actions[0]')).toBe('Automation "Tag on entry", action 1');
-    expect(describePath(workflow, 'questionnaire.questions[1].options')).toBe('Question "Shift"');
-    expect(describePath(workflow, 'stages[1].name')).toBe('Stage "Screening"');
-    expect(describePath(workflow, 'stages')).toBe('Stages');
+    expect(describePath(workflow, 'automations[0].actions[0]')).toBe('The step "Add a tag" in "Tag on entry"');
+    expect(describePath(workflow, 'automations[0].conditions.rules[0]')).toBe('Condition 1 in "Tag on entry"');
+    expect(describePath(workflow, 'automations[0].name')).toBe('The automation "Tag on entry"');
+    expect(describePath(workflow, 'questionnaire.questions[1].options')).toBe('The question "Shift"');
+    expect(describePath(workflow, 'stages[1].name')).toBe('The stage "Screening"');
+    expect(describePath(workflow, 'stages')).toBe('The stages');
+    expect(describePath(workflow, 'questionnaire')).toBe('The questions');
+    expect(describePath(workflow, 'verificationPolicy')).toBe('The workflow');
   });
 
   it('names the reviewer an AssignReviewer action asks, or the team', () => {
@@ -307,7 +323,232 @@ describe('follow-up questionnaires', () => {
   });
 
   it("names a follow-up's problems by the questionnaire and its question", () => {
-    expect(describePath(withFollowUp, 'followUpQuestionnaires[0].name')).toBe('Questionnaire "Availability"');
-    expect(describePath(withFollowUp, 'followUpQuestionnaires[0].questions[0].id')).toBe('Question "Forklift licence?" in "Availability"');
+    expect(describePath(withFollowUp, 'followUpQuestionnaires[0].name')).toBe('The form "Availability"');
+    expect(describePath(withFollowUp, 'followUpQuestionnaires[0].questions[0].id')).toBe('The question "Forklift licence?" in "Availability"');
+  });
+});
+
+describe('kindFromName', () => {
+  // A stage's kind is what its name says, so a person who types "Trial shift" never meets the word "Assessment". The
+  // first rule that matches wins, in the order below, and a name that says nothing is Custom.
+  it.each([
+    ['Phone screen', 'Screening'],
+    ['Case review', 'Screening'],
+    ['Interview', 'Interview'],
+    ['Final interview', 'Interview'],
+    ['Offer', 'Offer'],
+    ['Offer sent', 'Offer'],
+    ['Reference check', 'Verification'],
+    ['Background check', 'Verification'],
+    ['Trial shift', 'Assessment'],
+    ['Skills test', 'Assessment'],
+    ['Take-home task', 'Assessment'],
+    ['Group session', 'Assessment'],
+    ['Hired', 'Hired'],
+    ['Started', 'Hired'],
+    ['Onboarding', 'Hired'],
+    ['Rejected', 'Rejected'],
+    ['Not selected', 'Rejected'],
+    ['Declined', 'Rejected'],
+    ['Withdrawn', 'Withdrawn'],
+    ['Team chat', 'Custom'],
+    ['New stage', 'Custom'],
+    ['', 'Custom'],
+  ] as const)('reads "%s" as %s', (name, kind) => {
+    expect(kindFromName(name)).toBe(kind);
+  });
+
+  it('ignores case', () => {
+    expect(kindFromName('PHONE SCREEN')).toBe('Screening');
+    expect(kindFromName('trial SHIFT')).toBe('Assessment');
+  });
+
+  it('lets the word that ends a candidacy win over the one it contains', () => {
+    // "Not hired" holds "hired", and "Interview declined" holds "interview": the ending is what the stage is.
+    expect(kindFromName('Not hired')).toBe('Rejected');
+    expect(kindFromName('Interview declined')).toBe('Rejected');
+    expect(kindFromName('Withdrawn after the offer')).toBe('Withdrawn');
+  });
+
+  it('never gives the Applied kind, which only the first stage has', () => {
+    expect(kindFromName('Applied')).toBe('Custom');
+    expect(kindFromName('Application review')).toBe('Screening');
+  });
+});
+
+describe('new stages', () => {
+  it('starts as New stage, a custom stage, with an id the workflow does not use', () => {
+    expect(newStage(workflow)).toEqual({ id: 'stage', name: 'New stage', kind: 'Custom' });
+    expect(newStage({ ...workflow, stages: [...workflow.stages, { id: 'stage', name: 'A', kind: 'Custom' }] }).id).toBe('stage_2');
+    expect(newStageName).toBe('New stage');
+  });
+
+  it('takes its kind from the name it is given', () => {
+    expect(newStage(workflow, 'Trial shift')).toMatchObject({ name: 'Trial shift', kind: 'Assessment' });
+    expect(newStage(workflow, 'New stage').kind).toBe('Custom');
+  });
+});
+
+describe('placing stages', () => {
+  const stages = [
+    { id: 'applied', name: 'Applied', kind: 'Applied' as const },
+    { id: 'screening', name: 'Screening', kind: 'Screening' as const },
+    { id: 'interview', name: 'Interview', kind: 'Interview' as const },
+    { id: 'hired', name: 'Hired', kind: 'Hired' as const },
+    { id: 'rejected', name: 'Rejected', kind: 'Rejected' as const },
+  ];
+  const extra = { id: 'extra', name: 'Extra', kind: 'Custom' as const };
+
+  it('puts a stage right after the one it is added after', () => {
+    expect(insertionIndex(stages, 0)).toBe(1);
+    expect(insertionIndex(stages, 1)).toBe(2);
+  });
+
+  it('keeps a new stage before the stages that end the candidacy', () => {
+    expect(insertionIndex(stages, 2)).toBe(3);
+    expect(insertionIndex(stages, 3)).toBe(3);
+    expect(insertionIndex(stages, 4)).toBe(3);
+    expect(insertionIndex(stages, 99)).toBe(3);
+  });
+
+  it('puts a stage at the end when no stage ends the candidacy', () => {
+    expect(insertionIndex(stages.slice(0, 3), 9)).toBe(3);
+  });
+
+  it('inserts at the index, never before the first stage, and never past the end', () => {
+    expect(insertStage(stages, 2, extra).map((stage) => stage.id)).toEqual(['applied', 'screening', 'extra', 'interview', 'hired', 'rejected']);
+    expect(insertStage(stages, 0, extra).map((stage) => stage.id)).toEqual(['applied', 'extra', 'screening', 'interview', 'hired', 'rejected']);
+    expect(insertStage(stages, 40, extra).at(-1)).toBe(extra);
+    expect(stages).toHaveLength(5);
+  });
+
+  it('removes a stage with the reminder its time limit made, and no other automation', () => {
+    const timed: HiringWorkflow = {
+      ...workflow,
+      automations: [
+        ...workflow.automations,
+        { id: reminderId('screening'), name: 'Remind', trigger: { type: 'SlaBreached', stageId: 'screening' }, conditions: null, actions: [{ type: 'NotifyTeam' }] },
+      ],
+    };
+
+    const without = withoutStage(timed, 1);
+
+    expect(without.stages.map((stage) => stage.id)).toEqual(['applied', 'rejected']);
+    expect(without.automations.map((automation) => automation.id)).toEqual(['tag_on_entry', 'manual']);
+    // Another stage's removal leaves the reminder, and an index with no stage changes nothing.
+    expect(withoutStage(timed, 2).automations).toHaveLength(3);
+    expect(withoutStage(timed, 7).stages).toHaveLength(3);
+    expect(timed.stages).toHaveLength(3);
+  });
+});
+
+describe('time limits and their reminder', () => {
+  const remindFrom = (overrides: Partial<HiringWorkflow> = {}): HiringWorkflow => ({ ...workflow, automations: [], ...overrides });
+  const personsReminder = {
+    id: 'mine',
+    name: 'Mine',
+    trigger: { type: 'SlaBreached' as const, stageId: 'screening' },
+    conditions: null,
+    actions: [{ type: 'NotifyTeam' as const, note: 'Late' }],
+  };
+
+  it('offers None, 2, 3 and 5 days and 1 week, and says any other number in days', () => {
+    expect(timeLimitChoices.map((choice) => choice.label)).toEqual(['None', '2 days', '3 days', '5 days', '1 week']);
+    expect(timeLimitChoices.map((choice) => choice.days)).toEqual([null, 2, 3, 5, 7]);
+    expect(timeLimitLabel(2)).toBe('2 days');
+    expect(timeLimitLabel(7)).toBe('1 week');
+    expect(timeLimitLabel(10)).toBe('10 days');
+    expect(timeLimitLabel(1)).toBe('1 day');
+  });
+
+  it('names the reminder by its stage', () => {
+    expect(reminderId('screening')).toBe('reminder-screening');
+  });
+
+  it('gives a stage with a limit one reminder that tells the team when the limit passes', () => {
+    const synced = syncReminder(remindFrom(), 'screening');
+
+    expect(synced.automations).toEqual([
+      {
+        id: 'reminder-screening',
+        name: 'Remind the team when Screening waits too long',
+        trigger: { type: 'SlaBreached', stageId: 'screening' },
+        conditions: null,
+        actions: [{ type: 'NotifyTeam', note: 'Someone has waited in Screening longer than the time limit.' }],
+        enabled: true,
+        allowAutoReject: false,
+      },
+    ]);
+  });
+
+  it('changes nothing once the reminder is in step, and does not edit the workflow it was given', () => {
+    const once = syncReminder(remindFrom(), 'screening');
+    const original = remindFrom();
+
+    expect(syncReminder(once, 'screening')).toBe(once);
+    syncReminder(original, 'screening');
+    expect(original.automations).toEqual([]);
+  });
+
+  it("adds none when the team is already told: a person's automation, or one for any stage, that is on", () => {
+    const own = remindFrom({ automations: [personsReminder] });
+    expect(syncReminder(own, 'screening')).toBe(own);
+    const anyStage = remindFrom({ automations: [{ ...personsReminder, trigger: { type: 'SlaBreached' } }] });
+    expect(syncReminder(anyStage, 'screening')).toBe(anyStage);
+  });
+
+  it('adds one when the automation for that stage only tags, is off, or is for another stage', () => {
+    const tags = remindFrom({ automations: [{ ...personsReminder, actions: [{ type: 'AddTag', tag: 'late' }] }] });
+    const off = remindFrom({ automations: [{ ...personsReminder, enabled: false }] });
+    const other = remindFrom({ automations: [{ ...personsReminder, trigger: { type: 'SlaBreached', stageId: 'applied' } }] });
+
+    for (const input of [tags, off, other]) {
+      expect(syncReminder(input, 'screening').automations.map((automation) => automation.id)).toContain('reminder-screening');
+    }
+  });
+
+  it('follows a rename of the stage', () => {
+    const synced = syncReminder(remindFrom(), 'screening');
+    const renamed: HiringWorkflow = { ...synced, stages: synced.stages.map((stage) => (stage.id === 'screening' ? { ...stage, name: 'Phone screen' } : stage)) };
+
+    expect(syncReminder(renamed, 'screening').automations[0]!.name).toBe('Remind the team when Phone screen waits too long');
+  });
+
+  it("removes only its own reminder when the limit goes, keeping a person's automations", () => {
+    const synced = syncReminder(remindFrom({ automations: [{ ...personsReminder, enabled: false }] }), 'screening');
+    expect(synced.automations.map((automation) => automation.id)).toEqual(['mine', 'reminder-screening']);
+
+    const cleared: HiringWorkflow = { ...synced, stages: synced.stages.map((stage) => (stage.id === 'screening' ? { ...stage, slaDays: null } : stage)) };
+
+    expect(syncReminder(cleared, 'screening').automations.map((automation) => automation.id)).toEqual(['mine']);
+  });
+
+  it('leaves a workflow with nothing to remove, an unknown stage, and a stage that ends the candidacy, as it is', () => {
+    const none = remindFrom({ stages: workflow.stages.map((stage) => (stage.id === 'screening' ? { ...stage, slaDays: null } : stage)) });
+    expect(syncReminder(none, 'screening')).toBe(none);
+    expect(syncReminder(remindFrom(), 'nowhere').automations).toEqual([]);
+    const ended = remindFrom({ stages: workflow.stages.map((stage) => (stage.id === 'rejected' ? { ...stage, slaDays: 4 } : stage)) });
+    expect(syncReminder(ended, 'rejected')).toBe(ended);
+  });
+
+  it('cannot remind in a stage a verification check moves candidates into', () => {
+    const moves = (trigger: HiringWorkflow['automations'][number]['trigger'], conditions: HiringWorkflow['automations'][number]['conditions'] = null) =>
+      remindFrom({ automations: [{ id: 'route', name: 'Route', trigger, conditions, actions: [{ type: 'MoveToStage', stageId: 'screening' }] }] });
+    const bySignal = moves({ type: 'ApplicationSubmitted' }, { match: 'All', rules: [{ fact: 'verification.authenticity', operator: 'EqualTo', value: 'ReviewSuggested' }] });
+
+    expect(canRemindIn(moves({ type: 'VerificationAssessed' }), 'screening')).toBe(false);
+    expect(canRemindIn(bySignal, 'screening')).toBe(false);
+    expect(canRemindIn(moves({ type: 'VerificationAssessed' }), 'rejected')).toBe(true);
+    expect(canRemindIn(moves({ type: 'ApplicationSubmitted' }), 'screening')).toBe(true);
+    // So the sheet adds no reminder there.
+    expect(syncReminder(moves({ type: 'VerificationAssessed' }), 'screening').automations.map((automation) => automation.id)).toEqual(['route']);
+  });
+
+  it('knows when something already tells the team', () => {
+    expect(hasReminder(remindFrom({ automations: [personsReminder] }), 'screening')).toBe(true);
+    expect(hasReminder(remindFrom({ automations: [personsReminder] }), 'applied')).toBe(false);
+    expect(hasReminder(remindFrom({ automations: [{ ...personsReminder, enabled: false }] }), 'screening')).toBe(false);
+    expect(hasReminder(remindFrom({ automations: [{ ...personsReminder, trigger: { type: 'SlaBreached' } }] }), 'applied')).toBe(true);
+    expect(hasReminder(remindFrom(), 'screening')).toBe(false);
   });
 });

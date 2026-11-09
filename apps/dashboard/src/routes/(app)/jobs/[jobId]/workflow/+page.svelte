@@ -45,6 +45,7 @@
   import { jobsPath } from '#lib/realtime.js';
   import { cn } from '#lib/utils.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
+  import { createWorkflowTab } from '#lib/workflow-tab.svelte.js';
   import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
@@ -83,7 +84,8 @@
     (before) => getGetJobHistoryQueryOptions(params.jobId, { before }),
     () => historyOpen,
   );
-  let tab = $state('pipeline');
+  // The tab is in the address (`?tab=`), so a link reaches it and a reload keeps it.
+  const workflowTab = createWorkflowTab();
   let notice = $state('');
   let failure = $state('');
   let reviewing = $state(false);
@@ -190,13 +192,13 @@
     </div>
     <p class="sr-only" role="status">Loading the workflow…</p>
   {:else}
-    <Tabs.Root bind:value={tab}>
+    <Tabs.Root bind:value={workflowTab.value}>
       <!-- The job's name and its status first, then the check on the workflow (S2, T2). What saving did goes in the band's
            line under the title, so a long message never pushes the actions onto a second row (S8). -->
       <HeaderBand title={`${detail.title} workflow`} details={notice || failure ? outcome : undefined}>
         {#snippet status()}
           <StatusBadge {...jobStatus[detail.status]} />
-          <ValidationBadge errors={draft.errors} checking={draft.checking} editable={!readonly} />
+          <ValidationBadge errors={draft.errors} checking={draft.checking} editable={!readonly} fix={workflowTab.value !== 'test'} />
         {/snippet}
         {#snippet actions()}
           <!-- The one primary action; a phone has it in the action bar (section 8). -->
@@ -241,9 +243,15 @@
         {/if}
 
         {#if readonly}
-          <WorkflowSummary workflow={draft.workflow} errors={draft.errors} {tab} />
+          <WorkflowSummary workflow={draft.workflow} errors={draft.errors} tab={workflowTab.value} hrefOf={(tab) => workflowTab.href(tab)} />
         {:else}
-          <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} bind:tab />
+          <WorkflowEditor
+            bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)}
+            errors={draft.errors}
+            checking={draft.checking}
+            bind:tab={workflowTab.value}
+            hrefOf={(tab) => workflowTab.href(tab)}
+          />
         {/if}
       </div>
     </Tabs.Root>

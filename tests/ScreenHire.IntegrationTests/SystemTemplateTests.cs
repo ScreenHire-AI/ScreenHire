@@ -18,7 +18,35 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion1, 1, "Hourly role" },
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion2, 2, "Hourly role" },
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion3, 3, "Hourly role" },
+        { SystemTemplates.OfficeRole, SystemTemplates.OfficeRoleVersion1, 1, "Office role" },
+        { SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion1, 1, "Trade role with a trial shift" },
+        { SystemTemplates.HighVolume, SystemTemplates.HighVolumeVersion1, 1, "High volume" },
     };
+
+    public static TheoryData<Guid> StartingPoints => new() { SystemTemplates.OfficeRole, SystemTemplates.TradeRole, SystemTemplates.HighVolume };
+
+    // The three starting points of the new template screen: a copy of one is a draft a fresh organization can publish at
+    // once (its emails are the built-in ones), and nothing in it turns anyone down.
+    [Theory]
+    [MemberData(nameof(StartingPoints))]
+    public async Task A_starting_point_copies_into_a_draft_that_publishes_and_never_rejects(Guid templateId)
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var system = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/1")).Expect(HttpStatusCode.OK);
+        var definition = JsonSerializer.Deserialize<HiringTemplateDefinition>(system.At("definition").GetRawText(), JsonColumns.SerializerOptions)!;
+
+        var copy = (await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Our copy", ["copyFromVersionId"] = system.Id() })).Expect(HttpStatusCode.Created);
+        var draft = (await recruiter.GetAsync($"/v1/templates/{copy.Id()}/versions/1")).Expect(HttpStatusCode.OK);
+        var published = (await recruiter.PostAsync($"/v1/templates/{copy.Id()}/versions/1/publish")).Expect(HttpStatusCode.OK);
+
+        draft.At("problems").GetArrayLength().Should().Be(0);
+        published.Text("status").Should().Be("Published");
+        definition.Workflow.Automations.SelectMany(a => a.Actions).Should().NotContain(a => a.Type == ActionType.Reject);
+        definition.Workflow.Automations.Should().NotContain(a => a.AllowAutoReject);
+        definition.Workflow.Stages.Where(s => s.SlaDays is not null && !s.Kind.IsTerminal()).Should().OnlyContain(
+            s => definition.Workflow.Automations.Any(a => a.Trigger.Type == TriggerType.SlaBreached && a.Trigger.StageId == s.Id),
+            "every time limit has the reminder the stage sheet promises");
+    }
 
     [Theory]
     [MemberData(nameof(Templates))]
@@ -72,10 +100,13 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         version.Id().Should().Be(versionId);
         stages.Should().OnlyContain(s => !s.Has("scorecard"), $"{name} version {number} is a template, which names its scorecards");
         named.Values.Should().OnlyContain(id => BuiltInScorecards.Find(id) != null, "a system template can only name ScreenHire's own scorecards");
-        string[] expected = (templateId == SystemTemplates.SoftwareEngineer, number) switch
+        string[] expected = (templateId, number) switch
         {
-            (true, >= 3) => ["screening", "technical-exercise", "engineering-interview"],
-            (false, >= 2) => ["phone-screen", "hourly-interview"],
+            _ when templateId == SystemTemplates.OfficeRole => ["phone-screen", "interview"],
+            _ when templateId == SystemTemplates.TradeRole => ["phone-screen"],
+            _ when templateId == SystemTemplates.HighVolume => ["screening"],
+            _ when templateId == SystemTemplates.SoftwareEngineer && number >= 3 => ["screening", "technical-exercise", "engineering-interview"],
+            _ when templateId == SystemTemplates.HourlyRole && number >= 2 => ["phone-screen", "hourly-interview"],
             _ => [],
         };
         named.Values.Should().BeEquivalentTo(expected);

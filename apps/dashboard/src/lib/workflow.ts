@@ -165,7 +165,7 @@ export const actionField: Partial<Record<ActionType, ActionField>> = {
 export const actionFieldLabels: Record<ActionField, string> = {
   emailTemplate: 'Email',
   stageId: 'Stage',
-  tag: 'Tag',
+  tag: 'Tag name',
   note: 'Note',
   url: 'URL (https)',
   reason: 'Reason',
@@ -392,8 +392,135 @@ export function idFrom(label: string, taken: Iterable<string>, fallback: string)
   for (let n = 2; ; n++) if (!used.has(`${base}_${n}`)) return `${base}_${n}`;
 }
 
-export function newStage(workflow: HiringWorkflow): WorkflowStage {
-  return { id: idFrom('stage', workflow.stages.map((stage) => stage.id), 'stage'), name: 'New stage', kind: 'Custom' };
+/**
+ * The kind a stage gets from its name, so a person who types "Trial shift" never meets the word "Assessment". The first
+ * match wins, and a name that says nothing is Custom. Only a stage's creation and its name, until its kind is set by
+ * hand under More options, use it. Applied is never guessed: the first stage is Applied and no other stage can be.
+ */
+export function kindFromName(name: string): StageKind {
+  const text = name.toLowerCase();
+  const has = (...words: string[]) => words.some((word) => text.includes(word));
+  if (has('withdraw')) return 'Withdrawn';
+  if (has('reject', 'not selected', 'declined', 'not hired', 'turned down')) return 'Rejected';
+  if (has('hired', 'started', 'onboard')) return 'Hired';
+  if (has('offer')) return 'Offer';
+  if (has('interview')) return 'Interview';
+  if (has('verif', 'background', 'reference')) return 'Verification';
+  if (has('trial', 'test', 'task', 'assessment', 'skills', 'shift', 'group session', 'exercise')) return 'Assessment';
+  if (has('phone', 'call', 'screen', 'review')) return 'Screening';
+  return 'Custom';
+}
+
+export const newStageName = 'New stage';
+
+/** A new stage named `name`, its kind set from the name (`kindFromName`). */
+export function newStage(workflow: HiringWorkflow, name: string = newStageName): WorkflowStage {
+  return {
+    id: idFrom('stage', workflow.stages.map((stage) => stage.id), 'stage'),
+    name,
+    kind: name === newStageName ? 'Custom' : kindFromName(name),
+  };
+}
+
+/** The stages with `stage` inserted so it sits at `index`; a stage never goes before the first one, which is Applied. */
+export function insertStage(stages: readonly WorkflowStage[], index: number, stage: WorkflowStage): WorkflowStage[] {
+  const at = Math.max(1, Math.min(index, stages.length));
+  return [...stages.slice(0, at), stage, ...stages.slice(at)];
+}
+
+/** The workflow without the stage at `index`, and without the reminder the stage sheet kept for it. */
+export function withoutStage(workflow: HiringWorkflow, index: number): Pick<HiringWorkflow, 'stages' | 'automations'> {
+  const stage = workflow.stages[index];
+  return {
+    stages: workflow.stages.filter((_, i) => i !== index),
+    automations: stage ? workflow.automations.filter((automation) => automation.id !== reminderId(stage.id)) : workflow.automations,
+  };
+}
+
+/** Where a stage inserted after the one at `index` goes: just after it, but before the stages that end the candidacy. */
+export function insertionIndex(stages: readonly WorkflowStage[], index: number): number {
+  const stage = stages[index];
+  if (!stage || isTerminal(stage.kind)) {
+    const firstEnd = stages.findIndex((candidate) => isTerminal(candidate.kind));
+    return firstEnd < 0 ? stages.length : firstEnd;
+  }
+  return index + 1;
+}
+
+/** The plain time limits a stage offers; anything else is "Other". */
+export const timeLimitChoices: readonly { days: number | null; label: string }[] = [
+  { days: null, label: 'None' },
+  { days: 2, label: '2 days' },
+  { days: 3, label: '3 days' },
+  { days: 5, label: '5 days' },
+  { days: 7, label: '1 week' },
+];
+
+/** "2 days", "1 week", "10 days": a time limit in the words people use. */
+export const timeLimitLabel = (days: number): string =>
+  timeLimitChoices.find((choice) => choice.days === days)?.label ?? `${days} ${days === 1 ? 'day' : 'days'}`;
+
+/**
+ * The id of the reminder the stage sheet keeps for a stage's time limit: an automation that tells the team when someone
+ * has waited longer than the limit. One per stage, so the sheet can add, change and remove it without touching the
+ * automations a person wrote (docs/architecture/workflow-engine.md section 4).
+ */
+export const reminderId = (stageId: string): string => `reminder-${stageId}`;
+
+const isSignalFact = (fact: string): boolean => fact.startsWith('verification.');
+
+/**
+ * Whether a stage can have a reminder. A stage a verification check moves candidates into only allows the check's own
+ * kind of automation, and telling the team is not one of them (the validator's guardrail), so it has no reminder.
+ */
+export function canRemindIn(workflow: HiringWorkflow, stageId: string): boolean {
+  return !workflow.automations.some(
+    (automation) =>
+      (automation.trigger.type === 'VerificationAssessed' ||
+        automation.trigger.type === 'VerificationCompleted' ||
+        automation.conditions?.rules.some((rule) => isSignalFact(rule.fact))) &&
+      automation.actions.some((action) => action.type === 'MoveToStage' && action.stageId === stageId),
+  );
+}
+
+/** Whether something already tells the team when the stage's time limit passes: the sheet's reminder or a person's automation. */
+export function hasReminder(workflow: HiringWorkflow, stageId: string): boolean {
+  return workflow.automations.some(
+    (automation) =>
+      automation.enabled !== false &&
+      automation.trigger.type === 'SlaBreached' &&
+      (automation.trigger.stageId === stageId || !automation.trigger.stageId) &&
+      automation.actions.some((action) => action.type === 'NotifyTeam'),
+  );
+}
+
+/**
+ * The workflow with the stage's reminder in step with its time limit: added when the stage has a limit and nothing
+ * already reminds the team, renamed with the stage, and removed (only the sheet's own) when the limit goes.
+ */
+export function syncReminder(workflow: HiringWorkflow, stageId: string): HiringWorkflow {
+  const stage = workflow.stages.find((candidate) => candidate.id === stageId);
+  const own = workflow.automations.find((automation) => automation.id === reminderId(stageId));
+  if (!stage || !hasTimeLimit(stage) || !canRemindIn(workflow, stageId)) {
+    return own ? { ...workflow, automations: workflow.automations.filter((automation) => automation !== own) } : workflow;
+  }
+  const name = `Remind the team when ${stage.name} waits too long`;
+  if (own) {
+    return own.name === name
+      ? workflow
+      : { ...workflow, automations: workflow.automations.map((automation) => (automation === own ? { ...own, name } : automation)) };
+  }
+  if (hasReminder(workflow, stageId)) return workflow;
+  const reminder: Automation = {
+    id: reminderId(stageId),
+    name,
+    trigger: { type: 'SlaBreached', stageId },
+    conditions: null,
+    actions: [{ type: 'NotifyTeam', note: `Someone has waited in ${stage.name} longer than the time limit.` }],
+    enabled: true,
+    allowAutoReject: false,
+  };
+  return { ...workflow, automations: [...workflow.automations, reminder] };
 }
 
 /** A new question with an id unique across every questionnaire of the workflow, so `answers.{id}` names one question. */
@@ -471,28 +598,38 @@ export function problemErrors(body: unknown): DefinitionError[] {
   );
 }
 
-/** Words for where an error is, from its path: "Automation "Tag on arrival", action 1". */
+/**
+ * Words for where an error is, from its path: `The step "Add a tag" in "Tag on arrival"`. The validator's messages name
+ * the thing themselves, so this is for the places that need only the location: a Fix button's label, a screen reader's
+ * context, and a path no message can name.
+ */
 export function describePath(workflow: HiringWorkflow, path: string): string {
   const automation = /^automations\[(\d+)\](?:\.actions\[(\d+)\])?(?:\.conditions\.rules\[(\d+)\])?/.exec(path);
   if (automation) {
-    const name = workflow.automations[Number(automation[1])]?.name ?? `Automation ${Number(automation[1]) + 1}`;
-    const part = automation[2] !== undefined ? `, action ${Number(automation[2]) + 1}` : automation[3] !== undefined ? `, condition ${Number(automation[3]) + 1}` : '';
-    return `Automation "${name}"${part}`;
+    const found = workflow.automations[Number(automation[1])];
+    const name = found?.name || `automation ${Number(automation[1]) + 1}`;
+    if (automation[2] !== undefined) {
+      const step = found?.actions[Number(automation[2])];
+      const label = step ? (actionLabels[step.type] ?? step.type) : `Step ${Number(automation[2]) + 1}`;
+      return `The step "${label}" in "${name}"`;
+    }
+    if (automation[3] !== undefined) return `Condition ${Number(automation[3]) + 1} in "${name}"`;
+    return `The automation "${name}"`;
   }
   const followUp = /^followUpQuestionnaires\[(\d+)\](?:\.questions\[(\d+)\])?/.exec(path);
   if (followUp) {
     const questionnaire = followUpsOf(workflow)[Number(followUp[1])];
-    const name = questionnaire?.name || `Follow-up ${Number(followUp[1]) + 1}`;
-    if (followUp[2] === undefined) return `Questionnaire "${name}"`;
-    return `Question "${questionnaire?.questions[Number(followUp[2])]?.label ?? Number(followUp[2]) + 1}" in "${name}"`;
+    const name = questionnaire?.name || `follow-up ${Number(followUp[1]) + 1}`;
+    if (followUp[2] === undefined) return `The form "${name}"`;
+    return `The question "${questionnaire?.questions[Number(followUp[2])]?.label ?? Number(followUp[2]) + 1}" in "${name}"`;
   }
   const question = /^questionnaire\.questions\[(\d+)\]/.exec(path);
-  if (question) return `Question "${workflow.questionnaire.questions[Number(question[1])]?.label ?? Number(question[1]) + 1}"`;
+  if (question) return `The question "${workflow.questionnaire.questions[Number(question[1])]?.label ?? Number(question[1]) + 1}"`;
   const stage = /^stages\[(\d+)\]/.exec(path);
-  if (stage) return `Stage "${workflow.stages[Number(stage[1])]?.name ?? Number(stage[1]) + 1}"`;
-  if (path.startsWith('stages')) return 'Stages';
-  if (path.startsWith('questionnaire')) return 'Questionnaire';
-  return 'Workflow';
+  if (stage) return `The stage "${workflow.stages[Number(stage[1])]?.name ?? Number(stage[1]) + 1}"`;
+  if (path.startsWith('stages')) return 'The stages';
+  if (path.startsWith('questionnaire')) return 'The questions';
+  return 'The workflow';
 }
 
 /** A team member as an AssignReviewer action names them. */

@@ -212,7 +212,7 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task A_condition_on_the_rating_is_refused_on_a_template_draft_and_on_a_job_workflow_and_a_plain_condition_is_not()
+    public async Task A_condition_on_the_rating_is_refused_when_a_template_publishes_and_on_an_open_jobs_workflow_and_a_plain_condition_is_not()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         var facts = new[] { "application.rating", "rating", "candidate.rating", "scorecard.average", "scorecards.count" };
@@ -220,14 +220,16 @@ public sealed class CandidateRatingTests(AppHostFixture fixture)
         var outcomes = new Dictionary<string, string>();
         foreach (var fact in facts)
         {
-            var created = await owner.PostAsync("/v1/templates", new JsonObject { ["name"] = $"Rating {fact}", ["definition"] = Samples.DefinitionWith(RatingRule(fact)) });
-            outcomes[$"create {fact}"] = Refusal(created, "definition.workflow.automations[0].conditions.rules[0].fact");
+            // A draft saves with the problem; publishing is what refuses it.
+            var created = (await owner.PostAsync("/v1/templates", new JsonObject { ["name"] = $"Rating {fact}", ["definition"] = Samples.DefinitionWith(RatingRule(fact)) })).Expect(HttpStatusCode.Created);
+            outcomes[$"create {fact}"] = Refusal(await owner.PostAsync($"/v1/templates/{created.Id()}/versions/1/publish"), "definition.workflow.automations[0].conditions.rules[0].fact");
         }
 
         var draft = (await owner.CreateTemplateAsync("Draft")).Id();
-        var updated = await owner.PutAsync($"/v1/templates/{draft}/versions/1", new JsonObject { ["definition"] = Samples.DefinitionWith(RatingRule("application.rating")) });
-        outcomes["update draft"] = Refusal(updated, "definition.workflow.automations[0].conditions.rules[0].fact");
+        (await owner.PutAsync($"/v1/templates/{draft}/versions/1", new JsonObject { ["definition"] = Samples.DefinitionWith(RatingRule("application.rating")) })).Expect(HttpStatusCode.OK);
+        outcomes["publish draft"] = Refusal(await owner.PostAsync($"/v1/templates/{draft}/versions/1/publish"), "definition.workflow.automations[0].conditions.rules[0].fact");
         var job = (await owner.CreateJobAsync(Samples.RemoteJob("Platform Engineer"))).Id();
+        await owner.PublishJobAsync(job); // an open job's workflow is live, so its save is validated
         var current = (await owner.GetAsync($"/v1/jobs/{job}")).Expect(HttpStatusCode.OK);
         var workflow = JsonNode.Parse(current.At("workflow").GetRawText())!.AsObject();
         workflow["automations"] = new JsonArray(RatingRule("application.rating"));

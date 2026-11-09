@@ -28,7 +28,7 @@ public sealed class WorkflowEngineValidationTests
         ]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle()
-            .Which.Should().Match<DefinitionError>(e => e.Path == "automations[0].actions[0]" && e.Message.Contains("never drive rejection"));
+            .Which.Should().Match<DefinitionError>(e => e.Path == "automations[0].actions[0]" && e.Message.Contains("never drives a rejection"));
     }
 
     [Theory]
@@ -59,7 +59,7 @@ public sealed class WorkflowEngineValidationTests
 
         DefinitionValidator.Validate(Workflow([WorkAuthorization], [Knockout(ActionType.QueueForRejectionReview, optIn: false)])).Should().BeEmpty();
         DefinitionValidator.Validate(Workflow([WorkAuthorization], [Knockout(ActionType.Reject, optIn: false)])).Should().ContainSingle()
-            .Which.Message.Should().Contain("explicit opt-in").And.Contain("QueueForRejectionReview");
+            .Which.Message.Should().Contain("explicit opt-in").And.Contain("Right to work").And.Contain("Queue for rejection review");
         DefinitionValidator.Validate(Workflow([WorkAuthorization], [Knockout(ActionType.Reject, optIn: true)])).Should().BeEmpty();
     }
 
@@ -69,7 +69,7 @@ public sealed class WorkflowEngineValidationTests
         var workflow = Workflow(automations: [new("a", "A", new AutomationTrigger(TriggerType.ApplicationSubmitted), null, [new AutomationAction(ActionType.RequestVerification)])]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0].type")
-            .Which.Message.Should().Contain("cannot be used yet");
+            .Which.Message.Should().Contain("not available yet").And.Contain("Ask for a check").And.Contain("\"A\"");
     }
 
     [Theory]
@@ -123,7 +123,7 @@ public sealed class WorkflowEngineValidationTests
         {
             DefinitionValidator.Validate(WorkflowWith(Interview() with { InterviewerUserIds = interviewers })).Should()
                 .ContainSingle(e => e.Path == "automations[0].actions[0].interviewerUserIds")
-                .Which.Message.Should().Contain("1 to 5");
+                .Which.Message.Should().Contain("between 1 and 5 different interviewers").And.Contain("\"A\"");
         }
     }
 
@@ -165,7 +165,7 @@ public sealed class WorkflowEngineValidationTests
     {
         DefinitionValidator.Validate(WorkflowWith(Interview() with { Url = "https://example.com/book" })).Should()
             .ContainSingle(e => e.Path == "automations[0].actions[0].url")
-            .Which.Message.Should().Contain("does not take url");
+            .Which.Message.Should().Contain("web address").And.Contain("is not used by").And.Contain("Offer an interview");
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public sealed class WorkflowEngineValidationTests
                 type, StageId: "screening", EmailTemplate: "application-received", Tag: "x", Reason: "r", Url: "https://example.com/hook", Note: "n",
                 InterviewerUserIds: [Avery], InterviewMinutes: 30, InterviewWindowDays: 7, InterviewTimeZone: "UTC");
 
-            DefinitionValidator.Validate(WorkflowWith(action)).Where(e => e.Message.StartsWith($"{type} does not take interview", StringComparison.Ordinal))
+            DefinitionValidator.Validate(WorkflowWith(action)).Where(e => e.Path.Contains(".interview", StringComparison.Ordinal) && e.Message.Contains("is not used by", StringComparison.Ordinal))
                 .Select(e => e.Path).Should().BeEquivalentTo(
                     "automations[0].actions[0].interviewerUserIds",
                     "automations[0].actions[0].interviewMinutes",
@@ -205,11 +205,11 @@ public sealed class WorkflowEngineValidationTests
         ]);
 
         DefinitionValidator.Validate(onTrigger).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
-            .Which.Message.Should().Contain("Verification signals never drive rejection");
+            .Which.Message.Should().Contain("never drives a rejection");
         DefinitionValidator.Validate(onFact).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
-            .Which.Message.Should().Contain("Verification signals never drive rejection");
+            .Which.Message.Should().Contain("never drives a rejection");
         DefinitionValidator.Validate(onTaggedByASignal).Should().ContainSingle(e => e.Path == "automations[1].actions[0]")
-            .Which.Message.Should().Contain("Verification signals never drive rejection");
+            .Which.Message.Should().Contain("never drives a rejection");
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public sealed class WorkflowEngineValidationTests
         ]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[1].actions[0]")
-            .Which.Message.Should().Contain("Verification signals never drive rejection");
+            .Which.Message.Should().Contain("never drives a rejection");
     }
 
     // A passed time limit measures the team's delay; nothing it does may reach the candidate.
@@ -232,7 +232,7 @@ public sealed class WorkflowEngineValidationTests
         var workflow = Workflow(automations: [new("a", "A", new AutomationTrigger(TriggerType.SlaBreached), null, [Interview()])]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0]")
-            .Which.Message.Should().Contain("may only notify the team");
+            .Which.Message.Should().Contain("may only tell the team").And.Contain("Offer an interview").And.Contain("\"A\"");
     }
 
     [Theory]
@@ -271,7 +271,7 @@ public sealed class WorkflowEngineValidationTests
         ]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0].emailTemplate")
-            .Which.Message.Should().Contain("application-received, application-rejected, interview-cancelled, interview-confirmation, interview-invitation, interview-new-times, interview-reminder, questionnaire-request, stage-change");
+            .Which.Message.Should().Contain("email template that does not exist").And.Contain("Send an email").And.Contain("\"A\"");
     }
 
     [Theory]
@@ -289,7 +289,7 @@ public sealed class WorkflowEngineValidationTests
         ]);
 
         DefinitionValidator.Validate(workflow).Should().ContainSingle(e => e.Path == "automations[0].actions[0].emailTemplate")
-            .Which.Message.Should().Contain("sent only when an interview is scheduled");
+            .Which.Message.Should().Contain("cannot send an interview email");
     }
 
     [Fact]

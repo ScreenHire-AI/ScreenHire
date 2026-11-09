@@ -156,7 +156,9 @@ public sealed class ScorecardTemplateTests(AppHostFixture fixture)
         var named = await theirs.PostAsync("/v1/templates", new JsonObject { ["name"] = "Pipeline", ["definition"] = DefinitionNaming("interview", key) });
 
         copy.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("copiedFrom");
-        named.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("definition.workflow.stages[2].scorecardTemplateId");
+        // It saves as a draft in their organization, and publishing it is refused.
+        (await theirs.PostAsync($"/v1/templates/{named.Expect(HttpStatusCode.Created).Id()}/versions/1/publish")).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("definition.workflow.stages[2].scorecardTemplateId");
         (await ours.GetAsync($"/v1/scorecard-templates/{key}")).Text("name").Should().Be("Platform interview");
         (await ours.GetAsync($"/v1/scorecard-templates/{key}/history")).Count("entries").Should().Be(1, "their edit recorded nothing");
     }
@@ -179,7 +181,7 @@ public sealed class ScorecardTemplateTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task A_hiring_template_names_its_scorecards_and_an_inline_copy_or_a_missing_scorecard_is_refused()
+    public async Task A_hiring_template_names_its_scorecards_and_an_inline_copy_or_a_missing_scorecard_cannot_be_published()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         var key = await CreateScorecardAsync(owner, "Platform interview", Rating5("depth"));
@@ -192,16 +194,23 @@ public sealed class ScorecardTemplateTests(AppHostFixture fixture)
             .Expect(HttpStatusCode.Created);
         var templateId = created.Id();
 
-        (await owner.PostAsync("/v1/templates", new JsonObject { ["name"] = "Inline", ["definition"] = inline.DeepClone() })).Expect(HttpStatusCode.BadRequest)
+        // Each saves as a draft with the problem, and publishing it is refused.
+        async Task<ApiResult> PublishNewAsync(string name, JsonNode definition)
+        {
+            var draft = (await owner.PostAsync("/v1/templates", new JsonObject { ["name"] = name, ["definition"] = definition })).Expect(HttpStatusCode.Created);
+            return await owner.PostAsync($"/v1/templates/{draft.Id()}/versions/1/publish");
+        }
+
+        (await PublishNewAsync("Inline", inline.DeepClone())).Expect(HttpStatusCode.BadRequest)
             .ProblemKeys().Should().Equal("definition.workflow.stages[2].scorecard");
-        (await owner.PostAsync("/v1/templates", new JsonObject { ["name"] = "Missing", ["definition"] = missing.DeepClone() })).Expect(HttpStatusCode.BadRequest)
+        (await PublishNewAsync("Missing", missing.DeepClone())).Expect(HttpStatusCode.BadRequest)
             .ProblemKeys().Should().Equal("definition.workflow.stages[2].scorecardTemplateId");
-        (await owner.PostAsync("/v1/templates", new JsonObject { ["name"] = "Malformed", ["definition"] = malformed })).Expect(HttpStatusCode.BadRequest)
+        (await PublishNewAsync("Malformed", malformed)).Expect(HttpStatusCode.BadRequest)
             .ProblemKeys().Should().Equal("definition.workflow.stages[2].scorecardTemplateId");
-        (await owner.PutAsync($"/v1/templates/{templateId}/versions/1", new JsonObject { ["definition"] = missing.DeepClone() })).Expect(HttpStatusCode.BadRequest)
+        var other = (await owner.PostAsync("/v1/templates", new JsonObject { ["name"] = "Edited", ["definition"] = DefinitionNaming("interview", key) })).Expect(HttpStatusCode.Created).Id();
+        (await owner.PutAsync($"/v1/templates/{other}/versions/1", new JsonObject { ["definition"] = missing.DeepClone() })).Expect(HttpStatusCode.OK);
+        (await owner.PostAsync($"/v1/templates/{other}/versions/1/publish")).Expect(HttpStatusCode.BadRequest)
             .ProblemKeys().Should().Equal("definition.workflow.stages[2].scorecardTemplateId");
-        (await owner.PutAsync($"/v1/templates/{templateId}/versions/1", new JsonObject { ["definition"] = inline.DeepClone() })).Expect(HttpStatusCode.BadRequest)
-            .ProblemKeys().Should().Equal("definition.workflow.stages[2].scorecard");
         var stored = await owner.GetAsync($"/v1/templates/{templateId}/versions/1");
         stored.Text("definition.workflow.stages.2.scorecardTemplateId").Should().Be(key);
         stored.At("definition.workflow.stages.2.scorecard").ValueKind.Should().Be(JsonValueKind.Null);
