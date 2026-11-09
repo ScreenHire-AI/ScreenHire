@@ -6,11 +6,13 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Application.Verification;
+using ScreenHire.Application.Verification.Content;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Privacy;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
+using ScreenHire.Infrastructure.Verification;
 using ScreenHire.Infrastructure.Verification.Llm;
 using ScreenHire.IntegrationTests.Messaging;
 using ScreenHire.IntegrationTests.Notifications;
@@ -271,6 +273,63 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["cap"] = 100_000_000L })).Expect(HttpStatusCode.OK);
         await WolverineStore.WaitUntilAsync(
             async () => (await tenant.NotificationsAsync()).Count("items") == 0, "the cap notification to be cleared when the cap was raised", Ct);
+    }
+
+    [Fact]
+    public async Task Resuming_more_paused_checks_than_one_batch_holds_sends_the_next_batch_after_the_last_one_asked()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, tenant, SystemTemplates.SoftwareEngineerVersion2);
+        List<Guid> applications = [];
+        foreach (var applicant in new[] { SyntheticApplicants.GenuineHuman, SyntheticApplicants.HonestAiAssisted, SyntheticApplicants.Bot })
+        {
+            var id = await VerificationSupport.ApplyAsync(fixture, slug, jobId, applicant, answers: applicant.Answers);
+            await VerificationSupport.SettledAsync(fixture, tenant, id);
+            applications.Add(id);
+        }
+
+        // Three paused checks, one second apart, the oldest first.
+        var startedAt = applications.Select((_, i) => Future.AddSeconds(i)).ToList();
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId))
+        {
+            for (var i = 0; i < applications.Count; i++)
+            {
+                var (application, at) = (applications[i], startedAt[i]);
+                if (await db.ConsistencyChecks.AnyAsync(c => c.ApplicationId == application, Ct))
+                {
+                    await db.ConsistencyChecks.Where(c => c.ApplicationId == application)
+                        .ExecuteUpdateAsync(s => s.SetProperty(c => c.Status, ConsistencyCheckStatus.Paused).SetProperty(c => c.StartedAt, at), Ct);
+                }
+                else
+                {
+                    var check = ConsistencyCheck.Claim(tenant.OrganizationId, application, ConsistencyPrompts.Version, at);
+                    check.Complete(new ConsistencyCheckOutcome(ConsistencyCheckStatus.Paused, RunNotes.AiChecksPaused), at);
+                    db.ConsistencyChecks.Add(check);
+                }
+            }
+
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var first = await ResumeAsync(new ResumeOrganizationAiChecks(tenant.OrganizationId, "test"));
+        first.OfType<CheckApplicationConsistency>().Select(m => m.ApplicationId).Should().Equal(applications[0], applications[1]);
+        var next = first.OfType<ResumeOrganizationAiChecks>().Should().ContainSingle("a full batch may have left more behind").Subject;
+        next.After.Should().Be(startedAt[1]);
+        next.IdempotencyKey.Should().NotBe(new ResumeOrganizationAiChecks(tenant.OrganizationId, "test").IdempotencyKey, "the follow-up is its own intent");
+
+        var second = await ResumeAsync(next);
+        second.OfType<CheckApplicationConsistency>().Select(m => m.ApplicationId).Should().Equal(applications[2]);
+        second.OfType<ResumeOrganizationAiChecks>().Should().BeEmpty("a batch that was not full was the last");
+
+        async Task<List<object>> ResumeAsync(ResumeOrganizationAiChecks message)
+        {
+            await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);
+            var outgoing = await ResumeOrganizationAiChecksHandler.Handle(
+                message, db, Microsoft.Extensions.Options.Options.Create(new VerificationOptions()),
+                Microsoft.Extensions.Options.Options.Create(new AiUsageOptions { ResumeBatchSize = 2 }), TimeProvider.System,
+                NullLogger<ResumeOrganizationAiChecks>.Instance, Ct);
+            return [.. outgoing];
+        }
     }
 
     [Fact]
