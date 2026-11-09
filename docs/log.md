@@ -2,6 +2,17 @@
 
 ## 2026-11-09
 
+**The launch-readiness workflow is finished, and its design reviews left a list for the owner.** Four design reviews walked
+the build as a new team in its first hour, as a recruiter in a working day, as someone setting ScreenHire up, and as a
+candidate on a phone (#149, #148, #147, #146). They fixed what was contained: first-hour copy and ordering, a denser
+Reports page with a per-job Candidates column, setup wording and a safer default for a new automation, and honest candidate
+copy with the notice at version `2026-11-09.1`. What they left is merged into one ranked list in the
+[roadmap](roadmap.md#the-owners-review-of-the-launch-readiness-build), grouped by the five selling points and the
+candidate's side, for the owner to choose from; nothing in it is built. The workflow also proved the dark and phone states of
+the dashboard and the candidate pages (#145), large lists and the Slack and webhook states (#132). The
+[MVP status](status.md#known-gaps) records what is still unproven: no second signed-in person was ever in the pane, and one
+webhook test has now failed in CI three times with no webhook change.
+
 **Verification is an area with seven tabs.** `/verification` is now Overview, Activity log, Usage, Checks, Policy, AI model and
 Notifications, each at its own path, under one header band. The Overview counts this month's applications by level (Clear, Review,
 Verify) and the groups of checks that counted a signal, as counts only. The Activity log lists every check that ran and every model

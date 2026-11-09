@@ -8,14 +8,15 @@ sources:
 ---
 # MVP status
 
-Snapshot 2026-11-08, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
+Snapshot 2026-11-09, after the MVP workflow's tasks (PRs #1 to #18 and the acceptance task), the "Design system v0.2"
 workflow (PRs #22 to #33), the "Platform: team, API access and webhooks" workflow (PRs #36 to #38) and the "Team,
 collaboration and communication" workflow (PRs #39 to #42, and the docs restructure in ADR-0012), the "Workflow
 builder" workflow (PRs #44, #45 and the editable graph) and the "Design system v0.3, the review's features, and roles
 with job access" workflow (PRs #47 to #58 and the remaining screens), the "After the owner's review" workflow (PRs #61
 to #74), the "Owner review of the second build" workflow (PRs #80 to #89), the "Production polish" workflow
 (PRs #91 to #98), the "Owner review of the fourth build" workflow (PRs #99 to #114) and the "Marketing site:
-direction B + C" workflow (PRs #118 to #123, and the audit task). The whole product runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
+direction B + C" workflow (PRs #118 to #123, and the audit task) and the "Launch readiness" workflow (PRs #128 to #149:
+the November redesign, built-in AI, billing, proof of the dark and phone states, and four design reviews). The whole product runs on one machine with `pnpm dev` ([local demo](operations/local-demo.md)), and one Playwright journey in
 `pnpm verify` (`tests/ScreenHire.E2E/AcceptanceJourneyTests.cs`) walks it end to end: sign in, a job from a template,
 publish to the careers page and the sandbox board, a genuine candidate and a bot apply, both arrive live with their
 levels and evidence, a move sends the stage-change email, and closing takes the job down everywhere. Nothing is hosted
@@ -213,6 +214,12 @@ brackets.
 - Only automated tests and fakes have exercised these so far: real Stripe, SendGrid, calendars, Azure and a claude.ai
   connector, and real Slack and real webhook receivers (the Slack and webhook states are proven against the sandbox
   workspace and a local receiver); and portal replies, the Billing page and the OAuth consent page by hand.
+- The four design reviews walked the first hour, a recruiter's day, setup and the candidate's phone by hand, in one browser
+  pane, on the demo data and on a new empty organization. With one signed-in person at a time, these were not walked by hand:
+  accepting an invitation as a second user, live updates between two signed-in members, and an application arriving
+  live on an open dashboard (it was confirmed on Jobs only). The interview times a recruiter offers and every keyboard
+  shortcut were not exercised either. The follow-up questionnaire, the saved-candidate pages and the embed widget were
+  read from source on the candidate's side and rest on their own end-to-end classes.
 - Dark mode and phone widths are proven for the dashboard's routes, their first tab lists and its overlays, on one organization
   with a job, three assessed applicants, one of each template, a role, a key, a webhook endpoint and a task, and on a new
   empty one, and on the onboarding page (`DashboardThemeTests`, `DashboardPhoneTests`, [testing](process/testing.md)). Not
@@ -222,7 +229,11 @@ brackets.
   walk has none); and tabs nested inside a tab. Axe reads text only, so a focus ring, a status icon and a chart colour are
   proven from the tokens in both themes (`theme-contrast.test.ts`), not on the page.
 - The careers and candidate pages have no dark theme: their dark tokens exist (`--candidate-*` under `.dark`) and
-  nothing applies the class.
+  nothing applies the class. `CandidatePhoneTests` walks them at 390 px with a touch screen (axe, sideways scroll, clipped
+  text, 44 px targets, field edges), once more with a dark system theme and at 1440 px, so a visitor with a dark
+  preference gets a readable page, not a dark one. It covers the board, a job, the privacy page, the two request pages,
+  every kind of dead link and each step of the apply form. The candidate's own page, an interview picker and a booked
+  interview are not in that walk (they need a signed link), and the interview picker is about 3000 px tall on a phone.
 - A phone has no keyboard and no way to list the shortcuts, so the walk skips that dialog there.
 - `ui/toggle-group` has the separator's old mismatch: its `data-vertical:` and `group-data-horizontal/toggle-group:`
   classes never match bits-ui's `data-orientation`, so a joined group (`spacing={0}`: the rating answer, the scorecard's
@@ -234,5 +245,10 @@ brackets.
   in view and a phone lists 50 at a time; the delivery log of an endpoint (it says it shows the latest 50) and the done tasks are limited by the API.
 - When a Slack post fails in a way a retry cannot fix and the retries run out, the message goes to the dead-letter table
   and the Slack page says nothing about it ([slack](architecture/slack.md)).
+- `WebhookStatesTests.An_endpoint_that_times_out_fails_gives_up_is_turned_off_and_a_rotated_secret_each_say_so_with_a_way_forward`
+  failed in CI three times on branches that changed no webhook code: the run the [flake history](process/testing.md#flake-history)
+  records, then the recruiter's-day review and the setup review (#148, #147). It passed again each time with no change, and its
+  cause is not proven. If it fails a fourth time, read the worker's delivery attempts in the `e2e-results` artifact before
+  changing the wait.
 - With the demo seeding on, a live update can arrive late while the worker works through the demo's backlog just after
   startup (verification-engine.md §10.9). In the browser pane, `/preview` waits for a verification chip before it checks anything live.
