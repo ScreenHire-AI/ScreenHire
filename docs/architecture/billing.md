@@ -133,12 +133,14 @@ link to Settings > Billing. A host with no email sender or no dashboard address 
 **The bell.** One `trial-ending` notification per Owner, key `trial`, with `endsAt` and the plan's name in its payload and a link
 to `/settings/billing`. The dashboard works out "ends in N days", "ends tomorrow" or "ends today" from `endsAt` when it draws the
 line, in calendar days in the browser's time zone, so the one row stays right as the days pass instead of piling up one a day and
-agrees with the date the trial ends on. The line is the fact alone; the link goes to Billing, which says what a plan changes. When the trial ends, the ending notice is cleared and `trial-ended` raised, so it
+agrees with the date the trial ends on. The line is the fact alone; the link goes to the Billing page, which shows when the trial ends and, once it has ended, that open
+jobs stay open and a new job needs a plan. When the trial ends, the ending notice is cleared and `trial-ended` raised, so it
 comes back unread even for an Owner who had read or dismissed the first. Only Owners are addressed, so a member without Manage
 billing has no row and sees nothing. Both kinds are exempt from the retention purge (`NotificationKinds.KeptUntilCleared`), because
 a trial that ended with no plan is still true a month later. A plan starting takes them away: `BillingEventApplier`, which every
-checkout, plan change and Stripe event goes through, clears both kinds when the saved status is no longer `None`. An Owner who
-joins after a notice was raised gets the next reminder's copy, not the ones before.
+checkout, plan change and Stripe event goes through, clears both kinds when the saved status is no longer `None`. The Owners
+are picked when each step fires: an Owner who joins after the 7 day notice gets the emails still to come, and in the bell nothing
+until the trial ends and the ended notice is raised for every Owner.
 
 **Catch-up.** An organization whose trial began before this shipped has no scheduled reminders. The worker sends
 `CatchUpTrialReminders` once when it starts (`TrialReminderCatchUp`, a one-shot hosted service registered in the worker's
