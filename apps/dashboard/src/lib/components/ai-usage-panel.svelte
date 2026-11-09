@@ -116,7 +116,7 @@
   {/if}
 
   <Panel title="By model and key" flush>
-    <Table.Root>
+    <Table.Root label="Usage by model and key">
       <Table.Header>
         <Table.Row>
           <Table.Head>Model</Table.Head>
@@ -164,7 +164,7 @@
         <option value="TimedOut">{outcomeLabels.TimedOut}</option>
       </select>
     </div>
-    <Table.Root>
+    <Table.Root label="Calls table">
       <Table.Header>
         <Table.Row>
           <Table.Head>When</Table.Head>
