@@ -564,7 +564,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST .../verification/notes` | a note on the application's verification or one assessment |
 | `POST .../verification/request-verification` | always 409 until phase 2 |
 | `GET /v1/organization/verification-settings` | the organization's settings (§10.11): the consistency check, the model and whether a key is saved (never the key; the model's address only for members with Edit settings, because its path can hold a token), the budget and tokens used this month, the groups of checks, the default AI-use policy, the device check, the trusted domains and networks, and the alerts |
-| `PUT /v1/organization/verification-settings` | replaces them (organization admins, in the dashboard's Hiring setup > Verification). A new or changed key, provider, address or model is tested first and refused with a field error when it fails |
+| `PUT /v1/organization/verification-settings` | replaces them (organization admins, in the dashboard's Verification page). A new or changed key, provider, address or model is tested first and refused with a field error when it fails |
 | `POST /v1/organization/verification-settings/llm/models` | lists the models a provider offers for a key, or says it offers no list |
 | `POST /v1/organization/verification-settings/llm/test` | one small request with the key and model; answers with a word, never the provider's text |
 
@@ -770,7 +770,7 @@ and the organization boundary.
 
 ### 10.11 What an organization controls
 
-Settings, Hiring setup, Verification is one form in four panels, saved with `PUT /v1/organization/verification-settings`
+The Verification page (`/verification`, a sidebar item) is one form in four panels, saved with `PUT /v1/organization/verification-settings`
 (Edit settings). Every change is a History line (`SettingsChanges.Verification`, seen through `VerificationSettingsFacts`).
 Settings apply from the next application: an analysis already recorded is not redone.
 

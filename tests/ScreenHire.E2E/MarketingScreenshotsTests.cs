@@ -146,9 +146,9 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
                 WideTo: page => page.Locator("main fieldset").Nth(1), WideMargin: 12,
                 Phone: new(Height: 2400, Margin: 12, To: page => page.Locator("main fieldset").Nth(1))),
 
-            // 8. The Integrations directory.
-            new("integrations", DashboardUrl("/settings/integrations"), "Integrations",
-                page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Directory" })).ToBeVisibleAsync()),
+            // 8. The Settings home, where each integration is listed beside the other settings.
+            new("integrations", DashboardUrl("/settings"), "Settings",
+                page => Expect(page.GetByRole(AriaRole.Region, new() { Name = "Integrations", Exact = true })).ToBeVisibleAsync()),
 
             // 9. A hiring template with its own stage names, and the branding editor. On a phone, the template from its title down to
             // the fourth stage, and the editor's colours, font and logo.

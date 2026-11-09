@@ -8,7 +8,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { can, seesAllJobs } from '#lib/permissions.js';
-  import { directoryVisible, featureWaits, integrationsHref, settingsAreaOf, settingsSectionOf, visibleSettingsSections } from '#lib/settings.js';
+  import { featureWaits, settingsCrumbs, settingsSectionOf, visibleSettingsSections } from '#lib/settings.js';
   import { getShell } from '#lib/shell.js';
   import type { LayoutProps } from './$types';
 
@@ -19,30 +19,23 @@
 
   const shell = getShell();
   const section = $derived(settingsSectionOf(page.url.pathname));
-  // The Integrations directory has no permission of its own: it is open to anyone who may use one of the integrations.
-  const directory = $derived(page.url.pathname === integrationsHref);
-  const roleAllows = $derived(
-    section
-      ? can(data.user, section.permission)
-      : directory
-        ? directoryVisible(data.user, shell?.features())
-        : visibleSettingsSections(data.user).length > 0,
-  );
+  // The Settings home has no permission of its own: it is open to anyone who may use one of the settings it lists.
+  const features = $derived(shell?.features() ?? {});
+  const roleAllows = $derived(section ? can(data.user, section.permission) : visibleSettingsSections(data.user, features).length > 0);
   // API keys and webhooks reach every job, so a person on Only jobs they're on cannot use them whatever their role says.
   const jobsAllow = $derived(!section?.allJobs || seesAllJobs(data.user));
   const permitted = $derived(roleAllows && jobsAllow);
   // Slack's page exists only where a Slack app is set up (A3): an address to it elsewhere goes to the first page the person
   // may use, once the shell has heard that Slack is off. While that loads nothing is drawn or decided for someone who may
   // use the page; anyone else already has their answer, and without an organization the shell never asks.
-  const features = $derived(shell?.features() ?? {});
   const hidden = $derived(Boolean(section?.feature) && features[section!.feature!] === false);
   const waiting = $derived(permitted && Boolean(section?.feature) && featureWaits(features, section!.feature!));
-  // Someone whose only integration is Slack has no directory until the shell hears that Slack is on: wait, never refuse.
-  const directoryWaits = $derived(directory && !roleAllows && featureWaits(features, 'slack') && directoryVisible(data.user, { ...features, slack: true }));
-  const pending = $derived(hidden || waiting || directoryWaits);
+  // Someone whose only setting is Slack has no home until the shell hears that Slack is on: wait, never refuse.
+  const homeWaits = $derived(!section && !roleAllows && featureWaits(features, 'slack') && visibleSettingsSections(data.user, { ...features, slack: true }).length > 0);
+  const pending = $derived(hidden || waiting || homeWaits);
   const allowed = $derived(permitted && !pending);
-  // A refused page is titled with the sidebar item it was reached from.
-  const title = $derived(settingsAreaOf(page.url.pathname) ?? 'Settings');
+  // A refused page is titled with the setting it was reached from.
+  const title = $derived(section?.label ?? 'Settings');
   $effect(() => {
     if (hidden) void goto(visibleSettingsSections(data.user, features)[0]?.href ?? '/', { replaceState: true });
   });
@@ -55,7 +48,7 @@
 {#if allowed}
   {@render children()}
 {:else if !pending}
-  <TopBar crumbs={[{ label: title }]} />
+  <TopBar crumbs={settingsCrumbs(page.url.pathname)} />
 
   <main class="flex flex-col">
     <HeaderBand form {title} />

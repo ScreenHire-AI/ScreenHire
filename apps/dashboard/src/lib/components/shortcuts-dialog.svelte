@@ -4,14 +4,15 @@
   import { Label } from '#lib/components/ui/label/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
-  import { sections } from '#lib/shell.js';
+  import type { CurrentUser } from '@screenhire/api-client';
+  import { sectionsFor } from '#lib/shell.js';
   import { hasModifier, isTypingTarget, shortcutGroups } from '#lib/shortcuts.js';
 
   // Every keyboard shortcut, and the switch for the single-key ones (design system section 15). `?` opens it unless
   // single-key shortcuts are off; the command palette opens it either way.
-  let { open = $bindable(false) }: { open?: boolean } = $props();
+  let { open = $bindable(false), user }: { open?: boolean; /** The signed-in person: Go to Verification is listed only for a role that may. */ user?: CurrentUser | null } = $props();
 
-  const groups = shortcutGroups(sections);
+  const groups = $derived(shortcutGroups(sectionsFor(user)));
   const id = $props.id();
 
   function onkeydown(event: KeyboardEvent) {

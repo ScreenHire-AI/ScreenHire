@@ -11,6 +11,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
@@ -66,7 +67,7 @@
   <title>Billing · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Organization' }, { label: 'Billing' }]} />
+<TopBar crumbs={settingsCrumbs('/settings/billing')} />
 
 <main class="flex flex-col">
   <HeaderBand title="Billing" oneRow>

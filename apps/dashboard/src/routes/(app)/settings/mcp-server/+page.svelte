@@ -23,6 +23,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -129,10 +130,10 @@
   <title>MCP server · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'MCP server' }]} back />
+<TopBar crumbs={settingsCrumbs('/settings/mcp-server')} back />
 
 <main>
-  <HeaderBand title="MCP server" />
+  <HeaderBand title="MCP server" oneRow />
 
   <SettingsMenu>
     <p role="status" class="sr-only">{announcement}</p>

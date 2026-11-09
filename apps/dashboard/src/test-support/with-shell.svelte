@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Component } from 'svelte';
+  import type { SendingDomainMark } from '#lib/sending-domain.js';
   import type { SettingsFeatures } from '#lib/settings.js';
   import { setShell } from '#lib/shell.js';
 
@@ -10,7 +11,14 @@
     props = {},
     features = {},
     openCalendar = () => {},
-  }: { component: Component<any>; props?: Record<string, unknown>; features?: SettingsFeatures; openCalendar?: () => void } = $props();
+    sendingDomainMark,
+  }: {
+    component: Component<any>;
+    props?: Record<string, unknown>;
+    features?: SettingsFeatures;
+    openCalendar?: () => void;
+    sendingDomainMark?: SendingDomainMark;
+  } = $props();
 
   setShell({
     openPalette: () => {},
@@ -19,6 +27,7 @@
     openCalendar: () => openCalendar(),
     live: () => 'connected',
     features: () => features,
+    sendingDomainMark: () => sendingDomainMark,
   });
 </script>
 

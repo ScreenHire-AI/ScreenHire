@@ -282,14 +282,17 @@ use" says how many. Each create, change and delete runs under the member lock, l
 role's change history ([change-history.md](change-history.md)). A custom role's description is generated from its
 permissions (`RolePermissions.Summarize`), so it always says what the role allows.
 
-The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is three sidebar items, Organization,
-Hiring setup and Integrations, each shown for anyone whose role has a permission for at least one page in it and opening the
-first page they may use. Under `/settings/*`, Organization holds General, Team, Roles and Data requests; Hiring setup holds Careers site,
-Branding, Verification and Email domain; Integrations holds Slack, MCP server, Webhooks and API keys, reached from a directory at
-`/settings/integrations` (email templates are on the Templates page, and their old `/settings/email-templates` addresses redirect
-there). The first two share the Settings menu, which lists only the pages of the area; each page is behind its permission
-(`settingsSections` and `settingsAreas` in `apps/dashboard/src/lib/settings.ts`, the integrations from `integrations` in
-`apps/dashboard/src/lib/integrations.ts`), and the command palette lists the same pages. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
+The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item, shown for anyone whose
+role has a permission for at least one setting, and it opens the Settings home at `/settings`: every setting the role may use, in
+three groups, with a search box that reads each setting's name, its one line and a short list of everyday words. Under
+`/settings/*`, Organization holds General, Team, Roles, Email domain, Data requests and Billing; Careers site holds Careers page and
+Branding; Integrations holds Slack, MCP server, Webhooks and API keys. Email templates are on the Templates page, and their old
+`/settings/email-templates` addresses redirect there; the old Integrations directory (`/settings/integrations`) redirects to the home.
+Verification is a sidebar item of its own at `/verification`, for anyone with Edit settings, and `/settings/verification` and
+`/settings/integrity` redirect to it. A page's menu lists only the pages of its group, and its breadcrumb is Settings, the group and
+the page; each page is behind its permission (`settingsSections` and `settingsGroups` in `apps/dashboard/src/lib/settings.ts`, the
+integrations from `integrations` in `apps/dashboard/src/lib/integrations.ts`), and the command palette finds the same settings by the
+same words (`searchSettings`). Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
 settings row, `SettingsFeatures`), and so is Email domain's wherever `GET /v1/organization/sending-domain` says
 there is no email provider (shown until that answer says so, and kept when the request fails), and an address to either goes to the first page the person may use. The settings layout tells anyone who opens another page by its address that their role cannot change it.
 Hiring controls show by the permission their route needs: an Interviewer sees Add note and Fill scorecard but no Move.

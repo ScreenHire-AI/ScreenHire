@@ -5,8 +5,8 @@
     createGetCalendar,
     createGetOrganizationSendingDomain,
     createGetSlack,
-    createListApplications,
     createListJobs,
+    createListTasks,
     createListViews,
     getGetApplicationQueryOptions,
     getGetEmailTemplateQueryOptions,
@@ -21,7 +21,6 @@
   import { onDestroy } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
   import { goto } from '$app/navigation';
-  import { clock } from '#lib/clock.svelte.js';
   import AppSidebar from '#lib/components/app-sidebar.svelte';
   import CommandPalette from '#lib/components/command-palette.svelte';
   import NotificationSettingsSheet from '#lib/components/notification-settings-sheet.svelte';
@@ -42,8 +41,9 @@
   import { startLiveUpdates } from '#lib/realtime.js';
   import { sidebarViews } from '#lib/sidebar-views.js';
   import { can } from '#lib/permissions.js';
+  import { sendingDomainMark } from '#lib/sending-domain.js';
   import { billingFeature, slackFeature } from '#lib/settings.js';
-  import { sections, setShell } from '#lib/shell.js';
+  import { sectionsFor, setShell } from '#lib/shell.js';
   import { createChordHandler } from '#lib/shortcuts.js';
   import { defaultNotificationSettings } from '#lib/teammate-changes.js';
   import { TeammateToasts } from '#lib/teammate-toasts.js';
@@ -177,6 +177,8 @@
     },
     openCalendar: () => (calendarOpen = true),
     live: () => live.connection.status,
+    // Missing until the answer is in, and for anyone who may not ask: the Settings home marks the domain only while something is left to do.
+    sendingDomainMark: () => (sendingDomain.data ? sendingDomainMark(sendingDomain.data.data.domain) : undefined),
     features: () => ({
       slack: slackFeature(slack.data?.data, slack.isError),
       // A failed query says nothing about the feature, so the entry stays and the page reports the failure.
@@ -185,7 +187,8 @@
     }),
   });
 
-  const chords = createChordHandler(Object.fromEntries(sections.map((section) => [section.key, section.href])), (href) => void goto(href));
+  // A chord reads the sections this person may go to, so G V does nothing for a role without Verification.
+  const chords = $derived(createChordHandler(Object.fromEntries(sectionsFor(data.user).map((section) => [section.key, section.href])), (href) => void goto(href)));
 
   function onkeydown(event: KeyboardEvent) {
     if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k') {
@@ -199,9 +202,8 @@
     }
   }
 
-  // The Views list: the built-in views and the saved ones, each with its count from the same list the candidates page
-  // shows, so they agree and update live. A deleted view's Undo is offered in the notice below the page.
-  const applications = createListApplications();
+  // The Views list: the built-in views and the saved ones, with no counts (design system I2, T4). A deleted view's Undo is
+  // offered in the notice below the page.
   const savedViewList = createListViews();
   const jobList = createListJobs();
   const undo = new UndoOffer();
@@ -210,11 +212,13 @@
     sidebarViews({
       saved: savedViewList.data?.data.views ?? [],
       hiddenBuiltIns: savedViewList.data?.data.hiddenBuiltIns ?? [],
-      applications: applications.data?.data,
-      now: clock.now,
       jobTitles: Object.fromEntries((jobList.data?.data ?? []).map((job) => [job.id, job.title])),
     }),
   );
+
+  // The person's own open tasks, for the count after My tasks. Live updates invalidate it with the tasks page's lists.
+  const myTasks = createListTasks(() => ({ status: 'Open', scope: 'Mine' }), () => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
+  const openTasks = $derived(myTasks.data?.data.length);
 
   // Slack, for the Slack account item in each person's menu (docs/architecture/slack.md); it changes rarely.
   const slack = createGetSlack(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
@@ -237,7 +241,7 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {views} {viewActions} slack={slack.data?.data} calendar={calendar.data?.data} bind:calendarOpen />
+  <AppSidebar user={data.user} {views} {viewActions} slack={slack.data?.data} calendar={calendar.data?.data} {openTasks} bind:calendarOpen />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>
@@ -255,4 +259,4 @@
 />
 <p role="status" class="sr-only">{announcement}</p>
 <CommandPalette bind:open={paletteOpen} />
-<ShortcutsDialog bind:open={shortcutsOpen} />
+<ShortcutsDialog bind:open={shortcutsOpen} user={data.user} />

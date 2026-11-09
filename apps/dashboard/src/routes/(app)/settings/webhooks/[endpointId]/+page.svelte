@@ -31,6 +31,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import Fact from '#lib/components/fact.svelte';
@@ -183,7 +184,7 @@
   <title>{title} · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'Webhooks', href: '/settings/webhooks' }, { label: title }]} back />
+<TopBar crumbs={settingsCrumbs('/settings/webhooks', { label: title })} back />
 
 <main class={['flex flex-col', sidebar.isMobile && detail && !detail.enabled && 'pb-28']}>
   {#if endpoint.isError && !detail}

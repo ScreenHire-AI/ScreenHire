@@ -32,6 +32,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
@@ -166,10 +167,10 @@
   <title>Slack · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'Slack' }]} back />
+<TopBar crumbs={settingsCrumbs('/settings/slack')} back />
 
 <main class="flex flex-col">
-  <HeaderBand title="Slack">
+  <HeaderBand title="Slack" oneRow>
     {#snippet status()}
       {#if connected && settings}<StatusBadge {...workspaceStatus(settings.problem)} />{/if}
     {/snippet}

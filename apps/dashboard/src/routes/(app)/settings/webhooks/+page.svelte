@@ -21,6 +21,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -80,11 +81,12 @@
   <title>Webhooks · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'Webhooks' }]} back />
+<TopBar crumbs={settingsCrumbs('/settings/webhooks')} back />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
     title="Webhooks"
+    oneRow
     count={endpoints.isSuccess ? list.length : undefined}
     countLabel={list.length === 1 ? 'endpoint' : 'endpoints'}
     actions={sidebar.isMobile ? undefined : addButton}

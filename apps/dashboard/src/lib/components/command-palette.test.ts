@@ -1,19 +1,28 @@
-import type { SearchResults } from '@screenhire/api-client';
+import type { CurrentUser, SearchResults } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goto } from '$app/navigation';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
-import { user } from '../../test-support/fixtures.js';
+import { user, userAs } from '../../test-support/fixtures.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import CommandPalette from './command-palette.svelte';
 
-vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/') } }));
+const state = vi.hoisted(() => ({ signedIn: undefined as CurrentUser | undefined }));
+vi.mock('$app/state', () => ({
+  page: {
+    get data() {
+      return { user: state.signedIn ?? user };
+    },
+    url: new URL('http://dashboard.test/'),
+  },
+}));
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
 
 // bits-ui scrolls the highlighted option into view, which jsdom does not implement.
 Element.prototype.scrollIntoView ??= () => {};
 
 afterEach(() => {
+  state.signedIn = undefined;
   vi.unstubAllGlobals();
   vi.mocked(goto).mockClear();
 });
@@ -58,7 +67,7 @@ describe('command palette', () => {
     expect(within(palette).queryByText('Screening')).toBeNull();
   });
 
-  it('still goes to Saved candidates, now the Saved choice on Candidates, and finds every settings page and the Integrations directory', async () => {
+  it('still goes to Saved candidates, now the Saved choice on Candidates', async () => {
     const { palette, input } = renderPalette();
 
     await fireEvent.input(input, { target: { value: 'saved' } });
@@ -66,17 +75,63 @@ describe('command palette', () => {
     await waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates?list=saved'));
   });
 
-  it('finds a settings page by its area as well as its name, and opens the Integrations directory', async () => {
+  const optionNames = (palette: HTMLElement) => within(palette).getAllByRole('option').map((option) => option.textContent?.trim() ?? '');
+
+  it('finds a settings page by its group as well as its name', async () => {
     const { palette, input } = renderPalette();
 
-    await fireEvent.input(input, { target: { value: 'hiring setup' } });
-    expect(
-      (await within(palette).findAllByRole('option')).map((option) => option.textContent?.trim()).filter((name) => ['Careers site', 'Branding', 'Verification', 'Email domain'].includes(name ?? '')),
-    ).toEqual(['Careers site', 'Branding', 'Verification', 'Email domain']);
+    await fireEvent.input(input, { target: { value: 'careers site' } });
+    await within(palette).findByRole('option', { name: /^Branding/ });
+    expect(optionNames(palette).filter((name) => /^(Careers page|Branding)/.test(name))).toEqual(['Careers page Careers site', 'Branding Careers site']);
 
+    // Slack is there only where the installation has a Slack app (A3), which this shell does not report.
     await fireEvent.input(input, { target: { value: 'integrations' } });
-    await fireEvent.click(await within(palette).findByRole('option', { name: 'Integrations' }));
-    await waitFor(() => expect(goto).toHaveBeenCalledWith('/settings/integrations'));
+    await within(palette).findByRole('option', { name: /^Webhooks/ });
+    expect(optionNames(palette).filter((name) => /Integrations$/.test(name))).toEqual(['MCP server Integrations', 'Webhooks Integrations', 'API keys Integrations']);
+    await fireEvent.click(within(palette).getByRole('option', { name: /^Webhooks/ }));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/settings/webhooks'));
+  });
+
+  it('finds a setting by the same words as Settings search: its everyday words, and every word typed', async () => {
+    const { palette, input } = renderPalette();
+
+    await fireEvent.input(input, { target: { value: 'send email' } });
+    expect((await within(palette).findAllByRole('option', { name: /^Email domain/ })).length).toBe(1);
+    expect(within(palette).queryByRole('option', { name: /^Branding/ })).toBeNull();
+
+    await fireEvent.input(input, { target: { value: 'logo' } });
+    await fireEvent.click(await within(palette).findByRole('option', { name: /^Branding/ }));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/settings/branding'));
+  });
+
+  it('goes to Settings, the home that lists every setting', async () => {
+    const { palette, input } = renderPalette();
+
+    await fireEvent.input(input, { target: { value: 'go to settings' } });
+    await fireEvent.click(await within(palette).findByRole('option', { name: 'Settings' }));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/settings'));
+  });
+
+  it('goes to Verification, which has its own place in the sidebar and the G chords', async () => {
+    const { palette, input } = renderPalette();
+
+    await fireEvent.input(input, { target: { value: 'go to verification' } });
+    const option = await within(palette).findByRole('option', { name: /^Verification/ });
+    expect([...option.querySelectorAll('kbd[data-slot="kbd"]')].map((key) => key.textContent)).toEqual(['G', 'V']);
+    await fireEvent.click(option);
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/verification'));
+  });
+
+  it('offers a role with no settings no Settings and no Verification', async () => {
+    state.signedIn = userAs('Recruiter');
+    const { palette, input } = renderPalette();
+
+    await fireEvent.input(input, { target: { value: 'settings' } });
+    await fireEvent.input(input, { target: { value: 'verification' } });
+    await waitFor(() => expect(within(palette).queryByRole('option', { name: /^Verification/ })).toBeNull());
+    await fireEvent.input(input, { target: { value: 'logo' } });
+    await waitFor(() => expect(within(palette).queryByRole('option', { name: /^Branding/ })).toBeNull());
+    expect(within(palette).queryByRole('option', { name: 'Settings' })).toBeNull();
   });
 
   it('searches the server once typing pauses, from two characters, and never loads the lists', async () => {

@@ -8,12 +8,12 @@ import { preferences } from '../preferences.svelte.js';
 
 vi.mock('$app/state', () => ({ page: { url: new URL('http://dashboard.test/candidates?view=needs-review') } }));
 
-const viewCounts = { 'needs-review': 2, 'verification-recommended': 1, overdue: 5, 'new-today': 4, 'not-screened': 3, interviewing: 0 };
 const sidebar = () => document.querySelector<HTMLElement>('[data-slot="sidebar"]');
 const tooltip = () => document.querySelector('[data-slot="tooltip-content"]');
 const main = () => screen.getByRole('navigation', { name: 'Main' });
-// The fixture user is an Owner, so the sidebar ends with the three Settings areas; their pages are in the Settings menu.
-const settings = ['Organization', 'Hiring setup', 'Integrations'];
+// The fixture user is an Owner, so the sidebar has Verification after Reports and ends with the one Settings item, which
+// opens the Settings home; the settings themselves are listed there, and in each group's menu.
+const views = ['To review', 'To verify', 'Overdue', 'New today', 'Not screened', 'Interviewing'];
 
 // jsdom does not navigate; the sheet closing is what these tests watch, not the page change.
 const stopNavigation = (event: MouseEvent) => event.preventDefault();
@@ -27,44 +27,33 @@ afterEach(() => {
 
 // The frame every signed-in page sits in, at each size class of the design system (section 8).
 describe('app shell', () => {
-  it('shows the full sidebar from lg: icons and labels, marks only on the status views, count pills', async () => {
+  it('shows the full sidebar from lg: icons and labels, plain view icons, no view counts, one Settings item', async () => {
     stubViewport(1280);
-    render(ShellHarness, { props: { user, viewCounts } });
+    render(ShellHarness, { props: { user, openTasks: 3 } });
 
     expect(sidebar()).toHaveAttribute('data-state', 'expanded');
     const links = within(main()).getAllByRole('link');
-    expect(links.map((link) => link.textContent?.trim())).toEqual([
-      'Jobs',
-      'Candidates',
-      'Templates',
-      'My tasks',
-      'Reports',
-      'To review 2',
-      'To verify 1',
-      'Overdue 5',
-      'New today 4',
-      'Not screened 3',
-      'Interviewing 0',
-      ...settings,
-    ]);
-    // Navigation pairs an icon with its label (I1); status icons mark the verification and Overdue views only (I2).
-    const marks = links.map((link) => link.querySelector('[data-status-icon]')?.getAttribute('data-status-icon') ?? (link.querySelector('svg') ? 'icon' : null));
-    expect(marks).toEqual(['icon', 'icon', 'icon', 'icon', 'icon', 'eye', 'id-card', 'clock-alert', 'icon', 'icon', 'icon', ...settings.map(() => 'icon')]);
-    // Each area opens its first page; Saved candidates is no item, since it is a choice on the Candidates page.
-    expect(screen.getByRole('link', { name: 'Organization' })).toHaveAttribute('href', '/settings/organization');
-    expect(screen.getByRole('link', { name: 'Hiring setup' })).toHaveAttribute('href', '/settings/careers-site');
-    expect(screen.getByRole('link', { name: 'Integrations' })).toHaveAttribute('href', '/settings/integrations');
-    expect(within(main()).queryByRole('link', { name: 'Saved candidates' })).toBeNull();
-    expect(within(main()).queryByRole('link', { name: 'Team' })).toBeNull();
-    expect(within(links[5]!).getByText('2')).toHaveAttribute('data-slot', 'badge');
-    expect(screen.getByRole('link', { name: /^To review/ })).toHaveAttribute('aria-current', 'page');
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['Jobs', 'Candidates', 'Templates', 'My tasks 3', 'Reports', 'Verification', ...views, 'Settings']);
+    // Navigation pairs an icon with its label (I1); no view has a status icon, so I2 holds even for To verify and Overdue.
+    expect(main().querySelector('[data-status-icon]')).toBeNull();
+    expect(links.every((link) => link.querySelector('svg'))).toBe(true);
+    expect(screen.getByRole('link', { name: 'Verification' })).toHaveAttribute('href', '/verification');
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
+    // Settings and its groups are not items of their own, and neither is Saved candidates (a choice on the Candidates page).
+    for (const name of ['Organization', 'Hiring setup', 'Careers site', 'Integrations', 'Team', 'Saved candidates']) {
+      expect(within(main()).queryByRole('link', { name })).toBeNull();
+    }
+    // Only My tasks has a count, in the grey count badge after its label.
+    expect([...main().querySelectorAll('[data-slot="badge"]')].map((badge) => badge.textContent)).toEqual(['3']);
+    expect(within(links[3]!).getByText('3')).toHaveAttribute('data-slot', 'badge');
+    expect(screen.getByRole('link', { name: 'To review' })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
     await expectNoAxeViolations();
   });
 
   it('is an icon rail at md, with each label in a tooltip', async () => {
     stubViewport(768);
-    render(ShellHarness, { props: { user, viewCounts } });
+    render(ShellHarness, { props: { user } });
 
     expect(sidebar()).toHaveAttribute('data-state', 'collapsed');
     expect(sidebar()).toHaveAttribute('data-collapsible', 'icon');
@@ -82,13 +71,13 @@ describe('app shell', () => {
 
   it('puts the sidebar in a sheet behind the menu button on phones, which a link closes', async () => {
     stubViewport(390);
-    render(ShellHarness, { props: { user, viewCounts } });
+    render(ShellHarness, { props: { user } });
 
     expect(screen.queryByRole('navigation', { name: 'Main' })).toBeNull();
     await fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
 
     const sheet = await screen.findByRole('dialog', { name: 'Navigation' });
-    expect(within(sheet).getAllByRole('link', { name: /^To review/ })).toHaveLength(1);
+    expect(within(sheet).getAllByRole('link', { name: 'To review' })).toHaveLength(1);
     await expectNoAxeViolations();
 
     await fireEvent.click(within(sheet).getByRole('link', { name: 'Jobs' }));
@@ -185,30 +174,34 @@ describe('app shell', () => {
     expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull();
   });
 
-  it('shows no count pills while the applications load', () => {
+  it('shows no count after My tasks while it loads or at none', () => {
     stubViewport(1280);
-    render(ShellHarness, { props: { user, viewCounts: {} } });
+    const { unmount } = render(ShellHarness, { props: { user } });
+    expect(main().querySelector('[data-slot="badge"]')).toBeNull();
+    unmount();
 
-    const links = within(main()).getAllByRole('link');
-    expect(links.map((link) => link.textContent?.trim()).slice(5)).toEqual([
-      'To review',
-      'To verify',
-      'Overdue',
-      'New today',
-      'Not screened',
-      'Interviewing',
-      ...settings,
-    ]);
+    render(ShellHarness, { props: { user, openTasks: 0 } });
     expect(main().querySelector('[data-slot="badge"]')).toBeNull();
   });
 
-  it.each(['Recruiter', 'Viewer'] as const)('shows a %s no settings: no permission of theirs opens one', (role) => {
-    stubViewport(1280);
-    render(ShellHarness, { props: { user: userAs(role), viewCounts } });
+  it('keeps Settings one item in the icon rail, with its label in a tooltip', async () => {
+    stubViewport(768);
+    render(ShellHarness, { props: { user } });
 
-    for (const name of ['Organization', 'Hiring setup', 'Integrations']) expect(within(main()).queryByRole('link', { name })).toBeNull();
-    // The five sections (My tasks and Reports included) and the six saved views.
-    expect(within(main()).getAllByRole('link')).toHaveLength(11);
+    const settings = within(main()).getByRole('link', { name: 'Settings' });
+    await fireEvent.focus(settings);
+
+    await waitFor(() => expect(tooltip()).toHaveTextContent('Settings'));
+    expect(within(main()).getByRole('link', { name: 'Verification' })).toBeInTheDocument();
+  });
+
+  it.each(['Recruiter', 'Viewer'] as const)('shows a %s no Settings and no Verification: no permission of theirs opens either', (role) => {
+    stubViewport(1280);
+    render(ShellHarness, { props: { user: userAs(role) } });
+
+    for (const name of ['Settings', 'Verification']) expect(within(main()).queryByRole('link', { name })).toBeNull();
+    // The five sections (My tasks and Reports included) and the six views.
+    expect(within(main()).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual(['Jobs', 'Candidates', 'Templates', 'My tasks', 'Reports', ...views]);
   });
 
   it('shows a label cut with an ellipsis in full in a tooltip in the full sidebar (F5)', async () => {
@@ -222,13 +215,13 @@ describe('app shell', () => {
     });
     try {
       stubViewport(1280);
-      render(ShellHarness, { props: { user, viewCounts } });
+      render(ShellHarness, { props: { user } });
 
-      await fireEvent.focus(within(main()).getByRole('link', { name: /^To verify/ }));
-      await waitFor(() => expect(tooltip()).toHaveTextContent('To verify, 1'));
+      await fireEvent.focus(within(main()).getByRole('link', { name: 'To verify' }));
+      await waitFor(() => expect(tooltip()).toHaveTextContent('To verify'));
       expect(tooltip()).not.toHaveAttribute('hidden');
 
-      await fireEvent.focus(within(main()).getByRole('link', { name: /^New today/ }));
+      await fireEvent.focus(within(main()).getByRole('link', { name: 'New today' }));
       await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]:not([hidden])')).toBeNull());
     } finally {
       delete (HTMLElement.prototype as { scrollWidth?: number }).scrollWidth;

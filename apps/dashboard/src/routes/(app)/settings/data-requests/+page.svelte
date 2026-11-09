@@ -41,6 +41,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -320,7 +321,7 @@
   <title>Data requests · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Organization' }, { label: 'Data requests' }]} />
+<TopBar crumbs={settingsCrumbs('/settings/data-requests')} />
 
 <main class={[sidebar.isMobile && 'pb-6']}>
   <HeaderBand title="Data requests" count={openCount} oneRow>
