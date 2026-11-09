@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import css from '../../../packages/ui/src/tokens.css?raw';
+import css from '@screenhire/ui/tokens.css?raw';
 
 // The colours axe cannot judge, from the tokens, in both themes (design system 3.1 to 3.5). axe's colour-contrast rule reads
 // text only, so the end-to-end walk of every page in the dark theme (DashboardThemeTests) does not see a focus ring, a status
