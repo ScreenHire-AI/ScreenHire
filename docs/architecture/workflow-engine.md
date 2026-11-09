@@ -328,10 +328,12 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     condition that reads tags) is offered only if `breaks` finds it creates no refused step anywhere in the workflow, so
     after a check the step list is those three, a stage whose own automations also only ask for a closer look, and the line
     "A check can only ask for a closer look. A person decides.". The sentence never adds a rejection; AI-use and
-    accommodation are not facts, so they are never offered as conditions. The API's validator still checks every save.
+    accommodation are not facts, so they are never offered as conditions. The API's validator still checks every save. The
+    sets `checkSafeActions` and `checkSafeStageKinds` copy `SignalSafeActions` and `SignalSafeStages`, and
+    `timeLimitActions` copies `SlaBreachActions`: change them together, or the sentence offers what the save refuses.
   - **Recipes.** `#lib/automation-recipes.ts` builds ready-made automations from the template's own questions and stages,
     in three groups. A recipe is hidden when the workflow already has an automation that does the same thing (`covers`:
-    the same trigger and conditions and at least its actions) or one with its id `recipe-<key>`, and when adding it
+    the same trigger and conditions and at least its actions) or one with its id `recipe-<key>` (cut, with a short hash of the key, to the validator's 40 characters), and when adding it
     would create a refused step.
 - **Questionnaire:** the apply form and each follow-up questionnaire, chosen with toggles, in the form builder
   (`#lib/components/form-builder.svelte`, design system section 11): a row per question that opens to edit, with its

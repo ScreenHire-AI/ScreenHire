@@ -57,6 +57,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/reorder-list.svelte
   - resource: apps/dashboard/src/lib/components/leave-dialog.svelte
   - resource: apps/dashboard/src/routes/(dev)/style-guide/template-builder-demo.svelte
+  - resource: apps/dashboard/src/routes/(dev)/style-guide/automation-demo.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-sheet.svelte
   - resource: apps/dashboard/src/lib/components/workflow/journey-overview.svelte
   - resource: apps/dashboard/src/lib/components/workflow/test-drive.svelte
