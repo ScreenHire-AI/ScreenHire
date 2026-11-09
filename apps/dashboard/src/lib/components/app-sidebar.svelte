@@ -330,6 +330,9 @@
                 <DropdownMenu.Item onSelect={() => ((slackOutcome = ''), (slackOpen = true))}>Slack account</DropdownMenu.Item>
               {/if}
               <DropdownMenu.Separator />
+              <DropdownMenu.Item>
+                {#snippet child({ props })}<a {...props} href="/account/passkeys">Passkeys</a>{/snippet}
+              </DropdownMenu.Item>
               <DropdownMenu.Item onSelect={signOutAndRedirect}>Sign out</DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Root>

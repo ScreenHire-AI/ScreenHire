@@ -49,20 +49,33 @@ describe('formatSalary', () => {
 describe('jobFacts', () => {
   const job = { location: 'London, England, GB', workplaceType: 'Hybrid', employmentType: 'FullTime', salaryMin: 60_000, salaryMax: 75_000, salaryCurrency: 'GBP' };
 
-  it('lists where, how, the contract and the pay, in that order', () => {
-    expect(jobFacts(job)).toEqual(['London, England, GB', 'Hybrid', 'Full-time', '£60k–£75k']);
+  it('lists place, contract and pay, in that order, and never more than three', () => {
+    expect(jobFacts(job)).toEqual(['London, England, GB (Hybrid)', 'Full-time', '£60k–£75k']);
+    expect(jobFacts(job).length).toBeLessThanOrEqual(3);
   });
 
   it('leaves the pay out when there is none', () => {
-    expect(jobFacts({ ...job, salaryMin: null, salaryMax: null })).toEqual(['London, England, GB', 'Hybrid', 'Full-time']);
+    expect(jobFacts({ ...job, salaryMin: null, salaryMax: null })).toEqual(['London, England, GB (Hybrid)', 'Full-time']);
+  });
+
+  it('names an on-site job by its address alone', () => {
+    expect(jobFacts({ ...job, workplaceType: 'Onsite' })).toEqual(['London, England, GB', 'Full-time', '£60k–£75k']);
   });
 
   it('does not say remote twice when the location already does', () => {
     expect(jobFacts({ ...job, location: 'Remote (GB, IE)', workplaceType: 'Remote' })).toEqual(['Remote (GB, IE)', 'Full-time', '£60k–£75k']);
   });
 
-  it('keeps the workplace type when the location does not name it', () => {
-    expect(jobFacts({ ...job, location: 'Lisbon, PT', workplaceType: 'Remote' })).toContain('Remote');
+  it('keeps the workplace type in the place when the location does not name it', () => {
+    expect(jobFacts({ ...job, location: 'Lisbon, PT', workplaceType: 'Remote' })[0]).toBe('Lisbon, PT (Remote)');
+  });
+
+  it('shows the workplace type alone when a hybrid job has no address yet', () => {
+    expect(jobFacts({ ...job, location: '' })).toEqual(['Hybrid', 'Full-time', '£60k–£75k']);
+  });
+
+  it('shows no empty chip for an on-site job with no address', () => {
+    expect(jobFacts({ ...job, location: '', workplaceType: 'Onsite', salaryMin: null, salaryMax: null })).toEqual(['Full-time']);
   });
 });
 

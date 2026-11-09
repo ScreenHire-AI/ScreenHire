@@ -59,6 +59,72 @@ describe('edit job details page', () => {
     );
   });
 
+  describe('short summary', () => {
+    const following = { ...job, summary: 'Build things.', summaryFollowsDescription: true } as unknown as JobDetail;
+    const written = { ...job, summary: 'Own the payments service.', summaryFollowsDescription: false } as unknown as JobDetail;
+
+    const savedBody = (fetchMock: ReturnType<typeof renderPage>) => {
+      const put = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT');
+      return JSON.parse(String(put?.[1]?.body)) as { summary: string | null };
+    };
+
+    it('shows the first sentence of the description with the hint until someone edits it', async () => {
+      renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(following) });
+
+      const form = await screen.findByRole('form', { name: 'Edit job details' });
+      const field = within(form).getByLabelText(/^Short summary/);
+      expect(field).toHaveValue('Build things.');
+      expect(field).toHaveAttribute('maxlength', '160');
+      expect(field).toHaveAccessibleDescription(/About the job, not the company\. Up to 160 characters\..*Until you edit it, it is the description's first sentence\./);
+    });
+
+    it('saves an untouched default as nothing, so it keeps following the description', async () => {
+      const fetchMock = renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(following), [`PUT /v1/jobs/${jobId}`]: () => Response.json(following) });
+
+      const form = await screen.findByRole('form', { name: 'Edit job details' });
+      await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
+
+      await waitFor(() => expect(navigation.goto).toHaveBeenCalled());
+      expect(savedBody(fetchMock).summary).toBeNull();
+    });
+
+    it('saves what was typed, and says no more about following the description once it is written', async () => {
+      const fetchMock = renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(written), [`PUT /v1/jobs/${jobId}`]: () => Response.json(written) });
+
+      const form = await screen.findByRole('form', { name: 'Edit job details' });
+      const field = within(form).getByLabelText(/^Short summary/);
+      expect(field).toHaveValue('Own the payments service.');
+      expect(field).not.toHaveAccessibleDescription(/Until you edit it/);
+      await fireEvent.input(field, { target: { value: '  Run the payments service.  ' } });
+      await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
+
+      await waitFor(() => expect(navigation.goto).toHaveBeenCalled());
+      expect(savedBody(fetchMock).summary).toBe('Run the payments service.');
+    });
+
+    it('saves a cleared summary as nothing, which goes back to following the description', async () => {
+      const fetchMock = renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(written), [`PUT /v1/jobs/${jobId}`]: () => Response.json(written) });
+
+      const form = await screen.findByRole('form', { name: 'Edit job details' });
+      await fireEvent.input(within(form).getByLabelText(/^Short summary/), { target: { value: '' } });
+      await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
+
+      await waitFor(() => expect(navigation.goto).toHaveBeenCalled());
+      expect(savedBody(fetchMock).summary).toBeNull();
+    });
+
+    it('refuses more than 160 characters in the field, and saves nothing', async () => {
+      const fetchMock = renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(written) });
+
+      const form = await screen.findByRole('form', { name: 'Edit job details' });
+      await fireEvent.input(within(form).getByLabelText(/^Short summary/), { target: { value: 'a'.repeat(161) } });
+      await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
+
+      expect(await within(form).findByText('Keep the summary to 160 characters or fewer.')).toBeInTheDocument();
+      expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+    });
+  });
+
   it('keeps the form and what was typed when a refetch fails', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     let failing = false;

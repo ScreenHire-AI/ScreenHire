@@ -54,7 +54,7 @@ public sealed class BillingPublishCheckTests(AppHostFixture fixture)
         var options = Options.Create(new BillingOptions { Sandbox = new BillingSandboxOptions { Enabled = true } });
         options.Value.Plans["starter"] = new PlanOptions { ActiveJobs = 1 };
         var time = new FixedTime(At);
-        var access = new BillingAccess(options, new StripeBillingProvider(options, new PlanCatalogue(options)), new SandboxBillingProvider(new EphemeralDataProtectionProvider(), time));
+        var access = new BillingAccess(options, new StripeBillingProvider(options, new PlanCatalogue(options)), new SandboxBillingProvider(new EphemeralDataProtectionProvider(), time, options));
         var service = new BillingService(db, access, new PlanCatalogue(options), new OpenJobCounter(root.GetRequiredService<IServiceScopeFactory>()), options, time);
 
         return await service.CheckPublishAsync(organization, jobId, Ct);

@@ -15,6 +15,7 @@ import type { BillingState } from './billingState.ts';
  * `nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.
  * `openJobs` counts the jobs open now and `activeJobLimit` is the plan's limit, null when it has none.
  * `canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.
+ * `taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".
  */
 export interface BillingOverview {
   available: boolean;
@@ -32,5 +33,6 @@ export interface BillingOverview {
   /** @nullable */
   activeJobLimit: number | null;
   canManage: boolean;
+  taxAtCheckout: boolean;
   plans: BillingPlan[];
 }

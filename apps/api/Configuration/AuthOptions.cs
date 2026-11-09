@@ -29,6 +29,14 @@ public sealed class AuthOptions
     public int PermitsPerMinute { get; set; } = 100;
 
     /// <summary>
+    /// Requests per minute per client IP address to the two anonymous passkey sign-in routes. Lower than
+    /// <see cref="PermitsPerMinute"/> because a person needs two requests to sign in, and because nothing in
+    /// Development raises it: the integration tests reach it with an address of their own.
+    /// </summary>
+    [Range(1, 10_000)]
+    public int PasskeyPermitsPerMinute { get; set; } = 20;
+
+    /// <summary>
     /// The reverse proxies in front of the API whose <c>X-Forwarded-For</c> is believed, besides loopback (the
     /// dashboard's own <c>/v1</c> proxy): IP addresses or networks in CIDR form, and an entry may list several separated by
     /// commas (one environment variable carries them). Without the deployed proxy here, every visitor shares the proxy's

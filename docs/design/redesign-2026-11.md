@@ -150,4 +150,4 @@ The owner approved these, and any similar change that follows from the decisions
 - **Built-in AI.** Organizations use ScreenHire's key by default and pay for the tokens they use at the provider's price plus a margin. The margin is configuration, defaulting to 20%. Customers may bring their own key instead and pay us nothing for AI.
 - **Usage and caps.** Every model call is recorded with the provider's request ID, so a customer can compare our bill with the provider's. Owners get alerts at 50%, 80% and 100% of a monthly budget. An Owner can set a hard monthly cap: at the cap the AI checks pause, the rule-based checks keep running, and the candidate page says the AI checks were paused.
 - **Who sees usage.** AI usage, costs and the call-by-call log are for Owners and Admins only. Every member who can see verification results still sees each candidate's results.
-- **Passkeys.** Wanted, as a second way to sign in beside the email link and SSO, after billing.
+- **Passkeys.** A faster way to sign in beside the email link and SSO. Built; the decisions and threat notes are in [sign-in and tenancy](../architecture/sign-in-and-tenancy.md#passkeys).

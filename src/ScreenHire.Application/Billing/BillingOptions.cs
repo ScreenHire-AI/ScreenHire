@@ -22,6 +22,12 @@ public sealed class BillingOptions
     /// <summary>The local fake provider (<see cref="SandboxBillingProvider"/>): Development and tests only.</summary>
     public BillingSandboxOptions Sandbox { get; set; } = new();
 
+    /// <summary>Stripe's settings, <c>Stripe:*</c>, other than its keys. <c>Stripe:Enabled</c> is the AppHost's and never binds here.</summary>
+    public BillingStripeOptions Stripe { get; set; } = new();
+
+    /// <summary>Whether Checkout asks a business for its tax id: only with tax on, and unless switched off.</summary>
+    public bool CollectTaxIds => Stripe.Tax.Enabled && Stripe.Tax.CollectTaxIds;
+
     /// <summary>The free trial every new organization starts with.</summary>
     public BillingTrialOptions Trial { get; set; } = new();
 
@@ -49,6 +55,26 @@ public sealed class BillingOptions
 public sealed class BillingSandboxOptions
 {
     public bool Enabled { get; set; }
+}
+
+public sealed class BillingStripeOptions
+{
+    /// <summary>Stripe Tax at Checkout, <c>Stripe:Tax:*</c>. Off until the owner has registered in Stripe Tax.</summary>
+    public BillingTaxOptions Tax { get; set; } = new();
+}
+
+/// <summary>
+/// <c>ScreenHire:Billing:Stripe:Tax</c>. Stripe collects tax only where the owner has a registration in Stripe Tax, so this
+/// is off until the owner has confirmed those (docs/architecture/billing.md, Owner actions). It applies to Stripe Checkout and,
+/// as a record that tax was asked for, to the sandbox's.
+/// </summary>
+public sealed class BillingTaxOptions
+{
+    /// <summary>Checkout calculates tax automatically and collects the billing address it needs.</summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>With <see cref="Enabled"/>, Checkout also collects the customer's business tax id. On unless set to false.</summary>
+    public bool CollectTaxIds { get; set; } = true;
 }
 
 public sealed class BillingTrialOptions

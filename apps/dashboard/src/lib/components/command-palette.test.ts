@@ -75,6 +75,15 @@ describe('command palette', () => {
     await waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates?list=saved'));
   });
 
+  it('opens the passkeys page from the actions', async () => {
+    const { palette, input } = renderPalette();
+
+    await fireEvent.input(input, { target: { value: 'passkey' } });
+    await fireEvent.click(await within(palette).findByRole('option', { name: 'Manage passkeys' }));
+
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/account/passkeys'));
+  });
+
   const optionNames = (palette: HTMLElement) => within(palette).getAllByRole('option').map((option) => option.textContent?.trim() ?? '');
 
   it('finds a settings page by its group as well as its name', async () => {

@@ -58,7 +58,7 @@ public sealed class EmbedTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // The frame shows the board in the organization's branding, as tall as the page inside it.
         var frame = await WidgetFrameAsync();
-        await Expect(frame.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync($"Open roles at {Organization}");
+        await Expect(frame.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Open roles");
         var mark = frame.GetByRole(AriaRole.Banner).Locator("span[aria-hidden='true']").First;
         (await mark.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor")).Should().Be("rgb(31, 78, 90)");
         await Expect(Page.Locator("iframe.screenhire-careers")).ToHaveAttributeAsync("title", $"Jobs at {Organization}");
