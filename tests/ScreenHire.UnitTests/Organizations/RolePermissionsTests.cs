@@ -111,6 +111,8 @@ public sealed partial class RolePermissionsTests
         ["DisconnectSlack"] = Permission.ManageIntegrations,
         ["StartBillingCheckout"] = Permission.ManageBilling,
         ["OpenBillingPortal"] = Permission.ManageBilling,
+        ["PreviewBillingPlanChange"] = Permission.ManageBilling,
+        ["ChangeBillingPlan"] = Permission.ManageBilling,
         ["GetBilling"] = Permission.ManageBilling,
         ["EraseCandidate"] = Permission.EraseCandidates,
         ["ListDataRequests"] = Permission.EraseCandidates,

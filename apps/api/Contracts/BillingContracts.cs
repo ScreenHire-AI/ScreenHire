@@ -34,5 +34,20 @@ public sealed record BillingPlan(string Key, string Name, decimal? MonthlyPrice,
 /// <summary>The plan to subscribe to, by its key from the plan list.</summary>
 public sealed record StartBillingCheckoutRequest(string Plan);
 
+/// <summary>The plan to price a switch to, by its key from the plan list.</summary>
+public sealed record PreviewBillingPlanChangeRequest(string Plan);
+
+/// <summary>
+/// What switching the live subscription to <c>plan</c> costs, in <c>currency</c>. <c>amountDueNow</c> is the prorated difference
+/// charged when the owner confirms (0 when the new plan costs less: the credit stays on the account), then
+/// <c>nextPaymentAmount</c> a month on <c>nextPaymentAt</c>. <c>prorationDate</c> is the instant both were priced at; send it back
+/// with the confirmation so the charge is the one shown.
+/// </summary>
+public sealed record BillingPlanChangePreview(
+    string Plan, decimal AmountDueNow, decimal NextPaymentAmount, DateTimeOffset NextPaymentAt, string Currency, DateTimeOffset ProrationDate);
+
+/// <summary>Confirms the switch to <c>plan</c> priced at <c>prorationDate</c>, as the preview returned it.</summary>
+public sealed record ChangeBillingPlanRequest(string Plan, DateTimeOffset ProrationDate);
+
 /// <summary>Where to send the browser next: the payment provider's page, or the sandbox's.</summary>
 public sealed record BillingRedirect(string Url);
