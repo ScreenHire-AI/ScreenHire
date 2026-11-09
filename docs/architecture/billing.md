@@ -300,7 +300,7 @@ The test stacks pin nothing: they sell the plans in `plans.json`, and a test tha
 ## Not built
 
 - Reminders before the trial ends, by email or in the app.
-- Tax: Stripe Tax and the collection of tax ids are not set up (an owner action).
+- Tax: Stripe Tax and the collection of tax ids are not set up (an owner action; see [billing providers](../research/billing-providers.md) for what Stripe Tax does and does not do).
 - A list of invoices or receipts; Stripe's portal has them.
 - Amounts read from Stripe except in a plan change's preview. The rest of the page shows the catalogue's price and Stripe
   charges its own.
