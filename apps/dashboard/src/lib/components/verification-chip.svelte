@@ -1,64 +1,66 @@
 <script lang="ts">
+  import Hint from '#lib/components/hint.svelte';
+  import LevelMark from '#lib/components/level-mark.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
-  import { assessmentNames, pendingLevel, type AssessmentKind, type LevelView } from '#lib/verification.js';
   import { statuses } from '#lib/status.js';
+  import type { VerificationState } from '#lib/verification.js';
 
-  // One assessment's level as a chip: its status icon, colour and words, always together (design system T1). AI
-  // assistance is information: the sparkles icon in its own colour, never a warning. The words are the level's category;
-  // there is never a score or a percentage (ADR-0004).
+  // A verification state as one word (design system section 3.2): Clear, Review, Verify, and the muted Pending and
+  // Dismissed. Review and Verify are a filled badge with the level mark and the word; Clear, Pending and Dismissed are
+  // quiet, an icon and a muted word, so a calm row says little (T3). The long names ("Review suggested") are
+  // screen-reader text. There is never a score or a percentage (ADR-0004).
   let {
-    kind,
-    level = null,
+    state,
     reasons = 0,
-    dismissed = false,
-    compact = false,
-    hideCalm = false,
+    size = 'sm',
+    tooltip,
   }: {
-    kind: AssessmentKind;
-    /** Null while the checks are pending. */
-    level?: LevelView | null;
+    state: VerificationState;
     /**
      * How many reason codes raised the level. Screen readers hear it in the chip's description; it is not shown, because a
      * bare number after the chip says nothing on its own, and the reasons themselves live on the Verification tab (W6).
      */
     reasons?: number;
-    /** A reviewer dismissed the assessment; the level stays as it was assessed. */
-    dismissed?: boolean;
+    /** The candidate's header is larger than a table cell. */
+    size?: 'sm' | 'lg';
     /**
-     * Lists, tables and the board: the short words ("Some signs"), and calm states quiet (T3). Only an authenticity level
-     * above the lowest that no reviewer has dismissed gets a filled badge: AI assistance is information, so it stays quiet.
+     * What the tooltip says. The header passes the level's name and nothing more; Dismissed says by whom and why when the
+     * page knows (the list row only knows it was dismissed). Without one, no tooltip and no tab stop, so a table's rows
+     * keep their own.
      */
-    compact?: boolean;
-    /**
-     * Calm says nothing (design system section 21): the lowest level of an assessment that no one needs to look at shows
-     * no words, only its description for screen readers. A pending check is not calm, so it still shows.
-     */
-    hideCalm?: boolean;
+    tooltip?: string;
   } = $props();
 
-  const shown = $derived(level ?? pendingLevel);
-  const words = $derived(compact ? shown.short : shown.label);
-  const hidden = $derived(hideCalm && level !== null && shown.rank === 0);
-  const quiet = $derived(compact && (shown.rank <= 0 || dismissed || kind === 'aiAssistance'));
-  const description = $derived(
-    `${assessmentNames[kind]}: ${shown.label}` +
-      (reasons > 0 ? `, ${reasons} ${reasons === 1 ? 'reason' : 'reasons'}` : '') +
-      (dismissed ? ', dismissed after review' : ''),
-  );
+  const marked = $derived(state.kind === 'review' || state.kind === 'verify');
+  const description = $derived(`Verification: ${state.label}` + (reasons > 0 ? `, ${reasons} ${reasons === 1 ? 'reason' : 'reasons'}` : ''));
+  const shownTooltip = $derived(tooltip ?? (state.kind === 'dismissed' ? state.label : undefined));
+  const tone = $derived(statuses[state.status].tone);
+  const height = $derived(size === 'lg' ? 'h-7' : 'h-6');
 </script>
 
-{#if hidden}
-  <span class="sr-only" data-verification-chip={kind} data-level={shown.label} data-calm>{description}</span>
-{:else}
-  <span class="inline-flex items-center gap-1.5" data-verification-chip={kind} data-level={level ? shown.label : 'pending'} data-quiet={quiet || undefined}>
-    <Badge variant={quiet ? 'quiet' : statuses[shown.status].tone} class={['h-6 gap-1.5', !quiet && 'pr-2.5 pl-2']}>
-      <StatusIcon status={shown.status} />
-      <span aria-hidden="true">{words}</span>
-      <span class="sr-only">{description}</span>
-    </Badge>
-    {#if dismissed}
-      <span aria-hidden="true" class="text-caption text-muted-foreground">Dismissed</span>
+{#snippet chip(props: Record<string, unknown>)}
+  <span {...props} class="inline-flex items-center gap-1.5" data-verification-chip data-level={state.kind} data-quiet={marked ? undefined : true}>
+    {#if marked && (state.kind === 'review' || state.kind === 'verify')}
+      <Badge variant={tone} class={[height, 'gap-1.5 pr-2.5 pl-2', size === 'lg' && 'text-body']}>
+        <LevelMark steps={state.steps || 2} tone={state.kind} size={size} />
+        <span aria-hidden="true">{state.word}</span>
+        <span class="sr-only">{description}</span>
+      </Badge>
+    {:else}
+      <Badge variant="quiet" class={[height, 'gap-1.5', size === 'lg' && 'text-body']}>
+        <StatusIcon status={state.status} />
+        <span aria-hidden="true">{state.word}</span>
+        <span class="sr-only">{description}</span>
+      </Badge>
     {/if}
   </span>
+{/snippet}
+
+{#if shownTooltip}
+  <Hint content={shownTooltip}>
+    {#snippet children({ props })}{@render chip(props)}{/snippet}
+  </Hint>
+{:else}
+  {@render chip({})}
 {/if}

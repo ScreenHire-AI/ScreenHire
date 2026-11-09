@@ -61,25 +61,27 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         // The chips arrive with VerificationAssessed, in the page that was already open. Levels as in the golden files
         // (tests/ScreenHire.UnitTests/Verification/Golden); the farm's reason counts differ from them because these
         // submissions answer only the resume question, which makes 20 seconds a plausible time to complete the form.
-        await Expect(Chip(genuine.FullName, "authenticity")).ToContainTextAsync("Authenticity: No concerns", Assessed);
-        await Expect(Chip(bot.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested, 6 reasons", Assessed);
-        await Expect(Chip(farmFirst.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
-        await Expect(Chip(farmSecond.FullName, "authenticity")).ToContainTextAsync("Authenticity: Verification suggested", Assessed);
-        await Expect(Chip(bot.FullName, "aiAssistance")).ToContainTextAsync("AI assistance: No signs of AI help");
+        await Expect(Chip(genuine.FullName)).ToContainTextAsync("Verification: No concerns", Assessed);
+        await Expect(Chip(bot.FullName)).ToContainTextAsync("Verification: Verification suggested, 6 reasons", Assessed);
+        await Expect(Chip(farmFirst.FullName)).ToContainTextAsync("Verification: Verification suggested", Assessed);
+        await Expect(Chip(farmSecond.FullName)).ToContainTextAsync("Verification: Verification suggested", Assessed);
+        // No signs of AI help draws no mark: the AI mark shows only for Some and Strong signs.
+        await Expect(Page.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = bot.FullName, Exact = true }) }).Locator("[data-ai-mark]")).ToHaveCountAsync(0);
+        await Expect(Chip(bot.FullName)).ToContainTextAsync("Verify");
         (await Page.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the chips updated in place");
 
-        var legend = Page.GetByRole(AriaRole.Group, new() { Name = "Authenticity" });
-        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "No concerns 1" })).ToBeVisibleAsync();
-        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" })).ToBeVisibleAsync();
+        var legend = Page.GetByRole(AriaRole.Group, new() { Name = "Verification" });
+        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "Clear 1" })).ToBeVisibleAsync();
+        await Expect(legend.GetByRole(AriaRole.Button, new() { Name = "Verify 3" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-verification-job-light");
 
         // The legend filters the table to one level, and a second press shows everyone again.
         var table = Page.GetByRole(AriaRole.Table, new() { Name = $"Candidates for {scene.Title}" });
-        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" }).ClickAsync();
+        await legend.GetByRole(AriaRole.Button, new() { Name = "Verify 3" }).ClickAsync();
         await Expect(CandidateLinks(table)).ToHaveCountAsync(3);
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = genuine.FullName })).ToHaveCountAsync(0);
-        await legend.GetByRole(AriaRole.Button, new() { Name = "Verification suggested 3" }).ClickAsync();
+        await legend.GetByRole(AriaRole.Button, new() { Name = "Verify 3" }).ClickAsync();
         await Expect(CandidateLinks(table)).ToHaveCountAsync(4);
 
         // The bot's Verification tab: reasons, evidence, the next step and the AI policy, and nothing that decides.
@@ -265,9 +267,10 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
     }
 
-    private ILocator Chip(string candidate, string kind) =>
+    // The row's one Verification state, in one word; its long name is the chip's screen-reader text ("Verification: Verification suggested").
+    private ILocator Chip(string candidate) =>
         Page.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = candidate, Exact = true }) })
-            .Locator($"[data-verification-chip='{kind}']");
+            .Locator("[data-verification-chip]");
 
     // Waits until every analyzer has run on the application, content forensics included, as the integration tests'
     // SettledAsync does: eight analyzers (VerificationRegistration).

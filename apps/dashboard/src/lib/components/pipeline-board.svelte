@@ -10,6 +10,7 @@
   import { SvelteSet } from 'svelte/reactivity';
   import { dndzone, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
   import { goto } from '$app/navigation';
+  import AiMark from '#lib/components/ai-mark.svelte';
   import VerificationChip from '#lib/components/verification-chip.svelte';
   import ApplicationMenu from '#lib/components/application-menu.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
@@ -18,7 +19,7 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { clock } from '#lib/clock.svelte.js';
   import { initials } from '#lib/format.js';
-  import { chipOf } from '#lib/verification.js';
+  import { aiMarkOf, stateOf } from '#lib/verification.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { hasModifier } from '#lib/shortcuts.js';
   import { isOverdue } from '#lib/sla.js';
@@ -197,10 +198,10 @@
           onfinalize={(event) => onfinalize(column.stage, event)}
         >
           {#each column.cards as card (card.id)}
-            {@const authenticity = chipOf(card.verification, 'authenticity')}
-            {@const ai = chipOf(card.verification, 'aiAssistance')}
+            {@const state = stateOf(card.verification)}
+            {@const ai = aiMarkOf(card.verification)}
             <!-- Calm says nothing (section 21): the status row shows only what needs a look or is still waiting. -->
-            {@const showStatus = isOverdue(card, clock.now) || !authenticity || authenticity.level.rank > 0 || (ai !== null && ai.level.rank > 0)}
+            {@const showStatus = isOverdue(card, clock.now) || state.kind !== 'clear' || ai !== undefined}
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions: svelte-dnd-action makes each card focusable (tabindex 0) and draggable; these keys are its non-drag alternative -->
             <li
               data-card-id={card.id}
@@ -225,17 +226,10 @@
                 <!-- Status first (T2); the column already says the stage. Overdue is the team's status and leads. -->
                 <span class="flex flex-wrap items-center gap-1.5">
                   <OverdueBadge dueAt={card.slaDueAt} />
-                  <VerificationChip
-                    kind="authenticity"
-                    compact
-                    hideCalm
-                    level={authenticity?.level ?? null}
-                    reasons={authenticity?.reasons ?? 0}
-                    dismissed={authenticity?.dismissed ?? false}
-                  />
-                  {#if ai && ai.level.rank > 0}
-                    <VerificationChip kind="aiAssistance" compact level={ai.level} reasons={ai.reasons} dismissed={ai.dismissed} />
+                  {#if state.kind !== 'clear'}
+                    <VerificationChip {state} reasons={card.verification?.authenticityReasons.length ?? 0} />
                   {/if}
+                  <AiMark level={ai} />
                 </span>
               {/if}
               <span class="flex items-center gap-2">

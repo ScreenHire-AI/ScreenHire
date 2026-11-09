@@ -8,8 +8,8 @@ namespace ScreenHire.E2E;
 /// <summary>
 /// Scheduling an interview from the candidate's page (docs/architecture/interview-scheduling.md): a recruiter connects the
 /// sandbox calendar from the account menu, offers the candidate times from the Schedule interview sheet with a teammate,
-/// the candidate books one on the careers page, and the page shows the booked time once in its header and the interview
-/// in the Overview panel, from which the recruiter cancels it. Each test signs in as a new person with a new
+/// the candidate books one on the careers page, and the Overview's Interview panel shows the booked time first, with the
+/// interviewers, and is where the recruiter cancels it. The header carries nothing about the interview. Each test signs in as a new person with a new
 /// organization and sets up everything else through the API, the way the dashboard does.
 /// </summary>
 public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -97,11 +97,11 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await sheet.GetByRole(AriaRole.Button, new() { Name = "Send invitation" }).ClickAsync();
         await Expect(sheet).ToHaveCountAsync(0);
 
-        // The Overview says it is waiting for the candidate, and nothing is in the header yet.
+        // The Overview says it is waiting for the candidate, and there is no booked time yet.
         var panel = Page.GetByRole(AriaRole.Region, new() { Name = "Interview", Exact = true });
         await Expect(panel).ToContainTextAsync("Waiting for the candidate");
-        var length = header.GetByText("30 minutes with 2 interviewers");
-        await Expect(length).ToHaveCountAsync(0);
+        var booked = panel.Locator("time");
+        await Expect(booked).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await ShotsAsync("schedule-interview-open");
 
@@ -122,16 +122,19 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
             await Expect(candidatePage.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
         }
 
-        // The page that was open learns of it live: the time is in the header's Interview card, said once, and the panel
-        // lists the interviewers, with a link to the meeting once the organizer's calendar made it.
-        await Expect(length).ToBeVisibleAsync(new() { Timeout = 30_000 });
-        var time = await length.Locator("xpath=preceding-sibling::p[1]").InnerTextAsync();
+        // The page that was open learns of it live: the booked time is the panel's first fact, after its Booked badge, with the
+        // length, and the header does not carry it. The panel lists the interviewers, with a link to the meeting once the
+        // organizer's calendar made it.
+        await Expect(booked).ToBeVisibleAsync(new() { Timeout = 30_000 });
+        var time = await booked.InnerTextAsync();
+        await Expect(panel).ToContainTextAsync(new Regex($"Booked\\s*{Regex.Escape(time)}\\s*30 minutes\\s*{Regex.Escape(ownerName)}"));
         var people = panel.GetByRole(AriaRole.List, new() { Name = "Interviewers" });
         await Expect(people).ToContainTextAsync(new Regex($"{Regex.Escape(ownerName)}\\s*Organizer"));
         await Expect(people).ToContainTextAsync(teammateName);
         await Expect(panel.GetByRole(AriaRole.Link, new() { NameRegex = new("^Join the meeting") })).ToBeVisibleAsync(new() { Timeout = 30_000 });
         await Expect(panel).Not.ToContainTextAsync("calendar yet", new() { Timeout = 30_000 });
-        await Expect(panel).Not.ToContainTextAsync(time);
+        await Expect(header).Not.ToContainTextAsync(time);
+        await Expect(header).Not.ToContainTextAsync("30 minutes");
         await ExpectNoAccessibilityViolationsAsync();
         await ShotsAsync("schedule-interview-booked");
 
@@ -156,14 +159,14 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await Expect(offer).ToHaveCountAsync(0);
         await Expect(panel).ToContainTextAsync("Waiting for a new time", new() { Timeout = 30_000 });
         await Expect(panel).ToContainTextAsync("The booked time stays until Riley Chen picks one.");
-        await Expect(length).ToBeVisibleAsync();
+        await Expect(booked).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await WaitForEmailAsync(candidate, "New times to talk");
         await Page.GotoAsync($"{applicationUrl}?tab=activity");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity", Exact = true })).ToContainTextAsync("Offered new times for the interview on", new() { Timeout = 30_000 });
         await Page.GotoAsync(applicationUrl);
 
-        // Cancelling is in the panel's menu, behind a dialog; the header's time goes and the panel says how it ended.
+        // Cancelling is in the panel's menu, behind a dialog; the booked time goes and the panel says how it ended.
         await panel.GetByRole(AriaRole.Button, new() { Name = "Interview actions" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Cancel interview" }).ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Cancel this interview?" });
@@ -175,7 +178,7 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Cancel interview" }).ClickAsync();
         await Expect(dialog).ToHaveCountAsync(0);
         await Expect(panel).ToContainTextAsync("was cancelled");
-        await Expect(length).ToHaveCountAsync(0);
+        await Expect(booked).ToHaveCountAsync(0);
         await Expect(panel.GetByRole(AriaRole.Button, new() { Name = "Interview actions" })).ToHaveCountAsync(0);
         await Expect(header.GetByRole(AriaRole.Button, new() { Name = "Schedule interview" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();

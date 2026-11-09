@@ -16,7 +16,7 @@ export const completesByHand = (kind: ApplicationTaskKind): boolean => kind === 
 /**
  * Where a task's work is done, for My tasks: a requested scorecard opens the candidate's Scorecards tab with the sheet
  * open on that scorecard, and a review with the sheet open on the scorecard for the stage they are in, since submitting
- * any scorecard finishes it. Every other task opens the candidate's Overview, where Next steps has it.
+ * any scorecard finishes it. Every other task opens the candidate's Overview, where Needs you has it.
  */
 export function taskHref(task: { applicationId: string; kind: ApplicationTaskKind; scorecardTemplateId?: string | null }): string {
   const candidate = `/applications/${task.applicationId}`;
@@ -41,7 +41,7 @@ interface Completable {
 }
 
 /**
- * Completing tasks, as every task list does it: My tasks and an application's Next steps. Ticking a task marks it done
+ * Completing tasks, as every task list does it: My tasks and an application's Needs you panel. Ticking a task marks it done
  * on the server at once, so leaving the page keeps it done, and the row stays in its list, ticked, with Undo for 10
  * seconds; Undo opens it again on the server. Afterwards both lists refetch; other dashboards get it through
  * ApplicationTaskCompleted and ApplicationTaskReopened. Neither changes anything about the application. Call during

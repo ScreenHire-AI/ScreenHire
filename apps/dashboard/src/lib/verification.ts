@@ -25,8 +25,6 @@ import type { StatusName } from '#lib/status.js';
 export interface LevelView {
   /** The level in words, always in full (section 16): "Verification suggested", "Some signs of AI help". */
   label: string;
-  /** The words in a table's cell, where the column header names the assessment: "Some signs". */
-  short: string;
   /** The status the level shows as: its icon and colour (section 3.2). */
   status: StatusName;
   /** 0 for the lowest level; sorting puts the highest first. */
@@ -34,17 +32,17 @@ export interface LevelView {
 }
 
 export const authenticityLevels: Record<AuthenticityLevel, LevelView> = {
-  NoConcerns: { label: 'No concerns', short: 'No concerns', status: 'done', rank: 0 },
-  ReviewSuggested: { label: 'Review suggested', short: 'Review suggested', status: 'review', rank: 1 },
-  VerificationRecommended: { label: 'Verification suggested', short: 'Verification suggested', status: 'verification', rank: 2 },
+  NoConcerns: { label: 'No concerns', status: 'done', rank: 0 },
+  ReviewSuggested: { label: 'Review suggested', status: 'review', rank: 1 },
+  VerificationRecommended: { label: 'Verification suggested', status: 'verification', rank: 2 },
 };
 
 // AI assistance is information, not a status, so every level takes the AI colour and the sparkles icon, and the words
-// carry the level. In a table "No signs" is quiet, so a column of them does not draw the eye.
+// carry the level. In lists only Some and Strong signs show, as the bare AI mark (`aiMarkOf`).
 export const aiAssistanceLevels: Record<AiAssistanceLevel, LevelView> = {
-  NotIndicated: { label: 'No signs of AI help', short: 'No signs', status: 'ai', rank: 0 },
-  SomeIndicators: { label: 'Some signs of AI help', short: 'Some signs', status: 'ai', rank: 1 },
-  StrongIndicators: { label: 'Strong signs of AI help', short: 'Strong signs', status: 'ai', rank: 2 },
+  NotIndicated: { label: 'No signs of AI help', status: 'ai', rank: 0 },
+  SomeIndicators: { label: 'Some signs of AI help', status: 'ai', rank: 1 },
+  StrongIndicators: { label: 'Strong signs of AI help', status: 'ai', rank: 2 },
 };
 
 /** Each assessment's levels from lowest to highest, the order legends and menus list them in. */
@@ -97,24 +95,82 @@ export function checkSummaries(signals: readonly VerificationSignalView[]): Chec
     .map(({ category, title, signals: found }) => ({ category, title, signals: found }));
 }
 
-/** An application whose checks have not finished: the API sends no verification summary yet. */
-export const pendingLevel: LevelView = { label: 'Checks pending', short: 'Checks pending', status: 'working', rank: -1 };
-
 export type AssessmentKind = 'authenticity' | 'aiAssistance';
 
 export const assessmentNames: Record<AssessmentKind, string> = { authenticity: 'Authenticity', aiAssistance: 'AI assistance' };
 
-/** One assessment's chip data from a list row's summary, or null while the checks are pending. */
-export function chipOf(summary: VerificationSummary | null | undefined, kind: AssessmentKind) {
-  if (!summary) return null;
-  return kind === 'authenticity'
-    ? { level: authenticityLevels[summary.authenticity], reasons: summary.authenticityReasons.length, dismissed: summary.authenticityDismissed }
-    : { level: aiAssistanceLevels[summary.aiAssistance], reasons: summary.aiAssistanceReasons.length, dismissed: summary.aiAssistanceDismissed };
+/**
+ * The one word a verification state shows as, everywhere a level shows (design system section 3.2): Clear, Review or
+ * Verify, and the muted Pending and Dismissed. They are categories, never scores (ADR-0004).
+ */
+export type VerificationStateKind = 'clear' | 'review' | 'verify' | 'pending' | 'dismissed';
+
+export interface VerificationState {
+  kind: VerificationStateKind;
+  /** The word on screen. */
+  word: string;
+  /** The long name, for screen readers: "Review suggested", "Verification suggested". */
+  label: string;
+  /** The status the state shows as: its icon (Review and Verify draw the level mark in its place) and colour. */
+  status: StatusName;
+  /** How many of the level mark's three steps are filled; 0 where the state has no mark. */
+  steps: 0 | 2 | 3;
+  /** The level a Dismissed state was assessed at: the level stays as assessed (ADR-0004). */
+  assessedAs?: AuthenticityLevel;
 }
 
-/** The rank the table sorts by; undefined (pending) sorts last either way. */
-export function rankOf(application: ApplicationSummary, kind: AssessmentKind): number | undefined {
-  return chipOf(application.verification, kind)?.level.rank;
+const stateOfLevel: Record<AuthenticityLevel, VerificationState> = {
+  NoConcerns: { kind: 'clear', word: 'Clear', label: 'No concerns', status: 'done', steps: 0 },
+  ReviewSuggested: { kind: 'review', word: 'Review', label: 'Review suggested', status: 'review', steps: 2 },
+  VerificationRecommended: { kind: 'verify', word: 'Verify', label: 'Verification suggested', status: 'verification', steps: 3 },
+};
+
+/** The filter's choices in order, each by its one word: Clear, Review, Verify, then Pending. */
+export const verificationFilterOptions: readonly { value: AuthenticityLevel | 'Pending'; word: string }[] = [
+  ...(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const).map((level) => ({ value: level, word: stateOfLevel[level].word })),
+  { value: 'Pending', word: 'Pending' },
+];
+
+export const pendingState: VerificationState = { kind: 'pending', word: 'Pending', label: 'Checks pending', status: 'working', steps: 0 };
+
+/**
+ * An application's verification state from its list row's summary (or the detail's authenticity level and whether a
+ * reviewer dismissed it). A dismissed result above the lowest level is Dismissed, and `assessedAs` keeps the level it had.
+ * No summary means the checks have not finished.
+ */
+export function verificationStateOf(level: AuthenticityLevel | null | undefined, dismissed: boolean): VerificationState {
+  if (!level) return pendingState;
+  if (dismissed && level !== 'NoConcerns') {
+    return { kind: 'dismissed', word: 'Dismissed', label: `${stateOfLevel[level].label}, dismissed after review`, status: 'notInEffect', steps: 0, assessedAs: level };
+  }
+  return stateOfLevel[level];
+}
+
+export function stateOf(summary: VerificationSummary | null | undefined): VerificationState {
+  return verificationStateOf(summary?.authenticity, summary?.authenticityDismissed ?? false);
+}
+
+/** The rank the Verification column sorts by: Verify, Review, Dismissed, Clear. Pending has none and sorts last either way. */
+const sortRanks: Record<VerificationStateKind, number | undefined> = { verify: 4, review: 3, dismissed: 2, clear: 1, pending: undefined };
+
+export function verificationRank(application: ApplicationSummary): number | undefined {
+  return sortRanks[stateOf(application.verification).kind];
+}
+
+/** Whether the AI mark shows: only Some and Strong signs. It is information and never sorts, filters or counts. */
+export function aiMarkOf(summary: VerificationSummary | null | undefined): AiAssistanceLevel | undefined {
+  const level = summary?.aiAssistance;
+  return level === 'SomeIndicators' || level === 'StrongIndicators' ? level : undefined;
+}
+
+/**
+ * The one sentence the candidate's Overview gives for a verification state that needs a look. It asks for a person's next
+ * step and never speaks of rejecting (ADR-0004). Clear, Pending and Dismissed have none.
+ */
+export function overviewStepOf(state: VerificationState): string | undefined {
+  if (state.kind === 'verify') return 'Confirm who they are on a short video call before interviewing.';
+  if (state.kind === 'review') return 'Read the evidence before the first screen.';
+  return undefined;
 }
 
 /** Authenticity above its lowest level and not dismissed by a reviewer: the "Needs review" queue. */
@@ -130,24 +186,21 @@ export function verificationRecommended(application: ApplicationSummary): boolea
 
 /** The candidate table's verification filter; null shows every row. */
 export interface VerificationFilter {
+  /** Clear, Review or Verify, or Pending; AI assistance is information and never filters. */
   authenticity: AuthenticityLevel | 'Pending' | null;
-  aiAssistance: AiAssistanceLevel | null;
 }
 
-export const noVerificationFilter: VerificationFilter = { authenticity: null, aiAssistance: null };
+export const noVerificationFilter: VerificationFilter = { authenticity: null };
 
 export function matchesVerificationFilter(application: ApplicationSummary, filter: VerificationFilter): boolean {
   const verification = application.verification;
-  if (filter.authenticity === 'Pending') {
-    if (verification) return false;
-  } else if (filter.authenticity && verification?.authenticity !== filter.authenticity) {
-    return false;
-  }
-  return !filter.aiAssistance || verification?.aiAssistance === filter.aiAssistance;
+  if (!filter.authenticity) return true;
+  if (filter.authenticity === 'Pending') return !verification;
+  return verification?.authenticity === filter.authenticity;
 }
 
 export function isVerificationFiltered(filter: VerificationFilter): boolean {
-  return Boolean(filter.authenticity || filter.aiAssistance);
+  return Boolean(filter.authenticity);
 }
 
 /**

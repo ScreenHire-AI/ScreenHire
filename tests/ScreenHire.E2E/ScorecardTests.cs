@@ -56,13 +56,19 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(scorecards).ToContainTextAsync("Strong yes by you");
         await Expect(scorecards).ToContainTextAsync("10 of 10");
         await Expect(scorecards).ToContainTextAsync("Testing");
-        var rating = Page.GetByRole(AriaRole.Button, new() { Name = "Rated 4.7 out of 5 from 1 scorecard" });
+        // The header's rating is a link to the Scorecards tab, named by what it says: the number and how many scorecards.
+        var rating = Page.GetByRole(AriaRole.Link, new() { Name = "Rated 4.7 out of 5 from 1 scorecard" });
         await Expect(rating).ToBeVisibleAsync();
+        await Expect(rating).ToHaveAttributeAsync("href", "?tab=scorecards");
         // A filled star is filled: its class is on the svg, and the path inside carries fill="none" as an attribute.
         await Expect(rating.Locator("svg.fill-current path").First).Not.ToHaveCSSAsync("fill", "none");
+        // From Overview, the link opens Scorecards, where the scorecard is.
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Overview") }).ClickAsync();
+        await Expect(Region("Scorecards")).ToContainTextAsync("Strong yes");
         await rating.ClickAsync();
-        await Expect(Page.GetByText("From 1 scorecard", new() { Exact = true })).ToBeVisibleAsync();
-        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(@"\?tab=scorecards$"));
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Scorecards") })).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(scorecards).ToContainTextAsync("Strong yes by you");
         // The automation's move shows on the header's pipeline tracker, where the current stage is marked, and in Activity.
         await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Pipeline", Exact = true }).Locator("[aria-current='step']"))
             .ToContainTextAsync("Offer", new() { Timeout = 30_000 });
@@ -77,7 +83,12 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         // The job's table has a Rating column that sorts, highest first.
         await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}"));
         var table = Page.GetByRole(AriaRole.Table);
-        await Expect(table.GetByRole(AriaRole.Row, new() { NameRegex = new(Candidate) })).ToContainTextAsync("4.7");
+        var row = table.GetByRole(AriaRole.Row, new() { NameRegex = new(Candidate) });
+        await Expect(row).ToContainTextAsync("4.7");
+        // The number alone in the cell; how many scorecards it comes from is in its tooltip.
+        await row.GetByText("4.7").First.HoverAsync();
+        await Expect(Page.GetByText("From 1 scorecard", new() { Exact = true })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
         await table.GetByRole(AriaRole.Button, new() { NameRegex = new("^Rating") }).ClickAsync();
         await Expect(table.GetByRole(AriaRole.Columnheader, new() { NameRegex = new("^Rating") })).ToHaveAttributeAsync("aria-sort", "descending");
         await SaveScreenshotAsync(Page, "dashboard-job-ratings");
