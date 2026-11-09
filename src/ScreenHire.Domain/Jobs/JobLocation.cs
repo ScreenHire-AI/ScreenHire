@@ -36,7 +36,7 @@ public sealed record JobSalary(decimal? Min, decimal? Max, string Currency, Sala
 
 /// <summary>
 /// The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A
-/// <see cref="JobVersion"/> freezes one. Equality compares the content, list members included. <see cref="Summary"/> is
+/// <see cref="JobVersion"/> freezes one. Equality compares the content, list members included. <c>summary</c> is
 /// the written summary only (null while the card follows the description); a version frozen before the field existed has none.
 /// </summary>
 public sealed record JobSnapshot(

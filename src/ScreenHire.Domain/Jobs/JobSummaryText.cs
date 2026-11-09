@@ -28,7 +28,8 @@ public static partial class JobSummaryText
     /// <summary>
     /// The first sentence of the first paragraph of a description (sanitized HTML), at most <see cref="MaxLength"/>
     /// characters. A heading or a list before the first paragraph is skipped. A sentence that is too long is cut at the
-    /// last whole word that fits, with an ellipsis. Empty when the description has no paragraph text.
+    /// last whole word that fits, with an ellipsis. A link keeps its text and drops its address, which the change
+    /// history's plain text adds. Empty when the description has no paragraph text.
     /// </summary>
     public static string FromDescription(string? descriptionHtml)
     {
@@ -37,7 +38,7 @@ public static partial class JobSummaryText
             return "";
         }
 
-        var plain = RichTextToPlain.Convert(Heading().Replace(descriptionHtml, ""));
+        var plain = RichTextToPlain.Convert(Link().Replace(Heading().Replace(descriptionHtml, ""), ""));
         var paragraph = (plain ?? "")
             .Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .FirstOrDefault(block => !ListItem().IsMatch(block));
@@ -60,6 +61,12 @@ public static partial class JobSummaryText
 
         // Room for the ellipsis, then back to the last space so no word is cut in half.
         var room = text[..(MaxLength - Ellipsis.Length)];
+        if (char.IsHighSurrogate(room[^1]))
+        {
+            // Never leave half of an emoji or a supplementary character behind when the text has no space to cut at.
+            room = room[..^1];
+        }
+
         var space = room.LastIndexOf(' ');
         var cut = space > 0 ? room[..space] : room;
         return cut.TrimEnd(' ', ',', ';', ':', '.', '-') + Ellipsis;
@@ -75,7 +82,12 @@ public static partial class JobSummaryText
     [GeneratedRegex(@"^(?:- |\d+\. )")]
     private static partial Regex ListItem();
 
-    // Up to the first full stop, question mark or exclamation mark that ends a word.
-    [GeneratedRegex(@"^.+?[.!?](?=\s|$)")]
+    // An anchor's tags, so a link reads as its text alone.
+    [GeneratedRegex(@"</?a\b[^>]*>", RegexOptions.IgnoreCase)]
+    private static partial Regex Link();
+
+    // Up to the first full stop, question mark or exclamation mark that ends a word and is not followed by a lowercase
+    // word: "Acme Inc. is hiring" and "e.g. plumbers" run on, because a new sentence starts with a capital or a digit.
+    [GeneratedRegex(@"^.+?[.!?](?=\s*$|\s+[^\s\p{Ll}])")]
     private static partial Regex Sentence();
 }

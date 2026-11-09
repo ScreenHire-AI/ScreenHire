@@ -16,6 +16,9 @@ public sealed class JobSummaryTextTests
     [InlineData("<p>Join us!  Then stay.</p>", "Join us!")]
     [InlineData("<p>No full stop at the end</p>", "No full stop at the end")]
     [InlineData("<p>Version 2.5 of the product needs an owner. Apply.</p>", "Version 2.5 of the product needs an owner.")]
+    [InlineData("<p>Acme Inc. is hiring a plumber. Apply.</p>", "Acme Inc. is hiring a plumber.")]
+    [InlineData("<p>Fit kitchens, e.g. worktops and units. Apply.</p>", "Fit kitchens, e.g. worktops and units.")]
+    [InlineData("<p>Fix leaks. 2 years on the tools helps.</p>", "Fix leaks.")]
     public void A_sentence_ends_at_a_full_stop_question_or_exclamation_mark_that_ends_a_word(string html, string expected) =>
         JobSummaryText.FromDescription(html).Should().Be(expected);
 
@@ -42,6 +45,27 @@ public sealed class JobSummaryTextTests
         summary.Length.Should().BeLessThanOrEqualTo(JobSummaryText.MaxLength);
         summary.Should().EndWith("plumbing…", "the cut falls between words");
         summary.TrimEnd('…').Split(' ').Should().OnlyContain(word => word == "plumbing");
+    }
+
+    [Fact]
+    public void A_link_reads_as_its_text_without_its_address()
+    {
+        JobSummaryText.FromDescription("<p>Join <a href=\"https://example.com/team\">our support team</a> in Leeds. More.</p>")
+            .Should().Be("Join our support team in Leeds.");
+    }
+
+    [Fact]
+    public void A_long_run_with_no_space_is_never_cut_inside_a_character()
+    {
+        // An emoji outside the basic plane is two UTF-16 units, so the 159-unit cut would land between its halves.
+        const string Emoji = "\U0001F600";
+        var run = string.Concat(Enumerable.Repeat(Emoji, 100));
+
+        var summary = JobSummaryText.FromDescription($"<p>{run}</p>");
+
+        summary.Length.Should().BeLessThanOrEqualTo(JobSummaryText.MaxLength);
+        summary.Should().EndWith(Emoji + "…");
+        summary.TrimEnd('…').Should().Be(string.Concat(Enumerable.Repeat(Emoji, 79)), "no half of a pair is left behind");
     }
 
     [Fact]

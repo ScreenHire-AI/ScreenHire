@@ -238,7 +238,7 @@
       </Field.Field>
 
       <Field.Field data-invalid={$errors.summary ? true : undefined}>
-        <Field.Label for="job-summary">Short summary</Field.Label>
+        <Field.Label for="job-summary">Short summary <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
         <Textarea
           id="job-summary"
           name="summary"

@@ -2284,7 +2284,7 @@ export const GetJobVersionResponse = zod.object({
 }).describe('A pay range. At least one of decimal? JobSalary.Min and decimal? JobSalary.Max is set; string JobSalary.Currency is ISO 4217.')]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable(),
   "summary": zod.string().nullish()
-}).describe('The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included. string? JobSnapshot.Summary is\nthe written summary only (null while the card follows the description); a version frozen before the field existed has none.')
+}).describe('The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included. `summary` is\nthe written summary only (null while the card follows the description); a version frozen before the field existed has none.')
 }).describe('One published version of a job: the frozen content boards were sent.')
 
 

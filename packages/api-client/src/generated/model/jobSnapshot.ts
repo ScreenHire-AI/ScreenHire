@@ -11,7 +11,7 @@ import type { WorkplaceType } from './workplaceType.ts';
 
 /**
  * The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A
- * JobVersion freezes one. Equality compares the content, list members included. string? JobSnapshot.Summary is
+ * JobVersion freezes one. Equality compares the content, list members included. `summary` is
  * the written summary only (null while the card follows the description); a version frozen before the field existed has none.
  */
 export interface JobSnapshot {

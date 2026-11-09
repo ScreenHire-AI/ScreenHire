@@ -72,7 +72,7 @@ describe('edit job details page', () => {
       renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(following) });
 
       const form = await screen.findByRole('form', { name: 'Edit job details' });
-      const field = within(form).getByLabelText('Short summary');
+      const field = within(form).getByLabelText(/^Short summary/);
       expect(field).toHaveValue('Build things.');
       expect(field).toHaveAttribute('maxlength', '160');
       expect(field).toHaveAccessibleDescription(/About the job, not the company\. Up to 160 characters\..*Until you edit it, it is the description's first sentence\./);
@@ -92,7 +92,7 @@ describe('edit job details page', () => {
       const fetchMock = renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(written), [`PUT /v1/jobs/${jobId}`]: () => Response.json(written) });
 
       const form = await screen.findByRole('form', { name: 'Edit job details' });
-      const field = within(form).getByLabelText('Short summary');
+      const field = within(form).getByLabelText(/^Short summary/);
       expect(field).toHaveValue('Own the payments service.');
       expect(field).not.toHaveAccessibleDescription(/Until you edit it/);
       await fireEvent.input(field, { target: { value: '  Run the payments service.  ' } });
@@ -106,7 +106,7 @@ describe('edit job details page', () => {
       const fetchMock = renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(written), [`PUT /v1/jobs/${jobId}`]: () => Response.json(written) });
 
       const form = await screen.findByRole('form', { name: 'Edit job details' });
-      await fireEvent.input(within(form).getByLabelText('Short summary'), { target: { value: '' } });
+      await fireEvent.input(within(form).getByLabelText(/^Short summary/), { target: { value: '' } });
       await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
 
       await waitFor(() => expect(navigation.goto).toHaveBeenCalled());
@@ -117,7 +117,7 @@ describe('edit job details page', () => {
       const fetchMock = renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(written) });
 
       const form = await screen.findByRole('form', { name: 'Edit job details' });
-      await fireEvent.input(within(form).getByLabelText('Short summary'), { target: { value: 'a'.repeat(161) } });
+      await fireEvent.input(within(form).getByLabelText(/^Short summary/), { target: { value: 'a'.repeat(161) } });
       await fireEvent.click(within(form).getByRole('button', { name: 'Save details' }));
 
       expect(await within(form).findByText('Keep the summary to 160 characters or fewer.')).toBeInTheDocument();
