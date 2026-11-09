@@ -39,7 +39,7 @@ public sealed class VerificationTests(AppHostFixture fixture)
         authenticity.GetProperty("level").GetString().Should().Be("VerificationRecommended");
         authenticity.GetProperty("reasonCodes").EnumerateArray().Select(c => c.GetString()).Should().Contain(
             [SignalCatalogue.Honeypot, SignalCatalogue.Webdriver, SignalCatalogue.DatacenterIp, SignalCatalogue.DisposableEmail, SignalCatalogue.SubmitVelocity]);
-        authenticity.GetProperty("summary").GetString().Should().StartWith("6 observations from network, identity and automation checks");
+        authenticity.GetProperty("summary").GetString().Should().StartWith("6 observations from network, contact details and form use checks");
         authenticity.GetProperty("nextStep").GetString().Should().Contain("not a reason to reject");
         authenticity.GetProperty("rulesetVersion").GetString().Should().Be(VerificationRuleset.Version);
         var datacenter = authenticity.GetProperty("signals").EnumerateArray().Single(s => s.GetProperty("code").GetString() == SignalCatalogue.DatacenterIp);
@@ -50,6 +50,16 @@ public sealed class VerificationTests(AppHostFixture fixture)
         var ai = verification.At("aiAssistance");
         ai.GetProperty("level").GetString().Should().Be("NotIndicated");
         ai.GetProperty("policy").GetString().Should().Be("AllowedWithDisclosure");
+
+        // The tab's map: the six groups in order, each with one state. The bot's network, contact and form findings count.
+        var groups = verification.At("checkGroups").EnumerateArray().ToList();
+        groups.Select(g => g.GetProperty("group").GetString()).Should().Equal("Network", "Contact", "Documents", "Answers", "Duplicates", "FormUse");
+        GroupState(groups, "Network").Should().Be("Found");
+        GroupState(groups, "Contact").Should().Be("Found");
+        GroupState(groups, "FormUse").Should().Be("Found");
+        GroupState(groups, "Duplicates").Should().Be("NothingFound");
+        groups.Should().OnlyContain(g => g.GetProperty("checked").GetString()!.Length > 0 && g.GetProperty("label").GetString()!.Length > 0);
+        datacenter.GetProperty("group").GetString().Should().Be("Network");
 
         // Evidence, not verdicts: no score, no percentage, and never the raw address.
         var raw = verification.Body.GetRawText();
@@ -377,7 +387,33 @@ public sealed class VerificationTests(AppHostFixture fixture)
         (await db.SubmissionObservations.AnyAsync(o => o.ApplicationId == applicationId, Ct)).Should().BeFalse("a recruiter's own address is never recorded for a candidate");
         (await db.VerificationAnalyzerRuns.SingleAsync(r => r.ApplicationId == applicationId && r.Analyzer == "network", Ct))
             .Note.Should().Be("No network address was recorded for this application.");
+
+        // The groups that read the careers form say they had nothing to look at; the others ran and found nothing.
+        var groups = verification.At("checkGroups").EnumerateArray().ToList();
+        GroupState(groups, "Network").Should().Be("NotChecked");
+        GroupState(groups, "FormUse").Should().Be("NotChecked");
+        string[] checkedGroups = ["Contact", "Documents", "Answers", "Duplicates"];
+        checkedGroups.Should().OnlyContain(group => GroupState(groups, group) == "NothingFound");
     }
+
+    [Fact]
+    public async Task An_assistive_technology_applicant_reads_like_any_other_careers_applicant_in_every_group()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await OpenJobAsync(tenant);
+        var plain = await AssessedAsync(tenant, await ApplyAsync(slug, jobId, SyntheticApplicants.GenuineHuman));
+        var withSwitch = await AssessedAsync(tenant, await ApplyAsync(slug, jobId, SyntheticApplicants.HonestAiAssisted, accommodation: true));
+
+        // Nothing marks the switch: no group is Not checked or Turned off for it, so a reader cannot tell it was used.
+        foreach (var verification in new[] { plain, withSwitch })
+        {
+            var groups = verification.At("checkGroups").EnumerateArray().ToList();
+            groups.Select(g => g.GetProperty("state").GetString()).Should().NotContain("NotChecked").And.NotContain("TurnedOff");
+        }
+    }
+
+    private static string? GroupState(IEnumerable<JsonElement> groups, string group) =>
+        groups.Single(g => g.GetProperty("group").GetString() == group).GetProperty("state").GetString();
 
     [Fact]
     public async Task Raw_network_data_is_deleted_once_its_retention_ends_and_the_signals_stay()

@@ -343,9 +343,12 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Files") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Files", Exact = true })).ToContainTextAsync("Morgan Ashdown CV.pdf");
 
-        // Added by hand, so Verification says which checks had nothing to look at, once the checks have run.
+        // Added by hand, so Verification says which groups had nothing to look at, once the checks have run.
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Verification") }).ClickAsync();
-        await Expect(Page.Locator("[data-not-checked]")).ToContainTextAsync("Added by hand", new() { Timeout = 30_000 });
+        var notRun = Page.Locator("[data-not-run]");
+        await Expect(notRun.Locator("[data-group='Network']")).ToContainTextAsync("Not checked", new() { Timeout = 30_000 });
+        await Expect(notRun.Locator("[data-group='Network']")).ToContainTextAsync("Added by hand");
+        await Expect(notRun.Locator("[data-group='FormUse']")).ToContainTextAsync("Not checked");
         await ExpectNoAccessibilityViolationsAsync();
     }
 

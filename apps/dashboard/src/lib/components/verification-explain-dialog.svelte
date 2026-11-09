@@ -13,7 +13,7 @@
   import { explainReasonLabels } from '#lib/verification.js';
   import { cn } from '#lib/utils.js';
 
-  // Marking a reason explained records a person's reading of it in the review log. It changes nothing else: the level,
+  // Marking a reason explained records a person's reading of it in Activity. It changes nothing else: the level,
   // the candidate's status and every list stay as assessed until someone dismisses the assessment (ADR-0004).
   let {
     open = $bindable(false),
@@ -50,12 +50,12 @@
       const response = await explainVerificationReason(applicationId, reason.assessmentId, reason.signalId, { reason: form.data.reason, note });
       if (response.status === 200) {
         open = false;
-        ondone(`Marked explained: ${reason.title}. It is in the review log.`, true);
+        ondone(`Marked explained: ${reason.title}.`, true);
       } else if (response.status === 400) {
         applyValidationProblem(form, response.data);
       } else if (response.status === 409) {
         open = false;
-        ondone('Someone already explained this reason, or the assessment changed. The panel now shows the latest.', false);
+        ondone('Someone already explained this finding, or the result changed. The tab now shows the latest.', false);
       } else {
         form.valid = false;
         form.errors._errors = ["We couldn't record the explanation just now. Try again in a minute."];
@@ -75,7 +75,7 @@
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
       <Dialog.Title>Mark "{reason?.title}" explained?</Dialog.Title>
-      <Dialog.Description>It goes in the review log. The level stays as assessed.</Dialog.Description>
+      <Dialog.Description>It is recorded in Activity. The level stays as assessed.</Dialog.Description>
     </Dialog.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
       <Field.Set>

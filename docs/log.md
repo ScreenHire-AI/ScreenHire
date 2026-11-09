@@ -2,13 +2,19 @@
 
 ## 2026-11-09
 
+**A notifications bell, a Jobs overview, a daily email domain check.** The setup steps moved from the top of Jobs into a bell in
+the top bar, next to alerts the server keeps per person ([notifications](architecture/notifications.md)). Jobs shows four
+numbers in their place: new this week, not screened, interviews this week and open jobs. The worker looks each sending domain up
+again every day and tells the Owners when a verified one stops working. Any handler can notify a person with
+`RaiseNotification`.
+
 **The Scorecards tab is a roster, and My tasks lands on the action.** Scorecards is a sortable table (reviewer, stage, recommendation,
 rating, submitted) whose rows open each scorecard in a side sheet with Previous and Next, and the scorecards asked for that are not
 in yet sit under their own heading. A reviewer with their own scorecard still to give now sees who submitted and when: the
 scorecards list returns those rows with `withheld: true` and no recommendation, rating, answers or note. The review task reads
 "Give your scorecard" (new tasks; existing rows keep their text), so "Review" only means the verification state. The sheet
 says who asked and when, shows the Scorecard select only when more than one fits, says Low and High once, and after Submit
-offers "Open next task". Remind for a waiting scorecard is proposed: nothing sends a teammate a notification yet.
+offers "Open next task". Remind for a waiting scorecard is proposed: it is now a small follow-up, since a handler can notify a person with `RaiseNotification`.
 
 **The audit of the marketing rebuild, fixed.** The workflow picture on the product pages no longer shows a rejection
 review, and the picture of a flagged check, which showed check details the site never states, is gone from the repository.

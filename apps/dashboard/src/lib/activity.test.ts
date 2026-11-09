@@ -37,8 +37,8 @@ describe('activity', () => {
     expect(visibleEntries(entries).map((item) => item.id)).toEqual(['e7', 'e6b', 'e6', 'e5', 'e2', 'e1']);
   });
 
-  it('counts each kind, and the checks only under All', () => {
-    expect(kindCounts(visibleEntries(entries))).toEqual({ all: 6, notes: 2, emails: 2, scorecards: 0, interviews: 0, stage: 1 });
+  it('counts each kind, with the times the checks ran under Verification', () => {
+    expect(kindCounts(visibleEntries(entries))).toEqual({ all: 6, notes: 2, emails: 2, scorecards: 0, interviews: 0, stage: 1, verification: 1 });
   });
 
   it('says a note was deleted and by whom, never what it said', () => {
@@ -65,7 +65,7 @@ describe('activity', () => {
     const task = entry('t', { type: 'TaskCreated', note: 'Check the references', taskId: 't1', actorApiKeyId: 'k1', actorApiKeyName: 'Assistant' });
     expect(describeEvent(task, names)).toBe('Created a task');
     expect(actorText(task, [], undefined)).toBe('by Assistant');
-    expect(kindCounts([task])).toEqual({ all: 1, notes: 0, emails: 0, scorecards: 0, interviews: 0, stage: 0 });
+    expect(kindCounts([task])).toEqual({ all: 1, notes: 0, emails: 0, scorecards: 0, interviews: 0, stage: 0, verification: 0 });
   });
 
   describe('saved candidate entries', () => {
@@ -123,7 +123,7 @@ describe('activity', () => {
     it('lists the five interview entries under Interviews, with an icon each, and names the team member who cancelled', () => {
       const types = ['InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered'] as const;
       const interviews = types.map((type) => entry(type, { type }));
-      expect(kindCounts(interviews)).toEqual({ all: 5, notes: 0, emails: 0, scorecards: 0, interviews: 5, stage: 0 });
+      expect(kindCounts(interviews)).toEqual({ all: 5, notes: 0, emails: 0, scorecards: 0, interviews: 5, stage: 0, verification: 0 });
       expect(new Set(types.map((type) => eventIcons[type])).size).toBe(5);
       const cancelled = entry('x', { type: 'InterviewCancelled', actorUserId: 'u1' });
       expect(actorText(cancelled, [{ id: 'm', userId: 'u1', email: 'a@example.com', displayName: 'Avery Quinn', role: 'Admin', customRoleId: null, roleName: 'Admin', joinedAt: base.occurredAt, jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 }], 'me')).toBe('by Avery Quinn');

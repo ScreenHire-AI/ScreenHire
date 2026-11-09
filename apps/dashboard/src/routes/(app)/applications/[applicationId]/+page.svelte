@@ -55,7 +55,6 @@
   import StageRail from '#lib/components/stage-rail.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
-  import ReviewLog from '#lib/components/review-log.svelte';
   import ScorecardSheet from '#lib/components/scorecard-sheet.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
@@ -67,6 +66,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { visibleEntries, type ActivityNames } from '#lib/activity.js';
+  import { reviewActivities } from '#lib/verification-activity.js';
   import { clock } from '#lib/clock.svelte.js';
   import { emailIssueNotice } from '#lib/email-issue.js';
   import { shortDate } from '#lib/dates.js';
@@ -214,6 +214,8 @@
   const jobName = (id: string | null | undefined) => jobs.data?.data.find((candidate) => candidate.id === id)?.title ?? 'another job';
   const names: ActivityNames = { stageName, followUpName, jobName };
   const entries = $derived(timeline.data?.data);
+  // What people and API keys did to the candidate's verification: its entries are Activity lines too (design system section 16).
+  const verificationLog = $derived(verification.data?.data.reviewLog);
 
   // The stage rail under the name: the job's stages, where the candidate has been and is, or how they left.
   const tracker = $derived(detail && stages.length > 0 ? trackerFor(stages, detail, entries, clock.now) : undefined);
@@ -347,7 +349,7 @@
     { value: 'messages', label: 'Messages', count: candidateEmails.data?.data.length },
     { value: 'scorecards', label: 'Scorecards', count: scorecards.data?.data.length },
     { value: 'verification', label: 'Verification', count: attention?.signals },
-    { value: 'activity', label: 'Activity', count: entries ? visibleEntries(entries).length : undefined },
+    { value: 'activity', label: 'Activity', count: entries ? visibleEntries(entries).length + reviewActivities(verificationLog ?? [], currentUserId).length : undefined },
   ]);
 
   // A mention email links to its note (#note-{id} on Activity): once the timeline is in, the note scrolls into view.
@@ -569,8 +571,7 @@
           </Tabs.Content>
           <Tabs.Content value="verification" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'verification'}
-              <VerificationPanel applicationId={detail.id} source={detail.source} />
-              <ReviewLog applicationId={detail.id} />
+              <VerificationPanel applicationId={detail.id} />
             {/if}
           </Tabs.Content>
           <Tabs.Content value="activity" class="flex min-w-0 flex-col gap-5">
@@ -582,6 +583,7 @@
               <ActivityPanel
                 applicationId={detail.id}
                 {entries}
+                {verificationLog}
                 error={timeline.error}
                 onretry={() => timeline.refetch()}
                 {members}

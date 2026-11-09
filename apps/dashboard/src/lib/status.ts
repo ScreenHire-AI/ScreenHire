@@ -10,6 +10,7 @@ import DoorOpenIcon from '~icons/lucide/door-open';
 import EyeIcon from '~icons/lucide/eye';
 import FilePenLineIcon from '~icons/lucide/file-pen-line';
 import IdCardIcon from '~icons/lucide/id-card';
+import InfoIcon from '~icons/lucide/info';
 import LoaderCircleIcon from '~icons/lucide/loader-circle';
 import ShieldXIcon from '~icons/lucide/shield-x';
 import SparklesIcon from '~icons/lucide/sparkles';
@@ -69,6 +70,8 @@ export const statuses = {
   saved: view('neutral', 'bookmark', BookmarkIcon),
   /** Not posted, Removed, Off, Skipped, Revoked, Cancelled and Expired (an interview that ended): not in effect. */
   notInEffect: view('neutral', 'circle-minus', CircleMinusIcon),
+  /** Information only: a group of verification checks whose notes never count toward the level, and such a note. */
+  information: view('neutral', 'info', InfoIcon),
 } as const satisfies Record<string, StatusView>;
 
 export type StatusName = keyof typeof statuses;

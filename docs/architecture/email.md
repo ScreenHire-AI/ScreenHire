@@ -50,6 +50,7 @@ sources:
   - resource: src/ScreenHire.Application/Applications/CandidateReplies.cs
   - resource: src/ScreenHire.Application/SendingDomains/SendingDomainProviders.cs
   - resource: src/ScreenHire.Application/SendingDomains/SendingDomainService.cs
+  - resource: src/ScreenHire.Application/SendingDomains/RecheckSendingDomain.cs
   - resource: src/ScreenHire.Domain/Applications/InboundEmail.cs
   - resource: src/ScreenHire.Domain/Organizations/SendingDomain.cs
   - resource: src/ScreenHire.Domain/Candidates/Candidate.cs
@@ -364,7 +365,14 @@ hidden, with a line saying so, when this deployment has no provider.
 - **Rules.** One domain per organization, and one organization per domain. Mail providers' domains and ScreenHire's own
   (`ScreenHire:Domains:*`, ADR-0003) are refused. Nothing names a host in code.
 - **Locally**, the sandbox provider makes up records and validates once a dev route (`/v1/dev/sending-domains/publish`)
-  publishes the domain, so the whole flow runs with no DNS.
+  publishes the domain, so the whole flow runs with no DNS. `/v1/dev/sending-domains/unpublish` takes the records out again, so
+  a verified domain can be seen failing a check.
+
+- **Checked daily.** Once a day the worker looks every domain up again, a Pending one included, so a domain waiting for DNS becomes
+  Verified by itself. A verified domain that fails is looked at once more an hour later before anything changes; if it still fails
+  it falls back to Pending and the Owners get an alert in the notification bell and one email. A Check records that finds a
+  verified domain failing tells them the same way. The daily check does not run for
+  the sandbox, whose DNS lives in the API process ([notifications](notifications.md), "The daily email domain check").
 
 Adding, verifying, losing verification and removing a domain are recorded in the page's History (`ChangeSubjectKind.SendingDomain`,
 one history per organization, so a replacement reads as the old domain removed and the new one added); a check that only
@@ -375,6 +383,5 @@ refreshes the records' states records nothing ([change history](change-history.m
 - An inbox across candidates. Replies are read on the candidate's Messages tab.
 - Attachments on outgoing mail, scheduled sends and per-person signatures.
 - A Slack direct message for a reply (the card and the email are the notifications).
-- A scheduled re-check of a sending domain that is still waiting for DNS: Check records is by hand.
 - A check of a reply's sender. Inbound Parse posts DKIM and SPF results that nothing reads yet, so whoever holds a reply
   address can write any From, and Messages shows it as written.

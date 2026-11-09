@@ -1,6 +1,6 @@
 {
   "applicant": "application-farm-3",
-  "rulesetVersion": "2026-11-02.1",
+  "rulesetVersion": "2026-11-09.1",
   "authenticity": {
     "level": "VerificationRecommended",
     "reasonCodes": [
@@ -11,7 +11,7 @@
       "NET_GEO_CLAIM_MISMATCH"
     ],
     "appliedRules": [],
-    "summary": "5 observations from network, identity, automation and content checks back each other up.",
+    "summary": "5 observations from network, answers, duplicates and form use checks back each other up.",
     "nextStep": "Confirm the candidate is who they say they are before you spend interview time, for example on a short video call. These signals are not a reason to reject on their own.",
     "signals": [
       {
@@ -180,7 +180,7 @@
     "level": "NotIndicated",
     "reasonCodes": [],
     "appliedRules": [],
-    "summary": "One observation from document checks, with nothing from a second, independent kind of check to back it up. Shown for context only.",
+    "summary": "One observation from documents checks, with nothing independent to back it up. Shown for context only.",
     "nextStep": "No action needed.",
     "policyContext": "NotDisclosed",
     "signals": [

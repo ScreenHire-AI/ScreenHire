@@ -5,6 +5,7 @@
   import SearchIcon from '~icons/lucide/search';
   import SunIcon from '~icons/lucide/sun';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
+  import NotificationBell from '#lib/components/notification-bell.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Kbd, KbdGroup } from '#lib/components/ui/kbd/index.js';
@@ -106,6 +107,9 @@
     <!-- The bar shows the key caps from md up; below it the button is an icon and its tooltip names it (A4). -->
     <Tooltip.Content class="md:hidden">Search</Tooltip.Content>
   </Tooltip.Root>
+
+  <!-- After Search, before the shortcuts and theme buttons (design system section 11, Notification bell). -->
+  {#if shell}<NotificationBell user={shell.user()} />{/if}
 
   <Tooltip.Root>
     <Tooltip.Trigger>

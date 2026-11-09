@@ -8444,6 +8444,125 @@
         ]
       }
     },
+    "/v1/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "ListNotifications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/notifications/read-all": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "MarkAllNotificationsRead",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/notifications/{id}/read": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "MarkNotificationRead",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/notifications/{id}/dismiss": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "DismissNotification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/views": {
       "get": {
         "tags": [
@@ -15426,6 +15545,13 @@
               "null",
               "string"
             ]
+          },
+          "nextInterviewAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself."
@@ -15779,9 +15905,18 @@
             "items": {
               "$ref": "#/components/schemas/CheckNotRun"
             }
+          },
+          "checkGroups": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CheckGroupView"
+            }
           }
         },
-        "description": "An application's verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in\n`reviewLog`."
+        "description": "An application's verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in\n`reviewLog`, the audit trail the dashboard shows in the candidate's Activity."
       },
       "ApplyTemplateUpdateRequest": {
         "required": [
@@ -17270,6 +17405,57 @@
           "FormUse"
         ],
         "description": "The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch."
+      },
+      "CheckGroupState": {
+        "enum": [
+          "Found",
+          "InformationOnly",
+          "NothingFound",
+          "NotChecked",
+          "TurnedOff"
+        ],
+        "description": "The one word a group of checks has on the Verification tab."
+      },
+      "CheckGroupView": {
+        "required": [
+          "group",
+          "label",
+          "state",
+          "found",
+          "notes",
+          "checked",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "group": {
+            "$ref": "#/components/schemas/CheckGroup"
+          },
+          "label": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CheckGroupState"
+          },
+          "found": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "checked": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What one group of checks did for an application. `found` counts its signals that count toward the level; `notes`\nthe others (AI help and context that never counts), which are information only. `state` is the one word for the group:\n`Found` when `found` is above 0, else `InformationOnly` when `notes` is, else `NotChecked` (the\napplication was added by hand, so there was no careers form for this group to read), `TurnedOff` (the organization's\nsettings) or `NothingFound`. `checked` names what the group looks at. `note` is what the organization's\nsettings changed in it (it is turned off, or a trusted domain or network stopped a signal), when they did."
       },
       "CheckNotRun": {
         "required": [
@@ -20896,6 +21082,67 @@
           }
         },
         "description": "One of the signed-in user's organizations, for the organization switcher, with their role there. `roleName` is\nnull for a custom role in an organization other than the one they work in: row-level security keeps its roles from\nthem until they switch."
+      },
+      "NotificationItem": {
+        "required": [
+          "id",
+          "kind",
+          "payload",
+          "link",
+          "createdAt",
+          "readAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "link": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One notification in the signed-in member's bell. The dashboard builds the plain line from `kind` and `payload`,\nso the wording lives in one place and a kind it does not know still shows with its link."
+      },
+      "NotificationList": {
+        "required": [
+          "items",
+          "unreadCount"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationItem"
+            }
+          },
+          "unreadCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The member's notifications that are not dismissed, newest first, and how many of all of them are unread."
       },
       "OAuthAuthorizationRequestInfo": {
         "required": [
@@ -26788,7 +27035,8 @@
           "observedAt",
           "informational",
           "llm",
-          "explained"
+          "explained",
+          "group"
         ],
         "type": "object",
         "properties": {
@@ -26868,6 +27116,9 @@
                 "$ref": "#/components/schemas/VerificationReasonExplanation"
               }
             ]
+          },
+          "group": {
+            "$ref": "#/components/schemas/CheckGroup"
           }
         },
         "description": "One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers."

@@ -65,7 +65,8 @@ internal sealed class MessagingHost : IAsyncDisposable
     /// </summary>
     public static Task<MessagingHost> StartHandlerAsync(
         AppHostFixture fixture, MessagingSettings settings, IEnumerable<Type> handlerTypes, CancellationToken cancellationToken,
-        bool withRecurringSchedules = false, IReadOnlyDictionary<string, string?>? configuration = null) =>
+        bool withRecurringSchedules = false, IReadOnlyDictionary<string, string?>? configuration = null,
+        Action<IServiceCollection>? configureServices = null, string? environmentName = null) =>
         StartAsync(fixture, settings, (opts, connectionString, s) =>
         {
             ScreenHireMessaging.ConfigureHandler(opts, connectionString, s);
@@ -79,7 +80,7 @@ internal sealed class MessagingHost : IAsyncDisposable
             {
                 opts.Discovery.IncludeType(handlerType);
             }
-        }, cancellationToken, configuration);
+        }, cancellationToken, configuration, configureServices, environmentName);
 
     public static string NewSchema() => $"wolverine_test_{Guid.NewGuid():N}";
 
@@ -88,12 +89,20 @@ internal sealed class MessagingHost : IAsyncDisposable
         MessagingSettings settings,
         Action<WolverineOptions, string, MessagingSettings> configure,
         CancellationToken cancellationToken,
-        IReadOnlyDictionary<string, string?>? configuration = null)
+        IReadOnlyDictionary<string, string?>? configuration = null,
+        Action<IServiceCollection>? configureServices = null,
+        string? environmentName = null)
     {
         var connectionString = await fixture.GetOwnerConnectionStringAsync(cancellationToken);
         var logs = new CapturedLogs();
 
         var builder = Host.CreateApplicationBuilder();
+        if (environmentName is not null)
+        {
+            // The email sandbox refuses to start outside Development, and configuration cannot change the environment.
+            builder.Environment.EnvironmentName = environmentName;
+        }
+
         builder.Configuration.AddInMemoryCollection(configuration ?? new Dictionary<string, string?>());
         builder.Logging.ClearProviders().AddProvider(logs);
         // As the owner, which creates the private schema. Row-level security is not what these hosts test;
@@ -103,6 +112,7 @@ internal sealed class MessagingHost : IAsyncDisposable
         builder.Services.AddDbContext<ScreenHireDbContext>(options => options.UseNpgsql(connectionString).UseScreenHireConventions());
         builder.UseWolverine(opts => configure(opts, connectionString, settings));
         builder.Services.AddResourceSetupOnStartup();
+        configureServices?.Invoke(builder.Services);
 
         var host = builder.Build();
         await host.StartAsync(cancellationToken);

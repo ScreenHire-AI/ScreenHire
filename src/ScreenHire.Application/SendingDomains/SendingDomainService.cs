@@ -8,6 +8,9 @@ using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Application.SendingDomains;
 
+/// <summary>What one look at a domain found: each record's state, and whether the provider confirmed the domain. Nothing is saved.</summary>
+public sealed record SendingDomainProbe(IReadOnlyList<SendingDomainRecord> Records, bool Verified, string? ProviderMessage);
+
 public enum SendingDomainMode
 {
     /// <summary>No provider here: the Sending domain page says so and nothing is set up.</summary>
@@ -104,12 +107,11 @@ public sealed class SendingDomainService(
     }
 
     /// <summary>
-    /// Looks every record up in DNS and, when all are in place, asks the provider to confirm the domain. Only the
-    /// provider's yes makes the domain verified, so mail never goes out as the company before the provider can sign it.
+    /// Looks every record up in DNS and, when all are in place, asks the provider to confirm the domain, and saves nothing.
+    /// The daily re-check probes first, so one failed lookup changes nothing until a second probe agrees.
     /// </summary>
-    public async Task<SendingDomain> CheckAsync(ScreenHireDbContext db, SendingDomain domain, CancellationToken cancellationToken)
+    public async Task<SendingDomainProbe> ProbeAsync(SendingDomain domain, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(domain);
         var checkedRecords = new List<SendingDomainRecord>();
         foreach (var record in domain.Records)
@@ -121,10 +123,26 @@ public sealed class SendingDomainService(
         var validation = allInPlace && domain.ProviderDomainId is { } id
             ? await Provider.ValidateAsync(id, cancellationToken)
             : new ProviderValidation(false, null);
-        domain.RecordCheck(checkedRecords, validation.Valid, validation.Message, time.GetUtcNow());
+        return new SendingDomainProbe(checkedRecords, validation.Valid, validation.Message);
+    }
+
+    /// <summary>Records what a probe found on the domain and saves it, as Check records does.</summary>
+    public async Task<SendingDomain> RecordAsync(ScreenHireDbContext db, SendingDomain domain, SendingDomainProbe probe, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+        ArgumentNullException.ThrowIfNull(domain);
+        ArgumentNullException.ThrowIfNull(probe);
+        domain.RecordCheck(probe.Records, probe.Verified, probe.ProviderMessage, time.GetUtcNow());
         await db.SaveChangesAsync(cancellationToken);
         return domain;
     }
+
+    /// <summary>
+    /// Looks every record up in DNS and, when all are in place, asks the provider to confirm the domain. Only the
+    /// provider's yes makes the domain verified, so mail never goes out as the company before the provider can sign it.
+    /// </summary>
+    public async Task<SendingDomain> CheckAsync(ScreenHireDbContext db, SendingDomain domain, CancellationToken cancellationToken) =>
+        await RecordAsync(db, domain, await ProbeAsync(domain, cancellationToken), cancellationToken);
 
     /// <summary>Removes the domain from the provider and from the organization. Mail goes back to ScreenHire's address.</summary>
     public async Task RemoveAsync(ScreenHireDbContext db, SendingDomain domain, CancellationToken cancellationToken)
@@ -154,6 +172,7 @@ public static class SendingDomainRegistration
         services.TryAddSingleton<DnsRecordChecker>();
         services.TryAddSingleton<SandboxDnsRecordChecker>();
         services.TryAddScoped<SendingDomainService>();
+        services.AddOptions<SendingDomainRecheckOptions>().BindConfiguration(SendingDomainRecheckOptions.Section);
         return services;
     }
 }

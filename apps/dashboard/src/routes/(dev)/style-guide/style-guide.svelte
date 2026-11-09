@@ -58,6 +58,7 @@
   import ListItem from '#lib/components/list-item.svelte';
   import LiveIndicator from '#lib/components/live-indicator.svelte';
   import MetricCard, { type MetricPoint } from '#lib/components/metric-card.svelte';
+  import OverviewStat from '#lib/components/overview-stat.svelte';
   import ReportStat from '#lib/components/report-stat.svelte';
   import WeekChart, { type WeekPoint } from '#lib/components/week-chart.svelte';
   import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
@@ -71,7 +72,6 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
-  import LevelScale from '#lib/components/level-scale.svelte';
   import MentionField from '#lib/components/mention-field.svelte';
   import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import NoteText from '#lib/components/note-text.svelte';
@@ -83,7 +83,6 @@
   import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
   import SettingsRows from '#lib/components/settings-rows.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
-  import SetupSteps from '#lib/components/setup-steps.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -118,7 +117,7 @@
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import type { Tracker, TrackerStep } from '#lib/pipeline-tracker.js';
   import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
-  import { aiAssistanceLevels, aiAssistanceOrder, authenticityLevels, authenticityOrder, pendingState, verificationStateOf } from '#lib/verification.js';
+  import { pendingState, verificationStateOf } from '#lib/verification.js';
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
@@ -135,6 +134,7 @@
   import TemplateBuilderDemo from './template-builder-demo.svelte';
   import DropAreaDemo from './drop-area-demo.svelte';
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
+  import NotificationBellDemo from './notification-bell-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
   import FormTimelineDemo from './form-timeline-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
@@ -1456,23 +1456,37 @@
         </Panel>
       </div>
 
-      <section aria-label="Setup checklist" class="max-w-form">
-        <SetupSteps
-          steps={[
-            { id: 'team', label: 'Invite your team', href: '#setup-checklist', done: true },
-            { id: 'branding', label: 'Set your branding', href: '#setup-checklist', done: false },
-            { id: 'careers', label: 'Set up your careers site', href: '#setup-checklist', done: false },
-            { id: 'email', label: 'Add your email domain', href: '#setup-checklist', done: false },
-            { id: 'job', label: 'Publish your first job', href: '#setup-checklist', done: false },
-          ]}
-          ondismiss={() => {}}
-        />
+      <section aria-label="Overview stat" class="@container max-w-4xl">
+        <div class="grid grid-cols-2 gap-5 @3xl:grid-cols-4">
+          <OverviewStat icon={UsersIcon} title="New this week" value="12" href="#overview-stat" />
+          <OverviewStat icon={UsersIcon} title="Not screened" value="8" href="#overview-stat" />
+          <OverviewStat icon={HourglassIcon} title="Interviews this week" value="3" href="#overview-stat" />
+          <OverviewStat icon={UsersIcon} title="Open jobs" value="3 of 5" href="#overview-stat" />
+        </div>
       </section>
 
       <section aria-label="Form timeline" class="flex min-w-0 flex-col gap-5">
         <FormTimelineDemo />
         <section aria-label="Locked question row"><AiUseRow policy="AllowedWithDisclosure" href="#form-timeline" /></section>
       </section>
+
+      <div class="flex flex-wrap items-start gap-5">
+        <Panel title="Notification bell" class="flex-[1_1_320px]">
+          <figure class="flex flex-col items-start gap-2">
+            <figcaption class="text-caption text-muted-foreground">In the top bar after Search. Open it: setup steps left, then an unread alert</figcaption>
+            <NotificationBellDemo user={page.data.user} />
+          </figure>
+        </Panel>
+        <Panel title="Email domain all-good state" class="flex-[999_1_520px]">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">The DNS records panel of Settings, Email domain, once every record is found</figcaption>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <p class="min-w-0 flex-[1_1_16rem]">Every record is in place. ScreenHire checks again every day and tells the Owners if it stops.</p>
+              <Button variant="outline" aria-expanded="false">Show records<ChevronDownIcon aria-hidden="true" /></Button>
+            </div>
+          </figure>
+        </Panel>
+      </div>
 
       <div class="flex flex-wrap items-start gap-5">
         <Panel title="Edit / Preview switch" class="flex-[999_1_520px]">
@@ -1563,8 +1577,6 @@
             <AiMark level="SomeIndicators" />
             <AiMark level="StrongIndicators" />
           </div>
-          <LevelScale levels={authenticityOrder.map((id) => authenticityLevels[id])} current={authenticityLevels.VerificationRecommended} name="Authenticity" />
-          <LevelScale levels={aiAssistanceOrder.map((id) => aiAssistanceLevels[id])} current={aiAssistanceLevels.NotIndicated} name="AI assistance" />
           <SignalEvidence evidence={quote} />
         </div>
       </Panel>

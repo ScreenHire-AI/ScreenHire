@@ -9,6 +9,7 @@ using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 
@@ -35,8 +36,9 @@ internal static class ApplicationReads
     /// <c>(organization_id, application_id, occurred_at)</c> index. Verification and ratings follow in one query each.
     /// </remarks>
     public static async Task<List<ApplicationSummary>> ListAsync(
-        ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, ApplicationFilter filter, CancellationToken cancellationToken)
+        ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, ApplicationFilter filter, CancellationToken cancellationToken)
     {
+        var now = time.GetUtcNow();
         var applications = db.Applications.AsNoTracking();
         if (filter.JobId is { } jobId)
         {
@@ -71,13 +73,16 @@ internal static class ApplicationReads
                 LastTaskCompletedAt = db.ApplicationTasks
                     .Where(t => t.ApplicationId == r.Application.Id)
                     .Max(t => t.CompletedAt),
+                NextInterviewAt = db.InterviewRequests
+                    .Where(i => i.ApplicationId == r.Application.Id && i.Status == InterviewStatus.Booked && i.StartsAt >= now)
+                    .Min(i => i.StartsAt),
             })
             .ToListAsync(cancellationToken);
         var verification = await VerificationSummariesAsync(user, db, [.. found.Select(r => r.Application.Id)], cancellationToken);
         var ratings = await RatingReads.ForAsync(db, [.. found.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
         return [.. found.Select(r => r.Application.ToSummary(
             r.Job, r.Candidate, ApplicationActivity.LastAt(r.Application.SubmittedAt, r.LastEventAt, r.LastTaskCompletedAt),
-            verification.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id)))];
+            verification.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id), r.NextInterviewAt))];
     }
 
     /// <summary>One application with its candidate, files and follow-ups, or null when the reader cannot see it.</summary>

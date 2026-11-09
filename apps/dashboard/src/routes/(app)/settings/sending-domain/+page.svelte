@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
   import PlusIcon from '~icons/lucide/plus';
   import RefreshCwIcon from '~icons/lucide/refresh-cw';
   import Trash2Icon from '~icons/lucide/trash-2';
@@ -112,6 +113,9 @@
   }
 
   const problem = $derived(domain && domain.status !== 'Verified' ? domain.providerMessage : undefined);
+  // Verified and every record found: the calm state (T3). The instructions are gone and one line says what ScreenHire keeps doing.
+  let showRecords = $state(false);
+  const allGood = $derived(Boolean(domain && domain.status === 'Verified' && domain.records.length > 0 && domain.records.every((record) => record.state === 'Matches')));
 
   const setupSteps = [
     'Enter the domain your company uses for email.',
@@ -217,12 +221,25 @@
 
         <Panel title="DNS records" count={domain.records.length}>
           <div class="flex flex-col gap-5">
-            {#if domain.status !== 'Verified'}
+            {#if allGood}
+              <!-- One quiet line, with the records behind a button (W10, A9). The header already says Verified (W7). The sandbox's DNS
+                   lives in the API, so its domains are not looked at again on their own. -->
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <p class="min-w-0 flex-[1_1_16rem]">
+                  Every record is in place.{#if !current?.sandbox} ScreenHire checks again every day and tells the Owners if it stops.{/if}
+                </p>
+                <Button variant="outline" aria-expanded={showRecords} aria-controls="dns-records" onclick={() => (showRecords = !showRecords)}>
+                  {showRecords ? 'Hide records' : 'Show records'}
+                  <ChevronDownIcon aria-hidden="true" class={showRecords ? 'rotate-180' : undefined} />
+                </Button>
+              </div>
+            {:else if domain.status !== 'Verified'}
               <p class="max-w-measure">
                 Add these records where your domain is managed, or send them to whoever manages it. Then press Check records. Changes can take a few hours to show.
               </p>
             {/if}
-            <ul class="flex flex-col divide-y divide-border">
+            <!-- Always in the page, so Show records' aria-controls names an element; hidden while the all-good line stands in. -->
+            <ul id="dns-records" class="flex flex-col divide-y divide-border" hidden={allGood && !showRecords}>
               {#each domain.records as record (record.type + record.host)}
                 {@const found = recordStatus(record.state)}
                 {@const name = recordName(domain.records, record)}
