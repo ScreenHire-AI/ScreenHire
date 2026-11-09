@@ -112,7 +112,8 @@ the source of truth: a missed push costs nothing because the bell reads the list
 
 `ScreenHire:Notifications:RetentionDays` (default 30) is how long a row is kept after it was raised, read or not. A daily
 `PurgeExpiredNotifications` (04:32 UTC) fans out one `PurgeOrganizationExpiredNotifications` per organization. Nothing depends
-on a row outliving its purge: the sending domain keeps its own state (below).
+on a row outliving its purge: the sending domain keeps its own state (below), and a domain that is still failing raises its alert
+again on the next daily look, so a purged alert comes back unread within a day.
 
 ## The Jobs overview
 
@@ -143,15 +144,20 @@ One failed lookup must not change anything, so the first failing look saves noth
 | Verified | fails, daily | Nothing saved. One confirming look is scheduled `ScreenHire:SendingDomainRecheck:ConfirmDelay` later (1 hour) |
 | Verified | fails, confirming | Saved: the domain falls back to Pending and mail to ScreenHire's address (and History records it, as for any failed check). `VerificationLostAt` is set, the Owners get a `sending-domain-failing` alert and one email |
 | Lost (`VerificationLostAt` set) | passes | Saved as Verified, `VerificationLostAt` cleared, the alert cleared |
-| Lost | fails | Saved, nothing else |
+| Lost | fails | Saved, and the alert raised again: nothing changes for an Owner who has it, while an Owner whose copy was purged, or who joined since, gets it. No second email |
 | Pending, never verified | any | Saved, so a domain waiting for DNS becomes Verified when its records appear. It never raises anything |
 
 `SendingDomain.VerificationLostAt` is the state, not the notification rows, so dismissing or purging an alert cannot stop the
-check from noticing the recovery. A manual Check records that succeeds clears it and the alert in the same save. The handler
-is `[Deduplicated]` on the organization, the day and which look it is.
+check from noticing the recovery. A manual Check records that succeeds clears it and the alert in the same save. A manual Check
+records that finds a verified domain failing loses it at once, as the second look would: without that, the domain would fall back to
+Pending and the daily check would take it for one still being set up. The handler is `[Deduplicated]` on the organization, the day
+and which look it is.
 
-The email is ScreenHire's own wording (domain, organization name, a link), sent to the members who hold `ManageOwners`. A host with no email sender
-or no dashboard address raises the alert and logs that nobody was emailed.
+Both ways of losing a domain go through `SendingDomainAlerts.LoseAsync`: it sets the mark and returns the alert and one
+`EmailSendingDomainFailing` per Owner, which the caller sends in the same save. The email is ScreenHire's own wording (domain,
+organization name, a link), sent to the members who hold `ManageOwners`. Each is its own message, `[Deduplicated]` on the domain,
+the day and the Owner, so a failing send retries alone and never rolls back the mark or the alert. It sends nothing when the domain
+recovered before it ran. A host with no email sender or no dashboard address raises the alert and logs that nobody was emailed.
 
 Once the domain is verified and every record is found, the Email domain page shows one line (every record is in place, and ScreenHire
 checks again every day) with the records behind a Show records button, and the last-checked time. The instructions for adding
