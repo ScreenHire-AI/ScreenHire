@@ -2,6 +2,15 @@
 
 ## 2026-11-09
 
+**Verification is an area with seven tabs.** `/verification` is now Overview, Activity log, Usage, Checks, Policy, AI model and
+Notifications, each at its own path, under one header band. The Overview counts this month's applications by level (Clear, Review,
+Verify) and the groups of checks that counted a signal, as counts only. The Activity log lists every check that ran and every model
+call, newest first, with filters and, for Owners and Admins, the provider's request id, the cost and a CSV. Usage charts tokens by day
+for ScreenHire's key against the organization's own. Every member who can see verification now has the area, read-only for Checks and
+Policy; a tab a role cannot use is left out. Each settings tab saves only its own part. The budget and cap moved to Notifications, and
+the AI usage alerts link to the Usage tab ([verification engine](architecture/verification-engine.md) sections 10.11 and 10.12).
+The Signal Network has no switch until legal review clears it.
+
 **Built-in AI: provider presets, a usage ledger, budgets, alerts and a cap.** An organization's own model is now one of six
 presets (Anthropic, OpenAI, OpenRouter, Azure OpenAI, Google Gemini, Other), each filling in its address. Every model call is a
 row in an append-only ledger with the provider's own request id, tokens and cost, so a customer can compare ScreenHire's numbers

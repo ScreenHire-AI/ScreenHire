@@ -83,11 +83,11 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
             await page.GotoAsync(link.ToString());
             await page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
             await Expect(page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
-            // A Recruiter has no Settings and no Verification in the sidebar.
+            // A Recruiter has no Settings in the sidebar, but has Verification (read-only).
             var theirNavigation = page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
             await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Jobs" })).ToBeVisibleAsync();
             await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true })).ToHaveCountAsync(0);
-            await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Verification", Exact = true })).ToHaveCountAsync(0);
+            await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Verification", Exact = true })).ToBeVisibleAsync();
         }
 
         await Page.ReloadAsync();
@@ -522,10 +522,9 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         const string recruiter = "jordan@brightwater.example.com"; // the seeded Brightwater Recruiter (DevSso/config.json)
         await SignInAsync(recruiter);
 
-        foreach (var name in new[] { "Settings", "Verification" })
-        {
-            await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = name, Exact = true })).ToHaveCountAsync(0);
-        }
+        var navigation = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
+        await Expect(navigation.GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true })).ToHaveCountAsync(0);
+        await Expect(navigation.GetByRole(AriaRole.Link, new() { Name = "Verification", Exact = true })).ToBeVisibleAsync();
 
         await GoToAsync("dashboard", "/settings/team");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Not in your role" })).ToBeVisibleAsync();

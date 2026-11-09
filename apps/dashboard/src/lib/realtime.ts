@@ -26,6 +26,8 @@ export const dataRequestsPath = '/v1/data-requests';
 export const billingPath = '/v1/organization/billing';
 /** The retention setting, its dry-run count and its history (`/v1/organization/data-retention`). */
 export const retentionPath = '/v1/organization/data-retention';
+/** The Verification area's Overview and Activity log (`/v1/verification/overview`, `/v1/verification/activity`). */
+export const verificationAreaPath = '/v1/verification';
 /** The signed-in member's bell (`/v1/notifications`). */
 export const notificationsPath = '/v1/notifications';
 
@@ -34,7 +36,7 @@ export const notificationsPath = '/v1/notifications';
  * `/v1/jobs` covers the jobs list, each job (its postings and applicant count) and each job's applications.
  * HiringTemplateVersionPublished is here because the jobs list shows "template update available" and the templates
  * pages show each template's versions; an automation run can tag an application, which its page shows.
- * VerificationAssessed changes the chips in every list, the job's overview and the application's verification panel
+ * VerificationAssessed changes the chips in every list, the job's overview, the Verification area's Overview and Activity log and the application's verification panel
  * (`/v1/applications/{id}/verification`). An automation run can also create a task, which My tasks (`/v1/tasks`) and the
  * application's own tasks show, and so can a person or an API key (ApplicationTaskCreated), which Activity shows too.
  * Tags show in every list, which filter by them. Every list also shows each application's last activity
@@ -85,7 +87,7 @@ export const invalidations: InvalidationMap = {
   ApplicationTaskCompleted: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   ApplicationTaskReopened: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   AutomationRunFinished: [jobsPath, applicationsPath, candidatesPath, tasksPath],
-  VerificationAssessed: [jobsPath, applicationsPath, candidatesPath],
+  VerificationAssessed: [jobsPath, applicationsPath, candidatesPath, verificationAreaPath],
   // Keeping someone in mind ends their application in every list; leaving the pool, or an invitation, changes the pool
   // and the kept application's page.
   TalentPoolChanged: [talentPoolPath, jobsPath, applicationsPath, candidatesPath],

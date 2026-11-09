@@ -12604,6 +12604,213 @@
         ]
       }
     },
+    "/v1/verification/overview": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "operationId": "GetVerificationOverview",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationOverviewView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/verification/activity": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "operationId": "ListVerificationActivity",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/CheckGroup"
+            }
+          },
+          {
+            "name": "keySource",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiKeySource"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/VerificationActivityOutcome"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationActivityPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/verification/activity/export": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "operationId": "ExportVerificationActivity",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/CheckGroup"
+            }
+          },
+          {
+            "name": "keySource",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AiKeySource"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/VerificationActivityOutcome"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/calendar": {
       "get": {
         "tags": [
@@ -15298,7 +15505,11 @@
           "calls",
           "inputTokens",
           "outputTokens",
-          "cost"
+          "cost",
+          "builtInTokens",
+          "ownKeyTokens",
+          "builtInCost",
+          "ownKeyCost"
         ],
         "type": "object",
         "properties": {
@@ -15320,9 +15531,25 @@
           "cost": {
             "type": "number",
             "format": "double"
+          },
+          "builtInTokens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ownKeyTokens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "builtInCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "ownKeyCost": {
+            "type": "number",
+            "format": "double"
           }
         },
-        "description": "One day of use, by the date in the requested time zone (`yyyy-MM-dd`)."
+        "description": "One day of use, by the date in the requested time zone (`yyyy-MM-dd`). The built-in and own-key fields split the day's\ntokens (in and out) and cost by whose key paid, so the Usage tab can chart the two side by side."
       },
       "AiUsageGroup": {
         "required": [
@@ -27446,6 +27673,185 @@
         },
         "description": "Whether an action is offered, and why not when it is not."
       },
+      "VerificationActivityCall": {
+        "required": [
+          "keySource",
+          "provider",
+          "model",
+          "providerRequestId",
+          "inputTokens",
+          "outputTokens",
+          "cost",
+          "durationMs",
+          "errorKind"
+        ],
+        "type": "object",
+        "properties": {
+          "keySource": {
+            "$ref": "#/components/schemas/AiKeySource"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "providerRequestId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inputTokens": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "outputTokens": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "cost": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errorKind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What a model call cost and where to find it in the provider's own logs. Only for View AI usage with All jobs."
+      },
+      "VerificationActivityEntry": {
+        "required": [
+          "id",
+          "kind",
+          "at",
+          "group",
+          "check",
+          "outcome",
+          "note",
+          "applicationId",
+          "jobTitle",
+          "call"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/VerificationActivityKind"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "group": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CheckGroup"
+              }
+            ]
+          },
+          "check": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/VerificationActivityOutcome"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "applicationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "call": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VerificationActivityCall"
+              }
+            ]
+          }
+        },
+        "description": "One check run or model call. `check` is the analyzer's name (`network`) or the model check's\n(`consistency.extraction`). `group` is null for a call that belongs to none. `note` is why a check did not look,\nwhen it did not. `jobTitle` and `applicationId` let a reader open the application; neither names the candidate."
+      },
+      "VerificationActivityKind": {
+        "enum": [
+          "CheckRun",
+          "ModelCall"
+        ],
+        "description": "What one entry of the Verification area's activity log is."
+      },
+      "VerificationActivityOutcome": {
+        "enum": [
+          "Completed",
+          "Found",
+          "NotRun",
+          "Failed"
+        ],
+        "description": "How an entry of the activity log ended. A word for what happened, never a verdict on a person."
+      },
+      "VerificationActivityPage": {
+        "required": [
+          "entries",
+          "nextBefore",
+          "usageVisible"
+        ],
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationActivityEntry"
+            }
+          },
+          "nextBefore": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "usageVisible": {
+            "type": "boolean"
+          }
+        },
+        "description": "A page of the activity log, newest first: check runs for everyone, and model calls (the AI checks). `usageVisible` says\nthe caller may see what a call cost and the provider's request id (View AI usage and All jobs); without it a model call has\nno `call` details, and only calls about an application the caller can open are listed. `nextBefore` goes back as\n`before` for the next page and is null on the last."
+      },
       "VerificationAlerts": {
         "type": "object",
         "properties": {
@@ -27545,6 +27951,50 @@
           }
         },
         "description": "A reviewer set an assessment aside. `actorName` is the reviewer's display name, when they have one."
+      },
+      "VerificationGroupCount": {
+        "required": [
+          "group",
+          "label",
+          "applications"
+        ],
+        "type": "object",
+        "properties": {
+          "group": {
+            "$ref": "#/components/schemas/CheckGroup"
+          },
+          "label": {
+            "type": "string"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "The number of applications in which a check group counted a signal towards the level."
+      },
+      "VerificationLevelCounts": {
+        "required": [
+          "clear",
+          "review",
+          "verify"
+        ],
+        "type": "object",
+        "properties": {
+          "clear": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "review": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "verify": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Applications at each authenticity level, by the word the dashboard shows: Clear, Review, Verify."
       },
       "VerificationMatch": {
         "required": [
@@ -27676,6 +28126,45 @@
           }
         },
         "description": "Whether the endpoint answered a tiny request with the key and model. `problem` is a word, never the provider's text."
+      },
+      "VerificationOverviewView": {
+        "required": [
+          "from",
+          "to",
+          "checked",
+          "pending",
+          "levels",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checked": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "levels": {
+            "$ref": "#/components/schemas/VerificationLevelCounts"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationGroupCount"
+            }
+          }
+        },
+        "description": "The Verification area's Overview: this month's applications (UTC calendar month) by authenticity level, and which check groups\ncounted a signal in the most of them. Counts of applications only. It holds no score, no percentage, no AI-assistance level\n(which never counts) and nothing about a person. For a member limited to some jobs it covers those jobs."
       },
       "VerificationReasonExplanation": {
         "required": [

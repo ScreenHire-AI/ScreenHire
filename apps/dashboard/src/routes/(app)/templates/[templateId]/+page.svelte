@@ -97,12 +97,12 @@
   // The sidebar's own phone test (under md), where the primary action moves to the action bar.
   const sidebar = Sidebar.useSidebar();
   const mayEdit = $derived(can(page.data.user, 'EditHiringTemplates'));
-  // The AI-use row: the organization's policy, which a template no longer carries. Changing it is the Verification page's,
+  // The AI-use row: the organization's policy, which a template no longer carries. Changing it is the Verification area's Policy tab,
   // so the link is left out for someone who may not (A3).
   const verification = createGetOrganizationVerificationSettings();
   const aiUse = $derived({
     policy: verification.data?.data.defaultAiUse,
-    href: can(page.data.user, 'EditSettings') ? '/verification' : undefined,
+    href: can(page.data.user, 'EditSettings') ? '/verification/policy' : undefined,
   });
   const isDraft = $derived(current?.status === 'Draft' && !detail?.isSystem && !detail?.archived && mayEdit);
   // Duplicate and Archive, for the team's own template and a role that may change templates.

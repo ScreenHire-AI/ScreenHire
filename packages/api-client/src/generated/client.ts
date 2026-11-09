@@ -73,6 +73,7 @@ import type {
   EraseDataRequestRequest,
   ExplainVerificationReasonRequest,
   ExportAiUsageCallsParams,
+  ExportVerificationActivityParams,
   GetAiUsageSummaryParams,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
@@ -124,6 +125,7 @@ import type {
   ListInterviewersParams,
   ListJobBoardJobsParams,
   ListTasksParams,
+  ListVerificationActivityParams,
   ListVerificationApplicationsParams,
   ListWebhookDeliveriesParams,
   MagicLinkRequest,
@@ -244,10 +246,12 @@ import type {
   UploadTicket,
   UploadedFile,
   ValidateWorkflowRequest,
+  VerificationActivityPage,
   VerificationMatches,
   VerificationModelList,
   VerificationModelRequest,
   VerificationModelTest,
+  VerificationOverviewView,
   ViewList,
   WebhookDeliveryEntry,
   WebhookEndpointEntry,
@@ -13024,6 +13028,155 @@ return apiFetch<updateAiUsageLimitsResponse>(getUpdateAiUsageLimitsUrl(),
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateAiUsageLimitsRequest)
+  }
+);}
+
+
+
+export type getVerificationOverviewResponse200 = {
+  data: VerificationOverviewView
+  status: 200
+}
+
+export type getVerificationOverviewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getVerificationOverviewResponseSuccess = (getVerificationOverviewResponse200) & {
+  headers: Headers;
+};
+export type getVerificationOverviewResponseError = (getVerificationOverviewResponse401) & {
+  headers: Headers;
+};
+
+export type getVerificationOverviewResponse = (getVerificationOverviewResponseSuccess | getVerificationOverviewResponseError)
+
+export const getGetVerificationOverviewUrl = () => {
+
+
+
+
+  return `/v1/verification/overview`
+}
+
+export const getVerificationOverview = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getVerificationOverviewResponse> => {
+
+  return apiFetch<getVerificationOverviewResponse>(getGetVerificationOverviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listVerificationActivityResponse200 = {
+  data: VerificationActivityPage
+  status: 200
+}
+
+export type listVerificationActivityResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type listVerificationActivityResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listVerificationActivityResponseSuccess = (listVerificationActivityResponse200) & {
+  headers: Headers;
+};
+export type listVerificationActivityResponseError = (listVerificationActivityResponse400 | listVerificationActivityResponse401) & {
+  headers: Headers;
+};
+
+export type listVerificationActivityResponse = (listVerificationActivityResponseSuccess | listVerificationActivityResponseError)
+
+export const getListVerificationActivityUrl = (params?: ListVerificationActivityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/verification/activity?${stringifiedParams}` : `/v1/verification/activity`
+}
+
+export const listVerificationActivity = async (params?: ListVerificationActivityParams, options?: Parameters<typeof apiFetch>[1]): Promise<listVerificationActivityResponse> => {
+
+  return apiFetch<listVerificationActivityResponse>(getListVerificationActivityUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type exportVerificationActivityResponse200 = {
+  data: string
+  status: 200
+}
+
+export type exportVerificationActivityResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type exportVerificationActivityResponse401 = {
+  data: void
+  status: 401
+}
+
+export type exportVerificationActivityResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type exportVerificationActivityResponseSuccess = (exportVerificationActivityResponse200) & {
+  headers: Headers;
+};
+export type exportVerificationActivityResponseError = (exportVerificationActivityResponse400 | exportVerificationActivityResponse401 | exportVerificationActivityResponse403) & {
+  headers: Headers;
+};
+
+export type exportVerificationActivityResponse = (exportVerificationActivityResponseSuccess | exportVerificationActivityResponseError)
+
+export const getExportVerificationActivityUrl = (params?: ExportVerificationActivityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/verification/activity/export?${stringifiedParams}` : `/v1/verification/activity/export`
+}
+
+export const exportVerificationActivity = async (params?: ExportVerificationActivityParams, options?: Parameters<typeof apiFetch>[1]): Promise<exportVerificationActivityResponse> => {
+
+  return apiFetch<exportVerificationActivityResponse>(getExportVerificationActivityUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 

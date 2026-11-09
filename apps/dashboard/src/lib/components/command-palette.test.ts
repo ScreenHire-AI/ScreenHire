@@ -131,13 +131,12 @@ describe('command palette', () => {
     await waitFor(() => expect(goto).toHaveBeenCalledWith('/verification'));
   });
 
-  it('offers a role with no settings no Settings and no Verification', async () => {
+  it('offers a role with no settings Verification but no Settings', async () => {
     state.signedIn = userAs('Recruiter');
     const { palette, input } = renderPalette();
 
-    await fireEvent.input(input, { target: { value: 'settings' } });
     await fireEvent.input(input, { target: { value: 'verification' } });
-    await waitFor(() => expect(within(palette).queryByRole('option', { name: /^Verification/ })).toBeNull());
+    expect(await within(palette).findByRole('option', { name: /^Verification/ })).toBeInTheDocument();
     await fireEvent.input(input, { target: { value: 'logo' } });
     await waitFor(() => expect(within(palette).queryByRole('option', { name: /^Branding/ })).toBeNull());
     expect(within(palette).queryByRole('option', { name: 'Settings' })).toBeNull();

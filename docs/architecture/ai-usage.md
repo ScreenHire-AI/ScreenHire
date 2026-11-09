@@ -20,9 +20,10 @@ sources:
   - resource: src/ScreenHire.Application/Verification/Content/RecheckApplicationConsistency.cs
   - resource: apps/api/Endpoints/AiUsageEndpoints.cs
   - resource: apps/api/Contracts/AiUsageContracts.cs
-  - resource: apps/dashboard/src/lib/components/ai-usage-panel.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/usage/+page.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/activity-rows.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/limits-summary.svelte
   - resource: apps/dashboard/src/lib/components/ai-usage-limits-form.svelte
-  - resource: apps/dashboard/src/lib/components/ai-usage-call-page.svelte
   - resource: apps/dashboard/src/lib/ai-usage.ts
 ---
 
@@ -84,7 +85,7 @@ A call's cost, in US dollars, is found in this order (`AiUsageCost`):
    and `:Output`; for an own key from the two prices the organization entered. There is no price table in code, because it would
    go stale. A side that used no tokens needs no price.
 3. Otherwise the cost is unknown (`CostBasis` `Unknown`, a null cost), never a made-up zero. A money budget or cap counts an unknown
-   cost as nothing, and the usage page says how many calls there are.
+   cost as nothing, and the Usage tab says how many calls there are.
 
 The margin is `ScreenHire:Billing:Ai:Margin` (default 0.20, 0 to 10), read by the billing of this use.
 
@@ -114,9 +115,9 @@ rest of Verification cannot change spend controls. The month is the UTC calendar
 
 | Notification kind | Key | Link | Audience |
 |---|---|---|---|
-| `ai-usage-budget` | `yyyy-MM:budget-N` | `/verification` | who holds View AI usage |
-| `ai-usage-cap` | `yyyy-MM:cap` | `/verification` | who holds View AI usage |
-| `ai-usage-spike` | `yyyy-MM-dd:spike` | `/verification` | who holds View AI usage |
+| `ai-usage-budget` | `yyyy-MM:budget-N` | `/verification/usage` | who holds View AI usage |
+| `ai-usage-cap` | `yyyy-MM:cap` | `/verification/usage` | who holds View AI usage |
+| `ai-usage-spike` | `yyyy-MM-dd:spike` | `/verification/usage` | who holds View AI usage |
 
 ## Who sees it
 
@@ -127,13 +128,20 @@ without it. Usage is never about a candidate and never shows a score.
 
 | Route | Permission |
 |---|---|
-| `GET /v1/organization/ai-usage/summary` | View AI usage: totals, by day (in the requester's time zone), by model and by key, and the month against the limits |
+| `GET /v1/organization/ai-usage/summary` | View AI usage: totals, by day (in the requester's time zone, each day split between ScreenHire's key and the own key in tokens and cost), by model and by key, and the month against the limits |
 | `GET /v1/organization/ai-usage/calls` | View AI usage: the calls, newest first, paged by the id of the last one (`before`), filtered by dates, key, provider, model, outcome, check and application |
 | `GET /v1/organization/ai-usage/calls/export` | View AI usage: the same calls as a CSV (RFC 4180, a byte order mark, formula-looking cells neutralised), at most 50,000 rows, said in the file when cut |
 | `PUT /v1/organization/ai-usage/limits` | Manage billing: the unit, the budget and the cap |
 
 The call list is newest first by design (it pages by a server cursor), and the by-model table is ordered by cost, so neither has
 sortable headers.
+
+In the dashboard this is the Verification area ([verification-engine.md](verification-engine.md) section 10.11). The Usage tab shows the
+summary: calls, tokens and cost for a range, tokens by day for ScreenHire's key against the own key with its table, the month against
+the budget and cap, and use by model and key. The calls themselves, with the provider's request id on each, are in the Activity log
+beside the rule-based check runs (section 10.12), where the CSV is `GET /v1/verification/activity/export`; `GET .../ai-usage/calls`
+and its export stay for API use. The Notifications tab holds the budget and cap (an Owner's form, an Admin's read-only facts) and the
+two alerts.
 
 ## Retention
 

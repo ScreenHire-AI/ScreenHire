@@ -92,7 +92,7 @@ public static class CheckGroups
 /// <summary>Why an analyzer's run says it did not look, or did not count something, because of the organization's settings.</summary>
 public enum CheckNotRunKind
 {
-    /// <summary>The group is turned off in Settings, Verification.</summary>
+    /// <summary>The group is turned off on the Checks tab of Verification.</summary>
     TurnedOff,
 
     /// <summary>A domain or network the organization trusts stopped a signal.</summary>
@@ -129,6 +129,10 @@ public static class RunNotes
     /// <summary>The name a paused AI check is shown under, in place of the check group's.</summary>
     public const string AiChecksLabel = "AI checks";
 
+    /// <summary>The notes of kind <see cref="CheckNotRunKind.Trusted"/>: the run happened and the organization's trusted list stopped a signal.</summary>
+    public static IReadOnlyList<string> TrustedNotes { get; } =
+        [TrustedNetwork, TrustedEmail, TrustedDevice, TrustedEmailAndDevice, TrustedEmailAndDeviceNotCompared];
+
     /// <summary>The kind of settings-made note <paramref name="note"/> is, or null for any other note.</summary>
     public static CheckNotRunKind? KindOf(string analyzer, string? note)
     {
@@ -150,7 +154,7 @@ public static class RunNotes
         return note switch
         {
             DeviceNotCompared => CheckNotRunKind.TurnedOff,
-            TrustedNetwork or TrustedEmail or TrustedDevice or TrustedEmailAndDevice or TrustedEmailAndDeviceNotCompared => CheckNotRunKind.Trusted,
+            _ when TrustedNotes.Contains(note) => CheckNotRunKind.Trusted,
             _ => null,
         };
     }

@@ -187,10 +187,10 @@ public static partial class NotifyAiUsageHandler
             AiUsageAlertKind.Cap => (NotificationKinds.AiUsageCap, new Dictionary<string, string>()),
             _ => (NotificationKinds.AiUsageSpike, new Dictionary<string, string> { ["day"] = message.Key.Split(':')[0] }),
         };
-        outgoing.Add(new RaiseNotification(message.OrganizationId, Permission.ViewAiUsage, kind, message.Key, payload, "/verification"));
+        outgoing.Add(new RaiseNotification(message.OrganizationId, Permission.ViewAiUsage, kind, message.Key, payload, "/verification/usage"));
 
         var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        var link = links.Value.Url("/verification");
+        var link = links.Value.Url("/verification/usage");
         var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == message.OrganizationId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
         if (settings is not ({ BudgetAlertEmail: true } or { BudgetAlertSlack: true }) || link is null || organization is null)
         {
