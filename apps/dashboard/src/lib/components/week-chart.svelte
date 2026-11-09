@@ -49,14 +49,14 @@
   }
 </script>
 
-<figure class={cn('flex min-w-0 flex-col gap-3', className)} data-slot="week-chart">
+<figure class={cn('flex min-w-0 flex-1 flex-col gap-3', className)} data-slot="week-chart">
   <ul class="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted-foreground" aria-label="Legend">
     <li class="flex items-center gap-1.5"><span aria-hidden="true" class="size-3 rounded-sm bg-chart-2"></span>Applications</li>
     <li class="flex items-center gap-1.5"><span aria-hidden="true" class="size-3 rounded-sm bg-chart-1"></span>Hires</li>
   </ul>
   <!-- The readout has a line of its own, so reading a week never moves the columns. -->
   <p class="min-h-6 text-body font-semibold" aria-live="polite" data-week-readout>{weeks[active]?.summary ?? ''}</p>
-  <div class="overflow-x-auto pb-1">
+  <div class="flex min-h-0 flex-1 flex-col overflow-x-auto pb-1">
     <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions: the chart is one tab stop whose arrow keys move through the weeks -->
     <div
       role="group"
@@ -65,7 +65,7 @@
       {onkeydown}
       onfocus={() => (moved ??= weeks.length - 1)}
       onpointerleave={() => (pointed = null)}
-      class="flex h-48 items-end gap-0.5 rounded-md border-b border-border"
+      class="flex min-h-32 flex-1 items-end gap-0.5 rounded-md border-b border-border"
       style:min-width={`${weeks.length * 0.875}rem`}
     >
       {#each weeks as week, index (week.key)}

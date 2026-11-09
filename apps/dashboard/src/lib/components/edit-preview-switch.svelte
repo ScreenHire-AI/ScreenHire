@@ -38,6 +38,7 @@
     <Toggle bind:pressed={() => mode === 'preview', () => (mode = 'preview')}><EyeIcon aria-hidden="true" />Preview</Toggle>
   </div>
   {#if onpopout}
-    <IconButton label="Open in a new window" onclick={onpopout}><AppWindowIcon aria-hidden="true" /></IconButton>
+    <!-- A second window has no room on a phone, where the switch already shows one thing at a time (A8). -->
+    <IconButton label="Open in a new window" onclick={onpopout} class="max-md:hidden"><AppWindowIcon aria-hidden="true" /></IconButton>
   {/if}
 </div>

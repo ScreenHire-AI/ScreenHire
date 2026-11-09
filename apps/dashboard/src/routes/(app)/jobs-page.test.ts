@@ -50,12 +50,32 @@ describe('jobs page', () => {
 
     expect((await dataRows()).map(cellTexts)).toEqual([
       // A draft was never published: the cell is blank, with its words for screen readers only (L1).
-      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', 'Not published', 'Oct 19, 2026', ''],
-      ['Open', 'Senior .NET Engineer', 'Remote (GB, IE)', 'Full-time', 'Oct 18, 2026', 'Oct 18, 2026', ''],
+      // A count that never arrived (nothing here answers the applications request) is blank, and says nothing to a screen
+      // reader either: "No candidates" would claim what nobody knows.
+      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', '', 'Not published', 'Oct 19, 2026', ''],
+      ['Open', 'Senior .NET Engineer', 'Remote (GB, IE)', 'Full-time', '', 'Oct 18, 2026', 'Oct 18, 2026', ''],
     ]);
     expect(screen.getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Jobs');
     expect(screen.getByRole('link', { name: 'New job' })).toHaveAttribute('href', '/jobs/new');
+  });
+
+  it('counts who is in play on each job, so a recruiter sees which job needs them, and leaves a closed job or an empty one blank', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([...jobs, closed]), 'GET /v1/applications': () => Response.json([...applications, { ...applications[0]!, jobId: closed.id }]) })),
+    );
+    renderPage();
+
+    // The fixture's three applications are on the open job and at a stage that is not an end; the one on the closed job is not current.
+    const counts = new Map((await dataRows()).map((row) => [cellTexts(row)[1], cellTexts(row)[4]]));
+    expect(counts.get('Senior .NET Engineer')).toBe(String(applications.length));
+    expect(counts.get('Customer Success Lead')).toBe('No candidates');
+    expect(counts.get('Support Engineer')).toBe('No candidates');
+
+    // It sorts, biggest first on a first click.
+    await fireEvent.click(within(screen.getByRole('table', { name: 'Jobs' })).getByRole('button', { name: 'Candidates' }));
+    expect((await dataRows()).map((row) => cellTexts(row)[1])[0]).toBe('Senior .NET Engineer');
   });
 
   it('keeps the row menu reachable while a tablet scrolls the table, and the cell around it part of the row link', async () => {
@@ -74,10 +94,10 @@ describe('jobs page', () => {
     const table = await screen.findByRole('table', { name: 'Jobs' });
 
     const headers = within(table).getAllByRole('columnheader');
-    expect(headers.map((header) => header.textContent?.trim())).toEqual(['Status', 'Title', 'Location', 'Type', 'Published', 'Last updated', 'Actions']);
+    expect(headers.map((header) => header.textContent?.trim())).toEqual(['Status', 'Title', 'Location', 'Type', 'Candidates', 'Published', 'Last updated', 'Actions']);
     // Every column with a value is a sort button; the actions column is not.
-    expect(headers.slice(0, 6).every((header) => within(header).queryByRole('button'))).toBe(true);
-    expect(within(headers[6]!).queryByRole('button')).toBeNull();
+    expect(headers.slice(0, 7).every((header) => within(header).queryByRole('button'))).toBe(true);
+    expect(within(headers[7]!).queryByRole('button')).toBeNull();
     expect(within(table).getByRole('columnheader', { name: 'Last updated' })).toHaveAttribute('aria-sort', 'descending');
 
     await fireEvent.click(within(table).getByRole('button', { name: 'Title' }));
@@ -104,7 +124,7 @@ describe('jobs page', () => {
 
     await fireEvent.pointerDown(sort, { button: 0, pointerType: 'mouse' });
     const choices = (await screen.findAllByRole('menuitemradio')).map((item) => item.textContent?.replace(/,.*$/, '').trim());
-    expect(choices).toEqual(['Status', 'Title', 'Location', 'Type', 'Published', 'Last updated']);
+    expect(choices).toEqual(['Status', 'Title', 'Location', 'Type', 'Candidates', 'Published', 'Last updated']);
     await fireEvent.click(screen.getByRole('menuitemradio', { name: /^Title/ }));
 
     await waitFor(() =>
@@ -153,6 +173,14 @@ describe('jobs page', () => {
     renderPage();
 
     expect(await screen.findByText('No jobs yet')).toBeInTheDocument();
+  });
+
+  it('says what comes next, and leaves the four numbers out until there is a first job', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([]) })));
+    renderPage();
+
+    expect(await screen.findByText('Start from a template, then publish it to your careers page and the job boards.')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Overview' })).toBeNull();
   });
 
   it('offers no actions on a closed job', async () => {

@@ -94,7 +94,7 @@
 
   // A numeric column: the number sorts and exports, its text is how the table shows it.
   function numeric<T>(id: string, header: string, value: (row: T) => number, text: (row: T) => string): ChartColumn<T> {
-    return { id, header, text, sortBy: value, csv: value };
+    return { id, header, text, sortBy: value, csv: value, align: 'end' };
   }
   // A share column: the table shows `62%`, the export holds 0.62, and a row with nothing to share sorts last.
   function share<T>(id: string, header: string, part: (row: T) => number | null, of: (row: T) => number, blank?: string): ChartColumn<T> {
@@ -110,6 +110,7 @@
         return value === null ? '' : (shareText(value, of(row)) ?? '');
       },
       blank,
+      align: 'end',
       sortBy: (row) => fraction(row) ?? -1,
       csv: fraction,
     };
@@ -121,7 +122,7 @@
   const interviewShare = $derived(data ? shareText(data.headline.reachedInterview, data.headline.applications) : null);
   // Five cards: one row on a wide page, three over two in the middle, two columns on a phone with the last across both,
   // so no card sits beside an empty cell.
-  const statGrid = 'grid grid-cols-2 gap-5 @3xl:grid-cols-6 @5xl:grid-cols-5';
+  const statGrid = 'grid grid-cols-2 gap-3 @3xl:grid-cols-6 @5xl:grid-cols-5';
   const statSpans = [
     '@3xl:col-span-2 @5xl:col-span-1',
     '@3xl:col-span-2 @5xl:col-span-1',
@@ -210,7 +211,7 @@
     { id: 'name', header: 'Name', text: (row) => row.name, sortBy: (row) => row.name, csv: (row) => row.name },
     { id: 'by', header: 'By', text: (row) => row.by, sortBy: (row) => row.by, csv: (row) => row.by },
     numeric('hires', 'Hires', (row) => row.hires, (row) => countText(row.hires)),
-    { id: 'median', header: 'Median days', text: (row) => daysText(row.medianDays), sortBy: (row) => row.medianDays, csv: (row) => oneDecimal(row.medianDays) },
+    { id: 'median', header: 'Median days', text: (row) => daysText(row.medianDays), align: 'end', sortBy: (row) => row.medianDays, csv: (row) => oneDecimal(row.medianDays) },
   ];
 
   // Sources: applications and the hires among them side by side, with the hire rate.
@@ -234,13 +235,14 @@
     share('hireRate', 'Hire rate', (source) => source.hires, (source) => source.applications),
   ];
 
-  // Open jobs: a table only.
+  // Open jobs: a table only. When a job opened is the one fact Days open does not say, so it is that cell's tooltip (W6) and
+  // a column of the export alone, which keeps the table to the numbers a recruiter scans.
   const openJobColumns: ChartColumn<ReportOpenJob>[] = [
     { id: 'job', header: 'Job', text: (job) => job.title, sortBy: (job) => job.title, csv: (job) => job.title, href: (job) => `/jobs/${job.jobId}` },
-    { id: 'openedAt', header: 'Opened', text: (job) => (job.openedAt ? formatDate(job.openedAt) : ''), blank: 'No date', sortBy: (job) => (job.openedAt ? Date.parse(job.openedAt) : 0), csv: (job) => job.openedAt ?? null },
+    { id: 'openedAt', header: 'Opened', text: (job) => (job.openedAt ? formatDate(job.openedAt) : ''), csvOnly: true, sortBy: (job) => (job.openedAt ? Date.parse(job.openedAt) : 0), csv: (job) => job.openedAt ?? null },
     numeric('applications', 'Applications', (job) => job.applications, (job) => countText(job.applications)),
     numeric('inInterview', 'In interview', (job) => job.inInterview, (job) => countText(job.inInterview)),
-    numeric('daysOpen', 'Days open', (job) => job.daysOpen, (job) => countText(job.daysOpen)),
+    { ...numeric('daysOpen', 'Days open', (job) => job.daysOpen, (job) => countText(job.daysOpen)), hint: (job) => (job.openedAt ? `Opened ${formatDate(job.openedAt)}` : null) },
     numeric('hires', 'Hires', (job) => job.hires, (job) => countText(job.hires)),
   ];
 
@@ -308,22 +310,22 @@
   </HeaderBand>
 
   <div class="@container">
-    <div class="flex w-full flex-col px-4 py-6 md:px-6">
+    <div class="flex w-full flex-col px-4 py-5 md:px-6">
       {#if report.isError && !data}
         <Panel label="Reports">
           <QueryError message={describeError(report.error, 'Could not load the reports')} onretry={() => report.refetch()} inset />
         </Panel>
       {:else if !data}
-        <div aria-hidden="true" class="flex flex-col gap-5">
+        <div aria-hidden="true" class="flex flex-col gap-4">
           <div class={statGrid}>
             {#each statSpans as span, card (card)}
-              <div class={['flex flex-col gap-3 rounded-panel border border-border bg-card p-4.5 shadow-surface', span]}>
-                <Skeleton class="h-8 w-32" />
+              <div class={['flex flex-col gap-2 rounded-panel border border-border bg-card p-3.5 shadow-surface', span]}>
+                <Skeleton class="h-5 w-28" />
                 <Skeleton class="h-9 w-20" />
               </div>
             {/each}
           </div>
-          <div class="grid gap-5 @5xl:grid-cols-2">
+          <div class="grid gap-4 @5xl:grid-cols-2">
             {#each [0, 1, 2] as panel (panel)}
               <div class={['flex flex-col gap-3 rounded-panel border border-border bg-card p-4.5 shadow-surface', panel === 0 && '@5xl:col-span-2']}>
                 <Skeleton class="h-6 w-40" />
@@ -338,7 +340,7 @@
              panel has only a label, so it has no header band over it. -->
         <Panel label="Reports">{@render nothing('Nothing in these dates', true)}</Panel>
       {:else}
-        <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-4">
           <div
             class={[statGrid, 'transition-opacity motion-reduce:transition-none', busy && 'opacity-60']}
             aria-busy={busy || undefined}
@@ -378,7 +380,7 @@
           </ChartPanel>
 
           <!-- Side by side where each still reads well, so neither stretches across a wide monitor. -->
-          <div class="grid gap-5 @7xl:grid-cols-2">
+          <div class="grid gap-4 @5xl:grid-cols-2">
             <ChartPanel
               title="Applications and hires by week"
               basis="Applications that arrived and hires made in each week of these dates."
@@ -405,7 +407,7 @@
             </ChartPanel>
           </div>
 
-          <div class="grid items-start gap-5 @5xl:grid-cols-2">
+          <div class="grid gap-4 @5xl:grid-cols-2">
             <ChartPanel
               title="Time to hire"
               basis="Median days hires spent in each stage, and from applying to being hired by job, for hires made in these dates."

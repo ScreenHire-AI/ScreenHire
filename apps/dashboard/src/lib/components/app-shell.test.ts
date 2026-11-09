@@ -101,6 +101,25 @@ describe('app shell', () => {
     expect(screen.queryByRole('link', { name: 'Back to Candidates' })).toBeNull();
   });
 
+  it('says a top-level page\'s name once: its breadcrumb is for screen readers only, and a nested page\'s is shown', () => {
+    stubViewport(1280);
+    const { unmount } = render(ShellHarness, { props: { user, crumbs: [{ label: 'Reports' }] } });
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toHaveClass('sr-only');
+    unmount();
+
+    render(ShellHarness, { props: { user, crumbs: [{ label: 'Jobs', href: '/' }, { label: 'Senior product designer' }] } });
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).not.toHaveClass('sr-only');
+  });
+
+  it('leaves a detail page\'s own name out of the phone bar, where Back is and the title sits just below', () => {
+    stubViewport(390);
+    render(ShellHarness, { props: { user, crumbs: [{ label: 'Candidates', href: '/candidates' }, { label: 'Jordan Lee' }], back: true } });
+
+    // Hidden below md by class (jsdom has no layout), still there from md up and for screen readers' landmark.
+    expect(screen.getByText('Jordan Lee').closest('li')).toHaveClass('max-md:hidden');
+    expect(screen.getByRole('link', { name: 'Back to Candidates' })).toHaveAttribute('href', '/candidates');
+  });
+
   it('has a breadcrumb, search with its key caps, the theme switch and a keyboard button that opens the shortcuts dialog', async () => {
     stubViewport(1280);
     render(ShellHarness, { props: { user, crumbs: [{ label: 'Jobs', href: '/' }, { label: 'Senior product designer' }] } });
@@ -150,14 +169,14 @@ describe('app shell', () => {
     await waitFor(() => expect(sheet).toContainElement(document.activeElement as HTMLElement));
   });
 
-  it('opens the Notifications sheet from the user menu', async () => {
+  it('opens the Teammate changes sheet from the user menu', async () => {
     stubViewport(1280);
     render(ShellHarness, { props: { user } });
 
     await fireEvent.pointerDown(screen.getByRole('button', { name: /^Avery Quinn/ }), { button: 0, pointerType: 'mouse' });
-    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Notifications' }));
+    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Teammate changes' }));
 
-    expect(await screen.findByText('Notifications sheet open')).toBeInTheDocument();
+    expect(await screen.findByText('Teammate changes sheet open')).toBeInTheDocument();
   });
 
   it('keeps the sheet shut after the window widens past phone size and narrows again', async () => {

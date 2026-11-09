@@ -150,7 +150,9 @@
           </SummaryList>
         </Panel>
 
-        <Panel title="Plans" footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : subscribed && overview.canManage ? changeFooter : undefined}>
+        <Panel
+          title="Plans"
+          footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : subscribed && overview.canManage ? changeFooter : standing === 'Trialing' ? trialFooter : undefined}>
           <ul class="-my-3">
             {#each overview.plans as plan (plan.key)}
               <li class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border-subtle py-3 last:border-0">
@@ -219,6 +221,11 @@
       <a href="/verification/activity" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">See every call</a>
     </div>
   </div>
+{/snippet}
+
+{#snippet trialFooter()}
+  <!-- The trial is a stored date with no card (docs/architecture/billing.md, "The trial"). What AI use above its allowance costs is the AI usage panel's to say. -->
+  <p class="text-muted-foreground">The trial needs no card. When it ends, open jobs stay open and a new job needs a plan.</p>
 {/snippet}
 
 {#snippet changeFooter()}

@@ -22,9 +22,10 @@ export interface SetupInputs {
 }
 
 /**
- * The checklist for a new organization, in the order a team does it. Each step ticks from the organization's own data,
- * never from a click: a teammate or an invitation, any branding set, a careers site changed from its defaults, a verified email
- * domain, a published job. The email domain step is left out where this installation cannot send from a company's own
+ * The checklist for a new organization, in the order a team does it: what candidates see first, the first job, then the
+ * team, then the settings that can wait. Each step ticks from the organization's own data, never from a click: any
+ * branding set, a published job, a teammate or an invitation, a careers page changed from its defaults, a verified email
+ * domain. The email domain step is left out where this installation cannot send from a company's own
  * domain (design system A3). `undefined` while any answer is still loading, so the panel never flashes steps that are
  * already done.
  */
@@ -33,7 +34,6 @@ export function setupSteps(inputs: SetupInputs): SetupStep[] | undefined {
   if (!members || !invitations || !branding || !organization || !sendingDomain || !jobs) return undefined;
 
   const steps: SetupStep[] = [
-    { id: 'team', label: 'Invite your team', href: '/settings/team', done: members.length > 1 || invitations.length > 0 },
     {
       id: 'branding',
       label: 'Set your branding',
@@ -42,19 +42,21 @@ export function setupSteps(inputs: SetupInputs): SetupStep[] | undefined {
         (value) => value !== null && value !== undefined,
       ),
     },
+    { id: 'job', label: 'Publish your first job', href: '/jobs/new', done: jobs.some((job) => job.publishedAt !== null) },
+    { id: 'team', label: 'Invite your team', href: '/settings/team', done: members.length > 1 || invitations.length > 0 },
     {
       id: 'careers',
-      label: 'Set up your careers site',
+      label: 'Set up your careers page',
       href: '/settings/careers-site',
-      // The careers site's own settings, away from ScreenHire's defaults. Not `lastUpdated`: renaming the organization
+      // The careers page's own settings, away from ScreenHire's defaults. Not `lastUpdated`: renaming the organization
       // moves it too. Someone who keeps the defaults has no data to tick, and dismisses the panel instead.
       done: organization.embedOrigins.length > 0 || organization.questionsPerPage !== DEFAULT_QUESTIONS_PER_PAGE,
     },
   ];
+  // Last, because it is DNS work outside ScreenHire and the team can start without it.
   if (sendingDomain.available) {
-    steps.push({ id: 'email', label: 'Add your email domain', href: '/settings/sending-domain', done: sendingDomain.domain?.status === 'Verified' });
+    steps.push({ id: 'email', label: 'Send email from your own domain', href: '/settings/sending-domain', done: sendingDomain.domain?.status === 'Verified' });
   }
-  steps.push({ id: 'job', label: 'Publish your first job', href: '/jobs/new', done: jobs.some((job) => job.publishedAt !== null) });
   return steps;
 }
 

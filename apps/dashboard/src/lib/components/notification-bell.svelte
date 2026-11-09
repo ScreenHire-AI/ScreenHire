@@ -67,7 +67,8 @@
         </Popover.Trigger>
       {/snippet}
     </Tooltip.Trigger>
-    <Tooltip.Content>Notifications</Tooltip.Content>
+    <!-- A new Owner has no reason to open a bell, so while setup steps are left the tooltip says the bell holds them. -->
+    <Tooltip.Content>{setup.steps ? 'Setup and notifications' : 'Notifications'}</Tooltip.Content>
   </Tooltip.Root>
 
   <!-- Focus starts on the panel, not its first button: that would open its tooltip over the list. -->

@@ -52,7 +52,7 @@ the board shows, so a mistyped attribute never builds an address of its own. The
 that is closed or gone shows the same "no longer available" page inside the frame. One limit: the page after sending an
 application offers "See other open roles", which opens the board inside the frame, because the careers pages do not know
 the frame was a single job's. Like the organization snippet, the job's appears once a site is on the list; before that,
-the panel sends the person to Careers site settings. Both snippets come from `#lib/embed-snippet.ts`.
+the panel sends the person to Careers page settings. Both snippets come from `#lib/embed-snippet.ts`.
 
 ## 2. The sites allowed to frame the careers pages
 

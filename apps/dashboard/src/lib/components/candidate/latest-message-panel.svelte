@@ -1,7 +1,14 @@
 <script lang="ts" module>
-  /** The first line of an email's text that says something, for the Latest message panel. */
+  // A line that is only a greeting ("Hi Taylor,", "Dear Ms Quinn", "Hello all"): it says who the email is to, not what
+  // it says. After the salutation come at most three names (capitalised) or a word for a group, and nothing else, so a
+  // short reply that opens with one ("Hi Avery, I can do Friday", "Hey, accepting the offer") is never skipped.
+  const greeting =
+    /^(?:[Hh]i|[Hh]ello|[Hh]ey|[Dd]ear|[Gg]ood (?:morning|afternoon|evening))(?:\s+(?:\p{Lu}[\p{L}.'-]*|there|all|team|everyone|folks)){0,3}\s*[,!]?$/u;
+
+  /** The first line of an email's text that says something, for the Latest message panel: not a lone greeting. */
   export function firstLine(text: string | null | undefined): string {
-    return (text ?? '').split('\n').map((line) => line.trim()).find((line) => line.length > 0) ?? '';
+    const lines = (text ?? '').split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
+    return lines.find((line) => !greeting.test(line)) ?? lines[0] ?? '';
   }
 </script>
 

@@ -91,7 +91,7 @@ funnel row shows. The candidates page uses it for a funnel link (section 5). A k
   board's apply link (`SourceBoard`, the `src` tag in apply-flow.md and job-distribution.md), else `careers`. The board
   tag is self-reported: anyone can open a link with `src=talent`, so it can move an organization's own Sources numbers,
   never another's.
-- **Open jobs** are the jobs with status Open that the person sees, narrowed by the job filter. Opened is the day it was first published. Days open is whole days
+- **Open jobs** are the jobs with status Open that the person sees, narrowed by the job filter. Opened is the day it was first published; the page shows it as the tooltip on Days open and the export keeps it as a column. Days open is whole days
   since the job was first published, by the API's clock. In interview is now, not in the range.
 - **The biggest drop** and the share of applicants are computed in the browser from the funnel rows
   (`#lib/reports.ts`, `biggestDrop`): the row below the last with the lowest moved-on share, among rows with at least 3
