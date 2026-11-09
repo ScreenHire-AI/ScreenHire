@@ -293,6 +293,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var drawer = Page.GetByRole(AriaRole.Dialog);
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true }).FillAsync("Welcome tag");
         await ChooseAsync(drawer, "Trigger: someone moves into", "Someone applies");
+        // A new automation starts complete (it asks the team to review), so a blank tag is one the person chooses to add.
+        await ChooseAsync(drawer, "Action 1: ask", "Add a tag");
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();
         await ExpectProblemAsync("The tag in \"Welcome tag\" has no name. Type one, or remove that step.");
@@ -508,7 +510,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.Keyboard.TypeAsync("referral");
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page.GetByRole(AriaRole.Textbox, new() { Name = "Condition 1: value" })).ToBeHiddenAsync();
-        // The action it starts with adds a tag, and the tag is still blank.
+        // The action it starts with asks the team to review. Adding a tag instead leaves the tag blank.
+        await ChooseAsync(sheet, "Action 1: ask", "Add a tag");
         await Page.Keyboard.PressAsync("Escape");
         await Expect(sheet).ToBeHiddenAsync();
 
