@@ -296,7 +296,13 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             var amount = line.GetProperty("amount").GetInt64();
             if (line.TryGetProperty("proration", out var proration) && proration.ValueKind == JsonValueKind.True)
             {
-                prorations += amount;
+                // Stripe's advice for isolating the prorations being previewed: the ones whose period starts at the proration date.
+                // Any other proration line is an earlier pending item that the change does not invoice.
+                if (line.GetProperty("period").GetProperty("start").GetInt64() == prorationDate.ToUnixTimeSeconds())
+                {
+                    prorations += amount;
+                }
+
                 continue;
             }
 

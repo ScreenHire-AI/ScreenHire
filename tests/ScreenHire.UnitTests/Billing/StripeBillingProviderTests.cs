@@ -238,7 +238,7 @@ public sealed class StripeBillingProviderTests : IDisposable
     public async Task A_preview_finds_the_plan_item_among_the_subscriptions_and_asks_for_the_new_price_at_the_proration_date()
     {
         stripe.Answer(SubscriptionJson(("si_addon", "price_addon_fictional"), ("si_plan", StarterPrice)));
-        stripe.Answer(PreviewJson("usd", Line(-1000, true, 1_772_000_000), Line(4500, true, 1_772_000_000), Line(14900, false, NextPeriodStart)));
+        stripe.Answer(PreviewJson("usd", Line(-1000, true, ProrationDate.ToUnixTimeSeconds()), Line(4500, true, ProrationDate.ToUnixTimeSeconds()), Line(14900, false, NextPeriodStart)));
 
         await Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
 
@@ -263,7 +263,7 @@ public sealed class StripeBillingProviderTests : IDisposable
     public async Task A_preview_reads_the_prorations_as_due_now_and_the_full_period_as_the_next_payment()
     {
         stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
-        stripe.Answer(PreviewJson("usd", Line(-1000, true, 1_772_000_000), Line(4500, true, 1_772_000_000), Line(14900, false, NextPeriodStart)));
+        stripe.Answer(PreviewJson("usd", Line(-1000, true, ProrationDate.ToUnixTimeSeconds()), Line(4500, true, ProrationDate.ToUnixTimeSeconds()), Line(14900, false, NextPeriodStart)));
 
         var preview = await Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
 
@@ -278,7 +278,7 @@ public sealed class StripeBillingProviderTests : IDisposable
     public async Task A_downgrade_owes_nothing_now_because_its_credit_stays_on_the_account()
     {
         stripe.Answer(SubscriptionJson(("si_plan", GrowthPrice)));
-        stripe.Answer(PreviewJson("usd", Line(-7450, true, 1_772_000_000), Line(2150, true, 1_772_000_000), Line(7900, false, NextPeriodStart)));
+        stripe.Answer(PreviewJson("usd", Line(-7450, true, ProrationDate.ToUnixTimeSeconds()), Line(2150, true, ProrationDate.ToUnixTimeSeconds()), Line(7900, false, NextPeriodStart)));
 
         var preview = await Provider().PreviewPlanChangeAsync(Change("growth", "starter"), TestContext.Current.CancellationToken);
 
@@ -287,10 +287,26 @@ public sealed class StripeBillingProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task A_pending_proration_from_another_moment_is_not_part_of_the_amount_due_now()
+    {
+        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
+        stripe.Answer(PreviewJson(
+            "usd",
+            Line(-1000, true, ProrationDate.ToUnixTimeSeconds()),
+            Line(4500, true, ProrationDate.ToUnixTimeSeconds()),
+            Line(9999, true, ProrationDate.ToUnixTimeSeconds() - 86_400),
+            Line(14900, false, NextPeriodStart)));
+
+        var preview = await Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
+
+        preview.AmountDueNow.Should().Be(35.00m, "only the prorations of this change, at its proration date, are charged by it");
+    }
+
+    [Fact]
     public async Task A_zero_decimal_currency_is_not_divided_by_a_hundred()
     {
         stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
-        stripe.Answer(PreviewJson("jpy", Line(3500, true, 1_772_000_000), Line(14900, false, NextPeriodStart)));
+        stripe.Answer(PreviewJson("jpy", Line(3500, true, ProrationDate.ToUnixTimeSeconds()), Line(14900, false, NextPeriodStart)));
 
         var preview = await Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
 
@@ -303,7 +319,7 @@ public sealed class StripeBillingProviderTests : IDisposable
     public async Task A_preview_with_no_full_period_line_is_an_exception()
     {
         stripe.Answer(SubscriptionJson(("si_plan", StarterPrice)));
-        stripe.Answer(PreviewJson("usd", Line(3500, true, 1_772_000_000)));
+        stripe.Answer(PreviewJson("usd", Line(3500, true, ProrationDate.ToUnixTimeSeconds())));
 
         var act = () => Provider().PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
 

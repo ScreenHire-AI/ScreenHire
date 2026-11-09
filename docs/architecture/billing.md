@@ -167,16 +167,17 @@ payment which needs the Owner (a declined card, a 3-D Secure step) cannot be com
 `StripeBillingProvider.PreviewPlanChangeAsync` reads the subscription (`GET /v1/subscriptions/{id}`) for the item that carries
 one of the catalogue's prices, so an item that is not a plan is left alone. It then posts `invoices/create_preview`
 (https://docs.stripe.com/api/invoices/create_preview) with that item's id, the new price and `subscription_details[proration_date]`.
-The preview is an upcoming invoice: its lines marked `proration` are the credit for unused time and the charge for the rest of
-the period, and the line that is not a proration is the first full period at the new price. The prorations sum to the amount
+The preview is an upcoming invoice: its lines marked `proration` whose period starts at the proration date (Stripe's advice for
+isolating the prorations being previewed) are the credit for unused time and the charge for the rest of the period, and the line
+that is not a proration is the first full period at the new price. The prorations sum to the amount
 due now, floored at 0, because a downgrade's credit stays on the Stripe customer and is not paid out. The full-period line is
 the next regular charge, and its period start is its date. Amounts are whole minor units, so a zero-decimal currency (yen) is
 not divided by 100. `ChangePlanAsync` updates the subscription with the same item, `proration_behavior=always_invoice`, the same
 `proration_date` and an `Idempotency-Key` made from the subscription, price and date, so a second click on Confirm is one
 change. The new plan reaches the account through the `customer.subscription.updated` webhook, as every other change does.
-The `create_preview` endpoint is Stripe's replacement for the upcoming-invoice endpoint it removed in API version 2025-03-31.
-The adapter sends it under the pinned `2024-06-20` and no test here reaches Stripe, so the first real call, in test mode, is an
-owner check ([status](../status.md#owner-actions)).
+The `create_preview` endpoint is Stripe's replacement for the upcoming-invoice endpoint it removed in API version 2025-03-31, and
+its reference page exists at the pinned `2024-06-20`, where `customer` is optional when `subscription` is given. No test here
+reaches Stripe, so the first real call, in test mode, is an owner check ([status](../status.md#owner-actions)).
 
 The sandbox prorates by the day instead (`SandboxBillingProvider.PreviewPlanChangeAsync`): the price difference times the whole
 days left in the month that ends at the account's period end, over the days in it, rounded to the cent, and 0 for a downgrade.
