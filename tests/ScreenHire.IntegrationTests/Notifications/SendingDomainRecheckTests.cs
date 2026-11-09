@@ -95,6 +95,8 @@ public sealed class SendingDomainRecheckTests(AppHostFixture fixture)
         var admin = await world.Admin.NotificationsAsync();
         admin.Count("items").Should().Be(0, "an Admin is not an Owner");
 
+        // Each Owner's email is a message of its own, sent after the mark and the alert are saved.
+        await world.WaitEmailedAsync(owners: 2);
         var owners = new[] { await world.EmailOfAsync(world.Owner), await world.EmailOfAsync(world.SecondOwner) };
         world.Mail.Sent.Select(m => m.To).Should().BeEquivalentTo(owners, "exactly one email per Owner, and none to the Admin");
         world.Mail.Sent.Should().OnlyContain(m => m.Subject == $"{world.Domain} stopped verifying");
@@ -107,28 +109,83 @@ public sealed class SendingDomainRecheckTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task The_next_days_daily_look_of_a_lost_domain_neither_raises_nor_emails_again()
+    public async Task The_next_days_daily_look_of_a_lost_domain_neither_adds_a_row_nor_emails_again()
     {
         await using var world = await StartAsync(verified: true);
         await world.LookAsync(RecheckSendingDomain.Daily(world.OrganizationId, Monday));
         await world.ReleaseConfirmAsync(Monday);
         await world.Owner.WaitForItemsAsync(1);
         await world.SecondOwner.WaitForItemsAsync(1);
+        await world.WaitEmailedAsync(owners: 2);
         var lostAt = (await world.StateAsync()).VerificationLostAt;
         var checkedAt = (await world.StateAsync()).LastCheckedAt;
         var mailBefore = world.Mail.Sent.Count;
 
         await world.LookAsync(RecheckSendingDomain.Daily(world.OrganizationId, Monday.AddDays(1)));
+        await world.WaitHandledAsync(world.DomainKey, "RaiseNotification", 2);
 
         var state = await world.StateAsync();
         state.VerificationLostAt.Should().Be(lostAt, "the Owners were told once");
         state.LastCheckedAt.Should().BeAfter(checkedAt!.Value, "the look is still recorded");
         state.Status.Should().Be(SendingDomainStatus.Pending);
         world.Mail.Sent.Count.Should().Be(mailBefore, "no second email");
-        (await world.Host.Store.CountIncomingAsync(world.OrganizationId.ToString(), Ct, "RaiseNotification")).Should().Be(1, "nothing was raised again");
+        (await world.Host.Store.CountIncomingAsync(world.OrganizationId.ToString(), Ct, "EmailSendingDomainFailing")).Should().Be(2, "only the first loss emails");
         (await world.Host.Store.ScheduledTimesAsync(world.ConfirmKey(Monday.AddDays(1)), Ct)).Should().BeEmpty("a lost domain has no second look to wait for");
-        (await world.Owner.NotificationsAsync()).Count("items").Should().Be(1);
+        (await world.Owner.NotificationsAsync()).Count("items").Should().Be(1, "raising it again adds no row for an Owner who has it");
         (await world.SecondOwner.NotificationsAsync()).Count("items").Should().Be(1);
+    }
+
+    [Fact]
+    public async Task A_lost_domain_that_still_fails_puts_the_alert_back_for_an_owner_whose_copy_was_purged_and_for_a_new_owner()
+    {
+        await using var world = await StartAsync(verified: true);
+        await world.LookAsync(RecheckSendingDomain.Daily(world.OrganizationId, Monday));
+        await world.ReleaseConfirmAsync(Monday);
+        var purged = (await world.Owner.WaitForItemsAsync(1)).At("items.0.id").GetGuid();
+        await world.SecondOwner.WaitForItemsAsync(1);
+        await world.WaitEmailedAsync(owners: 2);
+        var mailBefore = world.Mail.Sent.Count;
+
+        // The retention purge removes the first Owner's row while the domain is still broken, and a third Owner joins.
+        await fixture.OwnerSqlAsync("DELETE FROM notifications WHERE id = @id", ("id", purged));
+        using var newOwner = await fixture.InviteAndJoinAsync(world.Owner, "Owner");
+
+        await world.LookAsync(RecheckSendingDomain.Daily(world.OrganizationId, Monday.AddDays(1)));
+
+        var back = await world.Owner.WaitForItemsAsync(1);
+        back.At("items.0.kind").GetString().Should().Be("sending-domain-failing");
+        back.At("items.0.id").GetGuid().Should().NotBe(purged, "it is a new row");
+        (await newOwner.WaitForItemsAsync(1)).At("items.0.payload.domain").GetString().Should().Be(world.Domain);
+        (await world.SecondOwner.NotificationsAsync()).Count("items").Should().Be(1);
+        world.Mail.Sent.Count.Should().Be(mailBefore, "the reminder is the bell only");
+    }
+
+    [Fact]
+    public async Task A_manual_check_that_finds_a_verified_domain_failing_tells_the_owners_as_the_daily_check_would()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var admin = await fixture.InviteAndJoinAsync(owner, "Admin");
+        var domain = NewDomain();
+        (await owner.PutAsync(Path, Set(domain))).Expect(HttpStatusCode.OK);
+        await PublishInApiAsync(domain);
+        (await owner.PostAsync($"{Path}/check")).Expect(HttpStatusCode.OK).Text("status").Should().Be("Verified");
+        var key = (await fixture.OwnerScalarAsync<Guid>("SELECT id FROM sending_domains WHERE organization_id = @org", ("org", owner.OrganizationId))).ToString("N");
+
+        await SandboxDnsAsync("unpublish", domain);
+        (await admin.PostAsync($"{Path}/check")).Expect(HttpStatusCode.OK).Text("status").Should().Be("Pending");
+
+        (await fixture.OwnerScalarAsync<bool>("SELECT verification_lost_at IS NOT NULL FROM sending_domains WHERE organization_id = @org", ("org", owner.OrganizationId)))
+            .Should().BeTrue("the daily check now waits for the recovery instead of taking it for a new domain");
+        var item = await owner.WaitForItemsAsync(1);
+        item.At("items.0.kind").GetString().Should().Be("sending-domain-failing");
+        item.At("items.0.link").GetString().Should().Be("/settings/sending-domain");
+        await fixture.WaitHandledAsync(key, "EmailSendingDomainFailing");
+        (await admin.NotificationsAsync()).Count("items").Should().Be(0, "an Admin is not an Owner, even the one who pressed Check records");
+
+        // Putting the records back and checking again clears it.
+        await PublishInApiAsync(domain);
+        (await owner.PostAsync($"{Path}/check")).Expect(HttpStatusCode.OK).Text("status").Should().Be("Verified");
+        await owner.WaitForItemsAsync(0);
     }
 
     [Fact]
@@ -263,11 +320,14 @@ public sealed class SendingDomainRecheckTests(AppHostFixture fixture)
 
     private static JsonObject Set(string domain) => new() { ["domain"] = domain };
 
-    private async Task PublishInApiAsync(string domain)
+    private Task PublishInApiAsync(string domain) => SandboxDnsAsync("publish", domain);
+
+    // The API's sandbox DNS: "publish" puts a domain's records in, "unpublish" takes them out.
+    private async Task SandboxDnsAsync(string action, string domain)
     {
         using var client = fixture.AnonymousClient();
         using var response = await client.PostAsync(
-            "/v1/dev/sending-domains/publish", new StringContent(Set(domain).ToJsonString(), System.Text.Encoding.UTF8, "application/json"), Ct);
+            $"/v1/dev/sending-domains/{action}", new StringContent(Set(domain).ToJsonString(), System.Text.Encoding.UTF8, "application/json"), Ct);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 

@@ -81,7 +81,11 @@ internal sealed class RecheckWorld(
         Mail.Sent.Should().BeEmpty();
         (await fixture.OwnerScalarAsync<long>("SELECT count(*) FROM notifications WHERE organization_id = @org", ("org", OrganizationId))).Should().Be(0);
         (await host.Store.CountIncomingAsync(OrganizationId.ToString(), Ct, "RaiseNotification")).Should().Be(0);
+        (await host.Store.CountIncomingAsync(OrganizationId.ToString(), Ct, "EmailSendingDomainFailing")).Should().Be(0);
     }
+
+    /// <summary>Waits until the host has sent the Owners' emails, one message per Owner.</summary>
+    public async Task WaitEmailedAsync(int owners) => await WaitHandledAsync(DomainKey, "EmailSendingDomainFailing", owners);
 
     public async ValueTask DisposeAsync()
     {

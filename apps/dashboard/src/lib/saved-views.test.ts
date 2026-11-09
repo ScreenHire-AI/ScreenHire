@@ -17,6 +17,8 @@ describe('the Overview views', () => {
   it('count a booked interview that starts within the week, and not one later or none', () => {
     expect(match('interviews-this-week', { nextInterviewAt: at(2 * day) })).toBe(true);
     expect(match('interviews-this-week', { nextInterviewAt: at(9 * day) })).toBe(false);
+    // The list can be a minute old: an interview that started since it was read is not ahead any more.
+    expect(match('interviews-this-week', { nextInterviewAt: at(-60_000) })).toBe(false);
     expect(match('interviews-this-week', { nextInterviewAt: null })).toBe(false);
     expect(match('interviews-this-week', {})).toBe(false);
   });

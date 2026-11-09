@@ -113,7 +113,11 @@ const panels: Record<string, string[]> = {
   'Settings menu': ['Settings menu'],
   'Candidates list switch': ['Candidates list switch'],
   'Settings home': ['Settings home'],
-  'Setup checklist': ['Setup checklist'],
+  // The setup steps are the bell's first section, so the bell's example shows both.
+  'Setup checklist': ['Notification bell'],
+  'Notification bell': ['Notification bell'],
+  'Email domain all-good state': ['Email domain all-good state'],
+  'Overview stat': ['Overview stat'],
   'Form builder': ['Form builder'],
   'Answer menu': ['Answer menu'],
   Rating: ['Rating'],

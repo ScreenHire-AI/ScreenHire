@@ -154,8 +154,13 @@ describe('sending domain page', () => {
     // The records are one press away.
     const show = screen.getByRole('button', { name: 'Show records' });
     expect(show).toHaveAttribute('aria-expanded', 'false');
+    // The button names the list it opens, and the list is there while hidden.
+    const list = document.getElementById(show.getAttribute('aria-controls') ?? '');
+    expect(list).not.toBeNull();
+    expect(list).not.toBeVisible();
     await fireEvent.click(show);
     expect(screen.getByRole('button', { name: 'Hide records' })).toHaveAttribute('aria-expanded', 'true');
+    expect(list).toBeVisible();
     expect(screen.getAllByText('Found')).toHaveLength(3);
   });
 

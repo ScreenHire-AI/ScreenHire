@@ -5,8 +5,8 @@ namespace ScreenHire.UnitTests.SendingDomains;
 
 /// <summary>
 /// What one look at a sending domain leads to (docs/architecture/notifications.md, "The daily email domain check"): only a verified
-/// domain can be lost, only a second failing look loses it, and a domain the Owners were told about is saved as it is until
-/// it passes.
+/// domain can be lost, only a second failing look loses it, and a domain the Owners were told about has its alert raised again
+/// on each failing look (a purged or newly joined Owner gets it back) until it passes.
 /// </summary>
 public sealed class SendingDomainRecheckDecisionTests
 {
@@ -14,6 +14,7 @@ public sealed class SendingDomainRecheckDecisionTests
     private const SendingDomainRecheckAction Schedule = SendingDomainRecheckAction.ScheduleConfirm;
     private const SendingDomainRecheckAction Lose = SendingDomainRecheckAction.LoseAndNotify;
     private const SendingDomainRecheckAction Recover = SendingDomainRecheckAction.Recover;
+    private const SendingDomainRecheckAction Remind = SendingDomainRecheckAction.Remind;
 
     // status, hasLostVerification, probePassed, confirming, expected action
     public static TheoryData<SendingDomainStatus, bool, bool, bool, SendingDomainRecheckAction> Table => new()
@@ -27,8 +28,8 @@ public sealed class SendingDomainRecheckDecisionTests
         // The Owners were already told: the rule does not depend on the status column.
         { SendingDomainStatus.Verified, true, true, false, Recover },
         { SendingDomainStatus.Verified, true, true, true, Recover },
-        { SendingDomainStatus.Verified, true, false, false, Save },
-        { SendingDomainStatus.Verified, true, false, true, Save },
+        { SendingDomainStatus.Verified, true, false, false, Remind },
+        { SendingDomainStatus.Verified, true, false, true, Remind },
 
         // Never verified: saved after each look, never notifies.
         { SendingDomainStatus.Pending, false, true, false, Save },
@@ -39,8 +40,8 @@ public sealed class SendingDomainRecheckDecisionTests
         // Lost and pending now (the usual state after the Owners were told): recovers only when the look passes.
         { SendingDomainStatus.Pending, true, true, false, Recover },
         { SendingDomainStatus.Pending, true, true, true, Recover },
-        { SendingDomainStatus.Pending, true, false, false, Save },
-        { SendingDomainStatus.Pending, true, false, true, Save },
+        { SendingDomainStatus.Pending, true, false, false, Remind },
+        { SendingDomainStatus.Pending, true, false, true, Remind },
     };
 
     [Theory]
