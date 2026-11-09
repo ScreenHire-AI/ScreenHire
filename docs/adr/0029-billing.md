@@ -129,15 +129,16 @@ about payment may reach it. A payment problem must not lock a team out of candid
   3% and moves US sales tax to Microsoft, but only for customers who buy through Microsoft, so it is a second channel and
   not a replacement. Stripe stays, because it is the cheapest way to charge a card, the integration exists, and the
   merchant-of-record products add 1.5 to 3.5 points for a duty that Stripe Tax covers from $90 a month.
-- **Stripe Tax is two products.** Tax Basic (0.5% per transaction where
-  registered) calculates and collects tax. It does not register the seller or file returns. Tax Complete (from $90 a
-  month) adds registration help and filing, and Stripe files US returns through TaxJar from the seller's own US bank
-  account. The tax work therefore stays with ScreenHire's owner: register where the owner's accountant says, add each
-  registration to Stripe, and choose how to file. The task that builds Stripe Tax and tax ids at checkout turns on
-  automatic tax and tax id collection, and the registrations decide where it collects.
-- **Stripe Managed Payments as the fallback.** It was out of preview on 2026-04-29 per Stripe's own recap, works with the
-  Checkout and portal calls the provider already makes, and takes registration, filing and remittance in 80+ countries off
-  the seller for 3.5% more. Below about $2,600 of monthly revenue that is cheaper than the cheapest Tax Complete plan, and
+- **Stripe Tax Basic as the whole tax answer.** Tax Basic (0.5% per transaction where registered) calculates and
+  collects tax. It does not register the seller or file returns. Tax Complete (from $90 a month) adds registration help
+  and filing, and Stripe files US returns through TaxJar from the seller's own US bank account. The tax work therefore
+  stays with ScreenHire's owner: register where the owner's accountant says, add each registration to Stripe, and choose
+  how to file. The task that builds Stripe Tax and tax ids at checkout turns on automatic tax and tax id collection,
+  and the registrations decide where it collects.
+- **Stripe Managed Payments as the fallback.** It was out of preview on 2026-04-29 per Stripe's own recap, works through
+  Checkout, which is how the provider already creates subscriptions, and takes registration, filing and remittance in
+  80+ countries off the seller for 3.5% more. Below about $2,600 of monthly revenue that is cheaper than the cheapest Tax Complete plan, and
   above it Tax Complete is cheaper. It also changes what customers see (receipts and card statements come from Link) and
-  Stripe's eligibility review applies. If tax administration becomes a burden, switching is a Checkout setting, not a new
-  vendor, and `IBillingProvider` does not change. Nothing here builds that switch.
+  Stripe's eligibility review applies. If tax administration becomes a burden, switching should be a Checkout setting, not a
+  new vendor. Whether the customer portal works under it and which API version it needs against the pinned `2024-06-20`
+  were not checked. Nothing here builds that switch.

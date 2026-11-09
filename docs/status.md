@@ -173,7 +173,7 @@ brackets.
 - **Sales tax and VAT.** ScreenHire is the merchant of record for its own subscriptions, so tax on them is its duty. The
   research is general and is not tax advice ([billing providers](research/billing-providers.md)).
   - Apply the research's state table to the business with the owner's accountant and confirm the registrations, including
-    any state where the owner or an employee works.
+    any state where the business has people working, an office or property.
   - Open the Stripe account in the business's own name.
   - Add each registration to Stripe Tax before it is turned on, because Stripe collects tax only where a registration is
     added, and decide how returns are filed (Tax Complete, a filing partner, or by hand).

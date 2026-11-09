@@ -18,7 +18,8 @@ Method. Each vendor page was opened with a page fetch and each figure below was 
 fetch returns an extract of the page, so a figure the extract did not state is marked Not verified, whatever search
 snippets say, as `pain-points.md` does. Tax statements come from official sources (state revenue departments, HMRC, the
 European Commission, Stripe's and Microsoft's own documentation for what their products do). Status values: Verified,
-Not verified.
+Not verified, or a qualified form ("Verified as extracted", "Verified for X, Not verified for Y") that says which part
+was read.
 
 ## 1. The answer in short
 
@@ -90,8 +91,11 @@ Managed Payments, from Stripe's documentation.
 - Integration limits. It works with Checkout and Payment Links only, direct integrations only, no Connect, no
   subscriptions created outside Checkout, no custom domain on the checkout page, and no third-party tax integrations
   (Stripe Tax is the only compatible tax product, and its calculation fee is waived on Managed Payments transactions in
-  countries Stripe does not cover). ScreenHire's `StripeBillingProvider` already uses Checkout and the portal, so the
-  gap would be one Checkout setting, which this task does not build. Verified.
+  countries Stripe does not cover). Verified. ScreenHire's `StripeBillingProvider` creates subscriptions only through
+  Checkout, so the Checkout side should need little more than a setting, which this task does not build. It also opens
+  Stripe's customer portal for plan changes and cancelling, and pins every call to API version `2024-06-20`. Whether the
+  customer portal works under Managed Payments, and which API version Managed Payments needs, were not on the pages
+  read. Not verified.
 - What customers see. Receipts, invoices and renewal emails come from Link, the card statement reads
   `LINK.COM* <descriptor>`, and customers can manage orders on link.com. Verified
   (https://docs.stripe.com/payments/managed-payments/how-it-works).
@@ -171,11 +175,14 @@ A seller registered in one state and run from another.
 
 ### 3.2 State by state
 
-Every row was read on 2026-11-08 from the state's own revenue or tax department site, and the two links in a row are the
-page read for taxability and the page read for the threshold. 51 jurisdictions are listed (50 states and the District of
-Columbia). Of these, 9 are taxable, 7 not taxable, 18 conditional, 2 have no state sales tax and 15 are
-Not verified. A row says "Not verified" where the state's page refused the fetch (403 or
-404) or did not say.
+Every row was tried on 2026-11-08, and the two links in a row are the page tried for taxability and the page tried for
+the threshold. Most are the state's own revenue or tax department site; a few are not (Ohio's Revised Code, the Alaska
+Remote Seller Sales Tax Commission), and a cell says (403), (404), (not read) or "seen in a search result only" where
+the page was not read in full. 51 jurisdictions are listed (50 states and the District of Columbia). Of these, 9 are
+taxable, 7 not taxable, 18 conditional, 2 have no state sales tax and 15 are Not verified. A row says "Not verified"
+where the state's page refused the fetch or did not say. Alaska, Delaware and New Hampshire are counted as Not verified
+because their pages were not read in full, though none of them has a state-level sales tax either; with Montana and
+Oregon that makes the 5 that Stripe's 46 filing locations leave out.
 
 Read the table with these limits.
 
@@ -309,8 +316,9 @@ little. Each fee is the page's own figure from section 2.
 Lemon Squeezy lists the same 5% + 50 cents as Paddle and is moving to D, so it has no row of its own.
 
 The break-even between C and D is a fixed fee against a percentage: Managed Payments' extra 3.5% equals the $90 monthly
-Tax Complete fee at about $2,570 of monthly revenue, which is about 33 Starter, 17 Growth or 10 Unlimited
-subscriptions. Against the $430 plan it equals about $12,290 a month. Below the break-even, D is cheaper than C and takes
+Tax Complete fee at about $2,570 of monthly revenue, which 33 Starter, 18 Growth or 11 Unlimited subscriptions pass.
+The $90 plan covers only 2 registrations. With 3 or 4 the $430 plan applies, and the break-even moves to about $12,290 a
+month. Below the break-even, D is cheaper than C and takes
 the registrations off the seller. Above it C is cheaper and the seller keeps the registrations, the returns and the bank
 funding. This ignores the seller's time and the accountant's fees, which usually make D look better than the arithmetic.
 
@@ -324,9 +332,10 @@ Stay on Stripe and turn on Stripe Tax, with these corrections to the working ans
 2. Turn automatic tax on only for locations the owner has registered in. Stripe applies tax only where a registration is
    added, so adding registrations is the switch, and nothing in the product has to know the list.
 3. Keep Managed Payments as the fallback and treat revenue as the trigger. If the owner would rather not register, file
-   and fund remittances, or revenue is under about $2,600 a month and registrations are needed in more than one or two
-   states, Managed Payments costs 3.5% more and removes the work. Moving to it is one Checkout setting plus Stripe's
-   eligibility review, not a new vendor.
+   and fund remittances, or monthly revenue is under the break-even for the Tax Complete plan the registrations need
+   (about $2,600 for up to 2, about $12,300 for 3 or 4), Managed Payments costs 3.5% more and removes the work. Moving to
+   it is a Checkout setting plus Stripe's eligibility review, not a new vendor, though the customer portal and the
+   pinned API version are unchecked (section 2.1).
 4. Do not move to Paddle or Lemon Squeezy for fees. Paddle is cheaper than Managed Payments by about 2 points but a second
    vendor, a migration and an approval of its own; Lemon Squeezy is converging on Managed Payments.
 5. Treat Azure Marketplace as a later channel, not a billing replacement. It costs 3% and moves US sales tax to Microsoft
@@ -344,6 +353,8 @@ product for $0.005 on the dollar, and filing is a separate plan the owner has to
 - Stripe's "generally available" wording for Managed Payments (read only in a search result of its post on X) and how an
   applicant-screening product fares in Stripe's eligibility review.
 - How Managed Payments treats a business customer's VAT number.
+- Whether Stripe's customer portal works under Managed Payments, and which API version Managed Payments needs against
+  the provider's pinned `2024-06-20`.
 - Whether an Azure Marketplace purchase can count toward a customer's Azure commitment.
 - Article 44 of the VAT Directive (the extract tool did not return it), the EU and UK consumer rules for electronic
   services, the One Stop Shop pages, and the New York and Texas nexus pages: seen in search results and not opened.
