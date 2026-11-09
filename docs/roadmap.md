@@ -46,14 +46,14 @@ each item names the doc that designs it. Board workflows carry the detail.
 Four design reviews walked the build as a new team in its first hour, as a recruiter in a working day, as someone
 setting ScreenHire up, and as a candidate on a phone. Each fixed what was contained (#146 to #149) and left the rest
 for the owner. This is that rest, merged, with duplicates removed and ranked. Nothing in it is built. The owner
-picks the items to build, and they become the next workflow. Items not picked wait beside "Later" and "Before real
-customers" below.
+picks the items to build, and they become the next workflow. The rest stay here for a later pick, with "Later" and
+"Before real customers" below.
 
 How to read it:
 
 - **Rank** is within a group, by how much the change helps a small team against its size. Number 1 is the best value.
 - **Size**: S is a few files and a test. M is a client and API change, or a flow, with tests. L is a new flow across
-  several screens. S to M means the size depends on which of the named options is picked.
+  several screens. S to M is between the two.
 - **Groups** are the five selling points and the candidate's side. "Built your way" also holds the first-hour items
   (onboarding, invitations, the trial, the first job), because they fit no other selling point.
 - #147 closed with decisions and no proposals list, so its items here come from the alternatives it named for a
