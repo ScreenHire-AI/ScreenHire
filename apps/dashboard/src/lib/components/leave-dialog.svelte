@@ -13,8 +13,17 @@
   let target: URL | null = null;
   let leaving = false;
 
+  // Moving between a workflow's tabs only changes `?tab=` and `?show=`: the page stays, so nothing is lost.
+  const withoutTab = (url: URL) => {
+    const copy = new URL(url.href);
+    copy.searchParams.delete('tab');
+    copy.searchParams.delete('show');
+    return copy.href;
+  };
+
   beforeNavigate((navigation) => {
     if (!unsaved || leaving) return;
+    if (navigation.to && navigation.from && withoutTab(navigation.to.url) === withoutTab(navigation.from.url)) return;
     navigation.cancel();
     if (navigation.type === 'leave' || !navigation.to) return;
     target = navigation.to.url;

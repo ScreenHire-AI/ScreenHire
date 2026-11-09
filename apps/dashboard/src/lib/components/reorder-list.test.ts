@@ -21,6 +21,22 @@ describe('reorder grip', () => {
     expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim())).toEqual(['Move up', 'Move down', 'Move to top', 'Move to bottom']);
   });
 
+  it('words the moves as left, right, start and end in a row of items, and moves them the same way', async () => {
+    const onreorder = vi.fn();
+    render(ReorderHarness, { props: { orientation: 'horizontal', onreorder } });
+
+    await fireEvent.click(grip('Your CV'));
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim())).toEqual(['Move right', 'Move to end']);
+    await fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+
+    await fireEvent.click(grip('Right to work'));
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim())).toEqual(['Move left', 'Move right', 'Move to start', 'Move to end']);
+    await fireEvent.click(screen.getByRole('menuitem', { name: 'Move to end' }));
+
+    expect(onreorder.mock.calls).toEqual([['Questions', ['Your CV', 'Notice period', 'Right to work']]]);
+    expect(names('Questions')).toEqual(['Your CV', 'Notice period', 'Right to work']);
+  });
+
   it('moves an item from the menu and gives the focus back to its grip', async () => {
     const onreorder = vi.fn();
     render(ReorderHarness, { props: { onreorder } });

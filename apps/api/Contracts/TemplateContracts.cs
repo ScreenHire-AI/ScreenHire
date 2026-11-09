@@ -39,7 +39,9 @@ public sealed record HiringTemplateVersionSummary(
 
 /// <summary>
 /// One version of a hiring template with its full definition. The definition's JSON Schema is served at
-/// <c>/v1/schemas/hiring-template-definition.json</c>.
+/// <c>/v1/schemas/hiring-template-definition.json</c>. A draft saves with problems: <c>problems</c> lists what stops it
+/// from being tested or published, in the validator's words (an empty list when it is ready), so a client need not call
+/// the validate route after a save.
 /// </summary>
 public sealed record HiringTemplateVersionDetail(
     Guid Id,
@@ -49,7 +51,8 @@ public sealed record HiringTemplateVersionDetail(
     HiringTemplateDefinition Definition,
     DateTimeOffset CreatedAt,
     DateTimeOffset? PublishedAt,
-    Guid? PublishedBy);
+    Guid? PublishedBy,
+    IReadOnlyList<DefinitionError> Problems);
 
 /// <summary>
 /// A new organization template, whose version 1 is a draft. Give a <c>definition</c>, or <c>copyFromVersionId</c> to
@@ -86,9 +89,11 @@ internal static class TemplateMappings
             ? LastUpdate.ByScreenHire(template.UpdatedAt ?? template.CreatedAt)
             : LastUpdate.From(lastChange, template.CreatedAt, template.UpdatedAt);
 
-    public static HiringTemplateVersionDetail ToDetail(this HiringTemplateVersion version) =>
+    /// <param name="version">The version.</param>
+    /// <param name="problems">The problems found when it was saved, with the references checked; the validator's own when null.</param>
+    public static HiringTemplateVersionDetail ToDetail(this HiringTemplateVersion version, IReadOnlyList<DefinitionError>? problems = null) =>
         new(version.Id, version.TemplateId, version.Version, version.Status, version.Definition, version.CreatedAt,
-            version.PublishedAt, version.PublishedBy);
+            version.PublishedAt, version.PublishedBy, problems ?? DefinitionValidator.Validate(version.Definition));
 }
 
 internal sealed class TemplateNameValidator : AbstractValidator<UpdateHiringTemplateRequest>

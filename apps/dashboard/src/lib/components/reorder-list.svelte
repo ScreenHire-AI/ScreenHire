@@ -21,6 +21,7 @@
     itemLabel,
     onreorder,
     item,
+    orientation = 'vertical',
     class: className,
   }: {
     items: readonly T[];
@@ -33,6 +34,8 @@
     onreorder: (next: T[]) => void;
     /** One item. Render `grip` where its handle goes. */
     item: Snippet<[value: T, grip: Snippet]>;
+    /** A row of items (the stage cards) moves left and right, so its grip's menu says so. Style the row with `class`. */
+    orientation?: 'vertical' | 'horizontal';
     class?: string;
   } = $props();
 
@@ -155,7 +158,7 @@
     >
       {#snippet grip()}
         {#if entries.length > 1}
-          <ReorderGrip label={itemLabel(entry.value)} {index} count={entries.length} onactivate={activate} onmove={(to) => move(index, to)} />
+          <ReorderGrip label={itemLabel(entry.value)} {index} count={entries.length} {orientation} onactivate={activate} onmove={(to) => move(index, to)} />
         {:else}
           <!-- One item cannot move: no grip, but its place is kept so the item does not shift (A3). -->
           <span class="size-8 shrink-0 pointer-coarse:size-11"></span>

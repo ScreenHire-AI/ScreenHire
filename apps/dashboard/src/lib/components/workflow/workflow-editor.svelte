@@ -5,26 +5,50 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import { laneOf, removeAt } from '#lib/workflow.js';
+  import { laneOf, removeAt, withoutStage } from '#lib/workflow.js';
+  import type { WorkflowTab } from '#lib/workflow-tabs.js';
   import { LANE_NODE, addAction, addAutomation, addCondition, connect, definitionStamp, focusGraphNode, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
-  import PipelineView from './pipeline-view.svelte';
+  import JourneyOverview from './journey-overview.svelte';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnaireBuilder from './questionnaire-builder.svelte';
   import ScorecardPicker from './scorecard-picker.svelte';
-  import SimulatePanel from './simulate-panel.svelte';
+  import StageCards from './stage-cards.svelte';
+  import StageSheet from './stage-sheet.svelte';
   import type { GraphActions } from './step-node.svelte';
+  import TestDrive from './test-drive.svelte';
   import WorkflowGraph from './workflow-graph.svelte';
 
-  // The workflow builder (workflow-engine.md §4) for a template's draft or a job's own copy: pipeline, graph,
-  // questionnaire and simulation over one workflow, as the panes of the page's `Tabs.Root` (`WorkflowTabs` sits on the
-  // header band). The page owns loading and saving, and shows the validation result beside its title; `errors` are the
-  // API validator's, with paths relative to the workflow. A version that cannot be edited is a `WorkflowSummary`.
+  // The workflow builder (workflow-engine.md §4) for a template's draft or a job's own copy: overview, pipeline,
+  // questions, automations (the graph) and the test drive over one workflow, as the panes of the page's `Tabs.Root`
+  // (`WorkflowTabs` sits on the header band). The page owns loading and saving, and shows the validation result beside its
+  // title; `errors` are the API validator's, with paths relative to the workflow. A version that cannot be edited is a
+  // `WorkflowSummary`.
   let {
     workflow = $bindable(),
     errors,
+    checking = false,
     tab = $bindable(),
-  }: { workflow: HiringWorkflow; errors: readonly DefinitionError[]; tab: string } = $props();
+    hrefOf,
+  }: {
+    workflow: HiringWorkflow;
+    errors: readonly DefinitionError[];
+    /** The validator's check of the latest change is on its way. */
+    checking?: boolean;
+    tab: WorkflowTab;
+    /** The address that shows a tab, for the links that go to one (A5). */
+    hrefOf: (tab: WorkflowTab) => string;
+  } = $props();
+
+  // The stage whose sheet is open, by id, so reordering the stages behind it keeps the same one.
+  let stageId = $state<string | null>(null);
+  const openStage = (id: string) => (stageId = id);
+
+  function removeStage(index: number) {
+    const next = withoutStage(workflow, index);
+    workflow.stages = next.stages;
+    workflow.automations = next.automations;
+  }
 
   // The last test's outcome per automation, lit on the graph once the person asks to see it there. The graph tab mounts
   // only while it is shown, and a test is about the workflow as it was, so an edit clears it.
@@ -37,7 +61,7 @@
 
   async function showTested(result: WorkflowSimulationResult) {
     tested = new Map(result.automations.map((automation) => [automation.automationId, automation.outcome]));
-    tab = 'graph';
+    tab = 'automations';
     // The button that asked leaves with its tab, so the focus goes to Clear, beside the words saying what is lit. On a
     // node it would light that node's path in place of the test's.
     await tick();
@@ -143,7 +167,12 @@
       openAutomation(Number(automation[1]), path);
       return;
     }
-    tab = /^(questionnaire|followUpQuestionnaires)/.test(path) ? 'questionnaire' : 'pipeline';
+    const stage = /^stages\[(\d+)\]/.exec(path);
+    if (stage && workflow.stages[Number(stage[1])]) {
+      stageId = workflow.stages[Number(stage[1])]!.id;
+      return;
+    }
+    tab = /^(questionnaire|followUpQuestionnaires)/.test(path) ? 'questions' : 'pipeline';
     await tick();
     const field = document.querySelector<HTMLElement>('[role="tabpanel"][data-state="active"] [aria-invalid="true"]');
     field?.scrollIntoView({ block: 'center' });
@@ -173,24 +202,44 @@
   }
 </script>
 
-<ProblemsPanel title="Problems to fix" {workflow} {errors} onfix={fix} />
+<!-- The Test tab shows its own notice with the fix inline, so the list is left out there (W7). -->
+{#if tab !== 'test'}<ProblemsPanel title="Problems to fix" {workflow} {errors} onfix={fix} />{/if}
 
-<Tabs.Content value="pipeline">
-  <PipelineView bind:workflow {errors} onopen={openLane} onscorecard={openScorecard} />
+<Tabs.Content value="overview">
+  <JourneyOverview {workflow} onopen={openStage} questionsHref={hrefOf('questions')} />
 </Tabs.Content>
-<Tabs.Content value="graph">
+<Tabs.Content value="pipeline">
+  <StageCards bind:workflow {errors} onopen={openStage} onscorecard={openScorecard} onautomations={openLane} />
+</Tabs.Content>
+<Tabs.Content value="automations">
   <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the graph measures its nodes when
        it mounts, which it cannot do while hidden. -->
   <Panel title="Stages and automations" flush>
-    {#if tab === 'graph'}<WorkflowGraph {workflow} {errors} actions={graphActions} {tested} onclear={() => (tested = undefined)} />{/if}
+    {#if tab === 'automations'}<WorkflowGraph {workflow} {errors} actions={graphActions} {tested} onclear={() => (tested = undefined)} />{/if}
   </Panel>
 </Tabs.Content>
-<Tabs.Content value="questionnaire">
+<Tabs.Content value="questions">
   <QuestionnaireBuilder bind:workflow {errors} />
 </Tabs.Content>
-<Tabs.Content value="simulate">
-  <SimulatePanel {workflow} onshow={showTested} onadd={() => graphActions.add(null)} onpipeline={() => (tab = 'pipeline')} />
+<Tabs.Content value="test">
+  <TestDrive bind:workflow {errors} {checking} onshow={showTested} onadd={() => graphActions.add(null)} onfix={fix} automationsHref={hrefOf('automations')} />
 </Tabs.Content>
+
+<StageSheet
+  bind:workflow
+  bind:stageId
+  {errors}
+  automationsHref={hrefOf('automations')}
+  onscorecard={(index) => {
+    stageId = null;
+    openScorecard(index);
+  }}
+  onautomations={(id) => {
+    stageId = null;
+    openLane(id);
+  }}
+  onremove={removeStage}
+/>
 
 <Sheet.Root bind:open={drawerOpen}>
   <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-3xl" {onOpenAutoFocus} {onCloseAutoFocus}>

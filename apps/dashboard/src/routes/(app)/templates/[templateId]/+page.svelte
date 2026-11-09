@@ -60,6 +60,7 @@
   import { copyName, maxNameLength, templatesHref, templateUsagePath, usageHref, usageLabel, usedByLabel, usedByNouns } from '#lib/templates.js';
   import { cn } from '#lib/utils.js';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
+  import { createWorkflowTab } from '#lib/workflow-tab.svelte.js';
   import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
@@ -124,7 +125,8 @@
     if (current) draft.load(current.definition.workflow, `${current.id}:${current.status}`);
   });
 
-  let tab = $state('pipeline');
+  // The tab is in the address (`?tab=`), so a link reaches it and a reload keeps it.
+  const workflowTab = createWorkflowTab();
   let notice = $state('');
   let failure = $state('');
   const busy = $derived(save.isPending || publish.isPending || nextVersion.isPending || copy.isPending || archive.isPending || unarchive.isPending);
@@ -153,7 +155,8 @@
   }
 
   async function publishDraft() {
-    if (!current) return;
+    // The button is disabled while the draft has problems; this keeps any other caller from publishing one.
+    if (!current || !draft.ready) return;
     if (draft.dirty && !(await saveDraft())) return;
     failure = '';
     try {
@@ -276,7 +279,9 @@
       {:else if detail.archived}
         <Button size="lg" onclick={() => setArchived(false)} disabled={busy}><ArchiveRestoreIcon aria-hidden="true" />Restore</Button>
       {:else if isDraft}
-        <Button size="lg" onclick={publishDraft} disabled={busy}><SendIcon aria-hidden="true" />Publish version {current.version}</Button>
+        <!-- A draft with problems saves; only Test and Publish wait for them, and the Fix button beside the title says why. -->
+        <!-- It goes off and on with every edit, so it does not fade: a half-faded button reads as a contrast failure to a checker that looks mid-change. -->
+        <Button size="lg" class="transition-none" onclick={publishDraft} disabled={busy || !draft.ready}><SendIcon aria-hidden="true" />Publish version {current.version}</Button>
       {:else if draftVersion}
         <Button size="lg" href={`/templates/${detail.id}?version=${draftVersion.version}`}><PencilIcon aria-hidden="true" />Open the draft</Button>
       {:else}
@@ -299,12 +304,12 @@
       </p>
     {/snippet}
 
-    <Tabs.Root bind:value={tab}>
+    <Tabs.Root bind:value={workflowTab.value}>
       <HeaderBand title={detail.name} details={!isDraft && (detail.isSystem || detail.archived || !mayEdit) ? readOnlyReason : undefined}>
         {#snippet status()}
           {#if detail.isSystem}<BuiltInBadge />{/if}
           {#if detail.archived}<StatusBadge status="archived" label="Archived" />{/if}
-          <ValidationBadge errors={draft.errors} checking={draft.checking} editable={isDraft} />
+          <ValidationBadge errors={draft.errors} checking={draft.checking} editable={isDraft} fix={workflowTab.value !== 'test'} />
         {/snippet}
         {#snippet actions()}
           <p role="status" class="text-muted-foreground empty:hidden">{notice}</p>
@@ -402,9 +407,15 @@
 
       <div class={workArea}>
         {#if isDraft}
-          <WorkflowEditor bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)} errors={draft.errors} bind:tab />
+          <WorkflowEditor
+            bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)}
+            errors={draft.errors}
+            checking={draft.checking}
+            bind:tab={workflowTab.value}
+            hrefOf={(tab) => workflowTab.href(tab)}
+          />
         {:else}
-          <WorkflowSummary workflow={draft.workflow} errors={draft.errors} {tab} />
+          <WorkflowSummary workflow={draft.workflow} errors={draft.errors} tab={workflowTab.value} hrefOf={(tab) => workflowTab.href(tab)} />
         {/if}
       </div>
 

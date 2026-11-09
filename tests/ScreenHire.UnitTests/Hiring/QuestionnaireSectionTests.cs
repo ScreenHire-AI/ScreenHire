@@ -49,20 +49,20 @@ public sealed class QuestionnaireSectionTests
         ]));
 
         errors.Select(e => e.Path).Should().BeEquivalentTo(["questionnaire.sections[0].name", "questionnaire.sections[1].id", "questionnaire.sections[2]"]);
-        errors.Single(e => e.Path == "questionnaire.sections[2]").Message.Should().Be("Add a question to this section or delete it.");
+        errors.Single(e => e.Path == "questionnaire.sections[2]").Message.Should().Be("The section \"Nothing here\" has no questions. Add one, or delete the section.");
     }
 
     [Fact]
     public void Every_question_is_in_exactly_one_section_in_the_questionnaires_order()
     {
         DefinitionValidator.Validate(Workflow([new("a", "A", ["work_authorization", "experience"])]))
-            .Should().ContainSingle(e => e.Path == "questionnaire.sections" && e.Message.StartsWith("Every question belongs to a section", StringComparison.Ordinal));
+            .Should().ContainSingle(e => e.Path == "questionnaire.sections" && e.Message.Contains("must be in a section", StringComparison.Ordinal));
         DefinitionValidator.Validate(Workflow([new("a", "A", ["work_authorization", "experience"]), new("b", "B", ["experience", "notice"])]))
-            .Should().ContainSingle(e => e.Message == "Question 'experience' is in two sections.");
+            .Should().ContainSingle(e => e.Message.Contains("is in the section \"B\" and in an earlier section", StringComparison.Ordinal));
         DefinitionValidator.Validate(Workflow([new("a", "A", ["experience", "work_authorization", "notice"])]))
             .Should().ContainSingle(e => e.Message.Contains("different order", StringComparison.Ordinal));
         DefinitionValidator.Validate(Workflow([new("a", "A", ["work_authorization", "experience", "notice", "ghost"])]))
-            .Should().ContainSingle(e => e.Message == "This questionnaire has no question 'ghost'.");
+            .Should().ContainSingle(e => e.Message.Contains("lists a question ('ghost') that is not in the application questionnaire", StringComparison.Ordinal));
     }
 
     [Fact]

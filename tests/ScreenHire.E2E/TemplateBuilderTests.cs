@@ -13,7 +13,7 @@ namespace ScreenHire.E2E;
 /// </summary>
 public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
 {
-    private const string Guardrail = "Verification signals never drive rejection";
+    private const string Guardrail = "never drives a rejection";
 
     private const string RightToWork = "Do you have the right to work in the UK?";
 
@@ -21,18 +21,20 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
     // The validation badge beside the title is busy while the check of the latest change is on its way, and until then
     // it still shows the previous change's result. Assert on the settled result, never on an earlier one that happens to
-    // match.
-    private async Task ExpectValidationAsync(string text)
+    // match. A workflow with nothing wrong shows no badge at all.
+    private async Task ExpectNoProblemsAsync()
     {
         var validation = Page.GetByRole(AriaRole.Region, new() { Name = "Validation" });
         await Expect(validation).ToHaveAttributeAsync("aria-busy", "false");
-        await Expect(validation).ToContainTextAsync(text);
+        await Expect(validation).Not.ToContainTextAsync("Needs fixes");
     }
 
-    // A settled check that found a problem: the badge counts it, and the builder's "Problems to fix" panel says it.
+    // A settled check that found a problem: the Needs fixes badge, and the builder's "Problems to fix" panel says it.
     private async Task ExpectProblemAsync(string text)
     {
-        await ExpectValidationAsync("to fix");
+        var validation = Page.GetByRole(AriaRole.Region, new() { Name = "Validation" });
+        await Expect(validation).ToHaveAttributeAsync("aria-busy", "false");
+        await Expect(validation).ToContainTextAsync("Needs fixes");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Problems to fix" })).ToContainTextAsync(text);
     }
 
@@ -54,15 +56,15 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "New template" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Hiring template" }).ClickAsync();
-        var newTemplate = Page.GetByRole(AriaRole.Dialog, new() { Name = "New hiring template" });
-        await newTemplate.GetByLabel("Name").FillAsync(templateName);
-        await newTemplate.GetByRole(AriaRole.Button, new() { Name = "Create template" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("New hiring template");
+        await Page.GetByLabel("Template name").FillAsync(templateName);
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Start from nothing" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(templateName);
         await Expect(HeaderBand).ToContainTextAsync("Draft");
-        await ExpectValidationAsync("No problems found");
+        await ExpectNoProblemsAsync();
 
         // A knockout question in the form builder, which the preview shows as the careers page would.
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Questionnaire" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Questions" }).ClickAsync();
         var questions = Page.GetByRole(AriaRole.Region, new() { Name = "Screening questions", Exact = true });
         await questions.GetByRole(AriaRole.Button, new() { Name = "Add a question" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Yes or no", Exact = true }).ClickAsync();
@@ -82,8 +84,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Button, new() { Name = "Edit", Exact = true }).ClickAsync();
 
         // An automation on the verification checks that tries to reject: the API's guardrail refuses it.
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Edit automations for the whole workflow") }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Automations" }).GetByRole(AriaRole.Button, new() { Name = "Lane Whole workflow" }).ClickAsync();
         var drawer = Page.GetByRole(AriaRole.Dialog, new() { Name = "Automations: Whole workflow" });
         await drawer.GetByRole(AriaRole.Button, new() { Name = "Add automation" }).ClickAsync();
         var firstAction = drawer.GetByRole(AriaRole.Combobox, new() { NameRegex = new Regex("^Action 1") });
@@ -102,16 +104,19 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         // Routing for review instead is allowed.
         await firstAction.SelectOptionAsync(new SelectOptionValue { Label = "Add a tag" });
-        await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Tag", Exact = true }).FillAsync("needs-review");
-        await ExpectValidationAsync("No problems found");
+        await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Tag name", Exact = true }).FillAsync("needs-review");
+        await ExpectNoProblemsAsync();
         await Expect(drawer).Not.ToContainTextAsync(Guardrail);
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Workflow automations" }))
-            .ToContainTextAsync("When the verification checks finish, if 1 condition holds: add the tag \"needs-review\".");
+
+        // The Overview reads the workflow back as what happens to an applicant.
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Overview" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Candidate journey" }))
+            .ToContainTextAsync("When the checks finish, if verification is Verify, adds the tag \"needs-review\"");
 
         // The graph is the same workflow.
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Graph" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
         var automation = Page.GetByRole(AriaRole.Button, new() { Name = "When Route for review" });
         await Expect(automation).ToBeVisibleAsync();
         await Expect(Page.Locator(".svelte-flow")).ToContainTextAsync("Add the tag \"needs-review\"");
@@ -171,9 +176,12 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         // The template the workflow came from is a header fact (W3).
         await Expect(HeaderBand).ToContainTextAsync($"{templateName} v1");
 
-        // The guided test: what happened, who the candidate is, then what would happen, one question at a time.
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Simulate" }).ClickAsync();
-        var test = Page.GetByRole(AriaRole.Region, new() { Name = "Test this workflow" });
+        // The test drive runs four sample candidates; "Try your own candidate" is the guided test: what happened, who the
+        // candidate is, then what would happen, one question at a time.
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Test" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "What happens to these candidates" })).ToContainTextAsync("Meets every requirement");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Try your own candidate" }).ClickAsync();
+        var test = Page.GetByRole(AriaRole.Region, new() { Name = "Try your own candidate" });
         await Expect(test.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("What happened?");
         await Expect(test).ToContainTextAsync("It never touches a real candidate or sends anything.");
         await test.GetByRole(AriaRole.Button, new() { Name = "The verification checks finished" }).ClickAsync();
@@ -191,6 +199,106 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(test.GetByRole(AriaRole.Heading, new() { Level = 4 })).ToHaveTextAsync("Would not run");
         await Expect(test).ToContainTextAsync("Nothing would run.");
         await Expect(test).ToContainTextAsync("Verification: authenticity is Verification suggested");
+    }
+
+    [Fact]
+    public async Task A_recruiter_starts_from_Trade_role_renames_a_stage_changes_a_time_limit_sees_the_test_drive_update_and_publishes()
+    {
+        var email = await OnboardAsync();
+        await Page.SetViewportSizeAsync(1440, 1040);
+        await SignInAsync(email);
+
+        // Start from: three cards, each its name, one example line and its stages as text.
+        await Page.GotoAsync(DashboardUrl("/templates/new"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("New hiring template");
+        var cards = Page.GetByRole(AriaRole.Group, new() { Name = "Starting point" });
+        await Expect(cards).ToContainTextAsync("Plumber, electrician, driver");
+        await Expect(cards).ToContainTextAsync("Applied, Phone call, Trial shift, Offer");
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-template-start-from-light");
+        await cards.GetByText("Trade role with a trial shift").ClickAsync();
+        await Page.GetByLabel("Template name").FillAsync("Service plumber");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Use this starting point" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Service plumber");
+        await ExpectNoProblemsAsync();
+
+        // The Overview reads it back as what happens to an applicant.
+        var journey = Page.GetByRole(AriaRole.Region, new() { Name = "Candidate journey" });
+        await Expect(journey).ToContainTextAsync("Trial shift");
+        await Expect(journey).ToContainTextAsync("5-day limit");
+        await Expect(journey).ToContainTextAsync("Sends the \"Application received\" email");
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-template-overview-light");
+
+        // Rename a stage and change its time limit in the stage's sheet.
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" }).GetByRole(AriaRole.Button, new() { Name = "Trial shift", Exact = true }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Trial shift" });
+        await sheet.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true }).FillAsync("Paid trial shift");
+        await sheet.GetByRole(AriaRole.Radio, new() { Name = "3 days" }).ClickAsync();
+        await Expect(sheet).ToContainTextAsync("The team gets a reminder after 3 days.");
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-template-stage-sheet-light");
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Done" }).ClickAsync();
+        await Expect(sheet).ToBeHiddenAsync();
+        await Expect(Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" })).ToContainTextAsync("3-day limit");
+
+        // An automation with a blank tag pauses the Test tab, with the fix inline.
+        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" }).GetByRole(AriaRole.Button, new() { Name = "Actions for Applied" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Add an automation" }).ClickAsync();
+        var drawer = Page.GetByRole(AriaRole.Dialog, new() { Name = "Automations: Applied" });
+        await drawer.GetByRole(AriaRole.Button, new() { Name = "Add automation" }).ClickAsync();
+        await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true }).FillAsync("Welcome tag");
+        await drawer.GetByLabel("Trigger").SelectOptionAsync(new SelectOptionValue { Label = "An application arrives" });
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(drawer).ToBeHiddenAsync();
+        await ExpectProblemAsync("The tag in \"Welcome tag\" has no name. Type one, or remove that step.");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Fix 1 thing" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Publish version 1" })).ToBeDisabledAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Test" }).ClickAsync();
+        var drive = Page.GetByRole(AriaRole.Region, new() { Name = "What happens to these candidates" });
+        await Expect(drive).ToContainTextAsync("Paused until 1 thing is fixed");
+        await Expect(drive).Not.ToContainTextAsync("Meets every requirement");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Fix 1 thing" })).ToHaveCountAsync(0);
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-template-test-paused-light");
+
+        // Type the tag: the samples run again by themselves and show it.
+        await drive.GetByRole(AriaRole.Textbox, new() { Name = "Tag name" }).FillAsync("welcome");
+        await drive.GetByRole(AriaRole.Button, new() { Name = "Add the tag" }).ClickAsync();
+        await Expect(drive).ToContainTextAsync("Meets every requirement");
+        await Expect(drive).ToContainTextAsync("Adds the tag \"welcome\"");
+        await Expect(drive).ToContainTextAsync("Goes to the team's review list");
+        await ExpectNoProblemsAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-template-test-drive-light");
+
+        // The three screens on a phone and in the dark theme: no sideways scroll, no accessibility violations.
+        await Page.SetViewportSizeAsync(390, 844);
+        foreach (var tab in new[] { "Overview", "Pipeline", "Test" })
+        {
+            await Page.GetByRole(AriaRole.Tab, new() { Name = tab }).ClickAsync();
+            await Expect(Page.GetByRole(AriaRole.Tabpanel, new() { Name = tab })).ToBeVisibleAsync();
+            await ExpectNoSidewaysScrollAsync();
+            await ExpectNoAccessibilityViolationsAsync();
+            await SaveScreenshotAsync(Page, $"dashboard-template-{tab.ToLowerInvariant()}-390");
+        }
+        await Page.SetViewportSizeAsync(1440, 1040);
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to dark theme" }).ClickAsync();
+        foreach (var tab in new[] { "Overview", "Pipeline", "Test" })
+        {
+            await Page.GetByRole(AriaRole.Tab, new() { Name = tab }).ClickAsync();
+            await Expect(Page.GetByRole(AriaRole.Tabpanel, new() { Name = tab })).ToBeVisibleAsync();
+            await ExpectNoAccessibilityViolationsAsync();
+            await SaveScreenshotAsync(Page, $"dashboard-template-{tab.ToLowerInvariant()}-dark");
+        }
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to light theme" }).ClickAsync();
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Publish version 1" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Published version 1." })).ToBeVisibleAsync();
+        await Expect(HeaderBand).ToContainTextAsync("Published");
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Overview" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Candidate journey" })).ToContainTextAsync("Paid trial shift");
     }
 
     [Fact]
@@ -239,7 +347,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Applied version 2 of Retail assistant." })).ToBeVisibleAsync();
         await Expect(HeaderBand.Locator("[data-slot=fact]").Filter(new() { Has = Page.GetByText("Version", new() { Exact = true }) }).Locator("dd")).ToHaveTextAsync("2");
         await Expect(update).ToBeHiddenAsync();
-        await Expect(Page.GetByRole(AriaRole.Spinbutton, new() { Name = "Time limit (days)" }).Nth(1)).ToHaveValueAsync("2");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Candidate journey" })).ToContainTextAsync("2-day limit");
     }
 
     [Fact]
@@ -255,13 +363,16 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Software engineer");
         await Expect(HeaderBand).ToContainTextAsync("Built in");
         await Expect(Page.GetByText("Copy this ScreenHire template to change it.")).ToBeVisibleAsync();
-        await ExpectValidationAsync("No problems found");
+        await ExpectNoProblemsAsync();
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Copy template" })).ToBeVisibleAsync();
-        var pipeline = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" });
-        await Expect(pipeline.GetByRole(AriaRole.List, new() { Name = "Stages in order" })).ToBeVisibleAsync();
-        await Expect(pipeline.Locator("input, select, textarea")).ToHaveCountAsync(0);
+        var overview = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Overview" });
+        await Expect(overview.GetByRole(AriaRole.List, new() { Name = "Stages in order" })).ToBeVisibleAsync();
+        await Expect(overview.Locator("input, select, textarea")).ToHaveCountAsync(0);
+        await Expect(overview.GetByRole(AriaRole.Button)).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-screenhire-light");
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" }).GetByRole(AriaRole.List, new() { Name = "Stages in order" })).ToBeVisibleAsync();
 
         // Its earlier version, from the versions menu.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Versions" }).ClickAsync();
@@ -289,16 +400,16 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await HeaderBand.GetByRole(AriaRole.Button, new() { Name = "More actions" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Save draft" })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
-        await ExpectValidationAsync("No problems found");
+        await ExpectNoProblemsAsync();
         await ExpectNoSidewaysScrollAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-builder-390");
     }
 
     [Fact]
-    public async Task A_recruiter_builds_an_automation_in_the_graph_with_the_keyboard_and_finds_it_in_the_pipeline()
+    public async Task A_recruiter_builds_an_automation_in_the_graph_with_the_keyboard_and_finds_it_in_the_overview()
     {
-        const string Blank = "This is blank. Fill it in or remove it.";
+        const string Blank = "The tag in \"Fast-track referrals\" has no name. Type one, or remove that step.";
         var email = await OnboardAsync();
         using (var session = new ApiSession(Fixture))
         {
@@ -309,9 +420,9 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
             await Page.GotoAsync(DashboardUrl($"/templates/{template.GetProperty("id").GetGuid()}"));
         }
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Support agent");
-        await ExpectValidationAsync("No problems found");
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Graph" }).ClickAsync();
-        var graph = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Graph" });
+        await ExpectNoProblemsAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
+        var graph = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Automations" });
         ILocator Node(string name) => graph.GetByRole(AriaRole.Button, new() { Name = name });
 
         // From here on, the keyboard only: Tab into the graph, the arrow keys from node to node.
@@ -325,7 +436,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await TabUntilFocusedAsync(graph.GetByRole(AriaRole.Button, new() { Name = "Add an automation", Exact = true }));
         await Page.Keyboard.PressAsync("Enter");
 
-        // The Pipeline view's own form, opened at the new automation's name, its trigger an arriving application.
+        // The automations form, opened at the new automation's name, its trigger an arriving application.
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Automations: Whole workflow" });
         var name = sheet.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true });
         await Expect(name).ToBeFocusedAsync();
@@ -365,9 +476,9 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.Keyboard.PressAsync("Enter");
         await Expect(sheet.GetByRole(AriaRole.Combobox, new() { Name = "Action 1" })).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Tab");
-        await Expect(sheet.GetByRole(AriaRole.Textbox, new() { Name = "Tag", Exact = true })).ToBeFocusedAsync();
+        await Expect(sheet.GetByRole(AriaRole.Textbox, new() { Name = "Tag name", Exact = true })).ToBeFocusedAsync();
         await Page.Keyboard.TypeAsync("fast-track");
-        await ExpectValidationAsync("No problems found");
+        await ExpectNoProblemsAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(sheet).ToBeHiddenAsync();
         await Expect(Node("Then action 1 in Fast-track referrals")).ToBeVisibleAsync();
@@ -377,12 +488,11 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Workflow automations" }))
-            .ToContainTextAsync("When an application arrives, if 1 condition holds: add the tag \"fast-track\".");
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Overview" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Candidate journey" })).ToContainTextAsync("adds the tag \"fast-track\"");
 
         // The graph at a laptop's and a tablet's width, and on a phone, where it is for reading. It opens at full size.
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Graph" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
         await Page.Mouse.MoveAsync(0, 0);
         foreach (var (width, height) in new[] { (1024, 900), (768, 1024) })
         {

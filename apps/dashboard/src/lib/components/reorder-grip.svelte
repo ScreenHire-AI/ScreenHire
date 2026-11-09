@@ -1,6 +1,10 @@
 <script lang="ts">
   import ArrowDownIcon from '~icons/lucide/arrow-down';
   import ArrowDownToLineIcon from '~icons/lucide/arrow-down-to-line';
+  import ArrowLeftIcon from '~icons/lucide/arrow-left';
+  import ArrowLeftToLineIcon from '~icons/lucide/arrow-left-to-line';
+  import ArrowRightIcon from '~icons/lucide/arrow-right';
+  import ArrowRightToLineIcon from '~icons/lucide/arrow-right-to-line';
   import ArrowUpIcon from '~icons/lucide/arrow-up';
   import ArrowUpToLineIcon from '~icons/lucide/arrow-up-to-line';
   import GripVerticalIcon from '~icons/lucide/grip-vertical';
@@ -10,12 +14,13 @@
 
   // An item's reorder grip (design system A7), rendered by `ReorderList`, which owns the drag. Drag it to move the item;
   // click it (or press Enter) for Move up, Move down, Move to top and Move to bottom; press Space to pick the item up for
-  // the arrow keys. Moves that do not apply are left out (A3). It is a `role="button"` span rather than a `<button>`:
+  // the arrow keys (Move left, Move right, Move to start and Move to end in a horizontal list, as the stage cards are). Moves that do not apply are left out (A3). It is a `role="button"` span rather than a `<button>`:
   // svelte-dnd-action leaves keys on a native button alone, so Space would never start the keyboard drag.
   let {
     label,
     index,
     count,
+    orientation = 'vertical',
     onactivate,
     onmove,
   }: {
@@ -23,6 +28,8 @@
     label: string;
     index: number;
     count: number;
+    /** A horizontal list's moves are left and right, start and end. */
+    orientation?: 'vertical' | 'horizontal';
     /** Lets the list's drag start from this grip, for the pointer press or key press under way. */
     onactivate: (from: 'pointer' | 'keyboard') => void;
     onmove: (to: number) => void;
@@ -97,17 +104,26 @@
       grip?.focus();
     }}
   >
+    {@const across = orientation === 'horizontal'}
     {#if index > 0}
-      <DropdownMenu.Item onSelect={() => onmove(index - 1)}><ArrowUpIcon aria-hidden="true" />Move up</DropdownMenu.Item>
+      <DropdownMenu.Item onSelect={() => onmove(index - 1)}>
+        {#if across}<ArrowLeftIcon aria-hidden="true" />Move left{:else}<ArrowUpIcon aria-hidden="true" />Move up{/if}
+      </DropdownMenu.Item>
     {/if}
     {#if index < count - 1}
-      <DropdownMenu.Item onSelect={() => onmove(index + 1)}><ArrowDownIcon aria-hidden="true" />Move down</DropdownMenu.Item>
+      <DropdownMenu.Item onSelect={() => onmove(index + 1)}>
+        {#if across}<ArrowRightIcon aria-hidden="true" />Move right{:else}<ArrowDownIcon aria-hidden="true" />Move down{/if}
+      </DropdownMenu.Item>
     {/if}
     {#if index > 0}
-      <DropdownMenu.Item onSelect={() => onmove(0)}><ArrowUpToLineIcon aria-hidden="true" />Move to top</DropdownMenu.Item>
+      <DropdownMenu.Item onSelect={() => onmove(0)}>
+        {#if across}<ArrowLeftToLineIcon aria-hidden="true" />Move to start{:else}<ArrowUpToLineIcon aria-hidden="true" />Move to top{/if}
+      </DropdownMenu.Item>
     {/if}
     {#if index < count - 1}
-      <DropdownMenu.Item onSelect={() => onmove(count - 1)}><ArrowDownToLineIcon aria-hidden="true" />Move to bottom</DropdownMenu.Item>
+      <DropdownMenu.Item onSelect={() => onmove(count - 1)}>
+        {#if across}<ArrowRightToLineIcon aria-hidden="true" />Move to end{:else}<ArrowDownToLineIcon aria-hidden="true" />Move to bottom{/if}
+      </DropdownMenu.Item>
     {/if}
   </DropdownMenu.Content>
 </DropdownMenu.Root>

@@ -7,8 +7,14 @@
     first = ['Your CV', 'Right to work', 'Notice period'],
     second = ['Morning', 'Afternoon'],
     onreorder,
-  }: { first?: string[]; second?: string[]; /** Each `onreorder` call, with the list's label. */ onreorder?: (label: string, next: string[]) => void } =
-    $props();
+    orientation = 'vertical',
+  }: {
+    first?: string[];
+    second?: string[];
+    /** Each `onreorder` call, with the list's label. */ onreorder?: (label: string, next: string[]) => void;
+    /** A row of items moves left and right, so the grips' menus say so. */
+    orientation?: 'vertical' | 'horizontal';
+  } = $props();
   // svelte-ignore state_referenced_locally: the harness starts from its props and then owns the order.
   let questions = $state([...first]);
   // svelte-ignore state_referenced_locally: as above.
@@ -22,6 +28,7 @@
       key={(value) => value}
       label={list.label}
       itemLabel={(value) => value}
+      {orientation}
       onreorder={(next) => {
         onreorder?.(list.label, next);
         list.set(next);

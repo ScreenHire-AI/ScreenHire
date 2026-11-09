@@ -1412,7 +1412,11 @@ export const CreateJobResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(createJobResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "workflowProblems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1615,7 +1619,11 @@ export const GetJobResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(getJobResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "workflowProblems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1841,7 +1849,11 @@ export const UpdateJobResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(updateJobResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "workflowProblems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2082,7 +2094,11 @@ export const PublishJobResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(publishJobResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "workflowProblems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2285,7 +2301,11 @@ export const CloseJobResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(closeJobResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "workflowProblems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2684,7 +2704,11 @@ export const UpdateJobWorkflowResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(updateJobWorkflowResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "workflowProblems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2892,7 +2916,11 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "userId": zod.uuid().nullish(),
   "apiKeyId": zod.uuid().nullish(),
   "created": zod.boolean().default(applyJobTemplateUpdateResponseLastUpdatedCreatedDefault)
-}).describe('When a tracked object last changed and who changed it, the last fact in its header.')
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "workflowProblems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -3479,8 +3507,12 @@ export const CreateHiringTemplateVersionResponse = zod.object({
 }).describe('A hiring template version\'s full definition: the workflow a job copies, plus defaults for the job\'s posting.'),
   "createdAt": zod.iso.datetime({"offset":true}),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "publishedBy": zod.uuid().nullable()
-}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`.')
+  "publishedBy": zod.uuid().nullable(),
+  "problems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
 export const GetHiringTemplateVersionParams = zod.object({
@@ -3631,8 +3663,12 @@ export const GetHiringTemplateVersionResponse = zod.object({
 }).describe('A hiring template version\'s full definition: the workflow a job copies, plus defaults for the job\'s posting.'),
   "createdAt": zod.iso.datetime({"offset":true}),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "publishedBy": zod.uuid().nullable()
-}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`.')
+  "publishedBy": zod.uuid().nullable(),
+  "problems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
 export const UpdateHiringTemplateVersionParams = zod.object({
@@ -3922,8 +3958,12 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
 }).describe('A hiring template version\'s full definition: the workflow a job copies, plus defaults for the job\'s posting.'),
   "createdAt": zod.iso.datetime({"offset":true}),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "publishedBy": zod.uuid().nullable()
-}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`.')
+  "publishedBy": zod.uuid().nullable(),
+  "problems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
 export const PublishHiringTemplateVersionParams = zod.object({
@@ -4074,8 +4114,12 @@ export const PublishHiringTemplateVersionResponse = zod.object({
 }).describe('A hiring template version\'s full definition: the workflow a job copies, plus defaults for the job\'s posting.'),
   "createdAt": zod.iso.datetime({"offset":true}),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "publishedBy": zod.uuid().nullable()
-}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`.')
+  "publishedBy": zod.uuid().nullable(),
+  "problems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
+}).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
 export const ArchiveHiringTemplateParams = zod.object({
@@ -8031,7 +8075,7 @@ export const ValidateWorkflowResponse = zod.object({
   "errors": zod.array(zod.object({
   "path": zod.string(),
   "message": zod.string()
-}).describe('A problem with a definition, at a JSON path such as `workflow.stages[1].id`.'))
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.'))
 }).describe('The validator\'s verdict, guardrails included. 200 either way: a workflow with problems is a normal answer here, and\neach problem has a JSON path such as `automations[0].actions[0]` the builder can point at.')
 
 
