@@ -23,7 +23,7 @@ import {
   type SentenceContext,
   type TextBlank,
 } from './automation-sentence.js';
-import { factsFor } from './workflow.js';
+import { factsFor, triggerNeedsStage, triggerTypes } from './workflow.js';
 
 const stages: HiringWorkflow['stages'] = [
   { id: 'applied', name: 'Applied', kind: 'Applied' },
@@ -677,7 +677,16 @@ describe('review fixes', () => {
     const names = new Map([['stage-change', 'Moved to the next step']]);
 
     expect(automationLine(wf.automations[0]!, wf)).toBe('When someone applies and Verification is Review or Verify, add the tag "Not eligible".');
-    expect(automationLine(wf.automations[1]!, wf, undefined, names)).toBe('When moves to Phone call, send the "Moved to the next step" email.');
+    expect(automationLine(wf.automations[1]!, wf, undefined, names)).toBe('When someone moves to Phone call, send the "Moved to the next step" email.');
     expect(automationLine(wf.automations[2]!, wf)).toMatch(/^When someone applies and one of .+ or .+, ask the team to review\.$/);
+  });
+
+  it('gives every trigger a subject after "When"', () => {
+    const wf = flow();
+    for (const type of triggerTypes) {
+      const trigger: Automation['trigger'] = { type, stageId: triggerNeedsStage(type) || type === 'SlaBreached' ? 'screening' : undefined, afterHours: type === 'TimeElapsed' ? 48 : undefined };
+      const line = automationLine({ id: 'a', name: 'a', trigger, conditions: null, actions: [{ type: 'AddTag', tag: 'x' }] }, wf);
+      expect(line, type).toMatch(/^When (someone|the|a|an|it|\d) /);
+    }
   });
 });

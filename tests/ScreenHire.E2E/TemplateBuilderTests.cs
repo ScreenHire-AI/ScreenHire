@@ -542,7 +542,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(graph.GetByRole(AriaRole.Group, new() { Name = "View" })).ToHaveCountAsync(0);
         await Expect(graph.Locator(".svelte-flow")).ToHaveCountAsync(0);
         var row = graph.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Fast-track referrals") });
-        await Expect(row).ToContainTextAsync("When an application arrives");
+        await Expect(row).ToContainTextAsync("When someone applies");
         await Expect(graph.GetByRole(AriaRole.Button, new() { Name = "Add automation" })).ToBeVisibleAsync();
         await ExpectNoSidewaysScrollAsync();
         await ExpectNoAccessibilityViolationsAsync();
