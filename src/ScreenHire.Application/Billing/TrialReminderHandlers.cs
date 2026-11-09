@@ -167,7 +167,9 @@ public static partial class EmailTrialEndingHandler
 
         var organization = await db.Organizations.AsNoTracking()
             .Where(o => o.Id == message.OrganizationId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
-        var to = await db.Users.AsNoTracking().Where(u => u.Id == message.UserId).Select(u => u.Email).SingleOrDefaultAsync(cancellationToken);
+        // Looked up among the Owners again: a member removed or demoted since the reminder fired gets nothing.
+        var to = (await NotificationRecipients.ForAsync(db, message.OrganizationId, Permission.ManageBilling, cancellationToken))
+            .FirstOrDefault(r => r.UserId == message.UserId)?.Email;
         if (organization is null || string.IsNullOrWhiteSpace(to))
         {
             return;

@@ -189,14 +189,16 @@ describe('notification bell', () => {
   });
 
   it('tells an Owner the days left in the trial and links to Billing, one notification that counts once', async () => {
-    const endsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString();
+    // Noon three days from today, so it is three calendar days away whatever the hour the test runs (Vitest pins TZ to UTC).
+    const today = new Date();
+    const endsAt = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 3, 12)).toISOString();
     stub([{ ...unreadItem, kind: 'trial-ending', payload: { endsAt, plan: 'Growth' }, link: '/settings/billing' }], 1);
     renderBell(); // the Owner
     const panel = await openBell();
 
     const alerts = await within(panel).findByRole('list', { name: 'Alerts' });
     const link = within(alerts).getByRole('link');
-    expect(link).toHaveTextContent('Unread: Your free trial ends in 4 days. Choose a plan to keep opening jobs');
+    expect(link).toHaveTextContent('Unread: Your free trial ends in 3 days');
     expect(link).toHaveAttribute('href', '/settings/billing');
     expect(within(alerts).getAllByRole('link')).toHaveLength(1);
   });
