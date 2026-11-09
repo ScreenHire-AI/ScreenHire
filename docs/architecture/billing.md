@@ -314,13 +314,14 @@ the one metered thing on top of it.
 **The amount.** `AiCharge.Micros` prices one call: its cost in US dollars times (1 + margin), rounded half away from zero to a
 micro-dollar, a whole number. The unit is the micro-dollar because Stripe's meter takes positive integers and a call often costs a
 fraction of a cent. The Billing page sums the same function over the month, in SQL (Postgres rounds numeric half away from zero too),
-so the page and the invoice agree to the micro-dollar. A call with no known cost (`Unknown`, never a made-up zero) charges nothing.
+so its "Cost so far" and the meter agree to the micro-dollar for calls past the trial (the trial's allowance is said in its own line). A call with no known cost (`Unknown`, never a made-up zero) charges nothing.
 
 **Reporting.** Every 15 minutes (`ReportAiUsage`, a recurring Wolverine schedule in the worker) one message for each organization
 (`ReportOrganizationAiUsage`, `[Deduplicated]` on the organization and the 15-minute slot) settles that organization's pending calls:
-built-in key, a cost, started within the last 34 days (Stripe takes events up to 35 days old) and not yet in `ai_usage_charges`,
+built-in key, a cost, started within the last 34 days and not yet in `ai_usage_charges`,
 oldest first, at most `Ai:ReportBatchSize`. A full batch sends the next one, keyed by the last call's id so the cron slot's own key
-does not swallow it.
+does not swallow it. The 34 days are a choice, not Stripe's 35-day limit (the event carries the report's time, not the call's): an older
+call that was never settled is never billed, so a first invoice reaches back about one period at most, and the query stays bounded.
 
 - **Only a paying organization is reported.** The account must be Active or PastDue. During the trial there is no Stripe customer,
   and after the subscription ended there is nothing to bill on, so those calls wait (up to the 34 days) and are settled when a plan
@@ -358,14 +359,15 @@ billed in full when a plan starts. The Billing page says all of this in plain wo
 **On the subscription.** Checkout adds `line_items[1][price]=<Ai:StripePriceId>` (a metered price takes no quantity). The plan change
 and the webhook read the item that carries a catalogue price, whichever order Stripe lists the items in (`PlanKeyOf`, `PeriodEnd`), and
 the plan change's preview ignores the metered line: it is usage so far, not the plan, and its earlier period would pull the next payment's
-date back. A subscription made before the metered price was set has no such item; the owner adds it in Stripe.
+date back. A subscription made before the metered price was set has no such item; the owner adds it in Stripe. Until then Stripe still
+takes that customer's meter events, so the calls are recorded as `Reported`, but no invoice charges them.
 
 **The sandbox** takes every event (`SandboxBillingProvider.ReportAiUsageAsync`) and keeps no meter of its own. The `ai_usage_charges` row,
-with provider `Sandbox`, is the record that the usage was reported, so the local demo and the tests show it. Brightwater, seeded Active on
-Unlimited, settles its own demo calls.
+with provider `Sandbox`, is the record that the usage was reported, so the local demo and the tests show it. Brightwater is seeded Active on
+Unlimited with a trial that ended the day before, so the worker's next 15-minute report sends its demo calls to the sandbox meter in full.
 
 **Two cost numbers.** The Verification budget and cap, in dollars, sum the provider's cost. The invoice is that cost plus the margin, so
-a cap of $50 can become $60 billed. The Billing page labels both figures ("Provider's price" and "You pay"). Applying the margin to the
+a cap of $50 can become $60 billed. The Billing page labels both figures ("Provider's price" and "Cost so far"). Applying the margin to the
 built-in key's dollar limits is a later call.
 
 ### Owner actions for AI usage
@@ -465,11 +467,13 @@ refetches when `BillingChanged` arrives and when the browser returns from Checko
 
 Under Plans, an AI usage panel (from the overview's `aiUsage`, so the page makes no request of its own) says "AI checks on ScreenHire's
 key are billed at the provider's price plus 20%" (the percent is the API's, never typed in the page), then this UTC month's calls on the
-built-in key, "Provider's price" and "You pay" in US dollars with their sub-cent digits, and one sentence for where the organization
-stands: what the trial includes and that use above it is added to the first invoice, "AI use is billed once you choose a plan" after the
-trial, what the trial covered once a plan is paying, or that billing for AI use is not set up where Stripe has no metered price. Calls
-with no known price are counted in a sentence of their own and are not charged. The footer says bringing your own key removes the charge,
-with a link to Verification to set it and one to `/verification#ai-usage` for the call-by-call list. It adds no primary button (A1).
+built-in key, "Provider's price" and "Cost so far" (with the margin) in US dollars with their sub-cent digits, and one sentence for where
+the organization stands: that billing for AI use is not set up where Stripe has no metered price (checked first, so a trial is never
+promised an invoice line that will not come), what the trial includes and that use above it is added to the first invoice, "AI use is
+billed once you choose a plan" after the trial, or what the trial covered once a plan is paying. Calls on the organization's own key and
+calls with no known price are each counted in a sentence of their own and are not charged. The footer says bringing your own key removes
+the charge, with a link to Verification to set it and one to `/verification#ai-usage` for the call-by-call list; the usage panel there
+renders after the settings load, so it scrolls itself into view when the address names it. It adds no primary button (A1).
 
 A refused publish reaches a person at the three places a draft is opened (the jobs list, a job's page and its distribution
 panel) as `PlanProblemNotice` (a 402 is told from other failures by `planProblem` in `apps/dashboard/src/lib/query.ts`), a full-width notice above the table or panel in place of a plain failure line: the API's own
