@@ -577,7 +577,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   `pointer-coarse:min-h-11` on marketing pages. Careers pages use a plain `min-h-11`, so they are 44px on any pointer.
 - Shape and space come from section 5. Radius is a token: 8px for buttons and inputs (`rounded-lg`), 12px for panels
   (`rounded-panel`), full for chips and badges, and never `rounded-[...]` or another size such as `rounded-2xl` (`public-style.test.ts` fails on any radius
-  class but those three and `rounded-none`, which a square step marker has). A card that is not a `Panel` still takes `rounded-panel` and `shadow-surface`. Margins, padding and gaps sit on the 4px grid
+  class but those three and `rounded-none`; a step marker on a candidate's own page is square, with no radius class). A card that is not a `Panel` still takes `rounded-panel` and `shadow-surface`. Margins, padding and gaps sit on the 4px grid
   (4, 8, 12, 16, 20, 24, 32, 40, 48, which is `1`, `2`, `3`, `4`, `5`, `6`, `8`, `10` and `12`): no half steps, no `7`,
   `9` or `11`. A button is 44px high (`min-h-11` on careers pages, `h-11` on marketing pages), and a careers input or
   choice is 48px (`min-h-12`).
