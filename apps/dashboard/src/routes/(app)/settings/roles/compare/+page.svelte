@@ -9,7 +9,7 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { describeError } from '#lib/query.js';
-  import { roleKey } from '#lib/settings.js';
+  import { roleKey, settingsCrumbs } from '#lib/settings.js';
 
   // Compare roles (design system section 21): what each role can do, built-in and the team's own, from the catalogue the
   // API serves (RolePermissions.cs), never copy typed into the page. A fixed grid in the catalogue's order, which does
@@ -33,7 +33,7 @@
   <title>Compare roles · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Organization' }, { label: 'Roles', href: listHref }, { label: 'Compare roles' }]} back />
+<TopBar crumbs={settingsCrumbs(listHref, { label: 'Compare roles' })} back />
 
 <main>
   <HeaderBand title="Compare roles" />

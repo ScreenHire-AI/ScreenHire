@@ -82,14 +82,17 @@ describe("the person's block at the foot of the sidebar", () => {
 describe('the Views list in the sidebar', () => {
   it('is headed Views, so Saved means saved candidates only, and lists a saved view after the built-in ones', () => {
     stubViewport(1280);
-    render(ShellHarness, { props: { user, saved: [view], viewCounts: { [view.id]: 3 } } });
+    render(ShellHarness, { props: { user, saved: [view] } });
 
     expect(within(main()).getByRole('heading', { level: 2, name: 'Views' })).toBeInTheDocument();
     expect(within(main()).queryByText('Saved views')).toBeNull();
     const link = within(main()).getByRole('link', { name: /^Referrals in screening/ });
     expect(link).toHaveAttribute('href', `/candidates?view=${view.id}`);
     expect(link).toHaveAttribute('aria-current', 'page');
-    expect(within(link).getByText('3')).toHaveAttribute('data-slot', 'badge');
+    // A view has no count (I2, T4): it filters, it does not hold things to do, and no status icon marks it.
+    expect(link.querySelector('[data-slot="badge"]')).toBeNull();
+    expect(link.querySelector('svg')).not.toBeNull();
+    expect(link.querySelector('[data-status-icon]')).toBeNull();
   });
 
   it('offers a person their own view Rename, Share with the team and Delete view, each a menu item with a keyboard path', async () => {
@@ -180,7 +183,7 @@ describe('the Views list in the sidebar', () => {
     expect(within(main()).queryByRole('link', { name: /^Overdue/ })).toBeNull();
     const toggle = within(main()).getByRole('button', { name: /Show hidden views/ });
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(within(toggle).getByText('1')).toHaveAttribute('data-slot', 'badge');
+    expect(toggle.querySelector('[data-slot="badge"]')).toBeNull();
 
     await fireEvent.click(toggle);
 

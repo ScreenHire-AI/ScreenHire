@@ -1,7 +1,7 @@
 import type { SendingDomainDetail, SendingDomainRecordPurpose, SendingDomainRecordState } from '@screenhire/api-client';
 import type { StatusName } from '#lib/status.js';
 
-/** The name each record goes by on the Sending domain page. */
+/** The name each record goes by on the Email domain page. */
 export const recordPurposes: Record<SendingDomainRecordPurpose, string> = {
   Dkim: 'DKIM key',
   ReturnPath: 'Return path',
@@ -37,4 +37,17 @@ export function domainStatus(domain: Pick<SendingDomainDetail, 'status' | 'recor
   if (domain.records.every((record) => record.state === 'NotChecked')) return { status: 'waiting', label: 'Not checked' };
   if (domain.records.some((record) => record.state === 'Differs' || record.state === 'Missing')) return { status: 'needsFixes', label: 'Records to add' };
   return { status: 'waiting', label: 'Waiting for confirmation' };
+}
+
+/** A status the places that point at the email domain show beside its name. */
+export type SendingDomainMark = { status: StatusName; label: string };
+
+/**
+ * What the Settings home and menu show beside Email domain: only while something is left to do, and in the page's own
+ * words (W6, T1). No domain yet is a grey Not set up. A verified domain shows nothing (T3). Any other state is the status
+ * the page shows beside its title (`domainStatus`): grey while it waits, filled for Records to add.
+ */
+export function sendingDomainMark(domain: Pick<SendingDomainDetail, 'status' | 'records'> | null | undefined): SendingDomainMark | undefined {
+  if (!domain) return { status: 'waiting', label: 'Not set up' };
+  return domain.status === 'Verified' ? undefined : domainStatus(domain);
 }

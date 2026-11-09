@@ -26,6 +26,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -194,7 +195,7 @@
   <title>Branding · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Branding' }]} />
+<TopBar crumbs={settingsCrumbs('/settings/branding')} />
 
 <main class="flex flex-col">
   <HeaderBand title="Branding" oneRow>

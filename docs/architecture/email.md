@@ -234,7 +234,7 @@ one, so a failing email never holds it up ([slack.md](slack.md)).
 
 ## Verification alerts
 
-Two emails go to teammates when an organization turns them on in Settings, Verification, Alerts
+Two emails go to teammates when an organization turns them on on the Verification page, under Alerts
 (`VerificationAlertWording`, ScreenHire's own wording like the mention email, not a template). "An application needs a closer
 look" goes once, when an application first reaches Verification suggested, to members who hold Review verification and see the
 job (ADR-0015); it names the job, says the application needs a closer look and links to it, and carries no level, candidate name,
@@ -349,7 +349,7 @@ The candidate then carries `emailIssue` (`Bounced` or `SpamComplaint`, with when
 ## Sending domain
 
 Out of the box, mail comes from ScreenHire's address (`ScreenHire:Email:From`). An Owner or Admin can add the company's own
-domain under Hiring setup, Email domain (`/v1/organization/sending-domain`, `EditSettings`; every member reads it). The page is
+domain under Settings, Organization, Email domain (`/v1/organization/sending-domain`, `EditSettings`; every member reads it). The page is
 hidden, with a line saying so, when this deployment has no provider.
 
 - **Records.** The provider returns them (`ISendingDomainProvider`; SendGrid's domain authentication with automated

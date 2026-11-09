@@ -28,6 +28,7 @@
   import StepLine from '#lib/components/step-line.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
@@ -124,7 +125,7 @@
   <title>Email domain · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Email domain' }]} />
+<TopBar crumbs={settingsCrumbs('/settings/sending-domain')} />
 
 <main class={['flex flex-col', sidebar.isMobile && domain && 'pb-28']}>
   <HeaderBand title="Email domain" oneRow>

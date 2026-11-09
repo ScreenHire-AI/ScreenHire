@@ -50,12 +50,17 @@ public sealed class SendingDomainTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(Page.GetByText("Not found").First).ToBeVisibleAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-sending-domain-pending-1440");
 
+        // The Settings menu says where the domain stands only while something is left to do, in the page's own words, then nothing.
+        var menuEntry = Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true }).GetByRole(AriaRole.Link, new() { NameRegex = new("^Email domain") });
+        await Expect(menuEntry).ToContainTextAsync("Records to add");
+
         // The sandbox's DNS gets the records; the next check passes, the provider confirms, and mail comes from the domain.
         using var published = await session.PostAsync("/v1/dev/sending-domains/publish", new { domain }, Ct);
         published.StatusCode.Should().Be(HttpStatusCode.OK);
         await band.GetByRole(AriaRole.Button, new() { Name = "Check records" }).ClickAsync();
         await Expect(band).ToContainTextAsync("Verified");
         await Expect(Page.GetByText($"hiring@{domain}")).ToBeVisibleAsync();
+        await Expect(menuEntry).ToHaveTextAsync("Email domain");
         await ExpectNoAccessibilityViolationsAsync();
 
         // Removing is in the More menu, behind a dialog; afterwards the page offers to add a domain again.
@@ -90,7 +95,7 @@ public sealed class SendingDomainTests(E2EFixture fixture) : BrowserTest(fixture
 
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(Page, recruiter);
-        foreach (var area in new[] { "Organization", "Hiring setup", "Integrations" })
+        foreach (var area in new[] { "Settings", "Verification" })
         {
             await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = area, Exact = true })).ToHaveCountAsync(0);
         }

@@ -25,6 +25,7 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import TagList from '#lib/components/tag-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
@@ -112,32 +113,32 @@
 </script>
 
 <svelte:head>
-  <title>Careers site · ScreenHire</title>
+  <title>Careers page · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Hiring setup' }, { label: 'Careers site' }]} />
+<TopBar crumbs={settingsCrumbs('/settings/careers-site')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Careers site" oneRow>
+  <HeaderBand title="Careers page" oneRow>
     <!-- What people edit here (questions per page, the sites that embed it) is the organization's, so its history (T6). -->
     {#snippet actions()}
-      {#if detail}<HistoryFact value={detail.lastUpdated} name="Careers site" page={(before) => getGetOrganizationHistoryQueryOptions({ before })} />{/if}
+      {#if detail}<HistoryFact value={detail.lastUpdated} name="Careers page" page={(before) => getGetOrganizationHistoryQueryOptions({ before })} />{/if}
     {/snippet}
   </HeaderBand>
 
   <SettingsMenu>
     <div class="flex w-full max-w-form flex-col gap-5">
       {#if organization.isError && !detail}
-        <Panel title="Careers page">
+        <Panel title="Public page">
           <QueryError message={describeError(organization.error, 'Could not load the careers site')} onretry={() => organization.refetch()} inset />
         </Panel>
       {:else if !detail}
-        {#each ['Careers page', 'Apply form', 'Embed on your website'] as title (title)}
+        {#each ['Public page', 'Apply form', 'Embed on your website'] as title (title)}
           <Panel {title}><div aria-hidden="true"><Skeleton class="h-10 w-full" /></div></Panel>
         {/each}
         <p class="sr-only" role="status">Loading the careers site…</p>
       {:else}
-        <Panel title="Careers page">
+        <Panel title="Public page">
           <SummaryList>
             <SummaryItem label="Address">
               <span class="flex min-w-0"><TruncatedText text={detail.careersUrl} href={detail.careersUrl} icon={ExternalLinkIcon} underlined class="text-primary" /></span>

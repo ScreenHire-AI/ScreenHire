@@ -29,40 +29,57 @@ describe('settings menu', () => {
       .getAllByRole('link')
       .map((link) => link.textContent?.trim());
 
-  it('lists only the pages of its area, beside the page content, and marks the current one', async () => {
+  it('lists only the pages of its group, beside the page content, and marks the current one, each by its name alone', async () => {
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
     const menu = screen.getByRole('navigation', { name: 'Organization' });
 
-    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Data requests']);
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Email domain', 'Data requests']);
     expect(within(menu).getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
     expect(within(menu).getByRole('link', { name: 'Roles' })).toHaveAttribute('href', '/settings/roles');
     expect(screen.queryByRole('navigation', { name: 'Settings' })).toBeNull();
     expect(screen.getByText('Page content')).toBeInTheDocument();
+    // The settings rows have no icons (design system section 11).
+    expect(menu.querySelector('svg')).toBeNull();
     await expectNoAxeViolations();
   });
 
   it('adds Billing for an Owner where billing is set up, and never for an Admin (A3)', () => {
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true, billing: true } } });
-    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Data requests', 'Billing']);
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Email domain', 'Data requests', 'Billing']);
     expect(within(screen.getByRole('navigation', { name: 'Organization' })).getByRole('link', { name: 'Billing' })).toHaveAttribute('href', '/settings/billing');
     cleanup();
 
     state.user = userAs('Admin');
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true, billing: true } } });
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Email domain', 'Data requests']);
+  });
+
+  it('lists the Careers site pages on one of them', () => {
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/branding' }, features: {} } });
+
+    expect(linksOf('Careers site')).toEqual(['Careers page', 'Branding']);
+  });
+
+  it('leaves Email domain out where there is no email provider (A3)', () => {
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { sendingDomain: false } } });
+
     expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Data requests']);
   });
 
-  it('lists the Hiring setup pages on one of them, and leaves Email domain out where there is no email provider (A3)', () => {
-    render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/branding' }, features: {} } });
-    expect(linksOf('Hiring setup')).toEqual(['Careers site', 'Branding', 'Verification', 'Email domain']);
-    cleanup();
+  it('has a menu on an integration too, listing the Integrations group, and marks the current one', () => {
+    for (const current of ['/settings/slack', '/settings/webhooks', '/settings/webhooks/new']) {
+      const { unmount } = render(WithShell, { props: { component: SettingsMenu, props: { children: content, current }, features: { slack: true } } });
+      const menu = screen.getByRole('navigation', { name: 'Integrations' });
 
-    render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/branding' }, features: { sendingDomain: false } } });
-    expect(linksOf('Hiring setup')).toEqual(['Careers site', 'Branding', 'Verification']);
+      expect(linksOf('Integrations')).toEqual(['Slack', 'MCP server', 'Webhooks', 'API keys']);
+      expect(screen.getByText('Page content')).toBeInTheDocument();
+      expect(within(menu).getAllByRole('link').filter((link) => link.getAttribute('aria-current') === 'page').length).toBeLessThanOrEqual(1);
+      unmount();
+    }
   });
 
-  it('has no menu on an integration, whose pages are records of the directory (S9), and still shows the content', () => {
-    for (const current of ['/settings/slack', '/settings/webhooks', '/settings/integrations']) {
+  it('has no menu on the Settings home or on a page that is not a setting, and still shows the content', () => {
+    for (const current of ['/settings', '/settings/integrations', '/verification']) {
       const { unmount } = render(WithShell, { props: { component: SettingsMenu, props: { children: content, current }, features: { slack: true } } });
 
       expect(screen.queryByRole('navigation')).toBeNull();
@@ -71,19 +88,40 @@ describe('settings menu', () => {
     }
   });
 
+  it('marks Email domain only while something is left to do (T3), in the page\'s own words; verified shows nothing', () => {
+    const emailDomain = () => within(screen.getByRole('navigation', { name: 'Organization' })).getByRole('link', { name: /^Email domain/ });
+    const marks = [
+      { status: 'waiting', label: 'Not set up' },
+      { status: 'needsFixes', label: 'Records to add' },
+    ] as const;
+    for (const sendingDomainMark of marks) {
+      const { unmount } = render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: {}, sendingDomainMark } });
+
+      expect(emailDomain()).toHaveTextContent(sendingDomainMark.label);
+      expect(emailDomain().querySelector('[data-status]')).not.toBeNull();
+      expect(emailDomain().querySelector('svg')).not.toBeNull();
+      unmount();
+    }
+
+    render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: {} } });
+    expect(emailDomain()).toHaveTextContent(/^Email domain$/);
+    expect(emailDomain().querySelector('[data-status]')).toBeNull();
+  });
+
   it('lists only the pages the role may use', () => {
     state.user = userAs('Admin');
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
 
-    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Data requests']);
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Email domain', 'Data requests']);
     cleanup();
 
     state.user = { ...userAs('Admin'), organization: { ...userAs('Admin').organization!, permissions: ['EditSettings'] } };
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
-    expect(linksOf('Organization')).toEqual(['General']);
+    // Edit settings opens General and the email domain; the rest of Organization needs more.
+    expect(linksOf('Organization')).toEqual(['General', 'Email domain']);
   });
 
-  it('shows only the content to someone whose role has no page in the area', () => {
+  it('shows only the content to someone whose role has no page in the group', () => {
     state.user = userAs('Recruiter');
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true } } });
 
@@ -111,8 +149,8 @@ describe('settings menu', () => {
     try {
       render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/data-requests' }, features: { slack: true } } });
 
-      // Data requests is the fourth entry, at 300px: the row scrolls to 250 so it sits in the middle.
-      expect(scrolledTo).toEqual([250]);
+      // Data requests is the fifth entry, at 400px: the row scrolls to 350 so it sits in the middle.
+      expect(scrolledTo).toEqual([350]);
     } finally {
       Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetLeft);
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth);

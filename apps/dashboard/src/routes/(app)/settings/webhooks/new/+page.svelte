@@ -3,6 +3,7 @@
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import WebhookEndpointForm from '#lib/components/webhook-endpoint-form.svelte';
@@ -36,7 +37,7 @@
   <title>Add endpoint · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'Webhooks', href: '/settings/webhooks' }, { label: 'Add endpoint' }]} back />
+<TopBar crumbs={settingsCrumbs('/settings/webhooks', { label: 'Add endpoint' })} back />
 
 <main class="flex flex-col">
   <HeaderBand form title="Add endpoint" />

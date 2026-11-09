@@ -1,27 +1,16 @@
-import FileLockIcon from '~icons/lucide/file-lock';
-import GlobeIcon from '~icons/lucide/globe';
-import Building2Icon from '~icons/lucide/building-2';
-import CreditCardIcon from '~icons/lucide/credit-card';
-import PlugIcon from '~icons/lucide/plug';
-import MailCheckIcon from '~icons/lucide/mail-check';
-import PaletteIcon from '~icons/lucide/palette';
-import ShieldUserIcon from '~icons/lucide/shield-user';
-import ShieldCheckIcon from '~icons/lucide/shield-check';
-import SlidersHorizontalIcon from '~icons/lucide/sliders-horizontal';
-import UsersRoundIcon from '~icons/lucide/users-round';
 import type { CurrentUser, JobAccess, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
 import { integrations } from '#lib/integrations.js';
 import { can, seesAllJobs } from '#lib/permissions.js';
-import type { LucideIcon } from '#lib/shell.js';
 
 /** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
 export const teamPath = '/v1/organization/team';
 
-/** The three groups of Settings pages, one sidebar item each (`settingsAreas`). */
-export type SettingsGroup = 'Organization' | 'Hiring setup' | 'Integrations';
+/** The Settings home: every setting the person's role may use, with search (design system section 11). */
+export const settingsHome = '/settings';
 
-/** The Integrations directory: every integration as a row, past search and filters by kind (design system S9). */
-export const integrationsHref = '/settings/integrations';
+/** The three groups of Settings pages, in the order the Settings home lists them. */
+export type SettingsGroup = 'Organization' | 'Careers site' | 'Integrations';
+export const settingsGroupNames: readonly SettingsGroup[] = ['Organization', 'Careers site', 'Integrations'];
 
 /**
  * A feature the installation may not have. Slack needs a Slack app set up where ScreenHire is hosted (`GET /v1/slack` says
@@ -52,67 +41,110 @@ export const slackFeature = (status: { available: boolean } | undefined, failed:
 /** Billing's entry in `SettingsFeatures`, from the shell's `GET /v1/organization/billing` query: the same rule as Slack's. */
 export const billingFeature = slackFeature;
 
-/**
- * The Settings pages (design system section 11), each with the permission its changes need, in three groups that are
- * three sidebar items (`settingsAreas`): the organization and its people, how hiring is set up, and what connects to
- * it. Each item opens the first page the person may use, and the command palette lists them all. Kept apart from
- * `sections`, which every member sees and which the G chords read. Email templates live on the Templates page
- * (section 21), and their old addresses here redirect there.
- */
-export const settingsSections: readonly {
+export interface SettingsSection {
   label: string;
   href: string;
-  icon: LucideIcon;
   permission: Permission;
   group: SettingsGroup;
+  /** One line on what it does, only where the name does not explain itself (design system W9). */
+  description?: string;
+  /** Everyday words that find it in Settings search and Ctrl K ("logo" finds Branding), kept beside the setting. */
+  keywords: readonly string[];
   allJobs?: true;
   /** The page exists only where this feature is set up (design system A3): hidden, not shown unavailable. */
   feature?: SettingsFeature;
   /** What a person whose role lacks `permission` reads in place of "Ask an owner or admin", for a page only some roles may open. */
   refusal?: string;
-}[] = [
+}
+
+/**
+ * The Settings pages (design system section 11), each with the permission its changes need, in three groups: the
+ * organization and its people, the careers site, and what connects to it. The one Settings item in the sidebar opens
+ * the Settings home, which lists them all; a page's menu lists its group's pages, and the command palette finds each by
+ * name, description and keywords. Kept apart from `sections`, which every member sees and which the G chords read.
+ * Email templates live on the Templates page (section 21), and their old addresses here redirect there. Verification
+ * is a sidebar item of its own (`/verification`).
+ */
+export const settingsSections: readonly SettingsSection[] = [
   // The group is Organization, so its first page is General: the name, where the data lives and when it was created.
-  { label: 'General', href: '/settings/organization', icon: Building2Icon, permission: 'EditSettings', group: 'Organization' },
-  { label: 'Team', href: '/settings/team', icon: UsersRoundIcon, permission: 'ManageTeam', group: 'Organization' },
-  { label: 'Roles', href: '/settings/roles', icon: ShieldUserIcon, permission: 'ManageTeam', group: 'Organization' },
+  {
+    label: 'General',
+    href: '/settings/organization',
+    description: 'Your name and where your data lives',
+    keywords: ['name', 'organization', 'company', 'data region', 'region', 'location', 'created'],
+    permission: 'EditSettings',
+    group: 'Organization',
+  },
+  {
+    label: 'Team',
+    href: '/settings/team',
+    keywords: ['invite', 'members', 'people', 'colleague', 'teammate', 'access', 'remove'],
+    permission: 'ManageTeam',
+    group: 'Organization',
+  },
+  {
+    label: 'Roles',
+    href: '/settings/roles',
+    keywords: ['permissions', 'access', 'admin', 'recruiter', 'interviewer', 'custom role', 'invite'],
+    permission: 'ManageTeam',
+    group: 'Organization',
+  },
+  {
+    label: 'Email domain',
+    href: '/settings/sending-domain',
+    description: 'Send email from your own address',
+    keywords: ['sending domain', 'dns', 'sender', 'from address', 'dkim', 'spf', 'verify domain', 'mail'],
+    permission: 'EditSettings',
+    group: 'Organization',
+    feature: 'sendingDomain',
+  },
   // A request is about one candidate whatever job they applied to, and retention deletes across every job, so the page
   // needs Erase candidates and all jobs, as the API does.
-  { label: 'Data requests', href: '/settings/data-requests', icon: FileLockIcon, permission: 'EraseCandidates', group: 'Organization', allJobs: true },
+  {
+    label: 'Data requests',
+    href: '/settings/data-requests',
+    description: 'Candidates asking to see or erase their data',
+    keywords: ['privacy', 'gdpr', 'erase', 'delete', 'retention', 'export', 'subject access'],
+    permission: 'EraseCandidates',
+    group: 'Organization',
+    allJobs: true,
+  },
   // Owners only (ManageBilling), and only where a payment provider is set up, so it is hidden everywhere else (A3).
   {
     label: 'Billing',
     href: '/settings/billing',
-    icon: CreditCardIcon,
+    keywords: ['plan', 'card', 'invoice', 'invoices', 'payment', 'subscription', 'trial', 'upgrade', 'price'],
     permission: 'ManageBilling',
     group: 'Organization',
     feature: 'billing',
     refusal: 'Only an owner of your organization can change billing.',
   },
-  { label: 'Careers site', href: '/settings/careers-site', icon: GlobeIcon, permission: 'EditSettings', group: 'Hiring setup' },
-  { label: 'Branding', href: '/settings/branding', icon: PaletteIcon, permission: 'EditSettings', group: 'Hiring setup' },
-  { label: 'Verification', href: '/settings/verification', icon: ShieldCheckIcon, permission: 'EditSettings', group: 'Hiring setup' },
-  { label: 'Email domain', href: '/settings/sending-domain', icon: MailCheckIcon, permission: 'EditSettings', group: 'Hiring setup', feature: 'sendingDomain' },
+  {
+    label: 'Careers page',
+    href: '/settings/careers-site',
+    description: 'Your jobs page and its embed code',
+    keywords: ['careers site', 'address', 'url', 'embed', 'widget', 'iframe', 'apply form', 'questions per page'],
+    permission: 'EditSettings',
+    group: 'Careers site',
+  },
+  {
+    label: 'Branding',
+    href: '/settings/branding',
+    keywords: ['logo', 'colour', 'color', 'font', 'favicon', 'theme', 'brand', 'sharing image'],
+    permission: 'EditSettings',
+    group: 'Careers site',
+  },
   // The Integrations group is the integrations list, so a new integration is one entry there (#lib/integrations.ts).
-  ...integrations.map(({ label, href, icon, permission, allJobs, feature }) => ({
+  ...integrations.map(({ label, href, description, keywords, permission, allJobs, feature }) => ({
     label,
     href,
-    icon,
+    keywords,
     permission,
     group: 'Integrations' as const,
+    ...(description && { description }),
     ...(allJobs && { allJobs }),
     ...(feature && { feature }),
   })),
-];
-
-/**
- * The three items the sidebar shows in place of one Settings item, each opening the first page the person may use in its
- * group (Integrations opens its directory). A group's pages share the Settings menu, except Integrations, whose pages are
- * records of the directory. An item shows for anyone whose role has a permission for at least one of its pages.
- */
-export const settingsAreas: readonly { group: SettingsGroup; label: string; icon: LucideIcon; href?: string }[] = [
-  { group: 'Organization', label: 'Organization', icon: Building2Icon },
-  { group: 'Hiring setup', label: 'Hiring setup', icon: SlidersHorizontalIcon },
-  { group: 'Integrations', label: 'Integrations', icon: PlugIcon, href: integrationsHref },
 ];
 
 /**
@@ -129,28 +161,53 @@ export const visibleSettingsSections = (user: CurrentUser | null | undefined, fe
 export const settingsSectionOf = (path: string) =>
   settingsSections.find((section) => path === section.href || path.startsWith(`${section.href}/`));
 
-/** The integrations this person may open: the directory lists them, and a feature that is off leaves its entry out (A3). */
-export const visibleIntegrations = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) => {
-  const hrefs = new Set(visibleSettingsSections(user, features).map((section) => section.href));
-  return integrations.filter((integration) => hrefs.has(integration.href));
-};
+/** The group a path belongs to: its page's group. The Settings home belongs to none. */
+export const settingsGroupOf = (path: string): SettingsGroup | undefined => settingsSectionOf(path)?.group;
 
-/** Whether the Integrations directory is open to this person. It has no permission of its own: one page it lists must be. */
-export const directoryVisible = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) =>
-  visibleSettingsSections(user, features).some((section) => section.group === 'Integrations');
-
-/** The sidebar items to show: the areas that have a page this person may use, each with where it opens. */
-export const visibleSettingsAreas = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) => {
-  const pages = visibleSettingsSections(user, features);
-  return settingsAreas.flatMap((area) => {
-    const first = pages.find((page) => page.group === area.group);
-    return first ? [{ ...area, href: area.href ?? first.href }] : [];
+/** The pages grouped for the Settings home, in the groups' order; a group with no page left is left out (A3). */
+export const settingsGroups = (sections: readonly SettingsSection[]) =>
+  settingsGroupNames.flatMap((group) => {
+    const pages = sections.filter((section) => section.group === group);
+    return pages.length > 0 ? [{ group, sections: pages }] : [];
   });
+
+/** What Settings search reads for a page: its name, its one line, its keywords and its group, lower case. */
+export const settingsSearchText = (section: SettingsSection) =>
+  [section.label, section.description ?? '', ...section.keywords, section.group].join(' ').toLowerCase();
+
+/** Whether every word of `query` is in `text`, ignoring case. An empty query matches. A contains match, never fuzzy. */
+export const matchesWords = (text: string, query: string) => {
+  const lower = text.toLowerCase();
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((word) => lower.includes(word));
 };
 
-/** The area a path belongs to: its page's group, or Integrations for the directory itself. */
-export const settingsAreaOf = (path: string): SettingsGroup | undefined =>
-  path === integrationsHref ? 'Integrations' : settingsSectionOf(path)?.group;
+/**
+ * The pages a search finds: each word typed must be in the page's name, description, keywords or group, and the name
+ * comes first. A contains match, never fuzzy (design system section 15). An empty search finds every page.
+ */
+export const searchSettings = <T extends SettingsSection>(sections: readonly T[], query: string): T[] => {
+  const found = sections.filter((section) => matchesWords(settingsSearchText(section), query));
+  const named = (section: T) => matchesWords(section.label, query);
+  return [...found.filter(named), ...found.filter((section) => !named(section))];
+};
+
+/**
+ * A settings page's breadcrumb: Settings, the group, then the page. The group is plain text because it has no page of
+ * its own. With a `trail` (a record under the page: a role, a webhook endpoint) the page links to itself and the trail
+ * follows.
+ */
+export const settingsCrumbs = (href: string, ...trail: readonly { label: string; href?: string }[]) => {
+  const section = settingsSectionOf(href);
+  return [
+    { label: 'Settings', href: settingsHome },
+    ...(section ? [{ label: section.group }, { label: section.label, ...(trail.length > 0 && { href: section.href }) }] : []),
+    ...trail,
+  ];
+};
 
 /**
  * A role as one key: a built-in role's name in lower case (`viewer`), or a custom role's id. It is the role page's
