@@ -287,6 +287,26 @@ describe('job page', () => {
     expect(within(message).getByRole('link', { name: 'See Job postings' })).toHaveAttribute('href', '?tab=postings');
   });
 
+  it('does not say a job is on the careers page once it is closed', async () => {
+    // A teammate closed it meanwhile: the job read after the publish says Closed, and the line does not claim otherwise.
+    let current = { ...job, status: 'Draft', publishedAt: null, postings: [] } as unknown as JobDetail;
+    stub(current, {
+      [`GET /v1/jobs/${jobId}`]: () => Response.json(current),
+      [`GET /v1/jobs/${jobId}/applications`]: () => Response.json([]),
+      [`POST /v1/jobs/${jobId}/publish`]: () => Response.json({}),
+    });
+    const line = () => document.querySelector('[data-published]')?.textContent?.trim() ?? '';
+
+    const publishButton = await screen.findByRole('button', { name: 'Publish to 2 boards' });
+    current = { ...job, status: 'Closed', closedAt: '2026-10-19T09:00:00Z' } as unknown as JobDetail;
+    await fireEvent.click(publishButton);
+
+    // The publish settles after its refetch, so once the badge says Closed and the button is gone it has finished.
+    await waitFor(() => expect(screen.getAllByText('Closed').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Publish to 2 boards' })).toBeNull());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(line()).toBe('');
+  });
   it('says nothing is published when the publish fails, and a draft tells the candidates list why it is empty', async () => {
     stub(
       { ...job, status: 'Draft', publishedAt: null, postings: [] },

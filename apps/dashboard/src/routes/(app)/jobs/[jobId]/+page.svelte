@@ -133,17 +133,21 @@
   // A publish the plan refused: a notice with the way to upgrade, in place of the failure line.
   let publishRefused = $state<PlanProblem | null>(null);
   let boardsUpdated = $state('');
-  // The Publish button disappears once the job is open, so without this the page says nothing about where it went.
-  let published = $state(false);
+  // The Publish button disappears once the job is open, so without this the page says nothing about where it went. It
+  // holds the job it was said for: the page component stays mounted when another job opens, and a closed job is no
+  // longer on the careers page.
+  let publishedJobId = $state<string | null>(null);
+  const published = $derived(publishedJobId === params.jobId && detail?.status !== 'Closed');
 
   // A draft's primary action: publish to every board at once.
   async function publishEverywhere() {
     publishFailure = '';
     publishRefused = null;
-    published = false;
+    publishedJobId = null;
+    const jobId = params.jobId;
     try {
-      await publish.mutateAsync({ jobId: params.jobId });
-      published = true;
+      await publish.mutateAsync({ jobId });
+      publishedJobId = jobId;
     } catch (error) {
       publishRefused = planProblem(error);
       if (!publishRefused) publishFailure = describeError(error, 'Could not publish the job');
@@ -154,6 +158,7 @@
   async function updateBoards() {
     publishFailure = '';
     publishRefused = null;
+    publishedJobId = null;
     boardsUpdated = '';
     try {
       await publish.mutateAsync({ jobId: params.jobId });
@@ -332,11 +337,11 @@
              the row menus hold the fixes. On Job postings itself a board that did not take the job needs its details fixed,
              so the notice links to the edit page rather than to nothing. -->
         {#each problems as problem (problem.kind)}
-          {#if tab === 'postings' && problem.kind === 'notTaken' && mayEdit}
-            <Notice href={`/jobs/${detail.id}/edit`} link="Edit details">{problem.text}</Notice>
-          {:else}
-            <Notice href={tab === 'postings' ? undefined : '?tab=postings'} link="Fix on Job postings">{problem.text}</Notice>
-          {/if}
+          {@const editHere = tab === 'postings' && problem.kind === 'notTaken' && mayEdit}
+          <Notice
+            href={editHere ? `/jobs/${detail.id}/edit` : tab === 'postings' ? undefined : '?tab=postings'}
+            link={editHere ? 'Edit details' : 'Fix on Job postings'}>{problem.text}</Notice
+          >
         {/each}
         {#if updatable}
           <Notice>
