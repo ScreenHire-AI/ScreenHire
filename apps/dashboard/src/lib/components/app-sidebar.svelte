@@ -274,9 +274,8 @@
 
   {#if user}
     <!-- A hairline in the sidebar border colour sets the person's block apart from the navigation above it: where to go,
-         then who you are (section 11). It sits outside the scrolling content, so it holds in the rail and the sheet too.
-         `h-px` is explicit: the Separator's own height waits on a `data-horizontal` attribute bits-ui does not set. -->
-    <Sidebar.Separator decorative class="h-px" />
+         then who you are (section 11). It sits outside the scrolling content, so it holds in the rail and the sheet too. -->
+    <Sidebar.Separator decorative />
   {/if}
   <Sidebar.Footer>
     {#if user}

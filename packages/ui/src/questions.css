@@ -46,7 +46,7 @@
   }
 
   .drop-area[data-tone="app"] {
-    @apply rounded-lg border border-input bg-secondary text-body text-foreground has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 has-[input:focus-visible]:outline-0 data-[over]:border-ring data-[over]:bg-accent;
+    @apply rounded-lg border border-field-edge bg-secondary text-body text-foreground has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 has-[input:focus-visible]:outline-0 data-[over]:border-ring data-[over]:bg-accent;
   }
 
   /* Stacked in a narrow area and in a row in a wide one, so the buttons never wrap. */

@@ -104,6 +104,7 @@
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
   --color-input: var(--input);
+  --color-field-edge: var(--field-edge);
   --color-ring: var(--ring);
   --color-row-selected: var(--row-selected);
   --color-scrim: var(--scrim);

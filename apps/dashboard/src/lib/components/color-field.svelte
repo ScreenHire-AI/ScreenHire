@@ -48,7 +48,7 @@
       aria-label={`Pick the ${label.toLowerCase()}`}
       value={picked}
       oninput={(event) => (value = event.currentTarget.value)}
-      class="h-9 w-12 shrink-0 rounded-lg border border-input bg-card p-1 pointer-coarse:h-11 pointer-coarse:w-14"
+      class="h-9 w-12 shrink-0 rounded-lg border border-field-edge bg-card p-1 pointer-coarse:h-11 pointer-coarse:w-14"
     />
     <Input
       {id}

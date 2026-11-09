@@ -119,7 +119,7 @@
      an Input, the caret shows where it has got to: a scrollbar would take the line's height. -->
 <div
   class={cn(
-    'flex h-9 w-full min-w-0 items-center overflow-x-auto overflow-y-hidden rounded-lg border border-input bg-transparent px-2.5 text-body transition-colors [scrollbar-width:none] max-md:text-reading pointer-coarse:h-11 pointer-coarse:text-reading dark:bg-input/30',
+    'flex h-9 w-full min-w-0 items-center overflow-x-auto overflow-y-hidden rounded-lg border border-field-edge bg-transparent px-2.5 text-body transition-colors [scrollbar-width:none] max-md:text-reading pointer-coarse:h-11 pointer-coarse:text-reading dark:bg-input/30',
     editable && 'focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring',
     invalid && 'border-destructive ring-3 ring-destructive/20 dark:ring-destructive/40',
     className,

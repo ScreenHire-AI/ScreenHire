@@ -8,6 +8,13 @@ sources:
   - resource: tests/ScreenHire.E2E/E2EFixture.cs
   - resource: tests/ScreenHire.E2E/BusyOrganization.cs
   - resource: tests/ScreenHire.E2E/LargeListsTests.cs
+  - resource: tests/ScreenHire.E2E/ProofScene.cs
+  - resource: tests/ScreenHire.E2E/ProofWalk.cs
+  - resource: tests/ScreenHire.E2E/DashboardThemeTests.cs
+  - resource: tests/ScreenHire.E2E/DashboardPhoneTests.cs
+  - resource: tests/ScreenHire.E2E/SeparatorTests.cs
+  - resource: tests/ScreenHire.E2E/FormEdgesTests.cs
+  - resource: apps/dashboard/src/theme-contrast.test.ts
   - resource: tests/ScreenHire.E2E/MarketingDemoFixture.cs
   - resource: tests/ScreenHire.E2E/MarketingScreenshotsTests.cs
   - resource: tests/ScreenHire.Testing/ScheduledMessages.cs
@@ -282,6 +289,36 @@ handful of records never shows (design system S9).
   ([slack.md](../architecture/slack.md)).
 - `WebhookStatesTests` runs a receiver that answers 500, hangs past the timeout, recovers and refuses a rotated
   secret, and reads each state off the endpoint's page ([messaging.md](../architecture/messaging.md)).
+
+### The whole dashboard in dark mode and on a phone
+
+`DashboardThemeTests` and `DashboardPhoneTests` walk every dashboard route of one organization (`ProofScene`, built once per
+run: a published job with three synthetic applicants whose checks have run, a hiring, scorecard and email template, a custom
+role, an API key, a webhook endpoint and a task). Each route and each tab of its first tab list is a step, and the overlays
+the routes do not show (command palette, shortcuts, the bell, the Add candidate sheet, the Close job dialog, the file viewer,
+and on a phone the navigation sheet) are steps too. `ProofWalk` collects every failure and asserts once at the end, so one
+run lists every page to fix.
+
+- Dark: a context whose system theme is dark (`UseDarkThemeAsync`), 1440 px, axe with colour-contrast on, and a check that
+  the page is in the dark theme. A second test makes a heading unreadable and expects axe to say so, so a pass means the
+  check looked.
+- Phone: a context with a touch screen (`UseTouchScreenAsync`, so `pointer: coarse` matches and the 44 px variants apply),
+  390 px. Per step: axe, no sideways scroll, nothing reaching past the window or cut off without an ellipsis, and every control
+  at least 44 px to touch. A control passes at 44 px by its own box, by its label, or by a 44 px `::after` (a link stretched
+  over its row, a checkbox's square); inline links in a sentence are exempt (WCAG 2.5.8). Under an open dialog only the
+  dialog's controls count. A step that finds the pointer no longer coarse reloads the page first.
+- `theme-contrast.test.ts` (Vitest) computes what axe cannot read from the tokens, in both themes: the focus ring at 3:1,
+  status icons at 3:1, status labels at 4.5:1 and the chart colour at 3:1.
+- Each class also signs a new person in, checks the onboarding page they land on, sets up an organization there and walks
+  its list pages, which is where the empty states show (`EmptyOrganizationAsync`).
+- The walks share one scene, unlike the rule that each test makes its own organization: they open dialogs and sheets but
+  never submit them, so the scene stays as it was built.
+- Each step also measures every text field's edge against what surrounds it, with the colours the browser drew, and fails
+  under 3:1 (`CollectFieldEdgesAsync`, WCAG 1.4.11). `FormEdgesTests` does the same for the careers apply page, in the light
+  theme and with the dark tokens switched on by a class, and checks that a faint edge is reported.
+- `SeparatorTests` measures the shared separator: 1 px high, as wide as its box.
+
+The careers and candidate pages are not in the dark walk: they have no dark theme today ([status](../status.md)).
 
 ### Marketing screenshots
 

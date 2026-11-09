@@ -53,6 +53,9 @@
   --border: #e6e1d8;
   --border-subtle: #efebe4;
   --input: #ddd7cc;
+  /* The edge of a text field (section 3.1): at least 3:1 on card, background, popover and muted (WCAG 1.4.11). `input` stays
+     the quiet edge of badges, key caps and pills, which carry text of their own. */
+  --field-edge: #8a8579;
   --ring: #4338ca;
   --row-selected: #f3f1fc;
   --scrim: #1c1b19;
@@ -94,7 +97,8 @@
   --candidate-background: #fbf6ee;
   --candidate-surface: #ffffff;
   --candidate-border: #ede3d3;
-  --candidate-input-border: #d9ccb8;
+  /* Field, file and drop-area edges: at least 3:1 on the candidate surface and background (WCAG 1.4.11). */
+  --candidate-input-border: #8c7f6b;
   --candidate-foreground: #231f1a;
   --candidate-muted-foreground: #6a5d4d;
   --candidate-chip: #f3e7d6;
@@ -150,6 +154,7 @@
   --border: #2e2c27;
   --border-subtle: #262420;
   --input: #3a3731;
+  --field-edge: #767168;
   --ring: #9b9cf8;
   --row-selected: #2a2722;
   --scrim: #000000;
@@ -184,7 +189,7 @@
   --candidate-background: #1a1714;
   --candidate-surface: #23201c;
   --candidate-border: #332e28;
-  --candidate-input-border: #4a443b;
+  --candidate-input-border: #807768;
   --candidate-foreground: #f2ede6;
   --candidate-muted-foreground: #b3aba0;
   --candidate-chip: #2e2a25;

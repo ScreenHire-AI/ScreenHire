@@ -36,7 +36,8 @@ describe("the person's block at the foot of the sidebar", () => {
     const footer = person.closest<HTMLElement>('[data-sidebar="footer"]')!;
     const divider = footer.previousElementSibling;
     expect(divider).toHaveAttribute('data-sidebar', 'separator');
-    expect(divider).toHaveClass('h-px', 'bg-sidebar-border');
+    expect(divider).toHaveClass('bg-sidebar-border', 'data-[orientation=horizontal]:h-px');
+    expect(divider).toHaveAttribute('data-orientation', 'horizontal');
     // Decorative: it draws a line and says nothing to a screen reader.
     expect(divider).toHaveAttribute('aria-hidden', 'true');
     const nav = within(scope).getByRole('navigation', { name: 'Main' });
