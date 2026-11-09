@@ -53,11 +53,11 @@
 </script>
 
 {#if summary.isError && !data}
-  <Panel title="AI usage">
+  <Panel title="AI usage" class="w-full max-w-form">
     <QueryError message={describeError(summary.error, 'Could not load the AI usage')} onretry={() => summary.refetch()} inset />
   </Panel>
 {:else if !data}
-  <Panel title="AI usage">
+  <Panel title="AI usage" class="w-full max-w-form">
     <div aria-hidden="true" class="flex flex-col gap-4"><Skeleton class="h-10 w-full" /><Skeleton class="h-14 w-full" /></div>
     <p class="sr-only" role="status">Loading the AI usage…</p>
   </Panel>
