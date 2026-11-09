@@ -287,26 +287,32 @@ describe('job page', () => {
     expect(within(message).getByRole('link', { name: 'See Job postings' })).toHaveAttribute('href', '?tab=postings');
   });
 
-  it('does not say a job is on the careers page once it is closed', async () => {
-    // A teammate closed it meanwhile: the job read after the publish says Closed, and the line does not claim otherwise.
+  it('drops the published line once the job is closed, because it is off the careers page then', async () => {
     let current = { ...job, status: 'Draft', publishedAt: null, postings: [] } as unknown as JobDetail;
     stub(current, {
       [`GET /v1/jobs/${jobId}`]: () => Response.json(current),
       [`GET /v1/jobs/${jobId}/applications`]: () => Response.json([]),
-      [`POST /v1/jobs/${jobId}/publish`]: () => Response.json({}),
+      [`POST /v1/jobs/${jobId}/publish`]: () => {
+        current = job;
+        return Response.json({});
+      },
+      [`POST /v1/jobs/${jobId}/close`]: () => {
+        current = { ...job, status: 'Closed', closedAt: '2026-10-19T09:00:00Z' } as unknown as JobDetail;
+        return Response.json({});
+      },
     });
     const line = () => document.querySelector('[data-published]')?.textContent?.trim() ?? '';
 
-    const publishButton = await screen.findByRole('button', { name: 'Publish to 2 boards' });
-    current = { ...job, status: 'Closed', closedAt: '2026-10-19T09:00:00Z' } as unknown as JobDetail;
-    await fireEvent.click(publishButton);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
+    await waitFor(() => expect(line()).toContain('Published.'));
 
-    // The publish settles after its refetch, so once the badge says Closed and the button is gone it has finished.
-    await waitFor(() => expect(screen.getAllByText('Closed').length).toBeGreaterThan(0));
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Publish to 2 boards' })).toBeNull());
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(line()).toBe('');
+    await fireEvent.click(within(await openMoreActions()).getByRole('menuitem', { name: 'Close & remove everywhere' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Close this job and remove it everywhere?' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Close & remove everywhere' }));
+
+    await waitFor(() => expect(line()).toBe(''));
   });
+
   it('says nothing is published when the publish fails, and a draft tells the candidates list why it is empty', async () => {
     stub(
       { ...job, status: 'Draft', publishedAt: null, postings: [] },
