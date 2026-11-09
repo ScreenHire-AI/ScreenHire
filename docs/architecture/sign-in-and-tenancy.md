@@ -13,6 +13,7 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Identity/ApplicationUserPasskey.cs
   - resource: apps/dashboard/src/lib/passkeys.ts
   - resource: apps/dashboard/src/routes/(app)/account/passkeys/+page.svelte
+  - resource: apps/dashboard/src/routes/(auth)/sign-in/+page.svelte
   - resource: apps/api/Configuration/AuthOptions.cs
   - resource: apps/api/Auth/EmailVerification.cs
   - resource: apps/api/Auth/ExternalProviders.cs
@@ -173,8 +174,7 @@ menu (`/account/passkeys`, outside Settings because it is the person's own, not 
   policy), so it is bound to the browser that asked. An answer sent without that browser's cookie finds no ceremony: Identity
   throws then, and the endpoints turn that, and a body that is not a credential, into the refusal, logging the exception type
   (never the body). The state is in the cookie, not on the server, so someone who copied both the cookie and the answer
-  could send them again within the five minutes. Copying the cookie takes the browser itself, which holds the session the
-  answer is about to create anyway.
+  could send them again within the five minutes.
 - **Refusals say nothing.** Every sign-in failure is the same 401: no challenge, wrong origin, bad signature, an unknown
   passkey, a locked-out user. It never says whether a credential exists or whose it is.
 - **Counters and last use.** After a sign-in the store keeps the passkey's new signature counter (a cloned authenticator shows
