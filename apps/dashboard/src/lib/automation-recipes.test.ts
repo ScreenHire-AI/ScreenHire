@@ -20,7 +20,6 @@ const workflow = (automations: Automation[] = []): HiringWorkflow => ({
       { id: 'notes', type: 'ShortText', label: 'Anything else' },
     ],
   },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations,
 });
 

@@ -70,7 +70,6 @@ const flow = (automations: Automation[], extra: Partial<HiringWorkflow> = {}): H
       { id: 'notes', type: 'ShortText', label: 'Anything else' },
     ],
   },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations,
   ...extra,
 });

@@ -20,7 +20,6 @@
       { id: 'hired', name: 'Hired', kind: 'Hired' },
     ],
     questionnaire: { questions: [{ id: 'right_to_work', type: 'YesNo', label: 'Right to work', required: true, knockout: { disqualifyingAnswer: false, reason: null } }] },
-    verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
     automations: [
       {
         id: 'review',

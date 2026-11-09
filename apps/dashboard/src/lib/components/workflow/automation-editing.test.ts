@@ -21,7 +21,6 @@ const base: HiringWorkflow = {
   questionnaire: {
     questions: [{ id: 'right_to_work', type: 'YesNo', label: 'Right to work', required: true, knockout: { disqualifyingAnswer: false, reason: null } }],
   },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations: [],
 };
 
