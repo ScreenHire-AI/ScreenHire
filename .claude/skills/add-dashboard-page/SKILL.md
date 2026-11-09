@@ -51,8 +51,10 @@ generated TanStack Query hooks; there is no `+page.ts`:
 - Imports from `#lib/...` with `.js` extensions. `page` and `navigating` come from `$app/state`.
 - Add the route to `sections` in `#lib/shell.ts`, with its Lucide icon, if it is a top-level section: the sidebar,
   its G shortcut and the command palette all read that list. A destination that is a choice on another page (Saved
-  candidates) sets `sidebar: false`, so it keeps its shortcut and palette entry without a sidebar item. A settings page
-  joins `settingsSections` in `#lib/settings.ts`; an integration is one entry in `#lib/integrations.ts`.
+  candidates) sets `sidebar: false`, so it keeps its shortcut and palette entry without a sidebar item. A section that needs a permission
+  (Verification) sets `permission`, so the sidebar, its chord and Ctrl K leave it out for other roles. A settings page
+  joins `settingsSections` in `#lib/settings.ts` with the words that find it in Settings search (`keywords`) and a one-line
+  `description` only where its name does not explain itself; an integration is one entry in `#lib/integrations.ts`.
 
 ## 4. States
 

@@ -42,7 +42,8 @@ public sealed class TimeLimitTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(row.GetByRole(AriaRole.Cell, new() { Name = "Overdue by 1 day", Exact = true })).ToBeVisibleAsync();
         await Expect(row).ToContainTextAsync(new System.Text.RegularExpressions.Regex("Screening\\s*Overdue by 1 day"));
         await Expect(applications.GetByRole(AriaRole.Link, new() { Name = Fresh, Exact = true })).ToHaveCountAsync(0);
-        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Overdue 1" })).ToBeVisibleAsync();
+        // The sidebar view has no count (design system I2, T4): it is the current view, named by its words alone.
+        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Overdue", Exact = true })).ToHaveAttributeAsync("aria-current", "page");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-overdue-view");
 

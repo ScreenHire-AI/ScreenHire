@@ -1,15 +1,15 @@
 import type { OrganizationVerificationSettings } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { expectNoAxeViolations } from '../../../../test-support/axe.js';
-import { apiStub, user } from '../../../../test-support/fixtures.js';
-import WithQueryClient from '../../../../test-support/with-query-client.svelte';
+import { expectNoAxeViolations } from '../../../test-support/axe.js';
+import { apiStub, user } from '../../../test-support/fixtures.js';
+import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
 // Nobody has changed the defaults yet (T6).
 const lastUpdated = { at: null, by: 'ScreenHire' as const };
 
-vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/settings/verification') }, navigating: { to: null } }));
+vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/verification') }, navigating: { to: null } }));
 // Superforms needs the rest of the module (beforeNavigate).
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
 

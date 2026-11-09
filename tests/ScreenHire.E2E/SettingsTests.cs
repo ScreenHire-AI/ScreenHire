@@ -25,7 +25,8 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 
     private static readonly string[] JobPublished = ["job.published"];
 
-    private static readonly string[] SettingsAreas = ["Organization", "Hiring setup", "Integrations"];
+    // The three sidebar items Settings used to be; one Settings item replaced them.
+    private static readonly string[] RetiredAreas = ["Organization", "Hiring setup", "Integrations"];
 
     private static readonly string[] GrantTypes = ["authorization_code", "refresh_token"];
 
@@ -39,18 +40,20 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         var (owner, _) = await OwnerAsync();
         await SignInAsync(owner);
 
-        // Settings is three sidebar items; the pages of Organization are in its menu.
+        // Settings is one sidebar item that opens the Settings home; the pages of a group are in its menu.
         var main = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
-        foreach (var area in SettingsAreas)
+        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true })).ToHaveCountAsync(1);
+        foreach (var retired in RetiredAreas)
         {
-            await Expect(main.GetByRole(AriaRole.Link, new() { Name = area, Exact = true })).ToHaveCountAsync(1);
+            await Expect(main.GetByRole(AriaRole.Link, new() { Name = retired, Exact = true })).ToHaveCountAsync(0);
         }
 
         await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Team" })).ToHaveCountAsync(0);
-        await main.GetByRole(AriaRole.Link, new() { Name = "Organization", Exact = true }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("General");
+        await main.GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Settings");
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Organization", Exact = true }).GetByRole(AriaRole.Link, new() { Name = "Team" }).ClickAsync();
         var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true });
-        await menu.GetByRole(AriaRole.Link, new() { Name = "Team" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/team"));
         await Expect(menu.GetByRole(AriaRole.Link, new() { Name = "Team" })).ToHaveAttributeAsync("aria-current", "page");
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Team");
@@ -80,11 +83,11 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
             await page.GotoAsync(link.ToString());
             await page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
             await Expect(page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
-            // A Recruiter has neither settings area in the sidebar.
+            // A Recruiter has no Settings and no Verification in the sidebar.
             var theirNavigation = page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
             await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Jobs" })).ToBeVisibleAsync();
-            await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Organization", Exact = true })).ToHaveCountAsync(0);
-            await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Hiring setup" })).ToHaveCountAsync(0);
+            await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true })).ToHaveCountAsync(0);
+            await Expect(theirNavigation.GetByRole(AriaRole.Link, new() { Name = "Verification", Exact = true })).ToHaveCountAsync(0);
         }
 
         await Page.ReloadAsync();
@@ -519,9 +522,9 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         const string recruiter = "jordan@brightwater.example.com"; // the seeded Brightwater Recruiter (DevSso/config.json)
         await SignInAsync(recruiter);
 
-        foreach (var area in SettingsAreas)
+        foreach (var name in new[] { "Settings", "Verification" })
         {
-            await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = area, Exact = true })).ToHaveCountAsync(0);
+            await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = name, Exact = true })).ToHaveCountAsync(0);
         }
 
         await GoToAsync("dashboard", "/settings/team");
@@ -571,8 +574,8 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         if (width is >= 768 and < 1024)
         {
-            // The icon rail scrolls, so its last Settings item, Integrations, is reachable on a short window.
-            var settings = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Integrations", Exact = true });
+            // The icon rail scrolls, so its last item, Settings, is reachable on a short window.
+            var settings = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true });
             await settings.ScrollIntoViewIfNeededAsync();
             var box = await settings.BoundingBoxAsync();
             box.Should().NotBeNull();
@@ -581,18 +584,19 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         (string Path, string Title)[] pages =
         [
+            ("/settings", "Settings"),
             ("/settings/organization", "General"),
-            ("/settings/careers-site", "Careers site"),
+            ("/settings/careers-site", "Careers page"),
             ("/settings/team", "Team"),
             ("/settings/roles", "Roles"),
             ("/settings/roles/compare", "Compare roles"),
             ("/settings/roles/viewer", "Viewer"),
             ($"/settings/roles/{roleId}", "Interviewer"),
             ("/settings/branding", "Branding"),
-            ("/settings/verification", "Verification"),
+            ("/settings/sending-domain", "Email domain"),
+            ("/verification", "Verification"),
             ("/settings/api-keys", "API keys"),
             ("/settings/webhooks", "Webhooks"),
-            ("/settings/integrations", "Integrations"),
             ("/settings/mcp-server", "MCP server"),
             ("/settings/slack", "Slack"),
             ("/settings/webhooks/new", "Add endpoint"),
@@ -614,7 +618,7 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     [Fact]
-    public async Task An_area_menu_lists_only_its_own_pages_and_moving_between_them_keeps_the_frame_still()
+    public async Task A_group_menu_lists_only_its_own_pages_and_moving_between_them_keeps_the_frame_still()
     {
         var (owner, _) = await OwnerAsync();
         await Page.SetViewportSizeAsync(1440, 900);
@@ -623,8 +627,10 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         await GoToAsync("dashboard", "/settings/team");
         var organization = Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true });
         // Billing is on in the test stacks, so an Owner's menu ends with it once the shell's billing query answers. Waiting for
-        // that list, not the one before the answer, is what keeps this from depending on which comes first.
-        await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(["General", "Team", "Roles", "Data requests", "Billing"]);
+        // that list, not the one before the answer, is what keeps this from depending on which comes first. Email domain says
+        // where it stands beside its name while it needs attention, so each entry is matched by its start.
+        await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(
+            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex("^Email domain"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
         await Expect(organization.GetByRole(AriaRole.Link, new() { Name = "Branding" })).ToHaveCountAsync(0);
         var team = await FrameAsync();
 
@@ -638,51 +644,83 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
         roles.MenuWidth.Should().BeApproximately(team.MenuWidth, 0.5);
         roles.BandHeight.Should().BeApproximately(team.BandHeight, 0.5);
 
-        // Hiring setup is its own area, with its own pages.
-        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Hiring setup", Exact = true }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Careers site");
-        var hiring = Page.GetByRole(AriaRole.Navigation, new() { Name = "Hiring setup", Exact = true });
-        await Expect(hiring.GetByRole(AriaRole.Link)).ToHaveTextAsync(["Careers site", "Branding", "Verification", "Email domain"]);
+        // The breadcrumb reads Settings, the group, then the page.
+        var breadcrumb = Page.GetByRole(AriaRole.Navigation, new() { Name = "Breadcrumb" });
+        await Expect(breadcrumb.GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true })).ToHaveAttributeAsync("href", "/settings");
+        await Expect(breadcrumb.GetByRole(AriaRole.Listitem)).ToHaveTextAsync([new Regex("Settings$"), new Regex("Organization$"), new Regex("Roles$")]);
+
+        // Careers site is its own group, reached from the Settings home, with its own pages.
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Careers site", Exact = true }).GetByRole(AriaRole.Link, new() { Name = "Careers page" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Careers page");
+        var careers = Page.GetByRole(AriaRole.Navigation, new() { Name = "Careers site", Exact = true });
+        await Expect(careers.GetByRole(AriaRole.Link)).ToHaveTextAsync(["Careers page", "Branding"]);
         await ExpectNoAccessibilityViolationsAsync();
     }
 
     [Fact]
-    public async Task The_integrations_directory_lists_each_integration_with_its_state_and_opens_its_page()
+    public async Task The_settings_home_lists_every_setting_in_groups_and_search_finds_one_by_everyday_words()
     {
         var owner = ApiSession.NewEmail("e2e-owner");
         using (var session = new ApiSession(Fixture))
         {
             await session.SignInWithDevSsoAsync(owner, Ct);
             await session.OnboardAsync(Ct);
-            using var key = await session.PostAsync("/v1/organization/api-keys", new { name = "Payroll sync", scopes = ReadOnly }, Ct);
-            key.StatusCode.Should().Be(HttpStatusCode.Created);
         }
 
         await Page.SetViewportSizeAsync(1440, 900);
         await SignInAsync(owner);
-        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Integrations", Exact = true }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/integrations"));
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Integrations");
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Settings");
 
-        // Slack, the MCP server, webhooks and API keys: a row each, with what it does, and its state where one can be told.
-        var rows = Page.GetByRole(AriaRole.List, new() { Name = "Integrations" }).GetByRole(AriaRole.Listitem);
-        await Expect(rows).ToHaveCountAsync(4);
-        await Expect(rows.Filter(new() { HasText = "API keys" })).ToContainTextAsync("Connected");
-        await Expect(rows.Filter(new() { HasText = "Webhooks" })).ToContainTextAsync("Not connected");
-        await Expect(rows.Filter(new() { HasText = "MCP server" })).Not.ToContainTextAsync("connected");
+        // Three groups, each setting a link: no counts, no icons. Billing is on in the test stacks and arrives with the shell's
+        // answer; Email domain says it is not set up for an organization that has none.
+        var integrations = Page.GetByRole(AriaRole.Region, new() { Name = "Integrations", Exact = true });
+        await Expect(integrations.GetByRole(AriaRole.Link)).ToHaveTextAsync(["Slack", "MCP server", "Webhooks", "API keys"]);
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Careers site", Exact = true }).GetByRole(AriaRole.Link)).ToHaveTextAsync(["Careers page", "Branding"]);
+        var organization = Page.GetByRole(AriaRole.Region, new() { Name = "Organization", Exact = true });
+        await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(
+            [new Regex("^General$"), new Regex("^Team$"), new Regex("^Roles$"), new Regex("^Email domain"), new Regex("^Data requests$"), new Regex("^Billing$")]);
+        await Expect(organization.GetByRole(AriaRole.Listitem).Filter(new() { HasText = "Email domain" })).ToContainTextAsync("Not set up");
         await ExpectNoAccessibilityViolationsAsync();
 
-        await rows.Filter(new() { HasText = "Webhooks" }).GetByRole(AriaRole.Link).ClickAsync();
+        // "logo" is not a setting's name: the words kept beside Branding find it, with its group after it.
+        var search = Page.GetByRole(AriaRole.Searchbox, new() { Name = "Search settings" });
+        await search.FillAsync("logo");
+        await Expect(Page.GetByText("1 setting", new() { Exact = true })).ToBeVisibleAsync();
+        var results = Page.GetByRole(AriaRole.Region, new() { Name = "Settings that match" });
+        await Expect(results.GetByRole(AriaRole.Link)).ToHaveTextAsync(["Branding"]);
+        await Expect(results).ToContainTextAsync("Careers site");
+        await ExpectNoAccessibilityViolationsAsync();
+        await search.FillAsync("zzz");
+        await Expect(Page.GetByText("No setting matches \"zzz\".")).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Clear search" }).ClickAsync();
+        await Expect(integrations).ToBeVisibleAsync();
+
+        // An integration's page has its group's menu and a breadcrumb that leads back to Settings.
+        await integrations.GetByRole(AriaRole.Link, new() { Name = "Webhooks" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/webhooks"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Webhooks");
-        // An integration's page is a record of the directory, not a page of a menu.
-        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Breadcrumb" }).GetByRole(AriaRole.Link, new() { Name = "Integrations" })).ToHaveAttributeAsync("href", "/settings/integrations");
+        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Integrations", Exact = true }).GetByRole(AriaRole.Link))
+            .ToHaveTextAsync(["Slack", "MCP server", "Webhooks", "API keys"]);
+        await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Breadcrumb" }).GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true })).ToHaveAttributeAsync("href", "/settings");
+
+        // The old addresses land on the new ones.
+        await GoToAsync("dashboard", "/settings/integrations");
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings"));
+        foreach (var old in new[] { "/settings/verification", "/settings/integrity" })
+        {
+            await GoToAsync("dashboard", old);
+            await Expect(Page).ToHaveURLAsync(DashboardUrl("/verification"));
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Verification");
+        }
     }
 
     [Theory]
     [InlineData(390, 844)]
     [InlineData(768, 900)]
-    public async Task The_menu_starts_in_the_same_place_on_every_page_of_a_section_at_phone_and_tablet_widths(int width, int height)
+    public async Task The_menu_starts_in_the_same_place_on_every_page_of_a_group_at_phone_and_tablet_widths(int width, int height)
     {
         // Every page that has a Last updated fact has one (an edited organization, a domain), and the Email domain page has
         // the actions that only appear once there is a domain: the cases where the title's row used to wrap (S8).
@@ -702,8 +740,9 @@ public sealed class SettingsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         (string Area, (string Path, string Title, bool HasFact)[] Pages)[] sections =
         [
-            ("Organization", [("/settings/organization", "General", true), ("/settings/team", "Team", true), ("/settings/roles", "Roles", false), ("/settings/data-requests", "Data requests", false)]),
-            ("Hiring setup", [("/settings/careers-site", "Careers site", true), ("/settings/branding", "Branding", true), ("/settings/verification", "Verification", true), ("/settings/sending-domain", "Email domain", true)]),
+            ("Organization", [("/settings/organization", "General", true), ("/settings/team", "Team", true), ("/settings/roles", "Roles", false), ("/settings/sending-domain", "Email domain", true), ("/settings/data-requests", "Data requests", false)]),
+            ("Careers site", [("/settings/careers-site", "Careers page", true), ("/settings/branding", "Branding", true)]),
+            ("Integrations", [("/settings/mcp-server", "MCP server", false), ("/settings/webhooks", "Webhooks", false), ("/settings/api-keys", "API keys", false)]),
         ];
         foreach (var (area, pages) in sections)
         {

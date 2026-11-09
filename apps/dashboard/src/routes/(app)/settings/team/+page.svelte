@@ -65,7 +65,7 @@
   import { page } from '$app/state';
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { assignableRoles, mayAssign, mayGiveJobAccess, roleFromKey, roleKey, seesAllJobsWith, teamPath } from '#lib/settings.js';
+  import { assignableRoles, mayAssign, mayGiveJobAccess, roleFromKey, roleKey, seesAllJobsWith, teamPath, settingsCrumbs } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
   import type { PageProps } from './$types';
@@ -324,7 +324,7 @@
   <title>Team · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Organization' }, { label: 'Team' }]} />
+<TopBar crumbs={settingsCrumbs('/settings/team')} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand

@@ -4,6 +4,7 @@
   import ChevronDownIcon from '~icons/lucide/chevron-down';
   import CircleXIcon from '~icons/lucide/circle-x';
   import EllipsisIcon from '~icons/lucide/ellipsis';
+  import SettingsIcon from '~icons/lucide/settings';
   import FileTextIcon from '~icons/lucide/file-text';
   import GlobeIcon from '~icons/lucide/globe';
   import HourglassIcon from '~icons/lucide/hourglass';
@@ -80,7 +81,7 @@
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
   import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
-  import IntegrationRow from '#lib/components/integration-row.svelte';
+  import SettingsRows from '#lib/components/settings-rows.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import SetupSteps from '#lib/components/setup-steps.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
@@ -122,8 +123,7 @@
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { counted } from '#lib/reports.js';
-  import { integrations } from '#lib/integrations.js';
-  import { settingsAreas } from '#lib/settings.js';
+  import { settingsSections } from '#lib/settings.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import EditPreviewDemo from './edit-preview-demo.svelte';
@@ -1074,16 +1074,13 @@
                       </Sidebar.Group>
                       <Sidebar.Group>
                         <Sidebar.Menu>
-                          {#each settingsAreas as area (area.group)}
-                            {@const Icon = area.icon}
-                            <Sidebar.MenuItem>
-                              <Sidebar.MenuButton tooltipContent={area.label}>
-                                {#snippet child({ props })}
-                                  <a href="#sidebar" {...props}><Icon aria-hidden="true" /><span>{area.label}</span></a>
-                                {/snippet}
-                              </Sidebar.MenuButton>
-                            </Sidebar.MenuItem>
-                          {/each}
+                          <Sidebar.MenuItem>
+                            <Sidebar.MenuButton tooltipContent="Settings">
+                              {#snippet child({ props })}
+                                <a href="#sidebar" {...props}><SettingsIcon aria-hidden="true" /><span>Settings</span></a>
+                              {/snippet}
+                            </Sidebar.MenuButton>
+                          </Sidebar.MenuItem>
                         </Sidebar.Menu>
                       </Sidebar.Group>
                     </Sidebar.Content>
@@ -1423,12 +1420,8 @@
             </figure>
           </div>
         </Panel>
-        <Panel title="Integration row" flush class="flex-[999_1_520px]">
-          <ul>
-            {#each integrations as integration, index (integration.href)}
-              <IntegrationRow {integration} state={integration.label === 'MCP server' ? undefined : index % 2 === 0 ? 'connected' : 'notConnected'} />
-            {/each}
-          </ul>
+        <Panel title="Settings home" flush class="flex-[999_1_520px]">
+          <SettingsRows list={settingsSections.filter((section) => section.group === 'Organization')} domainMark={{ status: 'waiting', label: 'Not set up' }} />
         </Panel>
       </div>
 

@@ -33,9 +33,9 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(Page, owner);
 
-        // Billing is in the Organization area's menu, for an owner.
-        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Organization", Exact = true }).ClickAsync();
-        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true }).GetByRole(AriaRole.Link, new() { Name = "Billing" }).ClickAsync();
+        // Billing is on the Settings home under Organization, for an owner.
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Organization", Exact = true }).GetByRole(AriaRole.Link, new() { Name = "Billing" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Billing");
 
@@ -153,7 +153,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(Page, recruiter);
         var main = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
-        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Organization", Exact = true })).ToHaveCountAsync(0);
+        await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true })).ToHaveCountAsync(0);
         await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Billing" })).ToHaveCountAsync(0);
 
         await GoToAsync("dashboard", "/settings/billing");

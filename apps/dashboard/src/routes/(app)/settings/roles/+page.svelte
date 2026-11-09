@@ -28,7 +28,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { mayAssign, roleKey } from '#lib/settings.js';
+  import { mayAssign, roleKey, settingsCrumbs } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import type { PageProps } from './$types';
 
@@ -104,7 +104,7 @@
   <title>Roles · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Organization' }, { label: 'Roles' }]} />
+<TopBar crumbs={settingsCrumbs('/settings/roles')} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand

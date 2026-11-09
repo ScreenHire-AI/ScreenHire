@@ -1,6 +1,6 @@
 import type { CheckGroup, ModelProblem, ModelProvider } from '@screenhire/api-client';
 
-// The words of Settings > Verification. The group and device check labels mirror `CheckGroups.Label` and
+// The words of the Verification page. The group and device check labels mirror `CheckGroups.Label` and
 // `ChangeLabels.DeviceCheck` in src/ScreenHire.Domain, which History uses; `ChangeLabelsTests` fails when they drift, so
 // change both together.
 

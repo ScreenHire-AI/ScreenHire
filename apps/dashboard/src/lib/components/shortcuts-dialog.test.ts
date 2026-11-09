@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
+import { user, userAs } from '../../test-support/fixtures.js';
 import { preferences } from '../preferences.svelte.js';
-import { sections } from '../shell.js';
+import { sections, sectionsFor } from '../shell.js';
 import { shortcutGroups } from '../shortcuts.js';
 import ShortcutsDialog from './shortcuts-dialog.svelte';
 
@@ -14,14 +15,14 @@ const pressQuestionMark = (target: Element = document.body) => fireEvent.keyDown
 
 describe('shortcuts dialog', () => {
   it('opens on ? and lists every shortcut in the catalogue', async () => {
-    render(ShortcutsDialog);
+    render(ShortcutsDialog, { props: { user } });
     expect(screen.queryByRole('dialog')).toBeNull();
 
     await pressQuestionMark();
 
     const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
     const listed = within(dialog).getAllByRole('term').map((term) => term.textContent?.trim());
-    expect(listed).toEqual(shortcutGroups(sections).flatMap((group) => group.shortcuts.map((shortcut) => shortcut.label)));
+    expect(listed).toEqual(shortcutGroups(sectionsFor(user)).flatMap((group) => group.shortcuts.map((shortcut) => shortcut.label)));
     const keys = within(dialog).getByText('Go to Candidates').nextElementSibling!;
     expect([...keys.querySelectorAll('kbd')].map((key) => key.textContent)).toEqual(['G', 'C']);
     expect(keys).toHaveTextContent('then');
@@ -50,6 +51,21 @@ describe('shortcuts dialog', () => {
     await pressQuestionMark();
 
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('lists Go to Verification, G then V, for a role that may open it, and not for one that may not', async () => {
+    const { unmount } = render(ShortcutsDialog, { props: { user: userAs('Recruiter') } });
+    await pressQuestionMark();
+    const recruiterDialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+    expect(within(recruiterDialog).queryByText('Go to Verification')).toBeNull();
+    expect(within(recruiterDialog).getByText('Go to Reports')).toBeInTheDocument();
+    unmount();
+
+    render(ShortcutsDialog, { props: { user } });
+    await pressQuestionMark();
+    const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+    const keys = within(dialog).getByText('Go to Verification').nextElementSibling!;
+    expect([...keys.querySelectorAll('kbd[data-slot="kbd"]')].map((key) => key.textContent)).toEqual(['G', 'V']);
   });
 
   it('leaves ? to a text field', async () => {

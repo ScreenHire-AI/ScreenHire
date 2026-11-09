@@ -4,20 +4,22 @@ import { builtInPermissions, interviewer, interviewerRoleId, roleCatalogue, user
 import {
   assignableRoles,
   billingFeature,
-  directoryVisible,
   mayAssign,
   mayGiveJobAccess,
   roleFromKey,
   roleKey,
-  integrationsHref,
+  matchesWords,
+  searchSettings,
   seesAllJobsWith,
-  settingsAreaOf,
+  settingsCrumbs,
+  settingsGroupOf,
+  settingsGroups,
+  settingsHome,
+  settingsSearchText,
   settingsSectionOf,
   featureOn,
   featureWaits,
   slackFeature,
-  visibleIntegrations,
-  visibleSettingsAreas,
   visibleSettingsSections,
 } from './settings.js';
 
@@ -111,18 +113,19 @@ describe('featureOn', () => {
 describe('visibleSettingsSections', () => {
   const labels = (user: CurrentUser | null) => visibleSettingsSections(user).map((section) => section.label);
 
-  it('shows Owners and Admins every page, and email templates on the Templates page instead', () => {
+  it('shows Owners and Admins every page, with email templates on the Templates page and Verification in the sidebar instead', () => {
     const withSlack = (user: CurrentUser) => visibleSettingsSections(user, { slack: true });
-    expect(withSlack(userAs('Owner'))).toHaveLength(12);
-    expect(withSlack(userAs('Admin'))).toHaveLength(12);
+    expect(withSlack(userAs('Owner'))).toHaveLength(11);
+    expect(withSlack(userAs('Admin'))).toHaveLength(11);
     expect(labels(userAs('Owner'))).not.toContain('Email templates');
+    expect(labels(userAs('Owner'))).not.toContain('Verification');
   });
 
   it('hides Slack, page and menu entry, until the installation has a Slack app (A3)', () => {
     const owner = userAs('Owner');
 
     expect(labels(owner)).not.toContain('Slack');
-    expect(labels(owner)).toHaveLength(11);
+    expect(labels(owner)).toHaveLength(10);
     expect(visibleSettingsSections(owner, { slack: false }).map((section) => section.label)).not.toContain('Slack');
     expect(visibleSettingsSections(owner, { slack: true }).map((section) => section.label)).toContain('Slack');
   });
@@ -153,61 +156,116 @@ describe('visibleSettingsSections', () => {
   });
 });
 
-describe('settings areas', () => {
-  const areas = (user: CurrentUser | null, features = { slack: true }) => visibleSettingsAreas(user, features).map((area) => [area.label, area.href]);
+describe('settings groups', () => {
+  const groups = (user: CurrentUser | null, features = { slack: true }) =>
+    settingsGroups(visibleSettingsSections(user, features)).map(({ group, sections }) => [group, sections.map((section) => section.label)]);
   const holding = (...permissions: Permission[]): CurrentUser => ({
     ...interviewer,
     organization: { ...interviewer.organization!, permissions: ['ViewHiring', ...permissions], seesAllJobs: true },
   });
 
-  it('gives an Owner three items, each opening the first page of its group, and Integrations its directory', () => {
-    expect(areas(userAs('Owner'))).toEqual([
-      ['Organization', '/settings/organization'],
-      ['Hiring setup', '/settings/careers-site'],
-      ['Integrations', integrationsHref],
+  it('gives an Owner three groups, with Email domain under Organization and Branding under Careers site', () => {
+    expect(groups(userAs('Owner'))).toEqual([
+      ['Organization', ['General', 'Team', 'Roles', 'Email domain', 'Data requests']],
+      ['Careers site', ['Careers page', 'Branding']],
+      ['Integrations', ['Slack', 'MCP server', 'Webhooks', 'API keys']],
     ]);
   });
 
-  it('shows an item only for a role with a permission for at least one page in it', () => {
-    expect(areas(holding('ManageWebhooks'))).toEqual([['Integrations', integrationsHref]]);
-    expect(areas(holding('ManageTeam'))).toEqual([['Organization', '/settings/team']]);
-    expect(areas(holding('EditSettings'))).toEqual([
-      ['Organization', '/settings/organization'],
-      ['Hiring setup', '/settings/careers-site'],
+  it('leaves out a setting the role cannot use, and a group with none left (A3)', () => {
+    expect(groups(holding('ManageWebhooks'))).toEqual([['Integrations', ['Webhooks']]]);
+    expect(groups(holding('ManageTeam'))).toEqual([['Organization', ['Team', 'Roles']]]);
+    expect(groups(holding('EditSettings'))).toEqual([
+      ['Organization', ['General', 'Email domain']],
+      ['Careers site', ['Careers page', 'Branding']],
     ]);
-    expect(areas(userAs('Recruiter'))).toEqual([]);
-    expect(areas(null)).toEqual([]);
+    expect(groups(userAs('Recruiter'))).toEqual([]);
+    expect(groups(null)).toEqual([]);
   });
 
   it('leaves Integrations out of a role that sees only its own jobs, whose integrations all reach every job', () => {
     const own: CurrentUser = { ...userAs('Owner'), organization: { ...userAs('Owner').organization!, seesAllJobs: false } };
 
-    expect(areas(own).map(([label]) => label)).not.toContain('Integrations');
+    expect(groups(own).map(([group]) => group)).not.toContain('Integrations');
   });
 
-  it('puts a path in its area, and the directory in Integrations', () => {
-    expect(settingsAreaOf('/settings/roles/compare')).toBe('Organization');
-    expect(settingsAreaOf('/settings/branding')).toBe('Hiring setup');
-    expect(settingsAreaOf('/settings/webhooks/new')).toBe('Integrations');
-    expect(settingsAreaOf(integrationsHref)).toBe('Integrations');
-    expect(settingsAreaOf('/settings')).toBeUndefined();
+  it('puts a path in its group, and the Settings home in none', () => {
+    expect(settingsGroupOf('/settings/roles/compare')).toBe('Organization');
+    expect(settingsGroupOf('/settings/sending-domain')).toBe('Organization');
+    expect(settingsGroupOf('/settings/branding')).toBe('Careers site');
+    expect(settingsGroupOf('/settings/webhooks/new')).toBe('Integrations');
+    expect(settingsGroupOf(settingsHome)).toBeUndefined();
+    expect(settingsGroupOf('/settings/integrations')).toBeUndefined();
   });
 
-  it('lists the integrations a person may open, without Slack where there is no Slack app', () => {
-    const labels = (features = {}) => visibleIntegrations(userAs('Owner'), features).map((integration) => integration.label);
-
-    expect(labels({ slack: true })).toEqual(['Slack', 'MCP server', 'Webhooks', 'API keys']);
-    expect(labels({ slack: false })).toEqual(['MCP server', 'Webhooks', 'API keys']);
-    expect(visibleIntegrations(userAs('Recruiter'))).toEqual([]);
-  });
-
-  it('opens the directory to whoever may use one integration, counting Slack only once it is on', () => {
+  it('counts Slack only once it is on, so a Slack-only role has no home until then', () => {
     const slackOnly: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageIntegrations'] } };
 
-    expect(directoryVisible(userAs('Owner'))).toBe(true);
-    expect(directoryVisible(userAs('Recruiter'))).toBe(false);
-    expect(directoryVisible(slackOnly)).toBe(false);
-    expect(directoryVisible(slackOnly, { slack: true })).toBe(true);
+    expect(visibleSettingsSections(slackOnly)).toEqual([]);
+    expect(visibleSettingsSections(slackOnly, { slack: true }).map((section) => section.label)).toEqual(['Slack']);
+  });
+});
+
+describe('Settings search', () => {
+  const owner = visibleSettingsSections(userAs('Owner'), { slack: true, billing: true });
+  const find = (query: string) => searchSettings(owner, query).map((section) => section.label);
+
+  it('finds a setting by its name, case aside', () => {
+    expect(find('team')).toContain('Team');
+    expect(find('BRANDING')).toEqual(['Branding']);
+  });
+
+  it('finds a setting by the words kept beside it, so "logo" finds Branding and "invoice" finds Billing', () => {
+    expect(find('logo')).toEqual(['Branding']);
+    expect(find('invoice')).toEqual(['Billing']);
+    expect(find('invite')).toEqual(['Team', 'Roles']);
+  });
+
+  it('finds a setting by its one line and by its group', () => {
+    expect(find('erase')).toContain('Data requests');
+    expect(find('integrations')).toEqual(['Slack', 'MCP server', 'Webhooks', 'API keys']);
+    expect(find('careers site')).toContain('Careers page');
+  });
+
+  it('wants every word typed, and puts a name match before a match in the description', () => {
+    expect(find('send email')).toEqual(['Email domain']);
+    expect(find('team')[0]).toBe('Team');
+  });
+
+  it('is a contains match, never fuzzy, and an empty search finds everything', () => {
+    expect(find('tm')).toEqual([]);
+    expect(find('zzz')).toEqual([]);
+    expect(find('  ')).toHaveLength(owner.length);
+  });
+
+  it('only searches what the person may use', () => {
+    const recruiter = visibleSettingsSections(userAs('Recruiter'));
+    expect(searchSettings(recruiter, 'logo')).toEqual([]);
+  });
+
+  it('reads name, description, keywords and group, lower case, for the command palette too', () => {
+    const text = settingsSearchText(settingsSectionOf('/settings/branding')!);
+    expect(text).toContain('branding');
+    expect(text).toContain('logo');
+    expect(text).toContain('careers site');
+    expect(matchesWords(text, 'Logo careers')).toBe(true);
+    expect(matchesWords(text, 'logo invoice')).toBe(false);
+  });
+});
+
+describe('Settings breadcrumbs', () => {
+  it('reads Settings, the group, then the page, which does not link to itself', () => {
+    expect(settingsCrumbs('/settings/team')).toEqual([{ label: 'Settings', href: '/settings' }, { label: 'Organization' }, { label: 'Team' }]);
+    expect(settingsCrumbs('/settings/sending-domain')).toEqual([{ label: 'Settings', href: '/settings' }, { label: 'Organization' }, { label: 'Email domain' }]);
+  });
+
+  it('links the page and adds the record under it', () => {
+    expect(settingsCrumbs('/settings/webhooks', { label: 'Add endpoint' })).toEqual([
+      { label: 'Settings', href: '/settings' },
+      { label: 'Integrations' },
+      { label: 'Webhooks', href: '/settings/webhooks' },
+      { label: 'Add endpoint' },
+    ]);
   });
 });
 
@@ -241,7 +299,7 @@ describe('job access', () => {
     const scoped: CurrentUser = { ...owner, organization: { ...owner.organization!, seesAllJobs: false } };
     const organization = (user: CurrentUser) => visibleSettingsSections(user).filter((section) => section.group === 'Organization').map((section) => section.label);
 
-    expect(organization(owner)).toEqual(['General', 'Team', 'Roles', 'Data requests']);
+    expect(organization(owner)).toEqual(['General', 'Team', 'Roles', 'Email domain', 'Data requests']);
     expect(organization(userAs('Admin'))).toContain('Data requests');
     expect(organization(scoped)).not.toContain('Data requests');
     expect(organization(userAs('Recruiter'))).toEqual([]);
@@ -256,7 +314,7 @@ describe('Billing', () => {
     visibleSettingsSections(user, features).filter((section) => section.group === 'Organization').map((section) => section.label);
 
   it('ends the Organization pages for an Owner once the shell has heard that billing is set up, and for no one else', () => {
-    expect(organization(userAs('Owner'), { billing: true })).toEqual(['General', 'Team', 'Roles', 'Data requests', 'Billing']);
+    expect(organization(userAs('Owner'), { billing: true })).toEqual(['General', 'Team', 'Roles', 'Email domain', 'Data requests', 'Billing']);
     expect(organization(userAs('Admin'), { billing: true })).not.toContain('Billing');
     expect(organization(userAs('Recruiter'), { billing: true })).toEqual([]);
     expect(settingsSectionOf('/settings/billing')).toMatchObject({ label: 'Billing', permission: 'ManageBilling', group: 'Organization', feature: 'billing' });
@@ -269,8 +327,8 @@ describe('Billing', () => {
     expect(featureOn({}, 'billing')).toBe(false);
   });
 
-  it('keeps Organization in the sidebar for an Owner whatever billing says', () => {
-    expect(visibleSettingsAreas(userAs('Owner'), { billing: false }).map((area) => area.label)).toContain('Organization');
+  it('keeps the Organization group on the Settings home for an Owner whatever billing says', () => {
+    expect(settingsGroups(visibleSettingsSections(userAs('Owner'), { billing: false })).map(({ group }) => group)).toContain('Organization');
   });
 
   it('reads the feature from the billing answer, and holds the last answer through a failed refetch', () => {

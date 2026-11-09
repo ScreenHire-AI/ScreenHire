@@ -106,7 +106,7 @@ const panels: Record<string, string[]> = {
   'Reorder grip': ['Reorder grip'],
   'Settings menu': ['Settings menu'],
   'Candidates list switch': ['Candidates list switch'],
-  'Integration row': ['Integration row'],
+  'Settings home': ['Settings home'],
   'Setup checklist': ['Setup checklist'],
   'Form builder': ['Form builder'],
   'Answer menu': ['Answer menu'],

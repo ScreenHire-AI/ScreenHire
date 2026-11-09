@@ -122,7 +122,7 @@ const link = 'inline-flex min-h-11 items-center font-semibold text-primary under
   <SellingPoint point={integrationsPoint!} layout="stacked" tone="band">
     <div class="flex flex-col gap-10">
       <RuledList items={integrations.map((item) => ({ term: item.name, detail: item.does }))} />
-      <ProductFrame src={integrationsPicture} phoneSrc={integrationsPhone} alt="The Integrations directory, with each integration and whether it is connected." />
+      <ProductFrame src={integrationsPicture} phoneSrc={integrationsPhone} alt="The Settings home, listing each integration beside the other settings." />
     </div>
     <Fragment slot="words">
       <a href={pages.integrations.path} class={link}>{linkText.integrations}</a>

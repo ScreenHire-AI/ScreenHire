@@ -183,7 +183,7 @@ built-in rejection email. The jobs `DevelopmentDataSeeder` makes have no history
 ## A five-minute demo
 
 1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, opens on the last
-   updated, sorts by any column header, and the Status filter counts what is open and what is a draft. The sidebar's saved views count what needs attention: "To review" and "To verify".
+   updated, sorts by any column header, and the Status filter counts what is open and what is a draft. The sidebar's views pick out what needs attention: "To review" and "To verify".
 2. **Verification, explained (90 s).** Open Senior .NET Engineer. The authenticity chips over the table count the seven
    applicants by level, each chip filters the table to it, and each row has its level. Open Jordan Vale and its Verification tab, marked with a dot: the level sits on its three-step scale, a card per kind of check says what it found, and the tab lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting
@@ -226,7 +226,7 @@ curl -X POST http://localhost:5080/v1/dev/inbound-email -H "Content-Type: applic
 ```
 
 The reply shows on the candidate's Messages tab and in Activity, and a card appears in Avery's tray. Reporting a bounce needs
-SendGrid's signature, so it is covered by the integration tests, not this walk-through. Settings > **Sending domain** takes any
+SendGrid's signature, so it is covered by the integration tests, not this walk-through. Settings > Organization > **Email domain** takes any
 domain you own (example.org will do): the page lists made-up records, Check records says they are missing until
 `POST /v1/dev/sending-domains/publish` with `{"domain":"example.org"}`, and the next check verifies the domain.
 
@@ -248,9 +248,10 @@ and Archived.
 
 Settings, as Avery (any role with a settings permission; Owners and Admins have them all):
 
-Settings is three items at the bottom of the sidebar: **Organization**, **Hiring setup** and **Integrations**. The first two have a
-menu of their own pages; **Integrations** is a directory with a row per integration (Slack where it is set up, MCP server, Webhooks,
-API keys) and a Connected or Not connected state where one can be told, and a press opens the integration's page. A new
+Settings is one item at the bottom of the sidebar. It opens the Settings home, which lists every setting in three groups,
+**Organization**, **Careers site** and **Integrations** (Slack where it is set up, MCP server, Webhooks, API keys), with a search box
+("logo" finds Branding), and a press on a name opens its page, which has its group's menu. Email domain says "Not set up" or
+"Records to add" there until it is verified. **Verification** is its own item above the views. A new
 organization's Owner or Admin also sees **Set up your organization** on Jobs, with a tick for each step the data shows done.
 
 - **Team and Roles.** **Invite** opens a sheet that starts at Viewer and says what each role is for, Interviewer

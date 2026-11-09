@@ -28,8 +28,8 @@ sources:
 # Views
 
 The sidebar's Views list holds two kinds of view. The built-in ones (To review, To verify, Overdue, New today, Not
-screened, Interviewing) are code: `savedViews` in `apps/dashboard/src/lib/saved-views.ts`, each a name, an icon and a
-`matches` function over the rows. The others are saved by people from the Candidates table or from one job's table, and
+screened, Interviewing) are code: `savedViews` in `apps/dashboard/src/lib/saved-views.ts`, each a name, a plain icon
+(never a status icon) and a `matches` function over the rows. The others are saved by people from the Candidates table or from one job's table, and
 live on the server. "Saved" now means saved candidates only, so the heading is Views.
 
 ## What a view holds
@@ -110,7 +110,7 @@ nothing: nobody else's list changes.
 - **Save view.** A Save view button is always in the filter row, disabled with the reason in its tooltip until the filters or sort differ from the view the table is on (`differsFromView`). It ends
   the filter row, outside the part that scrolls, so it is in view at any width. Its dialog asks for a name and Share with the
   team, off by default. The new view opens.
-- **Counts.** The sidebar counts the rows each view picks with `viewMatcher`, from the same applications list the pages show.
+- **No counts.** A sidebar view carries no count and no status icon (design system I2): it only filters, and the layout no longer loads the applications list for it. `viewMatcher` still picks the rows a table shows.
 - **Menu.** Each row has a button that shows on hover and on focus: Rename, Share with the team or Make private, and Delete
   view for a view the person may change; Hide for a built-in one. All of them are menu items, so the keyboard reaches them. A
   tablet's icon rail has no room for the menus, so its top bar has a button that opens the full sidebar.
@@ -122,5 +122,5 @@ nothing: nobody else's list changes.
 | `ViewPolicyTests` (unit) | who sees and changes a view, the built-in ids match the dashboard's, the view's own rules, Undo's minute |
 | `ViewsTests` (integration) | private until shared, 403 and 404 for others, Admin may edit, Undo restores the same row, a job view and a view that picks jobs follow job access, two saves of one name leave one view, another organization sees nothing, validation, hidden built-ins, no API key |
 | `ViewsRealtimeTests` (integration) | `ViewsChanged` reaches its own organization with an id only |
-| `view-filters.test.ts`, `sidebar-views.test.ts` (Vitest) | what a view holds, when a table differs from it, the rows it picks and the sidebar's counts |
+| `view-filters.test.ts`, `sidebar-views.test.ts` (Vitest) | what a view holds, when a table differs from it, the rows it picks and the sidebar's names, plain icons and order |
 | `app-sidebar.test.ts`, `candidates-page.test.ts`, `job-pipeline.test.ts`, `undo-notice.test.ts` (Vitest) | the menu and its keyboard path, the Save view button and dialog, opening a view, what a saved view keeps of the verification guardrails, the Undo notice |

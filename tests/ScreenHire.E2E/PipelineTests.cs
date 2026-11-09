@@ -167,7 +167,8 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/candidates"));
         var table = Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" });
         await Expect(table.GetByRole(AriaRole.Link, new() { Name = scene.Title })).ToHaveCountAsync(Candidates.Length);
-        await Expect(Page.GetByRole(AriaRole.Link, new() { NameRegex = new("^New today") })).ToContainTextAsync(Candidates.Length.ToString(CultureInfo.InvariantCulture));
+        // A sidebar view has no count (design system I2, T4): it is a link by its name, and the table above counts the rows.
+        await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "New today", Exact = true })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
         await Page.Keyboard.PressAsync("Control+k");

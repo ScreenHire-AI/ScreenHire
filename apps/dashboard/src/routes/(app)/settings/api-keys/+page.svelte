@@ -41,6 +41,7 @@
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
+  import { settingsCrumbs } from '#lib/settings.js';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
@@ -184,11 +185,12 @@
   <title>API keys · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Integrations', href: '/settings/integrations' }, { label: 'API keys' }]} back />
+<TopBar crumbs={settingsCrumbs('/settings/api-keys')} back />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
     title="API keys"
+    oneRow
     count={keys.isSuccess ? all.length : undefined}
     countLabel={all.length === 1 ? 'key' : 'keys'}
     actions={bandActions}
