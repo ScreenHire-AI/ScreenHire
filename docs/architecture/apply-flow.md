@@ -75,7 +75,7 @@ again before sending. Back, "Change" and "Save and finish later" keep what was t
 show inline and in an error summary at the top that links to each field and takes focus.
 
 The form is built from the API's `GET /v1/public/organizations/{slug}/jobs/{job}/application-form`: the job, its
-questions (resume first; knockouts and automations stay on the server), the AI-use policy, upload limits and the bot
+questions (resume first; knockouts and automations stay on the server), the AI-use policy in force (the job's own, else the organization's), upload limits and the bot
 challenge's site key. Every form asks for a resume: the questionnaire's own `resume` file question, or an optional one
 (`ApplicationForm.DefaultResumeQuestion`).
 
@@ -192,7 +192,7 @@ only its height and page count. Other file types, images included, are offered a
 `POST /v1/public/organizations/{slug}/jobs/{jobId}/applications` (anonymous, rate-limited per candidate address by the
 `apply` policy) sets the slug's organization as the tenant, finds the job by id under it (another organization's job
 is 404, a closed one 410), validates the answers against the job's questions (`ApplicationForm.Validate`) and the
-AI-use policy (a declaration is required unless the policy is `Allowed`), checks the files, verifies the bot challenge,
+AI-use policy in force for the job (its own, else the organization's; a declaration is required unless the policy is `Allowed`), checks the files, verifies the bot challenge,
 and then, through the outbox in one transaction: finds or creates the candidate by email (an existing candidate's
 details are never changed by a public form), creates the application in the first stage with its `Submitted` timeline
 event, stores the files, and publishes `ApplicationSubmitted` (a tenant event, so open dashboards update) plus the scan

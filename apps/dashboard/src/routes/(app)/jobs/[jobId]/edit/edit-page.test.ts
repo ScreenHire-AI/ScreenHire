@@ -23,6 +23,7 @@ const job = {
   applicantLocationRequirements: ['GB', 'IE'],
   salary: { min: 70000, max: 90000, currency: 'GBP', period: 'Year' },
   validThrough: null,
+  aiUse: { policy: 'AllowedWithDisclosure', override: null, organizationDefault: 'AllowedWithDisclosure' },
 } as unknown as JobDetail;
 
 function renderPage(routes: Parameters<typeof apiStub>[0], client?: QueryClient) {
@@ -122,6 +123,45 @@ describe('edit job details page', () => {
 
       expect(await within(form).findByText('Keep the summary to 160 characters or fewer.')).toBeInTheDocument();
       expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+    });
+  });
+
+  describe('AI use while applying', () => {
+    const own = { ...job, aiUse: { policy: 'Allowed', override: 'Allowed', organizationDefault: 'AllowedWithDisclosure' } } as unknown as JobDetail;
+    const aiUseBody = (fetchMock: ReturnType<typeof renderPage>) => {
+      const put = fetchMock.mock.calls.find(([path, init]) => path === `/v1/jobs/${jobId}/ai-use` && init?.method === 'PUT');
+      return put ? (JSON.parse(String(put[1]?.body)) as { policy: string | null }) : undefined;
+    };
+
+    it("follows the organization's policy by default, names it, and saves its own on a button of its own", async () => {
+      const fetchMock = renderPage({
+        [`GET /v1/jobs/${jobId}`]: () => Response.json(job),
+        [`PUT /v1/jobs/${jobId}/ai-use`]: () => Response.json({ ...job, aiUse: { policy: 'NotAllowed', override: 'NotAllowed', organizationDefault: 'AllowedWithDisclosure' } }),
+      });
+
+      const select = await screen.findByRole('combobox', { name: 'AI use while applying' });
+      expect(select).toHaveValue('');
+      expect(within(select).getByRole('option', { name: 'Follow the organization (Allowed with disclosure)' })).toBeInTheDocument();
+      const save = screen.getByRole('button', { name: 'Save AI use' });
+      expect(save).toBeDisabled();
+
+      await fireEvent.change(select, { target: { value: 'NotAllowed' } });
+      await fireEvent.click(save);
+
+      await waitFor(() => expect(aiUseBody(fetchMock)).toEqual({ policy: 'NotAllowed' }));
+      expect(await screen.findByText('Saved.')).toBeInTheDocument();
+      expect(navigation.goto).not.toHaveBeenCalled();
+    });
+
+    it("goes back to the organization's policy by saving none", async () => {
+      const fetchMock = renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(own), [`PUT /v1/jobs/${jobId}/ai-use`]: () => Response.json(job) });
+
+      const select = await screen.findByRole('combobox', { name: 'AI use while applying' });
+      expect(select).toHaveValue('Allowed');
+      await fireEvent.change(select, { target: { value: '' } });
+      await fireEvent.click(screen.getByRole('button', { name: 'Save AI use' }));
+
+      await waitFor(() => expect(aiUseBody(fetchMock)).toEqual({ policy: null }));
     });
   });
 

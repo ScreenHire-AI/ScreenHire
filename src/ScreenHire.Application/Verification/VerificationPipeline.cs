@@ -303,8 +303,13 @@ public sealed class VerificationPipeline(ScreenHireDbContext db, IEnumerable<IVe
         DateTimeOffset now, CancellationToken cancellationToken)
     {
         var signals = Current(stored, runs);
+        // The policy in force now: the job's own, else the organization's. It is read live, so a policy changed after an
+        // application arrived applies to the next assessment of it (the fingerprint includes the policy).
+        var organizationDefault = job.AiUseOverride is null
+            ? await db.VerificationSettings.AsNoTracking().Select(s => (AiUsePolicy?)s.DefaultAiUse).FirstOrDefaultAsync(cancellationToken)
+            : null;
         var inputs = new VerificationInputs(
-            signals, job.Workflow.VerificationPolicy.AiUse, application.AiUseDeclaration, application.AccommodationRequested,
+            signals, AiUsePolicies.Effective(job.AiUseOverride, organizationDefault), application.AiUseDeclaration, application.AccommodationRequested,
             [.. stored.Except(signals)]);
         var results = VerificationRuleset.Assess(inputs);
         var fingerprints = results.Select(r => r.Fingerprint).ToList();

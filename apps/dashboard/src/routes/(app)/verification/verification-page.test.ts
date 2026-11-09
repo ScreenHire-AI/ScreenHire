@@ -319,7 +319,7 @@ describe('verification settings page', () => {
   describe('Policy', () => {
     it('saves the default AI use and the device check, with by region as null', async () => {
       const bodies = renderPage(settingsWith());
-      await fireEvent.change(await screen.findByLabelText('Default AI use for new jobs'), { target: { value: 'NotAllowed' } });
+      await fireEvent.change(await screen.findByLabelText('AI use while applying'), { target: { value: 'NotAllowed' } });
       const device = (await screen.findByLabelText('Device check')) as HTMLSelectElement;
       expect(device.value).toBe('ByRegion');
       expect(within(device).getByRole('option', { name: 'By region (default)' })).toBeInTheDocument();

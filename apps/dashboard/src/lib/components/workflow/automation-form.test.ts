@@ -15,7 +15,6 @@ const workflowWith = (actions: Automation['actions']): HiringWorkflow => ({
     { id: 'rejected', name: 'Not progressing', kind: 'Rejected' },
   ],
   questionnaire: { questions: [] },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations: [{ id: 'tag-screen', name: 'Tag screened', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions }],
 });
 

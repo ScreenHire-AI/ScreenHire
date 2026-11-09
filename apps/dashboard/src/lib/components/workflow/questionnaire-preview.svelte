@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Question, QuestionSection } from '@screenhire/api-client';
+  import type { AiUsePolicy, Question, QuestionSection } from '@screenhire/api-client';
   import {
     answeredCount,
     DEFAULT_QUESTIONS_PER_PAGE,
@@ -23,7 +23,15 @@
     sections = null,
     questionsPerPage = DEFAULT_QUESTIONS_PER_PAGE,
     followUp = false,
-  }: { questions: readonly Question[]; sections?: readonly QuestionSection[] | null; questionsPerPage?: number; followUp?: boolean } = $props();
+    aiUse,
+  }: {
+    questions: readonly Question[];
+    sections?: readonly QuestionSection[] | null;
+    questionsPerPage?: number;
+    followUp?: boolean;
+    /** The apply form's last step asks whether AI tools were used, under this policy; undefined leaves it out. */
+    aiUse?: AiUsePolicy;
+  } = $props();
 
   let answers = $state<Record<string, AnswerValue | undefined>>({});
   let firstName = $state('');
@@ -66,4 +74,14 @@
       {/each}
     </section>
   {/each}
+  {#if aiUse && !followUp}
+    <!-- The review step's last question, asked on every application (apply-flow.md); optional only where AI is allowed outright. -->
+    <fieldset data-preview-ai-use class="flex flex-col gap-2 border-t border-candidate-border pt-6">
+      <legend class="mb-2 font-display text-heading font-bold">
+        Did you use AI tools for this application?{#if aiUse === 'Allowed'}{' '}<span class="font-medium text-candidate-muted-foreground">(optional)</span>{/if}
+      </legend>
+      <label class="flex items-center gap-2"><input type="radio" name="preview-ai-use" value="DidNotUse" />No, I did not use AI tools</label>
+      <label class="flex items-center gap-2"><input type="radio" name="preview-ai-use" value="Used" />Yes, I used AI tools</label>
+    </fieldset>
+  {/if}
 </div>

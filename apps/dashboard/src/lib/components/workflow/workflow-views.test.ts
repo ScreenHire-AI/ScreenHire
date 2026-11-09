@@ -31,7 +31,6 @@ const workflow: HiringWorkflow = {
       },
     ],
   },
-  verificationPolicy: { aiUse: 'AllowedWithDisclosure' },
   automations: [
     { id: 'tag-screen', name: 'Tag screened', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'AddTag', tag: 'screened' }] },
     { id: 'notify', name: 'Tell the team', enabled: false, trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'New' }] },
@@ -135,10 +134,13 @@ describe('read-only workflow', () => {
   });
 
   it('reads the questionnaire as content, with the candidate preview behind the switch (A8)', async () => {
-    const { container } = renderViews('summary', 'questions');
+    const { container } = render(WithQueryClient, {
+      props: { component: WorkflowHarness, props: { workflow: structuredClone(workflow), errors: [], mode: 'summary', tab: 'questions', aiUse: { policy: 'AllowedWithDisclosure' } } },
+    });
 
     const pane = screen.getByRole('tabpanel', { name: 'Questions' });
-    expect(within(pane).getByRole('region', { name: 'AI use while applying' })).toHaveTextContent('Allowed with disclosure');
+    expect(pane.querySelector('[data-ai-use-row]')).toHaveTextContent('AI use. Asked by ScreenHire. Policy: Allowed with disclosure.');
+    expect(within(pane).queryByRole('link', { name: 'Change policy' })).toBeNull();
     const questions = within(pane).getByRole('region', { name: 'Screening questions' });
     expect(controls(questions)).toHaveLength(0);
     expect(questions).toHaveTextContent('Do you have the right to work here?');
@@ -282,19 +284,41 @@ describe('workflow builder', () => {
     await expectNoAxeViolations(container);
   });
 
-  it('adds a follow-up questionnaire beside the apply form, with no file questions and a preview of its own', async () => {
-    const { container } = renderViews('editor', 'questions');
+  it('lays the forms out by when the candidate gets them, and asks more later with the email automation it adds', async () => {
+    const { container } = render(WithQueryClient, {
+      props: {
+        component: WorkflowHarness,
+        props: { workflow: structuredClone(workflow), errors: [], mode: 'editor', tab: 'questions', aiUse: { policy: 'NotAllowed', href: '/verification' } },
+      },
+    });
     const pane = screen.getByRole('tabpanel', { name: 'Questions' });
-    const choices = within(pane).getByRole('group', { name: 'Questionnaire' });
-    expect(within(choices).getByRole('button', { name: 'Apply form' })).toHaveAttribute('aria-pressed', 'true');
-    expect(within(pane).getByRole('region', { name: 'Screening questions' })).toBeInTheDocument();
+    const forms = within(pane).getByRole('group', { name: 'Forms' });
+    const apply = within(forms).getByRole('button', { name: /Apply form/ });
+    expect(apply).toHaveAttribute('aria-pressed', 'true');
+    expect(apply).toHaveTextContent('When they apply');
+    expect(within(pane).getByRole('region', { name: 'Questions' })).toBeInTheDocument();
 
-    await fireEvent.click(within(pane).getByRole('button', { name: 'Add follow-up questionnaire' }));
+    // The AI-use question is locked: ScreenHire asks it, and the policy is the organization's.
+    expect(pane.querySelector('[data-ai-use-row]')).toHaveTextContent('AI use. Asked by ScreenHire. Policy: Not allowed.');
+    expect(within(pane).getByRole('link', { name: 'Change policy' })).toHaveAttribute('href', '/verification');
+    expect(within(pane).queryByRole('combobox', { name: 'AI use while applying' })).toBeNull();
 
-    expect(within(choices).getByRole('button', { name: 'New questionnaire' })).toHaveAttribute('aria-pressed', 'true');
+    // Ask more later asks when, then makes the form and the automation that emails it.
+    await fireEvent.click(within(pane).getByRole('button', { name: 'Ask more later' }));
+    const ask = within(pane).getByRole('form', { name: 'Ask more later' });
+    expect(ask).toHaveTextContent('We add the email automation for you.');
+    await fireEvent.change(within(ask).getByLabelText('When should it go?'), { target: { value: 'after' } });
+    await fireEvent.input(within(ask).getByLabelText('Days'), { target: { value: '2' } });
+    await fireEvent.click(within(ask).getByRole('button', { name: 'Add form' }));
+
+    const later = within(forms).getByRole('button', { name: /Phone screen questions after 2 days/ });
+    expect(later).toHaveAttribute('aria-pressed', 'true');
+    expect(later).toHaveTextContent('2 days after Phone screen starts');
+    expect(within(pane).queryByRole('form', { name: 'Ask more later' })).toBeNull();
+    expect(pane.querySelector('[data-ai-use-row]')).toBeNull();
     const name = within(pane).getByRole('textbox', { name: /^Name/ });
     await fireEvent.input(name, { target: { value: 'Availability' } });
-    expect(within(choices).getByRole('button', { name: 'Availability' })).toBeInTheDocument();
+    expect(within(forms).getByRole('button', { name: /Availability/ })).toHaveTextContent('2 days after Phone screen starts');
     const questions = within(pane).getByRole('region', { name: 'Questions' });
     expect(within(questions).getByRole('button', { name: /^Edit question 1: New question / })).toBeInTheDocument();
     await expectNoAxeViolations(container);
@@ -304,21 +328,52 @@ describe('workflow builder', () => {
     const menu = await screen.findByRole('menu');
     expect(within(menu).queryByRole('menuitem', { name: 'File' })).toBeNull();
     await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Short text' }));
-    // Each new question's id is unique across the workflow, the apply form's questions included.
-    await fireEvent.click(within(questions).getByRole('button', { name: 'Duplicate New question' }));
-    expect(within(questions).getAllByRole('button', { name: /^Edit question \d: New question Short text$/ })).toHaveLength(2);
+    // Duplicate and Delete are in the row's menu, and each new question's id is unique across the workflow.
+    await fireEvent.pointerDown(within(questions).getAllByRole('button', { name: 'Actions for New question' })[0]!, { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Duplicate' }));
+    expect(within(questions).getAllByRole('button', { name: /^Edit question \d: New question Short text$/ }).length).toBeGreaterThanOrEqual(2);
 
-    // The follow-up's page asks only its questions: no details and no resume.
+    // The follow-up's page asks only its questions: no details and no resume, and no AI-use question.
     await fireEvent.click(within(pane).getByRole('button', { name: 'Preview' }));
     expect(inHiddenPane(within(pane).getByRole('region', { name: 'Questions' }))).toBe(true);
     const shown = within(pane.querySelector<HTMLElement>('[data-preview-pane]')!);
     expect(shown.queryByRole('textbox', { name: /First name/ })).toBeNull();
-    expect(shown.getAllByRole('textbox', { name: /^New question/ })).toHaveLength(3);
+    expect(shown.queryByRole('group', { name: /Did you use AI tools/ })).toBeNull();
     await fireEvent.click(within(pane).getByRole('button', { name: 'Edit' }));
 
-    await fireEvent.click(within(pane).getByRole('button', { name: 'Remove questionnaire' }));
-    expect(within(choices).queryByRole('button', { name: 'Availability' })).toBeNull();
-    expect(within(choices).getByRole('button', { name: 'Apply form' })).toHaveAttribute('aria-pressed', 'true');
+    // Removing the form takes the automation that emailed it, and says so first.
+    await fireEvent.pointerDown(within(pane).getByRole('button', { name: 'Actions for Availability' }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove form' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('This also removes Email the form 2 days after Phone screen starts.');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove form' }));
+    await waitFor(() => expect(within(forms).queryByRole('button', { name: /Availability/ })).toBeNull());
+    expect(within(forms).getByRole('button', { name: /Apply form/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('shows the apply form as the candidate sees it, ending in the AI-use question under the policy', async () => {
+    render(WithQueryClient, {
+      props: { component: WorkflowHarness, props: { workflow: structuredClone(workflow), errors: [], mode: 'editor', tab: 'questions', aiUse: { policy: 'Allowed' } } },
+    });
+    const pane = screen.getByRole('tabpanel', { name: 'Questions' });
+    await fireEvent.click(within(pane).getByRole('button', { name: 'Preview' }));
+
+    const shown = within(pane.querySelector<HTMLElement>('[data-preview-pane]')!);
+    expect(shown.getByRole('group', { name: /Did you use AI tools for this application\? \(optional\)/ })).toBeInTheDocument();
+  });
+
+  it('offers Ask more later only for stages a form can follow, and a form no automation sends says so', () => {
+    const unsent: HiringWorkflow = {
+      ...structuredClone(workflow),
+      stages: workflow.stages.filter((stage) => stage.kind === 'Applied' || stage.kind === 'Hired'),
+      automations: [],
+      followUpQuestionnaires: [{ id: 'references', name: 'References', questions: [{ id: 'who', type: 'ShortText', label: 'Who can we ask?' }] }],
+    };
+    render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: unsent, errors: [], mode: 'editor', tab: 'questions' } } });
+    const pane = screen.getByRole('tabpanel', { name: 'Questions' });
+
+    expect(within(pane).queryByRole('button', { name: 'Ask more later' })).toBeNull();
+    expect(within(within(pane).getByRole('group', { name: 'Forms' })).getByRole('button', { name: /References/ })).toHaveTextContent('Not sent yet');
   });
 
   it('offers Send a questionnaire and the questionnaire trigger only with a follow-up to name', async () => {

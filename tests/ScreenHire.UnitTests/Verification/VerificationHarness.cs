@@ -159,7 +159,7 @@ internal sealed class VerificationHarness
             signals.AddRange(VerificationPipeline.ToSignals(result.Signals, application, Guid.CreateVersion7(), analyzer, clock));
         }
 
-        var inputs = new VerificationInputs(signals, Job.Workflow.VerificationPolicy.AiUse, application.AiUseDeclaration, application.AccommodationRequested);
+        var inputs = new VerificationInputs(signals, AiUsePolicies.Effective(Job.AiUseOverride, null), application.AiUseDeclaration, application.AccommodationRequested);
         earlier.Add(new Submitted(application, candidate, observation, file));
         Records.Earlier.Add(new EarlierApplication(application.Id, Job.Title, application.SubmittedAt, application.Answers));
         return new HarnessResult(signals, VerificationRuleset.Assess(inputs), notes);

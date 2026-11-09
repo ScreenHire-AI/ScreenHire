@@ -3,6 +3,7 @@
   import { ApiError, createGetJob } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import JobAiUsePanel from '#lib/components/job-ai-use-panel.svelte';
   import JobDetailsForm from '#lib/components/job-details-form.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -72,7 +73,10 @@
         </Empty.Root>
       </Panel>
     {:else}
-      <JobDetailsForm job={detail} cancelHref={jobHref} onsaved={saved} />
+      <div class="flex flex-col gap-5">
+        <JobDetailsForm job={detail} cancelHref={jobHref} onsaved={saved} />
+        <JobAiUsePanel job={detail} />
+      </div>
     {/if}
   </div>
 </main>

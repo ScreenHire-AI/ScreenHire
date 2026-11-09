@@ -50,7 +50,7 @@
     normalizeDomain,
     type DeviceCheckChoice,
   } from '#lib/verification-settings.js';
-  import { aiUseLabels } from '#lib/workflow.js';
+  import { aiUseLabels, aiUseName } from '#lib/workflow.js';
 
   // The organization's verification settings (verification-engine.md section 10), in four panels: which model answers the
   // consistency check, which groups of checks run, the policies (AI use for new jobs, the device check, what is trusted)
@@ -76,7 +76,6 @@
   };
   const aiUses = Object.keys(aiUseLabels) as (keyof typeof aiUseLabels)[];
   // The label is "Name: explanation". The name fits a phone-width select; the explanation of the chosen policy goes in the hint.
-  const aiUseName = (policy: (typeof aiUses)[number]) => aiUseLabels[policy].split(': ')[0];
   const aiUseHint = (policy: (typeof aiUses)[number]) => {
     const explanation = aiUseLabels[policy].split(': ')[1] ?? '';
     return `${explanation.charAt(0).toUpperCase()}${explanation.slice(1)}.`;
@@ -524,12 +523,12 @@
           <Panel title="Policy">
             <div class="flex flex-col gap-5">
               <Field.Field>
-                <Field.Label for="default-ai-use">Default AI use for new jobs</Field.Label>
+                <Field.Label for="default-ai-use">AI use while applying</Field.Label>
                 <select id="default-ai-use" name="defaultAiUse" class={selectClass} bind:value={$form.defaultAiUse} aria-describedby="default-ai-use-hint">
                   {#each aiUses as policy (policy)}<option value={policy}>{aiUseName(policy)}</option>{/each}
                 </select>
                 <Field.Description id="default-ai-use-hint">
-                  {aiUseHint($form.defaultAiUse)} A job from a template keeps the template's policy.
+                  {aiUseHint($form.defaultAiUse)} Asked on every application. A job can set its own in its settings.
                 </Field.Description>
               </Field.Field>
 

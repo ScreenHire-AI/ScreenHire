@@ -196,7 +196,7 @@ internal static class PublicApplicationEndpoints
             .GroupBy(e => $"answers.{e.QuestionId}")
             .ToDictionary(g => g.Key, g => g.Select(e => e.Message).ToArray());
 
-        if (job.Workflow.VerificationPolicy.AiUse.RequiresDeclaration() && request.AiUseDeclaration == AiUseDeclaration.NotProvided)
+        if ((await AiUsePolicyFor.JobAsync(job, outbox.DbContext, cancellationToken)).RequiresDeclaration() && request.AiUseDeclaration == AiUseDeclaration.NotProvided)
         {
             errors["aiUseDeclaration"] = ["Tell us whether you used AI tools for this application."];
         }

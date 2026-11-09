@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
@@ -380,20 +380,77 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
     }
 
     [Fact]
-    public async Task A_new_job_starts_with_the_organizations_default_AI_use_unless_it_starts_from_a_template()
+    public async Task A_jobs_AI_use_follows_the_organizations_policy_until_the_job_sets_its_own()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
-        (await tenant.PutAsync(Settings, new JsonObject { ["llmConsistencyCheck"] = false, ["defaultAiUse"] = "NotAllowed" })).Expect(HttpStatusCode.OK);
-
-        var plain = await tenant.CreateJobAsync(Samples.RemoteJob("Plain job"));
-        var (_, versionId) = await tenant.CreatePublishedTemplateAsync("With its own policy");
+        var (_, versionId) = await tenant.CreatePublishedTemplateAsync("Any template");
         var body = Samples.RemoteJob("From a template");
         body["templateVersionId"] = versionId;
-        var fromTemplate = await tenant.CreateJobAsync(body);
+        var job = await tenant.CreateJobAsync(body);
+        var plain = await tenant.CreateJobAsync(Samples.RemoteJob("Plain job"));
+        await tenant.PublishJobAsync(job.Id());
+        var form = await PublicFormUrlAsync(tenant, job.Text("slug"));
+        using var client = fixture.CreateHttpClient("api");
 
-        plain.At("workflow.verificationPolicy.aiUse").GetString().Should().Be("NotAllowed");
-        plain.At("workflowVersion").GetInt32().Should().Be(1, "the default is the job's first workflow, not an edit of one");
-        fromTemplate.At("workflow.verificationPolicy.aiUse").GetString().Should().NotBe("NotAllowed", "a template carries its own policy");
+        job.At("aiUse.policy").GetString().Should().Be("AllowedWithDisclosure", "an organization with no saved policy has the default");
+        (job.At("aiUse").TryGetProperty("override", out var own) ? own.ValueKind : JsonValueKind.Null).Should().Be(JsonValueKind.Null);
+
+        (await tenant.PutAsync(Settings, new JsonObject { ["llmConsistencyCheck"] = false, ["defaultAiUse"] = "NotAllowed" })).Expect(HttpStatusCode.OK);
+        (await tenant.GetAsync($"/v1/jobs/{plain.Id()}")).At("aiUse.policy").GetString().Should().Be("NotAllowed", "the policy is the organization's, read live");
+        (await tenant.GetAsync($"/v1/jobs/{job.Id()}")).At("workflowVersion").GetInt32().Should().Be(1);
+        (await client.GetFromJsonAsync<JsonElement>(form, Ct)).GetProperty("aiUsePolicy").GetString().Should().Be("NotAllowed", "a job from a template follows too");
+
+        var set = (await tenant.PutAsync($"/v1/jobs/{job.Id()}/ai-use", new JsonObject { ["policy"] = "Allowed" })).Expect(HttpStatusCode.OK);
+        set.At("aiUse.policy").GetString().Should().Be("Allowed");
+        set.At("aiUse.override").GetString().Should().Be("Allowed");
+        set.At("aiUse.organizationDefault").GetString().Should().Be("NotAllowed");
+        (await client.GetFromJsonAsync<JsonElement>(form, Ct)).GetProperty("aiUsePolicy").GetString().Should().Be("Allowed", "the job's own policy wins");
+        (await tenant.GetAsync($"/v1/jobs/{job.Id()}")).At("hasUnpublishedChanges").GetBoolean().Should().BeFalse("AI use is not posting content");
+
+        (await tenant.PutAsync($"/v1/jobs/{job.Id()}/ai-use", new JsonObject { ["policy"] = null })).Expect(HttpStatusCode.OK)
+            .At("aiUse.policy").GetString().Should().Be("NotAllowed", "no policy of its own follows the organization again");
+        (await tenant.PutAsync($"/v1/jobs/{job.Id()}/ai-use", new JsonObject { ["policy"] = "Sometimes" })).Status.Should().Be(HttpStatusCode.BadRequest);
+
+        var history = await tenant.GetAsync($"/v1/jobs/{job.Id()}/history");
+        history.Body.GetRawText().Should().Contain("set AI use for this job to").And.Contain("made AI use follow the organization");
+    }
+
+    [Fact]
+    public async Task The_AI_use_route_is_refused_for_another_organizations_job_and_for_a_closed_job()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        var job = await tenant.CreateJobAsync(Samples.RemoteJob("Mine"));
+
+        (await other.PutAsync($"/v1/jobs/{job.Id()}/ai-use", new JsonObject { ["policy"] = "Allowed" })).Status.Should().Be(HttpStatusCode.NotFound);
+
+        await tenant.PublishJobAsync(job.Id());
+        (await tenant.PostAsync($"/v1/jobs/{job.Id()}/close")).Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync($"/v1/jobs/{job.Id()}/ai-use", new JsonObject { ["policy"] = "Allowed" })).Status.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task A_definition_that_still_carries_the_old_policy_is_accepted_and_the_policy_is_ignored()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        (await tenant.PutAsync(Settings, new JsonObject { ["llmConsistencyCheck"] = false, ["defaultAiUse"] = "Allowed" })).Expect(HttpStatusCode.OK);
+        var definition = Samples.Definition();
+        definition["workflow"]!["verificationPolicy"] = new JsonObject { ["aiUse"] = "NotAllowed" };
+
+        var (_, versionId) = await tenant.CreatePublishedTemplateAsync("Old shape", definition);
+        var body = Samples.RemoteJob("From an old template");
+        body["templateVersionId"] = versionId;
+        var job = await tenant.CreateJobAsync(body);
+
+        job.At("aiUse.policy").GetString().Should().Be("Allowed", "a template no longer carries a policy; the old key is ignored");
+        job.At("workflow").TryGetProperty("verificationPolicy", out _).Should().BeFalse();
+    }
+
+    private async Task<string> PublicFormUrlAsync(Tenant tenant, string jobSlug)
+    {
+        await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);
+        var organizationSlug = await db.Organizations.Where(o => o.Id == tenant.OrganizationId).Select(o => o.Slug).SingleAsync(Ct);
+        return $"/v1/public/organizations/{organizationSlug}/jobs/{jobSlug}/application-form";
     }
 
     [Fact]

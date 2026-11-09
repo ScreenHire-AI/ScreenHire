@@ -1,5 +1,8 @@
+﻿using System.Text.Json;
+using System.Text.Json.Nodes;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.UnitTests.Hiring;
 
@@ -24,7 +27,22 @@ public sealed class DefinitionValidatorTests
         DefinitionValidator.Validate(new HiringTemplateDefinition(null!, null!)).Select(e => e.Path)
             .Should().BeEquivalentTo("workflow", "postingDefaults");
         DefinitionValidator.Validate(new HiringWorkflow(null!, null!, null!, null!)).Select(e => e.Path)
-            .Should().BeEquivalentTo("stages", "questionnaire", "verificationPolicy", "automations");
+            .Should().BeEquivalentTo("stages", "questionnaire", "automations");
+    }
+
+    [Fact]
+    public void A_stored_definition_that_still_holds_the_old_verification_policy_reads_and_validates()
+    {
+        // Published versions are immutable, so every definition saved before the policy moved to the organization keeps the key.
+        var stored = JsonSerializer.SerializeToNode(HiringTemplateDefinition.Default, JsonColumns.SerializerOptions)!.AsObject();
+        stored["workflow"]!["verificationPolicy"] = new JsonObject { ["aiUse"] = "NotAllowed" };
+
+        var read = stored.Deserialize<HiringTemplateDefinition>(JsonColumns.SerializerOptions)!;
+
+        read.Workflow.Stages.Should().NotBeEmpty();
+        DefinitionValidator.Validate(read).Should().BeEmpty();
+        JsonSerializer.SerializeToNode(read, JsonColumns.SerializerOptions)!["workflow"]!.AsObject().ContainsKey("verificationPolicy")
+            .Should().BeFalse("the next save drops the key");
     }
 
     [Fact]
@@ -859,7 +877,7 @@ public sealed class DefinitionValidatorTests
             new("none", "No trigger", null!, null, [new AutomationAction((ActionType)99), null!]),
             null!,
         ];
-        return new HiringWorkflow(stages, new Questionnaire(questions, [new("only", "Only", ["dup"])]), new VerificationPolicy((AiUsePolicy)9), automations, followUps);
+        return new HiringWorkflow(stages, new Questionnaire(questions, [new("only", "Only", ["dup"])]), automations, followUps);
     }
 
     private static HiringTemplateDefinition BrokenTemplate() => new(

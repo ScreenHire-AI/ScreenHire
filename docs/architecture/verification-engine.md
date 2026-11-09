@@ -563,7 +563,7 @@ Every route is tenant-scoped (another organization's application is 404). No res
 | `POST .../verification/assessments/{assessmentId}/signals/{signalId}/undo-explanation` | takes an explanation back; only its author (403 otherwise), and only while the assessment is not dismissed |
 | `POST .../verification/notes` | a note on the application's verification or one assessment |
 | `POST .../verification/request-verification` | always 409 until phase 2 |
-| `GET /v1/organization/verification-settings` | the organization's settings (§10.11): the consistency check, the model and whether a key is saved (never the key; the model's address only for members with Edit settings, because its path can hold a token), the budget and tokens used this month, the groups of checks, the default AI-use policy, the device check, the trusted domains and networks, and the alerts |
+| `GET /v1/organization/verification-settings` | the organization's settings (§10.11): the consistency check, the model and whether a key is saved (never the key; the model's address only for members with Edit settings, because its path can hold a token), the budget and tokens used this month, the groups of checks, the AI-use policy, the device check, the trusted domains and networks, and the alerts |
 | `PUT /v1/organization/verification-settings` | replaces them (organization admins, in the dashboard's Verification page). A new or changed key, provider, address or model is tested first and refused with a field error when it fails |
 | `POST /v1/organization/verification-settings/llm/models` | lists the models a provider offers for a key, or says it offers no list |
 | `POST /v1/organization/verification-settings/llm/test` | one small request with the key and model; answers with a word, never the provider's text |
@@ -804,8 +804,9 @@ module, so the device basis is `Off` then too, no consent box shows, and the `du
 Turning Duplicates off stops the device fingerprint as well, which feeds only that check. The ruleset is untouched: form use alone still never
 raises a level (§10.3) and nothing rejects on a verification signal.
 
-**Policy.** The default AI-use policy is what a job starts with when it does not start from a template; a template carries its
-own. The device check basis is the more protective of the region's (`DeviceCheck:Countries`) and the organization's choice, in
+**Policy.** The AI-use policy is the organization's, asked on every application, and a job may set its own in its settings
+(`PUT /v1/jobs/{id}/ai-use`); a template carries none. It is read when an application is assessed, so a changed policy applies to
+the next assessment of an application, not to the ones stored. The device check basis is the more protective of the region's (`DeviceCheck:Countries`) and the organization's choice, in
 the order `Off`, then `Consent`, then `Notice`, so an organization can ask for consent or turn the check off anywhere but cannot
 lower what its region needs.
 
