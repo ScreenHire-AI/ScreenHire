@@ -91,7 +91,7 @@ public enum SubscriptionStatus
     Ended,
 }
 
-/// <summary>A provider event already applied, so a redelivery changes nothing. One row per event id and organization.</summary>
+/// <summary>An event already applied, so a redelivery changes nothing: a provider's, or ours that a trial's reminders were scheduled (<c>TrialReminderKeys.ScheduledRecord</c>). One row per event id and organization.</summary>
 public sealed class BillingEventRecord : ITenantOwned
 {
     public const int MaxEventIdLength = 100;

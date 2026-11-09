@@ -1,18 +1,20 @@
 ---
 type: Design
 title: "Billing, plans and the free trial"
-description: "How an organization pays and what its plan allows: the Off, Sandbox and Stripe modes, the plan catalogue shared with the pricing page, the trial that starts at sign-up, the four entitlement states and the one thing a plan refuses (opening a draft job, as a 402), Checkout, the portal and the priced plan change, the signed Stripe webhook and its idempotency, the local sandbox, the two tables, the Owner's Billing page, tests and what is not built."
+description: "How an organization pays and what its plan allows: the Off, Sandbox and Stripe modes, the plan catalogue shared with the pricing page, the trial that starts at sign-up and the reminders before it ends, the four entitlement states and the one thing a plan refuses (opening a draft job, as a 402), Checkout, the portal and the priced plan change, the signed Stripe webhook and its idempotency, the local sandbox, the two tables, the Owner's Billing page, tests and what is not built."
 tags: [billing, stripe, plans, trial, entitlement]
 sources:
   - resource: packages/plans/plans.json
   - resource: packages/plans/src/index.ts
   - resource: src/ScreenHire.Domain/Billing/BillingAccount.cs
   - resource: src/ScreenHire.Domain/Billing/Entitlement.cs
+  - resource: src/ScreenHire.Domain/Billing/TrialReminders.cs
   - resource: src/ScreenHire.Application/Billing/BillingOptions.cs
   - resource: src/ScreenHire.Application/Billing/PlanCatalogue.cs
   - resource: src/ScreenHire.Application/Billing/IBillingProvider.cs
   - resource: src/ScreenHire.Application/Billing/BillingAccess.cs
   - resource: src/ScreenHire.Application/Billing/BillingService.cs
+  - resource: src/ScreenHire.Application/Billing/TrialReminderHandlers.cs
   - resource: src/ScreenHire.Application/Billing/StripeBillingProvider.cs
   - resource: src/ScreenHire.Application/Billing/StripeSignature.cs
   - resource: src/ScreenHire.Application/Billing/SandboxBillingProvider.cs
@@ -36,7 +38,8 @@ account or the internet. Candidates never meet any of it.
 
 ## Configuration
 
-`ScreenHire:Billing` (`BillingOptions`), forwarded by the AppHost to the API. The mode (`BillingOptions.Mode`) is worked
+`ScreenHire:Billing` (`BillingOptions`), forwarded by the AppHost to the API. Its `Trial:*` and `Plans:*` keys go to the worker
+too, which sends the trial's reminders. The mode (`BillingOptions.Mode`) is worked
 out the same way everywhere:
 
 | Mode | When | Provider |
@@ -55,13 +58,15 @@ out the same way everywhere:
 | `Sandbox:Enabled` | off | The local fake. On in `pnpm dev` (`appsettings.Development.json`) and in the test stacks |
 | `Trial:Days` | `packages/plans/trial.json` (14) | The length of a new organization's trial, 0 or more. The marketing site reads the file to say how long the trial is, so a host that overrides this changes the file too |
 | `Trial:Plan` | `packages/plans/trial.json` (`growth`) | The plan whose limit applies during the trial. With billing on, a key the catalogue does not have stops the host at start (`BillingTrialGate`), as a negative `Trial:Days` does, because neither would show up any other way |
+| `Trial:RemindDaysBefore` | `[7, 1]` | The days before `TrialEndsAt` the Owners are emailed. The day it ends is always reminded and is not a setting; a day below 1 stops the host at start. Configure it as a list (`ScreenHire__Billing__Trial__RemindDaysBefore__0=3`), which replaces the default |
 | `Plans:<key>:*` | the catalogue | Overrides `Name`, `Order`, `MonthlyPrice`, `Currency`, `ActiveJobs`, `Unlimited` and `StripePriceId` for one plan. A field left out keeps the catalogue's value |
 | `ApiBaseUrl`, `Timeout` | Stripe's API, 15 s | For a test that points the real client at a stand-in |
 
 The two keys are secrets: they come from the parameters (set with `dotnet user-secrets set Parameters:stripe-secret-key
 "<key>"` in `apps/apphost`, or in the Key Vault in production, see the [deploy runbook](../operations/deploy.md)), never
 from the settings. `BillingAccess` is always registered in the API and every test host, so an endpoint that takes it always
-resolves; with billing off, nothing reads or writes a billing row. The worker has no part in billing.
+resolves; with billing off, nothing reads or writes a billing row. The worker takes no part in charging or in the publish check. It reads
+only the trial's settings and the plan catalogue (`AddScreenHireTrialReminders`), to send the trial's reminders.
 
 ## Plans and the shared catalogue
 
@@ -89,6 +94,64 @@ organization that existed before billing was turned on has no row; `BillingServi
 the Billing page, a checkout or a publish asks (a unique index on the organization makes two requests starting it at once
 safe). The publish route asks before its transaction, so a refused publish does not roll the trial's start back and a
 trial can never restart. With billing off the trial does not exist.
+
+## Trial reminders
+
+A trial used to end in silence: the first an Owner heard of it was a refused publish. Now each Owner is told, by email and in the
+bell, while no subscription has started. Nothing here refuses or changes anything; `Entitlement` is untouched.
+
+**Scheduling.** Creating the billing account (onboarding, or the first time an organization older than billing asks) publishes
+`TrialStarted` through the outbox, in the same transaction. The worker's handler reads the account. If no subscription has started
+and there is no `billing_events` row `trial-reminders-scheduled:<TrialEndsAt in seconds>` for the organization yet, it schedules these
+Wolverine messages and inserts that row in the same save. The handler never writes the account: that row has an optimistic concurrency
+token, and a write in the first moments after sign-up collided with a checkout or a webhook saving it (the sandbox route ignores
+such a collision, so the plan was never applied). `TrialReminders.Plan` (domain, pure) decides what to schedule, looked at from now:
+
+| Step | When | What it does |
+|---|---|---|
+| `RemindTrialEnding` | `TrialEndsAt` minus each day in `Trial:RemindDaysBefore` (7 and 1), and `TrialEndsAt` itself | One `EmailTrialEnding` per Owner |
+| `ShowTrialNotice` | 7 days before `TrialEndsAt`, or at once when fewer than 7 days are left | Raises the `trial-ending` bell notification |
+| `ShowTrialNotice` (ended) | `TrialEndsAt`, or at once when it has passed | Clears `trial-ending` and raises `trial-ended` |
+
+A moment already past is skipped. A trial first seen 5 days before its end gets the 1 day and end day emails and the bell notice
+now; one that ended without a plan gets only the ended notice. Nothing is polled: the messages wait in Wolverine's schedule until
+they are due.
+
+**A reminder decides from the account, not the clock.** Each message carries the `TrialEndsAt` it was scheduled for. When it
+fires, `TrialReminders.Applies` is true only if the account's status is still `None` and its `TrialEndsAt` is that same instant.
+A reminder that fires after a subscription started, or for a trial that was changed, does nothing. The email handler checks
+again, because a plan may start between picking the Owners and sending.
+
+**Idempotency.** `RemindTrialEnding` and `EmailTrialEnding` are `[Deduplicated]` on a key built from the organization, the
+trial's end (in seconds) and the day, and for the email also the Owner. A redelivered message sends nothing twice, and a changed
+trial is not swallowed by the old trial's 24 hour claim. Raising a notification is idempotent on its own (see
+[notifications](notifications.md)), and `ShowTrialNotice` needs no key because it raises or clears a row that is already there.
+
+**The email** goes to the members who hold `ManageBilling` (the Owners, ADR-0014) through `TransactionalEmail`, so Mailpit locally.
+It is ScreenHire's own wording: the organization, when the trial ends (in days, tomorrow or today, with the date in UTC), the
+trial's plan by name, that nothing is deleted when it ends, that open jobs stay open, that opening a new job needs a plan, and a
+link to Settings > Billing. A host with no email sender or no dashboard address sends nothing and logs why.
+
+**The bell.** One `trial-ending` notification per Owner, key `trial`, with `endsAt` and the plan's name in its payload and a link
+to `/settings/billing`. The dashboard works out "ends in N days", "ends tomorrow" or "ends today" from `endsAt` when it draws the
+line, in calendar days in the browser's time zone, so the one row stays right as the days pass instead of piling up one a day and
+agrees with the date the trial ends on. The line is the fact alone; the link goes to the Billing page, which shows when the trial ends and, once it has ended, that open
+jobs stay open and a new job needs a plan. When the trial ends, the ending notice is cleared and `trial-ended` raised, so it
+comes back unread even for an Owner who had read or dismissed the first. Only Owners are addressed, so a member without Manage
+billing has no row and sees nothing. Both kinds are exempt from the retention purge (`NotificationKinds.KeptUntilCleared`), because
+a trial that ended with no plan is still true a month later. A plan starting takes them away: `BillingEventApplier`, which every
+checkout, plan change and Stripe event goes through, clears both kinds when the saved status is no longer `None`. The Owners
+are picked when each step fires: an Owner who joins after the 7 day notice gets the emails still to come, and in the bell nothing
+until the trial ends and the ended notice is raised for every Owner.
+
+**Catch-up.** An organization whose trial began before this shipped has no scheduled reminders. The worker sends
+`CatchUpTrialReminders` once when it starts (`TrialReminderCatchUp`, a one-shot hosted service registered in the worker's
+`Program.cs` only, not in the shared messaging setup, so the tests' private handler hosts cannot schedule a trial's reminders into
+a store nobody reads). It fans out one `TrialStarted` per organization, as the other fan-outs do, and the same handler does the
+work. The `billing_events` row makes a restart schedule nothing twice, and it is
+unique per organization, so two workers starting together cannot both schedule: one insert fails and its retry finds the row. The repo's other backfills are SQL inside a migration,
+which cannot write Wolverine's schedule (the migrator creates that storage after the migrations), so this one is a message.
+Changing `Trial:RemindDaysBefore` later does not move reminders already scheduled.
 
 ## What a plan allows
 
@@ -335,6 +398,8 @@ owner.
 | `StripeWebhookRouteTests` (integration) | on a stack of its own in Stripe mode, the route end to end: a signed event applied to the organization it names, a wrong or missing signature a 401, a redelivery changing nothing, an unknown organization a 200, and another organization untouched |
 | `BillingTests` (end-to-end) | an owner sees the trial and the plans and chooses one through Checkout, a publish past the limit shows the notice and its link to Billing, and a recruiter has no Billing entry |
 | `billing-page.test.ts`, `jobs-page.test.ts`, `distribution-panel.test.ts`, `job-page.test.ts`, `query.test.ts`, `settings.test.ts` (Vitest) | the page in each state, the plan change dialog (the cost before confirming, a downgrade's nothing now, the change sent with the preview's date, a failed preview and a refused change), the notice and its link for an owner and anyone else at each place a draft opens, the 402 read as a plan problem, the settings entry hidden without a provider |
+| `TrialRemindersTests` (unit) | the reminder days (7 and 1 by default, a configured list replacing them, a day below 1 refused), the steps planned for a fresh trial, one under way, one that ended and one shorter than the notice window, a reminder doing nothing after a subscription or for a changed trial, the id of the record that a trial's reminders are scheduled, and the email's words |
+| `TrialReminderTests` (integration) | on the running worker: signing up schedules the five steps, the worker leaves the account alone and an immediate checkout is applied, each email reaches every Owner once and a redelivery adds none, an Admin gets nothing, one `trial-ending` notification becomes one `trial-ended` one, the retention purge keeps it, and choosing a plan clears it and makes the reminders still waiting do nothing |
 | `RolePermissionsTests` (unit) | Manage billing is an Owner-only permission and its routes join the route table |
 
 The test stacks pin nothing: they sell the plans in `plans.json`, and a test that needs a price or a limit reads it through
@@ -342,7 +407,6 @@ The test stacks pin nothing: they sell the plans in `plans.json`, and a test tha
 
 ## Not built
 
-- Reminders before the trial ends, by email or in the app.
 - Tax filing and registration. Checkout calculates tax and collects tax ids (see Tax), but registering with Stripe Tax and filing returns are the owner's ([billing providers](../research/billing-providers.md) says what Stripe Tax does and does not do). The overview and the Billing page show prices without tax, with the words "plus tax where it applies", and never the tax Stripe charged.
 - A list of invoices or receipts; Stripe's portal has them.
 - Amounts read from Stripe except in a plan change's preview. The rest of the page shows the catalogue's price and Stripe

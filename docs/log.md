@@ -2,6 +2,10 @@
 
 ## 2026-11-09
 
+**Reminders before the free trial ends.** Each Owner is emailed 7 days and 1 day before the trial ends and on the day, and the bell
+carries one notification that counts the days left, becomes "ended" on the day, and goes when a plan starts. The worker schedules
+the reminders when the billing account is made and once, at start, for trials that began before ([billing](architecture/billing.md#trial-reminders)).
+
 **A notifications bell, a Jobs overview, a daily email domain check.** The setup steps moved from the top of Jobs into a bell in
 the top bar, next to alerts the server keeps per person ([notifications](architecture/notifications.md)). Jobs shows four
 numbers in their place: new this week, not screened, interviews this week and open jobs. The worker looks each sending domain up
