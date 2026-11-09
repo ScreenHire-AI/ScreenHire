@@ -92,6 +92,11 @@ sources:
   - resource: apps/dashboard/src/lib/undo-context.ts
   - resource: apps/dashboard/src/lib/workflow-draft.svelte.ts
   - resource: apps/api/Hiring/DraftShape.cs
+  - resource: apps/api/Endpoints/JobEndpoints.cs
+  - resource: apps/api/Contracts/JobContracts.cs
+  - resource: apps/api/Contracts/TemplateContracts.cs
+  - resource: apps/dashboard/src/routes/(app)/templates/[templateId]/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/jobs/[jobId]/workflow/+page.svelte
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
   - resource: apps/dashboard/src/lib/components/workflow/question-settings.svelte
   - resource: apps/dashboard/src/lib/components/form-builder.svelte
