@@ -157,9 +157,10 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
               await Promise.all(document.getAnimations().filter(a => a instanceof CSSTransition).map(a => a.finished.catch(() => undefined)));
             }
             """);
-        // A frame sandboxed with no permissions (an email preview) runs no scripts, so axe could never answer from inside
-        // it and the run would wait forever. Its element, title included, is still checked from the page.
-        var context = new AxeRunContext { Exclude = [new AxeSelector("iframe[sandbox='']")] };
+        // A sandboxed frame that may not run scripts (an email preview, which allows same-origin only so the page can read
+        // its height) gives axe no way to answer from inside it, and the run would wait forever. Its element, title
+        // included, is still checked from the page.
+        var context = new AxeRunContext { Exclude = [new AxeSelector("iframe[sandbox]:not([sandbox~='allow-scripts'])")] };
         var result = await page.RunAxe(context, new AxeRunOptions { RunOnly = new RunOnlyOptions { Type = "tag", Values = WcagTags } });
 
         result.Violations.Should().BeEmpty("axe found WCAG 2.2 AA violations on {0}:{1}", page.Url, Describe(result.Violations));

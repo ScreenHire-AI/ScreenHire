@@ -313,7 +313,9 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
     {
         await GoToAsync(Marketing, "/how-detection-works/");
 
-        await Page.WaitForURLAsync("**/product/real-people/");
+        // The old page sends the browser on with a meta refresh as soon as it loads. Waiting for that navigation can miss it
+        // when it lands before the wait starts, so the address is polled instead.
+        await Expect(Page).ToHaveURLAsync(new Regex("/product/real-people/$"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Know it's a real person before you book the interview.");
     }
 
