@@ -134,9 +134,11 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
             // 6. A workflow's stages and automations, in the Overview (the candidate journey). It is the product designer job's, given automations
             // from a thank-you email to a reminder when Screening runs late (WorkflowShowcaseAsync); the engineer job's queues an
             // answer for rejection review, which a page that says nothing is rejected on a check must not show.
-            // On a phone, the stages down to the fourth, with their automations.
+            // The wide picture ends below the journey's panel, which is short. On a phone, the stages down to the fourth, with
+            // their automations.
             new("workflow", DashboardUrl($"/jobs/{showcaseJobId}/workflow"), "workflow",
                 page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Candidate journey" })).ToBeVisibleAsync(), Height: 1480,
+                WideTo: page => PanelTitled(page, "Candidate journey"), WideMargin: 4,
                 Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Candidate journey"), To: Stage4)),
 
             // 7. The candidate's interview booking page, before they pick a time. Both pictures end after the second day of times;
