@@ -23,12 +23,42 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
 
     protected string DashboardUrl(string pathAndQuery) => new Uri(Fixture.GetEndpoint("dashboard"), pathAndQuery).ToString();
 
-    /// <summary>Signs in with the scene's Owner through Dev SSO and waits for the Jobs page.</summary>
-    protected async Task SignInAsync()
+    /// <summary>
+    /// A new person and organization with nothing in it, for the empty states of the lists. Returns the person's address.
+    /// </summary>
+    protected async Task<string> EmptyOrganizationAsync()
+    {
+        var email = ApiSession.NewEmail("e2e-empty");
+        using var session = new ApiSession(Fixture);
+        await session.SignInWithDevSsoAsync(email, Ct);
+        await session.OnboardAsync(Ct);
+        return email;
+    }
+
+    /// <summary>The pages that list records, which an empty organization shows as empty states.</summary>
+    protected static IReadOnlyList<string> EmptyRoutes() =>
+    [
+        "/",
+        "/candidates",
+        "/tasks",
+        "/reports",
+        "/templates",
+        "/verification",
+        "/verification/activity",
+        "/verification/usage",
+        "/settings/team",
+        "/settings/api-keys",
+        "/settings/webhooks",
+        "/settings/slack",
+        "/settings/data-requests",
+    ];
+
+    /// <summary>Signs in through Dev SSO (as the scene's Owner unless <paramref name="email"/> says otherwise) and waits for the Jobs page.</summary>
+    protected async Task SignInAsync(string? email = null)
     {
         await GoToAsync("dashboard", "/sign-in");
         await Page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" }).ClickAsync();
-        await Page.GetByLabel("Any email address").FillAsync(Scene.OwnerEmail);
+        await Page.GetByLabel("Any email address").FillAsync(email ?? Scene.OwnerEmail);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Sign in with this address" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
     }

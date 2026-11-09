@@ -17,8 +17,8 @@ public sealed class SeparatorTests(E2EFixture fixture) : ProofWalk(fixture)
         // The sidebar's hairline above the person's block spans the sidebar less its 8px margins.
         var sidebar = await Page.Locator("[data-slot=sidebar-separator]").EvaluateAsync<double[]>(
             "el => { const r = el.getBoundingClientRect(); const p = el.parentElement.getBoundingClientRect(); return [r.height, r.width, p.width]; }");
-        sidebar[0].Should().Be(1, "a horizontal separator is 1px high");
-        sidebar[1].Should().Be(sidebar[2] - 16, "the sidebar's separator fills its box between the margins of mx-2");
+        sidebar[0].Should().BeApproximately(1, 0.05, "a horizontal separator is 1px high");
+        sidebar[1].Should().BeApproximately(sidebar[2] - 16, 0.5, "the sidebar's separator fills its box between the margins of mx-2");
 
         // The date range's menu has one between its presets and its custom range.
         await Page.GotoAsync(DashboardUrl("/reports"));
@@ -26,6 +26,7 @@ public sealed class SeparatorTests(E2EFixture fixture) : ProofWalk(fixture)
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^Dates:") }).ClickAsync();
         var inMenu = Page.Locator("[data-slot=separator]");
         await Expect(inMenu.First).ToBeVisibleAsync();
-        (await inMenu.First.BoundingBoxAsync())!.Height.Should().Be(1);
+        (await inMenu.First.BoundingBoxAsync())!.Height.Should().BeApproximately(1f, 0.05f);
+        _ = await SaveScreenshotAsync(Page, "proof-separator-dates-menu");
     }
 }

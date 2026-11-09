@@ -43,6 +43,32 @@ public sealed class DashboardThemeTests(E2EFixture fixture) : ProofWalk(fixture)
     }
 
     [Fact]
+    public async Task The_empty_states_of_a_new_organization_pass_axe_in_the_dark_theme()
+    {
+        var email = await EmptyOrganizationAsync();
+        await UseDarkThemeAsync();
+        await Page.SetViewportSizeAsync(1440, 1000);
+        await SignInAsync(email);
+
+        foreach (var path in EmptyRoutes())
+        {
+            await WalkAsync(path, "dark empty", async name =>
+            {
+                if (!await Page.EvaluateAsync<bool>("() => document.documentElement.classList.contains('dark')"))
+                {
+                    Problems.Add($"{name}: the page is not in the dark theme");
+                }
+
+                await CollectAxeAsync(name);
+                await CollectOverflowAsync(name);
+                _ = await ScreenshotAsync("dark-empty", name);
+            });
+        }
+
+        ExpectNoProblems("The dark theme, empty");
+    }
+
+    [Fact]
     public async Task The_walk_would_catch_text_that_stops_being_readable_in_the_dark_theme()
     {
         // A control for the walk above: a dark page whose heading is nearly the card's colour must fail axe's colour-contrast
