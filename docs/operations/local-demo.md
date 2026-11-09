@@ -8,6 +8,7 @@ sources:
   - resource: apps/api/Demo/DemoQuestionnaires.cs
   - resource: apps/api/Demo/DevelopmentDemo.cs
   - resource: apps/apphost/DevSso/config.json
+  - resource: apps/apphost/DevSso/login.html
   - resource: apps/dashboard/src/lib/setup-checklist.ts
   - resource: src/ScreenHire.Infrastructure/Persistence/DevelopmentDataSeeder.cs
   - resource: .claude/skills/preview/SKILL.md
@@ -102,19 +103,19 @@ single ports with `ScreenHire__Ports__Api`, `__Marketing`, `__Careers`, `__Dashb
 
 ## Demo logins
 
-Sign in at http://localhost:4323 with **Continue with Dev SSO** in the sign-in page's Single sign-on panel, then pick
-a user. No password anywhere.
+Sign in at http://localhost:4323 with **Continue with Dev SSO** on the sign-in card, then pick a person. The Dev SSO
+page says under each one what their role can and cannot do. No password anywhere.
 
 | Dev SSO user | Signs in as |
 |---|---|
-| Avery Quinn (`avery@brightwater.example.com`) | Owner of Brightwater Studio, the seeded employer with all the demo data |
-| Jordan Ellis (`jordan@brightwater.example.com`) | Recruiter at Brightwater Studio: works on jobs and candidates, but cannot change the team or the organization's settings |
+| Avery Quinn (`avery@brightwater.example.com`) | Owner of Brightwater Studio, the seeded employer with all the demo data: everything, including billing, settings, the team and making other Owners |
+| Jordan Ellis (`jordan@brightwater.example.com`) | Recruiter at Brightwater Studio, on every job: jobs, candidates and hiring templates, but no settings, integrations, team, email templates or billing |
 | Robin Hale (`robin@brightwater.example.com`) | Interviewer at Brightwater Studio, a custom role Avery made from Viewer: sees candidates, adds notes and tags and fills in scorecards, but is offered no Move and no Settings. On Only jobs they're on, and on the Senior .NET Engineer job's hiring team, so that is the one job he sees |
 | Sam Rivera (`sam@example.org`) | A new user with no organization, who goes through onboarding. After the first time they keep the organization they made |
-| Any email address you type | A new user each time you use a new address: the way to show onboarding again |
-| Unverified address | Refused: the provider did not vouch for the address |
+| Unverified address | Avery's address from a provider that does not vouch for it: ScreenHire refuses to link it, and the sign-in page says why |
+| Any email address you type | A new user each time you use a new address, the way to show onboarding again. An address someone already uses signs in as them |
 
-The Email link panel's **Email me a sign-in link** works too: the link arrives in Mailpit, and opening it asks for
+**Email me a sign-in link**, under the card's "or", works too: the link arrives in Mailpit, and opening it asks for
 one more click (**Sign in**) so a mail scanner cannot use it up.
 
 Avery manages the team in **Organization > Team**: **Invite** sends the invitation to Mailpit. Its link opens the

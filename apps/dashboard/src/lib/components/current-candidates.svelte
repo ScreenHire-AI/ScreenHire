@@ -1,7 +1,14 @@
 <script lang="ts">
   import UserPlusIcon from '~icons/lucide/user-plus';
   import XIcon from '~icons/lucide/x';
-  import { createGetFunnelApplications, createListApplications, createListEmailTemplates, createListViews } from '@screenhire/api-client/svelte-query';
+  import {
+    createGetFunnelApplications,
+    createListApplications,
+    createListEmailTemplates,
+    createListJobs,
+    createListTalentPool,
+    createListViews,
+  } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { can } from '#lib/permissions.js';
@@ -35,11 +42,20 @@
   import { matchesTag, tagsOf } from '#lib/tags.js';
   import { jobOptions, readReached, reachedLabel, stageOptions } from '#lib/candidate-filters.js';
   import { stageLabel } from '#lib/talent-pool.js';
+  import { closedJobIds, isCurrentApplication, listCounts } from '#lib/candidate-lists.js';
   import { defaultSorts, differsFromView, filtersOf, sortOf, verificationOf } from '#lib/view-filters.js';
 
   // Every application in the organization, newest first; new ones, stage moves and verification levels arrive live
   // (#lib/realtime.ts).
+  // Current (the default) or All; the Saved list is its own component.
+  let { scope = 'current' }: { scope?: 'current' | 'all' } = $props();
+
   const applications = createListApplications();
+  // Only for the Saved choice's count.
+  const savedPeople = createListTalentPool();
+  // Which jobs are closed, from the shell's job list (one query): their applications are not current.
+  const jobList = createListJobs();
+  const closedJobs = $derived(closedJobIds(jobList.data?.data));
   // The address names a view: a built-in one (code), or one that a person saved (the server's list, docs/architecture/saved-views.md).
   const viewId = $derived(page.url.searchParams.get('view'));
   const builtIn = $derived(findSavedView(viewId));
@@ -53,6 +69,8 @@
   const viewGone = $derived(Boolean(viewId) && !builtIn && !saved && savedViews.isSuccess);
   const viewLoading = $derived(Boolean(viewId) && !builtIn && !saved && savedViews.isPending);
   const all = $derived(applications.data?.data ?? []);
+  // Current is the people in a hiring process now: on a job that is not closed, neither saved nor at an end stage. All is every
+  // application, for finding someone whose process ended.
   // The sidebar counts use the same clock, so a view and its count agree.
   let verificationFilter = $state<VerificationFilter>({ ...noVerificationFilter });
   let tagFilter = $state<string | null>(null);
@@ -62,6 +80,9 @@
   // dates they were submitted in); the ids come from the same query the report counts with, so the list matches its count.
   let jobFilter = $state<string[]>(page.url.searchParams.getAll('job'));
   const reached = $derived(readReached(page.url.searchParams));
+  // A view keeps its own rules, and a report's funnel link shows everyone the report counted (hired and rejected
+  // included), so neither is narrowed to Current.
+  const pool = $derived(view || reached || scope === 'all' ? all : all.filter((application) => isCurrentApplication(application, closedJobs)));
   const reachedApplications = createGetFunnelApplications(
     () => reached?.kind ?? 'Applied',
     () => ({ from: reached?.from ?? '', to: reached?.to ?? '' }),
@@ -80,16 +101,16 @@
   }
   let stageFilter = $state<string[]>([]);
   let search = $state('');
-  const jobs = $derived(jobOptions(all));
-  const stages = $derived(stageOptions(all, jobFilter));
+  const jobs = $derived(jobOptions(pool));
+  const stages = $derived(stageOptions(pool, jobFilter));
   // A stage picked before the jobs changed counts only while one of the picked jobs has it.
   const stagesPicked = $derived(stageFilter.filter((name) => stages.some((stage) => stage.value === name)));
   // Tags people and automations put on applications; tags and removals arrive live (ApplicationTagsChanged).
-  const tags = $derived(tagsOf(all));
+  const tags = $derived(tagsOf(pool));
   // A saved view narrows a built-in view when it was saved from one; the built-in view is code, so it is looked up by id.
   const base = $derived(builtIn ?? (saved?.filters.baseView ? findSavedView(saved.filters.baseView) : undefined));
   const shown = $derived(
-    all.filter(
+    pool.filter(
       (application) =>
         (!base || base.matches(application, clock.now)) &&
         (!reached || reachedIds.has(application.id)) &&
@@ -188,15 +209,13 @@
 <main class={['flex min-w-0 flex-col', !phone.current && 'h-[calc(100svh-3.5rem)] min-h-160', phone.current && canAdd && 'pb-28']}>
   <HeaderBand
     title={view?.label ?? 'Candidates'}
-    count={applications.isSuccess ? shown.length : undefined}
-    countLabel={shown.length === 1 ? 'application' : 'applications'}
     status={listSwitch}
     actions={canAdd && !phone.current ? addButton : undefined}
   />
 
   <div class={['@container', !phone.current && 'flex min-h-0 flex-1 flex-col']}>
     <div class={['flex w-full flex-col px-4 py-6 md:px-6', !phone.current && 'min-h-0 flex-1']}>
-      <Panel title="Applications" flush fill={!phone.current} class={phone.current ? undefined : 'min-h-0 flex-1'}>
+      <Panel title="Applications" count={applications.isSuccess ? shown.length : undefined} flush fill={!phone.current} class={phone.current ? undefined : 'min-h-0 flex-1'}>
         {#snippet tools()}
           <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
           {#if selectedCount > 0}<span data-selected-count class="flex shrink-0 items-center gap-1.5 text-muted-foreground">Selected <Badge variant="count">{selectedCount}</Badge></span>{/if}
@@ -277,7 +296,7 @@
 {/snippet}
 
 {#snippet listSwitch()}
-  <CandidatesListSwitch list="current" />
+  <CandidatesListSwitch list={scope} counts={listCounts(applications.data?.data, savedPeople.data?.data.people.length, closedJobs)} />
 {/snippet}
 
 {#snippet addButton()}

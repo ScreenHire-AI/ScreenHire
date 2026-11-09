@@ -69,7 +69,8 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         await funnel.GetByRole(AriaRole.Link, new() { Name = "Interview" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Candidates");
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Clear filter: Reached Interview" })).ToBeVisibleAsync();
-        await Expect(Page.Locator("[data-slot='header-band']")).ToContainTextAsync("2 applications");
+        // The count is the table panel's, and a funnel link counts every application that reached the stage, ended ones too.
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Applications" }).Locator("header [data-slot='badge']").First).ToHaveTextAsync("2");
         await Page.GoBackAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Reports");
 

@@ -20,9 +20,15 @@ const rules = [
   { rule: 'file input outside the drop area', pattern: /\btype=["']file["']/g },
 ];
 
-function violations(source: string): string[] {
+// The one exception (design system section 14): Google's and Microsoft's sign-in marks keep their own colours, because
+// both companies' sign-in branding guidelines forbid changing them. Only the hex rule is lifted, only for these files.
+const brandMarks = ['./lib/components/provider-marks/google-mark.svelte', './lib/components/provider-marks/microsoft-mark.svelte'];
+
+function violations(source: string, exempt: string[] = []): string[] {
   return source.split('\n').flatMap((line, index) =>
-    rules.flatMap(({ rule, pattern }) => [...line.matchAll(pattern)].map((match) => `${index + 1}: ${rule} "${match[0]}"`)),
+    rules
+      .filter(({ rule }) => !exempt.includes(rule))
+      .flatMap(({ rule, pattern }) => [...line.matchAll(pattern)].map((match) => `${index + 1}: ${rule} "${match[0]}"`)),
   );
 }
 
@@ -73,7 +79,20 @@ describe('dashboard source', () => {
   });
 
   it('takes sizes and colours from the tokens, and the cursor from the theme, only', () => {
-    const found = Object.entries(sources).flatMap(([file, source]) => violations(source).map((violation) => `${file}:${violation}`));
+    const found = Object.entries(sources).flatMap(([file, source]) =>
+      violations(source, brandMarks.includes(file) ? ['hex colour'] : []).map((violation) => `${file}:${violation}`),
+    );
     expect(found).toEqual([]);
+  });
+
+  it('lifts the hex rule for the Google and Microsoft marks only, and nothing else in them', () => {
+    // A moved or renamed mark would otherwise leave the exemption pointing at nothing, and a third mark needs a decision.
+    expect(Object.keys(sources).filter((file) => file.includes('/provider-marks/')).sort()).toEqual(brandMarks);
+    for (const file of brandMarks) {
+      const found = violations(sources[file]!);
+      expect(found.length).toBeGreaterThan(0);
+      expect(found.every((violation) => violation.includes('hex colour'))).toBe(true);
+      expect(violations(sources[file]!, ['hex colour'])).toEqual([]);
+    }
   });
 });

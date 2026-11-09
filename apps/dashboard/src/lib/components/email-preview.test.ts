@@ -15,7 +15,9 @@ describe('email preview', () => {
 
     expect(screen.getByText('We received your application')).toBeInTheDocument();
     const frame = screen.getByTitle('Email preview');
-    expect(frame).toHaveAttribute('sandbox', '');
+    // Same origin only so the frame can take the email's height; scripts, forms, popups and navigation stay off.
+    expect(frame).toHaveAttribute('sandbox', 'allow-same-origin');
+    expect(frame.getAttribute('sandbox')).not.toMatch(/allow-(scripts|forms|popups|top-navigation)/);
     expect(frame).toHaveAttribute('srcdoc', preview.html);
     await expectNoAxeViolations();
   });

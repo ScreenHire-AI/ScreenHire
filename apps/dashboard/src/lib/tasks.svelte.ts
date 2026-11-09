@@ -15,12 +15,17 @@ export const completesByHand = (kind: ApplicationTaskKind): boolean => kind === 
 
 /**
  * Where a task's work is done, for My tasks: a requested scorecard opens the candidate's Scorecards tab with the sheet
- * open on that scorecard; every other task opens the candidate's Overview, where Next steps has it.
+ * open on that scorecard, and a review with the sheet open on the scorecard for the stage they are in, since submitting
+ * any scorecard finishes it. Every other task opens the candidate's Overview, where Next steps has it.
  */
 export function taskHref(task: { applicationId: string; kind: ApplicationTaskKind; scorecardTemplateId?: string | null }): string {
   const candidate = `/applications/${task.applicationId}`;
-  return task.kind === 'Scorecard' && task.scorecardTemplateId ? `${candidate}?${scorecardLink(task.scorecardTemplateId)}` : candidate;
+  if (task.kind === 'Scorecard' && task.scorecardTemplateId) return `${candidate}?${scorecardLink(task.scorecardTemplateId)}`;
+  return task.kind === 'Review' ? `${candidate}?${reviewLink}` : candidate;
 }
+
+/** The query that opens the Scorecards tab with the fill-in sheet on the scorecard for the candidate's current stage. */
+export const reviewLink = new URLSearchParams({ tab: 'scorecards', fill: 'stage' }).toString();
 
 /** The query that opens the Scorecards tab with the fill-in sheet on one scorecard. */
 export const scorecardLink = (key: string): string => new URLSearchParams({ tab: 'scorecards', scorecard: key }).toString();

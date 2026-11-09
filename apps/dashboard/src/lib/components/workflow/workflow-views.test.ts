@@ -185,6 +185,33 @@ describe('workflow builder', () => {
     expect(problems).toHaveTextContent('Stage "Phone screen": Give the stage a name.');
   });
 
+  it('takes Fix to the field that has the problem: a stage on Pipeline, an automation in its form', async () => {
+    renderViews('editor', 'graph', [
+      { path: 'stages[1].name', message: 'Give the stage a name.' },
+      { path: 'automations[0].name', message: 'This is blank. Fill it in or remove it.' },
+    ]);
+    const problems = screen.getByRole('region', { name: 'Problems to fix' });
+
+    await fireEvent.click(within(problems).getByRole('button', { name: 'Fix: Stage "Phone screen"' }));
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('aria-invalid', 'true'));
+    expect(screen.getByRole('tabpanel', { name: 'Pipeline' })).toContainElement(document.activeElement as HTMLElement);
+
+    await fireEvent.click(within(problems).getByRole('button', { name: /^Fix: Automation / }));
+    const sheet = await screen.findByRole('dialog', { name: /^Automations: / });
+    await waitFor(() => expect(sheet).toContainElement(document.activeElement as HTMLElement));
+  });
+
+  it('puts a Fix button beside the problem count, which stays a badge, and takes the focus to the first Fix', async () => {
+    renderViews('editor', 'pipeline', [{ path: 'stages[1].name', message: 'Give the stage a name.' }]);
+    render(ValidationBadge, { props: { errors: [{ path: 'stages[1].name', message: 'Give the stage a name.' }] } });
+
+    // Badges are never clickable (principle 4).
+    expect(screen.queryByRole('button', { name: '1 problem to fix' })).toBeNull();
+    await fireEvent.click(screen.getByRole('button', { name: 'Fix 1 problem' }));
+
+    expect(document.activeElement).toHaveAccessibleName('Fix: Stage "Phone screen"');
+  });
+
   it('has no problems panel when the workflow is valid', () => {
     renderViews('editor');
 

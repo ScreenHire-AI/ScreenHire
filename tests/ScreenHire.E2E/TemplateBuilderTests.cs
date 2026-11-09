@@ -298,7 +298,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
     [Fact]
     public async Task A_recruiter_builds_an_automation_in_the_graph_with_the_keyboard_and_finds_it_in_the_pipeline()
     {
-        const string Blank = "Leave this out rather than sending it blank.";
+        const string Blank = "This is blank. Fill it in or remove it.";
         var email = await OnboardAsync();
         using (var session = new ApiSession(Fixture))
         {

@@ -57,7 +57,8 @@ new route is the `/add-dashboard-page` skill.
   does not depend on `@lucide/svelte`. Use `field` with
   superforms 3 for forms, not the `form` component; use Sheet, not Drawer.
 - Tokens only. Colours, fonts, type sizes and radii come from `@screenhire/ui` through Tailwind classes (`bg-card`,
-  `text-muted-foreground`, `text-status-review`). Never a hex value, never `rgb(...)`, never a Tailwind palette
+  `text-muted-foreground`, `text-status-review`). Never a hex value (the one exception is the Google and Microsoft
+  sign-in marks in `#lib/components/provider-marks`, design system section 14), never `rgb(...)`, never a Tailwind palette
   colour such as `text-red-600`, never a pixel font size such as `text-[11px]`. Type sizes are the type tokens
   (`text-body`, `text-caption`, ...), never Tailwind's defaults (`text-sm`) or `tracking-*`. A new `--text-*` token
   also joins `typeScale` in `#lib/utils.ts`, or `cn()` reads it as a colour and drops it; a new named radius

@@ -233,6 +233,8 @@
   // for a requested scorecard), and the sheet opens on it.
   const library = createListScorecardTemplates();
   const linkedScorecard = $derived(page.url.searchParams.get('scorecard'));
+  // A review's link (?fill=stage, #lib/tasks.svelte.ts) opens the sheet on the scorecard Fill in starts on.
+  const linkedFill = $derived(page.url.searchParams.get('fill') === 'stage');
   const reached = $derived(
     new Set([
       ...(detail ? [detail.stage.id] : []),
@@ -257,19 +259,23 @@
       : undefined,
   );
 
+  // The scorecard the sheet starts on: the one asked for, else the default for the stage the candidate is in, which can
+  // arrive after the sheet opens (the sheet takes it then).
   function fillIn(value?: string) {
-    scorecardInitial = value ?? defaultChoice(choices, detail?.stage.id)?.value;
+    scorecardInitial = value;
     scorecardOpen = true;
   }
+  const sheetInitial = $derived(scorecardInitial ?? defaultChoice(choices, detail?.stage.id)?.value);
 
   // A link to a scorecard opens the sheet on it once everything it needs has loaded, once per visit. A scorecard the
   // reader gave already offers nothing, so the tab simply shows.
   let openedFromLink = false;
   $effect(() => {
     const key = linkedScorecard;
-    if (!key || openedFromLink || !mayScore || !detail || !job.isSuccess || !scorecards.isSuccess || !timeline.isSuccess || !library.isSuccess) return;
+    const fill = linkedFill;
+    if ((!key && !fill) || openedFromLink || !mayScore || !detail || !job.isSuccess || !scorecards.isSuccess || !timeline.isSuccess || !library.isSuccess) return;
     openedFromLink = true;
-    const choice = choiceFor(choices, key);
+    const choice = key ? choiceFor(choices, key) : defaultChoice(choices, detail.stage.id);
     if (choice) fillIn(choice.value);
   });
 
@@ -562,7 +568,7 @@
         bind:open={scorecardOpen}
         applicationId={detail.id}
         {choices}
-        initial={scorecardInitial}
+        initial={sheetInitial}
         loadingChoices={library.isPending || scorecards.isPending || !workflow}
         libraryError={library.error ?? undefined}
         onretrylibrary={() => library.refetch()}

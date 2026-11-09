@@ -427,15 +427,17 @@ public sealed partial class EmailTemplates
 
     // A table, because some email clients ignore a div's background. The band is the second colour with white or ink
     // text, whichever reads better (checked at 4.5:1 before it saved); with no second colour it is white over the Warm
-    // Grid --border token. Colours are written only as #rrggbb.
+    // Grid --border token. Colours are written only as #rrggbb. A white header has no side padding, so the name or logo
+    // lines up with the body text under it; a band keeps its side padding, so the name does not touch the colour's edge.
     private static void AppendHeader(StringBuilder html, EmailHeader header)
     {
         var band = header.Background is { } color && BrandPalette.IsValid(color) ? BrandPalette.Normalize(color) : null;
         var background = band ?? "#ffffff";
         var foreground = band is null ? "#1c1b19" : BrandPalette.TextOn(band);
         var edge = band is null ? " border-bottom: 1px solid #e6e1d8;" : "";
+        var padding = band is null ? "16px 0" : "16px 20px";
         html.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse: collapse; margin: 0 0 24px; background: ")
-            .Append(background).Append(';').Append(edge).Append("\">\n<tr><td style=\"padding: 16px 20px;\">");
+            .Append(background).Append(';').Append(edge).Append("\">\n<tr><td style=\"padding: ").Append(padding).Append(";\">");
         var name = WebUtility.HtmlEncode(header.OrganizationName);
         if (header.Logo is { } logo)
         {

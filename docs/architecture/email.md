@@ -105,7 +105,8 @@ so a candidate's details never go to another site in a URL. ScreenHire adds no c
 HTML as plain text. In the dashboard, each variable in the message is a chip, and in a template's subject too, where it
 is one line of plain text (`SubjectEditor`) stored as the Liquid text. ScreenHire puts the organization's header first
 in the HTML part, after the body is sanitized: its logo, a plain image at one address for every recipient, or its
-name, on its second colour (`EmailHeader`, [branding.md](branding.md) section 6). That logo is the only image an email
+name, on its second colour (`EmailHeader`, [branding.md](branding.md) section 6). A white header has no side padding, so
+the name lines up with the body text; a band of the second colour keeps 20px each side. That logo is the only image an email
 carries, and a template cannot add one. The rendered subject is one line, cut at
 1,000 characters (`ApplicationEmail.MaxSubjectLength`): variables can make it far longer than its 200-character wording.
 
@@ -136,7 +137,8 @@ carries, and a template cannot add one. The rendered subject is one line, cut at
   dates. The copy the team keeps hides the candidate's own link, as the follow-up questions email does.
 
 The template preview (`POST /v1/email-templates/preview`) renders unsaved wording with a made-up candidate, Jordan Lee.
-The dashboard shows the HTML part in a sandboxed frame, never in the page, in the preview beside the wording where both
+The dashboard shows the HTML part in a sandboxed frame (no scripts, forms or popups; `allow-same-origin` only so the frame
+can take the email's height), never in the page, in the preview beside the wording where both
 fit, or behind the Edit / Preview switch; the window icon opens it in a second window (`/preview/email`) that the editor
 feeds each rendering. The test send (`POST /v1/email-templates/test`) sends the same rendering to the signed-in person's
 own address, from the API, with `[Test]` before the subject.

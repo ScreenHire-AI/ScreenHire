@@ -29,8 +29,10 @@ describe('magic link verify page', () => {
     show();
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Finish signing in');
-    expect(screen.getByRole('region', { name: 'Email link' })).toHaveTextContent('This link signs you in on this device.');
-    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+    // The sign-in page's card: the title, one line on what the click does, and the button.
+    const card = document.querySelector('[data-slot="sign-in-card"]');
+    expect(card).toHaveTextContent('This link signs you in on this device.');
+    expect(card).toContainElement(screen.getByRole('button', { name: 'Sign in' }));
     await expectNoAxeViolations(document.body);
   });
 
@@ -76,6 +78,7 @@ describe('magic link verify page', () => {
     show();
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent("This link doesn't work");
+    expect(screen.getByRole('alert')).toHaveTextContent('This sign-in link has expired or has already been used.');
     expect(screen.getByRole('link', { name: 'Get a new link' })).toHaveAttribute('href', '/sign-in');
   });
 

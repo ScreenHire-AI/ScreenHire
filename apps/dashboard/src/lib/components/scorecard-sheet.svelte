@@ -84,6 +84,13 @@
     });
   });
 
+  // A sheet opened before every choice had loaded (the job's stages, the scorecards given) starts on nothing; it takes the
+  // scorecard it was opened for as soon as that choice arrives, unless the person has picked one by then.
+  $effect(() => {
+    if (!open || chosenValue || !initial) return;
+    if (choices.some((option) => option.value === initial)) untrack(() => (chosenValue = initial));
+  });
+
   function clear() {
     values = {};
     picks = {};

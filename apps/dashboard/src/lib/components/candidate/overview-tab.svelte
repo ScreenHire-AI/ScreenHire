@@ -17,7 +17,7 @@
   import type { ActivityNames } from '#lib/activity.js';
   import { authenticityLevels } from '#lib/verification.js';
   import { describeError } from '#lib/query.js';
-  import { completesByHand, createTaskCompletion, scorecardLink } from '#lib/tasks.svelte.js';
+  import { completesByHand, createTaskCompletion, reviewLink, scorecardLink } from '#lib/tasks.svelte.js';
 
   // A candidate's Overview (design system section 22): a grid of panels that uses the width. On the left, what needs you
   // now (Next steps: the application's tasks and, when the verification level needs a look, its suggested next step), the
@@ -70,13 +70,11 @@
   const taskRows = $derived(completion.withHeld(tasks.data?.data.toReversed() ?? []));
 
   // A review or a requested scorecard is done on the Scorecards tab, by the person it is for (anyone, for a review for
-  // the whole team), so their row links there: a requested scorecard with the sheet open on it.
+  // the whole team), so their row's Fill in opens the sheet there: on the requested scorecard, or for a review on the
+  // scorecard for the stage the candidate is in.
   function scorecardWork(task: TaskRow): { href: string; label: string } | undefined {
     if (completesByHand(task.kind) || (task.assigneeUserId !== null && task.assigneeUserId !== currentUserId)) return undefined;
-    // A requested scorecard opens with its sheet; a review has no scorecard to open, so its link says where it goes.
-    return task.kind === 'Scorecard' && task.scorecardTemplateId
-      ? { href: `?${scorecardLink(task.scorecardTemplateId)}`, label: 'Fill in' }
-      : { href: '?tab=scorecards', label: 'Open scorecards' };
+    return { href: `?${task.kind === 'Scorecard' && task.scorecardTemplateId ? scorecardLink(task.scorecardTemplateId) : reviewLink}`, label: 'Fill in' };
   }
 </script>
 

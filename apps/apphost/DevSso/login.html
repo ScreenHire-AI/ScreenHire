@@ -4,53 +4,260 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
+    <meta name="color-scheme" content="light dark" />
     <title>Dev SSO · ScreenHire local sign-in</title>
+    <!--
+      Self-contained on purpose: the mock provider serves this one file, so the page makes no other request. The colours
+      are the Warm Grid tokens' values (packages/ui/src/tokens.css), copied because this page cannot import them.
+    -->
     <style>
-      body { font-family: system-ui, sans-serif; margin: 0; padding: 32px 16px; line-height: 1.5; }
-      main { max-width: 440px; margin: 0 auto; }
-      form { margin: 0 0 12px; }
-      button, input { font: inherit; padding: 8px 12px; }
-      button { width: 100%; text-align: left; cursor: pointer; }
-      label { display: block; margin: 20px 0 4px; font-weight: 600; }
-      input { width: 100%; box-sizing: border-box; }
-      .any button { margin-top: 8px; text-align: center; }
-      small { display: block; }
+      :root {
+        --background: #f7f5f0;
+        --foreground: #1c1b19;
+        --card: #ffffff;
+        --muted: #fbfaf7;
+        --muted-foreground: #5f5a52;
+        --secondary: #f4f1eb;
+        --border: #e6e1d8;
+        --input: #ddd7cc;
+        --primary: #4338ca;
+        --primary-foreground: #ffffff;
+        --accent: #eeebfb;
+        --accent-foreground: #2b2788;
+        --ring: #4338ca;
+        --shadow: 0 1px 2px rgb(28 27 25 / 0.06), 0 1px 3px rgb(28 27 25 / 0.04);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: #141311;
+          --foreground: #edeae4;
+          --card: #1c1b18;
+          --muted: #181714;
+          --muted-foreground: #a39e95;
+          --secondary: #23221e;
+          --border: #2e2c27;
+          --input: #3a3731;
+          --primary: #9b9cf8;
+          --primary-foreground: #15132e;
+          --accent: #26264a;
+          --accent-foreground: #c7c8fa;
+          --ring: #9b9cf8;
+          --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.3);
+        }
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html { scrollbar-gutter: stable; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 16px;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+      }
+      main {
+        width: 100%;
+        max-width: 32rem;
+        margin: auto 0;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding: 24px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+      }
+      @media (width >= 48rem) { main { padding: 32px; } }
+      h1, h2, p { margin: 0; }
+      .title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+      h1 { font-size: 1.5rem; line-height: 1.875rem; font-weight: 700; }
+      .pill {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: var(--accent-foreground);
+        font-size: 0.75rem;
+        line-height: 1rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      header { display: flex; flex-direction: column; gap: 8px; }
+      .lead { color: var(--muted-foreground); }
+      section { display: flex; flex-direction: column; gap: 8px; }
+      h2 { font-size: 1rem; line-height: 1.5rem; font-weight: 600; }
+      ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+      form { margin: 0; }
+      button, input { font: inherit; color: inherit; }
+      button { cursor: pointer; }
+      :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+      .account {
+        width: 100%;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        text-align: left;
+        background: var(--card);
+        border: 1px solid var(--input);
+        border-radius: 8px;
+        transition: background-color 120ms, border-color 120ms;
+      }
+      .account:hover { background: var(--muted); border-color: var(--muted-foreground); }
+      .avatar {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--secondary);
+        font-size: 0.75rem;
+        line-height: 1rem;
+        font-weight: 600;
+      }
+      .who { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+      .name { font-weight: 600; }
+      .role { color: var(--muted-foreground); }
+      .can { overflow-wrap: anywhere; }
+      .chevron { width: 16px; height: 16px; color: var(--muted-foreground); }
+      .note { color: var(--muted-foreground); font-size: 0.75rem; line-height: 1rem; }
+      .any { display: flex; flex-direction: column; gap: 8px; }
+      label { font-weight: 600; }
+      input {
+        width: 100%;
+        height: 36px;
+        padding: 0 12px;
+        background: var(--card);
+        border: 1px solid var(--input);
+        border-radius: 8px;
+      }
+      .primary {
+        height: 36px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-weight: 500;
+      }
+      .primary:hover { filter: brightness(1.08); }
+      @media (pointer: coarse) {
+        input, .primary { height: 44px; }
+        input { font-size: 1rem; }
+      }
+      @media (prefers-reduced-motion: reduce) { .account { transition: none; } }
     </style>
   </head>
   <body>
     <!--
-      The local mock OpenID Connect provider (navikt/mock-oauth2-server), Development only. Each form posts a
-      username; apps/apphost/DevSso/config.json maps it to the claims in the ID token. No real account exists.
+      The local mock OpenID Connect provider (navikt/mock-oauth2-server), Development only. Each form posts a username
+      back to this page's own address (no action, so the authorize query stays); apps/apphost/DevSso/config.json maps the
+      username to the claims in the ID token. No real account exists. The roles below come from the seed
+      (DevelopmentDataSeeder and apps/api/Demo/DevelopmentDemo.cs) and what each can do from RolePermissions.
     -->
     <main>
-      <h1>Dev SSO</h1>
-      <p>A local stand-in for an identity provider. Pick a seeded user, or sign in as any email address.</p>
+      <header>
+        <div class="title">
+          <h1>Dev SSO</h1>
+          <span class="pill">Development only</span>
+        </div>
+        <p class="lead">A local stand-in for Google or Microsoft sign-in. Pick who to sign in as. There is no password and no real account.</p>
+      </header>
 
-      <form method="post">
-        <input type="hidden" name="username" value="brightwater-owner" />
-        <button type="submit">Avery Quinn<small>Owner of Brightwater Studio (seeded)</small></button>
-      </form>
-      <form method="post">
-        <input type="hidden" name="username" value="brightwater-recruiter" />
-        <button type="submit">Jordan Ellis<small>Recruiter at Brightwater Studio (seeded)</small></button>
-      </form>
-      <form method="post">
-        <input type="hidden" name="username" value="brightwater-interviewer" />
-        <button type="submit">Robin Hale<small>Interviewer at Brightwater Studio (seeded)</small></button>
-      </form>
-      <form method="post">
-        <input type="hidden" name="username" value="new-recruiter" />
-        <button type="submit">Sam Rivera<small>New user with no organization yet</small></button>
-      </form>
-      <form method="post">
-        <input type="hidden" name="username" value="unverified" />
-        <button type="submit">Unverified address<small>A provider that does not vouch for the email</small></button>
-      </form>
+      <section aria-labelledby="brightwater">
+        <h2 id="brightwater">Brightwater Studio, the seeded employer</h2>
+        <ul>
+          <li>
+            <form method="post">
+              <input type="hidden" name="username" value="brightwater-owner" />
+              <button type="submit" class="account" aria-labelledby="avery-name" aria-describedby="avery-role avery-can">
+                <span class="avatar" aria-hidden="true">AQ</span>
+                <span class="who">
+                  <span class="name" id="avery-name">Avery Quinn</span>
+                  <span class="role" id="avery-role">Owner</span>
+                  <span class="can" id="avery-can">Everything, including billing, settings, the team and making other Owners.</span>
+                </span>
+                <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+              </button>
+            </form>
+          </li>
+          <li>
+            <form method="post">
+              <input type="hidden" name="username" value="brightwater-recruiter" />
+              <button type="submit" class="account" aria-labelledby="jordan-name" aria-describedby="jordan-role jordan-can">
+                <span class="avatar" aria-hidden="true">JE</span>
+                <span class="who">
+                  <span class="name" id="jordan-name">Jordan Ellis</span>
+                  <span class="role" id="jordan-role">Recruiter, on every job</span>
+                  <span class="can" id="jordan-can">Jobs, candidates and hiring templates. No settings, integrations, team, email templates or billing.</span>
+                </span>
+                <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+              </button>
+            </form>
+          </li>
+          <li>
+            <form method="post">
+              <input type="hidden" name="username" value="brightwater-interviewer" />
+              <button type="submit" class="account" aria-labelledby="robin-name" aria-describedby="robin-role robin-can">
+                <span class="avatar" aria-hidden="true">RH</span>
+                <span class="who">
+                  <span class="name" id="robin-name">Robin Hale</span>
+                  <span class="role" id="robin-role">Interviewer, on the Senior .NET Engineer job only</span>
+                  <span class="can" id="robin-can">Reads that job's candidates, adds notes and tags, fills in scorecards. Cannot move candidates.</span>
+                </span>
+                <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+              </button>
+            </form>
+          </li>
+        </ul>
+        <p class="note">Interviewer is a custom role the local demo makes. On a stack without the demo, such as the tests', Robin is a Viewer on every job.</p>
+      </section>
+
+      <section aria-labelledby="cases">
+        <h2 id="cases">Special cases</h2>
+        <ul>
+          <li>
+            <form method="post">
+              <input type="hidden" name="username" value="new-recruiter" />
+              <button type="submit" class="account" aria-labelledby="sam-name" aria-describedby="sam-role sam-can">
+                <span class="avatar" aria-hidden="true">SR</span>
+                <span class="who">
+                  <span class="name" id="sam-name">Sam Rivera</span>
+                  <span class="role" id="sam-role">New person, no organization yet</span>
+                  <span class="can" id="sam-can">Goes through onboarding to set one up, then signs in to it after the first time.</span>
+                </span>
+                <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+              </button>
+            </form>
+          </li>
+          <li>
+            <form method="post">
+              <input type="hidden" name="username" value="unverified" />
+              <button type="submit" class="account" aria-labelledby="unverified-name" aria-describedby="unverified-role unverified-can">
+                <span class="avatar" aria-hidden="true">?</span>
+                <span class="who">
+                  <span class="name" id="unverified-name">Unverified address</span>
+                  <span class="role" id="unverified-role">Avery's address, not vouched for</span>
+                  <span class="can" id="unverified-can">A provider that does not confirm the email. ScreenHire refuses to link it and the sign-in page says why.</span>
+                </span>
+                <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+              </button>
+            </form>
+          </li>
+        </ul>
+      </section>
 
       <form method="post" class="any">
         <label for="email">Any email address</label>
-        <input id="email" name="username" type="email" autocomplete="off" placeholder="name@example.com" required />
-        <button type="submit">Sign in with this address</button>
+        <input id="email" name="username" type="email" autocomplete="off" placeholder="name@example.com" aria-describedby="email-hint" required />
+        <p class="note" id="email-hint">A new address is a new person who starts at onboarding, the quick way to show it again. An address someone already uses signs in as them.</p>
+        <button type="submit" class="primary">Sign in with this address</button>
       </form>
     </main>
   </body>

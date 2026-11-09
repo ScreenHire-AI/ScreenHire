@@ -1114,7 +1114,7 @@
 
       <Panel title="Brand bar">
         <figure class="flex flex-col gap-2">
-          <figcaption class="text-caption text-muted-foreground">Sign-in, onboarding and error pages, outside the app shell</figcaption>
+          <figcaption class="text-caption text-muted-foreground">Onboarding, invitations and error pages, outside the app shell. Sign-in pages carry the mark in their card instead</figcaption>
           <div class="overflow-hidden rounded-lg bg-secondary"><BrandBar /></div>
         </figure>
       </Panel>
@@ -1429,11 +1429,11 @@
           <div class="flex flex-wrap gap-x-8 gap-y-4">
             <figure class="flex flex-col gap-2">
               <figcaption class="text-caption text-muted-foreground">Current</figcaption>
-              <CandidatesListSwitch list="current" />
+              <CandidatesListSwitch list="current" counts={{ current: 13, saved: 1, all: 19 }} />
             </figure>
             <figure class="flex flex-col gap-2">
               <figcaption class="text-caption text-muted-foreground">Saved</figcaption>
-              <CandidatesListSwitch list="saved" />
+              <CandidatesListSwitch list="saved" counts={{ current: 13, saved: 1, all: 19 }} />
             </figure>
           </div>
         </Panel>

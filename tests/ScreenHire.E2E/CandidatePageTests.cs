@@ -158,7 +158,7 @@ public sealed class CandidatePageTests(E2EFixture fixture) : BrowserTest(fixture
         {
             ("Verification", "tab=verification", Region("Review log")),
             ("Activity", "tab=activity", Page.GetByRole(AriaRole.Group, new() { Name = "Show" })),
-            ("Application", "tab=application", Region("Declarations")),
+            ("Application", "tab=application", Region("Answers")),
             ("Messages", "tab=messages", Region("Messages")),
             ("Scorecards", "tab=scorecards", Region("Scorecards")),
             ("Overview", "", Region("Next steps")),
