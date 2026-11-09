@@ -24,6 +24,7 @@ public sealed class DashboardThemeTests(E2EFixture fixture) : ProofWalk(fixture)
 
             await CollectAxeAsync(name);
             await CollectOverflowAsync(name);
+            await CollectFieldEdgesAsync(name);
             _ = await ScreenshotAsync("dark", name);
         }
 
@@ -61,6 +62,7 @@ public sealed class DashboardThemeTests(E2EFixture fixture) : ProofWalk(fixture)
 
                 await CollectAxeAsync(name);
                 await CollectOverflowAsync(name);
+                await CollectFieldEdgesAsync(name);
                 _ = await ScreenshotAsync("dark-empty", name);
             });
         }

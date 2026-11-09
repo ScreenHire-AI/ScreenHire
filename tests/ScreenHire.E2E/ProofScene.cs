@@ -30,6 +30,8 @@ public sealed class ProofScene
 
     public string OwnerEmail { get; private init; } = "";
 
+    public string Slug { get; private init; } = "";
+
     public Guid JobId { get; private init; }
 
     /// <summary>The application of the bot: the one with findings in every verification group it triggers.</summary>
@@ -113,6 +115,7 @@ public sealed class ProofScene
         return new ProofScene
         {
             OwnerEmail = email,
+            Slug = slug,
             JobId = jobId,
             BotApplicationId = botId,
             BotCandidateId = bot.GetProperty("candidate").GetProperty("id").GetGuid(),

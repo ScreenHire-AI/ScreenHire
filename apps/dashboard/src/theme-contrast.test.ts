@@ -76,15 +76,30 @@ describe.each(themes)('the %s theme', (_name, tokens) => {
     });
   });
 
+  it.each(['background', 'card', 'popover', 'muted'] as const)('draws the edge of a text field at 3:1 on %s', (ground) => {
+    // `input` stays the quiet edge of badges, key caps and pills, which carry text of their own; a text field's edge is
+    // `field-edge` (section 3.1).
+    expect(ratio(tokens['field-edge']!, tokens[ground]!), `field-edge on ${ground}`).toBeGreaterThanOrEqual(3);
+  });
+
   it('keeps the one-series chart colour visible at 3:1 on the card', () => {
     // `chart-2` is the whole the part belongs to and is under 3:1 by design: every bar writes its value (section 3.5).
     expect(ratio(tokens['chart-1']!, tokens['card']!)).toBeGreaterThanOrEqual(3);
   });
 });
 
+describe.each(themes)('the candidate pages in the %s theme', (name, tokens) => {
+  // The tokens exist for the apply flow and the candidate's own page (3.4); the careers pages draw only the light ones
+  // today (docs/status.md), so the dark values are pinned for the day they do.
+  it.each([
+    ['candidate-input-border', 'candidate-surface', 3],
+    ['candidate-input-border', 'candidate-background', 3],
+  ] as const)('%s on %s is at least %s:1', (foreground, background, minimum) => {
+    expect(ratio(tokens[foreground]!, tokens[background]!), `${name}: ${foreground} on ${background}`).toBeGreaterThanOrEqual(minimum);
+  });
+});
+
 describe('the candidate pages in the dark theme', () => {
-  // The tokens exist for the apply flow and the candidate's own page (3.4); the careers pages draw them only in the light
-  // theme today (docs/status.md), so this pins the dark values for the day they do.
   it.each([
     ['candidate-foreground', 'candidate-background', 4.5],
     ['candidate-foreground', 'candidate-surface', 4.5],

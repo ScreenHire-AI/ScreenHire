@@ -383,7 +383,8 @@ chart colours (section 3.5).
 | `secondary` | `#F4F1EB` | Insets, muted pills, counts |
 | `border` | `#E6E1D8` | Surface edges |
 | `border-subtle` | `#EFEBE4` | Rows and inner rules |
-| `input` | `#DDD7CC` | Buttons, inputs, pill edges |
+| `input` | `#DDD7CC` | Button, badge, key cap and pill edges: they carry a label, so the edge is quiet |
+| `field-edge` | `#8A8579` | The edge of a text field, search box, select, editor and the dashboard's drop area: 3.4:1 on `background`, 3.7:1 on `card` and `popover`, 3.5:1 on `muted` (WCAG 1.4.11) |
 | `foreground` | `#1C1B19` | Primary text |
 | `sidebar-foreground` | `#3A3630` | Secondary text, navigation (a general token for it is still to add) |
 | `muted-foreground` | `#5F5A52` | Labels, captions (5.3:1 on `background`) |
@@ -393,6 +394,10 @@ chart colours (section 3.5).
 | `row-selected` | `#F3F1FC` | Selected table row |
 | `destructive` | `#9A2F17` | Destructive menu items and their confirmations |
 | `scrim` | `#1C1B19` | The dimming behind dialogs and sheets, at 10% (`bg-scrim/10`) |
+
+A field has no label inside its edge, so the edge is what shows where to type: it takes `field-edge`, which is why a search box
+beside filter buttons is deliberately the stronger of the two. A button, badge or pill names itself in text, and a choice card or
+checkbox shows its state with the primary edge or fill, so those keep `input`.
 
 ### 3.2 Status (icon, colour and label, always)
 
@@ -444,6 +449,7 @@ and not this status.
 | `row-selected` | `#2A2722` | `accent` | `#26264A`, text `#C7C8FA` |
 | `border` | `#2E2C27` | `border-subtle` | `#262420` |
 | `input` | `#3A3731` | `destructive` | `#F7957A` |
+| `field-edge` | `#767168` (3.6:1 on `card` and `popover`, 3.8:1 on `background`, 3.7:1 on `muted`) | | |
 | `scrim` | `#000000` | | |
 
 Dark status: no concerns `#4FD1B4` on `#15302A`; review `#F6CB76` on `#3A2C10` (icon `#F2B84B`); verify `#F7957A` on
@@ -458,10 +464,12 @@ it instead of showing white on a dark page.
 |---|---|---|
 | `candidate-background` | `#FBF6EE` | `#1A1714` |
 | `candidate-surface` | `#FFFFFF` | `#23201C` |
-| `candidate-border` / `candidate-input-border` | `#EDE3D3` / `#D9CCB8` | `#332E28` / `#4A443B` |
+| `candidate-border` / `candidate-input-border` | `#EDE3D3` / `#8C7F6B` | `#332E28` / `#807768` |
 | `candidate-foreground` / `candidate-muted-foreground` | `#231F1A` / `#6A5D4D` | `#F2EDE6` / `#B3ABA0` |
 | `candidate-chip` | `#F3E7D6` (text `#5A4630`) | `#2E2A25` |
 | `candidate-cta` | `#C2462F` (white text, 4.98:1) | `#F08A6E` (text `#1A1310`) |
+
+`candidate-input-border` is the edge of a field, a file control and the drop area, and of a secondary button, at least 3:1 on `candidate-surface` and `candidate-background` in both themes (3.9:1 and 3.6:1 light, 3.7:1 and 4.0:1 dark). `candidate-border` stays the quiet edge of cards.
 
 On tenant careers pages, `candidate-cta` and the header mark take the employer brand tokens, and `candidate-header`
 and `candidate-header-foreground` (the header band, default the page background and ink) take the second colour

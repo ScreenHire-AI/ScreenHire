@@ -222,10 +222,7 @@ brackets.
   walk has none); and tabs nested inside a tab. Axe reads text only, so a focus ring, a status icon and a chart colour are
   proven from the tokens in both themes (`theme-contrast.test.ts`), not on the page.
 - The careers and candidate pages have no dark theme: their dark tokens exist (`--candidate-*` under `.dark`) and
-  nothing applies the class. A control's edge is under the 3:1 that WCAG 1.4.11 asks in both themes: the candidate input
-  border is about 1.6:1 against its surface (`packages/ui/src/questions.css`), where it is the field's only edge, and the
-  dashboard's `input` token is about 1.4:1 on the card in light and dark (the checkbox draws its own edge at 70% of
-  `muted-foreground`). Neither was changed.
+  nothing applies the class.
 - A phone has no keyboard and no way to list the shortcuts, so the walk skips that dialog there.
 - Large lists are proven at 1440 and 390 px up to 26 of each record, 20 webhook endpoints (the limit) and 210 applications
   on one job (`LargeListsTests`). The 26 saved views are checked in the sidebar at 1440 only; the phone's navigation sheet

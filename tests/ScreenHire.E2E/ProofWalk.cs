@@ -294,6 +294,18 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         }
     }
 
+    /// <summary>
+    /// A text field's edge is at least 3:1 against what surrounds it (WCAG 1.4.11). Measured on the page, with the colours
+    /// the browser drew, so a token, a dark variant or a component that sets its own edge all count.
+    /// </summary>
+    protected async Task CollectFieldEdgesAsync(string name)
+    {
+        foreach (var weak in await Page.EvaluateAsync<string[]>(FieldEdgesScript))
+        {
+            Problems.Add($"{name}: field edge {weak}");
+        }
+    }
+
     protected async Task CollectClippedAsync(string name)
     {
         foreach (var clipped in await Page.EvaluateAsync<string[]>(ClippedScript))
@@ -345,6 +357,57 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
 
     [GeneratedRegex("[^A-Za-z0-9]+")]
     private static partial Regex SlugPattern();
+
+    // The colour a field's own border draws against the colour behind the field, both as the browser painted them. A
+    // canvas turns any CSS colour (a hex, an rgb with alpha, color-mix) into red, green, blue and alpha, which is composited
+    // over the nearest opaque background above. A field inside an input group takes the group's border.
+    private const string FieldEdgesScript = """
+        () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = canvas.height = 1;
+          const context = canvas.getContext('2d', { willReadFrequently: true });
+          const rgba = (css) => {
+            context.clearRect(0, 0, 1, 1);
+            context.fillStyle = '#000';
+            context.fillStyle = css;
+            context.fillRect(0, 0, 1, 1);
+            const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+            return [r, g, b, a / 255];
+          };
+          const over = (top, bottom) => top.slice(0, 3).map((c, i) => c * top[3] + bottom[i] * (1 - top[3])).concat(1);
+          const backdrop = (el) => {
+            const layers = [];
+            for (let node = el; node; node = node.parentElement) {
+              const color = rgba(getComputedStyle(node).backgroundColor);
+              if (color[3] > 0) layers.push(color);
+              if (color[3] === 1) break;
+            }
+            return layers.reduceRight((below, layer) => over(layer, below), [255, 255, 255, 1]);
+          };
+          const luminance = ([r, g, b]) => {
+            const channel = (v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
+            return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+          };
+          const ratio = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+          const found = [];
+          const selector = 'input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=range]):not([type=submit]):not([type=button]):not([type=color]), textarea, select';
+          for (const el of document.querySelectorAll(selector)) {
+            if (el.disabled || el.closest('[aria-hidden=true], [inert], .sr-only')) continue;
+            const rect = el.getBoundingClientRect();
+            if (rect.width <= 1 || rect.height <= 1 || getComputedStyle(el).visibility === 'hidden') continue;
+            let edge = el;
+            while (edge && edge !== document.body && parseFloat(getComputedStyle(edge).borderTopWidth) < 1) edge = edge.parentElement;
+            const label = (el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.id || el.name || el.tagName.toLowerCase()).slice(0, 30);
+            if (!edge || edge === document.body) { found.push(`<${el.tagName.toLowerCase()}> "${label}" has no edge`); continue; }
+            const style = getComputedStyle(edge);
+            const line = over(rgba(style.borderTopColor), backdrop(edge.parentElement));
+            const around = backdrop(edge.parentElement);
+            const value = ratio(line, around);
+            if (value < 2.99) found.push(`<${el.tagName.toLowerCase()}> "${label}" is ${value.toFixed(2)}:1`);
+          }
+          return [...new Set(found)].slice(0, 20);
+        }
+        """;
 
     // Elements that reach past the window with no scroll box around them, and text cut off by its own box without an
     // ellipsis (design system F1, F5).

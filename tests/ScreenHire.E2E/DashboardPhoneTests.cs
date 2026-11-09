@@ -18,6 +18,7 @@ public sealed class DashboardPhoneTests(E2EFixture fixture) : ProofWalk(fixture)
         {
             await CollectAxeAsync(name);
             await CollectOverflowAsync(name);
+            await CollectFieldEdgesAsync(name);
             await CollectClippedAsync(name);
             await CollectSmallTargetsAsync(name);
             _ = await ScreenshotAsync("phone", name);
@@ -51,6 +52,7 @@ public sealed class DashboardPhoneTests(E2EFixture fixture) : ProofWalk(fixture)
             {
                 await CollectAxeAsync(name);
                 await CollectOverflowAsync(name);
+                await CollectFieldEdgesAsync(name);
                 await CollectClippedAsync(name);
                 await CollectSmallTargetsAsync(name);
                 _ = await ScreenshotAsync("phone-empty", name);

@@ -13,6 +13,7 @@ sources:
   - resource: tests/ScreenHire.E2E/DashboardThemeTests.cs
   - resource: tests/ScreenHire.E2E/DashboardPhoneTests.cs
   - resource: tests/ScreenHire.E2E/SeparatorTests.cs
+  - resource: tests/ScreenHire.E2E/FormEdgesTests.cs
   - resource: apps/dashboard/src/theme-contrast.test.ts
   - resource: tests/ScreenHire.E2E/MarketingDemoFixture.cs
   - resource: tests/ScreenHire.E2E/MarketingScreenshotsTests.cs
@@ -309,6 +310,9 @@ run lists every page to fix.
 - `theme-contrast.test.ts` (Vitest) computes what axe cannot read from the tokens, in both themes: the focus ring at 3:1,
   status icons at 3:1, status labels at 4.5:1 and the chart colour at 3:1.
 - Each class also walks the list pages of a new, empty organization (`EmptyOrganizationAsync`), which is where the empty states show.
+- Each step also measures every text field's edge against what surrounds it, with the colours the browser drew, and fails
+  under 3:1 (`CollectFieldEdgesAsync`, WCAG 1.4.11). `FormEdgesTests` does the same for the careers apply page, in the light
+  theme and with the dark tokens switched on by a class, and checks that a faint edge is reported.
 - `SeparatorTests` measures the shared separator: 1 px high, as wide as its box.
 
 The careers and candidate pages are not in the dark walk: they have no dark theme today ([status](../status.md)).

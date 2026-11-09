@@ -148,7 +148,7 @@
 
 <div
   class={cn(
-    'flex w-full min-w-0 flex-col rounded-lg border border-input bg-transparent text-body transition-colors dark:bg-input/30',
+    'flex w-full min-w-0 flex-col rounded-lg border border-field-edge bg-transparent text-body transition-colors dark:bg-input/30',
     editable && 'focus-within:border-ring focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring',
     invalid && 'border-destructive ring-3 ring-destructive/20 dark:ring-destructive/40',
     className,
