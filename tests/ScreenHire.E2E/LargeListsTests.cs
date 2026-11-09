@@ -26,14 +26,14 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
         await GoToPageAsync("/", "Jobs");
         await ExpectCountAsync("26 jobs");
         await ExpectFitsAsync($"jobs-{width}");
-        await SearchAsync("Kitchen Manager 01", "Kitchen Manager 01");
+        await SearchAsync("Kitchen Manager 01", "Kitchen Manager 01", "Kitchen Manager 08");
 
         foreach (var (tab, prefix) in new[] { ("hiring", "Hiring template"), ("scorecards", "Scorecard"), ("emails", "Email template") })
         {
             await GoToPageAsync(tab == "hiring" ? "/templates" : $"/templates?tab={tab}", "Templates");
             (await TabCountAsync(tab)).Should().BeGreaterThanOrEqualTo(BusyOrganization.Count, $"the {tab} tab counts every template the organization made");
             await ExpectFitsAsync($"templates-{tab}-{width}");
-            await SearchAsync($"{prefix} 07", $"{prefix} 07");
+            await SearchAsync($"{prefix} 07", $"{prefix} 07", $"{prefix} 08");
         }
     }
 
@@ -63,7 +63,12 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
         // The table is virtual: only the rows in view are in the page, and the table scrolls in its panel.
         var rows = Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" }).GetByRole(AriaRole.Row);
         (await rows.CountAsync()).Should().BeLessThan(BusyOrganization.Applications / 2, "a table of 210 candidates draws the rows in view");
-        await SearchAsync("Number150", "Applicant150 Number150");
+        // A sibling row may be outside the virtual window either way, so the search proves itself by leaving one data row.
+        var box = Page.GetByRole(AriaRole.Searchbox).First;
+        await box.FillAsync("Number150");
+        await Expect(Page.GetByText("Applicant150 Number150").Filter(new() { Visible = true }).First).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" }).Locator("tr[data-row-id]")).ToHaveCountAsync(1);
+        await box.FillAsync("");
 
         // The board keeps its stage a column that scrolls by itself: the window does not grow with the cards in it.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Board", Exact = true }).ClickAsync();
@@ -83,30 +88,42 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
         _ = await SignedInAsync(width, height);
 
         await GoToPageAsync("/candidates", "Candidates");
+        // Every application is counted, the busy job's and the other job's, though a phone lists a page of them.
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Applications", Exact = true }).Locator("header"))
+            .ToContainTextAsync(BusyOrganization.Number(BusyOrganization.Applications + BusyOrganization.OtherApplications));
         await ExpectFitsAsync($"candidates-{width}");
         if (width < 768)
         {
             await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Candidates", Exact = true }).GetByRole(AriaRole.Listitem)).ToHaveCountAsync(PhonePage);
             (await PageHeightAsync()).Should().BeLessThan(height * 25);
         }
+        else
+        {
+            // The saved views are sidebar rows: the last one scrolls into view inside the sidebar.
+            var lastView = Page.GetByRole(AriaRole.Link, new() { NameRegex = new($"^View {BusyOrganization.Count}") });
+            await lastView.ScrollIntoViewIfNeededAsync();
+            await Expect(lastView).ToBeInViewportAsync();
+        }
 
         await GoToPageAsync("/tasks", "My tasks");
+        // The tasks have no assignee, so they are the team's, and the toggle counts them.
+        await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^For the team") })).ToContainTextAsync(BusyOrganization.Number(BusyOrganization.Count));
         await ExpectFitsAsync($"tasks-{width}");
 
         await GoToPageAsync("/settings/team", "Team");
         await ExpectCountAsync("26 members");
         await ExpectFitsAsync($"team-{width}");
-        await SearchAsync("member07", "member07");
+        await SearchAsync("member07", "member07", "member08");
 
         await GoToPageAsync("/settings/api-keys", "API keys");
         await ExpectCountAsync("26 keys");
         await ExpectFitsAsync($"api-keys-{width}");
-        await SearchAsync("Integration key 07", "Integration key 07");
+        await SearchAsync("Integration key 07", "Integration key 07", "Integration key 08");
 
         await GoToPageAsync("/settings/webhooks", "Webhooks");
         await ExpectCountAsync($"{BusyOrganization.WebhookEndpoints} endpoints");
         await ExpectFitsAsync($"webhooks-{width}");
-        await SearchAsync("Receiver 07", "Receiver 07");
+        await SearchAsync("Receiver 07", "Receiver 07", "Receiver 08");
     }
 
     [Fact]
@@ -153,13 +170,17 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
         return int.Parse(Regex.Match(text, @"\d+").Value, CultureInfo.InvariantCulture);
     }
 
-    // Typing narrows the list to the row, and clearing brings the rest back.
-    private async Task SearchAsync(string term, string expectedText)
+    // Typing narrows the list to the row: a sibling shown before the search is gone while it runs, and clearing brings it back.
+    private async Task SearchAsync(string term, string expectedText, string siblingText)
     {
+        var sibling = Page.GetByText(siblingText).Filter(new() { Visible = true });
+        await Expect(sibling.First).ToBeVisibleAsync();
         var box = Page.GetByRole(AriaRole.Searchbox).First;
         await box.FillAsync(term);
         await Expect(Page.GetByText(expectedText).Filter(new() { Visible = true }).First).ToBeVisibleAsync();
+        await Expect(sibling).ToHaveCountAsync(0);
         await box.FillAsync("");
+        await Expect(sibling.First).ToBeVisibleAsync();
     }
 
     private Task<int> PageHeightAsync() => Page.EvaluateAsync<int>("() => document.documentElement.scrollHeight");

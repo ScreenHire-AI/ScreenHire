@@ -24,6 +24,9 @@ public sealed class BusyOrganization
     /// <summary>How many applications the busiest job holds.</summary>
     public const int Applications = 210;
 
+    /// <summary>How many applications another job holds, so the candidates list spans two jobs.</summary>
+    public const int OtherApplications = 5;
+
     public const string BusyJobTitle = "Customer Support Lead";
 
     private static readonly string[] Countries = ["GB"];
@@ -91,7 +94,7 @@ public sealed class BusyOrganization
             i => CreateApplicationAsync(owner, busyJobId, $"Applicant{i:D3}", $"Number{i:D3}", cancellationToken),
             cancellationToken);
         await InParallelAsync(
-            Enumerable.Range(1, 5),
+            Enumerable.Range(1, OtherApplications),
             i => CreateApplicationAsync(owner, otherJobs[0], $"Other{i:D3}", $"Person{i:D3}", cancellationToken),
             cancellationToken);
 

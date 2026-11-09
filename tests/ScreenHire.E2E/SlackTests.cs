@@ -207,9 +207,9 @@ public sealed class SlackTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-slack-disconnected-1440");
 
-        // A job still publishes: a Slack that has gone away never holds back hiring work.
+        // A job still publishes (PublishJobAsync expects 200): a Slack that has gone away never holds back hiring work.
+        // The post itself is the worker's, later, so the channel is not read here: an empty channel now proves nothing.
         await PublishJobAsync(session, "While disconnected");
-        (await SlackSandbox.MessagesAsync(session, SlackSandbox.HiringChannel, Ct)).Should().BeEmpty();
 
         // Reconnect goes round the sandbox's sign-in and back; the channel and events the team picked are kept.
         await band.GetByRole(AriaRole.Button, new() { Name = "Reconnect" }).ClickAsync();

@@ -41,9 +41,11 @@ public sealed class WebhookStatesTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(Page.GetByText("No deliveries yet.")).ToBeVisibleAsync();
         var newest = Page.GetByRole(AriaRole.Table).GetByRole(AriaRole.Row).Nth(1);
 
-        // 1. The receiver answers 500 twice and then recovers: the delivery is tried again with backoff and ends Delivered
-        // with its three attempts.
-        receiver.RespondWith(500, 500, 200);
+        // 1. The receiver hangs past the stack's 5 second timeout, then answers 500, then recovers: the delivery is tried
+        // again with backoff and ends Delivered with its three attempts. The first status is never read by the sender,
+        // which has given up by then, but the receiver takes one per request.
+        receiver.RespondWith(200, 500, 200);
+        receiver.DelayResponses(AppHostFixture.WebhookTimeout + TimeSpan.FromSeconds(3));
         await PublishJobAsync(session, "Webhook one");
         await Expect(newest).ToContainTextAsync("Delivered", Slow);
         await Expect(newest.GetByRole(AriaRole.Cell).Nth(2)).ToHaveTextAsync("3");
