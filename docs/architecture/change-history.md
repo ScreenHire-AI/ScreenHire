@@ -134,7 +134,9 @@ The describers in `src/ScreenHire.Domain/History` are pure functions from the en
   description and an email template's message are rich text, sanitized HTML, so `RichTextToPlain` turns them to text
   first: a blank line between blocks, list items marked, and a link's address after its text. When the HTML changed
   but the text did not (bold, a heading, a list), the line is "changed the formatting of the description" or "of the
-  message", with no before and after. A time, such as when a posting expires,
+  message", with no before and after. A job's short summary makes a line only when a person writes, changes or clears
+  it ("set the summary to ...", "cleared the summary, so it follows the description"); while it follows the description
+  its own value is null and the description's line says everything. A time, such as when a posting expires,
   is an `Instant` detail in ISO 8601, which the browser formats.
 - Bookkeeping makes no line: `updated_at`, workflow and publish counters, the row version.
 

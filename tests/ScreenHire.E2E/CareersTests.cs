@@ -12,7 +12,7 @@ public sealed class CareersTests(E2EFixture fixture) : BrowserTest(fixture)
     {
         await GoToAsync("careers", "/brightwater");
 
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Open roles at Brightwater Studio");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Open roles");
         var jobs = Page.GetByRole(AriaRole.Main).GetByRole(AriaRole.Listitem);
         await Expect(jobs).ToHaveCountAsync(OpenJobTitles.Length);
         foreach (var title in OpenJobTitles)
@@ -21,6 +21,29 @@ public sealed class CareersTests(E2EFixture fixture) : BrowserTest(fixture)
         }
 
         await Expect(Page.GetByText("Customer Success Lead")).ToHaveCountAsync(0); // the seeded draft
+        await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    // The card (docs/design/redesign-2026-11.md, Setup picks 6): title, the summary clamped to three lines by CSS, then at
+    // most three chips. The seeded jobs carry no written summary, so each shows its description's first sentence.
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1440)]
+    public async Task Board_card_shows_a_clamped_summary_under_the_title_and_at_most_three_chips(int width)
+    {
+        await Page.SetViewportSizeAsync(width, 900);
+        await GoToAsync("careers", "/brightwater");
+
+        var card = Page.GetByRole(AriaRole.Link).Filter(new() { HasText = "Senior .NET Engineer" });
+        var summary = card.Locator(".line-clamp-3");
+        await Expect(summary).ToHaveTextAsync("Join Brightwater Studio as our Senior .NET Engineer.");
+        (await summary.EvaluateAsync<string>("e => getComputedStyle(e).webkitLineClamp")).Should().Be("3");
+        var chips = card.Locator("span.rounded-full");
+        (await chips.CountAsync()).Should().BeInRange(1, 3);
+        var order = await card.EvaluateAsync<string[]>("e => [...e.children].map(c => c.className.includes('line-clamp-3') ? 'summary' : c.className.includes('font-display') ? 'title' : 'chips')");
+        order.Should().Equal("title", "summary", "chips");
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= document.documentElement.clientWidth"))
+            .Should().BeTrue("the card never scrolls the page sideways");
         await ExpectNoAccessibilityViolationsAsync();
     }
 

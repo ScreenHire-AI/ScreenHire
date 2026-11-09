@@ -394,6 +394,7 @@ export const ListPublicJobsResponse = zod.object({
   "salaryCurrency": zod.string().nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "description": zod.string(),
+  "summary": zod.string(),
   "department": zod.string().nullable(),
   "locations": zod.array(zod.object({
   "city": zod.string().nullable(),
@@ -462,6 +463,7 @@ export const GetPublicJobResponse = zod.object({
   "salaryCurrency": zod.string().nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "description": zod.string(),
+  "summary": zod.string(),
   "department": zod.string().nullable(),
   "locations": zod.array(zod.object({
   "city": zod.string().nullable(),
@@ -533,6 +535,7 @@ export const GetPublicApplicationFormResponse = zod.object({
   "salaryCurrency": zod.string().nullable(),
   "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
   "description": zod.string(),
+  "summary": zod.string(),
   "department": zod.string().nullable(),
   "locations": zod.array(zod.object({
   "city": zod.string().nullable(),
@@ -1210,8 +1213,9 @@ export const CreateJobBody = zod.object({
   "currency": zod.string().nullish(),
   "period": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]).optional()
 }).describe('A pay range. Currency and period may come from the template\'s posting defaults on create.')]).optional(),
-  "validThrough": zod.iso.datetime({"offset":true}).nullish()
-}).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor\'s elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with "- " make a list.')
+  "validThrough": zod.iso.datetime({"offset":true}).nullish(),
+  "summary": zod.string().nullish()
+}).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor\'s elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with "- " make a list. The summary is the plain-text\nline a careers card shows under the title, at most 160 characters; leave it out and the card uses the description\'s\nfirst sentence.')
 
 export const createJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const createJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -1227,6 +1231,8 @@ export const CreateJobResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -1428,6 +1434,8 @@ export const GetJobResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -1634,8 +1642,9 @@ export const UpdateJobBody = zod.object({
   "currency": zod.string().nullish(),
   "period": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]).optional()
 }).describe('A pay range. Currency and period may come from the template\'s posting defaults on create.')]).optional(),
-  "validThrough": zod.iso.datetime({"offset":true}).nullish()
-}).describe('Replaces a job\'s posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest.')
+  "validThrough": zod.iso.datetime({"offset":true}).nullish(),
+  "summary": zod.string().nullish()
+}).describe('Replaces a job\'s posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest. A blank or missing summary goes back to following the description.')
 
 export const updateJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const updateJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -1651,6 +1660,8 @@ export const UpdateJobResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -1890,6 +1901,8 @@ export const PublishJobResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -2091,6 +2104,8 @@ export const CloseJobResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -2315,8 +2330,9 @@ export const GetJobVersionResponse = zod.object({
   "currency": zod.string(),
   "period": zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])
 }).describe('A pay range. At least one of decimal? JobSalary.Min and decimal? JobSalary.Max is set; string JobSalary.Currency is ISO 4217.')]),
-  "validThrough": zod.iso.datetime({"offset":true}).nullable()
-}).describe('The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included.')
+  "validThrough": zod.iso.datetime({"offset":true}).nullable(),
+  "summary": zod.string().nullish()
+}).describe('The posting content of a job at one moment: everything a careers page, a feed or a job board shows. A\nJobVersion freezes one. Equality compares the content, list members included. `summary` is\nthe written summary only (null while the card follows the description); a version frozen before the field existed has none.')
 }).describe('One published version of a job: the frozen content boards were sent.')
 
 
@@ -2487,6 +2503,8 @@ export const UpdateJobWorkflowResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
@@ -2693,6 +2711,8 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "slug": zod.string(),
   "status": zod.enum(['Draft', 'Open', 'Closed']),
   "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
   "department": zod.string().nullable(),
   "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
   "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),

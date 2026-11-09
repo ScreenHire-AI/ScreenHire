@@ -25,6 +25,16 @@ public sealed class Job : ITenantOwned
     /// <summary>Rich text as sanitized HTML. The API sanitizes it on the way in; nothing else writes it.</summary>
     public string Description { get; set; } = "";
 
+    /// <summary>
+    /// The short line a careers card shows under the title, written by a person: at most
+    /// <see cref="JobSummaryText.MaxLength"/> characters, about the job rather than the company. Null until someone writes
+    /// one, and then <see cref="EffectiveSummary"/> follows the description.
+    /// </summary>
+    public string? Summary { get; set; }
+
+    /// <summary>The summary a card shows: the written one, or the description's first sentence.</summary>
+    public string EffectiveSummary => Summary ?? JobSummaryText.FromDescription(Description);
+
     public string? Department { get; set; }
 
     /// <summary>On-site, hybrid or remote: schema.org <c>jobLocationType</c> is TELECOMMUTE for remote.</summary>
@@ -117,7 +127,7 @@ public sealed class Job : ITenantOwned
 
     /// <summary>The posting content as it is now.</summary>
     public JobSnapshot Snapshot() =>
-        new(Title, Slug, Description, Department, EmploymentType, WorkplaceType, [.. Locations], [.. ApplicantLocationRequirements], Salary, ValidThrough);
+        new(Title, Slug, Description, Department, EmploymentType, WorkplaceType, [.. Locations], [.. ApplicantLocationRequirements], Salary, ValidThrough, Summary);
 
     /// <summary>
     /// Replaces the posting content. A closed job is final, and a published job keeps its slug, because its URL is live
@@ -144,6 +154,7 @@ public sealed class Job : ITenantOwned
         Title = content.Title;
         Slug = content.Slug;
         Description = content.Description;
+        Summary = content.Summary;
         Department = content.Department;
         EmploymentType = content.EmploymentType;
         WorkplaceType = content.WorkplaceType;

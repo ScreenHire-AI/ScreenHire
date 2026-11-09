@@ -20,6 +20,7 @@ const job = (overrides: Partial<PublicJob> = {}): PublicJob => ({
   salaryCurrency: 'GBP',
   publishedAt: '2026-10-01T09:00:00+00:00',
   description: '<p>Build things.</p>',
+  summary: 'Build things.',
   department: 'Engineering',
   locations: [{ city: 'London', region: null, country: 'GB' }],
   applicantLocationRequirements: [],
