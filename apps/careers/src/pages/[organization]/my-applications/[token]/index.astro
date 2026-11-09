@@ -38,7 +38,8 @@ const waitingText = { Questionnaire: 'Answer the follow-up questions', Interview
 const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' };
 // The four steps are square markers on a line (design-system T4): a step done is filled with a tick, the step the application
 // is at is outlined with a filled centre, and the steps to come are empty. The name is under each marker, and a screen reader
-// hears where the candidate is.
+// hears where the candidate is. Each step draws the line back to the one before it, under the markers (z-10), through their
+// centres; the line to a step to come takes the input edge so it keeps 3:1.
 ---
 
 <CareersLayout
@@ -100,12 +101,12 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
                   {stepStates(application.funnel.steps, application.funnel.current).map((step, index) => (
                     <li class="relative flex flex-col items-center gap-2 text-center" aria-current={step.state === 'current' ? 'step' : undefined}>
                       {index > 0 && (
-                        <span aria-hidden="true" class:list={['absolute top-2.5 right-1/2 h-0.5 w-full', step.state === 'upcoming' ? 'bg-candidate-border' : 'bg-candidate-brand-text']} />
+                        <span aria-hidden="true" class:list={['absolute top-2.5 right-1/2 h-0.5 w-full -translate-y-1/2', step.state === 'upcoming' ? 'bg-candidate-input-border' : 'bg-candidate-brand-text']} />
                       )}
                       <span
                         aria-hidden="true"
                         class:list={[
-                          'relative grid size-5 place-items-center border-2',
+                          'relative z-10 grid size-5 place-items-center border-2',
                           step.state === 'done' ? 'border-candidate-brand-text bg-candidate-brand-text text-candidate-surface' : step.state === 'current' ? 'border-candidate-brand-text bg-candidate-surface' : 'border-candidate-input-border bg-candidate-surface',
                         ]}
                       >

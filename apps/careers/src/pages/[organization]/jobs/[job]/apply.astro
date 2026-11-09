@@ -304,7 +304,7 @@ const answerText = (questionId: string): string => {
               </legend>
               <p id="ai-hint" class="-mt-1 text-candidate-hint text-candidate-muted-foreground">
                 {policy === 'NotAllowed'
-                  ? `${employer.name} asks for applications written without AI tools. Tell us either way. A person reads your answer.`
+                  ? `${employer.name} asks for applications written without AI tools. Tell us either way.`
                   : policy === 'AllowedWithDisclosure'
                     ? `${employer.name} welcomes AI help for this role, as long as you say so.`
                     : `${employer.name} welcomes AI help for this role. Telling us is up to you.`}

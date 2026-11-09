@@ -28,8 +28,11 @@ const sharing = branding?.sharingImage ?? null;
 // In the widget (docs/architecture/careers-widget.md) the page's own links keep it there, and the page sizes its frame.
 const embed = embedOf(Astro.locals);
 const home = withEmbed(base || '/', embed);
-// The candidate's own pages are what "Your applications" opens, so the footer does not offer it there.
-const onOwnPages = Astro.url.pathname.includes('/my-applications');
+// The candidate's own pages are what "Your applications" opens, so the footer does not offer it there. The path is read
+// whole segments at a time under the organization (with or without its slug, as a tenant host serves it), so a job or an
+// organization whose slug merely contains the words keeps the link.
+const ownPath = Astro.url.pathname.startsWith(`/${organizationSlug}/`) ? Astro.url.pathname.slice(organizationSlug.length + 1) : Astro.url.pathname;
+const onOwnPages = /^\/my-applications(?:\/|$)/.test(ownPath);
 ---
 
 <!doctype html>
@@ -90,7 +93,6 @@ const onOwnPages = Astro.url.pathname.includes('/my-applications');
       <slot />
     </main>
     <footer class="flex flex-col items-center gap-1 px-5 py-6 text-center text-candidate-hint text-candidate-muted-foreground">
-      <p>{organizationName} reviews every application.</p>
       <p>Powered by ScreenHire</p>
       {!onOwnPages && <a href={withEmbed(`${base}/my-applications`, embed)} class="inline-flex min-h-11 items-center text-candidate-muted-foreground underline">Your applications</a>}
       <a href={withEmbed(`${base}/privacy`, embed)} class="inline-flex min-h-11 items-center text-candidate-muted-foreground underline">What we collect and why</a>
