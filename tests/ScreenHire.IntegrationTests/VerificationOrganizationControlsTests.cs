@@ -455,6 +455,8 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
             Ct);
         await Task.Delay(TimeSpan.FromSeconds(2), Ct);
 
+        alerts[0].Text.Should().Contain("/verification", "the alert opens the Verification page")
+            .And.NotContain("/settings/verification", "Verification left Settings for its own sidebar item");
         (await fixture.Mailpit.MessagesAsync(ownerEmail, Ct)).Count(m => m.Subject == VerificationAlertWording.BudgetSubject)
             .Should().Be(1, "the month passed 80% once, and the second application found the budget already spent");
         (await fixture.Mailpit.MessagesAsync(ownKeyEmail, Ct)).Where(m => m.Subject == VerificationAlertWording.BudgetSubject)
