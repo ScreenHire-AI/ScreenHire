@@ -5,6 +5,7 @@
 // page whether or not the address applied (`sent`). Nothing on it collects anything about the browser.
 import { actions } from 'astro:actions';
 import Notice from '../../../components/Notice.astro';
+import Panel from '../../../components/Panel.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
 import { getPublicOrganization, getPublicPortalForm } from '../../../lib/api';
 import { forwardedFor } from '../../../lib/apply-server';
@@ -63,9 +64,6 @@ const formProblem = emailProblem ? undefined : problem;
         <p class="mt-3 text-candidate-body">
           This page is not available right now. To reach the team at {employer.name}, reply to the last email they sent you.
         </p>
-        <p class="mt-6 text-candidate-hint">
-          <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
-        </p>
       </>
     )
   }
@@ -78,9 +76,8 @@ const formProblem = emailProblem ? undefined : problem;
           There is no account and no password.
         </p>
 
-        <section aria-labelledby="how" class="mt-6">
-          <h2 id="how" class="font-display text-panel-title">How it works</h2>
-          <ol class="mt-2 flex list-decimal flex-col gap-2 pl-5 text-candidate-body">
+        <Panel id="how" title="How it works" class="mt-6">
+          <ol class="flex list-decimal flex-col gap-2 pl-5 text-candidate-body">
             <li>
               Enter the email address you applied with. If we have an application from that address, we email it a link. This page
               does not say whether we found one.
@@ -88,12 +85,12 @@ const formProblem = emailProblem ? undefined : problem;
             <li>The link opens your page. It works for a limited time, and only for you.</li>
             <li>Every email we send you about an application ends with a link to the same page.</li>
           </ol>
-          <p class="mt-3 text-candidate-hint text-candidate-muted-foreground">
+          <p class="mt-4 text-candidate-hint text-candidate-muted-foreground">
             We use the address you type here only to look for your applications and to send the link. This page collects nothing about
             your browser.
             {turnstileSiteKey && ' The bot check below is from Cloudflare, which sees your network address and browser.'}
           </p>
-        </section>
+        </Panel>
 
         <form method="POST" action={actions.requestPortalLink} novalidate class="mt-6 flex flex-col gap-4" aria-labelledby="request-heading">
           <h2 id="request-heading" class="sr-only">Email me a link</h2>
@@ -129,9 +126,6 @@ const formProblem = emailProblem ? undefined : problem;
 
         <p class="mt-6 text-candidate-body text-candidate-muted-foreground">
           Cannot use this page? Reply to the last email {employer.name} sent you.
-        </p>
-        <p class="mt-4 text-candidate-hint">
-          <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
         </p>
       </>
     )

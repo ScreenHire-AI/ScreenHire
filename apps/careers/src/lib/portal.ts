@@ -189,7 +189,7 @@ export const ENDED: Record<'Hired' | 'NotMovingForward' | 'Withdrawn', { label: 
   Hired: { label: 'Hired', detail: 'The team has marked you as hired for this role.', mark: 'check', tone: 'text-status-clear-mark' },
   NotMovingForward: {
     label: 'Not moving forward',
-    detail: 'The team has decided not to move forward with this application.',
+    detail: 'This application is not moving forward. You can ask the employer to have a person review it.',
     mark: 'minus',
     tone: 'text-candidate-muted-foreground',
   },

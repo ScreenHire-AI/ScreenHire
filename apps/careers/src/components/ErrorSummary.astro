@@ -27,10 +27,10 @@ const entries = Object.entries(errors);
       </h2>
       {formError && <p class="mt-1 text-candidate-body">{formError}</p>}
       {entries.length > 0 && (
-        <ul class="mt-2 flex flex-col gap-1 text-candidate-body">
+        <ul class="mt-1 flex flex-col text-candidate-body">
           {entries.map(([name, message]) => (
             <li>
-              <a href={`#${fieldId(name)}`} class="font-semibold text-destructive underline underline-offset-2">
+              <a href={`#${fieldId(name)}`} class="inline-flex min-h-11 items-center font-semibold text-destructive underline underline-offset-2">
                 {message}
               </a>
             </li>
