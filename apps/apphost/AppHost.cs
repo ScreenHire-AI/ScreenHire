@@ -249,7 +249,7 @@ foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePa
     }
 }
 
-// Data requests, record retention, the candidate portal and notifications (docs/architecture/data-requests.md,
+// Data requests, record retention, the candidate portal, notifications and the sending domain re-check (docs/architecture/data-requests.md,
 // docs/architecture/candidate-portal.md, docs/architecture/notifications.md): plain settings, no secrets, read by both hosts.
 foreach (var section in new[] { "DataRequests", "Portal", "Retention", "Notifications", "SendingDomainRecheck" })
 {

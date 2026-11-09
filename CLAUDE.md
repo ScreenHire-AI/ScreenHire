@@ -96,7 +96,9 @@ subsystem.
   the rate limit, the copies' container) and `ScreenHire:Retention:*` (`BatchSize`) go to the API and worker alike; see
   [`docs/architecture/data-requests.md`](docs/architecture/data-requests.md). `ScreenHire:Portal:*` (the candidate's own page:
   `LinkLifetime`, `LinkCooldown`, `PermitsPerMinute`, `ReplyBodyMax`, `RepliesPerDay`) goes to the API and worker alike; see
-  [`docs/architecture/candidate-portal.md`](docs/architecture/candidate-portal.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
+  [`docs/architecture/candidate-portal.md`](docs/architecture/candidate-portal.md). `ScreenHire:Notifications:*` (`RetentionDays`, how long the bell keeps
+  notifications) and `ScreenHire:SendingDomainRecheck:*` (`ConfirmDelay`, the wait before a failing sending domain is looked at again) go to the
+  API and worker alike; see [`docs/architecture/notifications.md`](docs/architecture/notifications.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.

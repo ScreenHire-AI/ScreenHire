@@ -19,6 +19,7 @@ sources:
   - resource: apps/dashboard/src/lib/setup-progress.svelte.ts
   - resource: apps/dashboard/src/lib/setup-checklist.ts
   - resource: apps/dashboard/src/lib/components/jobs-overview.svelte
+  - resource: apps/dashboard/src/lib/components/overview-stat.svelte
   - resource: apps/dashboard/src/lib/saved-views.ts
   - resource: apps/dashboard/src/routes/(app)/settings/sending-domain/+page.svelte
 ---
