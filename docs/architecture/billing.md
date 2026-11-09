@@ -131,8 +131,9 @@ trial's plan by name, that nothing is deleted when it ends, that open jobs stay 
 link to Settings > Billing. A host with no email sender or no dashboard address sends nothing and logs why.
 
 **The bell.** One `trial-ending` notification per Owner, key `trial`, with `endsAt` and the plan's name in its payload and a link
-to `/settings/billing`. The dashboard works out "ends in N days" from `endsAt` when it draws the line, so the one row stays right
-as the days pass instead of piling up one a day. When the trial ends, the ending notice is cleared and `trial-ended` raised, so it
+to `/settings/billing`. The dashboard works out "ends in N days", "ends tomorrow" or "ends today" from `endsAt` when it draws the
+line, in calendar days in the browser's time zone, so the one row stays right as the days pass instead of piling up one a day and
+agrees with the date the trial ends on. The line is the fact alone; the link goes to Billing, which says what a plan changes. When the trial ends, the ending notice is cleared and `trial-ended` raised, so it
 comes back unread even for an Owner who had read or dismissed the first. Only Owners are addressed, so a member without Manage
 billing has no row and sees nothing. Both kinds are exempt from the retention purge (`NotificationKinds.KeptUntilCleared`), because
 a trial that ended with no plan is still true a month later. A plan starting takes them away: `BillingEventApplier`, which every
@@ -143,7 +144,9 @@ joins after a notice was raised gets the next reminder's copy, not the ones befo
 `CatchUpTrialReminders` once when it starts (`TrialReminderCatchUp`, a one-shot hosted service registered in the worker's
 `Program.cs` only, not in the shared messaging setup, so the tests' private handler hosts cannot schedule a trial's reminders into
 a store nobody reads). It fans out one `TrialStarted` per organization, as the other fan-outs do, and the same handler does the
-work. `TrialRemindersScheduledFor` makes a restart schedule nothing twice. The repo's other backfills are SQL inside a migration,
+work. `TrialRemindersScheduledFor` makes a restart schedule nothing twice. Two `TrialStarted` handled at the same moment (two
+workers starting together) can both find it empty and both schedule; that costs duplicate scheduled rows, not duplicate emails or
+notices, because the emails are deduplicated on their keys and the notices are upserts. The repo's other backfills are SQL inside a migration,
 which cannot write Wolverine's schedule (the migrator creates that storage after the migrations), so this one is a message.
 Changing `Trial:RemindDaysBefore` later does not move reminders already scheduled.
 
