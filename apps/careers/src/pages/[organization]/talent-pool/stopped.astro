@@ -28,7 +28,7 @@ const base = basePath(Astro.request, employer.slug);
     {employer.name} will not invite you to apply for other roles. There is nothing more to do.
   </p>
   <p class="mt-6 text-candidate-body">
-    <a href={`${base}/privacy`} class="text-link">What we collect and why</a>
+    <a href={`${base}/privacy`} class="text-link inline-flex min-h-11 items-center">What we collect and why</a>
   </p>
   <a href={base || '/'} class="button-secondary mt-4">See open roles</a>
 </CareersLayout>

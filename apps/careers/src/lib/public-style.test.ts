@@ -65,6 +65,11 @@ describe('public page markup', () => {
     }
   });
 
+  it('uses only the three radii (section 5): 8px, 12px (rounded-panel) and full, never rounded-2xl or the like', () => {
+    // A card with its own radius and no shadow beside Panel's looks like another page's (the portal's cards once did).
+    expect(offenders(/(?<![\w-])(?:[a-z0-9-]+:)*rounded-(?!panel(?![\w-])|lg(?![\w-])|full(?![\w-])|none(?![\w-]))[\w[]+/g)).toEqual([]);
+  });
+
   it('keeps margins, padding and gaps on the 4px grid (section 5): no half steps, 28px or 36px', () => {
     const offGrid = /(?<![\w-])(?:[a-z0-9-]+:)*-?(?:p|px|py|pt|pb|pl|pr|ps|pe|m|mx|my|mt|mb|ml|mr|ms|me|gap|gap-x|gap-y|space-x|space-y)-(?:0\.5|1\.5|2\.5|3\.5|7|9|11)(?![\w.])/g;
     expect(offenders(offGrid)).toEqual([]);

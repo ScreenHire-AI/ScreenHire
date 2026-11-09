@@ -109,8 +109,10 @@ if (form) {
 
 const job = form?.job;
 const policy = form?.aiUsePolicy ?? 'Allowed';
+// With the default policy the review step's own AI question already says AI help is welcome, so the details step stays
+// quiet and the first field sits higher on a phone. A policy that asks for something says so before the candidate writes.
 const aiIntro = {
-  Allowed: "Used AI to help write? That's fine for this role. You can tell us at the end.",
+  Allowed: null,
   AllowedWithDisclosure: 'AI help is fine for this role, as long as you tell us. We ask at the end.',
   NotAllowed: `${employer.name} asks you to write this application without AI tools. We ask about it at the end.`,
 }[policy];
@@ -234,12 +236,12 @@ const answerText = (questionId: string): string => {
                 <span class="flex flex-col">
                   <span class="text-candidate-body font-semibold">Check this device for repeat applications (optional)</span>
                   <span id="device-check-hint" class="text-candidate-hint text-candidate-muted-foreground">
-                    We turn your browser's settings into a one-way code, so a person can see when one device sends many applications. Deleted after 30 days.
+                    We make a one-way code from your browser's settings to spot repeat applications from one device. Deleted after 30 days.
                   </span>
                 </span>
               </label>
             )}
-            <p class="text-candidate-hint text-candidate-muted-foreground">{aiIntro}</p>
+            {aiIntro && <p class="text-candidate-hint text-candidate-muted-foreground">{aiIntro}</p>}
             <TextField name="firstName" label="First name" value={state.firstName} error={errors.firstName} required autocomplete="given-name" maxlength={MAX_NAME} />
             <TextField name="lastName" label="Last name" value={state.lastName} error={errors.lastName} autocomplete="family-name" maxlength={MAX_NAME} />
             <TextField name="email" label="Email" type="email" inputmode="email" value={state.email} error={errors.email} required autocomplete="email" maxlength={MAX_EMAIL} />

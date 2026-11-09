@@ -1,11 +1,12 @@
 ---
 // The messages about one application (docs/architecture/candidate-portal.md): the emails the team sent to the candidate and
 // their replies, oldest first, with a box to reply from the page. A reply written here and a reply sent by email land in the
-// same place for the team, with attachments scanned. One native multipart form posted to the `sendPortalReply` action, so it
+// same place for the team. One native multipart form posted to the `sendPortalReply` action, so it
 // works with JavaScript off and ships no script. The reply form's own id makes sending it twice store one reply. The link is
 // the candidate's alone: never cached, indexed or sent on as a referrer. It collects the words and files and nothing else.
 import { actions } from 'astro:actions';
 import Notice from '../../../../components/Notice.astro';
+import Panel from '../../../../components/Panel.astro';
 import PortalLinkProblem from '../../../../components/PortalLinkProblem.astro';
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
 import { getPublicOrganization, getPublicPortalMessages } from '../../../../lib/api';
@@ -69,7 +70,7 @@ const heading = { open: messages?.jobTitle ?? 'Messages', busy: 'Too many attemp
           <h2 id="thread" class="sr-only">Messages</h2>
           <ol class="flex flex-col gap-4">
             {messages.messages.map((message) => (
-              <li class:list={['rounded-2xl border border-candidate-border p-5', message.direction === 'FromYou' ? 'bg-candidate-background' : 'bg-candidate-surface']}>
+              <li class:list={['rounded-panel border border-candidate-border p-5 shadow-surface', message.direction === 'FromYou' ? 'bg-candidate-background' : 'bg-candidate-surface']}>
                 <p class="text-candidate-hint text-candidate-muted-foreground">
                   <span class="font-semibold text-candidate-foreground">{message.direction === 'FromYou' ? 'You' : employer.name}</span>
                   {' '}on <time datetime={message.at}>{longDate(message.at)}</time>
@@ -87,9 +88,8 @@ const heading = { open: messages?.jobTitle ?? 'Messages', busy: 'Too many attemp
         </section>
 
         {messages.canReply ? (
-          <section aria-labelledby="reply-heading" class="mt-8">
-            <h2 id="reply-heading" class="font-display text-panel-title">Reply</h2>
-            <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">You can also reply to the email you received.</p>
+          <Panel id="reply-heading" title="Reply" class="mt-8">
+            <p class="text-candidate-hint text-candidate-muted-foreground">You can also reply to the email you received.</p>
             <form method="POST" action={actions.sendPortalReply} enctype="multipart/form-data" novalidate class="mt-4 flex flex-col gap-4">
               <input type="hidden" name="organization" value={employer.slug} />
               <input type="hidden" name="token" value={token} />
@@ -106,15 +106,19 @@ const heading = { open: messages?.jobTitle ?? 'Messages', busy: 'Too many attemp
                   Files <span class="font-medium text-candidate-muted-foreground">(optional)</span>
                 </label>
                 <p id="files-hint" class="text-candidate-hint text-candidate-muted-foreground">
-                  Up to {MAX_FILES} files, 10 MB in all. PDF, Word, PNG or JPEG. We scan every file before the team can open it.
+                  Up to {MAX_FILES} files, 10 MB in all. PDF, Word, PNG or JPEG.
                 </p>
-                <input id="files" name="files" type="file" multiple accept={FILE_TYPES} aria-describedby="files-hint" class="field-input" />
+                {/* The same dashed frame the apply form's file field has before its script runs (design-system A12). A reply
+                    takes several files in one post, which the single-file drop area cannot, so it stays a plain input. */}
+                <div class="drop-area" data-tone="candidate">
+                  <input id="files" name="files" type="file" multiple accept={FILE_TYPES} aria-describedby="files-hint" class="file-input" />
+                </div>
               </div>
               <div class="flex flex-col gap-3 sm:flex-row">
                 <button type="submit" class="button-primary">Send message</button>
               </div>
             </form>
-          </section>
+          </Panel>
         ) : (
           <p class="mt-8 text-candidate-body text-candidate-muted-foreground">
             When the team writes to you about this application, you can answer here.
