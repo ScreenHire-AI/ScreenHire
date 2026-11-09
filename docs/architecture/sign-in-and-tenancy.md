@@ -100,7 +100,7 @@ organization API key in place of the session ("API keys" below).
 | `GET /v1/auth/callback?returnUrl=` | Links or creates the user, signs them in, redirects to the dashboard. |
 | `POST /v1/auth/magic-link` | Emails a sign-in link. Always 202, known address or not. An optional `returnUrl` (a local path, sanitized as above) rides in the link's fragment beside the token, so the verify page opens it after sign-in; the OAuth consent page relies on it. |
 | `POST /v1/auth/magic-link/verify` | Redeems a link's token and signs in. |
-| `POST /v1/auth/onboarding` | Creates the user's organization (name and slug) with them as Owner. |
+| `POST /v1/auth/onboarding` | Creates the user's organization (name and slug) with them as Owner. With billing on, the same transaction makes its trial account and publishes `TrialStarted` through the outbox ([billing](billing.md#trial-reminders)). |
 | `POST /v1/auth/invitations/accept` | Redeems an emailed invitation: signs in as the invited address and joins its organization. |
 | `POST /v1/auth/invitations/lookup` | Names the organization and role an open invitation offers, for the accept page. It uses nothing up, and answers an unusable token as accepting does. |
 | `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. A custom role is named only in the one they work in: row-level security hides other organizations' roles. |

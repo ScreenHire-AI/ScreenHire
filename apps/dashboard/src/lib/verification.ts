@@ -2,16 +2,18 @@ import type {
   AiAssistanceLevel,
   AiUseDeclaration,
   AiUsePolicy,
-  ApplicationSource,
   ApplicationSummary,
   AuthenticityLevel,
   DismissReason,
   ExplainReason,
   VerificationSignalView,
   VerificationSummary,
-  SignalCategory,
-  VerificationReviewEntry,
   StageKind,
+  AiAssistanceAssessmentView,
+  AuthenticityAssessmentView,
+  CheckGroup,
+  CheckGroupState,
+  CheckGroupView,
 } from '@screenhire/api-client';
 import type { QueryClient } from '@tanstack/svelte-query';
 import { invalidatePath } from '#lib/query.js';
@@ -45,59 +47,90 @@ export const aiAssistanceLevels: Record<AiAssistanceLevel, LevelView> = {
   StrongIndicators: { label: 'Strong signs of AI help', status: 'ai', rank: 2 },
 };
 
-/** Each assessment's levels from lowest to highest, the order legends and menus list them in. */
-export const authenticityOrder = ['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const satisfies readonly AuthenticityLevel[];
-export const aiAssistanceOrder = ['NotIndicated', 'SomeIndicators', 'StrongIndicators'] as const satisfies readonly AiAssistanceLevel[];
+/** Authenticity's levels from lowest to highest, the order menus and counts list them in. */
+const authenticityOrder =['NoConcerns', 'ReviewSuggested', 'VerificationRecommended'] as const satisfies readonly AuthenticityLevel[];
 
 /**
- * The kinds of check the Verification tab shows a summary card for (design system section 16). Network, Identity,
- * Automation and Content always show; files and form activity only when they found something. Each is one of the
- * engine's categories, kept apart because the engine counts independent categories to raise a level
- * (verification-engine.md section 10.1). The names say what was looked at, never what it means about the person: form
- * activity (the telemetry aggregates) is neither "automation" nor "behaviour".
+ * One thing a check found, with the assessment it belongs to. The Verification tab lists findings by check group, so a
+ * reader sees where each came from, and the review controls need the assessment's id.
  */
-export const checkKinds: readonly { category: SignalCategory; title: string; always: boolean }[] = [
-  { category: 'Network', title: 'Network', always: true },
-  { category: 'Identity', title: 'Identity', always: true },
-  { category: 'Automation', title: 'Automation', always: true },
-  { category: 'Content', title: 'Content', always: true },
-  { category: 'Document', title: 'Files', always: false },
-  { category: 'Behavioural', title: 'Form activity', always: false },
-];
+export interface Finding {
+  signal: VerificationSignalView;
+  assessmentId: string;
+  kind: AssessmentKind;
+}
+
+// Every group, in the API's order. The record makes a group the API adds fail the type check here, rather than its findings
+// going missing from the tab.
+const groupPositions = { Network: 0, Contact: 1, Documents: 2, Answers: 3, Duplicates: 4, FormUse: 5 } as const satisfies Record<CheckGroup, number>;
+const groupOrder = Object.keys(groupPositions) as CheckGroup[];
 
 /**
- * The kinds of check that had nothing to look at, by how the application arrived. A candidate a recruiter added by hand
- * came through no careers form, so the API stored no network address, session or form telemetry for them
- * (`ApplicationSubmission.SubmitAsync`): Network and Automation did not run, and Form activity had nothing to measure.
- * It goes by the source alone, the same for everyone added by hand. A careers applicant's checks are never marked this
- * way, so nothing here tells an assistive-technology opt-out apart (CLAUDE.md non-negotiable 4).
+ * An application's findings by check group, in the groups' order. Within a group the ones that count toward the level come
+ * first, then the notes (AI help and context that never counts), each in the order the API sent them.
  */
-export function uncheckedCategories(source: ApplicationSource | undefined): SignalCategory[] {
-  return source === 'Recruiter' ? ['Network', 'Automation'] : [];
+export function findingsByGroup(
+  authenticity: AuthenticityAssessmentView | null | undefined,
+  aiAssistance: AiAssistanceAssessmentView | null | undefined,
+): Record<CheckGroup, Finding[]> {
+  const all: Finding[] = [
+    ...(authenticity?.signals ?? []).map((signal) => ({ signal, assessmentId: authenticity!.id, kind: 'authenticity' as const })),
+    ...(aiAssistance?.signals ?? []).map((signal) => ({ signal, assessmentId: aiAssistance!.id, kind: 'aiAssistance' as const })),
+  ];
+  const counts = (finding: Finding) => finding.kind === 'authenticity' && finding.signal.countsTowardLevel;
+  return Object.fromEntries(
+    groupOrder.map((group) => [group, all.filter((finding) => finding.signal.group === group).toSorted((a, b) => Number(counts(b)) - Number(counts(a)))]),
+  ) as Record<CheckGroup, Finding[]>;
 }
 
-/** The one quiet line a hand-added candidate's authenticity result carries about the checks that could not run. */
-export const addedByHandNote = 'Added by hand, so the network, automation and form activity checks had nothing to look at.';
+/** The anchor a group's panel carries, so its tile on the map can scroll to it. */
+export const groupAnchor = (group: CheckGroup) => `verification-group-${group.toLowerCase()}`;
 
-/** One kind of check: the reasons it found that count toward the level. */
-export interface CheckSummary {
-  category: SignalCategory;
-  title: string;
-  signals: VerificationSignalView[];
+/** A group tile's words: its state in one phrase. They never say what a finding means about the person. */
+export function groupStateText(group: CheckGroupView): string {
+  switch (group.state) {
+    case 'Found':
+      return `${group.found} found`;
+    case 'InformationOnly':
+      return `${group.notes} ${group.notes === 1 ? 'note' : 'notes'}, information only`;
+    case 'NothingFound':
+      return 'Nothing found';
+    case 'NotChecked':
+      return 'Not checked';
+    case 'TurnedOff':
+      return 'Turned off';
+    case 'Paused':
+      return 'AI checks paused';
+  }
 }
 
-/** A card per kind of check, in the order of `checkKinds`, from an assessment's reasons. */
-export function checkSummaries(signals: readonly VerificationSignalView[]): CheckSummary[] {
-  const reasons = signals.filter((signal) => signal.countsTowardLevel);
-  return checkKinds
-    .map((kind) => ({ category: kind.category, title: kind.title, always: kind.always, signals: reasons.filter((signal) => signal.category === kind.category) }))
-    .filter((kind) => kind.always || kind.signals.length > 0)
-    .map(({ category, title, signals: found }) => ({ category, title, signals: found }));
+/**
+ * The status a group tile shows as: its icon and colour. Found needs a look, whatever the level (the header shows the level
+ * once, and a level's own icon would read as a check of its own, such as Verify's ID card); the rest are calm or
+ * information. Information only takes the AI mark only where every note is AI help (`groupStatusOf`).
+ */
+export const groupStatuses: Record<CheckGroupState, StatusName> = {
+  Found: 'review',
+  InformationOnly: 'information',
+  NothingFound: 'done',
+  NotChecked: 'notInEffect',
+  TurnedOff: 'notInEffect',
+  Paused: 'notInEffect',
+};
+
+/**
+ * A group tile's status given its findings: the sparkles mark means AI help (section 3.2), so an information-only group
+ * takes it only when all its notes are AI help. A VPN or other context note is information in grey.
+ */
+export function groupStatusOf(group: CheckGroupView, findings: readonly Finding[]): StatusName {
+  if (group.state === 'InformationOnly' && findings.length > 0 && findings.every((finding) => finding.kind === 'aiAssistance')) return 'ai';
+  return groupStatuses[group.state];
 }
+
+/** A group that did not run, or had nothing to read: a calm result names it so a quiet result is never read as a clean one. */
+export const groupDidNotRun = (group: CheckGroupView) => group.state === 'NotChecked' || group.state === 'TurnedOff';
 
 export type AssessmentKind = 'authenticity' | 'aiAssistance';
-
-export const assessmentNames: Record<AssessmentKind, string> = { authenticity: 'Authenticity', aiAssistance: 'AI assistance' };
 
 /**
  * The one word a verification state shows as, everywhere a level shows (design system section 3.2): Clear, Review or
@@ -285,40 +318,15 @@ export function everyReasonExplained(signals: readonly VerificationSignalView[])
 }
 
 /**
- * After a dismissal, a note or an explanation: they change the verification panel, the review log, the list chips
+ * After a dismissal, a note or an explanation: they change the verification panel, Activity, the list chips
  * (dismissed) and the "Needs review" counts, and no live event announces them.
  */
 export function refetchAfterReview(queryClient: QueryClient): Promise<unknown> {
   return Promise.all([invalidatePath(queryClient, applicationsPath), invalidatePath(queryClient, jobsPath)]);
 }
 
-/** Who took a review action, as the verification panel and the review log name them: "you", or their name. */
+/** Who took a review action, as the verification panel and Activity name them: "you", or their name. */
 export function reviewerName(userId: string | null, name: string | null, currentUserId: string | undefined): string {
   if (userId !== null && userId === currentUserId) return 'you';
   return name ?? 'a teammate';
-}
-
-/** One line of the review log: an entry, and with `reads` above 1, the run of reads by one key it stands for. */
-export interface ReviewLogRow {
-  entry: VerificationReviewEntry;
-  reads: number;
-}
-
-/**
- * The review log's entries (oldest first) as rows: consecutive reads through the same API key become one row at the latest
- * read, with how many there were, so an assistant that reads a hundred applications does not bury the people's actions
- * (ADR-0021). Every read stays in the log and in the API; only the list folds them.
- */
-export function groupKeyReads(entries: readonly VerificationReviewEntry[]): ReviewLogRow[] {
-  const rows: ReviewLogRow[] = [];
-  for (const entry of entries) {
-    const last = rows.at(-1);
-    if (entry.type === 'ReadByKey' && last?.entry.type === 'ReadByKey' && last.entry.apiKeyId === entry.apiKeyId) {
-      last.entry = entry;
-      last.reads += 1;
-    } else {
-      rows.push({ entry, reads: 1 });
-    }
-  }
-  return rows;
 }

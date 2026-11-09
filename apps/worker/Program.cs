@@ -1,3 +1,4 @@
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Branding;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Privacy;
@@ -42,5 +43,10 @@ builder.Services.AddSingleton<IDataExportStore, BlobDataExportStore>();
 // Wolverine: the worker queue's durable inbox, every handler in ScreenHire.Application, the durability agent and the
 // cron schedules (ADR-0008, docs/architecture/messaging.md).
 builder.AddScreenHireMessageHandling();
+
+// A trial that began before reminders existed gets its reminders scheduled: a message sent once at start, which does nothing for an
+// organization whose account already has them (docs/architecture/billing.md, "Trial reminders"). Not in the shared messaging setup:
+// the tests' private handler hosts share this database and must not schedule a trial's reminders into a store nobody reads.
+builder.Services.AddHostedService<TrialReminderCatchUp>();
 
 await builder.Build().RunAsync();

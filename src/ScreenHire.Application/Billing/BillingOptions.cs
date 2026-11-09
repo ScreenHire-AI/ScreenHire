@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using ScreenHire.Domain.Billing;
 
 namespace ScreenHire.Application.Billing;
 
@@ -102,6 +103,13 @@ public sealed class BillingTrialOptions
 
     /// <summary>The plan whose limit applies during the trial: a key of the catalogue. Defaults to packages/plans/trial.json.</summary>
     public string Plan { get; set; } = TrialDefaults.Shipped.Plan;
+
+    /// <summary>
+    /// The days before <c>TrialEndsAt</c> the Owners are emailed, besides the day it ends, which is always reminded. Empty means 7 and 1
+    /// (<see cref="TrialReminders.DefaultDaysBefore"/>). Left empty here rather than set to that default: the configuration binder
+    /// adds a configured list to the elements an array or list already has, so <c>[3]</c> would become <c>[7, 1, 3]</c>.
+    /// </summary>
+    public int[] RemindDaysBefore { get; set; } = [];
 }
 
 /// <summary>
@@ -196,6 +204,14 @@ public sealed class BillingTrialGate : IValidateOptions<BillingOptions>
     public ValidateOptionsResult Validate(string? name, BillingOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
+
+        // Checked in every mode: the worker reads the days without knowing the mode, and a day of zero or less would be dropped silently.
+        if (options.Trial.RemindDaysBefore.Any(d => d < 1))
+        {
+            return ValidateOptionsResult.Fail(
+                $"ScreenHire:Billing:Trial:RemindDaysBefore is [{string.Join(", ", options.Trial.RemindDaysBefore)}]. Each day must be 1 or more; the day the trial ends is always reminded.");
+        }
+
         if (options.Mode == BillingMode.Off)
         {
             return ValidateOptionsResult.Success;

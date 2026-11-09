@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Branding;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Distribution.GoogleIndexing;
@@ -206,6 +207,8 @@ public static class ScreenHireMessaging
         // data until the worker registers its blob store first.
         opts.Services.AddScreenHirePrivacy();
         opts.Services.AddScreenHireNotifications();
+        // The reminders before a free trial ends read the trial's settings and the plan catalogue (docs/architecture/billing.md).
+        opts.Services.AddScreenHireTrialReminders();
         // The AI usage sweeps: the spike rule, the retention floor and asking again for paused AI checks.
         opts.Services.AddScreenHireAiUsage();
         // The daily re-check of sending domains looks them up and asks the provider, as the API does.

@@ -123,14 +123,14 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await OpenApplicationAsync(table, bot.FullName);
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Verification") }).ClickAsync();
         var panel = Page.GetByRole(AriaRole.Tabpanel);
-        var authenticity = panel.GetByRole(AriaRole.Region, new() { Name = "Authenticity", Exact = true });
-        await Expect(authenticity.GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: Verification suggested") })).ToBeVisibleAsync(new() { Timeout = 60_000 });
+        var summary = panel.GetByRole(AriaRole.Region, new() { Name = "Verification", Exact = true });
+        await Expect(panel.GetByRole(AriaRole.Region, new() { Name = "Form use", Exact = true })).ToBeVisibleAsync(new() { Timeout = 60_000 });
         foreach (var code in new[] { "AUTO_HONEYPOT", "AUTO_WEBDRIVER", "AUTO_SUBMIT_VELOCITY", "ID_EMAIL_DISPOSABLE", "ID_PHONE_INVALID" })
         {
-            await Expect(authenticity.Locator($"[data-signal='{code}']")).ToBeVisibleAsync();
+            await Expect(panel.Locator($"[data-signal='{code}']")).ToBeVisibleAsync();
         }
 
-        await Expect(authenticity.Locator("[data-next-step]")).ToContainTextAsync("Confirm the candidate is who they say they are");
+        await Expect(summary.Locator("[data-next-step]")).ToContainTextAsync("Confirm the candidate is who they say they are");
         await Expect(panel.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("reject", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);
         (await panel.TextContentAsync()).Should().NotContain("%", "verification output has no percentage (ADR-0004)");
         await ExpectNoAccessibilityViolationsAsync();
@@ -141,8 +141,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await OpenApplicationAsync(table, genuine.FullName);
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Verification") }).ClickAsync();
         var genuinePanel = Page.GetByRole(AriaRole.Tabpanel);
-        await Expect(genuinePanel.GetByRole(AriaRole.Region, new() { Name = "Authenticity", Exact = true }).GetByRole(AriaRole.Img, new() { NameRegex = new("^Authenticity: No concerns") })).ToBeVisibleAsync(new() { Timeout = 60_000 });
-        await Expect(genuinePanel.GetByRole(AriaRole.Region, new() { Name = "Authenticity", Exact = true }).Locator("[data-next-step]")).ToHaveTextAsync("No action needed.");
+        await Expect(genuinePanel.GetByRole(AriaRole.Region, new() { Name = "Verification", Exact = true }).Locator("[data-next-step]")).ToHaveTextAsync("No action needed.", new() { Timeout = 60_000 });
         await Page.GetByRole(AriaRole.Button, new() { Name = $"Move to stage, {genuine.FullName}", Exact = true }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Screening" }).ClickAsync();
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();

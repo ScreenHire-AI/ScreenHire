@@ -25,6 +25,7 @@ const card = (overrides: Partial<ScorecardEntry>): ScorecardEntry =>
     submittedAt: '2026-10-28T10:00:00Z',
     scorecardTemplateId: null,
     scorecardName: 'Phone screen',
+    withheld: false,
     ...overrides,
   }) as ScorecardEntry;
 
@@ -58,6 +59,20 @@ describe('scorecards on the Overview', () => {
     expect(screen.getByText('Rating after your scorecard.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Fill in your scorecard' })).toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Scorecards given' })).toBeNull();
+  });
+
+  it('lists who gave a withheld scorecard and when, with the recommendation blank for screen readers', () => {
+    show({
+      rating: { state: 'AfterYourScorecard', scorecards: 0 },
+      scorecards: [card({ withheld: true, recommendation: null, rating: null })],
+      withheld: true,
+    });
+
+    const [line] = within(screen.getByRole('list', { name: 'Scorecards given' })).getAllByRole('listitem');
+    expect(line).toHaveTextContent('Robin Ashby');
+    expect(line).toHaveTextContent('Oct 28, 2026');
+    expect(within(line!).getByText('Hidden until you submit yours')).toHaveClass('sr-only');
+    expect(line).not.toHaveTextContent('Yes');
   });
 
   it('shows no number or percentage that grades anyone beyond the people\'s own rating', () => {

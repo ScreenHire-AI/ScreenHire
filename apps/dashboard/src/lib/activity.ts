@@ -28,7 +28,8 @@ import { personName } from '#lib/team.js';
 /**
  * An application's Activity (design system section 21): every entry newest first, saying who and how long ago, and a
  * filter by kind with counts. A note shows its latest text and says Edited, so its edits are not lines of their own; a
- * deleted note leaves one line saying who deleted it and when, never its text.
+ * deleted note leaves one line saying who deleted it and when, never its text. The Verification kind holds the times the
+ * checks ran and what people and API keys did to the candidate's verification (`#lib/verification-activity.ts`).
  */
 
 /** The kinds Activity filters by, in the order of the filter. Entries of no kind show under All only. */
@@ -38,6 +39,7 @@ export const activityKinds = [
   { value: 'scorecards', label: 'Scorecards' },
   { value: 'interviews', label: 'Interviews' },
   { value: 'stage', label: 'Stage and tags' },
+  { value: 'verification', label: 'Verification' },
 ] as const;
 
 export type ActivityKind = (typeof activityKinds)[number]['value'];
@@ -49,6 +51,7 @@ const kinds: Partial<Record<ApplicationEventType, ActivityKind>> = {
   EmailReceived: 'emails',
   ScorecardSubmitted: 'scorecards',
   Submitted: 'stage',
+  VerificationAssessed: 'verification',
   StageChanged: 'stage',
   TagAdded: 'stage',
   TagRemoved: 'stage',
@@ -71,7 +74,7 @@ export function visibleEntries(entries: readonly ApplicationTimelineEntry[]): Ap
 
 /** How many entries each kind holds, and all of them. */
 export function kindCounts(entries: readonly ApplicationTimelineEntry[]): Record<ActivityKind | 'all', number> {
-  const counts = { all: entries.length, notes: 0, emails: 0, scorecards: 0, interviews: 0, stage: 0 };
+  const counts = { all: entries.length, notes: 0, emails: 0, scorecards: 0, interviews: 0, stage: 0, verification: 0 };
   for (const entry of entries) {
     const kind = activityKind(entry);
     if (kind) counts[kind] += 1;

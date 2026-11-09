@@ -72,6 +72,28 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
         return await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Makes the waiting scheduled message of type <paramref name="messageType"/> (a part of its type name) whose body contains
+    /// <paramref name="bodyContains"/> and that falls due first due now, and returns how many it moved (0 or 1). For a schedule that
+    /// holds several messages of one type, told apart by when they fall due.
+    /// </summary>
+    public async Task<int> ReleaseNextScheduledAsync(string bodyContains, string messageType, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            $"""
+            update {schema}.wolverine_incoming_envelopes set execution_time = now()
+            where id = (
+                select id from {schema}.wolverine_incoming_envelopes
+                where status = 'Scheduled' and {BodyMatches} and position(@type in message_type) > 0
+                order by execution_time limit 1)
+            """,
+            connection);
+        command.Parameters.AddWithValue("needle", bodyContains);
+        command.Parameters.AddWithValue("type", messageType);
+        return await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
     /// <summary>Handled messages of one type. Only meaningful in a private schema, where every message is the test's own.</summary>
     public async Task<long> CountHandledOfTypeAsync(string messageTypeContains, CancellationToken cancellationToken)
     {

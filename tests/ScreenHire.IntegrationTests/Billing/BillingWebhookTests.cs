@@ -152,7 +152,8 @@ public sealed class BillingWebhookTests(AppHostFixture fixture)
         var tenant = new TenantContext();
         tenant.SetOrganization(organization);
         await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
-        return await db.BillingEvents.CountAsync(Ct);
+        // Provider events only: the worker also records, in this table, that the trial's reminders are scheduled.
+        return await db.BillingEvents.CountAsync(e => !e.EventId.StartsWith(TrialReminderKeys.ScheduledRecordPrefix), Ct);
     }
 
     private sealed class FixedTime(DateTimeOffset now) : TimeProvider

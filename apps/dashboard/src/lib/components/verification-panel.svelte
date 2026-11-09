@@ -1,70 +1,48 @@
 <script lang="ts">
   import ArrowRightIcon from '~icons/lucide/arrow-right';
-  import BotIcon from '~icons/lucide/bot';
-  import FileSearchIcon from '~icons/lucide/file-search';
-  import FileTextIcon from '~icons/lucide/file-text';
-  import GlobeIcon from '~icons/lucide/globe';
-  import InfoIcon from '~icons/lucide/info';
-  import KeyboardIcon from '~icons/lucide/keyboard';
   import ChevronDownIcon from '~icons/lucide/chevron-down';
-  import TriangleAlertIcon from '~icons/lucide/triangle-alert';
-  import UserRoundIcon from '~icons/lucide/user-round';
-  import {
-    undoVerificationReasonExplanation,
-    type AiAssistanceAssessmentView,
-    type ApplicationSource,
-    type AuthenticityAssessmentView,
-    type VerificationSignalView,
-    type SignalCategory,
-  } from '@screenhire/api-client';
+  import { undoVerificationReasonExplanation, type CheckGroup } from '@screenhire/api-client';
   import { createGetApplicationVerification } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { page } from '$app/state';
-  import VerificationDismissDialog from '#lib/components/verification-dismiss-dialog.svelte';
-  import VerificationExplainDialog from '#lib/components/verification-explain-dialog.svelte';
-  import LevelScale from '#lib/components/level-scale.svelte';
+  import Hint from '#lib/components/hint.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
-  import SignalEvidence, { isWideEvidence } from '#lib/components/signal-evidence.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { sentenceStart } from '#lib/history.js';
+  import VerificationDismissDialog from '#lib/components/verification-dismiss-dialog.svelte';
+  import VerificationExplainDialog from '#lib/components/verification-explain-dialog.svelte';
+  import VerificationFinding from '#lib/components/verification-finding.svelte';
+  import VerificationGroupMap from '#lib/components/verification-group-map.svelte';
   import {
-    addedByHandNote,
     aiAssistanceLevels,
-    aiAssistanceOrder,
     aiPolicyLabels,
-    assessmentNames,
     authenticityLevels,
-    authenticityOrder,
-    checkKinds,
-    checkSummaries,
     dismissReasonLabels,
     everyReasonExplained,
-    explainReasonLabels,
+    findingsByGroup,
+    groupAnchor,
+    groupDidNotRun,
+    groupStateText,
     refetchAfterReview,
     reviewerName,
-    uncheckedCategories,
-    type AssessmentKind,
     type ExplainedReasonItem,
-    type LevelView,
+    type Finding,
   } from '#lib/verification.js';
   import { can } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
   import { statuses, type StatusTone } from '#lib/status.js';
 
-  // A candidate's Verification tab (ADR-0004, design system section 16, docs/architecture/verification-engine.md section 7):
-  // each assessment's level on its three-step scale, its suggested next step, then its reasons grouped by the kind of
-  // check that found them, each expanding to its evidence and counter-evidence. It decides nothing. Marking a reason
-  // explained and dismissing are a person's and go in the review log (`ReviewLog`); explaining every reason changes no
-  // level, and only a dismissal sets an assessment aside. Nothing here rejects anyone or shows a score.
-  // `source`: how the application arrived. A candidate added by hand had no careers form, so the checks that read one
-  // say they had nothing to look at instead of "Nothing found" (uncheckedCategories).
-  let { applicationId, source }: { applicationId: string; source?: ApplicationSource } = $props();
-  const unchecked = $derived(uncheckedCategories(source));
+  // A candidate's Verification tab (ADR-0004, design system section 16, docs/architecture/verification-engine.md section 7).
+  // The level is the header's mark, shown once; here are its suggested next step, AI help as information, a map of the six
+  // groups of checks with what each found, and a panel for each group that found something, each finding opening to its
+  // evidence and counter-evidence. It decides nothing. Marking a finding explained and dismissing are a person's, and
+  // every one is an entry in the candidate's Activity; explaining every finding changes no level, and only a dismissal sets
+  // the result aside. Nothing here rejects anyone or shows a score.
+  let { applicationId }: { applicationId: string } = $props();
 
   const queryClient = useQueryClient();
   // VerificationAssessed refetches it live (#lib/realtime.ts).
@@ -72,7 +50,6 @@
   const detail = $derived(verification.data?.data);
 
   let dismissOpen = $state(false);
-  let dismissing = $state<{ id: string; kind: AssessmentKind } | null>(null);
   let dismissExplained = $state<ExplainedReasonItem[]>([]);
   let explainOpen = $state(false);
   let explaining = $state<{ assessmentId: string; signalId: string; title: string } | null>(null);
@@ -80,18 +57,24 @@
   let announcement = $state('');
   // Only a role that reviews verification sees the review controls; the API refuses everyone else anyway.
   const reviewer = $derived(can(page.data.user, 'ReviewVerification'));
-  // Which reasons are open; Expand all opens every one.
+  // Which findings are open; Expand all opens every one of a group.
   let expanded = $state<Record<string, boolean>>({});
 
-  const checkIcons: Record<SignalCategory, typeof GlobeIcon> = {
-    Network: GlobeIcon,
-    Identity: UserRoundIcon,
-    Automation: BotIcon,
-    Content: FileTextIcon,
-    Document: FileSearchIcon,
-    Behavioural: KeyboardIcon,
-  };
-  const checkTitle = (category: SignalCategory) => checkKinds.find((kind) => kind.category === category)?.title ?? category;
+  const authenticity = $derived(detail?.authenticity ?? null);
+  const aiAssistance = $derived(detail?.aiAssistance ?? null);
+  const level = $derived(authenticity ? authenticityLevels[authenticity.level] : undefined);
+  // The result still needs a look and nobody set it aside: its findings can be explained and it can be dismissed.
+  const concern = $derived(Boolean(authenticity && level && level.rank > 0 && !authenticity.dismissal));
+  const findings = $derived(findingsByGroup(authenticity, aiAssistance));
+  const groups = $derived(detail?.checkGroups ?? []);
+  // A group with findings gets a panel, in the groups' order. Nothing else does.
+  const panels = $derived(groups.filter((group) => findings[group.group].length > 0));
+  // Calm: no finding in any group. It is one line, the groups that did not run, and what was checked.
+  const calm = $derived(panels.length === 0);
+  // Said outright: a group that did not run, or whose signal a trusted domain or network stopped, so a quiet result is never
+  // read as a clean one.
+  const noted = $derived(groups.filter((group) => groupDidNotRun(group) || (group.note && group.found + group.notes === 0)));
+  const ran = $derived(groups.filter((group) => !groupDidNotRun(group)));
   // The next step's edge takes its level's colour, as the level's badge does.
   const edges: Record<StatusTone, string> = {
     clear: 'border-status-clear-mark',
@@ -100,44 +83,16 @@
     ai: 'border-status-ai-mark',
     neutral: 'border-border',
   };
+  const lastPanel = $derived(panels.at(-1)?.group);
+  const audited = $derived(authenticity ?? aiAssistance);
 
-  /** One row of an assessment's reasons: a kind of check and what it found, or the context that does not count. */
-  interface ReasonGroup {
-    key: string;
-    icon: typeof GlobeIcon;
-    title: string;
-    caption?: string;
-    signals: VerificationSignalView[];
-    /** The count, in the level's colour with a warning when the check fed a level that needs a look. */
-    count: 'alert' | 'plain' | 'none';
-  }
+  const canExplain = (finding: Finding) => reviewer && concern && finding.kind === 'authenticity' && finding.signal.countsTowardLevel && !finding.signal.explained;
+  const canUndo = (finding: Finding) =>
+    reviewer && concern && finding.kind === 'authenticity' && finding.signal.explained?.actorUserId === page.data.user?.id;
 
-  function reasonGroups(kind: AssessmentKind, signals: VerificationSignalView[], fed: boolean): ReasonGroup[] {
-    // Authenticity lists its four checks even when one found nothing; AI assistance only the checks that found something.
-    const checks = checkSummaries(signals).filter((check) => kind === 'authenticity' || check.signals.length > 0);
-    const context = signals.filter((signal) => !signal.countsTowardLevel);
-    return [
-      ...checks.map((check) => ({
-        key: check.category,
-        icon: checkIcons[check.category],
-        title: check.title,
-        signals: check.signals,
-        count: (check.signals.length === 0 ? 'none' : fed ? 'alert' : 'plain') as ReasonGroup['count'],
-      })),
-      ...(context.length > 0 ? [{ key: 'context', icon: InfoIcon, title: 'Context', caption: 'Not counted toward the level', signals: context, count: 'none' as const }] : []),
-    ];
-  }
-
-  /** Where a reason sits: its assessment, and whether that assessment is still open to explaining and dismissing. */
-  interface ReviewContext {
-    assessmentId: string;
-    open: boolean;
-  }
-
-  function startDismiss(kind: AssessmentKind, view: AuthenticityAssessmentView | AiAssistanceAssessmentView) {
-    dismissing = { id: view.id, kind };
-    // The reasons people explained, in the panel's order, so the dialog lists their notes; they preselect nothing.
-    dismissExplained = reasonGroups(kind, view.signals, false).flatMap((group) => group.signals).flatMap((signal) =>
+  function startDismiss() {
+    // The findings people explained, in the panel's order, so the dialog lists their notes; they preselect nothing.
+    dismissExplained = (authenticity?.signals ?? []).flatMap((signal) =>
       signal.explained
         ? [{ id: signal.id, title: signal.title, reason: signal.explained.reason, note: signal.explained.note, actor: reviewerName(signal.explained.actorUserId, signal.explained.actorName, page.data.user?.id) }]
         : [],
@@ -145,26 +100,26 @@
     dismissOpen = true;
   }
 
-  function startExplain(assessmentId: string, signal: VerificationSignalView) {
-    explaining = { assessmentId, signalId: signal.id, title: signal.title };
+  function startExplain(assessmentId: string, finding: Finding) {
+    explaining = { assessmentId, signalId: finding.signal.id, title: finding.signal.title };
     explainOpen = true;
   }
 
   async function explained(message: string, recorded: boolean) {
-    // An explained reason closes, so the ones still to read stand out. A refused one stays as the reader left it.
+    // An explained finding closes, so the ones still to read stand out. A refused one stays as the reader left it.
     if (recorded && explaining) expanded = { ...expanded, [explaining.signalId]: false };
     await done(message);
   }
 
-  async function undo(assessmentId: string, signal: VerificationSignalView) {
-    undoing = signal.id;
+  async function undo(finding: Finding) {
+    undoing = finding.signal.id;
     try {
-      const response = await undoVerificationReasonExplanation(applicationId, assessmentId, signal.id);
+      const response = await undoVerificationReasonExplanation(applicationId, finding.assessmentId, finding.signal.id);
       await done(
         response.status === 200
-          ? `Undid the explanation: ${signal.title}.`
+          ? `Undid the explanation: ${finding.signal.title}.`
           : response.status === 409
-            ? 'This reason is no longer explained, or the assessment changed. The panel now shows the latest.'
+            ? 'This finding is no longer explained, or the result changed. The tab now shows the latest.'
             : "We couldn't undo the explanation just now. Try again in a minute.",
       );
     } finally {
@@ -177,208 +132,41 @@
     await refetchAfterReview(queryClient);
   }
 
+  const groupName = (group: CheckGroup) => groups.find((candidate) => candidate.group === group)?.label ?? group;
 </script>
-
-{#snippet signalItem(signal: VerificationSignalView, showCheck: boolean, review: ReviewContext)}
-  {@const short = signal.evidence.filter((evidence) => !isWideEvidence(evidence))}
-  {@const wide = signal.evidence.filter(isWideEvidence)}
-  <!-- Open, the reason's title, its detail and any explanation share one soft background, with nothing boxed inside it. -->
-  <li data-signal={signal.code} data-explained={signal.explained ? '' : undefined} class="has-[details[open]]:bg-secondary/60">
-    <details bind:open={() => expanded[signal.id] ?? false, (open) => (expanded = { ...expanded, [signal.id]: open })} class="group">
-      <!-- It opens in place, so it shows the chevron that says so, turning up when open (A9). -->
-      <summary class="flex min-h-11 list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 hover:bg-secondary/60 [&::-webkit-details-marker]:hidden">
-        <span class="min-w-0 flex-1 font-semibold">{signal.title}</span>
-        {#if showCheck}<span class="text-caption text-muted-foreground">{checkTitle(signal.category)}</span>{/if}
-        <!-- A state of the reason, so a badge on its row (W6); calm, so quiet (T3). -->
-        {#if signal.explained}<StatusBadge status="done" label="Explained" quiet />{/if}
-        <ChevronDownIcon aria-hidden="true" class="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-      </summary>
-      <!-- What was observed, then the short evidence as a facts row (a label above each value, as in a header), any
-           quote or comparison below it, the counter-evidence as the other side of the argument, and the code, which is
-           there for support and audit (W6). -->
-      <div class="flex flex-col gap-4 px-3 pt-1 pb-5" data-evidence>
-        <!-- The reading size the design system gives verification explanations (section 4). -->
-        <p class="max-w-measure text-reading">{signal.explanation}</p>
-        {#if short.length > 0}
-          <!-- The clip hides each line's first rule; its 4px margin keeps focus rings inside it. -->
-          <div class="-m-1 overflow-hidden p-1">
-            <dl class="flex flex-wrap gap-x-8 gap-y-3">
-              {#each short as evidence, index (index)}<SignalEvidence {evidence} fact />{/each}
-            </dl>
-          </div>
-        {/if}
-        {#each wide as evidence, index (index)}<SignalEvidence {evidence} />{/each}
-        {#each signal.counterEvidence as counter, index (index)}
-          <div class="flex max-w-3xl flex-col gap-1 rounded-md border border-border-subtle bg-card px-3 py-2" data-counter-evidence>
-            <p class="text-caption font-semibold text-muted-foreground">Counter-evidence</p>
-            <p class="max-w-measure">{counter.explanation}</p>
-            {#if counter.evidence}<SignalEvidence evidence={counter.evidence} />{/if}
-          </div>
-        {/each}
-        <!-- The reason's own action shares the row with its code, on the left (F6). -->
-        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          {#if review.open && reviewer && !signal.explained}
-            <Button variant="outline" onclick={() => startExplain(review.assessmentId, signal)}>Mark explained</Button>
-          {/if}
-          <p class="ml-auto text-caption text-muted-foreground">Code <span class="font-mono text-code">{signal.code}</span></p>
-        </div>
-      </div>
-    </details>
-    <!-- Who explained it and why, under the row so it reads while the reason is closed. Undo cannot sit inside the
-         summary, which is itself the control (A9). -->
-    {#if signal.explained}
-      {@const explanation = signal.explained}
-      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3 pb-2.5" data-explanation>
-        <p class="min-w-0 max-w-measure text-muted-foreground">
-          <!-- The row's Explained badge says what this is, so the line starts with who (W7). -->
-          {sentenceStart(reviewerName(explanation.actorUserId, explanation.actorName, page.data.user?.id))} <RelativeTime at={explanation.explainedAt} class="inline" />:
-          {explainReasonLabels[explanation.reason]}{explanation.note ? `. "${explanation.note}"` : '.'}
-        </p>
-        {#if review.open && reviewer && explanation.actorUserId === page.data.user?.id}
-          <Button variant="outline" disabled={undoing === signal.id} onclick={() => undo(review.assessmentId, signal)}>Undo</Button>
-        {/if}
-      </div>
-    {/if}
-  </li>
-{/snippet}
-
-{#snippet expandAll(signals: VerificationSignalView[])}
-  {@const allOpen = signals.every((signal) => expanded[signal.id])}
-  <Button variant="outline" onclick={() => (expanded = { ...expanded, ...Object.fromEntries(signals.map((signal) => [signal.id, !allOpen])) })}>
-    {allOpen ? 'Collapse all' : 'Expand all'}
-  </Button>
-{/snippet}
-
-<!-- An assessment's reasons, grouped by the kind of check that found them, then the context that does not count: each
-     group's icon, name and how many signals it found, then those reasons, each opening to its evidence (A9). One
-     structure, so a check and its reasons never repeat each other (W6), and no heading above it: the list says what it
-     is. A check that found nothing says so in one quiet line. -->
-{#snippet groupList(groups: ReasonGroup[], level: LevelView, review: ReviewContext)}
-  <ul class="flex flex-col divide-y divide-border-subtle rounded-lg border border-border-subtle" aria-label="Reasons" data-checks>
-    {#each groups as group (group.key)}
-      {@const Icon = group.icon}
-      <!-- On a wide page the group's name and count sit in a column beside its reasons, so a group takes no row of its
-           own; on a narrow one they stack. -->
-      <li class="grid @3xl:grid-cols-[14rem_minmax(0,1fr)]" data-check={group.key}>
-        <div class="flex min-h-11 items-center gap-3 px-3 py-2 @3xl:items-start @3xl:pt-2.5">
-          <span aria-hidden="true" class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground @3xl:-mt-1"><Icon class="size-4" /></span>
-          <div class="flex min-w-0 flex-col gap-0.5">
-            <!-- The count right after the name, so the two read as one: "Network 2". -->
-            <div class="flex flex-wrap items-center gap-2">
-              <h3 class="min-w-0 font-semibold">{group.title}</h3>
-              {#if group.count === 'alert'}
-                <Badge variant={statuses[level.status].tone} class="h-6 gap-1.5 pr-2.5 pl-2 @3xl:-mt-0.5"><TriangleAlertIcon aria-hidden="true" />{group.signals.length}<span class="sr-only">{' '}{group.signals.length === 1 ? 'signal' : 'signals'}</span></Badge>
-              {:else if group.count === 'plain'}
-                <Badge variant="count">{group.signals.length}<span class="sr-only">{' '}{group.signals.length === 1 ? 'signal' : 'signals'}</span></Badge>
-              {/if}
-            </div>
-            {#if group.caption}<p class="text-caption text-muted-foreground">{group.caption}</p>{/if}
-          </div>
-        </div>
-        {#if group.signals.length > 0}
-          <ul class="flex flex-col divide-y divide-border-subtle pl-10 @3xl:pl-0">
-            {#each group.signals as signal (signal.id)}{@render signalItem(signal, group.key === 'context', review)}{/each}
-          </ul>
-        {:else}
-          <p class="px-3 pb-2.5 pl-13 text-muted-foreground @3xl:py-2.5 @3xl:pl-3">{unchecked.includes(group.key as SignalCategory) ? 'Not checked' : 'Nothing found'}</p>
-        {/if}
-      </li>
-    {/each}
-  </ul>
-{/snippet}
 
 {#snippet decisions()}
   <p class="text-caption text-muted-foreground">No automated decision has been made. Every action is logged.</p>
-  <p role="status" class="text-muted-foreground empty:hidden">{announcement}</p>
+  {#if audited}
+    <!-- When it was assessed and under which rules: audit details, so last (W10). Two facts with their own gap (W3). -->
+    <p class="flex flex-wrap gap-x-4 text-caption text-muted-foreground" data-audit>
+      <span>Assessed <RelativeTime at={audited.assessedAt} class="inline" /></span><span>Ruleset {audited.rulesetVersion}</span>
+    </p>
+  {/if}
 {/snippet}
 
-{#snippet assessment(kind: AssessmentKind, view: AuthenticityAssessmentView | AiAssistanceAssessmentView, level: LevelView, levels: readonly LevelView[], last: boolean)}
-  {@const reasons = view.signals.filter((signal) => signal.countsTowardLevel)}
-  {@const fed = kind === 'authenticity' && level.rank > 0 && view.dismissal === null}
-  {@const concern = level.rank > 0 && view.dismissal === null}
-  <!-- A calm authenticity result has no list of empty checks: its summary already says nothing was found (W7). -->
-  {@const groups = kind === 'authenticity' && reasons.length === 0 ? reasonGroups(kind, [], false).filter((group) => group.key === 'context' || group.signals.length > 0) : reasonGroups(kind, view.signals, fed)}
-  {@const all = groups.flatMap((group) => group.signals)}
-  <!-- AI assistance carries four pills, more than a fixed-height header holds on a narrow panel (F1, F5). There they
-       move to the body's first line, so the policy, which the summary no longer repeats, never leaves the screen. -->
-  {@const pillsInBody = kind === 'aiAssistance'}
-  <!-- A calm AI result is the shortest one (W10): its level and the job's policy, which the summary does not repeat. The
-       meter's lowest step and the Informational pill add nothing to "No signs of AI help", so a concern or a dismissed
-       result keeps them and a calm one drops them. -->
-  {@const calmAi = kind === 'aiAssistance' && level.rank === 0}
-  <!-- One skeleton for every assessment (section 16): its name, level and, for AI assistance, the job's policy as pills
-       in the header; what to do and why; its reasons; then Dismiss and the audit details. The next step leads, as a
-       callout in the level's colour, when the level needs a look; a calm result is one quiet line. No labels: each part
-       says what it is. -->
-  {#snippet levelPills()}
-    <!-- An authenticity level that needs a look is already the candidate's status in the page header, so here it is
-         only its place on the three-step scale (W7). A calm or dismissed one, and AI assistance, show nowhere else. -->
-    {#if kind !== 'authenticity' || level.rank === 0 || view.dismissal}<StatusBadge status={level.status} label={level.label} />{/if}
-    {#if !calmAi}<LevelScale {levels} current={level} name={assessmentNames[kind]} compact />{/if}
-    <!-- The job's policy, so a reader sees why AI help is or is not a concern. The candidate's own declaration is on
-         the Application tab (W7). -->
-    {#if 'policy' in view}<Badge variant="muted"><span class="sr-only">Job policy:</span> AI {aiPolicyLabels[view.policy].toLocaleLowerCase()}</Badge>{/if}
-  {/snippet}
-  <Panel title={assessmentNames[kind]} data-assessment={kind} footer={last ? decisions : undefined}>
-    {#snippet tools()}
-      {#if pillsInBody}
-        <span class="hidden min-w-0 items-center gap-2 @3xl:flex" data-level-pills>{@render levelPills()}</span>
-      {:else}
-        {@render levelPills()}
-      {/if}
-    {/snippet}
-    {#snippet actions()}
-      {#if pillsInBody && !calmAi}<Badge variant="muted" class="hidden @3xl:inline-flex">Informational</Badge>{/if}
-      {#if all.length > 0}{@render expandAll(all)}{/if}
-    {/snippet}
-    <div class="flex flex-col gap-5">
-      {#if pillsInBody}
-        <div class="flex flex-wrap items-center gap-2 @3xl:hidden" data-level-pills>
-          {@render levelPills()}
-          {#if !calmAi}<Badge variant="muted">Informational</Badge>{/if}
-        </div>
-      {/if}
-      <!-- The plain-language summary and suggested next step every result carries (CLAUDE.md non-negotiable 1). -->
-      {#if concern}
-        <div data-summary class={['flex gap-3 rounded-md border-l-4 bg-secondary/60 px-4 py-3', edges[statuses[level.status].tone]]}>
-          <ArrowRightIcon aria-hidden="true" class="mt-0.5 size-5 shrink-0" />
-          <div class="flex min-w-0 flex-col gap-1">
-            <p class="max-w-measure font-semibold" data-next-step>{view.nextStep}</p>
-            <p class="max-w-measure text-muted-foreground">{view.summary}</p>
-          </div>
-        </div>
-      {:else}
-        <p data-summary class="max-w-measure text-muted-foreground">{view.summary} <span data-next-step>{view.nextStep}</span></p>
-      {/if}
-
-      {#if kind === 'authenticity' && unchecked.length > 0}<p class="max-w-measure text-muted-foreground" data-not-checked>{addedByHandNote}</p>{/if}
-
-      {#if groups.length > 0}{@render groupList(groups, level, { assessmentId: view.id, open: concern })}{/if}
-
-      <!-- Dismiss, or who dismissed it, then when it was assessed and under which rules: audit details, so last. -->
-      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        {#if view.dismissal}
-          <p class="max-w-measure text-muted-foreground">
-            Dismissed by {reviewerName(view.dismissal.actorUserId, view.dismissal.actorName, page.data.user?.id)} <RelativeTime at={view.dismissal.dismissedAt} class="inline" />:
-            {dismissReasonLabels[view.dismissal.reason]}{view.dismissal.note ? `. "${view.dismissal.note}"` : '.'}
-          </p>
-        {:else if level.rank > 0 && reviewer}
-          <!-- One button: it reads Dismiss all once every reason that counts is explained, never a second Dismiss (W7).
-               Either way it is one dismissal with its own reason. -->
-          <Button variant="outline" size="lg" onclick={() => startDismiss(kind, view)}>{everyReasonExplained(view.signals) ? 'Dismiss all' : 'Dismiss'}</Button>
-        {:else if level.rank > 0}
-          <!-- Read-only says why (E3). -->
-          <p class="max-w-measure text-muted-foreground">Your role can read these checks; ask a reviewer to explain or dismiss them.</p>
-        {:else}
-          <span></span>
-        {/if}
-        <!-- Two facts with their own gap, not a dot-separated string (W3). -->
-        <p class="flex flex-wrap gap-x-4 text-caption text-muted-foreground" data-audit>
-          <span>Assessed <RelativeTime at={view.assessedAt} class="inline" /></span><span>Ruleset {view.rulesetVersion}</span>
-        </p>
+<!-- AI help is information: its badge and the job's policy, and for Some and Strong signs its summary and next step. It has no
+     action and never changes the level. For No signs the summary and next step are for screen readers, since the badge says it. -->
+{#snippet aiRow()}
+  {#if aiAssistance}
+    {@const ai = aiAssistanceLevels[aiAssistance.level]}
+    <div class="flex flex-col gap-1.5" data-ai-row>
+      <div class="flex flex-wrap items-center gap-2">
+        <Hint content="Information only: it never changes the verification level.">
+          {#snippet children({ props })}
+            <span {...props} class="inline-flex rounded-sm">
+              <StatusBadge status="ai" label={ai.label} />
+              {#if ai.rank === 0}<span class="sr-only">. {aiAssistance.summary} {aiAssistance.nextStep}</span>{/if}
+            </span>
+          {/snippet}
+        </Hint>
+        <Badge variant="muted"><span class="sr-only">Job policy:</span> AI {aiPolicyLabels[aiAssistance.policy].toLocaleLowerCase()}</Badge>
       </div>
+      {#if ai.rank > 0}
+        <p class="max-w-measure text-muted-foreground" data-ai-summary>{aiAssistance.summary} {aiAssistance.nextStep}</p>
+      {/if}
     </div>
-  </Panel>
+  {/if}
 {/snippet}
 
 <div class="flex min-w-0 flex-col gap-5" data-verification>
@@ -388,44 +176,137 @@
   {/if}
   {#if !detail}
     {#if !verification.isError}
-      <Panel title="Verification checks">
-        <div aria-hidden="true" class="flex flex-col gap-3">
-          <Skeleton class="h-12 w-full" />
-          <Skeleton class="h-4 w-full" />
-          <Skeleton class="h-24 w-full" />
+      <Panel title="Verification">
+        <!-- The loaded shape (E1): the next step's callout, Dismiss, the AI row and the map's tiles. -->
+        <div aria-hidden="true" class="flex flex-col gap-5">
+          <Skeleton class="h-20 w-full" />
+          <Skeleton class="h-9 w-24" />
+          <Skeleton class="h-7 w-64" />
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))] gap-2">
+            {#each [1, 2, 3, 4, 5, 6] as tile (tile)}<Skeleton class="h-11 w-full" />{/each}
+          </div>
         </div>
       </Panel>
     {/if}
-  {:else if detail.status === 'Pending' || (!detail.authenticity && !detail.aiAssistance)}
-    <Panel title="Verification checks" footer={decisions}>
+  {:else if detail.status === 'Pending' || (!authenticity && !aiAssistance)}
+    <Panel title="Verification" footer={decisions}>
       <div class="flex flex-wrap items-center gap-2 text-muted-foreground">
         <StatusBadge status="working" label="Checks pending" />
         <p>Checks are still running. This tab updates on its own when they finish.</p>
       </div>
     </Panel>
   {:else}
-    {#if detail.authenticity}{@render assessment('authenticity', detail.authenticity, authenticityLevels[detail.authenticity.level], authenticityOrder.map((id) => authenticityLevels[id]), !detail.aiAssistance)}{/if}
-    {#if detail.aiAssistance}{@render assessment('aiAssistance', detail.aiAssistance, aiAssistanceLevels[detail.aiAssistance.level], aiAssistanceOrder.map((id) => aiAssistanceLevels[id]), true)}{/if}
-    <!-- What the organization's settings kept the checks from doing, so a result without signals from a group is never read as
-         a clean one: a group turned off, a domain or network the organization trusts, or the AI checks paused at the organization's
-         monthly cap (never a result about the candidate). Status is icon, colour and label. -->
-    {#if detail.checksNotRun && detail.checksNotRun.length > 0}
-      <Panel title="Not checked" data-not-run>
-        <ul class="flex flex-col gap-3">
-          {#each detail.checksNotRun as check (check.group)}
-            <li class="flex flex-col gap-1">
-              <div class="flex flex-wrap items-center gap-2">
-                <h3 class="min-w-0 font-semibold">{check.label}</h3>
-                <StatusBadge status="notInEffect" label={check.kind === 'TurnedOff' ? 'Turned off' : check.kind === 'Paused' ? 'Paused' : 'Not counted'} />
+    <Panel title="Verification" data-verification-summary footer={calm ? decisions : undefined}>
+      <div class="flex flex-col gap-5">
+        <!-- The suggested next step every result carries (CLAUDE.md non-negotiable 1). It leads, in a callout in the level's colour,
+             when the level needs a look; otherwise it is one quiet line, the summary then its next step (W10). -->
+        {#if authenticity && level}
+          {#if concern}
+            <div data-summary class={['flex gap-3 rounded-md border-l-4 bg-secondary/60 px-4 py-3', edges[statuses[level.status].tone]]}>
+              <ArrowRightIcon aria-hidden="true" class="mt-0.5 size-5 shrink-0" />
+              <div class="flex min-w-0 flex-col gap-1">
+                <p class="max-w-measure font-semibold" data-next-step>{authenticity.nextStep}</p>
+                <p class="max-w-measure text-muted-foreground">{authenticity.summary}</p>
               </div>
-              <p class="max-w-measure text-muted-foreground">{check.note}</p>
-            </li>
-          {/each}
-        </ul>
+            </div>
+          {:else}
+            <p data-summary class="max-w-measure text-muted-foreground">{authenticity.summary} <span data-next-step>{authenticity.nextStep}</span></p>
+          {/if}
+
+          <!-- Dismiss, or who dismissed it. One button: it reads Dismiss all once every finding that counts is explained, never a
+               second Dismiss (W7). Either way it is one dismissal with its own reason. -->
+          {#if authenticity.dismissal}
+            <p class="max-w-measure text-muted-foreground" data-dismissal>
+              Dismissed by {reviewerName(authenticity.dismissal.actorUserId, authenticity.dismissal.actorName, page.data.user?.id)} <RelativeTime at={authenticity.dismissal.dismissedAt} class="inline" />:
+              {dismissReasonLabels[authenticity.dismissal.reason]}{authenticity.dismissal.note ? `. "${authenticity.dismissal.note}"` : '.'}
+            </p>
+          {:else if concern && reviewer}
+            <div><Button variant="outline" size="lg" onclick={startDismiss}>{everyReasonExplained(authenticity.signals) ? 'Dismiss all' : 'Dismiss'}</Button></div>
+          {:else if concern}
+            <!-- Read-only says why (E3). -->
+            <p class="max-w-measure text-muted-foreground">Your role can read these checks; ask a reviewer to explain or dismiss them.</p>
+          {/if}
+        {/if}
+
+        {@render aiRow()}
+
+        {#if calm}
+          {#if noted.length > 0}
+            <ul class="flex flex-col gap-3" data-not-run>
+              {#each noted as group (group.group)}
+                <li class="flex flex-col gap-1" data-group={group.group}>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="min-w-0 font-semibold">{group.label}</h3>
+                    <StatusBadge status="notInEffect" label={groupDidNotRun(group) || group.state === 'Paused' ? groupStateText(group) : 'Not counted'} quiet />
+                  </div>
+                  {#if group.note}<p class="max-w-measure text-muted-foreground">{group.note}</p>{/if}
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          <details class="group" data-checked>
+            <summary class="flex min-h-11 list-none items-center justify-between gap-2 font-semibold [&::-webkit-details-marker]:hidden">
+              What was checked
+              <ChevronDownIcon aria-hidden="true" class="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+            </summary>
+            <ul class="flex flex-col gap-1.5 pt-1 pb-2">
+              {#each ran as group (group.group)}
+                <li class="max-w-measure text-muted-foreground">
+                  <span class="font-semibold text-foreground">{group.label}:</span> {group.checked}
+                </li>
+              {/each}
+            </ul>
+          </details>
+        {:else}
+          <VerificationGroupMap {groups} {findings} />
+        {/if}
+        <p role="status" class="text-muted-foreground empty:hidden">{announcement}</p>
+      </div>
+    </Panel>
+
+    {#each panels as group (group.group)}
+      {@const list = findings[group.group]}
+      {@const allOpen = list.every((finding) => expanded[finding.signal.id])}
+      <!-- A panel per group that found something, titled with the group's name and nothing else: no icon, no description. -->
+      <Panel
+        id={groupAnchor(group.group)}
+        tabindex={-1}
+        title={groupName(group.group)}
+        data-check-group={group.group}
+        class="scroll-mt-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        footer={group.group === lastPanel ? decisions : undefined}
+      >
+        {#snippet actions()}
+          <!-- Expand all is for a group with more than one finding; one finding opens on its own. -->
+          {#if list.length > 1}
+            <Button variant="outline" onclick={() => (expanded = { ...expanded, ...Object.fromEntries(list.map((finding) => [finding.signal.id, !allOpen])) })}>
+              {allOpen ? 'Collapse all' : 'Expand all'}
+            </Button>
+          {/if}
+        {/snippet}
+        <div class="flex flex-col gap-3">
+          {#if group.note}<p class="max-w-measure text-muted-foreground">{group.note}</p>{/if}
+          <ul class="flex flex-col divide-y divide-border-subtle rounded-lg border border-border-subtle" aria-label="Findings">
+            {#each list as finding (finding.signal.id)}
+              <VerificationFinding
+                signal={finding.signal}
+                ai={finding.kind === 'aiAssistance'}
+                open={expanded[finding.signal.id] ?? false}
+                onopenchange={(open) => (expanded = { ...expanded, [finding.signal.id]: open })}
+                canExplain={canExplain(finding)}
+                canUndo={canUndo(finding)}
+                undoing={undoing === finding.signal.id}
+                onexplain={() => startExplain(finding.assessmentId, finding)}
+                onundo={() => undo(finding)}
+                currentUserId={page.data.user?.id}
+              />
+            {/each}
+          </ul>
+        </div>
       </Panel>
-    {/if}
+    {/each}
   {/if}
 </div>
 
-<VerificationDismissDialog bind:open={dismissOpen} {applicationId} assessment={dismissing} explained={dismissExplained} ondone={done} />
+<VerificationDismissDialog bind:open={dismissOpen} {applicationId} assessment={authenticity ? { id: authenticity.id, kind: 'authenticity' } : null} explained={dismissExplained} ondone={done} />
 <VerificationExplainDialog bind:open={explainOpen} {applicationId} reason={explaining} ondone={explained} />

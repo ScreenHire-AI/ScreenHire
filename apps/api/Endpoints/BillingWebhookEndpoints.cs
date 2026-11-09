@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Application.Billing;
+using ScreenHire.Application.Notifications;
+using ScreenHire.Domain.Billing;
+using ScreenHire.Domain.Notifications;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using Wolverine.EntityFrameworkCore;
@@ -109,6 +112,14 @@ internal static class BillingEventApplier
             if (changed)
             {
                 await outbox.PublishAsync(new BillingChanged(organizationId));
+
+                // Once a subscription has started, the trial reminders in the Owners' bell stop being true (the scheduled ones
+                // check the account themselves and do nothing). The account is tracked, so this is the state about to be saved.
+                if (db.BillingAccounts.Local.Any(a => a.Status != SubscriptionStatus.None))
+                {
+                    await outbox.PublishAsync(new ClearNotification(organizationId, NotificationKinds.TrialEnding, NotificationKinds.TrialKey));
+                    await outbox.PublishAsync(new ClearNotification(organizationId, NotificationKinds.TrialEnded, NotificationKinds.TrialKey));
+                }
             }
 
             await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);

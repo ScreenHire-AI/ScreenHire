@@ -140,7 +140,9 @@ public static class PurgeOrganizationExpiredNotificationsHandler
     {
         var outgoing = new OutgoingMessages();
         var cutoff = message.Now - TimeSpan.FromDays(Math.Max(1, options.Value.RetentionDays));
-        var removed = await db.Notifications.Where(n => n.CreatedAt < cutoff).ExecuteDeleteAsync(cancellationToken);
+        // A kind that stays true until someone acts (a trial that ended with no plan) is cleared by the code that raised it, not by age.
+        var kept = NotificationKinds.KeptUntilCleared;
+        var removed = await db.Notifications.Where(n => n.CreatedAt < cutoff && !kept.Contains(n.Kind)).ExecuteDeleteAsync(cancellationToken);
         if (removed > 0)
         {
             outgoing.Add(new NotificationsChanged(message.OrganizationId));

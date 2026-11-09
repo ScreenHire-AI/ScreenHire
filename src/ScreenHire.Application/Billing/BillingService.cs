@@ -5,6 +5,7 @@ using ScreenHire.Domain.Billing;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
+using Wolverine.EntityFrameworkCore;
 
 namespace ScreenHire.Application.Billing;
 
@@ -41,7 +42,8 @@ public sealed record BillingStatus(
 /// and applying what the provider reports. The domain's <see cref="Entitlement"/> decides; this loads and saves.
 /// </summary>
 public sealed class BillingService(
-    ScreenHireDbContext db, BillingAccess access, PlanCatalogue catalogue, OpenJobCounter counter, IOptions<BillingOptions> options, TimeProvider time)
+    ScreenHireDbContext db, BillingAccess access, PlanCatalogue catalogue, OpenJobCounter counter, IOptions<BillingOptions> options, TimeProvider time,
+    IDbContextOutbox<ScreenHireDbContext>? outbox = null)
 {
     /// <summary>Whether billing is on here. Off: no account, no trial, no limits.</summary>
     public bool IsOn => access.IsConfigured;
@@ -71,7 +73,17 @@ public sealed class BillingService(
         db.BillingAccounts.Add(account);
         try
         {
-            await db.SaveChangesAsync(cancellationToken);
+            if (outbox is null)
+            {
+                await db.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                // The trial's reminders are scheduled by the worker once this commits (docs/architecture/billing.md, "Trial reminders").
+                await outbox.PublishAsync(new TrialStarted(organizationId));
+                await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            }
+
             return account;
         }
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())

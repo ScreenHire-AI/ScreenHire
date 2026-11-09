@@ -166,7 +166,7 @@
               <Empty.Media variant="icon"><ListTodoIcon /></Empty.Media>
               <Empty.Title>{status === 'Open' ? 'Nothing to do' : 'Nothing done yet'}</Empty.Title>
               <Empty.Description>
-                {status === 'Open' ? 'Automations add tasks here when a workflow asks for a review or a to-do.' : 'Tasks you and your team complete show here.'}
+                {status === 'Open' ? 'Automations add tasks here when a workflow asks for a scorecard or a to-do.' : 'Tasks you and your team complete show here.'}
               </Empty.Description>
             </Empty.Header>
             {#if scope !== 'Everyone' && (countOf('Everyone') ?? 0) > 0}

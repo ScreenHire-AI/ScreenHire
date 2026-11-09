@@ -12,6 +12,7 @@
     createGetCandidate,
     createGetJob,
     createListApplicationScorecards,
+    createListApplicationTasks,
     createListCandidateEmails,
     createClearCandidateEmailIssue,
     createListApplicationInterviews,
@@ -19,6 +20,7 @@
     createGetJobHiringTeam,
     createListJobs,
     createListRoles,
+    createListTasks,
     createListScorecardTemplates,
     createListTeamMembers,
   } from '@screenhire/api-client/svelte-query';
@@ -53,7 +55,6 @@
   import StageRail from '#lib/components/stage-rail.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
-  import ReviewLog from '#lib/components/review-log.svelte';
   import ScorecardSheet from '#lib/components/scorecard-sheet.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
@@ -65,6 +66,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { visibleEntries, type ActivityNames } from '#lib/activity.js';
+  import { reviewActivities } from '#lib/verification-activity.js';
   import { clock } from '#lib/clock.svelte.js';
   import { emailIssueNotice } from '#lib/email-issue.js';
   import { shortDate } from '#lib/dates.js';
@@ -76,9 +78,11 @@
   import { isTerminal } from '#lib/workflow.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
-  import { applicationsPath } from '#lib/realtime.js';
-  import { choiceFor, defaultChoice, scorecardChoices } from '#lib/scorecard-choices.js';
-  import { membersWith } from '#lib/team.js';
+  import { applicationsPath, tasksPath } from '#lib/realtime.js';
+  import { choiceFor, defaultChoice, scorecardChoices, type ScorecardRequest } from '#lib/scorecard-choices.js';
+  import { askedByOf, waitingRows } from '#lib/scorecard-roster.js';
+  import { taskHref } from '#lib/tasks.svelte.js';
+  import { membersWith, personName } from '#lib/team.js';
   import type { PageProps } from './$types';
 
   let { params }: PageProps = $props();
@@ -106,6 +110,8 @@
   const application = createGetApplication(() => params.applicationId);
   const timeline = createGetApplicationTimeline(() => params.applicationId);
   const scorecards = createListApplicationScorecards(() => params.applicationId);
+  // The scorecards asked for that are not in yet, and what the reader was asked for (the sheet's "Asked by" line).
+  const applicationTasks = createListApplicationTasks(() => params.applicationId);
   // The Verification tab's marker; the tab shares the query.
   const verification = createGetApplicationVerification(() => params.applicationId);
   // Names the people in Activity, notes and mentions.
@@ -120,6 +126,12 @@
   const mayMove = $derived(can(page.data.user, 'MoveCandidates'));
   const mayNote = $derived(can(page.data.user, 'AddNotesAndTags'));
   const mayScore = $derived(can(page.data.user, 'FillInScorecards'));
+  // The reader's open tasks, oldest first: the sheet's "Open next task" is the first one after a submit. Only someone
+  // who fills in scorecards gets that link.
+  const myTasks = createListTasks(
+    () => ({ status: 'Open', scope: 'Mine' }),
+    () => ({ query: { enabled: mayScore } }),
+  );
   const mayAsk = $derived(can(page.data.user, 'CreateTasks'));
   let moveNoteOpen = $state(false);
   // Save candidate (docs/architecture/talent-pool.md) sits in Move to stage beside Rejected, for a candidate who allowed it.
@@ -202,6 +214,8 @@
   const jobName = (id: string | null | undefined) => jobs.data?.data.find((candidate) => candidate.id === id)?.title ?? 'another job';
   const names: ActivityNames = { stageName, followUpName, jobName };
   const entries = $derived(timeline.data?.data);
+  // What people and API keys did to the candidate's verification: its entries are Activity lines too (design system section 16).
+  const verificationLog = $derived(verification.data?.data.reviewLog);
 
   // The stage rail under the name: the job's stages, where the candidate has been and is, or how they left.
   const tracker = $derived(detail && stages.length > 0 ? trackerFor(stages, detail, entries, clock.now) : undefined);
@@ -254,6 +268,28 @@
       alsoOffer: linkedScorecard,
     }),
   );
+  const waiting = $derived(waitingRows(applicationTasks.data?.data, timeline.data?.data, library.data?.data ?? []));
+  const requests = $derived<ScorecardRequest[]>(
+    (applicationTasks.data?.data ?? [])
+      .filter((task) => (task.kind === 'Review' || task.kind === 'Scorecard') && task.completedAt === null && task.assigneeUserId === currentUserId)
+      .map((task) => {
+        const actor = askedByOf(timeline.data?.data, task.id);
+        return {
+          kind: task.kind as 'Review' | 'Scorecard',
+          scorecardTemplateId: task.scorecardTemplateId ?? null,
+          stageId: task.stageId ?? null,
+          askedAt: task.createdAt,
+          askedBy: actor ? personName(actor, members, currentUserId) : undefined,
+        };
+      }),
+  );
+  // The sheet shows the link only after the lists refetched (scorecardSubmitted), so the task just finished is not in it.
+  const nextTask = $derived((myTasks.data?.data ?? []).toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))[0]);
+  // Fill in shows only to someone who has not given a scorecard here yet (A3), once the list says so, and always to a
+  // reviewer the gate still holds back: a scorecard they gave at another stage does not answer the one they owe (ADR-0013).
+  const hasScored = $derived((scorecards.data?.data ?? []).some((card) => card.reviewerUserId === currentUserId && !card.withheld));
+  const gated = $derived(detail?.rating?.state === 'AfterYourScorecard');
+  const offerFill = $derived(mayScore && (gated || (scorecards.isSuccess && !hasScored)));
   // Ask for one names the teammates who can see this job (ADR-0015) and whose role fills in scorecards, never yourself.
   const roles = createListRoles(() => ({ query: { enabled: mayAsk } }));
   const teammates = $derived(
@@ -263,23 +299,29 @@
   );
 
   // The scorecard the sheet starts on: the one asked for, else the default for the stage the candidate is in, which can
-  // arrive after the sheet opens (the sheet takes it then).
-  function fillIn(value?: string) {
+  // arrive after the sheet opens (the sheet takes it then). A task's link offers only the scorecard it asks for, so the
+  // sheet names it in its subtitle with no Scorecard select (redesign pick 6); Fill in offers every one.
+  let onlyChoice = $state<string | undefined>();
+  function fillIn(value?: string, only = false) {
     scorecardInitial = value;
+    onlyChoice = only ? value : undefined;
     scorecardOpen = true;
   }
   const sheetInitial = $derived(scorecardInitial ?? defaultChoice(choices, detail?.stage.id)?.value);
+  const sheetChoices = $derived(onlyChoice && choices.some((option) => option.value === onlyChoice) ? choices.filter((option) => option.value === onlyChoice) : choices);
 
   // A link to a scorecard opens the sheet on it once everything it needs has loaded, once per visit. A scorecard the
   // reader gave already offers nothing, so the tab simply shows.
-  let openedFromLink = false;
+  // Another task's link on this same page (Open next task) is another visit, so the sheet opens again for it.
+  let openedFromLink = '';
   $effect(() => {
     const key = linkedScorecard;
     const fill = linkedFill;
-    if ((!key && !fill) || openedFromLink || !mayScore || !detail || !job.isSuccess || !scorecards.isSuccess || !timeline.isSuccess || !library.isSuccess) return;
-    openedFromLink = true;
+    const visit = `${params.applicationId}|${key}|${fill}`;
+    if ((!key && !fill) || openedFromLink === visit || !mayScore || !detail || !job.isSuccess || !scorecards.isSuccess || !timeline.isSuccess || !library.isSuccess) return;
+    openedFromLink = visit;
     const choice = key ? choiceFor(choices, key) : defaultChoice(choices, detail.stage.id);
-    if (choice) fillIn(choice.value);
+    if (choice) fillIn(choice.value, true);
   });
 
   // The verification state beside the name: one word, with the level mark when it needs a look (design system section 3.2). Its
@@ -307,7 +349,7 @@
     { value: 'messages', label: 'Messages', count: candidateEmails.data?.data.length },
     { value: 'scorecards', label: 'Scorecards', count: scorecards.data?.data.length },
     { value: 'verification', label: 'Verification', count: attention?.signals },
-    { value: 'activity', label: 'Activity', count: entries ? visibleEntries(entries).length : undefined },
+    { value: 'activity', label: 'Activity', count: entries ? visibleEntries(entries).length + reviewActivities(verificationLog ?? [], currentUserId).length : undefined },
   ]);
 
   // A mention email links to its note (#note-{id} on Activity): once the timeline is in, the note scrolls into view.
@@ -319,7 +361,7 @@
 
   async function scorecardSubmitted(message: string) {
     scorecardAnnouncement = message;
-    await invalidatePath(queryClient, `${applicationsPath}/${params.applicationId}`);
+    await Promise.all([invalidatePath(queryClient, `${applicationsPath}/${params.applicationId}`), invalidatePath(queryClient, tasksPath)]);
   }
 
   const notFound = $derived(application.error instanceof ApiError && application.error.status === 404);
@@ -512,6 +554,9 @@
             {#if tab === 'scorecards'}
               <ScorecardsTab
                 scorecards={scorecards.data?.data}
+                {waiting}
+                phone={sidebar.isMobile}
+                primaryFill={!mayMove}
                 error={scorecards.error}
                 onretry={() => scorecards.refetch()}
                 stageName={(id) => stageName(id)}
@@ -519,15 +564,14 @@
                 {currentUserId}
                 announcement={scorecardAnnouncement}
                 withheld={detail.rating?.state === 'AfterYourScorecard'}
-                onfill={mayScore ? () => fillIn() : undefined}
+                onfill={offerFill ? () => fillIn() : undefined}
                 onask={mayAsk ? () => (askOpen = true) : undefined}
               />
             {/if}
           </Tabs.Content>
           <Tabs.Content value="verification" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'verification'}
-              <VerificationPanel applicationId={detail.id} source={detail.source} />
-              <ReviewLog applicationId={detail.id} />
+              <VerificationPanel applicationId={detail.id} />
             {/if}
           </Tabs.Content>
           <Tabs.Content value="activity" class="flex min-w-0 flex-col gap-5">
@@ -539,6 +583,7 @@
               <ActivityPanel
                 applicationId={detail.id}
                 {entries}
+                {verificationLog}
                 error={timeline.error}
                 onretry={() => timeline.refetch()}
                 {members}
@@ -583,11 +628,13 @@
       <ScorecardSheet
         bind:open={scorecardOpen}
         applicationId={detail.id}
-        {choices}
+        choices={sheetChoices}
         initial={sheetInitial}
         loadingChoices={library.isPending || scorecards.isPending || !workflow}
         libraryError={library.error ?? undefined}
         onretrylibrary={() => library.refetch()}
+        {requests}
+        nextTaskHref={nextTask ? taskHref(nextTask) : undefined}
         ondone={scorecardSubmitted}
       />
     {/if}

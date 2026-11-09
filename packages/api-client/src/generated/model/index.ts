@@ -93,6 +93,8 @@ export * from './changeMemberRoleRequest.ts';
 export * from './changeValueKind.ts';
 export * from './checkBrandingContrastParams.ts';
 export * from './checkGroup.ts';
+export * from './checkGroupState.ts';
+export * from './checkGroupView.ts';
 export * from './checkNotRun.ts';
 export * from './checkNotRunKind.ts';
 export * from './colorContrast.ts';

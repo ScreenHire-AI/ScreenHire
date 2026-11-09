@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { AiUsePolicy, DefinitionError, EvaluationOutcome, HiringWorkflow, WorkflowSimulationResult } from '@screenhire/api-client';
   import { tick, untrack } from 'svelte';
-  import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
@@ -9,6 +8,10 @@
   import type { WorkflowTab } from '#lib/workflow-tabs.js';
   import { LANE_NODE, addAction, addAutomation, addCondition, connect, definitionStamp, focusGraphNode, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
+  import AutomationList from './automation-list.svelte';
+  import AutomationRecipes from './automation-recipes.svelte';
+  import AutomationSentence from './automation-sentence.svelte';
+  import AutomationsPanel from './automations-panel.svelte';
   import JourneyOverview from './journey-overview.svelte';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnaireBuilder from './questionnaire-builder.svelte';
@@ -17,13 +20,12 @@
   import StageSheet from './stage-sheet.svelte';
   import type { GraphActions } from './step-node.svelte';
   import TestDrive from './test-drive.svelte';
-  import WorkflowGraph from './workflow-graph.svelte';
 
   // The workflow builder (workflow-engine.md §4) for a template's draft or a job's own copy: overview, pipeline,
-  // questions, automations (the graph) and the test drive over one workflow, as the panes of the page's `Tabs.Root`
-  // (`WorkflowTabs` sits on the header band). The page owns loading and saving, and shows the validation result beside its
-  // title; `errors` are the API validator's, with paths relative to the workflow. A version that cannot be edited is a
-  // `WorkflowSummary`.
+  // questions, automations (the map or the list) and the test drive over one workflow, as the panes of the page's
+  // `Tabs.Root` (`WorkflowTabs` sits on the header band). The page owns loading and saving, and shows the validation
+  // result beside its title; `errors` are the API validator's, with paths relative to the workflow. A version that cannot
+  // be edited is a `WorkflowSummary`.
   let {
     workflow = $bindable(),
     errors,
@@ -53,8 +55,8 @@
     workflow.automations = next.automations;
   }
 
-  // The last test's outcome per automation, lit on the graph once the person asks to see it there. The graph tab mounts
-  // only while it is shown, and a test is about the workflow as it was, so an edit clears it.
+  // The last test's outcome per automation, lit on the map once the person asks to see it there. The automations tab
+  // mounts only while it is shown, and a test is about the workflow as it was, so an edit clears it.
   let tested = $state<ReadonlyMap<string, EvaluationOutcome> | undefined>();
   const stamp = $derived(definitionStamp(workflow));
   $effect(() => {
@@ -66,7 +68,7 @@
     tested = new Map(result.automations.map((automation) => [automation.automationId, automation.outcome]));
     tab = 'automations';
     // The button that asked leaves with its tab, so the focus goes to Clear, beside the words saying what is lit. On a
-    // node it would light that node's path in place of the test's.
+    // node it would light that node's path in place of the test's. A phone has the list, which has nothing to clear.
     await tick();
     document.querySelector<HTMLElement>('[data-graph-clear]')?.focus();
   }
@@ -81,45 +83,89 @@
     scorecardStageId = workflow.stages[index]?.id ?? null;
     scorecardOpen = true;
   }
-  let drawerLane = $state<string | null>(null);
-  // The automations listed in the open drawer, fixed when it opens, so changing one's trigger does not make it vanish.
-  let drawerIds = $state<string[]>([]);
 
+  // The automations sheet is one sheet with three views: a lane's automations as rows, the recipes to add from, and one
+  // automation as a sentence (or, behind Edit as rules, as the full form). The automation is held by id, so editing the
+  // list behind the sheet keeps the same one.
+  let view = $state<'lane' | 'recipes' | 'edit'>('lane');
+  let drawerLane = $state<string | null>(null);
+  let editId = $state<string | null>(null);
+  let asRules = $state(false);
+  const editIndex = $derived(workflow.automations.findIndex((automation) => automation.id === editId));
   const laneName = $derived(drawerLane === null ? 'Whole workflow' : (workflow.stages.find((stage) => stage.id === drawerLane)?.name ?? drawerLane));
-  const drawerItems = $derived(
-    drawerIds.map((id) => workflow.automations.findIndex((automation) => automation.id === id)).filter((index) => index >= 0),
+  const sheetTitle = $derived(
+    view === 'lane' ? `Automations: ${laneName}` : view === 'recipes' ? 'Add an automation' : workflow.automations[editIndex]?.name || 'Untitled automation',
   );
 
-  // Opened from the graph: the form control to focus first (`data-focus` in AutomationForm), and the graph node that
-  // takes the focus back when the sheet closes if the button that opened it is gone.
+  // Opened from the map or a row: the control to focus first (`data-focus` in the sentence and the form), and the map node
+  // that takes the focus back when the sheet closes if the button that opened it is gone.
   let focusPath = $state<string | null>(null);
   let returnTo = $state<{ node: string; opener: Element | null } | null>(null);
+
+  // Changing view inside the open sheet takes away the control that had the focus, so the focus goes to what the new view
+  // starts with: the part a path names, else its first control. (A sheet that opens does this itself, in onOpenAutoFocus.)
+  async function settle() {
+    if (!drawerOpen) return;
+    await tick();
+    const sheet = document.querySelector<HTMLElement>('[data-slot="sheet-content"]');
+    const target = (focusPath ? focusTarget(sheet, focusPath) : null) ?? sheet?.querySelector<HTMLElement>('button:not([data-slot="sheet-close"]), input, [href]');
+    target?.focus();
+  }
 
   function openAutomation(index: number, path: string) {
     const automation = workflow.automations[index];
     if (!automation) return;
     drawerLane = laneOf(automation);
-    drawerIds = [automation.id];
+    editId = automation.id;
+    asRules = false;
+    const wasOpen = drawerOpen;
+    view = 'edit';
     focusPath = path;
-    returnTo = { node: triggerNode(automation.id), opener: document.activeElement };
+    returnTo = { node: triggerNode(automation.id), opener: wasOpen ? returnTo?.opener ?? null : document.activeElement };
+    drawerOpen = true;
+    if (wasOpen) void settle();
+  }
+
+  // The recipes for a stage's lane, or the whole workflow's (null): what every Add an automation opens.
+  function openRecipes(lane: string | null) {
+    const wasOpen = drawerOpen;
+    focusPath = null;
+    drawerLane = lane;
+    view = 'recipes';
+    returnTo = { node: lane ? stageNode(lane) : LANE_NODE, opener: wasOpen ? (returnTo?.opener ?? null) : document.activeElement };
+    drawerOpen = true;
+    if (wasOpen) void settle();
+  }
+
+  function openLane(lane: string | null) {
+    focusPath = null;
+    drawerLane = lane;
+    view = 'lane';
+    returnTo = { node: lane ? stageNode(lane) : LANE_NODE, opener: document.activeElement };
     drawerOpen = true;
   }
 
-  // The graph's edits: each one a change to the workflow from #lib/workflow-graph.ts, or the automation's own form.
+  // Write your own: an empty automation in the lane, opened as a sentence at its name. Closing it goes to its trigger.
+  function writeOwn() {
+    const added = addAutomation(workflow, drawerLane);
+    workflow.automations = added.workflow.automations;
+    const index = workflow.automations.findIndex((automation) => automation.id === added.id);
+    openAutomation(index, `automations[${index}]`);
+    returnTo = { node: triggerNode(added.id), opener: null };
+  }
+
+  function editById(id: string) {
+    const index = workflow.automations.findIndex((automation) => automation.id === id);
+    if (index < 0) return;
+    openAutomation(index, `automations[${index}]`);
+    returnTo = { node: triggerNode(id), opener: null };
+  }
+
+  // The map's edits: each one a change to the workflow from #lib/workflow-graph.ts, or the automation's own sentence.
   const graphActions: GraphActions = {
     edit: openAutomation,
-    openLane(stageId) {
-      openLane(stageId);
-      returnTo = { node: stageId ? stageNode(stageId) : LANE_NODE, opener: document.activeElement };
-    },
-    add(stageId) {
-      const added = addAutomation(workflow, stageId);
-      workflow.automations = added.workflow.automations;
-      const index = workflow.automations.findIndex((automation) => automation.id === added.id);
-      // A new automation's form starts at its name; closing it goes to its trigger node, not back to the plus.
-      openAutomation(index, `automations[${index}]`);
-      returnTo = { node: triggerNode(added.id), opener: null };
-    },
+    openLane,
+    add: openRecipes,
     addCondition(automationId) {
       const added = addCondition(workflow, automationId);
       if (added) openChanged(added, automationId);
@@ -133,7 +179,7 @@
     },
   };
 
-  // The form of an automation the graph just changed, at the part it added; closing it goes to the automation's trigger.
+  // The sentence of an automation the map just changed, at the part it added; closing it goes to the automation's trigger.
   function openChanged(added: { workflow: HiringWorkflow; path: string }, automationId: string) {
     workflow.automations = added.workflow.automations;
     const index = workflow.automations.findIndex((automation) => automation.id === automationId);
@@ -153,7 +199,7 @@
   function focusTarget(sheet: EventTarget | null, path: string): HTMLElement | null {
     const exact = document.querySelector<HTMLElement>(`[data-focus="${CSS.escape(path)}"]`);
     if (exact) return exact;
-    const invalid = sheet instanceof HTMLElement ? sheet.querySelector<HTMLElement>('[aria-invalid="true"]') : null;
+    const invalid = sheet instanceof HTMLElement ? sheet.querySelector<HTMLElement>('[aria-invalid="true"], [data-invalid="true"]') : null;
     if (invalid) return invalid;
     const parts = [...document.querySelectorAll<HTMLElement>('[data-focus]')].filter((element) => {
       const key = element.dataset.focus ?? '';
@@ -162,7 +208,7 @@
     return parts.sort((a, b) => (b.dataset.focus?.length ?? 0) - (a.dataset.focus?.length ?? 0))[0] ?? null;
   }
 
-  // A problem's Fix: an automation's opens its form at the field; any other goes to its tab and the first field marked
+  // A problem's Fix: an automation's opens its sentence at the part; any other goes to its tab and the first field marked
   // invalid there.
   async function fix(path: string) {
     const automation = /^automations\[(\d+)\]/.exec(path);
@@ -190,18 +236,11 @@
     if (focusGraphNode(document, back.node)) event.preventDefault();
   }
 
-  function openLane(stageId: string | null) {
-    focusPath = null;
-    returnTo = null;
-    drawerLane = stageId;
-    drawerIds = workflow.automations.filter((automation) => laneOf(automation) === stageId).map((automation) => automation.id);
-    drawerOpen = true;
-  }
-
-  function addToDrawer() {
-    const added = addAutomation(workflow, drawerLane);
-    workflow.automations = added.workflow.automations;
-    drawerIds = [...drawerIds, added.id];
+  // Remove automation lives on the full form (Edit as rules), so the sentence's sheet holds only Name, On and Done.
+  function removeEdited() {
+    if (editIndex < 0) return;
+    workflow.automations = removeAt(workflow.automations, editIndex);
+    drawerOpen = false;
   }
 </script>
 
@@ -212,20 +251,28 @@
   <JourneyOverview {workflow} onopen={openStage} questionsHref={hrefOf('questions')} />
 </Tabs.Content>
 <Tabs.Content value="pipeline">
-  <StageCards bind:workflow {errors} onopen={openStage} onscorecard={openScorecard} onautomations={openLane} />
+  <StageCards bind:workflow {errors} onopen={openStage} onscorecard={openScorecard} onautomations={openRecipes} />
 </Tabs.Content>
 <Tabs.Content value="automations">
-  <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the graph measures its nodes when
-       it mounts, which it cannot do while hidden. -->
-  <Panel title="Stages and automations" flush>
-    {#if tab === 'automations'}<WorkflowGraph {workflow} {errors} actions={graphActions} {tested} onclear={() => (tested = undefined)} />{/if}
-  </Panel>
+  <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the map measures its nodes when it
+       mounts, which it cannot do while hidden. -->
+  {#if tab === 'automations'}
+    <AutomationsPanel
+      {workflow}
+      {errors}
+      {graphActions}
+      {tested}
+      onclear={() => (tested = undefined)}
+      onopen={(index) => openAutomation(index, `automations[${index}]`)}
+      onadd={() => openRecipes(null)}
+    />
+  {/if}
 </Tabs.Content>
 <Tabs.Content value="questions">
   <QuestionnaireBuilder bind:workflow {errors} {aiUse} />
 </Tabs.Content>
 <Tabs.Content value="test">
-  <TestDrive bind:workflow {errors} {checking} onshow={showTested} onadd={() => graphActions.add(null)} onfix={fix} automationsHref={hrefOf('automations')} />
+  <TestDrive bind:workflow {errors} {checking} onshow={showTested} onadd={() => openRecipes(null)} onfix={fix} automationsHref={hrefOf('automations')} />
 </Tabs.Content>
 
 <StageSheet
@@ -239,31 +286,40 @@
   }}
   onautomations={(id) => {
     stageId = null;
-    openLane(id);
+    openRecipes(id);
   }}
   onremove={removeStage}
 />
 
 <Sheet.Root bind:open={drawerOpen}>
-  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-3xl" {onOpenAutoFocus} {onCloseAutoFocus}>
+  <Sheet.Content
+    side="right"
+    class={['w-full overflow-y-auto data-[side=right]:w-full', view === 'edit' && asRules ? 'data-[side=right]:sm:max-w-3xl' : 'data-[side=right]:sm:max-w-xl']}
+    aria-describedby={undefined}
+    {onOpenAutoFocus}
+    {onCloseAutoFocus}
+  >
     <Sheet.Header>
-      <Sheet.Title>Automations: {laneName}</Sheet.Title>
-      <Sheet.Description>Each runs on its own when its trigger happens, and saves with the workflow.</Sheet.Description>
+      <Sheet.Title class="pr-8">{sheetTitle}</Sheet.Title>
     </Sheet.Header>
     <div class="@container flex flex-col gap-6 px-4 pb-4">
-      {#each drawerItems as index (workflow.automations[index]!.id)}
-        <AutomationForm
-          bind:automation={workflow.automations[index]!}
-          {index}
-          {workflow}
-          {errors}
-          onremove={() => (workflow.automations = removeAt(workflow.automations, index))}
-        />
-      {:else}
-        <p class="text-muted-foreground">No automations here yet.</p>
-      {/each}
-      <div><Button variant="outline" size="lg" onclick={addToDrawer}>Add automation</Button></div>
+      {#if view === 'lane'}
+        <AutomationList {workflow} lane={drawerLane} onopen={(index) => openAutomation(index, `automations[${index}]`)} />
+        <div><Button variant="outline" size="lg" onclick={() => openRecipes(drawerLane)}>Add automation</Button></div>
+      {:else if view === 'recipes'}
+        <AutomationRecipes bind:workflow lane={drawerLane} onwrite={writeOwn} onedit={editById} />
+      {:else if editIndex >= 0}
+        {#if asRules}
+          <AutomationForm bind:automation={workflow.automations[editIndex]!} index={editIndex} {workflow} {errors} onremove={removeEdited} />
+          <div><Button variant="outline" size="lg" onclick={() => (asRules = false)}>Edit as a sentence</Button></div>
+        {:else}
+          <AutomationSentence bind:automation={workflow.automations[editIndex]!} index={editIndex} {workflow} {errors} onrules={() => (asRules = true)} />
+        {/if}
+      {/if}
     </div>
+    {#if view === 'edit'}
+      <Sheet.Footer><Button size="lg" onclick={() => (drawerOpen = false)}>Done</Button></Sheet.Footer>
+    {/if}
   </Sheet.Content>
 </Sheet.Root>
 

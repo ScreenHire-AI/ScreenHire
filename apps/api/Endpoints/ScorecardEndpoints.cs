@@ -48,8 +48,9 @@ internal static class ScorecardEndpoints
     }
 
     // Every scorecard on the application, oldest first, with who gave it. A key reads them too: they are the hiring
-    // team's judgements, not verification evidence. A reviewer with their own scorecard still to give reads only their own,
-    // so the others cannot anchor them (ADR-0013); the application's rating says AfterYourScorecard meanwhile.
+    // team's judgements, not verification evidence. A reviewer with their own scorecard still to give sees who gave the
+    // others and when, but never what they said (withheld rows: no recommendation, rating, answers or note), so the others
+    // cannot anchor them (ADR-0013); the application's rating says AfterYourScorecard meanwhile.
     private static async Task<Results<Ok<List<ScorecardEntry>>, NotFound>> ListApplicationScorecards(
         Guid applicationId, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
@@ -60,10 +61,10 @@ internal static class ScorecardEndpoints
 
         var withheld = await RatingReads.WithheldAsync(db, applicationId, tenant.UserId, cancellationToken);
         var scorecards = await db.ApplicationScorecards.AsNoTracking()
-            .Where(s => s.ApplicationId == applicationId && (!withheld || s.ReviewerUserId == tenant.UserId))
+            .Where(s => s.ApplicationId == applicationId)
             .OrderBy(s => s.SubmittedAt).ThenBy(s => s.Id)
             .ToListAsync(cancellationToken);
-        return TypedResults.Ok(scorecards.Select(s => s.ToEntry()).ToList());
+        return TypedResults.Ok(scorecards.Select(s => withheld && s.ReviewerUserId != tenant.UserId ? s.ToWithheldEntry() : s.ToEntry()).ToList());
     }
 
     // Ask a teammate for a scorecard: a Scorecard task for them, done when they submit it (ApplicationChanges).

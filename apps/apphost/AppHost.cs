@@ -64,11 +64,14 @@
 //                               sandbox workspace instead (Development only; the test stacks turn it on). The secret
 //                               comes from that parameter, never from these keys.
 //   Billing:*                   plans, the trial and job limits (ScreenHire.Application BillingOptions,
-//                               docs/architecture/billing.md, ADR-0029), forwarded to the API. Hidden and limiting nothing
+//                               docs/architecture/billing.md, ADR-0029), forwarded to the API; the Trial:* and Plans:* keys
+//                               go to the worker too, which sends the trial's reminders. Hidden and limiting nothing
 //                               unless configured: Stripe once Stripe:Enabled=true and the stripe-secret-key and
 //                               stripe-webhook-secret parameters have the account's keys; Sandbox:Enabled=true is the local
 //                               fake instead (Development only; the test stacks turn it on). Trial:Days and Trial:Plan set
-//                               the free trial. Plans:<key>:Name, Order, MonthlyPrice, Currency, ActiveJobs, Unlimited and
+//                               the free trial. Trial:RemindDaysBefore (a list, default 7 and 1) is the days before it ends
+//                               that the Owners are emailed; the day it ends is always reminded, and the bell tells the Owners
+//                               for the last 7 days. Plans:<key>:Name, Order, MonthlyPrice, Currency, ActiveJobs, Unlimited and
 //                               StripePriceId override the defaults in packages/plans/plans.json, which the marketing pricing
 //                               page reads too. Stripe:Tax:Enabled=true makes Checkout calculate tax (Stripe Tax, which needs the
 //                               owner's registrations first; off by default) and the Billing page say "plus tax where it
@@ -344,7 +347,14 @@ foreach (var (key, value) in settings.GetSection("Billing").AsEnumerable(makePat
     if (value is not null && !key.Equals("Stripe:Enabled", StringComparison.OrdinalIgnoreCase)
         && !key.Equals("SecretKey", StringComparison.OrdinalIgnoreCase) && !key.Equals("WebhookSecret", StringComparison.OrdinalIgnoreCase))
     {
-        api.WithEnvironment($"ScreenHire__Billing__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+        var name = $"ScreenHire__Billing__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+
+        // The worker sends the trial's reminders: it needs the trial's plan and reminder days, and the plans' names.
+        if (key.StartsWith("Trial:", StringComparison.OrdinalIgnoreCase) || key.StartsWith("Plans:", StringComparison.OrdinalIgnoreCase))
+        {
+            worker.WithEnvironment(name, value);
+        }
     }
 }
 

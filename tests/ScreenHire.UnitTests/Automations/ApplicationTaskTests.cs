@@ -9,7 +9,7 @@ public sealed class ApplicationTaskTests
     [Fact]
     public void Completing_records_who_and_when_once()
     {
-        var task = new ApplicationTask { Kind = ApplicationTaskKind.Review, Note = "Review this application.", CreatedAt = Monday };
+        var task = new ApplicationTask { Kind = ApplicationTaskKind.Review, Note = "Give your scorecard.", CreatedAt = Monday };
         var first = Guid.CreateVersion7();
 
         task.Complete(first, Monday.AddHours(1)).Should().BeTrue();
@@ -47,7 +47,7 @@ public sealed class ApplicationTaskTests
     public void A_review_is_finished_by_any_scorecard_of_its_assignee_and_never_by_someone_else_s()
     {
         var assignee = Guid.CreateVersion7();
-        var review = new ApplicationTask { Kind = ApplicationTaskKind.Review, Note = "Review this application.", AssigneeUserId = assignee, CreatedAt = Monday };
+        var review = new ApplicationTask { Kind = ApplicationTaskKind.Review, Note = "Give your scorecard.", AssigneeUserId = assignee, CreatedAt = Monday };
 
         review.CompletesWith(assignee, "interview").Should().BeTrue();
         review.CompletesWith(assignee, null).Should().BeTrue("a stage copy that names no library scorecard is still a scorecard");
@@ -57,7 +57,7 @@ public sealed class ApplicationTaskTests
     [Fact]
     public void A_review_for_the_whole_team_is_finished_by_anyone_s_scorecard()
     {
-        var review = new ApplicationTask { Kind = ApplicationTaskKind.Review, Note = "Review this application.", CreatedAt = Monday };
+        var review = new ApplicationTask { Kind = ApplicationTaskKind.Review, Note = "Give your scorecard.", CreatedAt = Monday };
 
         review.CompletesWith(Guid.CreateVersion7(), "screening").Should().BeTrue();
     }
@@ -81,7 +81,7 @@ public sealed class ApplicationTaskTests
     public void A_done_task_and_a_task_done_by_hand_are_never_finished_by_a_scorecard()
     {
         var assignee = Guid.CreateVersion7();
-        var review = new ApplicationTask { Kind = ApplicationTaskKind.Review, Note = "Review this application.", AssigneeUserId = assignee, CreatedAt = Monday };
+        var review = new ApplicationTask { Kind = ApplicationTaskKind.Review, Note = "Give your scorecard.", AssigneeUserId = assignee, CreatedAt = Monday };
         review.Complete(assignee, Monday);
         var toDo = new ApplicationTask { Kind = ApplicationTaskKind.Task, Note = "Call the references.", AssigneeUserId = assignee, CreatedAt = Monday };
 

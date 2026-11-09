@@ -19,7 +19,7 @@ export function personName(userId: string, members: readonly TeamMember[] | unde
 
 /** Words for each kind of task. */
 export const taskKindLabels: Record<ApplicationTaskKind, string> = {
-  Review: 'Review',
+  Review: 'Scorecard',
   Task: 'To-do',
   RejectionReview: 'Rejection review',
   Scorecard: 'Scorecard',

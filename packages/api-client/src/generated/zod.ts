@@ -5163,7 +5163,8 @@ export const CreateApplicationTaskResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
@@ -5181,7 +5182,8 @@ export const ListApplicationTasksResponseItem = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 export const ListApplicationTasksResponse = zod.array(ListApplicationTasksResponseItem)
 
@@ -5535,7 +5537,8 @@ export const GetApplicationVerificationResponse = zod.object({
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
-}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -5624,7 +5627,8 @@ export const GetApplicationVerificationResponse = zod.object({
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
-}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -5675,8 +5679,17 @@ export const GetApplicationVerificationResponse = zod.object({
   "label": zod.string(),
   "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
   "note": zod.string()
-}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish()
-}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
+  "checkGroups": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "found": zod.int(),
+  "notes": zod.int(),
+  "checked": zod.string(),
+  "note": zod.string().nullable()
+}).describe('What one group of checks did for an application. `found` counts its signals that count toward the level; `notes`\nthe others (AI help and context that never counts), which are information only. `state` is the one word for the group:\n`Found` when `found` is above 0, else `InformationOnly` when `notes` is, else `NotChecked` (the\napplication was added by hand, so there was no careers form for this group to read), `TurnedOff` (the organization\'s\nsettings) or `NothingFound`. `checked` names what the group looks at. `note` is what the organization\'s\nsettings changed in it (it is turned off, or a trusted domain or network stopped a signal), when they did.')).nullish()
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`, the audit trail the dashboard shows in the candidate\'s Activity.')
 
 
 export const ListVerificationApplicationsQueryParams = zod.object({
@@ -5799,7 +5812,8 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
-}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -5888,7 +5902,8 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
-}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -5939,8 +5954,17 @@ export const DismissVerificationAssessmentResponse = zod.object({
   "label": zod.string(),
   "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
   "note": zod.string()
-}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish()
-}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
+  "checkGroups": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "found": zod.int(),
+  "notes": zod.int(),
+  "checked": zod.string(),
+  "note": zod.string().nullable()
+}).describe('What one group of checks did for an application. `found` counts its signals that count toward the level; `notes`\nthe others (AI help and context that never counts), which are information only. `state` is the one word for the group:\n`Found` when `found` is above 0, else `InformationOnly` when `notes` is, else `NotChecked` (the\napplication was added by hand, so there was no careers form for this group to read), `TurnedOff` (the organization\'s\nsettings) or `NothingFound`. `checked` names what the group looks at. `note` is what the organization\'s\nsettings changed in it (it is turned off, or a trusted domain or network stopped a signal), when they did.')).nullish()
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`, the audit trail the dashboard shows in the candidate\'s Activity.')
 
 
 export const ExplainVerificationReasonParams = zod.object({
@@ -6035,7 +6059,8 @@ export const ExplainVerificationReasonResponse = zod.object({
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
-}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -6124,7 +6149,8 @@ export const ExplainVerificationReasonResponse = zod.object({
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
-}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -6175,8 +6201,17 @@ export const ExplainVerificationReasonResponse = zod.object({
   "label": zod.string(),
   "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
   "note": zod.string()
-}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish()
-}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
+  "checkGroups": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "found": zod.int(),
+  "notes": zod.int(),
+  "checked": zod.string(),
+  "note": zod.string().nullable()
+}).describe('What one group of checks did for an application. `found` counts its signals that count toward the level; `notes`\nthe others (AI help and context that never counts), which are information only. `state` is the one word for the group:\n`Found` when `found` is above 0, else `InformationOnly` when `notes` is, else `NotChecked` (the\napplication was added by hand, so there was no careers form for this group to read), `TurnedOff` (the organization\'s\nsettings) or `NothingFound`. `checked` names what the group looks at. `note` is what the organization\'s\nsettings changed in it (it is turned off, or a trusted domain or network stopped a signal), when they did.')).nullish()
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`, the audit trail the dashboard shows in the candidate\'s Activity.')
 
 
 export const UndoVerificationReasonExplanationParams = zod.object({
@@ -6266,7 +6301,8 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
-}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -6355,7 +6391,8 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
-}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -6406,8 +6443,17 @@ export const UndoVerificationReasonExplanationResponse = zod.object({
   "label": zod.string(),
   "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
   "note": zod.string()
-}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish()
-}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
+  "checkGroups": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "found": zod.int(),
+  "notes": zod.int(),
+  "checked": zod.string(),
+  "note": zod.string().nullable()
+}).describe('What one group of checks did for an application. `found` counts its signals that count toward the level; `notes`\nthe others (AI help and context that never counts), which are information only. `state` is the one word for the group:\n`Found` when `found` is above 0, else `InformationOnly` when `notes` is, else `NotChecked` (the\napplication was added by hand, so there was no careers form for this group to read), `TurnedOff` (the organization\'s\nsettings) or `NothingFound`. `checked` names what the group looks at. `note` is what the organization\'s\nsettings changed in it (it is turned off, or a trusted domain or network stopped a signal), when they did.')).nullish()
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`, the audit trail the dashboard shows in the candidate\'s Activity.')
 
 
 export const AddVerificationNoteParams = zod.object({
@@ -6500,7 +6546,8 @@ export const AddVerificationNoteResponse = zod.object({
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
-}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -6589,7 +6636,8 @@ export const AddVerificationNoteResponse = zod.object({
   "actorUserId": zod.uuid(),
   "actorName": zod.string().nullable(),
   "explainedAt": zod.iso.datetime({"offset":true})
-}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
 }).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
   "rulesetVersion": zod.string(),
   "assessedAt": zod.iso.datetime({"offset":true}),
@@ -6640,8 +6688,17 @@ export const AddVerificationNoteResponse = zod.object({
   "label": zod.string(),
   "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
   "note": zod.string()
-}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish()
-}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`.')
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
+  "checkGroups": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff']).describe('The one word a group of checks has on the Verification tab.'),
+  "found": zod.int(),
+  "notes": zod.int(),
+  "checked": zod.string(),
+  "note": zod.string().nullable()
+}).describe('What one group of checks did for an application. `found` counts its signals that count toward the level; `notes`\nthe others (AI help and context that never counts), which are information only. `state` is the one word for the group:\n`Found` when `found` is above 0, else `InformationOnly` when `notes` is, else `NotChecked` (the\napplication was added by hand, so there was no careers form for this group to read), `TurnedOff` (the organization\'s\nsettings) or `NothingFound`. `checked` names what the group looks at. `note` is what the organization\'s\nsettings changed in it (it is turned off, or a trusted domain or network stopped a signal), when they did.')).nullish()
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`, the audit trail the dashboard shows in the candidate\'s Activity.')
 
 
 export const RequestIdentityVerificationParams = zod.object({
@@ -8656,7 +8713,8 @@ export const CompleteTaskResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
@@ -8674,7 +8732,8 @@ export const ReopenTaskResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
@@ -8787,13 +8846,14 @@ export const ListApplicationScorecardsResponseItem = zod.object({
   "label": zod.string(),
   "rating": zod.union([zod.null(),zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])])
 }).describe('A v0.2 criterion as the reviewer was asked it, and their labelled rating; null when they did not rate it.')),
-  "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
+  "recommendation": zod.union([zod.null(),zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)])]),
   "note": zod.string().nullable(),
   "workflowVersion": zod.int(),
   "timelineEventId": zod.uuid(),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "scorecardTemplateId": zod.string().nullable(),
-  "scorecardName": zod.string().nullable()
+  "scorecardName": zod.string().nullable(),
+  "withheld": zod.boolean()
 }).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\nan overall recommendation.\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
 export const ListApplicationScorecardsResponse = zod.array(ListApplicationScorecardsResponseItem)
 
@@ -8810,7 +8870,7 @@ export const SubmitScorecardBody = zod.object({
   "values": zod.array(zod.string()).nullish(),
   "rating": zod.int().nullish()
 }).describe('The answer to one question: `value` for the yes-or-no kinds ("yes" or "no"), a choice (an option id) and the\ntext kinds, `values` for a multi-choice (option ids) and `rating` for a number scale.')),
-  "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
+  "recommendation": zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)]),
   "note": zod.string().nullish(),
   "scorecardTemplateId": zod.string().nullish()
 }).describe('A reviewer\'s scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage\nhas a scorecard (the job\'s own copy), or `scorecardTemplateId`, a library scorecard given at the stage the\napplication is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored\none, a different one is a 409.')
@@ -8837,13 +8897,14 @@ export const SubmitScorecardResponse = zod.object({
   "label": zod.string(),
   "rating": zod.union([zod.null(),zod.union([zod.literal('NotDemonstrated'),zod.literal('PartlyDemonstrated'),zod.literal('Demonstrated'),zod.literal('StronglyDemonstrated'),zod.literal(null)])])
 }).describe('A v0.2 criterion as the reviewer was asked it, and their labelled rating; null when they did not rate it.')),
-  "recommendation": zod.enum(['StrongNo', 'No', 'Yes', 'StrongYes']).describe('A reviewer\'s overall recommendation for the stage. Automations test it as `reviewer.recommendation`.'),
+  "recommendation": zod.union([zod.null(),zod.union([zod.literal('StrongNo'),zod.literal('No'),zod.literal('Yes'),zod.literal('StrongYes'),zod.literal(null)])]),
   "note": zod.string().nullable(),
   "workflowVersion": zod.int(),
   "timelineEventId": zod.uuid(),
   "submittedAt": zod.iso.datetime({"offset":true}),
   "scorecardTemplateId": zod.string().nullable(),
-  "scorecardName": zod.string().nullable()
+  "scorecardName": zod.string().nullable(),
+  "withheld": zod.boolean()
 }).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\nan overall recommendation.\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
 
 
@@ -8867,7 +8928,8 @@ export const RequestScorecardResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "completedAt": zod.iso.datetime({"offset":true}).nullable(),
   "completedByUserId": zod.uuid().nullable(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "stageId": zod.string().nullish()
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 

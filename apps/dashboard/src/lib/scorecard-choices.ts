@@ -94,3 +94,28 @@ export const defaultChoice = (choices: readonly ScorecardChoice[], currentStageI
 
 /** A scorecard named in a sentence: "Interview scorecard", or the name alone when it already ends in "scorecard". */
 export const scorecardWords = (name: string): string => (/scorecard$/i.test(name.trim()) ? name.trim() : `${name.trim()} scorecard`);
+
+/** A scorecard someone asked the reader for: a requested scorecard's task, or a review (AssignReviewer) for the stage. */
+export interface ScorecardRequest {
+  kind: 'Review' | 'Scorecard';
+  /** The library scorecard a Scorecard request names; null for a review. */
+  scorecardTemplateId: string | null;
+  /** The stage a review is for, whose scorecard answers it; null for a request, or a review made before tasks kept it. */
+  stageId: string | null;
+  askedAt: string;
+  /** Who asked, by name; undefined when a workflow did. */
+  askedBy: string | undefined;
+}
+
+/**
+ * The request a choice answers, for the sheet's "Asked by" line: a requested scorecard when the choice is that library
+ * scorecard (or the stage's copy of it), else the review for that stage (or one that names no stage, which any
+ * scorecard of theirs finishes).
+ */
+export function askedFor(choice: ScorecardChoice | undefined, requests: readonly ScorecardRequest[]): ScorecardRequest | undefined {
+  if (!choice) return undefined;
+  return (
+    requests.find((request) => request.kind === 'Scorecard' && choice.key !== null && request.scorecardTemplateId === choice.key) ??
+    requests.find((request) => request.kind === 'Review' && choice.stageId !== undefined && (request.stageId === null || request.stageId === choice.stageId))
+  );
+}

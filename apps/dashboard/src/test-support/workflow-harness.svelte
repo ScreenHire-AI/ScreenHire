@@ -40,3 +40,5 @@
     {/if}
   </Tabs.Root>
 </main>
+<!-- What the page would save, for a test to read. -->
+<pre data-testid="draft" hidden>{JSON.stringify(edited)}</pre>
