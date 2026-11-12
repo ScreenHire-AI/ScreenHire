@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@astrojs/node": "^11.1.8",
-    "@astrojs/svelte": "^9.1.0",
+    "@astrojs/svelte": "^9.1.2",
     "@screenhire/api-client": "workspace:*",
     "@screenhire/telemetry": "workspace:*",
     "@screenhire/ui": "workspace:*",
