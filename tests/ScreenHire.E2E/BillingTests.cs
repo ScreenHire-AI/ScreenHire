@@ -33,9 +33,10 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(Page, owner);
 
-        // Billing is on the Settings home under Organization, for an owner.
+        // Billing is in the Settings menu under Organization, for an owner.
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true }).ClickAsync();
-        await Page.GetByRole(AriaRole.Region, new() { Name = "Organization", Exact = true }).GetByRole(AriaRole.Link, new() { Name = "Billing" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Settings", Exact = true }).GetByRole(AriaRole.List, new() { Name = "Organization", Exact = true })
+            .GetByRole(AriaRole.Link, new() { Name = "Billing" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Billing");
 

@@ -25,6 +25,7 @@
     title,
     value,
     share,
+    footnote,
     change,
     class: className,
   }: {
@@ -36,6 +37,8 @@
     value: string;
     /** A muted share under the value ("62% of applications"). */
     share?: string | null;
+    /** A muted line under the value that needs markup, such as how recent the number is with a `RelativeTime`. */
+    footnote?: Snippet;
     /** The change from the previous period; null shows no line (compare off, or nothing to compare). */
     change?: Change | null;
     class?: string;
@@ -62,5 +65,6 @@
       </Hint>
     {/if}
     {#if share}<p class="basis-full text-caption text-muted-foreground">{share}</p>{/if}
+    {#if footnote}<p class="basis-full text-caption text-muted-foreground">{@render footnote()}</p>{/if}
   </Card.Content>
 </Card.Root>

@@ -189,7 +189,7 @@ describe('settings groups', () => {
     expect(groups(own).map(([group]) => group)).not.toContain('Integrations');
   });
 
-  it('puts a path in its group, and the Settings home in none', () => {
+  it('puts a path in its group, and /settings itself in none', () => {
     expect(settingsGroupOf('/settings/roles/compare')).toBe('Organization');
     expect(settingsGroupOf('/settings/sending-domain')).toBe('Organization');
     expect(settingsGroupOf('/settings/branding')).toBe('Careers site');
@@ -327,7 +327,7 @@ describe('Billing', () => {
     expect(featureOn({}, 'billing')).toBe(false);
   });
 
-  it('keeps the Organization group on the Settings home for an Owner whatever billing says', () => {
+  it('keeps the Organization group in the Settings menu for an Owner whatever billing says', () => {
     expect(settingsGroups(visibleSettingsSections(userAs('Owner'), { billing: false })).map(({ group }) => group)).toContain('Organization');
   });
 

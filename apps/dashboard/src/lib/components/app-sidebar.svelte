@@ -78,7 +78,7 @@
   async function run(work: Promise<string | null>) {
     viewFailure = (await work) ?? '';
   }
-  // One Settings item opens the Settings home for anyone whose role may use a setting; the home lists them. Verification and
+  // One Settings item opens the first settings page for anyone whose role may use a setting; its menu lists them. Verification and
   // the rest of `sections` show for those whose role has the section's permission.
   const settingsShown = $derived(visibleSettingsSections(user, shell.features()).length > 0);
   const navSections = $derived(sectionsFor(user).filter((section) => section.sidebar !== false));
@@ -252,8 +252,8 @@
       </Sidebar.Group>
 
       {#if settingsShown}
-        <!-- One item at the bottom opens the Settings home, which lists every setting the person's role may use, with search
-             (section 11). A group's pages share the Settings menu and say so to anyone else who opens one by its address. -->
+        <!-- One item at the bottom opens the first settings page, whose menu lists every setting the person's role may use,
+             with search (section 11). -->
         <Sidebar.Group class="sticky bottom-0 mt-auto bg-sidebar">
           <Sidebar.Menu>
             <Sidebar.MenuItem>

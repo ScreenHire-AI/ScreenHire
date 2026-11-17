@@ -86,7 +86,9 @@ internal static class VerificationAreaHandlers
             ];
         }
 
-        return TypedResults.Ok(new VerificationOverviewView(start, now, current.Count, Math.Max(0, applicationCount - current.Count), levels, groups));
+        var lastCheckedAt = assessments.Count == 0 ? (DateTimeOffset?)null : assessments.Max(a => a.AssessedAt);
+        return TypedResults.Ok(new VerificationOverviewView(
+            start, now, current.Count, Math.Max(0, applicationCount - current.Count), levels, groups, lastCheckedAt));
     }
 
     public static async Task<Results<Ok<VerificationActivityPage>, ValidationProblem>> Activity(

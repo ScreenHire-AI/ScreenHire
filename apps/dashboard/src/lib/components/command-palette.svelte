@@ -63,7 +63,7 @@
    * they start with it or a word does. The id after `idMark` is never searched, so two characters cannot hit a guid.
    */
   function filter(value: string, search: string): number {
-    // A Settings row is found the way the Settings home's search finds it: every word typed is somewhere in its name,
+    // A Settings row is found the way the Settings menu's search finds it: every word typed is somewhere in its name,
     // description, keywords or group.
     if (value.endsWith(settingsMark)) return matchesWords(value.slice(0, -settingsMark.length), search) ? 0.9 : 0;
     const words = value.split(idMark)[0].toLowerCase();

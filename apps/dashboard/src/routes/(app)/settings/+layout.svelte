@@ -19,7 +19,7 @@
 
   const shell = getShell();
   const section = $derived(settingsSectionOf(page.url.pathname));
-  // The Settings home has no permission of its own: it is open to anyone who may use one of the settings it lists.
+  // `/settings` has no permission of its own: it opens, and goes on to the first page, for anyone who may use one setting.
   const features = $derived(shell?.features() ?? {});
   const roleAllows = $derived(section ? can(data.user, section.permission) : visibleSettingsSections(data.user, features).length > 0);
   // API keys and webhooks reach every job, so a person on Only jobs they're on cannot use them whatever their role says.

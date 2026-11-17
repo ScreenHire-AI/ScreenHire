@@ -6,10 +6,10 @@ import { verificationTab, type VerificationTabValue } from '#lib/verification-ar
 /** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
 export const teamPath = '/v1/organization/team';
 
-/** The Settings home: every setting the person's role may use, with search (design system section 11). */
+/** Settings' own address, which opens the first settings page the person's role may use (design system section 11). */
 export const settingsHome = '/settings';
 
-/** The three groups of Settings pages, in the order the Settings home lists them. */
+/** The three groups of Settings pages, in the order the Settings menu lists them. */
 export type SettingsGroup = 'Organization' | 'Careers site' | 'Integrations';
 export const settingsGroupNames: readonly SettingsGroup[] = ['Organization', 'Careers site', 'Integrations'];
 
@@ -61,7 +61,7 @@ export interface SettingsSection {
 /**
  * The Settings pages (design system section 11), each with the permission its changes need, in three groups: the
  * organization and its people, the careers site, and what connects to it. The one Settings item in the sidebar opens
- * the Settings home, which lists them all; a page's menu lists its group's pages, and the command palette finds each by
+ * the first of them; every page's menu lists them all under their groups, and the command palette finds each by
  * name, description and keywords. Kept apart from `sections`, which every member sees and which the G chords read.
  * Email templates live on the Templates page (section 21), and their old addresses here redirect there. Verification
  * is a sidebar item of its own (`/verification`).
@@ -224,10 +224,10 @@ export const visibleSettingsSections = (user: CurrentUser | null | undefined, fe
 export const settingsSectionOf = (path: string) =>
   settingsSections.find((section) => path === section.href || path.startsWith(`${section.href}/`));
 
-/** The group a path belongs to: its page's group. The Settings home belongs to none. */
+/** The group a path belongs to: its page's group. `/settings` itself belongs to none. */
 export const settingsGroupOf = (path: string): SettingsGroup | undefined => settingsSectionOf(path)?.group;
 
-/** The pages grouped for the Settings home, in the groups' order; a group with no page left is left out (A3). */
+/** The pages grouped for the Settings menu, in the groups' order; a group with no page left is left out (A3). */
 export const settingsGroups = (sections: readonly SettingsSection[]) =>
   settingsGroupNames.flatMap((group) => {
     const pages = sections.filter((section) => section.group === group);

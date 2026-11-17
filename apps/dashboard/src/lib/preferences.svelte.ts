@@ -17,6 +17,10 @@ const themeKey = 'screenhire:theme';
 const shortcutsKey = 'screenhire:shortcuts';
 const sortKey = (table: string) => `screenhire:sort:${table}`;
 const setupKey = (organizationId: string) => `screenhire:setup-dismissed:${organizationId}`;
+const pipelineViewKey = 'screenhire:pipeline-view';
+
+/** How a job's candidates show: a table or the board. */
+export type PipelineView = 'table' | 'board';
 
 function read(key: string): string | null {
   try {
@@ -87,6 +91,17 @@ class Preferences {
 
   setSort(table: string, sort: TableSort): void {
     write(sortKey(table), JSON.stringify({ id: sort.id, desc: sort.desc }));
+  }
+
+  /**
+   * A job's candidates as a table or the board, as the person last chose on any job: some people work from the board. It
+   * is theirs, in this browser, with no view to save; a saved view does not hold it.
+   */
+  pipelineView = $state<PipelineView>(read(pipelineViewKey) === 'board' ? 'board' : 'table');
+
+  setPipelineView(view: PipelineView): void {
+    this.pipelineView = view;
+    write(pipelineViewKey, view);
   }
 
   #setupDismissed = $state<Record<string, boolean>>({});

@@ -117,7 +117,6 @@ const panels: Record<string, string[]> = {
   'Reorder grip': ['Reorder grip'],
   'Settings menu': ['Settings menu'],
   'Candidates list switch': ['Candidates list switch'],
-  'Settings home': ['Settings home'],
   // The setup steps are the bell's first section, so the bell's example shows both.
   'Setup checklist': ['Notification bell'],
   'Notification bell': ['Notification bell'],

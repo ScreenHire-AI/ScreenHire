@@ -339,10 +339,9 @@ describe('application page', () => {
       const shown = await chip(await header(), kind);
 
       expect(shown.querySelector('span[aria-hidden="true"]:not([data-level-mark])')).toHaveTextContent(new RegExp(`^${word}$`));
-      // Three squares, filled to the level: two for Review, three for Verify.
+      // The level's own icon: an eye for Review, an ID card for Verify.
       expect(shown.querySelector('[data-level-mark]')).toHaveAttribute('data-level-mark', steps);
-      expect(shown.querySelectorAll('[data-level-mark] > span')).toHaveLength(3);
-      expect(shown.querySelectorAll('[data-level-mark] > span.bg-current')).toHaveLength(Number(steps));
+      expect(shown.querySelector('[data-level-mark]')).toHaveAttribute('data-icon', kind === 'review' ? 'eye' : 'id-card');
       expect(shown.querySelector('.sr-only')).toHaveTextContent(`Verification: ${longName}`);
       // On the first line, beside the name.
       expect(await firstLine()).toContainElement(shown);

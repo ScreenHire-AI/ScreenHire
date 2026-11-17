@@ -1,3 +1,4 @@
+import type { Toast } from '#lib/teammate-changes.js';
 import BookmarkIcon from '~icons/lucide/bookmark';
 import BriefcaseIcon from '~icons/lucide/briefcase';
 import ChartBarIcon from '~icons/lucide/chart-bar';
@@ -28,8 +29,10 @@ export interface Shell {
   features(): SettingsFeatures;
   /** The signed-in person, for the parts of the top bar that depend on what they may do (the notification bell's setup steps). */
   user(): CurrentUser | null | undefined;
-  /** The status the Settings home and menu show beside Email domain while something is left to do; missing when verified or until heard. */
+  /** The mark the Settings menu shows beside Email domain: done or broken, and missing while it is not set up, waiting or until heard. */
   sendingDomainMark(): SendingDomainMark | undefined;
+  /** Shows a toast in the corner tray, as a teammate's change does: the person's own action on a page with no room for a line. */
+  toast?(toast: Toast): void;
 }
 
 const key = Symbol('shell');

@@ -67,6 +67,17 @@
     for (const application of rows) if (isCurrentApplication(application, closedJobs)) counts.set(application.jobId, (counts.get(application.jobId) ?? 0) + 1);
     return counts;
   });
+  // When each job's latest application arrived, whatever has happened to it since: the sign a job is still drawing people.
+  const lastApplied = $derived.by(() => {
+    const rows = applications.data?.data;
+    if (!rows) return undefined;
+    const latest = new Map<string, string>();
+    for (const application of rows) {
+      const seen = latest.get(application.jobId);
+      if (!seen || Date.parse(application.submittedAt) > Date.parse(seen)) latest.set(application.jobId, application.submittedAt);
+    }
+    return latest;
+  });
   const publish = createPublishJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
   // Tables become list items on phones (design system section 8), with the sidebar's own phone test.
   const sidebar = Sidebar.useSidebar();
@@ -75,19 +86,35 @@
   const mayEdit = $derived(can(page.data.user, 'EditJobs'));
   const all = $derived(jobs.data?.data ?? []);
   const statuses: JobStatus[] = ['Open', 'Draft', 'Closed'];
-  // The status filter starts from `?status=` and follows it, so an Overview tile (Open jobs) can open the list filtered. A
-  // choice here writes the address back, so the same tile works again afterwards.
-  const statusFromUrl = () => statuses.find((status) => status === page.url.searchParams.get('status')) ?? null;
-  let statusFilter = $state<JobStatus | null>(statusFromUrl());
+  // The status filter starts from `?status=` (a status, or `all`) and follows it, so an Overview tile (Open jobs) can open
+  // the list filtered. A choice here writes the address back, so the same tile works again afterwards. With no choice in
+  // the address the list opens on Open, the jobs a team is hiring for, decided once when the list first arrives: a team
+  // with nothing open yet (a new team's drafts) opens on All, and the filter never changes under someone as jobs open
+  // and close.
+  type StatusChoice = JobStatus | 'all';
+  const choiceFromUrl = (): StatusChoice | undefined => {
+    const value = page.url.searchParams.get('status');
+    return value === 'all' ? 'all' : statuses.find((status) => status === value);
+  };
+  let chosen = $state<StatusChoice | undefined>(choiceFromUrl());
+  let defaultChoice = $state<StatusChoice | undefined>();
   $effect(() => {
-    statusFilter = statusFromUrl();
+    chosen = choiceFromUrl();
+  });
+  $effect(() => {
+    const list = jobs.data?.data;
+    if (!list || defaultChoice) return;
+    defaultChoice = list.some((job) => job.status === 'Open') ? 'Open' : 'all';
+  });
+  const statusFilter = $derived.by<JobStatus | null>(() => {
+    const choice = chosen ?? defaultChoice ?? 'all';
+    return choice === 'all' ? null : choice;
   });
   // Not a navigation: the filter stays on this page, and the address only records it.
   function chooseStatus(status: JobStatus | null) {
-    statusFilter = status;
+    chosen = status ?? 'all';
     const url = new URL(page.url.href);
-    if (status) url.searchParams.set('status', status);
-    else url.searchParams.delete('status');
+    url.searchParams.set('status', status ?? 'all');
     void goto(url, { replace: true, reset: false });
   }
   let search = $state('');
@@ -114,10 +141,8 @@
     // The order is a number, which TanStack would sort descending first; Open comes first.
     column.accessor((job) => statusOrder[job.status], { id: 'status', header: 'Status', sortFn: 'basic', sortDescFirst: false, cell: ({ row }) => renderSnippet(statusCell, row.original) }),
     column.accessor('title', { header: 'Title', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(titleCell, row.original) }),
-    column.accessor('location', { header: 'Location', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(locationCell, row.original) }),
-    column.accessor((job) => employmentLabel(job.employmentType), { id: 'type', header: 'Type', sortFn: 'alphanumeric', cell: ({ row }) => employmentLabel(row.original.employmentType) }),
-    // Who is in play on the job, so a recruiter sees which job needs them without opening each. A job with nobody, or whose
-    // count has not arrived, sorts last either way.
+    // Who is in play on the job, right after its title, so a recruiter sees which job needs them without opening each. A
+    // job with nobody, or whose count has not arrived, sorts last either way.
     column.accessor((job) => candidateCounts?.get(job.id) || undefined, {
       id: 'candidates',
       header: 'Candidates',
@@ -126,15 +151,17 @@
       sortUndefined: 'last',
       cell: ({ row }) => renderSnippet(candidatesCell, row.original),
     }),
-    // A draft has not been published, so it sorts last either way.
-    column.accessor((job) => job.publishedAt ?? undefined, {
-      id: 'published',
-      header: 'Published',
+    // When the latest application arrived, so a job that has gone quiet shows. A job nobody has applied to sorts last.
+    column.accessor((job) => lastApplied?.get(job.id), {
+      id: 'lastApplied',
+      header: 'Last applied',
       sortFn: 'basic',
       sortDescFirst: true,
       sortUndefined: 'last',
-      cell: ({ row }) => renderSnippet(publishedCell, row.original),
+      cell: ({ row }) => renderSnippet(lastAppliedCell, row.original),
     }),
+    column.accessor('location', { header: 'Location', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(locationCell, row.original) }),
+    column.accessor((job) => employmentLabel(job.employmentType), { id: 'type', header: 'Type', sortFn: 'alphanumeric', cell: ({ row }) => employmentLabel(row.original.employmentType) }),
     column.accessor((job) => job.lastUpdated.at ?? undefined, {
       id: 'updatedAt',
       header: 'Last updated',
@@ -145,7 +172,7 @@
     }),
     column.display({ id: 'actions', header: () => renderSnippet(actionsHeader, undefined), cell: ({ row }) => renderSnippet(actionsCell, row.original) }),
   ];
-  const sort = createTableSort('jobs', { id: 'updatedAt', desc: true }, ['status', 'title', 'location', 'type', 'candidates', 'published', 'updatedAt']);
+  const sort = createTableSort('jobs', { id: 'updatedAt', desc: true }, ['status', 'title', 'candidates', 'lastApplied', 'location', 'type', 'updatedAt']);
   const table = createTable({
     ...tableSortOptions(() => sort),
     features,
@@ -289,7 +316,7 @@
             {@const job = row.original}
             <ListItem href={`/jobs/${job.id}`} title={job.title}>
               {#snippet status()}<StatusBadge {...jobStatus[job.status]} quiet />{/snippet}
-              {#snippet meta()}{#if job.publishedAt}<DateText at={job.publishedAt} />{/if}{/snippet}
+              {#snippet meta()}{@const at = lastApplied?.get(job.id)}{#if at}Applied <DateText {at} />{/if}{/snippet}
               {#snippet facts()}
                 <!-- A long location is cut to the item's width, whole in its tooltip (F5). relative: above the item's
                      link, so the tooltip opens on tap. -->
@@ -319,7 +346,7 @@
                         (header.id === 'status' || header.id === 'actions') && 'px-4',
                         header.id === 'status' && 'sticky left-0 bg-muted',
                         header.id === 'actions' && 'sticky right-0 w-14 bg-muted',
-                        (header.id === 'candidates' || header.id === 'published' || header.id === 'updatedAt' || header.id === 'actions') && 'text-right',
+                        (header.id === 'candidates' || header.id === 'lastApplied' || header.id === 'updatedAt' || header.id === 'actions') && 'text-right',
                       ]}
                     />
                   {/each}
@@ -344,8 +371,8 @@
                         // table scrolls in the panel. A long one is cut, whole in its tooltip (F5).
                         cell.column.id === 'title' && 'w-full max-w-0 min-w-48',
                         cell.column.id === 'location' && 'max-w-32 text-muted-foreground @4xl/jobs:max-w-60',
-                        (cell.column.id === 'type' || cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-muted-foreground',
-                        (cell.column.id === 'candidates' || cell.column.id === 'published' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
+                        (cell.column.id === 'type' || cell.column.id === 'updatedAt') && 'text-muted-foreground',
+                        (cell.column.id === 'candidates' || cell.column.id === 'lastApplied' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
                         // The row menu sticks at the right edge as Status does at the left, so a tablet that scrolls the table
                         // still reaches it (section 8). The cell around the menu stays part of the row's link.
                         cell.column.id === 'actions' && 'pointer-events-none sticky right-0 bg-card text-right group-hover:bg-muted',
@@ -392,8 +419,9 @@
 {#snippet locationCell(job: JobSummary)}<span class="relative block min-w-0"><TruncatedText text={job.location} /></span>{/snippet}
 
 <!-- A draft was never published, so its cell is blank, its words for screen readers only (L1). -->
-{#snippet publishedCell(job: JobSummary)}
-  {#if job.publishedAt}<span class="relative"><DateText at={job.publishedAt} /></span>{:else}<span class="sr-only">Not published</span>{/if}
+{#snippet lastAppliedCell(job: JobSummary)}
+  {@const at = lastApplied?.get(job.id)}
+  {#if at}<span class="relative"><DateText {at} /></span>{:else if lastApplied}<span class="sr-only">No applications yet</span>{/if}
 {/snippet}
 
 {#snippet updatedCell(job: JobSummary)}

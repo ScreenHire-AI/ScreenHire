@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace ScreenHire.E2E;
 
@@ -50,8 +51,10 @@ public sealed class SendingDomainTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(Page.GetByText("Not found").First).ToBeVisibleAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-sending-domain-pending-1440");
 
-        // The Settings menu says where the domain stands only while something is left to do, in the page's own words, then nothing.
-        var menuEntry = Page.GetByRole(AriaRole.Navigation, new() { Name = "Organization", Exact = true }).GetByRole(AriaRole.Link, new() { NameRegex = new("^Email domain") });
+        // The Settings menu marks the domain with a red cross while its records need fixing, in the page's own words for screen
+        // readers and on hover, and with a green check once it works.
+        var menuEntry = Page.GetByRole(AriaRole.Navigation, new() { Name = "Settings", Exact = true }).GetByRole(AriaRole.Link, new() { NameRegex = new("^Email domain") });
+        await Expect(menuEntry.Locator("[data-setting-mark]")).ToHaveAttributeAsync("data-setting-mark", "broken");
         await Expect(menuEntry).ToContainTextAsync("Records to add");
 
         // The sandbox's DNS gets the records; the next check passes, the provider confirms, and mail comes from the domain.
@@ -60,7 +63,8 @@ public sealed class SendingDomainTests(E2EFixture fixture) : BrowserTest(fixture
         await band.GetByRole(AriaRole.Button, new() { Name = "Check records" }).ClickAsync();
         await Expect(band).ToContainTextAsync("Verified");
         await Expect(Page.GetByText($"hiring@{domain}")).ToBeVisibleAsync();
-        await Expect(menuEntry).ToHaveTextAsync("Email domain");
+        await Expect(menuEntry.Locator("[data-setting-mark]")).ToHaveAttributeAsync("data-setting-mark", "done");
+        await Expect(menuEntry).ToHaveTextAsync(new Regex(@"^Email domain\s*Verified$"));
         await ExpectNoAccessibilityViolationsAsync();
 
         // Removing is in the More menu, behind a dialog; afterwards the page offers to add a domain again.

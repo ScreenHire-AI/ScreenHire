@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { preferences } from '#lib/preferences.svelte.js';
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
   import PencilIcon from '~icons/lucide/pencil';
   import SendIcon from '~icons/lucide/send';
@@ -122,7 +123,11 @@
     void goto(url, { shallow: true, replace: true, state: page.state });
   }
 
-  let view = $state<'table' | 'board'>('table');
+  // Table or board, as the person last chose on any job (#lib/preferences.svelte.ts).
+  let view = $state(preferences.pipelineView);
+  $effect(() => {
+    if (view !== preferences.pipelineView) preferences.setPipelineView(view);
+  });
   // The table or the board fills the window below the header and scrolls inside itself, so the page never scrolls
   // (S6, section 21).
   const boardFills = $derived(tab === 'candidates' && !sidebar.isMobile);

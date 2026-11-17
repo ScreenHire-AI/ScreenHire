@@ -2,7 +2,7 @@ import type { Permission } from '@screenhire/api-client';
 import type { SettingsFeature } from '#lib/settings.js';
 
 export interface Integration {
-  /** The name on the Settings home, its Settings menu entry and its breadcrumb. */
+  /** Its name in the Settings menu and its breadcrumb. */
   label: string;
   /** Its existing page. Pages below it (a webhook endpoint) are records of that page. */
   href: string;
@@ -19,9 +19,8 @@ export interface Integration {
 }
 
 /**
- * Every integration, in the order the Settings home lists them. Adding one is one more entry here: its Settings page
- * entry, its permission gate, its Settings menu entry, Ctrl K and the Settings home (`/settings`, design system S9) all
- * read this list. Personal connections (a member's calendar, their Slack account) are not integrations of the
+ * Every integration, in the order the Settings menu lists them. Adding one is one more entry here: its Settings page
+ * entry, its permission gate, its Settings menu entry and Ctrl K (design system S9) all read this list. Personal connections (a member's calendar, their Slack account) are not integrations of the
  * organization and stay in the account menu.
  */
 export const integrations: readonly Integration[] = [
