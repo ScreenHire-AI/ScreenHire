@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addDays,
   checkSchedule,
@@ -28,6 +28,16 @@ const valid = {
   dayEnd: '17:00',
 };
 const now = Date.parse('2026-11-02T12:00:00Z');
+
+// The schemas read the real clock for "today", so the browser's clock stands at `now` too: the fixed days above stay in
+// the future whatever day the suite runs.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(now);
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 const problems = (patch: Partial<typeof valid>) => {
   const found: Record<string, string> = {};

@@ -177,7 +177,8 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
     {
         var sibling = Page.GetByText(siblingText).Filter(new() { Visible = true });
         await Expect(sibling.First).ToBeVisibleAsync();
-        var box = Page.GetByRole(AriaRole.Searchbox).First;
+        // The page's own search: a settings page also has the Settings menu's, which comes first.
+        var box = Page.GetByRole(AriaRole.Searchbox, new() { NameRegex = new("^(?!Search settings$)") }).First;
         await box.FillAsync(term);
         await Expect(Page.GetByText(expectedText).Filter(new() { Visible = true }).First).ToBeVisibleAsync();
         await Expect(sibling).ToHaveCountAsync(0);

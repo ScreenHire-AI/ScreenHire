@@ -54,7 +54,7 @@ Outside NuGet: Zitadel → AGPL-3.0 at v3 (2025-03). **MinIO OSS repo archived.*
   | Logto | ~$120 | $264 (no SCIM) |
   | Keycloak | $0 + ops | $0 + ops (native SCIM GA only in 26.8.0, 2026-10-01) |
 
-- **Aspire 13.6.1 (MIT)** for local orchestration: Postgres, Valkey, JavaScript hosting (`AddViteApp` /
+- **Aspire 13.6.5 (MIT)** for local orchestration: Postgres, Valkey, JavaScript hosting (`AddViteApp` /
   `AddJavaScriptApp`) for Astro SSR and the SPA; **SeaweedFS** for local S3 (MinIO integration deprecated).
 - **OpenAPI — built-in .NET 10 generator (OpenAPI 3.1) + Scalar.** Set `JsonNumberHandling.Strict` (else integers emit
   as string patterns); avoid polymorphic DTOs (open discriminator bugs).

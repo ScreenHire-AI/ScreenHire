@@ -7,8 +7,8 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Lets the "Transitive pins" group below override versions pulled in by other packages. -->
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <AspireVersion>13.6.1</AspireVersion>
-    <DotNetVersion>10.0.13</DotNetVersion>
+    <AspireVersion>13.6.5</AspireVersion>
+    <DotNetVersion>10.0.14</DotNetVersion>
   </PropertyGroup>
   <ItemGroup Label="Aspire">
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="$(AspireVersion)" />
