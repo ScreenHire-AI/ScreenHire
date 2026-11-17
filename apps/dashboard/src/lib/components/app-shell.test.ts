@@ -12,7 +12,7 @@ const sidebar = () => document.querySelector<HTMLElement>('[data-slot="sidebar"]
 const tooltip = () => document.querySelector('[data-slot="tooltip-content"]');
 const main = () => screen.getByRole('navigation', { name: 'Main' });
 // The fixture user is an Owner, so the sidebar has Verification after Reports and ends with the one Settings item, which
-// opens the Settings home; the settings themselves are listed there, and in each group's menu.
+// opens the first settings page; the settings themselves are listed in its menu.
 const views = ['To review', 'To verify', 'Overdue', 'New today', 'Not screened', 'Interviewing'];
 
 // jsdom does not navigate; the sheet closing is what these tests watch, not the page change.

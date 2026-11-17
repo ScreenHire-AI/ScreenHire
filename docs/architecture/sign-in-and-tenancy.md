@@ -349,8 +349,9 @@ role's change history ([change-history.md](change-history.md)). A custom role's 
 permissions (`RolePermissions.Summarize`), so it always says what the role allows.
 
 The dashboard follows the same permissions (`apps/dashboard/src/lib/permissions.ts`). **Settings** is one sidebar item, shown for anyone whose
-role has a permission for at least one setting, and it opens the Settings home at `/settings`: every setting the role may use, in
-three groups, with a search box that reads each setting's name, its one line and a short list of everyday words. The
+role has a permission for at least one setting, and it opens `/settings`, which goes to the first settings page the role may use; every
+settings page lists every setting the role may use in three groups, with a search box that reads each setting's name, its one line and a
+short list of everyday words. The
 search also finds the Templates and Verification pages people look for there (`settingsElsewhere`), each only for a role
 that may open it. Under
 `/settings/*`, Organization holds General, Team, Roles, Email domain, Data requests and Billing; Careers site holds Careers page and

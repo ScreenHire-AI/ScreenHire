@@ -7,6 +7,7 @@
   import LevelMark from '#lib/components/level-mark.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
   import ReportStat from '#lib/components/report-stat.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -29,8 +30,9 @@
   const limits = $derived(usageVisible ? settings.data?.data.limits : null);
 
   const count = new Intl.NumberFormat(locales);
-  // Each level's tile carries the level's own mark, as the chips draw it: the circle-check for Clear, the level mark for
-  // Review and Verify (design system section 3.2), so the count is icon, colour and word (T1).
+  // Each level's tile carries the level's own icon, as the chips draw it: circle-check for Clear, eye for Review and id-card
+  // for Verify (design system section 3.2), so the count is icon, colour and word (T1). The first tile says when the newest
+  // check finished (T7), so a quiet month reads as quiet rather than stuck.
   const clear = verificationStateOf('NoConcerns', false);
   const review = verificationStateOf('ReviewSuggested', false);
   const verify = verificationStateOf('VerificationRecommended', false);
@@ -71,7 +73,11 @@
       title="Applications checked"
       value={count.format(result.checked)}
       share={result.pending > 0 ? `${result.pending} still being checked` : null}
-    />
+    >
+      {#snippet footnote()}
+        {#if result.lastCheckedAt}Last checked <RelativeTime at={result.lastCheckedAt} class="inline" />{/if}
+      {/snippet}
+    </ReportStat>
     {#snippet levelMark(state: VerificationState)}
       {#if state.kind === 'review' || state.kind === 'verify'}
         <LevelMark steps={state.steps} tone={state.kind} size="lg" />

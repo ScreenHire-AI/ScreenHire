@@ -9786,7 +9786,8 @@ export const GetVerificationOverviewResponse = zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
   "applications": zod.int()
-}).describe('The number of applications in which a check group counted a signal towards the level.'))
+}).describe('The number of applications in which a check group counted a signal towards the level.')),
+  "lastCheckedAt": zod.iso.datetime({"offset":true}).nullable()
 }).describe('The Verification area\'s Overview: this month\'s applications (UTC calendar month) by authenticity level, and which check groups\ncounted a signal in the most of them. Counts of applications only. It holds no score, no percentage, no AI-assistance level\n(which never counts) and nothing about a person. For a member limited to some jobs it covers those jobs.')
 
 

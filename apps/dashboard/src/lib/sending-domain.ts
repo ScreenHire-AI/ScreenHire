@@ -54,15 +54,18 @@ export function domainStatus(domain: Pick<SendingDomainDetail, 'status' | 'recor
   return { status: 'waiting', label: 'Waiting for confirmation' };
 }
 
-/** A status the places that point at the email domain show beside its name. */
-export type SendingDomainMark = { status: StatusName; label: string };
+/** The mark the places that point at the email domain show beside its name: done, or broken. */
+export type SendingDomainMark = { status: Extract<StatusName, 'done' | 'broken'>; label: string };
 
 /**
- * What the Settings home and menu show beside Email domain: only while something is left to do, and in the page's own
- * words (W6, T1). No domain yet is a grey Not set up. A verified domain shows nothing (T3). Any other state is the status
- * the page shows beside its title (`domainStatus`): grey while it waits, filled for Records to add.
+ * What the Settings menu shows beside Email domain (`SettingMark`): a green check once mail comes from the
+ * domain, a red cross while its records need fixing, and nothing otherwise. The setting is optional, so no domain shows
+ * nothing rather than a mark someone would look at for ever, and a domain waiting on a lookup or the provider shows
+ * nothing until it is done or wrong (its page says where it stands).
  */
 export function sendingDomainMark(domain: Pick<SendingDomainDetail, 'status' | 'records'> | null | undefined): SendingDomainMark | undefined {
-  if (!domain) return { status: 'waiting', label: 'Not set up' };
-  return domain.status === 'Verified' ? undefined : domainStatus(domain);
+  if (!domain) return undefined;
+  const state = domainStatus(domain);
+  if (state.status === 'done') return { status: 'done', label: state.label };
+  return state.status === 'needsFixes' ? { status: 'broken', label: state.label } : undefined;
 }

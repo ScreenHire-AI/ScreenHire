@@ -98,7 +98,7 @@ new route is the `/add-dashboard-page` skill.
   phone's Sort chip on the same table.
 - Reorderable lists are `ReorderList` with its `ReorderGrip`s (design system A7), never up and down buttons. Each list
   is its own svelte-dnd-action zone with its own type; the library's settings live once in `#lib/dnd.ts`.
-- Verification states are drawn from `#lib/verification.ts` (`stateOf`: one word, long name, status, level mark steps) through `VerificationChip`, with the three-step `LevelMark` as the icon of Review and Verify and the bare `AiMark` for Some and Strong signs of AI help (which never sorts, filters or counts);
+- Verification states are drawn from `#lib/verification.ts` (`stateOf`: one word, long name, status, level steps) through `VerificationChip`, with `LevelMark` drawing the status's own icon for Review (`eye`) and Verify (`id-card`) and the bare `AiMark` for Some and Strong signs of AI help (which never sorts, filters or counts);
   evidence is drawn by its kind through `SignalEvidence`, never per signal code.
 
 ## Checks

@@ -27,7 +27,7 @@ describe('verification chip', () => {
   it.each([
     ['ReviewSuggested', 'Review', '2', 'bg-status-review-soft', 'Review suggested'],
     ['VerificationRecommended', 'Verify', '3', 'bg-status-verify-soft', 'Verification suggested'],
-  ] as const)('shows %s as the word %s with the level mark, filled to its level (T1, T3)', (level, word, steps, colour, label) => {
+  ] as const)('shows %s as the word %s with its level icon (T1, T3)', (level, word, steps, colour, label) => {
     const { container } = show(VerificationChip, { state: verificationStateOf(level, false) });
     const chip = parts(container);
 
@@ -39,11 +39,10 @@ describe('verification chip', () => {
     expect(chip.spoken).toBe(`Verification: ${label}`);
   });
 
-  it('tells Review from Verify by the count of filled steps, not by colour alone', () => {
-    for (const [level, filled] of [['ReviewSuggested', 2], ['VerificationRecommended', 3]] as const) {
+  it('tells Review from Verify by its own icon, not by colour alone', () => {
+    for (const [level, icon] of [['ReviewSuggested', 'eye'], ['VerificationRecommended', 'id-card']] as const) {
       const { container, unmount } = show(VerificationChip, { state: verificationStateOf(level, false) });
-      expect(container.querySelectorAll('[data-level-mark] > span.bg-current')).toHaveLength(filled);
-      expect(container.querySelectorAll('[data-level-mark] > span')).toHaveLength(3);
+      expect(container.querySelector('[data-level-mark]')).toHaveAttribute('data-icon', icon);
       unmount();
     }
   });
@@ -98,37 +97,20 @@ describe('verification chip', () => {
 });
 
 describe('level mark', () => {
-  it('draws three squares, filled to the level, hidden from assistive technology', () => {
+  it("is the level's own status icon, hidden from assistive technology, in its status colour", () => {
     const { container } = render(LevelMark, { props: { steps: 2, tone: 'review' } });
     const mark = container.querySelector('[data-level-mark]')!;
 
+    expect(mark.tagName.toLowerCase()).toBe('svg');
     expect(mark).toHaveAttribute('aria-hidden', 'true');
-    expect(mark.children).toHaveLength(3);
-    expect([...mark.children].map((square) => square.classList.contains('bg-current'))).toEqual([true, true, false]);
-    expect(mark).toHaveClass('text-status-review-mark');
+    expect(mark).toHaveAttribute('data-icon', 'eye');
+    expect(mark).toHaveClass('text-status-review-mark', 'size-3.5');
   });
 
   it('is larger on the candidate page', () => {
     const { container } = render(LevelMark, { props: { steps: 3, tone: 'verify', size: 'lg' } });
 
-    expect(container.querySelector('[data-level-mark] > span')).toHaveClass('size-2');
-    expect(container.querySelector('[data-level-mark]')).toHaveClass('text-status-verify-mark');
-  });
-});
-
-describe('AI mark', () => {
-  it.each(['SomeIndicators', 'StrongIndicators'] as const)('shows %s as a bare sparkles mark outside a badge, in the information colour', (level) => {
-    const { container } = show(AiMark, { level });
-
-    expect(container.querySelector('[data-ai-mark]')).not.toBeNull();
-    expect(container.querySelector('[data-slot="badge"]')).toBeNull();
-    expect(container.querySelector('[data-status-icon], svg')).not.toBeNull();
-    expect(container.querySelector('[data-ai-mark]')).toHaveClass('text-status-ai-mark');
-    expect(container.querySelector('.sr-only')?.textContent).toMatch(/signs of AI help/);
-  });
-
-  it('draws nothing without Some or Strong signs', () => {
-    expect(show(AiMark, { level: undefined }).container.querySelector('[data-ai-mark]')).toBeNull();
-    expect(show(AiMark, { level: 'NotIndicated' }).container.querySelector('[data-ai-mark]')).toBeNull();
+    expect(container.querySelector('[data-level-mark]')).toHaveClass('size-4', 'text-status-verify-mark');
+    expect(container.querySelector('[data-level-mark]')).toHaveAttribute('data-icon', 'id-card');
   });
 });

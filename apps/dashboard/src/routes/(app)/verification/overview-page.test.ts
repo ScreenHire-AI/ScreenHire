@@ -19,6 +19,8 @@ const overview: VerificationOverviewView = {
     { group: 'Network', label: 'Network', applications: 5 },
     { group: 'Duplicates', label: 'Duplicates', applications: 3 },
   ],
+  // Two hours before the test runs, so it always reads as time ago.
+  lastCheckedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
 };
 
 function renderPage(result: VerificationOverviewView | Response, signedIn = user, withLimits = true) {
@@ -52,14 +54,29 @@ describe('the Overview tab', () => {
     await expectNoAxeViolations();
   });
 
-  it('marks each level with its own icon, as the chips do: the circle-check for Clear, the level mark for Review and Verify', async () => {
+  it('marks each level with its own icon, as the chips do: circle-check for Clear, eye for Review, id-card for Verify', async () => {
     renderPage(overview);
 
     await screen.findByText('Applications checked');
     const stat = (title: string) => screen.getByText(title).closest('[data-slot="report-stat"]') as HTMLElement;
     expect(stat('Clear').querySelector('[data-status-icon]')).not.toBeNull();
-    expect(stat('Review').querySelector('[data-level-mark="2"]')).not.toBeNull();
-    expect(stat('Verify').querySelector('[data-level-mark="3"]')).not.toBeNull();
+    expect(stat('Review').querySelector('[data-level-mark]')).toHaveAttribute('data-icon', 'eye');
+    expect(stat('Verify').querySelector('[data-level-mark]')).toHaveAttribute('data-icon', 'id-card');
+  });
+
+  it('says when the newest check finished, as time ago with the exact time on hover (T7), and nothing before the first', async () => {
+    renderPage(overview);
+
+    const stat = (await screen.findByText('Applications checked')).closest('[data-slot="report-stat"]') as HTMLElement;
+    expect(stat).toHaveTextContent(/Last checked 2 hours ago/);
+    expect(stat.querySelector('time')).toHaveAttribute('datetime', overview.lastCheckedAt!);
+  });
+
+  it('leaves out when it last checked while nothing has been checked this month', async () => {
+    renderPage({ ...overview, checked: 0, pending: 0, levels: { clear: 0, review: 0, verify: 0 }, groups: [], lastCheckedAt: null });
+
+    const stat = (await screen.findByText('Applications checked')).closest('[data-slot="report-stat"]') as HTMLElement;
+    expect(stat).not.toHaveTextContent(/Last checked/);
   });
 
   it('shows a score, a percentage or an AI-assistance count nowhere', async () => {

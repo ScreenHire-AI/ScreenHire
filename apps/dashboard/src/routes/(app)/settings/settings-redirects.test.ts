@@ -16,7 +16,7 @@ function locationOf(run: () => unknown): string {
 }
 
 describe('old settings addresses', () => {
-  it('sends the Integrations directory to the Settings home', () => {
+  it('sends the Integrations directory to /settings, which opens the first page', () => {
     expect(locationOf(() => (loadIntegrations as () => unknown)())).toBe('/settings');
   });
 

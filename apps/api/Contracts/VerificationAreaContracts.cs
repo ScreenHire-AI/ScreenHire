@@ -12,6 +12,8 @@ namespace ScreenHire.Api.Contracts;
 /// <c>checked</c> is the applications with an authenticity level (the parts of <c>levels</c> add up to it); <c>pending</c> is the
 /// month's applications whose checks have not finished. A reviewer's dismissal does not move an application between levels here,
 /// as on a job's Authenticity panel. <c>groups</c> lists only the groups that counted a signal, most applications first.
+/// <c>lastCheckedAt</c> is when the newest of the month's checks finished, so the page can say how recent its numbers are;
+/// null while nothing this month has been checked.
 /// </remarks>
 public sealed record VerificationOverviewView(
     DateTimeOffset From,
@@ -19,7 +21,8 @@ public sealed record VerificationOverviewView(
     int Checked,
     int Pending,
     VerificationLevelCounts Levels,
-    IReadOnlyList<VerificationGroupCount> Groups);
+    IReadOnlyList<VerificationGroupCount> Groups,
+    DateTimeOffset? LastCheckedAt);
 
 /// <summary>Applications at each authenticity level, by the word the dashboard shows: Clear, Review, Verify.</summary>
 public sealed record VerificationLevelCounts(int Clear, int Review, int Verify);

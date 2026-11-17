@@ -81,7 +81,6 @@
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
   import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
-  import SettingsRows from '#lib/components/settings-rows.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
@@ -122,7 +121,6 @@
   import type { TrayItem } from '#lib/notifications.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { counted } from '#lib/reports.js';
-  import { settingsSections } from '#lib/settings.js';
   import { sections } from '#lib/shell.js';
   import type { StatusName } from '#lib/status.js';
   import AiUseRow from '#lib/components/workflow/ai-use-row.svelte';
@@ -1463,9 +1461,6 @@
               <CandidatesListSwitch list="saved" counts={{ current: 13, saved: 1, all: 19 }} />
             </figure>
           </div>
-        </Panel>
-        <Panel title="Settings home" flush class="flex-[999_1_520px]">
-          <SettingsRows list={settingsSections.filter((section) => section.group === 'Organization')} domainMark={{ status: 'waiting', label: 'Not set up' }} />
         </Panel>
       </div>
 

@@ -82,10 +82,19 @@ a country shown as a name (S to M).
 2. **Small readability fixes in Reports and Jobs.** The change pill reads "up 10" with no unit outside its tooltip, a
    zero in a bar row ("Hired 0 0%") sits on its own line away from the bars, and the Jobs home's Published and Last
    updated headers sit about 10 px off their values. Size S for all three. (#148)
+3. **Say how recent Reports and Usage are.** Design system T7 asks every page that sums up activity to say when the
+   newest thing it counts happened. The Verification Overview does ("Last checked 2 hours ago"). Reports needs the
+   newest application in its scope, a query in its SQL snapshot, and Usage the newest model call. Size S to M. (owner's
+   walk-through, 2026-11-09)
 
 #### Automate anything
 
-1. **Name a stage's meeting.** Interview reminders and the booking page say "interview" for a trial shift. A
+1. **Confirm a move, with what it will do.** Moving a candidate on the board runs the stage's automations at once:
+   emails, tasks, interview invitations. Someone new to the board cannot tell what a drop will set off. A dialog before
+   the move lists what entering that stage does, with a "Don't ask again" box kept per person, so a practised hand
+   skips it. It reads the stage's automations from the hiring template the job runs. Size M. (owner's walk-through,
+   2026-11-09)
+2. **Name a stage's meeting.** Interview reminders and the booking page say "interview" for a trial shift. A
    per-stage meeting name fixes the word. It is a backend change. Size S to M. (#147)
 
 #### Integrations
@@ -95,34 +104,40 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 
 #### Built your way, and the first hour
 
-1. **Make the setup checklist findable.** It lives only in the bell, which shows an unlabelled count, and the Jobs
+1. **Share a view without putting it in everyone's sidebar.** Today "Share with the team" adds a person's saved view to
+   every teammate's sidebar, so one person's way of reading applications lands on everyone. Sharing becomes an offer:
+   the team's shared views are a list anyone can browse and preview, and each person adds the ones they want to their
+   own sidebar. It needs a per-person "added" record on the API and a browse sheet. Size M. (owner's walk-through,
+   2026-11-09)
+
+2. **Make the setup checklist findable.** It lives only in the bell, which shows an unlabelled count, and the Jobs
    empty state never mentions it. Label the badge on a new organization ("Setup 5"), point to it from the empty state,
    or open the bell once after onboarding. Size S. (#149)
-2. **Check a job before it goes live.** Three of the five built-in templates ship fill-in prompts as the description,
+3. **Check a job before it goes live.** Three of the five built-in templates ship fill-in prompts as the description,
    so a new Owner can publish "Describe the work, the office and the team." to the public careers page, and some boards
    refuse an on-site job without a city only after publishing. Warn, not block, when Publish is pressed, with a link
    to Edit details. Size M. (#149)
-3. **Say what "Open jobs 1 of 10" counts.** The tile does not say 10 is the plan's limit. "1 of 10 on your plan",
+4. **Say what "Open jobs 1 of 10" counts.** The tile does not say 10 is the plan's limit. "1 of 10 on your plan",
    linking to Billing, if it fits a phone tile. Size S. (#149)
-4. **Tell a new Owner about the trial.** Only Billing, the bell near the end and a "0 of 10" tile say there is one, how
+5. **Tell a new Owner about the trial.** Only Billing, the bell near the end and a "0 of 10" tile say there is one, how
    long it is and that it needs no card. One line on onboarding and a quiet "Trial ends" line in the sidebar footer for
    Owners. Size S to M. (#149)
-5. **Orient someone who accepts an invitation.** They land on Jobs with no word on their role or who invited them. A
+6. **Orient someone who accepts an invitation.** They land on Jobs with no word on their role or who invited them. A
    one-time line ("You joined Harbour Lane Studio as Recruiter. Jobs you can see are below."). Size S. (#149)
-6. **Fix the careers page setup step.** It ticks only when someone embeds the page or changes questions per page, so
+7. **Fix the careers page setup step.** It ticks only when someone embeds the page or changes questions per page, so
    a team that keeps the defaults can only dismiss the whole checklist. Drop the step or merge it into Branding; the
    count goes from five to four, and the tests and docs that say five change with it. Size S. (#149)
-7. **Check the scorecard's 1 to 5 buttons on a phone.** They looked about 36 px, and design system F4 wants 44 px under
+8. **Check the scorecard's 1 to 5 buttons on a phone.** They looked about 36 px, and design system F4 wants 44 px under
    `pointer: coarse`. A check first, then a fix if it fails. Size S. (#148)
-8. **Ask for a name at onboarding.** A member with no name shows as a truncated email address in Team, and the Email
+9. **Ask for a name at onboarding.** A member with no name shows as a truncated email address in Team, and the Email
    column repeats it. Ask on the onboarding form, prefilled from the identity provider when it has one. Size S to M. (#149)
-9. **Quieter empty states.** An empty Candidates panel shows the whole toolbar (Stage filter, three zero chips, a Save
+10. **Quieter empty states.** An empty Candidates panel shows the whole toolbar (Stage filter, three zero chips, a Save
    view that looks disabled), and the Invite sheet stacks six two-line cards. Hide the toolbar until there are rows; one
    line per role and a single "Only some jobs" switch. Size S to M. (#149)
-10. **Starting points for a cafe.** The Trial shift scorecard is not on the Trade role template's stage, and the
+11. **Starting points for a cafe.** The Trial shift scorecard is not on the Trade role template's stage, and the
     template's example line is "Plumber, electrician, driver". Wiring the scorecard in and adding a Hospitality
     starting point each need a data migration. Size S to M. (#147)
-11. **A guided first job.** The first job spans New job, Edit details and the job page, with a different hint at each.
+12. **A guided first job.** The first job spans New job, Edit details and the job page, with a different hint at each.
     One flow from "pick a starting point" through the role's real details to Publish, on the first job only. It would
     absorb number 2. Size L. (#149)
 
@@ -152,6 +167,12 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 - **Job boards:** Indeed and ZipRecruiter (phase 2, with paying customers), LinkedIn, then European boards
   ([job boards](research/job-boards.md), [job distribution](architecture/job-distribution.md)).
 - **Careers:** custom tenant domains (ADR-0003).
+- **Sign-in through an organization's own identity provider:** one company's Okta or Entra ID, required for its members,
+  set up by its Owner. Sign-in today offers Google, Microsoft, emailed links and passkeys, plus any OpenID Connect
+  provider the installation configures for everyone ([sign-in and tenancy](architecture/sign-in-and-tenancy.md)). A
+  per-organization provider is an enterprise feature, and no first customer needs it. GitHub sign-in stays out: few
+  recruiters have an account, and it would be one more button for everyone else (owner's review of competitor sign-in
+  pages, 2026-11-17).
 - **The recruiter dashboard inside a customer's own site:** only if a customer asks. Sign-in cookies are SameSite Lax
   or Strict and do not reach a cross-site frame, Google's and Microsoft's sign-in pages refuse to load in a frame, and
   allowing framing invites clickjacking. The API and webhooks are the usual way to integrate.

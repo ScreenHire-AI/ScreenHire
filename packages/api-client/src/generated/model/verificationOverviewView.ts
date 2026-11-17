@@ -19,4 +19,6 @@ export interface VerificationOverviewView {
   pending: number;
   levels: VerificationLevelCounts;
   groups: VerificationGroupCount[];
+  /** @nullable */
+  lastCheckedAt: string | null;
 }

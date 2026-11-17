@@ -875,7 +875,7 @@ on sees those jobs. Neither holds a score or a percentage.
 
 | Route | What it gives |
 |---|---|
-| `GET /v1/verification/overview` | This UTC month's applications: how many have an authenticity level (`checked`) and how many are still being checked (`pending`); how many are at each level (`clear`, `review`, `verify`, the newest authenticity assessment of each application, a dismissal not moving it); and the groups of checks that counted a signal in an application, with that number of applications, most first. AI assistance is never counted |
+| `GET /v1/verification/overview` | This UTC month's applications: how many have an authenticity level (`checked`) and how many are still being checked (`pending`); how many are at each level (`clear`, `review`, `verify`, the newest authenticity assessment of each application, a dismissal not moving it); the groups of checks that counted a signal in an application, with that number of applications, most first; and when the newest of the month's checks finished (`lastCheckedAt`, null before the first), which the page shows as "Last checked 2 hours ago" (design system T7). AI assistance is never counted |
 | `GET /v1/verification/activity` | One newest-first feed of check runs (`VerificationAnalyzerRun`) and model calls (`AiUsageCall`), with filters `group`, `keySource` (model calls only), `outcome`, `from` and `to`, and a cursor (`before`, an opaque token of the last entry's time and id) |
 | `GET /v1/verification/activity/export` | The same feed as CSV, at most 50,000 rows. Needs View AI usage with All jobs |
 

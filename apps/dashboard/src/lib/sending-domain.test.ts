@@ -24,24 +24,19 @@ describe('tidying a pasted domain', () => {
 const record = (state: 'Matches' | 'Differs' | 'Missing' | 'NotChecked') => ({ state }) as never;
 const pending = (...states: ('Matches' | 'Differs' | 'Missing' | 'NotChecked')[]) => ({ status: 'Pending' as const, records: states.map(record) });
 
-describe('the email domain mark on the Settings home and menu', () => {
-  it('is a grey Not set up until a domain is added', () => {
-    expect(sendingDomainMark(null)).toEqual({ status: 'waiting', label: 'Not set up' });
-    expect(sendingDomainMark(undefined)).toEqual({ status: 'waiting', label: 'Not set up' });
+describe('the email domain mark in the Settings menu', () => {
+  it('shows nothing until a domain is added, because the setting is optional', () => {
+    expect(sendingDomainMark(null)).toBeUndefined();
+    expect(sendingDomainMark(undefined)).toBeUndefined();
   });
 
-  it('is nothing once the email provider has verified the domain (T3)', () => {
-    expect(sendingDomainMark({ status: 'Verified', records: [] })).toBeUndefined();
+  it('is a check once the email provider has verified the domain', () => {
+    expect(sendingDomainMark({ status: 'Verified', records: [] })).toEqual({ status: 'done', label: 'Verified' });
   });
 
-  it("is the page's own status while something is left to do, in the same words (W6, T1)", () => {
-    const notChecked = pending('NotChecked', 'NotChecked');
-    const toAdd = pending('Matches', 'Missing');
-    const waiting = pending('Matches', 'Matches');
-
-    expect(sendingDomainMark(notChecked)).toEqual({ status: 'waiting', label: 'Not checked' });
-    expect(sendingDomainMark(toAdd)).toEqual({ status: 'needsFixes', label: 'Records to add' });
-    expect(sendingDomainMark(waiting)).toEqual({ status: 'waiting', label: 'Waiting for confirmation' });
-    for (const domain of [notChecked, toAdd, waiting]) expect(sendingDomainMark(domain)).toEqual(domainStatus(domain));
+  it('is a cross while records need fixing, and nothing while a lookup or the provider is still on its way', () => {
+    expect(sendingDomainMark(pending('Matches', 'Missing'))).toEqual({ status: 'broken', label: 'Records to add' });
+    expect(sendingDomainMark(pending('NotChecked', 'NotChecked'))).toBeUndefined();
+    expect(sendingDomainMark(pending('Matches', 'Matches'))).toBeUndefined();
   });
 });

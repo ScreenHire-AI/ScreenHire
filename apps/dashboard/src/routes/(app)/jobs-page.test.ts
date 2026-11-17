@@ -35,6 +35,8 @@ async function openRowMenu(title: string) {
 
 beforeEach(() => {
   page.data = { user };
+  // Most tests read the whole list; the default (Open while a job is open) has its own tests below.
+  page.url = new URL('http://dashboard.test/?status=all');
 });
 
 afterEach(() => {
@@ -44,16 +46,15 @@ afterEach(() => {
 });
 
 describe('jobs page', () => {
-  it('shows a row per job, status first, with its location, type, publish date and last update, linking to the job', async () => {
+  it('shows a row per job, status first, then its candidates and when the last one applied, its location, type and last update, linking to the job', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
     renderPage();
 
     expect((await dataRows()).map(cellTexts)).toEqual([
-      // A draft was never published: the cell is blank, with its words for screen readers only (L1).
-      // A count that never arrived (nothing here answers the applications request) is blank, and says nothing to a screen
-      // reader either: "No candidates" would claim what nobody knows.
-      ['Draft', 'Customer Success Lead', 'Manchester, UK', 'Full-time', '', 'Not published', 'Oct 19, 2026', ''],
-      ['Open', 'Senior .NET Engineer', 'Remote (GB, IE)', 'Full-time', '', 'Oct 18, 2026', 'Oct 18, 2026', ''],
+      // A count or a date that never arrived (nothing here answers the applications request) is blank, and says nothing to
+      // a screen reader either: "No candidates" would claim what nobody knows.
+      ['Draft', 'Customer Success Lead', '', '', 'Manchester, UK', 'Full-time', 'Oct 19, 2026', ''],
+      ['Open', 'Senior .NET Engineer', '', '', 'Remote (GB, IE)', 'Full-time', 'Oct 18, 2026', ''],
     ]);
     expect(screen.getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Jobs');
@@ -68,10 +69,15 @@ describe('jobs page', () => {
     renderPage();
 
     // The fixture's three applications are on the open job and at a stage that is not an end; the one on the closed job is not current.
-    const counts = new Map((await dataRows()).map((row) => [cellTexts(row)[1], cellTexts(row)[4]]));
+    const rowsByTitle = new Map((await dataRows()).map((row) => [cellTexts(row)[1], cellTexts(row)]));
+    const counts = new Map([...rowsByTitle].map(([title, cells]) => [title, cells[2]]));
     expect(counts.get('Senior .NET Engineer')).toBe(String(applications.length));
     expect(counts.get('Customer Success Lead')).toBe('No candidates');
     expect(counts.get('Support Engineer')).toBe('No candidates');
+    // When the latest application arrived, from the same list; a job nobody applied to is blank (L1).
+    const latest = applications.map((application) => application.submittedAt).sort().at(-1)!;
+    expect(rowsByTitle.get('Senior .NET Engineer')![3]).toBe(new Date(latest).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+    expect(rowsByTitle.get('Customer Success Lead')![3]).toBe('No applications yet');
 
     // It sorts, biggest first on a first click.
     await fireEvent.click(within(screen.getByRole('table', { name: 'Jobs' })).getByRole('button', { name: 'Candidates' }));
@@ -94,7 +100,7 @@ describe('jobs page', () => {
     const table = await screen.findByRole('table', { name: 'Jobs' });
 
     const headers = within(table).getAllByRole('columnheader');
-    expect(headers.map((header) => header.textContent?.trim())).toEqual(['Status', 'Title', 'Location', 'Type', 'Candidates', 'Published', 'Last updated', 'Actions']);
+    expect(headers.map((header) => header.textContent?.trim())).toEqual(['Status', 'Title', 'Candidates', 'Last applied', 'Location', 'Type', 'Last updated', 'Actions']);
     // Every column with a value is a sort button; the actions column is not.
     expect(headers.slice(0, 7).every((header) => within(header).queryByRole('button'))).toBe(true);
     expect(within(headers[7]!).queryByRole('button')).toBeNull();
@@ -124,7 +130,7 @@ describe('jobs page', () => {
 
     await fireEvent.pointerDown(sort, { button: 0, pointerType: 'mouse' });
     const choices = (await screen.findAllByRole('menuitemradio')).map((item) => item.textContent?.replace(/,.*$/, '').trim());
-    expect(choices).toEqual(['Status', 'Title', 'Location', 'Type', 'Candidates', 'Published', 'Last updated']);
+    expect(choices).toEqual(['Status', 'Title', 'Candidates', 'Last applied', 'Location', 'Type', 'Last updated']);
     await fireEvent.click(screen.getByRole('menuitemradio', { name: /^Title/ }));
 
     await waitFor(() =>
@@ -411,6 +417,23 @@ describe('jobs page, overview', () => {
     await dataRows();
     expect(within(statusFilter()).getByRole('button', { name: /^Open/ })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByRole('region', { name: 'Open jobs' })).toBeInTheDocument();
+  });
+
+  it('opens on Open while a job is open, and on All for a team with nothing open yet, without changing as jobs open', async () => {
     page.url = new URL('http://dashboard.test/');
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
+    const { unmount } = renderPage();
+
+    await dataRows();
+    expect(statusToggle(/^Open/)).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('region', { name: 'Open jobs' })).toBeInTheDocument();
+    expect((await dataRows()).map((row) => cellTexts(row)[1])).toEqual(['Senior .NET Engineer']);
+    unmount();
+
+    // Only a draft: the list opens on All, so a new team does not land on an empty list.
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([jobs[0]]) })));
+    renderPage();
+    await dataRows();
+    expect(statusToggle(/^All/)).toHaveAttribute('aria-pressed', 'true');
   });
 });

@@ -179,8 +179,9 @@
     openCalendar: () => (calendarOpen = true),
     live: () => live.connection.status,
     user: () => data.user,
-    // Missing until the answer is in, and for anyone who may not ask: the Settings home marks the domain only while something is left to do.
+    // Missing until the answer is in, and for anyone who may not ask: the Settings menu marks the domain once it works or needs fixing.
     sendingDomainMark: () => (sendingDomain.data ? sendingDomainMark(sendingDomain.data.data.domain) : undefined),
+    toast: (toast) => notifications.toast(toast),
     features: () => ({
       slack: slackFeature(slack.data?.data, slack.isError),
       // A failed query says nothing about the feature, so the entry stays and the page reports the failure.

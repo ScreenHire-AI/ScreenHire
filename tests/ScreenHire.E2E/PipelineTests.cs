@@ -72,7 +72,8 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
 
         var screening = Page.GetByRole(AriaRole.List, new() { Name = "Screening stage" });
         await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Screening" })).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Moved Casey Morgan to Screening." })).ToBeVisibleAsync();
+        // The move shows as a toast in the corner tray, as a teammate's does, and is what a screen reader hears.
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Notifications" })).ToContainTextAsync("You moved Casey Morgan to Screening");
         await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Screening" })).ToBeFocusedAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-board-light");
@@ -81,7 +82,8 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         (await other.EvaluateAsync<bool>("() => window.__screenhireNoReload === true")).Should().BeTrue("the table updated in place");
 
         // The move is recorded on the application's timeline.
-        await Page.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" }).ClickAsync();
+        // The board card's link; the toast above names the candidate with a link too.
+        await screening.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Casey Morgan");
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("Moved from Applied to Screening by you");

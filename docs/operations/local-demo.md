@@ -248,10 +248,10 @@ and Archived.
 
 Settings, as Avery (any role with a settings permission; Owners and Admins have them all):
 
-Settings is one item at the bottom of the sidebar. It opens the Settings home, which lists every setting in three groups,
+Settings is one item at the bottom of the sidebar. It opens General, and its menu lists every setting in three groups,
 **Organization**, **Careers site** and **Integrations** (Slack where it is set up, MCP server, Webhooks, API keys), with a search box
-("logo" finds Branding), and a press on a name opens its page, which has its group's menu. Email domain says "Not set up" or
-"Records to add" there until it is verified. **Verification** is its own item above the views. A new
+("logo" finds Branding), on every settings page. Email domain has a green check there once it is verified and a red cross
+while its records need fixing. **Verification** is its own item above the views. A new
 organization's Owner or Admin also finds **Finish setting up** in the bell at the right of the top bar, with each step still to do linking to its page. The sandbox email domain is not re-checked on its own, so the daily domain check shows only in the tests.
 
 - **Team and Roles.** **Invite** opens a sheet that starts at Viewer and says what each role is for, Interviewer

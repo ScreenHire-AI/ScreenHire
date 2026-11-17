@@ -3,6 +3,7 @@ import BookmarkIcon from '~icons/lucide/bookmark';
 import CalendarCheckIcon from '~icons/lucide/calendar-check';
 import CircleCheckIcon from '~icons/lucide/circle-check';
 import CircleMinusIcon from '~icons/lucide/circle-minus';
+import CircleXIcon from '~icons/lucide/circle-x';
 import ClockAlertIcon from '~icons/lucide/clock-alert';
 import Clock4Icon from '~icons/lucide/clock-4';
 import DoorClosedIcon from '~icons/lucide/door-closed';
@@ -54,6 +55,8 @@ export const statuses = {
   needsFixes: view('verify', 'wrench', WrenchIcon),
   /** Unsafe file, flagged by the malware scan. */
   unsafeFile: view('verify', 'shield-x', ShieldXIcon),
+  /** A setting that needs fixing, as a bare mark beside its name in Settings (a sending domain's records to add). */
+  broken: view('verify', 'circle-x', CircleXIcon),
   /** No signs, Some signs or Strong signs of AI help: information, never a warning. */
   ai: view('ai', 'sparkles', SparklesIcon),
   /** Sent, Queued, Removing, Waiting for the candidate (an interview offered): waiting on someone else. */

@@ -14,11 +14,13 @@
   import VerificationChip from '#lib/components/verification-chip.svelte';
   import ApplicationMenu from '#lib/components/application-menu.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
+  import Rating from '#lib/components/rating.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { clock } from '#lib/clock.svelte.js';
   import { initials } from '#lib/format.js';
+  import { timeSince } from '#lib/dates.js';
   import { aiMarkOf, stateOf } from '#lib/verification.js';
   import type { Moves } from '#lib/moves.svelte.js';
   import { hasModifier } from '#lib/shortcuts.js';
@@ -27,11 +29,13 @@
   import type { StatusName } from '#lib/status.js';
   import { keptInMindLabel } from '#lib/talent-pool.js';
 
-  // A job's candidates by stage (design system sections 5 and 21). A stage with candidates is a 296px column and an
-  // empty one shrinks to 188px. The stages that end a candidacy share one 188px Closed column that counts each of them,
-  // so every stage fits a wide window; each of its rows opens in place to list those candidates (A9), and the table has
-  // them too, under the Stage filter. The board scrolls
-  // inside itself, sideways and down each column, and never moves the page.
+  // A job's candidates by stage (design system sections 5 and 21). The stages with candidates share the board's width, at
+  // least 264px each, so a wide window gives their cards more room; an empty stage stays a 188px drop target, because
+  // width there holds nothing. The stages that end a candidacy share one 188px Closed column that counts each of them; each of its rows
+  // opens in place to list those candidates (A9), and the table has them too, under the Stage filter. Where the columns
+  // need more than the window, the board scrolls inside itself, sideways and down each column, and never moves the page.
+  // A card holds what a recruiter weighs at a glance: the name and rating, a status only when one needs a look, the tags,
+  // when they applied and, once they have moved on, how long they have been in this stage.
   let {
     applications,
     stages,
@@ -178,13 +182,13 @@
      labels are absolute, and without a positioned scroller they escape it, widen the page (F1) and give the board a
      second vertical scroll. -->
 <div data-pipeline-board class="relative min-h-0 flex-1 overflow-auto">
-  <div class="flex h-full min-w-max items-start gap-3 p-3">
+  <div class="flex h-full w-full min-w-fit items-start gap-3 p-3">
     {#each columns as column (column.stage.id)}
       {@const count = countIn(column.stage.id)}
       <section
         aria-labelledby={`stage-${column.stage.id}`}
         data-stage-column={column.stage.id}
-        class={['flex max-h-full shrink-0 flex-col rounded-lg bg-secondary', count > 0 ? 'w-74' : 'w-47']}
+        class={['flex max-h-full flex-col rounded-lg bg-secondary', count > 0 ? 'min-w-66 flex-1 basis-0' : 'w-47 shrink-0']}
       >
         <h3 id={`stage-${column.stage.id}`} class="flex min-w-0 items-center gap-2 px-3 pt-3 pb-2 text-body font-semibold">
           <TruncatedText text={column.stage.name} />
@@ -215,12 +219,17 @@
                   class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
                   >{initials(card.candidateName)}</span
                 >
-                <TruncatedText
-                  href={`/applications/${card.id}`}
-                  tabindex={-1}
-                  text={card.candidateName}
-                  class="font-semibold text-foreground no-underline hover:underline"
-                />
+                <span class="min-w-0 flex-1">
+                  <TruncatedText
+                    href={`/applications/${card.id}`}
+                    tabindex={-1}
+                    text={card.candidateName}
+                    class="font-semibold text-foreground no-underline hover:underline"
+                  />
+                </span>
+                {#if card.rating?.state === 'Rated' || card.rating?.state === 'AfterYourScorecard'}
+                  <span class="relative shrink-0"><Rating rating={card.rating} /></span>
+                {/if}
               </span>
               {#if showStatus}
                 <!-- Status first (T2); the column already says the stage. Overdue is the team's status and leads. -->
@@ -232,8 +241,21 @@
                   <AiMark level={ai} />
                 </span>
               {/if}
+              {#if card.tags.length > 0}
+                <!-- The first three tags as facts, then how many more (W3, never links). -->
+                <span class="flex flex-wrap items-center gap-1">
+                  {#each card.tags.slice(0, 3) as tag (tag)}<Badge variant="muted" class="max-w-full"><TruncatedText text={tag} /></Badge>{/each}
+                  {#if card.tags.length > 3}<Badge variant="muted">+{card.tags.length - 3}</Badge>{/if}
+                </span>
+              {/if}
               <span class="flex items-center gap-2">
-                <span class="min-w-0 flex-1 truncate text-caption text-muted-foreground"><RelativeTime at={card.submittedAt} /></span>
+                <span class="flex min-w-0 flex-1 flex-col text-caption text-muted-foreground">
+                  <span class="truncate">Applied <RelativeTime at={card.submittedAt} class="inline" /></span>
+                  <!-- Only once the candidate has moved on from where they started: until then it says the same as above. -->
+                  {#if Date.parse(card.stageEnteredAt) - Date.parse(card.submittedAt) > 60_000}
+                    <span class="truncate">In this stage {timeSince(card.stageEnteredAt, clock.now)}</span>
+                  {/if}
+                </span>
                 <span class="shrink-0">
                   {#if moves.allowed}<ApplicationMenu candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />{/if}
                 </span>

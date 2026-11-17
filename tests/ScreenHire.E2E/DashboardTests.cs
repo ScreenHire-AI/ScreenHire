@@ -131,30 +131,37 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
     private async Task ExpectBrightwaterJobsAsync()
     {
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
-        var table = Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" }).GetByRole(AriaRole.Table, new() { Name = "Jobs" });
+        // The list opens on Open, the jobs the team is hiring for, while one is open.
+        var table = Page.GetByRole(AriaRole.Region, new() { Name = "Open jobs" }).GetByRole(AriaRole.Table, new() { Name = "Jobs" });
         var rows = table.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Cell) });
-        await Expect(rows).ToHaveCountAsync(4);
+        await Expect(rows).ToHaveCountAsync(3);
 
-        (string Title, string Location, string Status)[] seeded =
+        (string Title, string Location)[] seeded =
         [
-            ("Senior Product Designer", "Remote (GB, IE)", "Open"),
-            ("Senior .NET Engineer", "Remote (GB, IE)", "Open"),
-            ("Frontend Engineer (Svelte)", "London, England, GB", "Open"),
-            ("Customer Success Lead", "Manchester, England, GB", "Draft"),
+            ("Senior Product Designer", "Remote (GB, IE)"),
+            ("Senior .NET Engineer", "Remote (GB, IE)"),
+            ("Frontend Engineer (Svelte)", "London, England, GB"),
         ];
-        foreach (var (title, location, status) in seeded)
+        foreach (var (title, location) in seeded)
         {
             var cells = rows.Filter(new() { HasText = title }).GetByRole(AriaRole.Cell);
-            // Status first (T2), then the title, location, type, candidates and publish date.
-            await Expect(cells.Nth(0)).ToHaveTextAsync(status);
+            // Status first (T2), then the title, the candidates in play, when the latest applied, the location and type.
+            await Expect(cells.Nth(0)).ToHaveTextAsync("Open");
             await Expect(cells.Nth(1)).ToHaveTextAsync(title);
-            await Expect(cells.Nth(2)).ToHaveTextAsync(location);
-            // Candidates in play (column 4): a number for a job with people on it, and a blank cell, its words for screen readers
-            // only, for one with nobody (L1). This stack seeds the jobs without the demo's applicants, so each reads blank.
-            await Expect(cells.Nth(4)).ToHaveTextAsync(new Regex(@"^(No candidates|\d+)$"));
-            // Published date ("Oct 20, 2026") for open jobs; a blank cell, its words for screen readers only, for the draft, which was never published (L1).
-            await Expect(cells.Nth(5)).ToHaveTextAsync(status == "Draft" ? new Regex("^Not published$") : PublishedDate());
+            // A number for a job with people on it, and a blank cell, its words for screen readers only, for one with nobody (L1).
+            // This stack seeds the jobs without the demo's applicants, so each reads blank.
+            await Expect(cells.Nth(2)).ToHaveTextAsync(new Regex(@"^(No candidates|\d+)$"));
+            await Expect(cells.Nth(3)).ToHaveTextAsync(new Regex(@"^(No applications yet|[A-Z][a-z]{2} \d{1,2}, \d{4})$"));
+            await Expect(cells.Nth(4)).ToHaveTextAsync(location);
         }
+
+        // All shows the draft too, and the address keeps the choice.
+        await Page.GetByRole(AriaRole.Group, new() { Name = "Status" }).GetByRole(AriaRole.Button, new() { Name = "All" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(@"[?&]status=all"));
+        var all = Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" }).GetByRole(AriaRole.Table, new() { Name = "Jobs" });
+        var allRows = all.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Cell) });
+        await Expect(allRows).ToHaveCountAsync(4);
+        await Expect(allRows.Filter(new() { HasText = "Customer Success Lead" }).GetByRole(AriaRole.Cell).Nth(0)).ToHaveTextAsync("Draft");
 
         // The status filter counts each status in a count badge after its label; All's count is the header's (W4).
         await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Status" }).GetByRole(AriaRole.Button))
@@ -166,9 +173,4 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
     }
 
     private string DashboardUrl(string pathAndQuery) => new Uri(Fixture.GetEndpoint("dashboard"), pathAndQuery).ToString();
-
-    // The en-US medium date. Playwright runs the pattern as a JavaScript regex without the `u` flag, so use a plain
-    // class: `\p{L}` would match a literal "p".
-    [GeneratedRegex(@"^[A-Z][a-z]{2} \d{1,2}, \d{4}$")]
-    private static partial Regex PublishedDate();
 }

@@ -39,6 +39,8 @@ public sealed class VerificationAreaTests(AppHostFixture fixture)
         overview.At("levels.clear").GetInt32().Should().Be(1);
         overview.At("levels.review").GetInt32().Should().Be(0);
         overview.At("levels.verify").GetInt32().Should().Be(1);
+        var lastChecked = overview.At("lastCheckedAt").GetDateTimeOffset();
+        lastChecked.Should().BeOnOrAfter(overview.At("from").GetDateTimeOffset()).And.BeOnOrBefore(overview.At("to").GetDateTimeOffset(), "the newest check finished this month");
         var from = overview.At("from").GetDateTimeOffset();
         (from.Offset == TimeSpan.Zero && from.Day == 1 && from.TimeOfDay == TimeSpan.Zero).Should().BeTrue("the month is the UTC calendar month");
         var groups = overview.At("groups").EnumerateArray().ToDictionary(g => g.GetProperty("group").GetString()!, g => g.GetProperty("applications").GetInt32());
@@ -58,6 +60,7 @@ public sealed class VerificationAreaTests(AppHostFixture fixture)
         var overview = (await tenant.GetAsync($"{Area}/overview")).Expect(HttpStatusCode.OK);
 
         overview.At("checked").GetInt32().Should().Be(0);
+        overview.At("lastCheckedAt").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null, "nothing has been checked yet");
         overview.At("pending").GetInt32().Should().Be(1);
         overview.At("groups").GetArrayLength().Should().Be(0);
     }

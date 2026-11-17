@@ -3,8 +3,12 @@ import { createMoveApplication, getListJobApplicationsQueryKey } from '@screenhi
 import { useQueryClient } from '@tanstack/svelte-query';
 import { describeError, invalidatePath } from '#lib/query.js';
 import { applicationsPath, candidatesPath, jobsPath } from '#lib/realtime.js';
+import { getShell } from '#lib/shell.js';
+import type { Toast } from '#lib/teammate-changes.js';
 
 type JobApplications = { data: ApplicationSummary[] };
+/** What a move reads of an application: its job's title, when the caller has it, words the toast. */
+type Movable = Pick<ApplicationSummary, 'id' | 'jobId' | 'candidateName'> & { jobTitle?: string };
 
 /**
  * Moving applications between stages, as every move control (menu, keyboard, drag) does it. The job's cached list
@@ -12,6 +16,9 @@ type JobApplications = { data: ApplicationSummary[] };
  * which also undoes the change if the API refused it. Other dashboards get the move through ApplicationMoved.
  * `allowed` says whether the person's role has Move candidates: without it every move control is left out (A3) and a
  * drag does nothing, while the API refuses the move anyway (ADR-0014). Call during component initialisation.
+ * A move that worked shows as a toast in the shell's tray, as a teammate's does, with the job under it; the tray is a live
+ * region, so it is also what a screen reader hears. Without a shell (a test harness) the announcement says it instead.
+ * A failure stays in `failure`, on the page, beside what failed.
  */
 export function createMoves(options: { allowed?: () => boolean } = {}) {
   const queryClient = useQueryClient();
@@ -24,6 +31,16 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
 
   let announcement = $state('');
   let failure = $state('');
+  const shell = getShell();
+  let toasts = 0;
+  function done(sentence: Toast['sentence'], href: string, job: string | undefined, fallback: string) {
+    if (!shell?.toast) {
+      announcement = fallback;
+      return;
+    }
+    announcement = '';
+    shell.toast({ id: `own-move:${++toasts}:${Date.now()}`, kind: 'Moves', sentence, href, context: job ?? '' });
+  }
 
   const moves = {
     /** Whether the person may move candidates; the move controls show only then. */
@@ -43,7 +60,7 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
     },
 
     /** Moves one application; `note` is kept on the move's entry in its Activity. */
-    async move(application: Pick<ApplicationSummary, 'id' | 'jobId' | 'candidateName'>, to: WorkflowStage, note?: string): Promise<boolean> {
+    async move(application: Movable, to: WorkflowStage, note?: string): Promise<boolean> {
       failure = '';
       const stage: ApplicationStage = { id: to.id, name: to.name, kind: to.kind };
       const queryKey = getListJobApplicationsQueryKey(application.jobId);
@@ -54,7 +71,7 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
       );
       try {
         await mutation.mutateAsync({ applicationId: application.id, data: { toStageId: to.id, ...(note?.trim() ? { note: note.trim() } : {}) } });
-        announcement = `Moved ${application.candidateName} to ${to.name}.`;
+        done(['You moved ', application.candidateName, ` to ${to.name}`], `/applications/${application.id}`, application.jobTitle, `Moved ${application.candidateName} to ${to.name}.`);
         return true;
       } catch (error) {
         failure = describeError(error, `Could not move ${application.candidateName}`);
@@ -67,7 +84,7 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
      * Moves several applications one after another and announces the outcome of all of them, not just the last.
      * Returns the ids of the ones that did not move, so a caller can keep them selected for another try.
      */
-    async moveAll(applications: readonly Pick<ApplicationSummary, 'id' | 'jobId' | 'candidateName'>[], to: WorkflowStage): Promise<string[]> {
+    async moveAll(applications: readonly Movable[], to: WorkflowStage): Promise<string[]> {
       const failed: Pick<ApplicationSummary, 'id' | 'candidateName'>[] = [];
       let lastFailure = '';
       for (const application of applications) {
@@ -82,7 +99,8 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
         failure = `Moved ${moved} of ${applications.length} to ${to.name}. Could not move ${failed.map((application) => application.candidateName).join(', ')}: ${lastFailure}`;
         announcement = failure;
       } else if (applications.length > 1) {
-        announcement = `Moved ${applications.length} candidates to ${to.name}.`;
+        const first = applications[0]!;
+        done(['You moved ', `${applications.length} candidates`, ` to ${to.name}`], `/jobs/${first.jobId}`, first.jobTitle, `Moved ${applications.length} candidates to ${to.name}.`);
       }
 
       return failed.map((application) => application.id);

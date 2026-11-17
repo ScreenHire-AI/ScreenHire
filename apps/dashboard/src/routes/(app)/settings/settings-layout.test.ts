@@ -61,8 +61,8 @@ describe('settings layout', () => {
     await expectNoAxeViolations();
   });
 
-  // The Settings home has no permission of its own: it opens for anyone who may use one setting it lists.
-  describe('the Settings home', () => {
+  // `/settings` has no permission of its own: it opens for anyone who may use one setting, and goes on to the first.
+  describe('/settings itself', () => {
     it.each<Exclude<OrganizationRole, 'Custom'>>(['Owner', 'Admin'])('opens for an %s', (role) => {
       renderAs(userAs(role), '/settings');
 
@@ -201,7 +201,7 @@ describe('settings layout', () => {
       expect(screen.queryByText('Not in your role')).not.toBeInTheDocument();
     });
 
-    it('holds the Settings home for someone whose only setting is Slack until the shell has heard, then opens it', () => {
+    it('holds /settings for someone whose only setting is Slack until the shell has heard, then opens it', () => {
       const slackOnly: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageIntegrations'] } };
 
       const waiting = renderSlack({}, slackOnly, '/settings');

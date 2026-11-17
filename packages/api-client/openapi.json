@@ -28206,7 +28206,8 @@
           "checked",
           "pending",
           "levels",
-          "groups"
+          "groups",
+          "lastCheckedAt"
         ],
         "type": "object",
         "properties": {
@@ -28234,6 +28235,13 @@
             "items": {
               "$ref": "#/components/schemas/VerificationGroupCount"
             }
+          },
+          "lastCheckedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "The Verification area's Overview: this month's applications (UTC calendar month) by authenticity level, and which check groups\ncounted a signal in the most of them. Counts of applications only. It holds no score, no percentage, no AI-assistance level\n(which never counts) and nothing about a person. For a member limited to some jobs it covers those jobs."

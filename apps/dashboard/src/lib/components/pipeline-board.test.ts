@@ -75,16 +75,20 @@ describe('pipeline board', () => {
     expect(card('Casey Morgan')).not.toHaveTextContent('·');
   });
 
-  it('gives a stage with candidates a 296px column and shrinks an empty one to 188px (section 5)', async () => {
+  it("shares the board's width among the stages with candidates, at least 264px, and keeps an empty one at 188px (section 5)", async () => {
     stubApi();
     renderBoard();
 
     await screen.findByRole('list', { name: 'Applied stage' });
-    const width = (id: string) => document.querySelector(`[data-stage-column="${id}"]`)!.className;
-    expect(width('applied')).toContain('w-74');
-    expect(width('screening')).toContain('w-74');
-    expect(width('interview')).toContain('w-47');
-    expect(width('offer')).toContain('w-47');
+    const classes = (id: string) => document.querySelector(`[data-stage-column="${id}"]`)!.classList;
+    for (const id of ['applied', 'screening']) {
+      expect(classes(id)).toContain('flex-1');
+      expect(classes(id)).toContain('min-w-66');
+    }
+    for (const id of ['interview', 'offer']) {
+      expect(classes(id)).toContain('w-47');
+      expect(classes(id)).not.toContain('flex-1');
+    }
   });
 
   it('counts the stages that end a candidacy in one 188px Closed column, without drawing their cards', async () => {
