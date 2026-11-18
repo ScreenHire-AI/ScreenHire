@@ -131,7 +131,7 @@ without it. Usage is never about a candidate and never shows a score.
 
 | Route | Permission |
 |---|---|
-| `GET /v1/organization/ai-usage/summary` | View AI usage: totals, by day (in the requester's time zone, each day split between ScreenHire's key and the own key in tokens and cost), by model and by key, and the month against the limits |
+| `GET /v1/organization/ai-usage/summary` | View AI usage: totals, by day (in the requester's time zone, each day split between ScreenHire's key and the own key in tokens and cost), by model and by key, the month against the limits, and when the newest call happened (`lastCallAt`, whatever the range, null before the first) |
 | `GET /v1/organization/ai-usage/calls` | View AI usage: the calls, newest first, paged by the id of the last one (`before`), filtered by dates, key, provider, model, outcome, check and application |
 | `GET /v1/organization/ai-usage/calls/export` | View AI usage: the same calls as a CSV (RFC 4180, a byte order mark, formula-looking cells neutralised), at most 50,000 rows, said in the file when cut |
 | `PUT /v1/organization/ai-usage/limits` | Manage billing: the unit, the budget and the cap |
@@ -141,7 +141,8 @@ sortable headers.
 
 In the dashboard this is the Verification area ([verification-engine.md](verification-engine.md) section 10.11). The Usage tab shows the
 summary: calls, tokens and cost for a range, tokens by day for ScreenHire's key against the own key with its table, the month against
-the budget and cap, and use by model and key. The calls themselves, with the provider's request id on each, are in the Activity log
+the budget and cap, and use by model and key. The Model calls tile ends with "Last call 5 minutes ago" (`lastCallAt`, the newest call
+whatever the range, left out before the first; design system T7). The calls themselves, with the provider's request id on each, are in the Activity log
 beside the rule-based check runs (section 10.12), where the CSV is `GET /v1/verification/activity/export`; `GET .../ai-usage/calls`
 and its export stay for API use. The Notifications tab holds the budget and cap (an Owner's form, an Admin's read-only facts) and the
 two alerts.

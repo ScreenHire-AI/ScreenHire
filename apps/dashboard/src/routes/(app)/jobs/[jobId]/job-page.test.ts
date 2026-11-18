@@ -22,7 +22,7 @@ const job = {
   workplaceType: 'Remote',
   locations: [],
   applicantLocationRequirements: ['GB', 'IE'],
-  location: 'Remote (GB, IE)',
+  location: 'Remote (United Kingdom, Ireland)',
   salary: { min: 70000, max: 90000, currency: 'GBP', period: 'Year' },
   validThrough: null,
   workflow: { stages, questionnaire: { questions: [] }, automations: [] },

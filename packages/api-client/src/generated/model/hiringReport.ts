@@ -26,4 +26,6 @@ export interface HiringReport {
   timeToHire: TimeToHire;
   sources: SourceCount[];
   openJobs: ReportOpenJob[];
+  /** @nullable */
+  lastApplicationAt: string | null;
 }

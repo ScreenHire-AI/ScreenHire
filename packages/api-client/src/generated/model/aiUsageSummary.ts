@@ -12,7 +12,8 @@ import type { AiUsageTotals } from './aiUsageTotals.ts';
 /**
  * This organization's AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`
  * are calls nothing could price, which count as no cost. Days are the requester's days (`timeZone`). `limits` is
- * the month's position against the budget and cap, whatever range was asked for.
+ * the month's position against the budget and cap, whatever range was asked for. `lastCallAt` is when the newest model call
+ * happened, whatever the range, so the page can say how recent its numbers are (design system T7); null before the first.
  */
 export interface AiUsageSummary {
   from: string;
@@ -22,4 +23,6 @@ export interface AiUsageSummary {
   byModel: AiUsageGroup[];
   byKeySource: AiUsageGroup[];
   limits: AiUsageLimitsView;
+  /** @nullable */
+  lastCallAt: string | null;
 }

@@ -1,7 +1,7 @@
 import type { ApplicationDetail, MemberNotificationSettings, TeamMember } from '@screenhire/api-client';
 import type { RealtimeEvent } from '@screenhire/realtime';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultNotificationSettings, type Toast } from './teammate-changes.js';
+import { appliedWindow, defaultNotificationSettings, type Toast } from './teammate-changes.js';
 import { groupWindow, TeammateToasts, type TeammateToastSources } from './teammate-toasts.js';
 
 const me = '0199f0c4-0000-7000-8000-00000000000a';
@@ -31,6 +31,11 @@ function sources(settings: MemberNotificationSettings = defaultNotificationSetti
 const moved = (n: number): RealtimeEvent => ({
   type: 'ApplicationMoved',
   data: { organizationId, applicationId: applicationId(n), jobId: job, fromStageId: 'applied', toStageId: 'interview', eventId: applicationId(n), movedAt: at, actorUserId: jordan },
+});
+
+const applied = (n: number, actorUserId: string | null = null): RealtimeEvent => ({
+  type: 'ApplicationSubmitted',
+  data: { organizationId, applicationId: applicationId(n), jobId: job, stageId: 'applied', eventId: applicationId(n), submittedAt: at, actorUserId },
 });
 
 const noteAdded: RealtimeEvent = {
@@ -140,5 +145,99 @@ describe('teammate toasts', () => {
 
     expect(shown).toEqual([]);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  describe('new applications', () => {
+    const texts = () => shown.map((toast) => toast.sentence.join(''));
+
+    it('toasts one application as the candidate applying, without a member to name', async () => {
+      const toasts = new TeammateToasts(sources(), (toast) => shown.push(toast));
+      await toasts.receive(applied(1));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+
+      expect(texts()).toEqual(['Taylor Brook applied to Platform Engineer']);
+    });
+
+    it('turns applications that arrive together into one count, reading no candidate', async () => {
+      const source = sources();
+      const toasts = new TeammateToasts(source, (toast) => shown.push(toast));
+      for (let n = 1; n <= 3; n++) await toasts.receive(applied(n));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+
+      expect(texts()).toEqual(['3 new applications to Platform Engineer']);
+      expect(shown[0]!.href).toBe(`/candidates?view=not-screened&job=${job}`);
+      expect(source.application).not.toHaveBeenCalled();
+    });
+
+    it('shows the first at once and folds the ones that follow within a minute into the same toast', async () => {
+      const toasts = new TeammateToasts(sources(), (toast) => shown.push(toast));
+      await toasts.receive(applied(1));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      await vi.advanceTimersByTimeAsync(20_000);
+      await toasts.receive(applied(2));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      await vi.advanceTimersByTimeAsync(20_000);
+      await toasts.receive(applied(3));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+
+      expect(texts()).toEqual(['Taylor Brook applied to Platform Engineer', '2 new applications to Platform Engineer', '3 new applications to Platform Engineer']);
+      expect(new Set(shown.map((toast) => toast.id)).size).toBe(1);
+    });
+
+    it('starts a new toast once the minute is over', async () => {
+      const toasts = new TeammateToasts(sources(), (toast) => shown.push(toast));
+      await toasts.receive(applied(1));
+      await vi.advanceTimersByTimeAsync(appliedWindow + groupWindow);
+      await toasts.receive(applied(2));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+
+      expect(texts()).toEqual(['Taylor Brook applied to Platform Engineer', 'Taylor Brook applied to Platform Engineer']);
+      expect(new Set(shown.map((toast) => toast.id)).size).toBe(2);
+    });
+
+    it('never goes back to an older count when the first application is read after the next one counted', async () => {
+      const source = sources();
+      let answer!: (detail: ApplicationDetail) => void;
+      source.application.mockImplementationOnce(() => new Promise<ApplicationDetail>((resolve) => (answer = resolve)));
+      const toasts = new TeammateToasts(source, (toast) => shown.push(toast));
+      await toasts.receive(applied(1));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      await toasts.receive(applied(2));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      answer({ id: applicationId(1), candidate: { fullName: 'Taylor Brook' }, jobTitle: 'Platform Engineer', stage: { id: 'applied', name: 'Applied' } } as unknown as ApplicationDetail);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(texts()).toEqual(['2 new applications to Platform Engineer']);
+    });
+
+    it('still counts an application that could not be read, without showing it', async () => {
+      const source = sources();
+      source.application.mockRejectedValueOnce(new Error('gone'));
+      const toasts = new TeammateToasts(source, (toast) => shown.push(toast));
+      await toasts.receive(applied(1));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      expect(texts()).toEqual([]);
+
+      await toasts.receive(applied(2));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      expect(texts()).toEqual(['2 new applications to Platform Engineer']);
+    });
+
+    it("keeps a member's own additions apart: they name the member", async () => {
+      const toasts = new TeammateToasts(sources(), (toast) => shown.push(toast));
+      await toasts.receive(applied(1, jordan));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+
+      expect(texts()).toEqual(['Jordan Ellis added Taylor Brook']);
+    });
+
+    it('stops its timers when disposed', async () => {
+      const toasts = new TeammateToasts(sources(), (toast) => shown.push(toast));
+      await toasts.receive(applied(1));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      toasts.dispose();
+
+      expect(vi.getTimerCount()).toBe(0);
+    });
   });
 });

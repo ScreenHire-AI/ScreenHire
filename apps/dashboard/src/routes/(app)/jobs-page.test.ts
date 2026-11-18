@@ -54,7 +54,7 @@ describe('jobs page', () => {
       // A count or a date that never arrived (nothing here answers the applications request) is blank, and says nothing to
       // a screen reader either: "No candidates" would claim what nobody knows.
       ['Draft', 'Customer Success Lead', '', '', 'Manchester, UK', 'Full-time', 'Oct 19, 2026', ''],
-      ['Open', 'Senior .NET Engineer', '', '', 'Remote (GB, IE)', 'Full-time', 'Oct 18, 2026', ''],
+      ['Open', 'Senior .NET Engineer', '', '', 'Remote (United Kingdom, Ireland)', 'Full-time', 'Oct 18, 2026', ''],
     ]);
     expect(screen.getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${jobs[1]!.id}`);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Jobs');
