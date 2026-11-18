@@ -26,7 +26,8 @@ public sealed record UpdateAiUsageLimitsRequest(UsageUnit Unit, decimal? Budget 
 /// <summary>
 /// This organization's AI use between <c>from</c> and <c>to</c> (default: this month, UTC). Totals count calls; <c>callsWithUnknownCost</c>
 /// are calls nothing could price, which count as no cost. Days are the requester's days (<c>timeZone</c>). <c>limits</c> is
-/// the month's position against the budget and cap, whatever range was asked for.
+/// the month's position against the budget and cap, whatever range was asked for. <c>lastCallAt</c> is when the newest model call
+/// happened, whatever the range, so the page can say how recent its numbers are (design system T7); null before the first.
 /// </summary>
 public sealed record AiUsageSummary(
     DateTimeOffset From,
@@ -35,7 +36,8 @@ public sealed record AiUsageSummary(
     IReadOnlyList<AiUsageDay> ByDay,
     IReadOnlyList<AiUsageGroup> ByModel,
     IReadOnlyList<AiUsageGroup> ByKeySource,
-    AiUsageLimitsView Limits);
+    AiUsageLimitsView Limits,
+    DateTimeOffset? LastCallAt);
 
 /// <summary>Calls, tokens and cost over a range. <c>cost</c> is in US dollars and counts only calls with a known cost.</summary>
 public sealed record AiUsageTotals(int Calls, long InputTokens, long OutputTokens, decimal Cost, int CallsWithUnknownCost, int FailedCalls);
