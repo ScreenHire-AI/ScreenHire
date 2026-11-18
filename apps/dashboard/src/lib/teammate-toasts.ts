@@ -130,9 +130,7 @@ export class TeammateToasts {
       const actorName = members.find((member) => member.userId === first.actorUserId)?.displayName ?? 'A teammate';
       const id = `change:${++this.#count}`;
       if (changes.length > 1 && first.kind !== 'Tasks' && first.kind !== 'Templates') {
-        const memberId = members.find((member) => member.userId === this.#sources.userId())?.id;
-        const jobs = memberId ? await this.#sources.memberJobs(memberId) : [];
-        const jobTitle = jobs.find((job) => job.id === first.jobId)?.title;
+        const jobTitle = await this.#jobTitle(first.jobId, members);
         if (!this.#disposed) this.#show(groupToastFor(id, first.kind, first.jobId, changes.length, actorName, jobTitle));
         return;
       }
@@ -159,17 +157,22 @@ export class TeammateToasts {
     };
     this.#applied.set(jobId, run);
 
-    if (run.count === 1) {
-      const first = changes[0]!;
-      const facts = await this.#facts(first);
-      if (!this.#disposed) this.#show(toastFor(run.id, first, { actorName: '', ...facts }));
-      return;
-    }
+    // If the first application cannot be read, nothing shows, and the next one in the minute still counts it: two did arrive.
+    const toast =
+      run.count === 1
+        ? toastFor(run.id, changes[0]!, { actorName: '', ...(await this.#facts(changes[0]!)) })
+        : appliedGroupToastFor(run.id, jobId, run.count, await this.#jobTitle(jobId, await this.#sources.members()));
+    // A later batch may have counted more while this one read; the toast never goes back to an older count.
+    const latest = this.#applied.get(jobId);
+    if (this.#disposed || (latest?.id === run.id && latest.count > run.count)) return;
+    this.#show(toast);
+  }
 
-    const members = await this.#sources.members();
+  // The title of a job on this person's hiring team, from their own job list.
+  async #jobTitle(jobId: string, members: readonly TeamMember[]): Promise<string | undefined> {
     const memberId = members.find((member) => member.userId === this.#sources.userId())?.id;
     const jobs = memberId ? await this.#sources.memberJobs(memberId) : [];
-    if (!this.#disposed) this.#show(appliedGroupToastFor(run.id, jobId, run.count, jobs.find((job) => job.id === jobId)?.title));
+    return jobs.find((job) => job.id === jobId)?.title;
   }
 
   async #facts(change: TeammateChange) {
