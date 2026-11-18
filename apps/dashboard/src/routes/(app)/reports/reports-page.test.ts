@@ -54,6 +54,8 @@ const report: HiringReport = {
     { key: 'website', name: 'Your website', applications: 2, hires: 0 },
   ],
   openJobs: [{ jobId: jobs[0]!.id, title: jobs[0]!.title, openedAt: '2026-10-19T12:00:00Z', applications: 6, inInterview: 2, daysOpen: 12, hires: 1 }],
+  // Three hours before the test runs, so it always reads as time ago.
+  lastApplicationAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
 };
 
 const nothing: HiringReport = {
@@ -107,7 +109,7 @@ describe('reports page', () => {
       return card;
     });
     expect(cards.map((card) => card.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      'Applications 8 3 3 more than before',
+      'Applications 8 3 3 more than before Last application 3 hours ago',
       'Reached interview 3 1 1 fewer than before 38% of applications',
       'Offers 1 No change',
       'Hires 3 No change',
@@ -116,6 +118,24 @@ describe('reports page', () => {
     // The change is muted text with an arrow: a report states how far a number moved, it does not judge it.
     expect(stats.querySelectorAll('[class*="text-status-"]')).toHaveLength(0);
     expect(stats.querySelectorAll('[data-report-change] svg')).toHaveLength(3);
+  });
+
+  it('says when the newest application arrived under the Applications number, as time ago with the exact time on hover (T7), and nothing before the first', async () => {
+    renderPage();
+
+    const stats = await screen.findByRole('group', { name: 'Headline numbers' });
+    const card = within(stats).getByText('Applications').closest('[data-slot="report-stat"]') as HTMLElement;
+    expect(card).toHaveTextContent(/Last application 3 hours ago/);
+    expect(card.querySelector('time')).toHaveAttribute('datetime', report.lastApplicationAt!);
+    // Only that tile says it: the others count the same applications' progress, not when one arrived.
+    expect(within(stats).getAllByText(/Last application/)).toHaveLength(1);
+  });
+
+  it('leaves out when the newest application arrived while none has arrived yet', async () => {
+    renderPage({ ...report, lastApplicationAt: null });
+
+    const stats = await screen.findByRole('group', { name: 'Headline numbers' });
+    expect(within(stats).queryByText(/Last application/)).toBeNull();
   });
 
   it('packs each headline number into two rows: the title, then the value with its change on the same line', async () => {

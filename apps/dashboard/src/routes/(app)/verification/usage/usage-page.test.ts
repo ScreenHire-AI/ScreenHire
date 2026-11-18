@@ -23,6 +23,8 @@ const summary: AiUsageSummary = {
   ],
   byKeySource: [],
   limits,
+  // Five minutes before the test runs, so it always reads as time ago.
+  lastCallAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
 };
 
 function renderPage(result: AiUsageSummary | Response, routes: Parameters<typeof apiStub>[0] = {}) {
@@ -57,6 +59,21 @@ describe('the Usage tab', () => {
     expect(within(await stat('Tokens')).getByText('9,000 in, 1,500 out')).toBeInTheDocument();
     expect(within(await stat('Cost')).getByText('$0.42')).toBeInTheDocument();
     await expectNoAxeViolations();
+  });
+
+  it('says when the newest call happened under the Model calls number, as time ago with the exact time on hover (T7)', async () => {
+    renderPage(summary);
+
+    const stat = (await screen.findByText('Model calls')).closest('[data-slot="report-stat"]') as HTMLElement;
+    expect(stat).toHaveTextContent(/Last call 5 minutes ago/);
+    expect(stat.querySelector('time')).toHaveAttribute('datetime', summary.lastCallAt!);
+  });
+
+  it('leaves out when the newest call happened while there has been none', async () => {
+    renderPage({ ...summary, totals: { ...summary.totals, calls: 0 }, byDay: [], byModel: [], lastCallAt: null });
+
+    const stat = (await screen.findByText('Model calls')).closest('[data-slot="report-stat"]') as HTMLElement;
+    expect(stat).not.toHaveTextContent(/Last call/);
   });
 
   it('shows the month against the budget and the cap', async () => {

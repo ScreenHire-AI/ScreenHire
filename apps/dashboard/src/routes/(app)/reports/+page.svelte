@@ -19,6 +19,7 @@
   import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
   import ReportStat from '#lib/components/report-stat.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import WeekChart, { type WeekPoint } from '#lib/components/week-chart.svelte';
@@ -347,7 +348,11 @@
             role="group"
             aria-label="Headline numbers"
           >
-            <ReportStat class={statSpans[0]} icon={InboxIcon} title="Applications" value={countText(data.headline.applications)} change={changeText(data.headline.applications, previous?.applications)} />
+            <ReportStat class={statSpans[0]} icon={InboxIcon} title="Applications" value={countText(data.headline.applications)} change={changeText(data.headline.applications, previous?.applications)}>
+              {#snippet footnote()}
+                {#if data.lastApplicationAt}Last application <RelativeTime at={data.lastApplicationAt} class="inline" />{/if}
+              {/snippet}
+            </ReportStat>
             <ReportStat
               class={statSpans[1]}
               icon={CalendarCheckIcon}

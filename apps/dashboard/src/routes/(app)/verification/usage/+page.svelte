@@ -8,6 +8,7 @@
   import ChartPanel, { type ChartColumn } from '#lib/components/chart-panel.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RelativeTime from '#lib/components/relative-time.svelte';
   import ReportStat from '#lib/components/report-stat.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
@@ -82,7 +83,11 @@
   </div>
 
   <div class="grid grid-cols-2 gap-4 md:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
-    <ReportStat icon={ActivityIcon} title="Model calls" value={formatTokens(data.totals.calls)} />
+    <ReportStat icon={ActivityIcon} title="Model calls" value={formatTokens(data.totals.calls)}>
+      {#snippet footnote()}
+        {#if data.lastCallAt}Last call <RelativeTime at={data.lastCallAt} class="inline" />{/if}
+      {/snippet}
+    </ReportStat>
     <ReportStat
       icon={CoinsIcon}
       title="Tokens"

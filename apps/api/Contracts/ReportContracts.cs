@@ -17,6 +17,8 @@ namespace ScreenHire.Api.Contracts;
 /// <c>timeToHire</c>: Hires made in the range, whenever the candidate applied.
 /// <c>sources</c>: Applications submitted in the range and how many of them are hired now, by where they came from.
 /// <c>openJobs</c>: Each open job the person can see.
+/// <c>lastApplicationAt</c>: When the newest application to those jobs was submitted, whatever the range, so the page can say how
+/// recent its numbers are (design system T7); null before the first.
 /// </remarks>
 public sealed record HiringReport(
     DateTimeOffset From,
@@ -27,7 +29,8 @@ public sealed record HiringReport(
     IReadOnlyList<FunnelStage> Funnel,
     TimeToHire TimeToHire,
     IReadOnlyList<SourceCount> Sources,
-    IReadOnlyList<ReportOpenJob> OpenJobs);
+    IReadOnlyList<ReportOpenJob> OpenJobs,
+    DateTimeOffset? LastApplicationAt);
 
 /// <summary>The headline numbers of one range.</summary>
 /// <remarks>
