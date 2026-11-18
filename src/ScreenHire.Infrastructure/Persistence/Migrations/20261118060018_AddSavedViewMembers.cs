@@ -33,17 +33,17 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             UPDATE saved_filter_views SET shared_at = updated_at WHERE is_shared;
             INSERT INTO saved_view_members (view_id, user_id, organization_id, position, added_at)
                 SELECT v.id, m.user_id, v.organization_id,
-                       row_number() OVER (PARTITION BY m.user_id ORDER BY v.created_at, v.id) - 1,
+                       row_number() OVER (PARTITION BY v.organization_id, m.user_id ORDER BY v.created_at, v.id) - 1,
                        now()
                 FROM saved_filter_views v
                 JOIN organization_members m ON m.organization_id = v.organization_id AND m.user_id <> v.owner_user_id
-                WHERE v.is_shared;
+                WHERE v.is_shared AND v.deleted_at IS NULL;
             DO $$
             BEGIN
                 IF EXISTS (
                     SELECT 1 FROM saved_filter_views v
                     JOIN organization_members m ON m.organization_id = v.organization_id AND m.user_id <> v.owner_user_id
-                    WHERE v.is_shared
+                    WHERE v.is_shared AND v.deleted_at IS NULL
                       AND NOT EXISTS (SELECT 1 FROM saved_view_members s WHERE s.view_id = v.id AND s.user_id = m.user_id)) THEN
                     RAISE EXCEPTION 'The shared views were not all kept in their members'' sidebars.';
                 END IF;
