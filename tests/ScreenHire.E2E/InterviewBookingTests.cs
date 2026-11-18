@@ -32,9 +32,12 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await Expect(Page.Locator("#tz")).ToHaveValueAsync("UTC");
         await ExpectNoAccessibilityViolationsAsync();
 
-        // Pressing Book without a time is refused by the browser; nothing is posted.
+        // Pressing Book without a time books nothing and asks for one. The times carry no `required`: a closed day's radio
+        // cannot take the browser's focus, so the browser would refuse the post without a word.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Pick a time for your interview");
+        await Expect(Page.Locator("main")).ToContainTextAsync("Choose a time first.");
+        (await scene.Interview(Ct)).GetProperty("status").GetString().Should().Be("Open");
 
         // The zone is a plain GET form: the times come back written in the chosen zone, on the half hour for Kolkata.
         await Page.Locator("#tz").SelectOptionAsync("Asia/Kolkata");
@@ -134,8 +137,22 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await third.Locator("summary").ClickAsync();
         var dayHeading = (await third.Locator("legend").TextContentAsync())!.Trim();
         await third.GetByRole(AriaRole.Radio).First.CheckAsync();
-        var repeated = await third.Locator("label.choice").First.EvaluateAsync<string>("e => getComputedStyle(e, '::after').content");
-        repeated.Should().Contain($"{dayHeading} at ", "the chosen time is repeated above Book");
+        // A pseudo-element has no box to ask for, so the line's place is read from its computed insets, which anchoring
+        // resolves against the layout before scrolling: its bottom edge is Book's top edge and its left edge is Book's.
+        var line = await third.Locator("label.choice").First.EvaluateAsync<JsonElement>("""
+            e => {
+              const after = getComputedStyle(e, '::after');
+              const book = document.querySelector('.book-row').getBoundingClientRect();
+              return {
+                content: after.content,
+                gap: document.documentElement.clientHeight - parseFloat(after.bottom) - (book.top + window.scrollY),
+                left: parseFloat(after.left) - book.left,
+              };
+            }
+            """);
+        line.GetProperty("content").GetString().Should().Contain($"{dayHeading} at ", "the chosen time is repeated above Book");
+        line.GetProperty("gap").GetDouble().Should().BeApproximately(0, 1, "the chosen time sits right above Book");
+        line.GetProperty("left").GetDouble().Should().BeApproximately(0, 1, "the chosen time lines up with Book");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
 
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
