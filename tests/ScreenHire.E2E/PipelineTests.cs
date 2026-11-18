@@ -478,15 +478,21 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         return version.GetProperty("id").GetGuid();
     }
 
-    // Drags a card to a stage's list with the mouse in steps, as svelte-dnd-action's pointer drag needs to see it.
+    // Drags a card to a stage's list with the mouse in steps, as svelte-dnd-action's pointer drag needs to see it. The page
+    // goes quiet first: the lists the previous move invalidates refetch after its toast shows, and a list that changes under a
+    // card in hand gives the drag library the same card twice. A person is never that quick, so the test waits instead.
     private async Task DragCardToAsync(ILocator card, ILocator list)
     {
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         var from = (await card.BoundingBoxAsync())!;
         var to = (await list.BoundingBoxAsync())!;
         await Page.Mouse.MoveAsync(from.X + (from.Width / 2), from.Y + (from.Height / 2));
         await Page.Mouse.DownAsync();
         await Page.Mouse.MoveAsync(from.X + (from.Width / 2) + 12, from.Y + (from.Height / 2) + 12, new() { Steps = 4 });
         await Page.Mouse.MoveAsync(to.X + (to.Width / 2), to.Y + 40, new() { Steps = 20 });
+        // The library notices the zone under the pointer a moment after it arrives, and shows a placeholder there; a drop
+        // before that goes nowhere.
+        await Expect(list.Locator("[data-is-dnd-shadow-item-internal]")).ToBeAttachedAsync();
         await Page.Mouse.UpAsync();
     }
 
