@@ -257,5 +257,7 @@ Detail: `.claude/rules/dotnet-api.md` and `.claude/rules/utc-timestamps.md`. Pro
 ## Claude Code tooling
 
 Skills (`/add-endpoint`, `/add-migration`, `/add-message`, `/add-realtime-event`, `/add-dashboard-page`, `/add-careers-page`,
-`/add-marketing-page`, `/commit`, `/merge-back`, `/preview`, `/sync-docs`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
-[`docs/process/dev-tooling.md`](docs/process/dev-tooling.md).
+`/add-marketing-page`, `/commit`, `/merge-back`, `/preview`, `/sync-docs`, `/upgrade-deps`), review and test agents, and rules live in `.claude/`. What each is for and when to use it:
+[`docs/process/dev-tooling.md`](docs/process/dev-tooling.md). Dependabot's security updates open a PR only for a package with an advisory;
+every other upgrade goes through `/upgrade-deps`, which covers pnpm, NuGet and the local dotnet tools and files one board task that does the work
+([`docs/process/dependency-upgrades.md`](docs/process/dependency-upgrades.md)).
