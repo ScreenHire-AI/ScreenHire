@@ -567,7 +567,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - No cursor class on a component. Buttons, summaries, selects and switch labels get the hand from `theme.css` (A10).
 - A kicker adds to the breadcrumb and never repeats it (W7): a page whose kicker would be its own name has none.
 - A job's facts are at most three chips (place, contract, pay) from one component, `JobFacts`, on the board, the job and the
-  apply form. The workplace type goes into the place chip ("London, England, GB (Hybrid)"), and is left out when the job is
+  apply form. The workplace type goes into the place chip ("London, England, United Kingdom (Hybrid)"), and is left out when the job is
   on-site or the location already says it. Chips are never links or buttons (A5).
 - A job card on the board (`JobCard`) reads title, the job's short summary clamped to three lines with `line-clamp-3`
   (CSS only, no script), then the chips. The summary is at most 160 characters, about the job rather than the company; until

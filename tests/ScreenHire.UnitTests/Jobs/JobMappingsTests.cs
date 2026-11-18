@@ -15,7 +15,7 @@ public sealed class JobMappingsTests
         var publicJob = job.ToPublicJob("https://careers.example.com/acme/jobs/frontend-engineer-svelte");
 
         publicJob.Should().BeEquivalentTo(new PublicJob(
-            job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, GB", WorkplaceType.Hybrid,
+            job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, United Kingdom", WorkplaceType.Hybrid,
             EmploymentType.Contract, 60_000, 75_000, "GBP", Published, "<p>Svelte all day.</p>", "Svelte all day.", "Engineering",
             [new JobLocation("London", "England", "GB")], [], SalaryPeriod.Year, null, Published,
             "https://careers.example.com/acme/jobs/frontend-engineer-svelte"));
@@ -63,7 +63,7 @@ public sealed class JobMappingsTests
         var summary = job.ToSummary(lastChange: null);
 
         summary.Should().BeEquivalentTo(new JobSummary(
-            job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, GB", WorkplaceType.Hybrid,
+            job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, United Kingdom", WorkplaceType.Hybrid,
             JobStatus.Open, job.CreatedAt, Published, EmploymentType.Contract, "Engineering", false,
             new LastUpdate(job.UpdatedAt ?? job.CreatedAt, null)));
     }

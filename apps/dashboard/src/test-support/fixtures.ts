@@ -119,7 +119,7 @@ export const jobs: JobSummary[] = [
     id: '01a157d4-0000-7000-8000-000000000002',
     title: 'Senior .NET Engineer',
     slug: 'senior-dotnet-engineer',
-    location: 'Remote (GB, IE)',
+    location: 'Remote (United Kingdom, Ireland)',
     workplaceType: 'Remote',
     status: 'Open',
     createdAt: '2026-10-18T09:00:00Z',

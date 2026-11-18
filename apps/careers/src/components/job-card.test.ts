@@ -13,7 +13,7 @@ beforeAll(async () => {
 const job = {
   title: 'Service plumber',
   summary: 'Fix leaks, service boilers and fit bathrooms for homes across Leeds.',
-  location: 'Leeds, England, GB',
+  location: 'Leeds, England, United Kingdom',
   workplaceType: 'Onsite',
   employmentType: 'FullTime',
   salaryMin: 34_000,
@@ -32,7 +32,7 @@ describe('JobCard', () => {
     expect(html).toContain('href="/brightwater/jobs/service-plumber"');
     const title = html.indexOf('Service plumber');
     const summary = html.indexOf('Fix leaks, service boilers');
-    const firstChip = html.indexOf('Leeds, England, GB</span>');
+    const firstChip = html.indexOf('Leeds, England, United Kingdom</span>');
     expect(title).toBeGreaterThan(-1);
     expect(summary).toBeGreaterThan(title);
     expect(firstChip).toBeGreaterThan(summary);
@@ -55,7 +55,7 @@ describe('JobCard', () => {
     const html = await render({ workplaceType: 'Hybrid' });
 
     const chips = [...html.matchAll(/<span class="[^"]*\bbg-candidate-chip\b[^"]*">([^<]*)<\/span>/g)].map((match) => match[1]);
-    expect(chips).toEqual(['Leeds, England, GB (Hybrid)', 'Full-time', '£34k–£40k']);
+    expect(chips).toEqual(['Leeds, England, United Kingdom (Hybrid)', 'Full-time', '£34k–£40k']);
   });
 
   it('draws no summary line when the job has none', async () => {
