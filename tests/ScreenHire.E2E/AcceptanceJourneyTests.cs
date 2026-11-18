@@ -144,6 +144,11 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(genuinePanel.GetByRole(AriaRole.Region, new() { Name = "Verification", Exact = true }).Locator("[data-next-step]")).ToHaveTextAsync("No action needed.", new() { Timeout = 60_000 });
         await Page.GetByRole(AriaRole.Button, new() { Name = $"Move to stage, {genuine.FullName}", Exact = true }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Screening" }).ClickAsync();
+        // Screening sends an email, so the move says so and waits for the recruiter to confirm it.
+        var confirm = Page.GetByRole(AriaRole.Dialog, new() { Name = $"Move {genuine.FullName} to Screening?" });
+        await Expect(confirm).ToContainTextAsync("Send the \"Moved to the next step\" email.");
+        await confirm.GetByRole(AriaRole.Button, new() { Name = "Move" }).ClickAsync();
+        await Expect(confirm).ToBeHiddenAsync();
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("Moved from Applied to Screening by you");
 
