@@ -113,10 +113,9 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 2. **Make the setup checklist findable.** It lives only in the bell, which shows an unlabelled count, and the Jobs
    empty state never mentions it. Label the badge on a new organization ("Setup 5"), point to it from the empty state,
    or open the bell once after onboarding. Size S. (#149)
-3. **Check a job before it goes live.** Three of the five built-in templates ship fill-in prompts as the description,
-   so a new Owner can publish "Describe the work, the office and the team." to the public careers page, and some boards
-   refuse an on-site job without a city only after publishing. Warn, not block, when Publish is pressed, with a link
-   to Edit details. Size M. (#149)
+3. **Check a job before it goes live.** Built: Publish warns, never blocks, about template fill-in text, a missing city or
+   salary a chosen board needs, and a description a board would refuse, with Edit details beside each and Publish anyway
+   ([job distribution](architecture/job-distribution.md#check-before-publishing)). Kept here so the numbers below hold.
 4. **Say what "Open jobs 1 of 10" counts.** The tile does not say 10 is the plan's limit. "1 of 10 on your plan",
    linking to Billing, if it fits a phone tile. Size S. (#149)
 5. **Tell a new Owner about the trial.** Only Billing, the bell near the end and a "0 of 10" tile say there is one, how
