@@ -32,9 +32,12 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await Expect(Page.Locator("#tz")).ToHaveValueAsync("UTC");
         await ExpectNoAccessibilityViolationsAsync();
 
-        // Pressing Book without a time is refused by the browser; nothing is posted.
+        // Pressing Book without a time books nothing and asks for one. The times carry no `required`: a closed day's radio
+        // cannot take the browser's focus, so the browser would refuse the post without a word.
         await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Pick a time for your interview");
+        await Expect(Page.Locator("main")).ToContainTextAsync("Choose a time first.");
+        (await scene.Interview(Ct)).GetProperty("status").GetString().Should().Be("Open");
 
         // The zone is a plain GET form: the times come back written in the chosen zone, on the half hour for Kolkata.
         await Page.Locator("#tz").SelectOptionAsync("Asia/Kolkata");
@@ -42,13 +45,13 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await Expect(Page).ToHaveURLAsync(new Regex("tz=Asia%2FKolkata"));
         await Expect(Page.Locator("#tz")).ToHaveValueAsync("Asia/Kolkata");
         await Expect(Page.GetByText("All times are in India Standard Time.")).ToBeVisibleAsync();
-        var morning = Page.GetByLabel("2:30 PM", new() { Exact = true }).First; // 09:00 UTC, the first hour of the working day
+        var morning = await OpenDayWithAsync("2:30 PM"); // 09:00 UTC, the first hour of the working day
         await Expect(morning).ToBeVisibleAsync();
         var firstDay = await DayOfAsync(morning);
         await ExpectNoAccessibilityViolationsAsync();
         await ShotsAsync(scene.Link + "?tz=Asia%2FKolkata", "interview-open");
 
-        morning = Page.GetByLabel("2:30 PM", new() { Exact = true }).First; // the shots reopened the page in a new browser context
+        morning = await OpenDayWithAsync("2:30 PM"); // the shots reopened the page in a new browser context
         await morning.CheckAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
 
@@ -74,8 +77,9 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         Page.Url.Should().Contain("change=1").And.Contain("tz=Asia%2FKolkata");
         await Expect(Page.Locator("main")).ToContainTextAsync("Choose a new time and we will move it.");
         await ExpectNoAccessibilityViolationsAsync();
-        var last = Page.Locator("fieldset").Last;
-        var lastDay = (await last.Locator("legend").InnerTextAsync()).Trim();
+        var last = Page.Locator("details").Last;
+        await last.Locator("summary").ClickAsync(); // only the first day starts open
+        var lastDay = (await last.Locator("legend").TextContentAsync())!.Trim();
         var lastTime = last.GetByRole(AriaRole.Radio).Last;
         var lastRange = (await lastTime.Locator("xpath=ancestor::label[1]").InnerTextAsync()).Trim();
         await lastTime.CheckAsync();
@@ -102,6 +106,56 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
 
         // The recruiter sees the cancellation too.
         (await scene.Interview(Ct)).GetProperty("status").GetString().Should().Be("Cancelled");
+    }
+
+    [Fact]
+    public async Task A_candidate_on_a_phone_sees_one_day_of_times_at_a_time_and_books_a_time_on_the_third_day()
+    {
+        using var scene = await SceneAsync();
+        await WithoutJavaScriptAsync();
+        await Page.SetViewportSizeAsync(390, 844);
+        await Page.GotoAsync(scene.Link);
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Pick a time for your interview");
+
+        // Five days of times are five lines, and only the first day is open: the page stays short and Book is in reach.
+        var days = Page.Locator("main form details");
+        await Expect(days).ToHaveCountAsync(5);
+        await Expect(days.First).ToHaveAttributeAsync("open", "");
+        await Expect(Page.Locator("main form details[open]")).ToHaveCountAsync(1);
+        await Expect(days.Nth(2).Locator("summary")).ToHaveTextAsync(new Regex(@",\s*\d+ times?$"));
+        (await Page.Locator("script:not([type='application/ld+json'])").CountAsync()).Should().Be(0, "the page ships no JavaScript");
+        await ExpectNoAccessibilityViolationsAsync();
+
+        await WithJavaScriptAsync(); // only to measure: the page has no script of its own
+        await Page.SetViewportSizeAsync(390, 844);
+        await Page.GotoAsync(scene.Link);
+        var height = await Page.EvaluateAsync<double>("() => document.documentElement.scrollHeight");
+        height.Should().BeLessThan(1400, "five days of times fit a phone page about one and a half screens tall");
+
+        // A time on the third day: open it, choose it, and the choice is repeated above Book.
+        var third = Page.Locator("main form details").Nth(2);
+        await third.Locator("summary").ClickAsync();
+        var dayHeading = (await third.Locator("legend").TextContentAsync())!.Trim();
+        await third.GetByRole(AriaRole.Radio).First.CheckAsync();
+        // A pseudo-element has no box to ask for, and its computed insets do not follow the scroll, so the test asks the page
+        // what is drawn just above Book's left edge: a hit on a pseudo-element answers with the element that owns it.
+        var line = await third.Locator("label.choice").First.EvaluateAsync<JsonElement>("""
+            async e => {
+              const book = document.querySelector('.book-row');
+              book.scrollIntoView({ block: 'center' });
+              await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+              const box = book.getBoundingClientRect();
+              return { content: getComputedStyle(e, '::after').content, above: document.elementFromPoint(box.left + 4, box.top - 6) === e };
+            }
+            """);
+        line.GetProperty("content").GetString().Should().Contain($"{dayHeading} at ", "the chosen time is repeated");
+        line.GetProperty("above").GetBoolean().Should().BeTrue("the chosen time sits right above Book");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Your time" })).ToContainTextAsync(dayHeading);
+        await ExpectNoAccessibilityViolationsAsync();
+        (await scene.Interview(Ct)).GetProperty("status").GetString().Should().Be("Booked");
     }
 
     [Fact]
@@ -137,7 +191,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Pick a new time");
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Keep my current time" }).First).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
-        var firstDay = (await Page.Locator("fieldset legend").First.InnerTextAsync()).Trim();
+        var firstDay = (await Page.Locator("fieldset legend").First.TextContentAsync())!.Trim();
         await Page.GetByRole(AriaRole.Radio).First.CheckAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Move to this time" }).ClickAsync();
 
@@ -213,7 +267,21 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
     }
 
     private static async Task<string> DayOfAsync(ILocator radioLabelled) =>
-        (await radioLabelled.Locator("xpath=ancestor::fieldset[1]/legend").InnerTextAsync()).Trim();
+        (await radioLabelled.Locator("xpath=ancestor::fieldset[1]/legend").TextContentAsync())!.Trim();
+
+    // The radio for a time on the first day that offers it, with that day open: only the first day starts open, and a closed
+    // day's times cannot be seen or chosen.
+    private async Task<ILocator> OpenDayWithAsync(string time)
+    {
+        var radio = Page.GetByLabel(time, new() { Exact = true });
+        var day = Page.Locator("details", new() { Has = radio }).First;
+        if (await day.GetAttributeAsync("open") is null)
+        {
+            await day.Locator("summary").ClickAsync();
+        }
+
+        return day.GetByLabel(time, new() { Exact = true });
+    }
 
     private async Task<MailpitMessage> WaitForEmailAsync(string address, string subject)
     {

@@ -115,6 +115,10 @@ public class AppHostFixture : IAsyncLifetime
                 $"--ScreenHire:Webhooks:Timeout={WebhookTimeout}",
                 // Embedding: the end-to-end tests' host pages are on http://*.localhost.
                 "--ScreenHire:CareersEmbedding:AllowLoopback=true",
+                // Legal: two of the three documents, so the sign-in page's agreement line names only the ones configured
+                // (the Data Processing Agreement is left out on purpose). Reserved example.com addresses.
+                "--ScreenHire:Legal:TermsUrl=https://example.com/terms",
+                "--ScreenHire:Legal:PrivacyUrl=https://example.com/privacy",
                 // Slack: the local sandbox workspace (docs/architecture/slack.md), so connecting and posting run with no Slack.
                 "--ScreenHire:Slack:Sandbox:Enabled=true",
                 // Billing: the local fake provider (docs/architecture/billing.md). The plans are not pinned: the stack sells what

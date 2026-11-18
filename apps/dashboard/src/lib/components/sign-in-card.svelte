@@ -11,6 +11,7 @@
     description,
     heading = $bindable(),
     children,
+    footer,
   }: {
     title: string;
     /** One plain line under the title. */
@@ -18,6 +19,8 @@
     /** The h1, for a page that moves focus to its title when the title changes in place (WCAG 2.4.3). */
     heading?: HTMLHeadingElement;
     children: Snippet;
+    /** One small line at the card's foot, such as the agreement line. */
+    footer?: Snippet;
   } = $props();
 </script>
 
@@ -35,5 +38,8 @@
     <div class="flex flex-col gap-5">
       {@render children()}
     </div>
+    {#if footer}
+      <p data-slot="sign-in-footer" class="text-center text-caption text-balance text-muted-foreground">{@render footer()}</p>
+    {/if}
   </div>
 </main>

@@ -23,6 +23,20 @@ public sealed class SignInRulesTests
         ReturnUrls.Sanitize(returnUrl).Should().Be(expected);
 
     [Theory]
+    [InlineData("https://legal.example.com/terms", "https://legal.example.com/terms")]
+    [InlineData("  http://legal.example.com/privacy  ", "http://legal.example.com/privacy")]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData("   ", null)]
+    [InlineData("/terms", null)]
+    [InlineData("legal.example.com/terms", null)]
+    [InlineData("javascript:alert(1)", null)]
+    [InlineData("mailto:legal@example.com", null)]
+    [InlineData("ftp://legal.example.com/terms", null)]
+    public void A_legal_address_is_linked_only_when_it_is_an_absolute_web_address(string? address, string? expected) =>
+        LegalOptions.Link(address).Should().Be(expected);
+
+    [Theory]
     [InlineData("true", true)]
     [InlineData("True", true)]
     [InlineData("false", false)]

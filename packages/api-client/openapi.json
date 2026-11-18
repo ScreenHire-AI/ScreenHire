@@ -26159,10 +26159,40 @@
         ],
         "description": "How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004)."
       },
+      "SignInLegal": {
+        "required": [
+          "termsUrl",
+          "privacyUrl",
+          "dpaUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "termsUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "privacyUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dpaUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The addresses of the documents the agreement line names (`ScreenHire:Legal`). Each is null until it is configured, and\nthe page names only the ones that are."
+      },
       "SignInMethods": {
         "required": [
           "providers",
-          "magicLinkEnabled"
+          "magicLinkEnabled",
+          "legal"
         ],
         "type": "object",
         "properties": {
@@ -26174,9 +26204,12 @@
           },
           "magicLinkEnabled": {
             "type": "boolean"
+          },
+          "legal": {
+            "$ref": "#/components/schemas/SignInLegal"
           }
         },
-        "description": "How a person can sign in here: the configured identity providers, and whether email links work."
+        "description": "How a person can sign in here: the configured identity providers, whether email links work, and the legal documents the\nsign-in page's agreement line links to."
       },
       "SignInProvider": {
         "required": [

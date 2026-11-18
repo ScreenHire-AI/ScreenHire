@@ -23,6 +23,21 @@ public sealed class SignInTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task The_legal_addresses_are_the_configured_ones_and_null_for_a_document_with_none()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var session = new ApiSession(fixture);
+
+        var options = await session.Client.GetFromJsonAsync<JsonElement>("/v1/auth/providers", cancellationToken);
+
+        // The shared stack sets the Terms and the Privacy Policy (AppHostFixture) and leaves the Data Processing Agreement out.
+        var legal = options.GetProperty("legal");
+        legal.GetProperty("termsUrl").GetString().Should().Be("https://example.com/terms");
+        legal.GetProperty("privacyUrl").GetString().Should().Be("https://example.com/privacy");
+        legal.GetProperty("dpaUrl").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
     public async Task Signed_out_requests_are_unauthorized()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
