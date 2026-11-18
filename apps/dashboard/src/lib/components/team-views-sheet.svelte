@@ -53,12 +53,15 @@
   // The views already in the sidebar when it opened: one added during the visit keeps its mark until the sheet closes.
   let inSidebarOnOpen = $state(new Set<string>());
   let wasOpen = false;
-  let failure = $state('');
+  // The row being added or removed (its buttons wait, so a second press cannot send a second request) and the row that
+  // failed, which says so itself: the sheet scrolls as a whole, so a line at its top could be out of sight.
+  let pendingId = $state('');
+  let failed = $state<{ id: string; message: string } | null>(null);
   $effect(() => {
     if (open && !wasOpen) {
       seenOnOpen = seenAt;
       inSidebarOnOpen = new Set(views.filter((view) => view.inSidebar).map((view) => view.id));
-      failure = '';
+      failed = null;
       void actions.markTeamViewsOpened();
     }
     wasOpen = open;
@@ -77,8 +80,12 @@
 
   const countText = (count: number) => `Shows ${count} ${count === 1 ? 'candidate' : 'candidates'} now`;
 
-  async function change(work: Promise<string | null>) {
-    failure = (await work) ?? '';
+  async function change(view: SavedViewSummary, work: () => Promise<string | null>) {
+    pendingId = view.id;
+    failed = null;
+    const message = await work();
+    pendingId = '';
+    if (message) failed = { id: view.id, message };
   }
 </script>
 
@@ -89,10 +96,9 @@
       <Sheet.Description>Views your teammates shared.</Sheet.Description>
     </Sheet.Header>
 
-    <FailureText message={failure} class="px-4 pt-3" />
     {#if offered.length === 0}
       <Empty.Root>
-        <Empty.Header><Empty.Description>Nobody has shared a view yet. A view someone shares with the team shows up here.</Empty.Description></Empty.Header>
+        <Empty.Header><Empty.Description>Nobody has shared a view yet. To share one of yours, open its menu in the sidebar and choose Share with the team.</Empty.Description></Empty.Header>
       </Empty.Root>
     {:else}
       <ul class="flex flex-col">
@@ -109,7 +115,7 @@
               <p class="text-caption text-muted-foreground">{describeFilters(view.filters, { jobTitles, stageNames })}</p>
               <p class="text-caption text-muted-foreground">
                 <!-- While the count loads the line keeps its height, so the row does not jump when it arrives. -->
-                {#if count === null}<span class="sr-only">Counting candidates…</span><span aria-hidden="true">&nbsp;</span>{:else}{countText(count)}{/if}
+                {#if count === null}{#if !applications.isError}<span class="sr-only">Counting candidates…</span>{/if}<span aria-hidden="true">&nbsp;</span>{:else}{countText(count)}{/if}
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -118,16 +124,17 @@
               </Button>
               {#if view.inSidebar}
                 <span class="inline-flex items-center gap-1.5 text-caption text-muted-foreground"><CheckIcon aria-hidden="true" class="size-3.5" />In your sidebar</span>
-                <Button variant="outline" size="sm" onclick={() => void change(actions.removeFromSidebar(view))}>
+                <Button variant="outline" size="sm" disabled={pendingId === view.id} onclick={() => void change(view, () => actions.removeFromSidebar(view))}>
                   Remove <span class="sr-only">{view.name} from your sidebar</span>
                 </Button>
               {:else}
                 <!-- Outline like Preview: every row has an Add, and a sheet of rows has no one primary action (A1). -->
-                <Button variant="outline" size="sm" onclick={() => void change(actions.addToSidebar(view))}>
+                <Button variant="outline" size="sm" disabled={pendingId === view.id} onclick={() => void change(view, () => actions.addToSidebar(view))}>
                   <PlusIcon aria-hidden="true" />Add <span class="sr-only">{view.name} to your sidebar</span>
                 </Button>
               {/if}
             </div>
+            {#if failed?.id === view.id}<FailureText message={failed.message} />{/if}
           </li>
         {/each}
       </ul>

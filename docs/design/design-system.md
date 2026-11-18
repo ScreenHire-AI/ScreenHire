@@ -1287,7 +1287,8 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   one muted line, "Shows 3 candidates now" (the one place a view carries a count: it is the sheet's reading, not a sidebar
   badge, so T4 and I2 still hold for the rows), a muted New pill for a view shared since the person last opened it and not
   in their sidebar when it opened, and outline Preview and Add (or "In your sidebar" and an outline Remove): every row has them, so
-  none is a primary (A1). The name wraps rather than truncating. A teammate sharing a view is no toast and no bell line. The short name is also the candidates page's title for the view. A Save view
+  none is a primary (A1). A row's buttons wait while its request runs, and a failure shows on the row that failed. With
+  nothing shared the sheet says where to share one (the view's menu in the sidebar). The name wraps rather than truncating. A teammate sharing a view is no toast and no bell line. The short name is also the candidates page's title for the view. A Save view
   outline button ends the filter row of the Candidates table and of a job's table once the filters or sort differ from the
   view the table is on; its dialog asks for a name and Share with the team, off by default (`docs/architecture/saved-views.md`).
 - **API keys and webhooks:** each page says what it is for, how to call it and where the reference is. The API reference

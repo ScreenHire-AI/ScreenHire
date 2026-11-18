@@ -38,6 +38,7 @@ each item names the doc that designs it. Board workflows carry the detail.
 | The owner's review of the fourth build: a stage flow for a workflow's stages, one file upload with drag and drop, interview reminders and new times for a booked interview, webhook endpoint history, OAuth sign-in for the MCP server (ADR-0028), a Candidates switch and settings as three areas, the workflow graph rebuilt, Branding on one screen, Simulate as a guided test, an organization's own AI key and model, and billing (ADR-0029) | "Owner review of the fourth build, and the roadmap's open items" | #99, #100, #102 to #104, #107 to #109, #111 to #114 |
 | Marketing site rebuilt in direction B + C (roadmap item 15): design rules and a shared shell ([design system](design/design-system.md) section 22, ADR-0030), the [messaging](design/marketing-site.md) as five selling points told as pain, promise and proof with sourced numbers, a home page that tells them in order, pricing read from the plan catalogue with every feature on every plan, a product overview and one page per selling point with screenshots captured from the demo data, and compare, hiring-AI laws, blog and 404 on the same shell; then an audit of every page at 390 to 1920 px, a design review, Impeccable's detector and Lighthouse, and fixes | "Marketing site: direction B + C" | #118 to #123, and the audit task |
 | Launch readiness: the November redesign (one Settings home with Verification in the sidebar, a template builder with starting points and a live Test tab, the candidate page with one-word verification states, a notifications bell and a Jobs overview, a scorecards roster), built-in AI (provider presets, a usage ledger, budgets, alerts, a cap and the Verification area), billing (trial reminders, plan-change cost, Stripe Tax, AI use charged at the provider's price plus a margin), proof of what had never been walked (dark mode and phone widths on every dashboard route, large lists, the Slack and webhook states), and four design reviews of the first hour, a recruiter's day, setup and the candidate's phone ([design](design/redesign-2026-11.md)) | "Launch readiness: the November redesign, built-in AI, billing and proving the untested states" | #128 to #149 |
+| The owner's second walk-through: a confirmation before a move into a stage that does something, shared views as an offer the team browses and adds, "Last application" and "Last call" lines on Reports and Usage, a toast for a new application, email-first sign-in, a checklist pointer and "1 of 10 on your plan" for a new team, a check before Publish, one day at a time on the phone's interview picker, countries as names, and a design review of all of it ([design system](design/design-system.md)) | "Owner's second walk-through: move confirmation, opt-in shared views, recency, and the first-hour fixes" | #158 to #166 |
 
 ## Next
 
@@ -45,7 +46,8 @@ each item names the doc that designs it. Board workflows carry the detail.
 
 Four design reviews walked the build as a new team in its first hour, as a recruiter in a working day, as someone
 setting ScreenHire up, and as a candidate on a phone. Each fixed what was contained (#146 to #149) and left the rest
-for the owner. This is that rest, merged, with duplicates removed and ranked. Nothing in it is built. The owner
+for the owner. This is that rest, merged, with duplicates removed and ranked. An item marked Built was done by the
+second walk-through's workflow (#158 to #166); the rest is not built. The owner
 picks the items to build, and they become the next workflow. The rest stay here for a later pick, with "Later" and
 "Before real customers" below.
 
@@ -60,9 +62,10 @@ How to read it:
   choice it kept. Where #148 already built part of a #149 proposal, only the rest is listed.
 - A few items need a legal call first. They say so.
 
-**Best value first, across the groups:** make the setup checklist findable (S), check a job before it goes live (M),
-announce a new application (S to M), say what "Open jobs 1 of 10" counts (S), the interview picker on a phone (M) and
-a country shown as a name (S to M).
+**Best value first, across the groups:** the second walk-through built the first six of these (the setup checklist, the
+check before publishing, the new-application toast, what "Open jobs" counts, the phone interview picker and country
+names). What is left: a calmer empty state for a new team (S), tell a new Owner about the trial (S to M), orient someone
+who accepts an invitation (S), and the small readability fixes in Reports and Jobs (S).
 
 #### Real people
 
@@ -76,24 +79,18 @@ a country shown as a name (S to M).
 
 #### Never guessing
 
-1. **Announce a new application.** After the first application the only signal is two Jobs tiles ticking up. #148
-   added a Candidates column to the Jobs table; what is left is a toast or a bell line. A candidate has no actor, so
-   teammate-change toasts skip an application today. Size S to M. (#149)
+1. **Announce a new application.** Built: a new application shows the job's hiring team a toast, one count for a minute
+   ([realtime](architecture/realtime.md#new-applications)). Kept here so the numbers below hold. (#160)
 2. **Small readability fixes in Reports and Jobs.** The change pill reads "up 10" with no unit outside its tooltip, a
    zero in a bar row ("Hired 0 0%") sits on its own line away from the bars, and the Jobs home's Published and Last
    updated headers sit about 10 px off their values. Size S for all three. (#148)
-3. **Say how recent Reports and Usage are.** Design system T7 asks every page that sums up activity to say when the
-   newest thing it counts happened. The Verification Overview does ("Last checked 2 hours ago"). Reports needs the
-   newest application in its scope, a query in its SQL snapshot, and Usage the newest model call. Size S to M. (owner's
-   walk-through, 2026-11-09)
+3. **Say how recent Reports and Usage are.** Built: "Last application 3 hours ago" under Applications on Reports and "Last
+   call 5 minutes ago" under Model calls on Usage (design system T7). Kept here so the numbers hold. (#158)
 
 #### Automate anything
 
-1. **Confirm a move, with what it will do.** Moving a candidate on the board runs the stage's automations at once:
-   emails, tasks, interview invitations. Someone new to the board cannot tell what a drop will set off. A dialog before
-   the move lists what entering that stage does, with a "Don't ask again" box kept per person, so a practised hand
-   skips it. It reads the stage's automations from the hiring template the job runs. Size M. (owner's walk-through,
-   2026-11-09)
+1. **Confirm a move, with what it will do.** Built: a dialog lists what entering the stage does, with Don't ask again kept
+   per person ([workflow engine](architecture/workflow-engine.md)). Kept here so the numbers hold. (#166)
 2. **Name a stage's meeting.** Interview reminders and the booking page say "interview" for a trial shift. A
    per-stage meeting name fixes the word. It is a backend change. Size S to M. (#147)
 
@@ -104,20 +101,14 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 
 #### Built your way, and the first hour
 
-1. **Share a view without putting it in everyone's sidebar.** Today "Share with the team" adds a person's saved view to
-   every teammate's sidebar, so one person's way of reading applications lands on everyone. Sharing becomes an offer:
-   the team's shared views are a list anyone can browse and preview, and each person adds the ones they want to their
-   own sidebar. It needs a per-person "added" record on the API and a browse sheet. Size M. (owner's walk-through,
-   2026-11-09)
-
-2. **Make the setup checklist findable.** It lives only in the bell, which shows an unlabelled count, and the Jobs
-   empty state never mentions it. Label the badge on a new organization ("Setup 5"), point to it from the empty state,
-   or open the bell once after onboarding. Size S. (#149)
+1. **Share a view without putting it in everyone's sidebar.** Built: sharing is an offer the team browses and each person
+   adds ([saved views](architecture/saved-views.md)). Kept here so the numbers hold. (#165)
+2. **Make the setup checklist findable.** Built: the Jobs empty state points to it, and the bell opens once after
+   onboarding ([notifications](architecture/notifications.md)). Kept here so the numbers hold. (#163)
 3. **Check a job before it goes live.** Built: Publish warns, never blocks, about template fill-in text, a missing city or
    salary a chosen board needs, and a description a board would refuse, with Edit details beside each and Publish anyway
    ([job distribution](architecture/job-distribution.md#check-before-publishing)). Kept here so the numbers below hold.
-4. **Say what "Open jobs 1 of 10" counts.** The tile does not say 10 is the plan's limit. "1 of 10 on your plan",
-   linking to Billing, if it fits a phone tile. Size S. (#149)
+4. **Say what "Open jobs 1 of 10" counts.** Built: the tile reads "1 of 10 on your plan". Kept here so the numbers hold. (#163)
 5. **Tell a new Owner about the trial.** Only Billing, the bell near the end and a "0 of 10" tile say there is one, how
    long it is and that it needs no card. One line on onboarding and a quiet "Trial ends" line in the sidebar footer for
    Owners. Size S to M. (#149)
@@ -139,14 +130,22 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 12. **A guided first job.** The first job spans New job, Edit details and the job page, with a different hint at each.
     One flow from "pick a starting point" through the role's real details to Publish, on the first job only. It would
     absorb number 2. Size L. (#149)
+13. **A calmer Jobs empty state for a new team.** It shows New job, "5 steps left to set up your organization" and Open
+    the setup checklist, while the bell already carries the count 5 (W7). Keep the heading, one line and the one action
+    (New job), and leave the checklist to the bell it opens from. Size S. (second walk-through)
+14. **Show Edit details once in the Publish check.** With one problem the dialog has an Edit details link on its row and
+    another in the footer that goes to the same field (W7). The footer's is for several problems. Drop it for one. Size S.
+    (second walk-through)
+15. **Decide whether the bell opens itself.** After onboarding the bell opens once, takes focus and covers the top bar's
+    Search and Jobs controls until closed. A dot on the bell with a tooltip is quieter and needs no dismissing, but loses
+    the nudge. An owner's call, then Size S. (second walk-through)
 
 #### The candidate's side
 
-1. **The interview picker on a phone.** Five days of about 20 times each make the page about 3000 px tall with Book at
-   the bottom. Open one day at a time, as a list of days that open in place or a day select then its times. Size M. (#146)
-2. **Show a country as a name, not a code.** The careers cards and job page, and the dashboard's Location column, show
-   "US" for a job with no city, against design system W8. Format "Leeds, United Kingdom" where the API builds the
-   location text. Size S to M. (#149)
+1. **The interview picker on a phone.** Built: one day open at a time, and a closed day says when a time is picked inside
+   it ([interview scheduling](architecture/interview-scheduling.md)). Kept here so the numbers hold. (#162)
+2. **Show a country as a name, not a code.** Built: "Leeds, United Kingdom" wherever a location is written
+   ([job distribution](architecture/job-distribution.md)). Kept here so the numbers hold. (#159)
 3. **Dates in the reader's language.** Pages show "November 9, 2026" beside en-GB prices, and emails write "9 December
    2026" (T5). Take the browser's language in one helper for pages and emails. Size M. (#146)
 4. **Several reply files in the Drop area.** A reply's files are one native input with no name, size or Remove per file

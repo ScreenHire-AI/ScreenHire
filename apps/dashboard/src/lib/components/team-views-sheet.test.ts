@@ -106,9 +106,46 @@ describe('the sheet of team views', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not add "Team queue" to your sidebar (HTTP 404).');
   });
 
-  it('says so when nobody has shared a view', async () => {
+  it("says a failure on the row that failed, not at the sheet's top", async () => {
+    const viewActions = actions();
+    viewActions.addToSidebar.mockResolvedValueOnce('Could not add "Team queue" to your sidebar (HTTP 404).');
+    show([shared({ id: 'a', name: 'Team queue' }), shared({ id: 'b', name: 'Other view' })], viewActions);
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add Team queue to your sidebar' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.closest('li')).toHaveTextContent('Team queue');
+    expect(alert.closest('li')).not.toHaveTextContent('Other view');
+  });
+
+  it('holds the row\'s button while its request runs, so a second press sends nothing', async () => {
+    const viewActions = actions();
+    let finish: (value: null) => void = () => {};
+    viewActions.addToSidebar.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    show([shared({ name: 'Team queue' })], viewActions);
+
+    const add = await screen.findByRole('button', { name: 'Add Team queue to your sidebar' });
+    await fireEvent.click(add);
+    // A disabled button takes no press in a browser, which is what stops the second request.
+    expect(add).toBeDisabled();
+    expect(viewActions.addToSidebar).toHaveBeenCalledTimes(1);
+
+    finish(null);
+    await waitFor(() => expect(add).toBeEnabled());
+  });
+
+  it('stops saying it is counting when the candidates cannot be read', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/applications': () => new Response('{}', { status: 500 }) })));
+    render(WithQueryClient, { props: { component: Sheet, props: { open: true, views: [shared()], seenAt, jobTitles: {}, actions: actions() } } });
+
+    await screen.findByRole('heading', { name: shared().name });
+    await waitFor(() => expect(screen.queryByText('Counting candidates…')).not.toBeInTheDocument());
+  });
+
+  it('says so when nobody has shared a view, and where to share one', async () => {
     show([savedView()]);
 
     expect(await screen.findByText(/Nobody has shared a view yet/)).toBeInTheDocument();
+    expect(screen.getByText(/open its menu in the sidebar and choose Share with the team/)).toBeInTheDocument();
   });
 });

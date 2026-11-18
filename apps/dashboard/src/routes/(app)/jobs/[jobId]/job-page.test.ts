@@ -582,7 +582,7 @@ describe('job page', () => {
 
       await waitFor(() => expect(posted(fetchMock)).toBe(true));
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /to check before publishing/ })).not.toBeInTheDocument();
+      expect(screen.queryByText(/to check before publishing/)).not.toBeInTheDocument();
     });
 
     it('lists each problem with the field that fixes it, and publishes only on Publish anyway', async () => {
@@ -617,22 +617,24 @@ describe('job page', () => {
     it('says in the header band, quietly, how many things to check while the job is a draft', async () => {
       const fetchMock = stub(draft, routes(items));
 
-      const line = await screen.findByRole('button', { name: '2 things to check before publishing' });
+      const line = await screen.findByText('2 things to check before publishing');
       expect(posted(fetchMock)).toBe(false);
 
-      await fireEvent.click(line);
-      expect(await screen.findByRole('dialog', { name: '2 things to check before publishing' })).toBeInTheDocument();
+      // Underlined or bordered, a line that opens a dialog would break A5: it is plain text, and Publish opens the list.
+      expect(line.tagName).toBe('SPAN');
+      expect(line.closest('button, a')).toBeNull();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('says "1 thing" for one, and nothing at all for a job that is open or a role that cannot publish', async () => {
       stub(draft, routes([items[1]]));
-      expect(await screen.findByRole('button', { name: '1 thing to check before publishing' })).toBeInTheDocument();
+      expect(await screen.findByText('1 thing to check before publishing')).toBeInTheDocument();
       cleanup();
 
       const open = stub(job, routes(items));
       await screen.findByRole('button', { name: /Hiring team/ });
       expect(open.mock.calls.some(([url]) => url === checkPath)).toBe(false);
-      expect(screen.queryByRole('button', { name: /to check before publishing/ })).not.toBeInTheDocument();
+      expect(screen.queryByText(/to check before publishing/)).not.toBeInTheDocument();
       cleanup();
 
       page.data = { user: userAs('Viewer') };
@@ -640,7 +642,7 @@ describe('job page', () => {
       await screen.findByRole('button', { name: /Hiring team/ });
       await waitFor(() => expect(viewer.mock.calls.some(([url]) => url === '/v1/boards')).toBe(true));
       expect(viewer.mock.calls.some(([url]) => url === checkPath)).toBe(false);
-      expect(screen.queryByRole('button', { name: /to check before publishing/ })).not.toBeInTheDocument();
+      expect(screen.queryByText(/to check before publishing/)).not.toBeInTheDocument();
     });
   });
 });

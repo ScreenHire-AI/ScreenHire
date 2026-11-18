@@ -259,7 +259,7 @@ does not read it, and a person who presses Publish anyway publishes the job as i
 - **Dashboard:** Publish fetches the check fresh. With nothing to say it publishes at once. Otherwise the Publish check dialog
   lists each problem in one sentence with Edit details beside it (`/jobs/{id}/edit?focus=description|city|salary`, which puts
   the cursor in that field), and offers Publish anyway. A check that cannot be read never stands in the way. A draft's header
-  band shows the same count as a quiet line ("2 things to check before publishing") that opens the dialog. The Jobs list's
+  band shows the same count as a quiet line of plain text ("2 things to check before publishing"; Publish opens the list, so the line is not a link or a button). The Jobs list's
   Publish to every board asks the same way. The Job postings panel's per-board posting and Update boards on an open job do not.
 
 ### Worker, idempotency and reconciliation
