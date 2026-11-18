@@ -16934,6 +16934,271 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return createMutation(() => ({ ...getUpdateHiddenViewsMutationOptions(options?.()) }), queryClient);
     }
 
+export type addViewToSidebarResponse204 = {
+  data: void
+  status: 204
+}
+
+export type addViewToSidebarResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addViewToSidebarResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addViewToSidebarResponseSuccess = (addViewToSidebarResponse204) & {
+  headers: Headers;
+};
+export type addViewToSidebarResponseError = (addViewToSidebarResponse401 | addViewToSidebarResponse404) & {
+  headers: Headers;
+};
+
+export const getAddViewToSidebarUrl = (viewId: string,) => {
+
+
+
+
+  return `/v1/views/${viewId}/sidebar`
+}
+
+export const addViewToSidebar = async (viewId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<addViewToSidebarResponseSuccess> => {
+
+  return apiQueryFetch<addViewToSidebarResponseSuccess>(getAddViewToSidebarUrl(viewId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getAddViewToSidebarMutationKey = () => ['addViewToSidebar'] as const;
+
+export const getAddViewToSidebarMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addViewToSidebar>>, TError,AddViewToSidebarMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof addViewToSidebar>>, TError,AddViewToSidebarMutationVariables, TContext> => {
+
+const mutationKey = getAddViewToSidebarMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addViewToSidebar>>, AddViewToSidebarMutationVariables> = (props) => {
+          const {viewId} = props ?? {};
+
+          return  addViewToSidebar(viewId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddViewToSidebarMutationResult = NonNullable<Awaited<ReturnType<typeof addViewToSidebar>>>
+
+    export type AddViewToSidebarMutationError = ErrorType<void>
+    export type AddViewToSidebarMutationVariables = {viewId: string}
+
+    export const createAddViewToSidebar = <TError = ErrorType<void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addViewToSidebar>>, TError,AddViewToSidebarMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof addViewToSidebar>>,
+        TError,
+        AddViewToSidebarMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getAddViewToSidebarMutationOptions(options?.()) }), queryClient);
+    }
+
+export type removeViewFromSidebarResponse204 = {
+  data: void
+  status: 204
+}
+
+export type removeViewFromSidebarResponse401 = {
+  data: void
+  status: 401
+}
+
+export type removeViewFromSidebarResponseSuccess = (removeViewFromSidebarResponse204) & {
+  headers: Headers;
+};
+export type removeViewFromSidebarResponseError = (removeViewFromSidebarResponse401) & {
+  headers: Headers;
+};
+
+export const getRemoveViewFromSidebarUrl = (viewId: string,) => {
+
+
+
+
+  return `/v1/views/${viewId}/sidebar`
+}
+
+export const removeViewFromSidebar = async (viewId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<removeViewFromSidebarResponseSuccess> => {
+
+  return apiQueryFetch<removeViewFromSidebarResponseSuccess>(getRemoveViewFromSidebarUrl(viewId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveViewFromSidebarMutationKey = () => ['removeViewFromSidebar'] as const;
+
+export const getRemoveViewFromSidebarMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removeViewFromSidebar>>, TError,RemoveViewFromSidebarMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof removeViewFromSidebar>>, TError,RemoveViewFromSidebarMutationVariables, TContext> => {
+
+const mutationKey = getRemoveViewFromSidebarMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeViewFromSidebar>>, RemoveViewFromSidebarMutationVariables> = (props) => {
+          const {viewId} = props ?? {};
+
+          return  removeViewFromSidebar(viewId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveViewFromSidebarMutationResult = NonNullable<Awaited<ReturnType<typeof removeViewFromSidebar>>>
+
+    export type RemoveViewFromSidebarMutationError = ErrorType<void>
+    export type RemoveViewFromSidebarMutationVariables = {viewId: string}
+
+    export const createRemoveViewFromSidebar = <TError = ErrorType<void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removeViewFromSidebar>>, TError,RemoveViewFromSidebarMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof removeViewFromSidebar>>,
+        TError,
+        RemoveViewFromSidebarMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRemoveViewFromSidebarMutationOptions(options?.()) }), queryClient);
+    }
+
+export type markTeamViewsOpenedResponse204 = {
+  data: void
+  status: 204
+}
+
+export type markTeamViewsOpenedResponse401 = {
+  data: void
+  status: 401
+}
+
+export type markTeamViewsOpenedResponse404 = {
+  data: void
+  status: 404
+}
+
+export type markTeamViewsOpenedResponseSuccess = (markTeamViewsOpenedResponse204) & {
+  headers: Headers;
+};
+export type markTeamViewsOpenedResponseError = (markTeamViewsOpenedResponse401 | markTeamViewsOpenedResponse404) & {
+  headers: Headers;
+};
+
+export const getMarkTeamViewsOpenedUrl = () => {
+
+
+
+
+  return `/v1/views/team-views-opened`
+}
+
+export const markTeamViewsOpened = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<markTeamViewsOpenedResponseSuccess> => {
+
+  return apiQueryFetch<markTeamViewsOpenedResponseSuccess>(getMarkTeamViewsOpenedUrl(),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkTeamViewsOpenedMutationKey = () => ['markTeamViewsOpened'] as const;
+
+export const getMarkTeamViewsOpenedMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof markTeamViewsOpened>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof markTeamViewsOpened>>, TError,void, TContext> => {
+
+const mutationKey = getMarkTeamViewsOpenedMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markTeamViewsOpened>>, void> = () => {
+
+
+          return  markTeamViewsOpened(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkTeamViewsOpenedMutationResult = NonNullable<Awaited<ReturnType<typeof markTeamViewsOpened>>>
+
+    export type MarkTeamViewsOpenedMutationError = ErrorType<void>
+
+
+    export const createMarkTeamViewsOpened = <TError = ErrorType<void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof markTeamViewsOpened>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof markTeamViewsOpened>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getMarkTeamViewsOpenedMutationOptions(options?.()) }), queryClient);
+    }
+
 export type getJobHiringTeamResponse200 = {
   data: HiringTeamMember[]
   status: 200
