@@ -91,6 +91,60 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     [Fact]
+    public async Task Moving_into_a_stage_that_sends_an_email_asks_first_by_drag_and_keyboard_until_told_not_to()
+    {
+        var scene = await SceneAsync(publish: true, emailOnScreening: true);
+        await Page.SetViewportSizeAsync(DesignWidth, DesignHeight);
+        await SignInAsync(Page, scene.Email);
+        await GoToJobAsync(Page, scene.JobId);
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Board", Exact = true }).ClickAsync();
+
+        var applied = Page.GetByRole(AriaRole.List, new() { Name = "Applied stage" });
+        var screening = Page.GetByRole(AriaRole.List, new() { Name = "Screening stage" });
+        var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "Move Casey Morgan to Screening?" });
+        var sentence = "Send the \"Moved to the next step\" email.";
+
+        // A drop into Screening says what entering it does, and Cancel puts the card back.
+        await DragCardToAsync(Page.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Applied" }), screening);
+        await Expect(dialog).ToBeVisibleAsync();
+        await Expect(dialog).ToContainTextAsync(sentence);
+        await ExpectNoAccessibilityViolationsAsync();
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Cancel" }).ClickAsync();
+        await Expect(dialog).ToBeHiddenAsync();
+        await Expect(applied.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Applied" })).ToBeVisibleAsync();
+        await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Screening" })).ToHaveCountAsync(0);
+
+        // Shift + Right opens the same question; Move moves, toasts, and the card keeps the focus.
+        await Page.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Applied" }).FocusAsync();
+        await Page.Keyboard.PressAsync("Shift+ArrowRight");
+        await Expect(dialog).ToContainTextAsync(sentence);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Move" }).ClickAsync();
+        await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Screening" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Notifications" })).ToContainTextAsync("You moved Casey Morgan to Screening");
+        await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Screening" })).ToBeFocusedAsync();
+
+        // Ticking Don't ask again: that move goes through, and the next one asks nothing.
+        await DragCardToAsync(Page.GetByRole(AriaRole.Listitem, new() { Name = "Jordan Lee, Applied" }), screening);
+        var jordan = Page.GetByRole(AriaRole.Dialog, new() { Name = "Move Jordan Lee to Screening?" });
+        await jordan.GetByRole(AriaRole.Checkbox, new() { Name = "Don't ask again" }).ClickAsync();
+        await jordan.GetByRole(AriaRole.Button, new() { Name = "Move" }).ClickAsync();
+        await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Jordan Lee, Screening" })).ToBeVisibleAsync();
+        // The move is done once its toast shows: a drag begun while the last drop still settles is not picked up.
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Notifications" })).ToContainTextAsync("You moved Jordan Lee to Screening");
+
+        await DragCardToAsync(Page.GetByRole(AriaRole.Listitem, new() { Name = "Riley Chen, Applied" }), screening);
+        await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Riley Chen, Screening" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Dialog)).ToHaveCountAsync(0);
+
+        // The account menu turns the question back on.
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new("Owner$") }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitemcheckbox, new() { Name = "Confirm moves that send emails or create tasks" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Listitem, new() { Name = "Sam Taylor, Applied" }).FocusAsync();
+        await Page.Keyboard.PressAsync("Shift+ArrowRight");
+        await Expect(Page.GetByRole(AriaRole.Dialog, new() { Name = "Move Sam Taylor to Screening?" })).ToBeVisibleAsync();
+    }
+
+    [Fact]
     public async Task Publishing_to_the_sandbox_board_and_taking_it_down_shows_each_state_the_board_confirms()
     {
         var scene = await SceneAsync(publish: false);
@@ -361,7 +415,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
 
     // A new person and organization with one job (published or a draft) and an application per name in Candidates,
     // created through the API as that person, so the browser signs in to exactly this data.
-    private async Task<Scene> SceneAsync(bool publish)
+    private async Task<Scene> SceneAsync(bool publish, bool emailOnScreening = false)
     {
         var email = ApiSession.NewEmail("e2e-pipeline");
         var title = $"Senior Product Designer {Guid.NewGuid().ToString("N")[..4]}";
@@ -373,11 +427,14 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
             onboarded.StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
+        // A template whose workflow sends an email on entering Screening, so a move there has something to confirm.
+        Guid? templateVersionId = emailOnScreening ? await PublishTemplateWithEmailOnScreeningAsync(session, title) : null;
         var job = await ReadAsync(await session.PostAsync(
             "/v1/jobs",
             new
             {
                 title,
+                templateVersionId,
                 department = "Design",
                 description = "<p>Shape how small hiring teams review applicants: research, prototype and ship the recruiter dashboard with engineering, end to end.</p>",
                 employmentType = "FullTime",
@@ -401,6 +458,36 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         }
 
         return new Scene(email, slug, jobId, title);
+    }
+
+    private static async Task<Guid> PublishTemplateWithEmailOnScreeningAsync(ApiSession session, string title)
+    {
+        var template = await ReadAsync(await session.PostAsync("/v1/templates", new { name = $"{title} template" }, Ct), HttpStatusCode.Created);
+        var templateId = template.GetProperty("id").GetGuid();
+        var draft = await ReadAsync(await session.Client.GetAsync($"/v1/templates/{templateId}/versions/1", Ct), HttpStatusCode.OK);
+        var definition = System.Text.Json.Nodes.JsonNode.Parse(draft.GetProperty("definition").GetRawText())!.AsObject();
+        definition["workflow"]!["automations"] = System.Text.Json.Nodes.JsonNode.Parse("""
+            [
+              { "id": "email-on-screening", "name": "Tell them they reached Screening",
+                "trigger": { "type": "StageEntered", "stageId": "screening" },
+                "actions": [{ "type": "SendEmail", "emailTemplate": "stage-change" }] }
+            ]
+            """);
+        await ReadAsync(await session.PutAsync($"/v1/templates/{templateId}/versions/1", new { definition }, Ct), HttpStatusCode.OK);
+        var version = await ReadAsync(await session.PostAsync($"/v1/templates/{templateId}/versions/1/publish", new { }, Ct), HttpStatusCode.OK);
+        return version.GetProperty("id").GetGuid();
+    }
+
+    // Drags a card to a stage's list with the mouse in steps, as svelte-dnd-action's pointer drag needs to see it.
+    private async Task DragCardToAsync(ILocator card, ILocator list)
+    {
+        var from = (await card.BoundingBoxAsync())!;
+        var to = (await list.BoundingBoxAsync())!;
+        await Page.Mouse.MoveAsync(from.X + (from.Width / 2), from.Y + (from.Height / 2));
+        await Page.Mouse.DownAsync();
+        await Page.Mouse.MoveAsync(from.X + (from.Width / 2) + 12, from.Y + (from.Height / 2) + 12, new() { Steps = 4 });
+        await Page.Mouse.MoveAsync(to.X + (to.Width / 2), to.Y + 40, new() { Steps = 20 });
+        await Page.Mouse.UpAsync();
     }
 
     private static async Task<JsonElement> ReadAsync(HttpResponseMessage response, HttpStatusCode expected)

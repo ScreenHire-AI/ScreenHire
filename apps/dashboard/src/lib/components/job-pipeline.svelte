@@ -33,6 +33,7 @@
     noVerificationFilter,
     type VerificationFilter,
   } from '#lib/verification.js';
+  import MoveConfirmDialog from '#lib/components/move-confirm-dialog.svelte';
   import type { Moves } from '#lib/moves.svelte.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { describeError } from '#lib/query.js';
@@ -302,6 +303,7 @@
   <EmailComposerSheet bind:open={emailOpen} recipients={selected} onsent={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}
 {#if moves.allowed}
+  <MoveConfirmDialog {moves} />
   <SaveCandidateSheet bind:open={keepOpen} applicationIds={selected.map((application) => application.id)} ondone={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}
 

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { preferences } from '#lib/preferences.svelte.js';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import { savedView, user } from '../../test-support/fixtures.js';
 import ShellHarness from '../../test-support/shell-harness.svelte';
@@ -20,7 +21,10 @@ const actions = () => ({
   setHidden: vi.fn<ViewActions['setHidden']>(async () => null),
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  preferences.setConfirmMoves(true);
+  vi.unstubAllGlobals();
+});
 
 const main = () => screen.getByRole('navigation', { name: 'Main' });
 const menuFor = (name: string) => within(main()).getByRole('button', { name: `Actions for ${name}` });
@@ -68,6 +72,24 @@ describe("the person's block at the foot of the sidebar", () => {
 
     // A real link, so it opens in a new tab and shows where it goes (A5).
     expect(within(menu).getByRole('menuitem', { name: 'Passkeys' })).toHaveAttribute('href', '/account/passkeys');
+  });
+
+  it("turns the move confirmation back on from the person's menu, next to the keyboard shortcuts switch", async () => {
+    preferences.setConfirmMoves(false);
+    stubViewport(1280);
+    render(ShellHarness, { props: { user } });
+
+    await fireEvent.pointerDown(screen.getByRole('button', { name: /^Avery Quinn/ }), { button: 0, pointerType: 'mouse' });
+    const menu = await screen.findByRole('menu');
+    const item = within(menu).getByRole('menuitemcheckbox', { name: 'Confirm moves that send emails or create tasks' });
+    expect(item).toHaveAttribute('aria-checked', 'false');
+    const names = within(menu).getAllByRole('menuitemcheckbox').map((entry) => entry.textContent?.trim());
+    expect(names).toEqual(['Single-key shortcuts', 'Confirm moves that send emails or create tasks']);
+
+    await fireEvent.click(item);
+
+    expect(preferences.confirmMoves).toBe(true);
+    expect(globalThis.localStorage.getItem('screenhire:confirm-moves')).toBe('on');
   });
 
   it('keeps the hairline in the sheet on a phone', async () => {

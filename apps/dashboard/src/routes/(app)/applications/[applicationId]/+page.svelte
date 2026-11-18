@@ -46,6 +46,7 @@
   import SaveCandidateSheet from '#lib/components/save-candidate-sheet.svelte';
   import ManualAutomations from '#lib/components/manual-automations.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
+  import MoveConfirmDialog from '#lib/components/move-confirm-dialog.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import Notice from '#lib/components/notice.svelte';
@@ -652,6 +653,7 @@
       />
     {/if}
     {#if mayMove}
+      <MoveConfirmDialog {moves} />
       <SaveCandidateSheet
         bind:open={keepOpen}
         applicationIds={[detail.id]}

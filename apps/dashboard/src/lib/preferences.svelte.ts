@@ -1,6 +1,6 @@
 /**
- * Per-browser preferences: the colour theme, whether single-key shortcuts are on, each table's sort and whether the setup
- * checklist was dismissed for an organization. They live in
+ * Per-browser preferences: the colour theme, whether single-key shortcuts are on, whether a move asks first, each table's
+ * sort and whether the setup checklist was dismissed for an organization. They live in
  * localStorage, which can be missing or refuse writes (private windows, blocked site data), so every read and write
  * falls back quietly. Being per browser, a sort does not follow a person to another browser.
  */
@@ -15,7 +15,8 @@ export interface TableSort {
 
 const themeKey = 'screenhire:theme';
 const shortcutsKey = 'screenhire:shortcuts';
-const sortKey = (table: string) => `screenhire:sort:${table}`;
+const confirmMovesKey = 'screenhire:confirm-moves';
+const sortKey =(table: string) => `screenhire:sort:${table}`;
 const setupKey = (organizationId: string) => `screenhire:setup-dismissed:${organizationId}`;
 const pipelineViewKey = 'screenhire:pipeline-view';
 
@@ -74,6 +75,17 @@ class Preferences {
   setShortcutsEnabled(enabled: boolean): void {
     this.shortcutsEnabled = enabled;
     write(shortcutsKey, enabled ? 'on' : 'off');
+  }
+
+  /**
+   * Whether a move into a stage that sends emails or creates tasks asks first, listing what it will do. On until the
+   * person ticks "Don't ask again" in that dialog; the account menu turns it back on. One setting for every stage.
+   */
+  confirmMoves = $state(read(confirmMovesKey) !== 'off');
+
+  setConfirmMoves(enabled: boolean): void {
+    this.confirmMoves = enabled;
+    write(confirmMovesKey, enabled ? 'on' : 'off');
   }
 
   /** The sort the person last chose for a table, read from storage each time; anything unreadable counts as none. */

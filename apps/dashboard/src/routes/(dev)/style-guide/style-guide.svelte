@@ -140,6 +140,7 @@
   import SortTableDemo from './sort-table-demo.svelte';
   import SaveViewDemo from './save-view-demo.svelte';
   import TaskCheckboxDemo from './task-checkbox-demo.svelte';
+  import MoveConfirmDemo from './move-confirm-demo.svelte';
   import UndoNoticeDemo from './undo-notice-demo.svelte';
 
   // Every component in design system section 11, in each state, for authors and reviewers to compare against. Pick a
@@ -844,6 +845,9 @@
         </Panel>
         <Panel title="Save view button" class="flex-[1_1_320px]">
           <SaveViewDemo />
+        </Panel>
+        <Panel title="Move confirmation" class="flex-[1_1_320px]">
+          <MoveConfirmDemo />
         </Panel>
         <Panel title="Undo notice" class="flex-[1_1_320px]">
           <UndoNoticeDemo />

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { preferences } from '#lib/preferences.svelte.js';
 import { applications, apiStub, jobId, stages } from '../test-support/fixtures.js';
 import MovesHarness from '../test-support/moves-harness.svelte';
 import WithQueryClient from '../test-support/with-query-client.svelte';
@@ -29,6 +30,7 @@ function renderMoves() {
 }
 
 afterEach(() => {
+  preferences.setConfirmMoves(true);
   vi.unstubAllGlobals();
 });
 
@@ -57,5 +59,145 @@ describe('moving several applications', () => {
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Moved 3 candidates to Screening.'));
     expect(within(screen.getByRole('list', { name: 'Still selected' })).queryAllByRole('listitem')).toHaveLength(0);
+  });
+});
+
+// The question before a move into a stage that has automations (design system section 11, Move confirmation).
+describe('confirming a move', () => {
+  const email = { id: 'email-on-screening', trigger: { type: 'StageEntered', stageId: 'screening' }, actions: [{ type: 'SendEmail', emailTemplate: 'stage-change' }] };
+
+  function stubJob(automations: unknown[]) {
+    const posted: string[] = [];
+    const routes: Parameters<typeof apiStub>[0] = {
+      [`GET /v1/jobs/${jobId}`]: () => Response.json({ id: jobId, workflow: { stages, questionnaire: { questions: [] }, automations } }),
+      'GET /v1/organization/members': () => Response.json([]),
+      'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }),
+      [`GET /v1/jobs/${jobId}/applications`]: () => Response.json(applications),
+      'GET /v1/applications': () => Response.json(applications),
+      'GET /v1/candidates': () => Response.json([]),
+    };
+    for (const application of applications) {
+      routes[`POST /v1/applications/${application.id}/move`] = () => (posted.push(application.id), Response.json({}));
+    }
+    vi.stubGlobal('fetch', vi.fn(apiStub(routes)));
+    return posted;
+  }
+
+  it('lists what entering the stage does and moves only on Move', async () => {
+    const posted = stubJob([email]);
+    renderMoves();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
+
+    const dialog = await screen.findByRole('dialog', { name: `Move ${casey.candidateName} to Screening?` });
+    expect(within(dialog).getByRole('list', { name: 'What happens' })).toHaveTextContent('Send the "Moved to the next step" email.');
+    expect(posted).toEqual([]);
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Move' }));
+
+    await waitFor(() => expect(screen.getByTestId('moved-one')).toHaveTextContent('moved'));
+    expect(posted).toEqual([casey.id]);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('does nothing on Cancel, and says the move did not happen', async () => {
+    const posted = stubJob([email]);
+    renderMoves();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
+    await fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => expect(screen.getByTestId('moved-one')).toHaveTextContent('not moved'));
+    expect(posted).toEqual([]);
+    expect(screen.getByRole('status').textContent).toBe('');
+  });
+
+  it('moves at once when the stage has no automations, with no dialog', async () => {
+    const posted = stubJob([{ ...email, trigger: { type: 'StageEntered', stageId: 'offer' } }]);
+    renderMoves();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
+
+    await waitFor(() => expect(screen.getByTestId('moved-one')).toHaveTextContent('moved'));
+    expect(posted).toEqual([casey.id]);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('moves at once, saying nothing of checks, when only a check-driven automation runs there (ADR-0004)', async () => {
+    const posted = stubJob([{ ...email, conditions: { match: 'All', rules: [{ fact: 'verification.authenticity', operator: 'EqualTo', value: 'ReviewSuggested' }] } }]);
+    renderMoves();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
+
+    await waitFor(() => expect(posted).toEqual([casey.id]));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it("stops asking once Don't ask again is ticked, until the setting is turned back on", async () => {
+    const posted = stubJob([email]);
+    renderMoves();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
+    const dialog = await screen.findByRole('dialog');
+    await fireEvent.click(within(dialog).getByRole('checkbox', { name: "Don't ask again" }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Move' }));
+    await waitFor(() => expect(posted).toHaveLength(1));
+    expect(preferences.confirmMoves).toBe(false);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
+    await waitFor(() => expect(posted).toHaveLength(2));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    preferences.setConfirmMoves(true);
+    await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('asks once for a bulk move, with the count in the title and the list said once', async () => {
+    const posted = stubJob([email]);
+    renderMoves();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Move all' }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Move 3 candidates to Screening?' });
+    expect(within(dialog).getByText('Each of them gets:')).toBeInTheDocument();
+    expect(within(dialog.querySelector('ul')!).getAllByRole('listitem')).toHaveLength(1);
+    expect(posted).toEqual([]);
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Move' }));
+
+    await waitFor(() => expect(posted).toHaveLength(3));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('keeps every application selected when a bulk move is cancelled', async () => {
+    stubJob([email]);
+    renderMoves();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Move all' }));
+    await fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+
+    const still = await screen.findByRole('list', { name: 'Still selected' });
+    expect(within(still).getAllByRole('listitem')).toHaveLength(3);
+  });
+
+  it('moves without the list when the job cannot be read', async () => {
+    const posted: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        apiStub({
+          [`POST /v1/applications/${casey.id}/move`]: () => (posted.push(casey.id), Response.json({})),
+          [`GET /v1/jobs/${jobId}/applications`]: () => Response.json(applications),
+          'GET /v1/applications': () => Response.json(applications),
+          'GET /v1/candidates': () => Response.json([]),
+        }),
+      ),
+    );
+    renderMoves();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
+
+    await waitFor(() => expect(posted).toEqual([casey.id]));
   });
 });

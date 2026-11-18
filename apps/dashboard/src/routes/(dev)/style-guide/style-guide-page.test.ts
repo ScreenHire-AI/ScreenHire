@@ -78,6 +78,7 @@ const panels: Record<string, string[]> = {
   'Save view button': ['Save view button'],
   'Rename view dialog': ['Save view button'],
   'Undo notice': ['Undo notice'],
+  'Move confirmation': ['Move confirmation'],
   Scorecard: ['Scorecard'],
   'Notification tray': ['Notification tray'],
   Sheet: ['Sheet'],

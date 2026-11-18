@@ -7,6 +7,7 @@ import {
   changeTrigger,
   checkDrivenIds,
   checkGuardrailLine,
+  enteringLines,
   leftOutLine,
   readSentence,
   relationChoices,
@@ -687,5 +688,54 @@ describe('review fixes', () => {
       const line = automationLine({ id: 'a', name: 'a', trigger, conditions: null, actions: [{ type: 'AddTag', tag: 'x' }] }, wf);
       expect(line, type).toMatch(/^When (someone|the|a|an|it|\d) /);
     }
+  });
+});
+
+// What a move into a stage sets off, for the confirmation dialog.
+describe('enteringLines', () => {
+  const names = new Map([['stage-change', 'Moved to the next step']]);
+  const enter = (stageId: string, ...rest: Parameters<typeof automation> extends [string, Automation['trigger'], ...infer R] ? R : never) =>
+    automation(`on-${stageId}`, { type: 'StageEntered', stageId }, ...rest);
+
+  it("says each automation that runs on entering the stage in the same words as the list, and only that stage's", () => {
+    const workflow = flow([
+      enter('screening', [mail]),
+      enter('screening', [{ type: 'CreateTask', note: 'Call them' }, { type: 'AddTag', tag: 'Called' }]),
+      enter('interview', [{ type: 'SendQuestionnaire', questionnaireId: 'x' }]),
+      automation('left', { type: 'StageExited', stageId: 'screening' }, [mail]),
+      automation('applied', { type: 'ApplicationSubmitted' }, [mail]),
+    ]);
+
+    expect(enteringLines(workflow, 'screening', [], names)).toEqual([
+      'Send the "Moved to the next step" email.',
+      'Create a task and add the tag "Called".',
+    ]);
+    expect(enteringLines(workflow, 'offer')).toEqual([]);
+  });
+
+  it("puts a condition in front, in the map's words", () => {
+    const rule: AutomationCondition = { fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' };
+    const workflow = flow([enter('screening', [{ type: 'AssignReviewer' }], [rule])]);
+
+    expect(enteringLines(workflow, 'screening')).toEqual(['If Right to work is No, ask the team to review.']);
+  });
+
+  it('leaves out an automation that is switched off', () => {
+    const workflow = flow([{ ...enter('screening', [mail]), enabled: false }]);
+
+    expect(enteringLines(workflow, 'screening')).toEqual([]);
+  });
+
+  it('never mentions a check: an automation a check drives, or a step that asks for one, is left out (ADR-0004)', () => {
+    const workflow = flow([
+      enter('screening', [mail], [checkRule]),
+      enter('screening', [{ type: 'RequestVerification' }]),
+      enter('screening', [{ type: 'RequestVerification' }, { type: 'AddTag', tag: 'Look closer' }]),
+    ]);
+
+    const lines = enteringLines(workflow, 'screening');
+
+    expect(lines).toEqual(['Add the tag "Look closer".']);
+    expect(lines.join(' ')).not.toMatch(/verif|check/i);
   });
 });
