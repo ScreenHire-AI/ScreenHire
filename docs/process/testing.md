@@ -35,11 +35,16 @@ sources:
   - resource: scripts/tested-tree.mjs
   - resource: .github/actions/tested-tree/action.yml
   - resource: tests/ScreenHire.Testing/Wait.cs
+  - resource: tests/ScreenHire.IntegrationTests/Messaging/WolverineStore.cs
   - resource: apps/dashboard/src/test-support/quiet.ts
   - resource: tests/ScreenHire.E2E/DashboardThemeSetupTests.cs
   - resource: tests/ScreenHire.E2E/DashboardThemeEmptyTests.cs
   - resource: tests/ScreenHire.E2E/DashboardPhoneEmptyTests.cs
   - resource: tests/ScreenHire.IntegrationTests/OwnStackRun.cs
+  - resource: tests/ScreenHire.UnitTests/Tooling/CiWorkflow.cs
+  - resource: tests/ScreenHire.UnitTests/Tooling/TestSuiteRules.cs
+  - resource: tests/ScreenHire.UnitTests/Tooling/TestShardPlanTests.cs
+  - resource: tests/ScreenHire.UnitTests/Tooling/ProofWalkRoutesTests.cs
 ---
 # Testing
 
@@ -52,7 +57,7 @@ ADR-0020). Locally an agent runs the fast check and its branch's own tests ([`/v
 
 | Tier | Where | Use it for | Needs |
 |---|---|---|---|
-| .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle and versions, template versioning, the definition validator and its guardrails, the verification ruleset), the verification analyzers with local fakes, golden files of the synthetic applicants' assessments, pure API logic (mappings, validation, the workflow diff, sanitizing), and the repository tooling in `Tooling/`: the MCP approvals, and the process guard and docs bundle checks, which run their `scripts/*.mjs` with Node. The API grants it `InternalsVisibleTo`. | Node for `Tooling/` |
+| .NET unit | `tests/ScreenHire.UnitTests` (xUnit v3 + AwesomeAssertions) | Domain rules (`Job` lifecycle and versions, template versioning, the definition validator and its guardrails, the verification ruleset), the verification analyzers with local fakes, golden files of the synthetic applicants' assessments, pure API logic (mappings, validation, the workflow diff, sanitizing), and the repository tooling in `Tooling/`: the MCP approvals, the rules the CI workflows, the shard plan and the test suite keep (`.claude/rules/test-value.md`), and the checks that run a `scripts/*.mjs` with Node (the process guard, the docs bundle, the sharder, the CI timings). The API grants it `InternalsVisibleTo`. | Node for `Tooling/` |
 | Vitest | next to the code as `*.test.ts`: `apps/dashboard` (Svelte 5 components on jsdom with @testing-library/svelte, including the shared question components in the questionnaire preview; pages and query-backed components render inside `src/test-support/with-query-client.svelte` with `fetch` stubbed (it also gives them the sidebar's context and a tooltip provider), anything else with a tooltip inside `with-tooltips.svelte`, the signed-in frame (sidebar, top bar, shortcuts dialog) inside `shell-harness.svelte`, a workflow's tabs with the builder or the read-only view inside `workflow-harness.svelte`, with `stubViewport` in `viewport.ts` setting the window width the media queries see, and `expectNoAxeViolations` in `src/test-support/axe.ts` runs axe for WCAG 2.2 A/AA on each component), `packages/api-client` (the fetch mutator), `packages/realtime` (the SignalR client, event schemas against the C# contract file), `apps/careers` (`src/lib`: formatting, the apply flow's state and checks, tenant hosts, the brand stylesheet; `src/components`: the shared question components rendered through Astro's container API with the Svelte renderer, on the server as the apply page uses them and as a `client:load` island), `apps/marketing` (JSON-LD builders, page registry, pricing, the post-build checks in `scripts/`) | Frontend logic and component rendering with fixed data | Nothing |
 | Aspire integration | `tests/ScreenHire.IntegrationTests` | Endpoints, persistence, data rules (tenant scoping, status filters), messaging (outbox, worker handlers, retries, dead letters), anything that needs Postgres | Docker |
 | End-to-end | `tests/ScreenHire.E2E` (Microsoft.Playwright for .NET on xUnit v3, axe) | User journeys in a real browser against the whole stack: rendered content, JSON-LD, no-JS public pages, accessibility | Docker, Chromium, `pnpm -r build` |
@@ -217,7 +222,9 @@ Messages cross processes, so these tests wait on Wolverine's tables in Postgres,
 - `WolverineStore` counts a message in the outbox, the worker queue, the inbox (handled or not) or the dead-letter
   table, found by an id in its body so a test only sees its own messages. A published job's id is in its postings' commands and events too, so
   each count takes an optional message type (`".JobPublished"`) to narrow it. `WolverineStore.WaitUntilAsync` polls a
-  condition with a 60-second deadline.
+  condition with a 60-second deadline. `WolverineStore.WaitUntilHandledAsync` publishes a message and returns once the
+  worker has handled that copy, for a test that goes on to show the message changed nothing: it counts every copy the
+  worker had already taken, so an earlier copy's late Handled mark does not end the wait.
 - `MessagingHost` starts an in-process Wolverine host with the API's or the worker's setup
   (`ScreenHireMessaging.ConfigurePublisher` / `ConfigureHandler`) in a private schema of the AppHost's database, and
   drops the schema afterwards. Use it to make a handler fail or a transaction roll back without touching the running
