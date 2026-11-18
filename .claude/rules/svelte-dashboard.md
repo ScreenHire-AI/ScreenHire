@@ -42,7 +42,9 @@ new route is the `/add-dashboard-page` skill.
   path, because the generated query keys are the path's segments (`['v1', 'jobs', jobId]`). Never open a second
   connection in a page. Procedure: `/add-realtime-event`.
 - Moving an application goes through `createMoves()` (`#lib/moves.svelte.ts`), which every move control shares: the
-  menu, the board's keyboard path and drag-and-drop.
+  menu, the board's keyboard path and drag-and-drop. Entering a stage that has automations asks first
+  (`MoveConfirmDialog`, mounted wherever `createMoves` is; `preferences.confirmMoves` turns it off), so a page that
+  creates moves mounts the dialog, and `move` returns false when the person cancels.
 
 ## UI
 

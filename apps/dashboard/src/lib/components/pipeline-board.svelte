@@ -70,6 +70,9 @@
 
   // Rebuilt whenever the applications change; a drag reassigns it while the card is in flight.
   let columns = $derived<Column[]>(build());
+  // Bumped when a drop is cancelled, so the columns are drawn afresh: the drag library keeps its own record of the DOM it
+  // moved, and a card put back in its old column through state alone can be left out of it.
+  let drawn = $state(0);
   // A closed stage's drop zone holds only the card in flight; its candidates are listed under its row when that is open.
   let landing = $derived<Record<string, Card[]>>(Object.fromEntries(closedStages.map((stage) => [stage.id, []])));
 
@@ -77,20 +80,29 @@
     columns = columns.map((column) => (column.stage.id === stageId ? { ...column, cards } : column));
   }
 
-  function dropped(stage: WorkflowStage, event: CustomEvent<DndEvent<Card>>) {
+  // A drop asks first when the stage has something to do (the move confirmation): the card waits in its new column for the
+  // answer, and Cancel, or a move that did not happen, rebuilds the columns from the applications, which puts it back.
+  async function dropped(stage: WorkflowStage, event: CustomEvent<DndEvent<Card>>) {
     if (event.detail.info.trigger !== TRIGGERS.DROPPED_INTO_ZONE) return;
     const card = event.detail.items.find((item) => item.id === event.detail.info.id);
-    if (card && card.stage.id !== stage.id && moves.allowed) void moves.move(card, stage);
+    if (!card || card.stage.id === stage.id || !moves.allowed) return;
+    if (await moves.move(card, stage)) return;
+    columns = build();
+    drawn++;
+    // Redrawing the columns takes the focus with the old cards; it goes to the card back in its place.
+    await tick();
+    const active = document.activeElement;
+    if (!active || active === document.body) document.querySelector<HTMLElement>(`[data-card-id="${card.id}"]`)?.focus();
   }
 
   function onfinalize(stage: WorkflowStage, event: CustomEvent<DndEvent<Card>>) {
     replaceCards(stage.id, event.detail.items);
-    dropped(stage, event);
+    void dropped(stage, event);
   }
 
   function onfinalizeClosed(stage: WorkflowStage, event: CustomEvent<DndEvent<Card>>) {
     landing = { ...landing, [stage.id]: [] };
-    dropped(stage, event);
+    void dropped(stage, event);
   }
 
   // The keyboard alternative to dragging: Shift + Left / Right moves the focused card one stage, and focus follows it,
@@ -101,6 +113,7 @@
     if (!target || !moves.allowed) return;
     await moves.move(card, target);
     await tick();
+    // Cancelled, the card is where it was and keeps the focus.
     const focusable = document.querySelector<HTMLElement>(`[data-card-id="${card.id}"]`) ?? document.querySelector<HTMLElement>(`[data-closed-stage="${target.id}"]`);
     focusable?.focus();
   }
@@ -183,6 +196,7 @@
      second vertical scroll. -->
 <div data-pipeline-board class="relative min-h-0 flex-1 overflow-auto">
   <div class="flex h-full w-full min-w-fit items-start gap-3 p-3">
+    {#key drawn}
     {#each columns as column (column.stage.id)}
       {@const count = countIn(column.stage.id)}
       <section
@@ -300,5 +314,6 @@
         </div>
       </section>
     {/if}
+    {/key}
   </div>
 </div>

@@ -338,6 +338,10 @@
                 checked={preferences.shortcutsEnabled}
                 onCheckedChange={(checked) => preferences.setShortcutsEnabled(checked)}>Single-key shortcuts</DropdownMenu.CheckboxItem
               >
+              <DropdownMenu.CheckboxItem
+                checked={preferences.confirmMoves}
+                onCheckedChange={(checked) => preferences.setConfirmMoves(checked)}>Confirm moves that send emails or create tasks</DropdownMenu.CheckboxItem
+              >
               {#if calendarAvailable}
                 <DropdownMenu.Separator />
                 <DropdownMenu.Item onSelect={() => ((calendarOutcome = ''), (calendarOpen = true))}>Calendar</DropdownMenu.Item>

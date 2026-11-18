@@ -2,6 +2,7 @@ import type { ApplicationSummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { WorkflowStage } from '@screenhire/api-client';
+import { preferences } from '#lib/preferences.svelte.js';
 import { applications, apiStub, jobId, stages } from '../../test-support/fixtures.js';
 import { summary } from '../../test-support/verification-fixtures.js';
 import PipelineHarness from '../../test-support/pipeline-harness.svelte';
@@ -13,10 +14,13 @@ vi.mock('$app/navigation', () => navigation);
 const casey = applications[0]!;
 
 /** The API as the board sees it: the job's applications, and moves that change them. */
-function stubApi(options: { refuseMove?: boolean; rows?: ApplicationSummary[] } = {}) {
+function stubApi(options: { refuseMove?: boolean; rows?: ApplicationSummary[]; automations?: unknown[] } = {}) {
   let current: ApplicationSummary[] = (options.rows ?? applications).map((application) => ({ ...application }));
   const fetchMock = vi.fn(
     apiStub({
+      ...(options.automations && {
+        [`GET /v1/jobs/${jobId}`]: () => Response.json({ id: jobId, workflow: { stages, questionnaire: { questions: [] }, automations: options.automations } }),
+      }),
       [`GET /v1/jobs/${jobId}/applications`]: () => Response.json(current),
       [`POST /v1/applications/${casey.id}/move`]: (init) => {
         if (options.refuseMove) {
@@ -50,6 +54,7 @@ const column = (name: string) => screen.getByRole('list', { name: `${name} stage
 const card = (name: string) => screen.getByRole('listitem', { name: new RegExp(`^${name},`) });
 
 afterEach(() => {
+  preferences.setConfirmMoves(true);
   vi.unstubAllGlobals();
   navigation.goto.mockClear();
 });
@@ -303,5 +308,76 @@ describe('pipeline board', () => {
     await screen.findByRole('list', { name: 'Applied stage' });
 
     expect(screen.getAllByRole('button', { name: /^Actions for / })).toHaveLength(applications.length);
+  });
+
+  describe('confirming a move into a stage that does something', () => {
+    const emailOnScreening = [
+      { id: 'email', trigger: { type: 'StageEntered', stageId: 'screening' }, actions: [{ type: 'SendEmail', emailTemplate: 'stage-change' }] },
+    ];
+    const posted = (fetchMock: ReturnType<typeof stubApi>) => fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/move'));
+
+    // svelte-dnd-action ends a drag by telling the destination zone its new items; the board moves the dropped card.
+    function dropOnScreening() {
+      const items = [...Array.from(column('Screening').querySelectorAll('[data-card-id]')).map((element) => applications.find((a) => a.id === element.getAttribute('data-card-id'))!), casey];
+      column('Screening').dispatchEvent(new CustomEvent('finalize', { detail: { items, info: { trigger: 'droppedIntoZone', id: casey.id, source: 'pointer' } } }));
+    }
+
+    it('shows the card in its new column while the question is open, and puts it back on Cancel', async () => {
+      const fetchMock = stubApi({ automations: emailOnScreening });
+      renderBoard();
+      await screen.findByRole('list', { name: 'Applied stage' });
+
+      dropOnScreening();
+
+      const dialog = await screen.findByRole('dialog', { name: 'Move Casey Morgan to Screening?' });
+      expect(dialog).toHaveTextContent('Send the "Moved to the next step" email.');
+      expect(within(column('Screening')).getByRole('listitem', { name: 'Casey Morgan, Screening' })).toBeInTheDocument();
+
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+      await waitFor(() => expect(within(column('Applied')).getByRole('listitem', { name: 'Casey Morgan, Applied' })).toBeInTheDocument());
+      expect(within(column('Screening')).queryByRole('listitem', { name: /^Casey Morgan/ })).toBeNull();
+      expect(posted(fetchMock)).toHaveLength(0);
+      // The columns are drawn afresh, and the focus goes to the card back in its place rather than to the page.
+      await waitFor(() => expect(document.activeElement).toBe(card('Casey Morgan')));
+    });
+
+    it('moves the dropped card on Move', async () => {
+      const fetchMock = stubApi({ automations: emailOnScreening });
+      renderBoard();
+      await screen.findByRole('list', { name: 'Applied stage' });
+
+      dropOnScreening();
+      await fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Move' }));
+
+      await waitFor(() => expect(posted(fetchMock)).toHaveLength(1));
+      expect(within(column('Screening')).getByRole('listitem', { name: 'Casey Morgan, Screening' })).toBeInTheDocument();
+    });
+
+    it('opens the same question from Shift + Right, and gives the card its focus back on Cancel', async () => {
+      const fetchMock = stubApi({ automations: emailOnScreening });
+      renderBoard();
+      await screen.findByRole('list', { name: 'Applied stage' });
+      card('Casey Morgan').focus();
+
+      await fireEvent.keyDown(card('Casey Morgan'), { key: 'ArrowRight', shiftKey: true });
+      await fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+
+      await waitFor(() => expect(document.activeElement).toBe(card('Casey Morgan')));
+      expect(within(column('Applied')).getByRole('listitem', { name: 'Casey Morgan, Applied' })).toBeInTheDocument();
+      expect(posted(fetchMock)).toHaveLength(0);
+    });
+
+    it('does not ask when the setting is off', async () => {
+      const fetchMock = stubApi({ automations: emailOnScreening });
+      preferences.setConfirmMoves(false);
+      renderBoard();
+      await screen.findByRole('list', { name: 'Applied stage' });
+
+      await fireEvent.keyDown(card('Casey Morgan'), { key: 'ArrowRight', shiftKey: true });
+
+      await waitFor(() => expect(posted(fetchMock)).toHaveLength(1));
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
   });
 });
