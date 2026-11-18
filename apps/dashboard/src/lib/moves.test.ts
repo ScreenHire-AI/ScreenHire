@@ -112,6 +112,32 @@ describe('confirming a move', () => {
     expect(screen.getByRole('status').textContent).toBe('');
   });
 
+  it('gives the focus back to the button whose menu started the move, not to the menu item that is gone', async () => {
+    stubJob([email]);
+    renderMoves();
+    // A menu as bits-ui draws it: the open trigger names its menu in aria-controls, and the chosen item has the focus.
+    const opener = Object.assign(document.createElement('button'), { textContent: 'Move to stage' });
+    opener.setAttribute('aria-controls', 'stage-menu');
+    const menu = Object.assign(document.createElement('div'), { id: 'stage-menu' });
+    menu.setAttribute('role', 'menu');
+    const item = Object.assign(document.createElement('div'), { tabIndex: -1, textContent: 'Screening' });
+    item.setAttribute('role', 'menuitem');
+    menu.append(item);
+    document.body.append(opener, menu);
+    item.focus();
+
+    try {
+      await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
+      const dialog = await screen.findByRole('dialog');
+      menu.remove();
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+      await waitFor(() => expect(document.activeElement).toBe(opener));
+    } finally {
+      opener.remove();
+    }
+  });
+
   it('moves at once when the stage has no automations, with no dialog', async () => {
     const posted = stubJob([{ ...email, trigger: { type: 'StageEntered', stageId: 'offer' } }]);
     renderMoves();

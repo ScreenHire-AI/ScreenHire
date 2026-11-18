@@ -694,8 +694,8 @@ describe('review fixes', () => {
 // What a move into a stage sets off, for the confirmation dialog.
 describe('enteringLines', () => {
   const names = new Map([['stage-change', 'Moved to the next step']]);
-  const enter = (stageId: string, ...rest: Parameters<typeof automation> extends [string, Automation['trigger'], ...infer R] ? R : never) =>
-    automation(`on-${stageId}`, { type: 'StageEntered', stageId }, ...rest);
+  const enter = (stageId: string, actions: AutomationAction[], rules?: AutomationCondition[]) =>
+    automation(`on-${stageId}`, { type: 'StageEntered', stageId }, actions, rules);
 
   it("says each automation that runs on entering the stage in the same words as the list, and only that stage's", () => {
     const workflow = flow([

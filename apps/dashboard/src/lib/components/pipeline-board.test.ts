@@ -338,6 +338,8 @@ describe('pipeline board', () => {
       await waitFor(() => expect(within(column('Applied')).getByRole('listitem', { name: 'Casey Morgan, Applied' })).toBeInTheDocument());
       expect(within(column('Screening')).queryByRole('listitem', { name: /^Casey Morgan/ })).toBeNull();
       expect(posted(fetchMock)).toHaveLength(0);
+      // The columns are drawn afresh, and the focus goes to the card back in its place rather than to the page.
+      await waitFor(() => expect(document.activeElement).toBe(card('Casey Morgan')));
     });
 
     it('moves the dropped card on Move', async () => {
