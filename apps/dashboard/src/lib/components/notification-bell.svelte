@@ -21,7 +21,9 @@
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { notificationLine } from '#lib/notification-lines.js';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { preferences } from '#lib/preferences.svelte.js';
   import { notificationsPath } from '#lib/realtime.js';
+  import { setupPanel } from '#lib/setup-panel.svelte.js';
   import { createSetupProgress } from '#lib/setup-progress.svelte.js';
 
   // The notification bell in the top bar (design system section 11, Notification bell): what needs this person's
@@ -29,6 +31,8 @@
   // one plain line each that links to the page that fixes it. The count is the steps left plus the alerts not yet read.
   // Opening the panel marks nothing read; following an alert's link does. Alerts arrive live (`NotificationsChanged`
   // refetches the list), and a missed push costs nothing because the list is the server's, read again on reconnect.
+  // The panel also opens at its setup section when a page asks (`setupPanel`, the Jobs empty state's button), and once by
+  // itself right after onboarding (`preferences.takeSetupTour`), as soon as the steps are known.
   let { user }: { user: CurrentUser | null | undefined } = $props();
 
   const queryClient = useQueryClient();
@@ -41,6 +45,31 @@
 
   let open = $state(false);
   let panel = $state<HTMLElement | null>(null);
+  // Set when the panel opens for its setup steps, so focus starts there and not on the panel's top, until it closes:
+  // bits-ui can ask where focus goes more than once while the panel opens. The section is found in the panel each time.
+  let focusSetup = false;
+  let handledRequests = setupPanel.requests;
+
+  $effect(() => {
+    if (!open) focusSetup = false;
+  });
+  $effect(() => {
+    if (setupPanel.requests > handledRequests) {
+      handledRequests = setupPanel.requests;
+      focusSetup = true;
+      // Already open: no autofocus follows, so move focus to the steps here.
+      if (open) panel?.querySelector<HTMLElement>('[data-bell-setup]')?.focus();
+      open = true;
+    }
+  });
+  // The one-time open after onboarding is taken only once the steps are known and some remain, so a bell that unmounts
+  // before then (the person moved on while the steps loaded) leaves it for the next one.
+  $effect(() => {
+    if (user?.id && setup.steps && setup.remaining.length > 0 && preferences.takeSetupTour(user.id)) {
+      focusSetup = true;
+      open = true;
+    }
+  });
 
   const items = $derived(notifications.data?.data.items ?? []);
   const unread = $derived(notifications.data?.data.unreadCount ?? 0);
@@ -76,7 +105,8 @@
     bind:ref={panel}
     onOpenAutoFocus={(event) => {
       event.preventDefault();
-      panel?.focus();
+      const setupSection = focusSetup ? panel?.querySelector<HTMLElement>('[data-bell-setup]') : null;
+      (setupSection ?? panel)?.focus();
     }}
     align="end"
     collisionPadding={16}
@@ -91,7 +121,7 @@
     </header>
 
     {#if setup.steps}
-      <section aria-labelledby="bell-setup-title" class="flex flex-col gap-1 border-b border-border-subtle px-4 py-3">
+      <section data-bell-setup tabindex="-1" aria-labelledby="bell-setup-title" class="flex flex-col gap-1 outline-hidden border-b border-border-subtle px-4 py-3">
         <div class="flex items-center gap-2">
           <h3 id="bell-setup-title" class="min-w-0 flex-1 truncate font-semibold">Finish setting up</h3>
           <IconButton label="Hide setup in this browser" onclick={() => setup.dismiss()}><XIcon aria-hidden="true" /></IconButton>

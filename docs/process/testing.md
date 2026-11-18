@@ -124,6 +124,8 @@ webhooks ([workflow-engine.md](../architecture/workflow-engine.md) §5) it sets 
 may post to a `WebhookReceiver` (a Kestrel server on `127.0.0.1` that a test starts), and shortens the retry delays
 (`AppHostFixture.WebhookRetryDelays`, 1 s and 3 s), the disable limit (two failed deliveries) and the timeout
 (`AppHostFixture.WebhookTimeout`, 5 s), which a receiver started with `DelayResponses` outlasts.
+The sign-in page's agreement line has two of its three documents to link: `Legal:TermsUrl` and `Legal:PrivacyUrl` are set to
+example.com addresses and `Legal:DpaUrl` is left out, so a test sees the line name only the configured ones.
 
 A fixture that needs a stack of its own subclasses `AppHostFixture` and takes it as a class fixture: `ExtraArguments`
 adds AppHost settings (`DevelopmentDemoFixture` turns the demo on), and `Configure` changes the resources before the
@@ -349,7 +351,7 @@ picture (`name.png`) and a picture of the same screen laid out at phone width (`
   with automations the test adds, because the engineer job's queues an answer for rejection review.
 - **Pictures end between elements.** Where the window as it opens would cut a screen, its picture runs from one element
   to another in a tall window: the pipeline's phone picture shows one stage and its cards, the activity runs from the reply to the first note, the
-  candidates list ends after the last row the window shows whole, the booking page after its second day of times, and the
+  candidates list ends after the last row the window shows whole, the booking page at its Book button, and the
   reports phone picture leaves out the table of open jobs between the cards and the trend.
 - **Data:** Brightwater Studio and its fictional people. The test adds what the demo lacks for one candidate (an email
   answered, an interview offered and booked) and moves three applicants so the pipeline has people in several stages.

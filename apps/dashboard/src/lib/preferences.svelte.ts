@@ -1,6 +1,7 @@
 /**
  * Per-browser preferences: the colour theme, whether single-key shortcuts are on, whether a move asks first, each table's
- * sort and whether the setup checklist was dismissed for an organization. They live in
+ * sort, whether the setup checklist was dismissed for an organization and whether the bell has opened itself after
+ * onboarding. They live in
  * localStorage, which can be missing or refuse writes (private windows, blocked site data), so every read and write
  * falls back quietly. Being per browser, a sort does not follow a person to another browser.
  */
@@ -18,6 +19,7 @@ const shortcutsKey = 'screenhire:shortcuts';
 const confirmMovesKey = 'screenhire:confirm-moves';
 const sortKey = (table: string) => `screenhire:sort:${table}`;
 const setupKey = (organizationId: string) => `screenhire:setup-dismissed:${organizationId}`;
+const setupTourKey = (userId: string) => `screenhire:setup-tour:${userId}`;
 const pipelineViewKey = 'screenhire:pipeline-view';
 
 /** How a job's candidates show: a table or the board. */
@@ -126,6 +128,21 @@ class Preferences {
   dismissSetup(organizationId: string): void {
     this.#setupDismissed[organizationId] = true;
     write(setupKey(organizationId), 'on');
+  }
+
+  /**
+   * Finishing onboarding asks the bell to open once by itself, at its setup steps, so a new Owner finds them. This marks
+   * the ask for the person; nothing happens for anyone who has already had it.
+   */
+  queueSetupTour(userId: string): void {
+    if (read(setupTourKey(userId)) === null) write(setupTourKey(userId), 'pending');
+  }
+
+  /** Whether the bell should open itself for this person, once: true the first time it asks after onboarding, false ever after. */
+  takeSetupTour(userId: string): boolean {
+    if (read(setupTourKey(userId)) !== 'pending') return false;
+    write(setupTourKey(userId), 'done');
+    return true;
   }
 
   #applyTheme(): void {

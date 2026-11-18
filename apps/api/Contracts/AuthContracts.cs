@@ -4,8 +4,17 @@ using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Api.Contracts;
 
-/// <summary>How a person can sign in here: the configured identity providers, and whether email links work.</summary>
-public sealed record SignInMethods(IReadOnlyList<SignInProvider> Providers, bool MagicLinkEnabled);
+/// <summary>
+/// How a person can sign in here: the configured identity providers, whether email links work, and the legal documents the
+/// sign-in page's agreement line links to.
+/// </summary>
+public sealed record SignInMethods(IReadOnlyList<SignInProvider> Providers, bool MagicLinkEnabled, SignInLegal Legal);
+
+/// <summary>
+/// The addresses of the documents the agreement line names (<c>ScreenHire:Legal</c>). Each is null until it is configured, and
+/// the page names only the ones that are.
+/// </summary>
+public sealed record SignInLegal(string? TermsUrl, string? PrivacyUrl, string? DpaUrl);
 
 /// <summary>An identity provider button on the sign-in page.</summary>
 public sealed record SignInProvider(string Id, string DisplayName);

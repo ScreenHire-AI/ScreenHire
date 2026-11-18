@@ -176,31 +176,41 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
         {
           picking && !noTimes && (
             <>
-              <form method="POST" action={changing ? actions.interviewReschedule : actions.interviewBook} aria-labelledby="times-heading" class="mt-8 flex flex-col gap-6">
+              <form method="POST" action={changing ? actions.interviewReschedule : actions.interviewBook} aria-labelledby="times-heading" class="times-form mt-6 flex flex-col gap-4">
                 <input type="hidden" name="organization" value={employer.slug} />
                 <input type="hidden" name="token" value={token} />
                 <input type="hidden" name="tz" value={zone} />
                 {changing && <input type="hidden" name="change" value="1" />}
                 <div>
-                  <h2 id="times-heading" class="font-display text-panel-title">Available times</h2>
-                  <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">All times are in {zoneName(reference, zone)}.</p>
+                  <h2 id="times-heading" class="sr-only">Available times</h2>
+                  <p class="text-candidate-hint text-candidate-muted-foreground">All times are in {zoneName(reference, zone)}.</p>
                 </div>
 
-                {screen.days.map((day) => (
-                  <fieldset class="flex flex-col gap-2">
-                    <legend class="mb-2 text-candidate-body font-semibold">{day.heading}</legend>
-                    <div class="grid grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] gap-2">
-                      {day.slots.map((slot) => (
-                        <label class="choice min-h-12 has-checked:bg-candidate-chip has-checked:text-candidate-chip-foreground has-checked:ring-2 has-checked:ring-candidate-cta">
-                          <input type="radio" name="start" value={slot.value} required />
-                          <span>{slot.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                ))}
+                {/* No `required` on the times: a closed day's radio cannot take focus, so the browser would refuse Book without a
+                    word. A post with no time comes back with "Choose a time first." instead. */}
+                <div class="divide-y divide-candidate-border rounded-panel border border-candidate-border bg-candidate-surface shadow-surface">
+                  {screen.days.map((day, index) => (
+                    <details class="group" open={index === 0}>
+                      <summary class="flex min-h-11 items-center justify-between gap-3 px-4 py-2 text-candidate-body font-semibold">
+                        <span>{day.heading}<span class="font-normal text-candidate-muted-foreground">, {day.slots.length} {day.slots.length === 1 ? 'time' : 'times'}</span></span>
+                        <svg aria-hidden="true" class="size-4 flex-none group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                      </summary>
+                      <fieldset class="px-4 pb-4">
+                        <legend class="sr-only">{day.heading}</legend>
+                        <div class="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-2">
+                          {day.slots.map((slot) => (
+                            <label class="choice time-chip relative min-h-11 justify-center px-2 has-checked:bg-candidate-chip has-checked:text-candidate-chip-foreground has-checked:ring-2 has-checked:ring-candidate-cta" data-chosen={`${day.heading} at ${slot.label}`}>
+                              <input type="radio" name="start" value={slot.value} class="absolute inset-0 m-0 size-full opacity-0" />
+                              <span>{slot.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                    </details>
+                  ))}
+                </div>
 
-                <div class="flex flex-col gap-3 sm:flex-row">
+                <div class="book-row flex flex-col gap-3 sm:flex-row">
                   <button type="submit" class="button-primary">{changing ? 'Move to this time' : 'Book this time'}</button>
                   {changing && <a href={interviewPath(base, token!, { tz: here.tz })} class="button-secondary">Keep my current time</a>}
                 </div>
