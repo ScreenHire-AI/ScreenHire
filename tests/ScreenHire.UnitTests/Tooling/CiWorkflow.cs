@@ -308,6 +308,11 @@ internal static partial class CiWorkflow
             }
         }
 
+        if (Strings(Child(Child(on, "push"), "branches")) is not ["main"])
+        {
+            problems.Add($"{CachesPath} must run on a push to main and no other branch: a pull request restores a cache saved on its own ref or on main, so one saved anywhere else is restored by nothing");
+        }
+
         var filled = Strings(Child(Child(on, "push"), "paths")).ToHashSet(StringComparer.Ordinal);
         var hashed = CacheKeyFiles(gitHubFiles);
         foreach (var file in hashed.Except(filled).Order(StringComparer.Ordinal))

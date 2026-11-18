@@ -321,7 +321,7 @@ The walk is a theory, one row per group of routes, never one method:
   integrations), and the theory's rows are the table's groups plus the overlays, so a route cannot be left out of every
   row. Each row signs in for itself and only reads the scene, so CI runs the rows side by side.
 - As one method each walk ran 169 and 203 s on CI, and a shard cannot end before its longest test
-  ([`.claude/rules/test-value.md`](../../.claude/rules/test-value.md)). The rows run 13 to 58 s.
+  ([`.claude/rules/test-value.md`](../../.claude/rules/test-value.md)). The rows run 12 to 46 s.
 - The sign-in page and the onboarding page are each checked by one row only, so two rows never write the same
   screenshot.
 - The Verification area's tabs are its pages, each at its own address and each in the table, so the walk opens each of
@@ -547,6 +547,8 @@ push that ran in full.
   are the action's own: the solution's packages with the pnpm store and Chromium (what `checks`, `e2e` and `lighthouse`
   restore), the integration tests' packages, and the AppHost's.
 - The cache actions save in their post steps, and only when the job succeeded, so a failed install saves nothing.
+- With every key already saved its three jobs took 41, 39 and 96 s (run 44255991818, on the task branch before it
+  merged). A push that changes a key adds the installs to that.
 - `gh workflow run Caches --ref main` fills them by hand.
 
 It is a workflow of its own and not a job in `ci.yml` behind `tested-tree`, because that job would run after every
@@ -645,8 +647,9 @@ Every job runs on `ubuntu-24.04`, pinned, and sets up through
   `scripts/test-shard.mjs` runs on the runner's own Node) and a NuGet cache of its own without Playwright's browser
   drivers, which restores faster than the full 1.5 GB one;
 - for `e2e` and `lighthouse`, Playwright's browsers cached on the `Microsoft.Playwright` version. The `e2e` job
-  installs Chromium with `node scripts/install-browsers.mjs --no-build` after its test-only build, `lighthouse` with
-  `pnpm e2e:install`.
+  installs Chromium with `node scripts/install-browsers.mjs --no-build` after its test-only build. `lighthouse` runs
+  `pnpm e2e:install` only when the cache did not hold the browser (the action's `chromium-cached` output): that
+  install builds the end-to-end tests to reach Playwright's driver, about a minute for a browser already there.
 
 The integration and end-to-end jobs pull the AppHost's container images (`APPHOST_IMAGES` in the workflow) before
 the tests, so the pulls do not count against the fixture's 3-minute start. DCP builds its own small container-tunnel
@@ -675,7 +678,45 @@ The first runs found two differences from the Windows dev machine. Both were fix
 
 ### What each speed-up saved
 
-Measured on the dev machine on 2026-10-31, one configuration at a time with nothing else of this task running, each
+**On CI, 2026-11-18.** Read with `node scripts/ci-timings.mjs`. Before is the 23 green pull request runs of 2026-11-09
+to 2026-11-18 that were not rerun. After is three runs dispatched on the task branch on one commit, after three on the
+commit before it ([Time](#time) has the run ids). Seconds are the median, with the range. A dispatched run's steps and
+jobs compare with a pull request run's: only its queue does not, and no number here includes a queue.
+
+| Change | Measured on | Before | After |
+|---|---|---|---|
+| The two walks of every dashboard page are theories over groups of routes, and their classes are measured | The slowest end-to-end shard's test step in a run | 318 (268 to 366) since the walks landed, 254 (167 to 394) over all 23 | 177 (167 to 180) |
+| Each Verification page is opened once, not eight times | The walk's longest row | 89 (88 to 145) on the commit that split the walks | 44 (36 to 46) |
+| The image pulls, the frontend builds and the test build side by side | Those steps of an end-to-end shard | 129 (78 to 192) | 88 (70 to 132) |
+| The image pulls and the test build side by side | Those steps of an integration shard | 73 (49 to 92) | 54 (44 to 81) |
+| Integration on 6 shards, not 8 | The slowest integration job in a run, and the suite's job-seconds | 263 (238 to 341), in 8 jobs of 208 | 267 (226 to 269), in 6 jobs of 213 |
+| Classes that boot their own stack run alone and are weighed by the clock | The shard that held the demo's and the tax stack: its test step against the others' | 170 against 88 to 118 | 104 to 147 for all six |
+| Lighthouse installs Chromium only when the cache does not hold it | The Lighthouse job, when it measures | 276 (261 to 324) on the commit before, 309 (247 to 326) on pull requests | 234 (217 to 235) |
+
+Not done, with the numbers that decided it:
+
+- **The frontends built once and handed to the end-to-end shards as an artifact.** With the builds side by side, the
+  frontend build no longer adds its own 62 s to a shard: the side-by-side step takes 88 s against 52 s for the test
+  build alone, so an artifact would save each shard about 35 s. The job that builds and uploads it would stand in
+  front of all eight for about 90 s (15 s of setup as on the Vitest jobs, 45 to 62 s of build, the upload). That is a
+  longer wait for every pull request, to save about 190 job-seconds a run.
+- **More or fewer end-to-end shards.** A shard pays about 200 s before its first test. Two more would take about 15 s
+  off the slowest and add about 400 job-seconds and two slots. Two fewer would give those back and add about 25 s to
+  what a pull request waits for.
+- **A time-weighted split of the dashboard's Vitest shards.** Their jobs ran 120 to 199 s, under the slowest Aspire
+  shard in every run. Vitest keeps no per-file timings, and a weighted split needs a sequencer of our own.
+- **A job-level skip for Lighthouse.** Paths can filter a whole workflow and not a job. As a workflow of its own it
+  would post no `Lighthouse (report-only)` check on most pull requests, which `/pull-request` reads by name. The job
+  holds a runner for 6 s when the change does not touch the marketing build, and a pull request is under the account's
+  20 jobs with it.
+- **A smaller package cache for the end-to-end shards.** Restoring the 1.56 GB cache takes about 28 s of a shard's
+  setup, but the integration tests' own is already 1.17 GB: the saving would be about 3 s.
+- **`checks` without its own frontend build.** The eight end-to-end shards build the frontends too, so the step proves
+  nothing they do not, but `checks` ends 54 to 123 s before the slowest shard with it.
+- **One sign-in shared by the tests of a class.** [The audit](#the-audit-of-2026-11-18) has the numbers: about 15 s of
+  a shard.
+
+**On the dev machine, 2026-10-31.** One configuration at a time with nothing else of this task running, each
 change added to the ones above it. Every run passed every test unless the table says otherwise.
 
 | Change | Integration (622 tests) | End-to-end (111 tests) |
@@ -703,8 +744,57 @@ and the test-only build flags take about a third off each shard's compile on top
 
 ### Time
 
-With the sharded layout and every speed-up above, run 41246212243 (2026-10-31, commit `c8493aa6`) took 9 min 0 s
-from start to `Gate`. The jobs themselves were short:
+**2026-11-18: what a pull request waits for.** A pull request waits for its slowest job, plus whatever that job
+queued. Read with `node scripts/ci-timings.mjs`:
+
+- Before: the 30 newest green pull request runs, 2026-11-09 to 2026-11-18. Seven were reruns of one failed shard and are
+  left out, which leaves 23.
+- After: runs 44256646866, 44258882337 and 44260189758 on commit `09eeef6e`, dispatched on the task branch one after
+  another. The committed `tests/shard-durations.json` is the mean of those three runs' reports. No class's weight moved
+  by more than 31 test-seconds from the file they ran on, so the split a pull request gets is close to theirs.
+- Seconds are the median, with the range.
+
+The slowest job of a run is 18% shorter at the median, and 26% shorter than in the runs since the two walks landed.
+The slowest end-to-end shard's test step is 30% shorter, and 44% shorter than since the walks landed. What is left of
+the slowest job is mostly not tests, and not the same shard twice: it is whichever shard drew the slowest runner.
+
+| | Before | After |
+|---|---|---|
+| The slowest job of a run | 448 (338 to 610). Since the walks landed: 497 (442 to 566) | 368 (352 to 371) |
+| The slowest end-to-end shard's test step | 254 (167 to 394). Since the walks landed: 318 (268 to 366) | 177 (167 to 180) |
+| An end-to-end shard before its tests | 175 (120 to 258) | 155 (114 to 183) |
+| An integration shard before its tests | 99 (70 to 121) | 91 (70 to 111) |
+| Job-seconds a run, without Lighthouse | 4,909 (4,499 to 5,687) | 4,353 (4,198 to 4,400) |
+| Jobs a pull request starts at once | 21 | 19 |
+| Seconds to `Gate` in a run where no job waited over 20 s for a runner | 462 (369 to 618), 7 of the 23 | None of the three was free of a queue. One dispatched run was, 44251362925 on the commit before: 425 |
+
+What the table does not show:
+
+- **Queueing is the larger half of a busy hour, and no layout removes it.** In 16 of the 23 runs before, a job waited
+  over 20 s for a runner, 112 s at the median and 652 s at the worst. The dispatched runs shared the account with other
+  tasks' pull requests too: a job waited 633, 315 and 191 s in the three runs. What a layout can do is ask for fewer
+  runners for less time: 19 jobs and not 21, and 11% fewer job-seconds a run.
+- **The account runs 20 jobs at once.** The organization is on GitHub Free, whose limit is 20. Over every CI run from
+  2026-11-07 to 2026-11-18 (153 runs, 2,786 jobs) the jobs running at one moment peaked at exactly 20 on every day but
+  two bursts: 32 on 2026-11-09, and 40 for 39 seconds on 2026-11-07, which an earlier note here read as the limit. A
+  pull request used to start 21 jobs, so one of them waited 100 to 160 s for the first to end even when nothing else
+  was running. It was never the slowest shard in those runs, but nothing kept it from being.
+- **Identical code spreads.** On the first commit dispatched (`9be8d6c6`, runs 44251362925, 44252597991 and
+  44254086102) the slowest end-to-end shard's test step ran 177, 184 and 217 s, and on the second 167, 177 and 180 s.
+  A shard that draws a slow runner is slow in everything, about 40% in its tests: in run 44256646866 one shard's
+  AppHost took 51 s to start against 39 to 44 s for the other seven, and its tests summed to 422 test-seconds on a plan
+  of 287. With eight shards a run usually holds one such draw, which is why the slowest job (368 s) sits about 80 s
+  over the median end-to-end job (287 s). So decide on three runs or more, and on the median.
+- **Where an end-to-end shard's time is now.** About 50 s of setup (28 s of it restoring a 1.56 GB package cache),
+  about 87 s of builds, about 42 s for its AppHost to start, about 70 s of tests four at a time, and about 15 s to
+  stop the stack. The tests are under a third of the job.
+
+Revisit the layout when a shard's test step runs about 25% past its suite's average in several runs (refresh
+`tests/shard-durations.json`), when `TestShardPlanTests` or `CiWorkflowTests` fails on a limit, or when the slowest
+job of a run is back over seven minutes at the median.
+
+**2026-10-31: the first sharded layout.** With every speed-up of that date, run 41246212243 (commit `c8493aa6`) took
+9 min 0 s from start to `Gate`. The jobs themselves were short:
 
 | Job | Wall clock per job |
 |---|---|
@@ -734,6 +824,56 @@ The test counts were the local gate's on the same commit: 1324 unit, 622 integra
 1401 Vitest tests (dashboard 1101, careers 127, realtime 81, marketing 64, telemetry 15, api-client 13). The runners
 have 4 cores, so Vitest is the longest step of `checks`: the dashboard's suite took 409 s there and 47 s on the dev
 machine.
+
+### The audit of 2026-11-18
+
+The suite was audited against [`.claude/rules/test-value.md`](../../.claude/rules/test-value.md) when the rule was
+written: scans for fixed waits, skips, copies of the code under test and constants pinned to a literal across the 207
+end-to-end tests, the about 1,200 integration tests, the unit tests and the Vitest files, then a read of what they
+flagged and of every end-to-end class's timings on CI. It found little to remove. The time was in structure
+([Time](#time)), with one exception, the first item.
+
+- **The same seven pages, checked eight times each.** The walks of the dashboard open every route and every tab of its
+  first tab list. The Verification area's tabs are its seven pages, each a route of its own, so each page was opened
+  from every other: 56 checks for 7 pages, in the dark theme and again on a phone, and three more pages of it in each
+  walk of a new organization. That row ran 145 s on CI. The walk now opens each of those pages once
+  (`ProofWalk.TabsAreRoutes`).
+- **Fixed waits.** The .NET tests had 38 `Task.Delay` calls and no `Thread.Sleep` or `WaitForTimeoutAsync`. None was a
+  sleep before an assertion that a condition could replace outright.
+  - 16 were polling loops written out in test classes, each with its own deadline and message. They use
+    `Wait.UntilAsync` and `Wait.ForAsync` now.
+  - 11 were windows that prove nothing more happens, 22 s between them. Four followed a message to the worker and now
+    wait until the worker has handled it (`WolverineStore.WaitUntilHandledAsync`: the two retention runs that must
+    delete nothing, a redelivered automation action, and the data request email a Recruiter must not get). Seven have
+    nothing to wait on and stay, as `Wait.ForNothingAsync` with the reason each is there.
+  - The dashboard's Vitest tests had 9 timer sleeps in seven files, 1.6 s between them, all windows of that kind. They
+    are `nothingHappensFor` with a reason.
+- **Mirror tests.** None: no test asserts its own copy of the code it tests. Three unit tests pinned a constant to the
+  same literal. `Only_S256_is_offered` went, because `OAuthServerTests` reads the discovery document and refuses the
+  plain method. The 20% margin default went, because the test beside it ties the default to the shared catalogue the
+  marketing site reads. `The_grace_is_one_day_as_the_privacy_page_says` stays and now reads the privacy page, so the
+  page and the grace change together.
+- **End-to-end assertions that looked like a lower tier's.** Fifteen were read with the lower tier's test beside
+  them, and none was removed: each is the one place the wiring shows. The role grid's two rows in `SettingsTeamTests`
+  come from the API's real catalogue, where the Vitest test renders a fixture. The 200 and then 401 of an API key in
+  `SettingsAccessTests` prove the key the page showed is the key that works, and that Revoke in the page stops it.
+  The content security policy is read in `ApplyTests` on the seeded brand and in `SettingsBrandingTests` on a brand
+  with images and a font, which is the case that could weaken it. `MarketingTests`' 51 rows of static tags cost 75
+  test-seconds, about 19 s of one shard, and read the site as Caddy serves it, which a read of `dist/` would not.
+- **Classes that booted a stack beside the parallel tests.** `BillingTaxTests`, `StripeWebhookRouteTests` and
+  `ApiReferenceTests` each start an AppHost of their own, and did so while the parallel tests ran. They run alone now
+  (`OwnStackRun`), as the demo's class already did.
+- **`MarketingScreenshotsTests` on every pull request.** It boots a second stack with the demo's data and opens every
+  screen the marketing site shows, about 70 s of one shard that nothing runs beside. It stays: nothing else proves
+  those screens still open on the demo's data. The sharder now weighs it for what it costs.
+- **What a test pays before its first assertion.** An end-to-end test of a public page takes about 1.3 s in all. One
+  with its own organization, the Dev SSO round trip and the first dashboard load takes at least 3 to 4 s, and 134 of
+  the 225 end-to-end tests pay that: about 470 of the suite's 2,235 test-seconds, which at 4 tests at once is about
+  15 s of each shard. Half of the 1,215 integration tests take under 0.3 s in all, sign-in included. So tests keep
+  their own organization and their own sign-in. Sharing either would save a few seconds a shard, and each test signing
+  in as a person does is what makes them independent.
+
+Two tests were removed and none was moved to another tier.
 
 ## Flake policy
 
@@ -804,8 +944,9 @@ What failed the gate with no change, and the cause that was fixed, so the next f
 
 ## Gate time
 
-Since ADR-0020 the gate is CI. Run 41246212243 (2026-10-31) took 9 min 0 s from start to `Gate`, most of it waiting
-for runners; with 20 runners at once the same run takes about 4.5 minutes ([Time](#time) has the jobs). Locally an
+Since ADR-0020 the gate is CI. As of 2026-11-18 a pull request's slowest job takes about six minutes (368 s at the
+median, against 448 s before), and `Gate` follows it by a few seconds when no job waits for a runner. When other pull
+requests are running, the wait for runners is added to that ([Time](#time) has the measurements). Locally an
 agent runs `pnpm verify:fast`, 47 s on 2026-10-31 with warm caches, plus its own test classes; an Aspire class adds
 about 40 s for its AppHost.
 

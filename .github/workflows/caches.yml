@@ -24,7 +24,7 @@ name: Caches
 
 on:
   push:
-    branches: [main, 'speed-up-the-ci-gate-*']
+    branches: [main]
     paths:
       - pnpm-lock.yaml
       - global.json

@@ -10,9 +10,9 @@ paths:
 ---
 # Rule: what earns a test, and what earns a CI job
 
-On 2026-11-18 a pull request waited a median 508 s for `Gate` (30 green runs, 347 to 1,229 s) and nothing watched
-what that cost. The suite was not padded: 207 end-to-end and about 1,200 integration tests, with few duplicates. The
-wait was structure:
+On 2026-11-18 a pull request waited a median 508 s for `Gate` (the 23 of the last 30 green runs that were not rerun,
+347 to 1,229 s) and nothing watched what that cost. The suite was not padded: 207 end-to-end and about 1,200
+integration tests, with few duplicates. The wait was structure:
 
 - Two tests walked every dashboard page in one method, 169 and 203 s each, and a shard cannot end before its longest
   test.
@@ -21,8 +21,8 @@ wait was structure:
 - An integration shard spent 98 s and an end-to-end shard 174 s before its tests, on every shard.
 - A pull request started 21 jobs on an account that runs 20, so one always waited.
 
-The measurements and what each change saved are in [testing.md, "Time"](../../docs/process/testing.md#time). This rule
-keeps the wait from growing back.
+The measurements, what each change saved and what the audit of the tests found are in
+[testing.md, "Time"](../../docs/process/testing.md#time). This rule keeps the wait from growing back.
 
 ## The rule
 
@@ -81,14 +81,17 @@ Pick the lowest tier that can fail for the reason the bug would. The tiers, and 
   measurements are stale:
 
   ```
-  gh run download <run-id> -p "durations-*" -D TestResults/durations
+  gh run download <run-id> -p "durations-*" -D TestResults/durations/<run-id>
   node scripts/test-shard.mjs --record TestResults/durations
   ```
 
   A class heavier than an average shard is split.
-- **Measure a change to CI by paired runs.** At least 3 runs on one commit. Decide on what a queue cannot touch: a
-  named step's seconds, a shard's test step, job-seconds (`node scripts/ci-timings.mjs <run id>...`). Count a run's
-  seconds to `Gate` only when no job in it waited over 20 s for a runner: 18 of the 30 baseline runs did.
+- **Measure a change to CI by paired runs.** At least 3 runs on one commit, one after another: `ci.yml` cancels an
+  earlier run on the same ref. Decide on what a queue cannot touch: a named step's seconds, a shard's test step,
+  job-seconds (`node scripts/ci-timings.mjs <run id>...`). Count a run's seconds to `Gate` only when no job in it
+  waited over 20 s for a runner: 18 of the 30 baseline runs had one that did. Dispatching runs on a branch
+  (`gh workflow run CI --ref <branch>`) is past the one push `unattended-runs.md` gives a task, so it needs the
+  owner's word in the brief.
 - **No changed-files test selection on the gate:** no `--changed`, `vitest related` or `--only-changed`. Vitest's
   import graph cannot see the tests that read source as text, and nothing follows a change in a .NET project into the
   browser tests.
@@ -115,4 +118,5 @@ Pick the lowest tier that can fail for the reason the bug would. The tiers, and 
 ## Scope
 
 Tests under `tests/` and `*.test.ts` files, `.github/`, and the scripts that cut and measure the shards. Existing
-tests are not findings: the 2026-11-18 audit read them, and a test it kept needs no new justification.
+tests are not findings: [the audit of 2026-11-18](../../docs/process/testing.md#the-audit-of-2026-11-18) went through
+them, and a test it kept needs no new justification.

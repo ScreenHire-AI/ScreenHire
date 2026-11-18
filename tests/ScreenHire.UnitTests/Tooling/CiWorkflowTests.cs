@@ -79,6 +79,7 @@ public sealed class CiWorkflowTests
     [InlineData(CiWorkflow.CachesPath, "      - global.json\n", "      - global.json\n      - docs/**\n", "fills main's caches when docs/** changes, and no cache key is made from it")]
     [InlineData(CiWorkflow.CachesPath, "  workflow_dispatch:", "  workflow_dispatch:\n  pull_request:", "must not run on a pull request (pull_request)")]
     [InlineData(CiWorkflow.CachesPath, "uses: ./.github/actions/setup", "uses: actions/setup-dotnet@v6", "must set up through .github/actions/setup")]
+    [InlineData(CiWorkflow.CachesPath, "    branches: [main]", "    branches: [main, release]", "must run on a push to main and no other branch")]
     public void A_broken_rule_in_the_workflow_that_fills_the_caches_is_reported(string path, string needle, string replacement, string expected)
     {
         var files = CiWorkflow.RepositoryGitHubFiles();
