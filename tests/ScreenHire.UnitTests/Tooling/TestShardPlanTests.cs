@@ -38,7 +38,7 @@ public sealed class TestShardPlanTests : IDisposable
         TestSources.SerialCollections(files).Should().Contain(["MarketingScreenshotsRun", "DevelopmentDemoRun", "WorkerLifecycle", "OwnStackRun"]);
         TestSources.AppHostFixtures(files).Should().Contain(["E2EFixture", "MarketingDemoFixture", "DevelopmentDemoFixture", "TaxOnFixture", "ProductionApiFixture"]);
 
-        ShardCounts().Should().Equal(["ScreenHire.E2E=8", "ScreenHire.IntegrationTests=6"], "the shard counts come from ci.yml's matrices");
+        ShardCounts().Should().Equal(["ScreenHire.E2E=8", "ScreenHire.IntegrationTests=5"], "the shard counts come from ci.yml's matrices");
         var durations = RepositoryDurations();
         durations["seconds"]!.AsObject().Count.Should().BeGreaterThan(150);
         durations["alone"]!.AsObject().Select(entry => entry.Key).Should().Contain("ScreenHire.E2E.MarketingScreenshotsTests");

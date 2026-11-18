@@ -7,6 +7,8 @@
 //                                                                        a saved `--list-tests` output (the tests)
 //   node scripts/test-shard.mjs --record <folder> [--durations <file>]  rewrites tests/shard-durations.json from the
 //                                                                        CTRF reports (*.ctrf.json) under <folder>
+//   node scripts/test-shard.mjs --slowest <folder> [count]              prints the slowest tests in the CTRF reports
+//                                                                        under <folder>, 15 unless told otherwise
 //   node scripts/test-shard.mjs --check <namespace>=<shards>... [--durations <file>] [--classes <file>]
 //                                                                        prints what breaks the limits below, one per
 //                                                                        line, and exits 1 if anything does
@@ -144,6 +146,19 @@ export function recordOf(reports, known) {
   };
 }
 
+/**
+ * The slowest tests in CTRF reports, slowest first: each test's mean seconds over the reports that ran it. It is what
+ * to read when a shard runs long or --check names a class whose longest test is over the limit.
+ */
+export function slowestOf(reports, count) {
+  const seconds = new Map();
+  for (const test of reports.flat()) seconds.set(test.name, [...(seconds.get(test.name) ?? []), test.duration / 1000]);
+  return [...seconds]
+    .map(([name, values]) => ({ name, seconds: Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10 }))
+    .sort((a, b) => b.seconds - a.seconds || (a.name < b.name ? -1 : 1))
+    .slice(0, count);
+}
+
 /** Every CTRF report under `folder`, as `recordOf` takes them. */
 function reportsUnder(folder) {
   const reports = [];
@@ -155,7 +170,7 @@ function reportsUnder(folder) {
       } else if (entry.endsWith('.ctrf.json')) {
         // xUnit's CTRF suite path ends with the class's full name, then the method.
         reports.push(JSON.parse(readFileSync(full, 'utf8')).results.tests
-          .map((test) => ({ type: test.suite?.[test.suite.length - 2], stop: test.stop, duration: test.duration }))
+          .map((test) => ({ type: test.suite?.[test.suite.length - 2], name: test.name, stop: test.stop, duration: test.duration }))
           .filter((test) => test.type));
       }
     }
@@ -209,6 +224,7 @@ function usage() {
   console.error('usage: node scripts/test-shard.mjs <test project folder> <shard> <shards>');
   console.error('       node scripts/test-shard.mjs --list <file> [--durations <file>] <shard> <shards>');
   console.error('       node scripts/test-shard.mjs --record <folder> [--durations <file>]');
+  console.error('       node scripts/test-shard.mjs --slowest <folder> [count]');
   console.error('       node scripts/test-shard.mjs --check <namespace>=<shards>... [--durations <file>] [--classes <file>]');
   process.exit(2);
 }
@@ -217,7 +233,7 @@ function main(args) {
   const options = {};
   const positional = [];
   for (let i = 0; i < args.length; i++) {
-    if (['--list', '--durations', '--record', '--classes'].includes(args[i])) {
+    if (['--list', '--durations', '--record', '--classes', '--slowest'].includes(args[i])) {
       options[args[i].slice(2)] = args[++i];
     } else if (args[i] === '--check') {
       options.check = true;
@@ -234,6 +250,15 @@ function main(args) {
     // Written here and not through the shell's `>`, which would empty the file before its `alone` keys are read.
     writeFileSync(file, `${JSON.stringify(recorded, null, 2)}\n`);
     console.error(`${file}: ${Object.keys(recorded.seconds).length} classes from ${reports.length} reports.`);
+    return;
+  }
+
+  if (options.slowest) {
+    const count = positional.length > 0 ? Number(positional[0]) : 15;
+    if (!Number.isInteger(count) || count < 1) usage();
+    const reports = reportsUnder(options.slowest);
+    if (reports.length === 0) fail(`No CTRF report (*.ctrf.json) under ${options.slowest}.`);
+    for (const test of slowestOf(reports, count)) console.log(`${test.seconds.toFixed(1).padStart(7)} s  ${test.name}`);
     return;
   }
 

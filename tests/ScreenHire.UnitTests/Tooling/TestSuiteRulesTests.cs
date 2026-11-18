@@ -41,9 +41,9 @@ public sealed class TestSuiteRulesTests
     // The gate selects no tests by what changed.
     [InlineData(Ci, "run test --shard=", "run test --changed --shard=", "`--changed` selects tests by changed files")]
     [InlineData("apps/dashboard/package.json", "\"test\": \"vitest run", "\"test\": \"vitest related src/lib/query.ts", "`vitest related` selects tests by changed files")]
-    [InlineData(Ci, "--show-slowest-tests 15", "--only-changed", "`--only-changed` selects tests by changed files")]
+    [InlineData(Ci, "$TEST_PARALLEL_FLAGS", "$TEST_PARALLEL_FLAGS --only-changed", "`--only-changed` selects tests by changed files")]
     // And retries none.
-    [InlineData(Ci, "--show-slowest-tests 15", "--retry-failed-tests 2", "`--retry-failed-tests` retries tests")]
+    [InlineData(Ci, "$TEST_PARALLEL_FLAGS", "$TEST_PARALLEL_FLAGS --retry-failed-tests 2", "`--retry-failed-tests` retries tests")]
     [InlineData("Directory.Packages.props", "<PackageVersion Include=\"xunit.v3\"", "<PackageVersion Include=\"Microsoft.Testing.Extensions.Retry\" Version=\"1.0.0\" />\n    <PackageVersion Include=\"xunit.v3\"", "`Microsoft.Testing.Extensions.Retry` retries tests")]
     [InlineData("apps/dashboard/vitest.config.ts", "test: {", "test: {\n    retry: 2,", "`retry:` sets Vitest's retry")]
     // No test is skipped, or left to run only when named.

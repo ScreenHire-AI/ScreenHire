@@ -210,6 +210,21 @@ public sealed class TestShardTests : IDisposable
         File.ReadAllText(DurationsFile).Should().Be(before);
     }
 
+    [Fact]
+    public void The_slowest_tests_of_the_reports_are_listed_by_their_mean_seconds()
+    {
+        // The first test of JobsTests ran 10 s in one run and 30 s in the next: 20 s, behind the 25 s test and ahead of the
+        // 4 s one, which the count of 2 leaves out.
+        WriteReport("run1/a.ctrf.json", ("Sample.Tests.JobsTests", 0, 10), ("Sample.Tests.TeamTests", 0, 25));
+        WriteReport("run2/a.ctrf.json", ("Sample.Tests.JobsTests", 0, 30), ("Sample.Tests.ShellTests", 0, 4));
+
+        var (exitCode, output, error) = Start(["--slowest", Path.Combine(folder, "reports"), "2"]);
+
+        exitCode.Should().Be(0, error);
+        output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Should()
+            .Equal("25.0 s  Sample.Tests.TeamTests.Test_1", "20.0 s  Sample.Tests.JobsTests.Test_0");
+    }
+
     private string Split(int shard, int shards, string? durations = null)
     {
         string[] weights = durations is null ? [] : ["--durations", durations];

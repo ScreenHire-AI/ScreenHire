@@ -29,8 +29,8 @@ public sealed class CiWorkflowTests
         jobs.Should().AllSatisfy(job => job.RunsOn.Should().NotBeEmpty());
         // The count of what a pull request starts reads each job: one for checks, infra and lighthouse, a leg per shard.
         jobs.Where(job => job.Legs != 1).Select(job => (job.Id, job.Legs)).Should().Equal(
-            [("vitest", 2), ("integration", 6), ("e2e", 8)], "each matrix counts once per shard");
-        CiWorkflow.PullRequestJobs(files[CiWorkflow.CiPath]).Should().Be(19, "checks, 2 Vitest, 6 integration, 8 end-to-end, infra and lighthouse");
+            [("vitest", 2), ("integration", 5), ("e2e", 8)], "each matrix counts once per shard");
+        CiWorkflow.PullRequestJobs(files[CiWorkflow.CiPath]).Should().Be(18, "checks, 2 Vitest, 5 integration, 8 end-to-end, infra and lighthouse");
         CiWorkflow.AppHostImages(CiWorkflow.RepositoryAppHost()).Should().HaveCountGreaterThanOrEqualTo(5,
             "AppHost.cs names Postgres, Azurite, Mailpit, Dev SSO and Caddy");
         CiWorkflow.PulledImages(files[CiWorkflow.CiPath]).Should().Contain("caddy:2.10.2-alpine");
@@ -52,7 +52,7 @@ public sealed class CiWorkflowTests
     [InlineData("      pull-requests: read\n", "", "tested-tree job needs pull-requests: read")]
     [InlineData("shard: [1, 2]\n        shards: [2]", "shard: [1]\n        shards: [2]", "job 'vitest' runs shards [1] of [2]")]
     [InlineData("shard: [1, 2]\n        shards: [2]", "shard: [1, 2]", "job 'vitest' runs shards [1, 2] of []")]
-    [InlineData("shard: [1, 2, 3, 4, 5, 6, 7, 8]\n        shards: [8]", "shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n        shards: [10]", "a pull request starts 21 jobs at once, over the account's 20")]
+    [InlineData("shard: [1, 2, 3, 4, 5, 6, 7, 8]\n        shards: [8]", "shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]\n        shards: [11]", "a pull request starts 21 jobs at once, over the account's 20")]
     [InlineData("shard: [1, 2]\n        shards: [2]", "include: [{ shard: 1 }, { shard: 2 }]", "job 'vitest' has a matrix this check cannot count")]
     [InlineData("if: ${{ always() }}\n    runs-on", "runs-on", "if: always()")]
     [InlineData("name: Gate\n", "name: Required\n", "not 'Gate'")]
