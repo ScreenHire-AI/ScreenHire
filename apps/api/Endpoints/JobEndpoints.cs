@@ -41,6 +41,7 @@ internal static class JobEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/publish-check", GetJobPublishCheck).WithName("GetJobPublishCheck").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/{jobId:guid}/history", GetJobHistory).WithName("GetJobHistory").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/{jobId:guid}", UpdateJob).WithName("UpdateJob")
             .RequireAntiforgeryToken()
@@ -108,6 +109,15 @@ internal static class JobEndpoints
     {
         var detail = await LoadDetailAsync(db, boards, jobId, cancellationToken);
         return detail is null ? TypedResults.NotFound() : TypedResults.Ok(detail);
+    }
+
+    // What would embarrass the team or be refused if the job were published now. It warns and never blocks: the publish
+    // route does not read it (docs/architecture/job-distribution.md, "Check before publishing").
+    private static async Task<Results<Ok<JobPublishCheck>, NotFound>> GetJobPublishCheck(
+        Guid jobId, ScreenHireDbContext db, BoardRegistry boards, CancellationToken cancellationToken)
+    {
+        var check = await JobPublishCheckReads.ReadAsync(db, boards, jobId, cancellationToken);
+        return check is null ? TypedResults.NotFound() : TypedResults.Ok(check);
     }
 
     // A draft: no event until it is published. With a template version, the job copies that version's workflow, and

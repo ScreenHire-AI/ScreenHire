@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.RegularExpressions;
 using ScreenHire.Domain.Jobs;
 
@@ -74,9 +75,9 @@ public abstract class PullBoardAdapter(TimeProvider time) : IJobBoardAdapter
         refreshInterval is { } interval ? time.GetUtcNow() + interval + CacheLifetime : null;
 
     /// <summary>Capabilities of a feed board that refreshes every <paramref name="refreshInterval"/>, if it says.</summary>
-    protected static BoardCapabilities FeedCapabilities(BoardMode mode, TimeSpan? refreshInterval) => new(
+    protected static BoardCapabilities FeedCapabilities(BoardMode mode, TimeSpan? refreshInterval, BoardRequirements? requirements = null) => new(
         mode, CanClose: true, CanUnpublishPerBoard: true, ConfirmsLive: false, ConfirmsRemoval: false,
-        PublishEta: refreshInterval, RemovalEta: refreshInterval);
+        PublishEta: refreshInterval, RemovalEta: refreshInterval, Requirements: requirements);
 }
 
 /// <summary>
@@ -102,6 +103,48 @@ internal static partial class Checks
 
     public static bool HasCity(JobSnapshot snapshot) => snapshot.Locations.Any(l => !string.IsNullOrWhiteSpace(l.City));
 
+    /// <summary>A text with its tags removed, its entities decoded and its white space collapsed, for comparing what people read.</summary>
+    public static string PlainText(string html) => Spaces().Replace(WebUtility.HtmlDecode(Tags().Replace(html, " ")), " ").Trim();
+
+    /// <summary>What <paramref name="requirements"/> say is wrong with <paramref name="snapshot"/>, in the words a board's validation uses.</summary>
+    public static List<string> Validate(string board, BoardRequirements requirements, JobSnapshot snapshot) =>
+        [.. Problems(requirements, snapshot).Select(problem => problem switch
+        {
+            RequirementProblem.ShortDescription => $"{board} needs a description of at least {requirements.MinDescriptionLength} characters.",
+            RequirementProblem.NoCity => $"{board} needs a city for on-site and hybrid jobs.",
+            _ => $"{board} needs a salary.",
+        })];
+
+    /// <summary>Which of <paramref name="requirements"/> the job does not meet.</summary>
+    public static IEnumerable<RequirementProblem> Problems(BoardRequirements requirements, JobSnapshot snapshot)
+    {
+        if (requirements.MinDescriptionLength > 0 && TextLength(snapshot.Description) < requirements.MinDescriptionLength)
+        {
+            yield return RequirementProblem.ShortDescription;
+        }
+
+        if (requirements.CityForOnsite && snapshot.WorkplaceType != WorkplaceType.Remote && !HasCity(snapshot))
+        {
+            yield return RequirementProblem.NoCity;
+        }
+
+        if (requirements.Salary && snapshot.Salary is null)
+        {
+            yield return RequirementProblem.NoSalary;
+        }
+    }
+
     [GeneratedRegex("<[^>]*>")]
     private static partial Regex Tags();
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex Spaces();
+}
+
+/// <summary>One thing a board's <see cref="BoardRequirements"/> says a job is missing.</summary>
+public enum RequirementProblem
+{
+    ShortDescription,
+    NoCity,
+    NoSalary,
 }

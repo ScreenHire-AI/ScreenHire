@@ -114,6 +114,7 @@ import type {
   JobBoardJobList,
   JobDetail,
   JobPostingStatus,
+  JobPublishCheck,
   JobSummary,
   JobTemplateDiff,
   JobVersionDetail,
@@ -3320,6 +3321,56 @@ return apiFetch<updateJobResponse>(getUpdateJobUrl(jobId),
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateJobRequest)
+  }
+);}
+
+
+
+export type getJobPublishCheckResponse200 = {
+  data: JobPublishCheck
+  status: 200
+}
+
+export type getJobPublishCheckResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobPublishCheckResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobPublishCheckResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getJobPublishCheckResponseSuccess = (getJobPublishCheckResponse200) & {
+  headers: Headers;
+};
+export type getJobPublishCheckResponseError = (getJobPublishCheckResponse401 | getJobPublishCheckResponse404 | getJobPublishCheckResponse429) & {
+  headers: Headers;
+};
+
+export type getJobPublishCheckResponse = (getJobPublishCheckResponseSuccess | getJobPublishCheckResponseError)
+
+export const getGetJobPublishCheckUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/publish-check`
+}
+
+export const getJobPublishCheck = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getJobPublishCheckResponse> => {
+
+  return apiFetch<getJobPublishCheckResponse>(getGetJobPublishCheckUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 

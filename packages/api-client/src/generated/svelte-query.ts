@@ -130,6 +130,7 @@ import type {
   JobBoardJobList,
   JobDetail,
   JobPostingStatus,
+  JobPublishCheck,
   JobSummary,
   JobTemplateDiff,
   JobVersionDetail,
@@ -6001,6 +6002,104 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getUpdateJobMutationOptions(options?.()) }), queryClient);
     }
+
+export type getJobPublishCheckResponse200 = {
+  data: JobPublishCheck
+  status: 200
+}
+
+export type getJobPublishCheckResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobPublishCheckResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobPublishCheckResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getJobPublishCheckResponseSuccess = (getJobPublishCheckResponse200) & {
+  headers: Headers;
+};
+export type getJobPublishCheckResponseError = (getJobPublishCheckResponse401 | getJobPublishCheckResponse404 | getJobPublishCheckResponse429) & {
+  headers: Headers;
+};
+
+export const getGetJobPublishCheckUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/publish-check`
+}
+
+export const getJobPublishCheck = async (jobId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getJobPublishCheckResponseSuccess> => {
+
+  return apiQueryFetch<getJobPublishCheckResponseSuccess>(getGetJobPublishCheckUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetJobPublishCheckQueryKey = (jobId: string,) => {
+    return [
+    'v1','jobs',jobId,'publish-check'
+    ] as const;
+    }
+
+
+export const getGetJobPublishCheckQueryOptions = <TData = Awaited<ReturnType<typeof getJobPublishCheck>>, TError = ErrorType<void>>(jobId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJobPublishCheck>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetJobPublishCheckQueryKey(jobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobPublishCheck>>> = ({ signal }) => getJobPublishCheck(jobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: jobId !== null && jobId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getJobPublishCheck>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetJobPublishCheckQueryResult = NonNullable<Awaited<ReturnType<typeof getJobPublishCheck>>>
+export type GetJobPublishCheckQueryError = ErrorType<void>
+
+
+
+export function createGetJobPublishCheck<TData = Awaited<ReturnType<typeof getJobPublishCheck>>, TError = ErrorType<void>>(
+ jobId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJobPublishCheck>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetJobPublishCheckQueryOptions(jobId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type getJobHistoryResponse200 = {
   data: HistoryPage

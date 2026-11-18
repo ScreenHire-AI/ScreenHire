@@ -58,6 +58,15 @@ internal sealed class HiringTools(
         return new([.. jobs.Select(j => j.ToMcp())]);
     }
 
+    [McpServerTool(Name = "check_job", Title = "Check a job before it goes live", ReadOnly = true, OpenWorld = false, UseStructuredContent = true)]
+    [Description("List what would embarrass the team or be refused if a job were published now: template fill-in text still in the "
+        + "description, an on-site or hybrid job with no city, no salary, or a description shorter than a job board accepts. "
+        + "Each item names the field that fixes it. It warns and never blocks, and an empty list means nothing to check.")]
+    public async Task<JobPublishCheck> CheckJob(
+        [Description("The job's id, from find_jobs.")] Guid jobId,
+        CancellationToken cancellationToken = default) =>
+        await JobPublishCheckReads.ReadAsync(db, boards, jobId, cancellationToken) ?? throw new McpException("No job with that id in this organization.");
+
     [McpServerTool(Name = "find_candidates", Title = "Find candidates", ReadOnly = true, OpenWorld = false, UseStructuredContent = true)]
     [Description("Find candidates' applications, newest first, by words in the candidate's name or email, optionally on one job. "
         + "Each match is one application with its stage and tags; pass its applicationId to get_application. "

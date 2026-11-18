@@ -123,23 +123,13 @@ public sealed class TalentFeedAdapter(TimeProvider time) : FeedAdapter(time)
 
     public override string Name => "Talent.com";
 
-    public override BoardCapabilities Capabilities { get; } = FeedCapabilities(BoardMode.Pull, TimeSpan.FromHours(4));
+    public override BoardCapabilities Capabilities { get; } = FeedCapabilities(
+        BoardMode.Pull, TimeSpan.FromHours(4), new BoardRequirements(MinDescriptionLength: 50, CityForOnsite: true));
 
     public override IReadOnlyList<string> Validate(PostingContent content)
     {
         ArgumentNullException.ThrowIfNull(content);
-        var issues = new List<string>();
-        if (Checks.TextLength(content.Snapshot.Description) < 50)
-        {
-            issues.Add("Talent.com needs a description of at least 50 characters.");
-        }
-
-        if (content.Snapshot.WorkplaceType != WorkplaceType.Remote && !Checks.HasCity(content.Snapshot))
-        {
-            issues.Add("Talent.com needs a city for on-site and hybrid jobs.");
-        }
-
-        return issues;
+        return Checks.Validate(Name, Capabilities.Needs, content.Snapshot);
     }
 
     public override XElement Map(PostingContent content)
@@ -197,14 +187,13 @@ public sealed class AdzunaFeedAdapter(TimeProvider time) : FeedAdapter(time)
 
     public override string Name => "Adzuna";
 
-    public override BoardCapabilities Capabilities { get; } = FeedCapabilities(BoardMode.Pull, TimeSpan.FromDays(1));
+    public override BoardCapabilities Capabilities { get; } = FeedCapabilities(
+        BoardMode.Pull, TimeSpan.FromDays(1), new BoardRequirements(MinDescriptionLength: 100));
 
     public override IReadOnlyList<string> Validate(PostingContent content)
     {
         ArgumentNullException.ThrowIfNull(content);
-        return Checks.TextLength(content.Snapshot.Description) < 100
-            ? ["Adzuna needs a description of at least 100 characters."]
-            : [];
+        return Checks.Validate(Name, Capabilities.Needs, content.Snapshot);
     }
 
     public override XElement Map(PostingContent content)

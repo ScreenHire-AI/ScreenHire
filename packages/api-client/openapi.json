@@ -2769,6 +2769,54 @@
         ]
       }
     },
+    "/v1/jobs/{jobId}/publish-check": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "GetJobPublishCheck",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPublishCheck"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/jobs/{jobId}/history": {
       "get": {
         "tags": [
@@ -21270,6 +21318,21 @@
         },
         "description": "One job on one board: where it stands and what is still uncertain."
       },
+      "JobPublishCheck": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishCheckItem"
+            }
+          }
+        },
+        "description": "What to check before a job goes live (`GET /v1/jobs/{jobId}/publish-check`); it warns and never blocks."
+      },
       "JobSalary": {
         "required": [
           "min",
@@ -24564,6 +24627,50 @@
           }
         },
         "description": "Limits on candidate uploads. `origin` is where upload links point, for the page's content security policy."
+      },
+      "PublishCheckField": {
+        "enum": [
+          "Description",
+          "City",
+          "Salary"
+        ],
+        "description": "The field of Edit details that fixes a problem."
+      },
+      "PublishCheckItem": {
+        "required": [
+          "kind",
+          "field",
+          "text",
+          "boards"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/PublishCheckKind"
+          },
+          "field": {
+            "$ref": "#/components/schemas/PublishCheckField"
+          },
+          "text": {
+            "type": "string"
+          },
+          "boards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "One thing to check before a job goes live: a sentence, the field that fixes it and the boards it matters to."
+      },
+      "PublishCheckKind": {
+        "enum": [
+          "TemplatePrompt",
+          "NoCity",
+          "NoSalary",
+          "ShortDescription"
+        ],
+        "description": "What a publish check found, so a person can tell one problem from another."
       },
       "PublishJobRequest": {
         "type": "object",
