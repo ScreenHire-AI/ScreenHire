@@ -92,11 +92,12 @@ internal static class ViewEndpoints
             .Select(m => m.ViewId)
             .ToListAsync(cancellationToken);
         var addedSet = added.ToHashSet();
+        var teammates = seen.Where(v => v.OwnerUserId != userId).Select(v => v.Id).ToHashSet();
         var names = await OwnerNamesAsync(db, seen, cancellationToken);
         return new ViewList(
             [.. seen.Select(v => SavedViewSummary.From(v, userId, ViewPolicy.MayChange(v, userId, permissions), addedSet.Contains(v.Id), names.GetValueOrDefault(v.OwnerUserId, FormerTeammate)))],
             member?.Views.HiddenBuiltIns ?? [],
-            [.. added.Where(id => seen.Any(v => v.Id == id && v.OwnerUserId != userId))],
+            [.. added.Where(teammates.Contains)],
             member?.Views.TeamViewsOpenedAt ?? member?.CreatedAt ?? DateTimeOffset.UnixEpoch);
     }
 
@@ -205,9 +206,9 @@ internal static class ViewEndpoints
         {
             if (madePrivate)
             {
-                // A private view leaves every sidebar. Sharing it again offers it afresh, in nobody's sidebar. Not a tracked kind,
-                // so a bulk delete is fine.
-                await db.SavedViewMembers.Where(m => m.ViewId == view.Id).ExecuteDeleteAsync(cancellationToken);
+                // A private view leaves every sidebar. Sharing it again offers it afresh, in nobody's sidebar. The rows go through
+                // the change tracker, so they are removed in the same save as the view: a save refused for its name keeps both.
+                db.SavedViewMembers.RemoveRange(await db.SavedViewMembers.Where(m => m.ViewId == view.Id).ToListAsync(cancellationToken));
             }
 
             await outbox.PublishAsync(new ViewsChanged(view.OrganizationId, view.Id, now, tenant.UserId));
@@ -348,6 +349,11 @@ internal static class ViewEndpoints
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
             // Two adds at the same moment: the other one won, and the view is in the sidebar either way.
+        }
+        catch (DbUpdateException exception) when (exception.IsForeignKeyViolation())
+        {
+            // The view was purged between the lookup and the save.
+            return TypedResults.NotFound();
         }
 
         return TypedResults.NoContent();

@@ -36,7 +36,7 @@ describe('the sheet of team views', () => {
     const sheet = await screen.findByRole('dialog', { name: 'Team views' });
     expect(within(sheet).getByRole('heading', { name: 'Applied this week' })).toBeInTheDocument();
     expect(within(sheet).getByText('Shared by Jordan Ellis')).toBeInTheDocument();
-    expect(within(sheet).getByText('stage Applied')).toBeInTheDocument();
+    expect(within(sheet).getByText('Stage Applied')).toBeInTheDocument();
     // The fixtures have two candidates in Applied.
     expect(await within(sheet).findByText('Shows 2 candidates now')).toBeInTheDocument();
     await expectNoAxeViolations();
@@ -49,19 +49,26 @@ describe('the sheet of team views', () => {
     expect(within(sheet).getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual(['Team queue']);
   });
 
-  it('marks a view New when it was shared after the person last opened the sheet, and only then', async () => {
+  it('marks a view New when it was shared after the person last opened the sheet and is not in their sidebar, and only then', async () => {
     show([
       shared({ id: 'a', name: 'Shared since', sharedAt: '2026-10-12T00:00:00Z' }),
       shared({ id: 'b', name: 'Shared before', sharedAt: '2026-10-05T00:00:00Z' }),
+      shared({ id: 'c', name: 'Already added', sharedAt: '2026-10-11T00:00:00Z', inSidebar: true }),
     ]);
 
     const sheet = await screen.findByRole('dialog', { name: 'Team views' });
     const since = within(sheet).getByRole('heading', { name: 'Shared since' }).closest('li')!;
     const before = within(sheet).getByRole('heading', { name: 'Shared before' }).closest('li')!;
+    const added = within(sheet).getByRole('heading', { name: 'Already added' }).closest('li')!;
     expect(within(since).getByText('New')).toBeInTheDocument();
     expect(within(before).queryByText('New')).toBeNull();
+    expect(within(added).queryByText('New')).toBeNull();
     // The newest share comes first.
-    expect(within(sheet).getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual(['Shared since', 'Shared before']);
+    expect(within(sheet).getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
+      'Shared since',
+      'Already added',
+      'Shared before',
+    ]);
   });
 
   it('notes the visit once it opens', async () => {

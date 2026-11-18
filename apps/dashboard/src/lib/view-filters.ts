@@ -153,12 +153,15 @@ export function describeFilters(
   if (filters.baseView) parts.push(findSavedView(filters.baseView)?.label ?? 'A built-in view');
   const jobs = filters.jobIds.map((id) => context.jobTitles[id]).filter((title): title is string => Boolean(title));
   if (jobs.length > 0) parts.push(jobs.length > 2 ? `${jobs.length} jobs` : jobs.join(' or '));
+  // The line stands alone in the sheet, so a phrase of ours that opens it starts with a capital. Names people typed (a job
+  // title, a tag) stay as they are.
+  const phrase = (text: string) => (parts.length === 0 ? text.charAt(0).toUpperCase() + text.slice(1) : text);
   if (filters.stages.length > 0) {
     const names = filters.stages.map((stage) => context.stageNames?.[stage] ?? stage);
-    parts.push(`stage ${names.join(' or ')}`);
+    parts.push(`${phrase('stage')} ${names.join(' or ')}`);
   }
   const authenticity = verificationOf(filters).authenticity;
-  if (authenticity) parts.push(authenticity === 'Pending' ? 'checks not run yet' : authenticityLevels[authenticity].label);
-  if (filters.tag) parts.push(`tagged ${filters.tag}`);
+  if (authenticity) parts.push(authenticity === 'Pending' ? phrase('checks not run yet') : authenticityLevels[authenticity].label);
+  if (filters.tag) parts.push(`${phrase('tagged')} ${filters.tag}`);
   return parts.length > 0 ? parts.join(', ') : 'Every candidate';
 }

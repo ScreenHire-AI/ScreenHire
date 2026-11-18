@@ -391,7 +391,8 @@
             {@const Icon = view.icon}
             <Icon aria-hidden="true" />
           {/if}
-          <span {@attach truncation(view.key)} class="min-w-0 flex-1 truncate group-data-[collapsible=icon]:sr-only">{view.label}{#if saved?.shared}<span class="sr-only">, shared with the team</span>{/if}</span>
+          <!-- relative: the sr-only note is absolute and would escape the truncated label, widening the sidebar's scroll. -->
+          <span {@attach truncation(view.key)} class="relative min-w-0 flex-1 truncate group-data-[collapsible=icon]:sr-only">{view.label}{#if saved?.shared}<span class="sr-only">, shared with the team</span>{/if}</span>
         </a>
       {/snippet}
     </Sidebar.MenuButton>

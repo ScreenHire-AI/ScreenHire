@@ -152,7 +152,8 @@ There is no toast or bell line when a teammate shares a view; the sheet's New ma
   muted line (`describeFilters`, which leaves out the sort and AI assistance), how many candidates it shows now, Preview and
   Add (or "In your sidebar" and Remove). Preview opens the view's page and adds nothing. The count is read in the browser
   from the applications list, read only while the sheet is open, with the same `viewMatcher` the pages filter by. Opening the
-  sheet saves the visit, and its New marks stay until it closes.
+  sheet saves the visit, and its New marks stay until it closes. A view already in the person's sidebar when the sheet
+  opens carries no New mark, so the views the migration kept in every sidebar do not all read New on the first visit.
 
 ## Tests
 

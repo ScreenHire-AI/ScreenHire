@@ -50,18 +50,24 @@
 
   // The date the person had when they opened the sheet: opening saves a new one, which must not clear the marks at once.
   let seenOnOpen = $state('');
+  // The views already in the sidebar when it opened: one added during the visit keeps its mark until the sheet closes.
+  let inSidebarOnOpen = $state(new Set<string>());
   let wasOpen = false;
   let failure = $state('');
   $effect(() => {
     if (open && !wasOpen) {
       seenOnOpen = seenAt;
+      inSidebarOnOpen = new Set(views.filter((view) => view.inSidebar).map((view) => view.id));
       failure = '';
       void actions.markTeamViewsOpened();
     }
     wasOpen = open;
   });
 
-  const isNew = (view: SavedViewSummary) => Boolean(view.sharedAt) && Date.parse(view.sharedAt!) > Date.parse(seenOnOpen);
+  // A view already in the sidebar is not news: the migration kept every view shared before it in every sidebar, and those
+  // would otherwise read New beside "In your sidebar" on the first visit.
+  const isNew = (view: SavedViewSummary) =>
+    !inSidebarOnOpen.has(view.id) && Boolean(view.sharedAt) && Date.parse(view.sharedAt!) > Date.parse(seenOnOpen);
 
   function countOf(view: SavedViewSummary): number | null {
     if (!rows) return null;
@@ -80,7 +86,7 @@
   <Sheet.Content side="right" class="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-xl">
     <Sheet.Header class="border-b border-border-subtle">
       <Sheet.Title>Team views</Sheet.Title>
-      <Sheet.Description>Views your teammates shared. Preview one to look at it, or add it to put it in your sidebar.</Sheet.Description>
+      <Sheet.Description>Views your teammates shared.</Sheet.Description>
     </Sheet.Header>
 
     <FailureText message={failure} class="px-4 pt-3" />
@@ -94,14 +100,16 @@
           {@const count = countOf(view)}
           <li class="flex flex-col gap-3 border-b border-border-subtle px-4 py-3 last:border-b-0">
             <div class="flex min-w-0 flex-col gap-1">
-              <div class="flex min-w-0 items-center gap-2">
-                <h3 class="min-w-0 truncate font-semibold">{view.name}</h3>
+              <div class="flex min-w-0 items-start gap-2">
+                <!-- The whole name wraps: a sheet row has room, and a truncated name could not be read here. -->
+                <h3 class="min-w-0 font-semibold break-words">{view.name}</h3>
                 {#if isNew(view)}<Badge variant="muted">New</Badge>{/if}
               </div>
               <p class="text-caption text-muted-foreground">Shared by {view.ownerName}</p>
               <p class="text-caption text-muted-foreground">{describeFilters(view.filters, { jobTitles, stageNames })}</p>
               <p class="text-caption text-muted-foreground">
-                {#if count === null}<span class="sr-only">Counting candidates…</span>{:else}{countText(count)}{/if}
+                <!-- While the count loads the line keeps its height, so the row does not jump when it arrives. -->
+                {#if count === null}<span class="sr-only">Counting candidates…</span><span aria-hidden="true">&nbsp;</span>{:else}{countText(count)}{/if}
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -110,11 +118,12 @@
               </Button>
               {#if view.inSidebar}
                 <span class="inline-flex items-center gap-1.5 text-caption text-muted-foreground"><CheckIcon aria-hidden="true" class="size-3.5" />In your sidebar</span>
-                <Button variant="ghost" size="sm" onclick={() => void change(actions.removeFromSidebar(view))}>
+                <Button variant="outline" size="sm" onclick={() => void change(actions.removeFromSidebar(view))}>
                   Remove <span class="sr-only">{view.name} from your sidebar</span>
                 </Button>
               {:else}
-                <Button size="sm" onclick={() => void change(actions.addToSidebar(view))}>
+                <!-- Outline like Preview: every row has an Add, and a sheet of rows has no one primary action (A1). -->
+                <Button variant="outline" size="sm" onclick={() => void change(actions.addToSidebar(view))}>
                   <PlusIcon aria-hidden="true" />Add <span class="sr-only">{view.name} to your sidebar</span>
                 </Button>
               {/if}

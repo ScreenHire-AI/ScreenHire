@@ -144,7 +144,11 @@ describe("a view's filters in one line", () => {
 
   it('says so when a view filters nothing, and words checks that have not run', () => {
     expect(describeFilters(base)).toBe('Every candidate');
-    expect(describeFilters({ ...base, authenticity: 'Pending' })).toBe('checks not run yet');
+    expect(describeFilters({ ...base, authenticity: 'Pending' })).toBe('Checks not run yet');
+    expect(describeFilters({ ...base, stages: ['Screening'] })).toBe('Stage Screening');
+    expect(describeFilters({ ...base, tag: 'referral' })).toBe('Tagged referral');
+    // A name someone typed keeps its own case, even first in the line.
+    expect(describeFilters({ ...base, jobIds: ['a'] }, { jobTitles: { a: 'iOS Engineer' } })).toBe('iOS Engineer');
   });
 
   it('counts many jobs instead of listing them, skips a job it cannot name, and never shows AI assistance', () => {
