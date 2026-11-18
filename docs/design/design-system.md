@@ -682,15 +682,25 @@ Sign-in, onboarding and the root error page sit outside the app shell, with no s
   - one muted line, "New here? Signing in creates your account.";
   - any error from a provider that sent the person back, or from a passkey that did not work ("That passkey did not
     work. Use another way to sign in."), above the ways to try again;
-  - "Sign in with a passkey", a full-width outline button with `key-round`, first in the list and only in a browser that
+  - the Work email field, then the one primary full-width button, "Continue", which sends the sign-in link. The field has
+    `autocomplete="email webauthn"`, so a browser that can offer one shows a saved passkey inside it;
+  - one "or" divider, only when the email field and at least one other way are offered, so the passkey and the providers
+    read as one list of other ways in;
+  - "Sign in with a passkey", a full-width outline button with `key-round`, first in that list and only in a browser that
     has WebAuthn. Closing the browser's own prompt says nothing;
   - each configured provider as a full-width outline button, "Continue with Google". Google and Microsoft carry their
     own marks (section 14). Any other provider, such as Dev SSO or an organization's own OIDC, has `log-in`;
-  - an "or" divider, only when the passkey button or providers and email links are offered;
-  - the Work email field and the one primary button, "Email me a sign-in link".
+  - at the foot of the card, in a muted caption, the agreement line: "By continuing, you agree to ScreenHire's Terms of
+    Service, Privacy Policy and Data Processing Agreement." Each document is a link to its configured address
+    (`ScreenHire:Legal`), opening in a new tab, and the line names only the documents that have one. With none
+    configured the line is left out.
 
-  "Check your email", "Finish signing in" and "This link doesn't work" are the same card with their own title. There is
-  no footer line, because the app has no Terms or Privacy addresses yet. Add the line with the addresses when they exist.
+  When email links are not configured the field, Continue and the divider are left out and the buttons stand alone. With
+  no provider and no passkey support there is no divider.
+
+  "Check your email", "Finish signing in" and "This link doesn't work" are the same card with their own title and no
+  agreement line, which belongs to the page where the person signs in. Trello's "Remember me" (the session lasts 14 days
+  and renews while in use), Apple and Slack buttons and "Can't log in?" (the emailed link is the recovery) are left out.
 - **Onboarding, invitations, connecting an assistant and the root error page:** the brand bar takes the top bar's place, then
   the form template.
 

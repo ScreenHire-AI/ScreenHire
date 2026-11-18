@@ -29,14 +29,31 @@ export function passkeysSupported(): boolean {
   );
 }
 
-/** Signs in: asks the API for options, lets the person pick a passkey in the browser's prompt, and sends the answer. */
-export async function runPasskeySignIn(): Promise<PasskeyOutcome> {
+/**
+ * Whether the browser can offer a saved passkey inside an email field (WebAuthn conditional mediation), for a field whose
+ * `autocomplete` ends in `webauthn`. Safari, Chrome and Edge can; where it is missing the passkey button is the way in.
+ */
+export async function conditionalPasskeysSupported(): Promise<boolean> {
+  try {
+    return passkeysSupported() && typeof PublicKeyCredential.isConditionalMediationAvailable === 'function' && (await PublicKeyCredential.isConditionalMediationAvailable());
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Signs in: asks the API for options, lets the person pick a passkey in the browser's prompt, and sends the answer.
+ * With `conditional` the browser waits quietly until the person picks a saved passkey from the email field's own list,
+ * and the signal ends that wait (when they press the button instead, or leave the page).
+ */
+export async function runPasskeySignIn(conditional?: { signal: AbortSignal }): Promise<PasskeyOutcome> {
   try {
     const options = await makePasskeySignInOptions();
     if (options.status !== 200) return { kind: 'failed' };
 
     const credential = await navigator.credentials.get({
       publicKey: PublicKeyCredential.parseRequestOptionsFromJSON(JSON.parse(options.data.optionsJson)),
+      ...(conditional ? { mediation: 'conditional' as const, signal: conditional.signal } : {}),
     });
     if (!isPublicKeyCredential(credential)) return { kind: 'failed' };
 

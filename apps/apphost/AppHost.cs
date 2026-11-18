@@ -53,6 +53,10 @@
 //   SendingDomainRecheck:*      the daily re-check of each organization's sending domain (ScreenHire.Application
 //                               SendingDomainRecheckOptions), forwarded to the API and the worker: ConfirmDelay (1 hour), how long
 //                               after a verified domain fails a daily look the second look comes.
+//   Legal:*                     the addresses of ScreenHire's own Terms of Service (TermsUrl), Privacy Policy (PrivacyUrl) and
+//                               Data Processing Agreement (DpaUrl), forwarded to the API (its LegalOptions). The sign-in page's
+//                               agreement line links to each one that is set and names only those; none are set here, so
+//                               the line is left out (docs/architecture/sign-in-and-tenancy.md).
 //   CareersEmbedding:*          the sites allowed to embed the careers pages (the API's CareersEmbeddingOptions,
 //                               docs/architecture/careers-widget.md), forwarded to the API: AllowLoopback
 //                               (appsettings.Development.json and the test stacks turn it on, so a site on this machine,
@@ -314,6 +318,15 @@ if (string.Equals(settings["Email:SendGrid:Enabled"], "true", StringComparison.O
     var sendGridKey = builder.AddParameter("sendgrid-api-key", secret: true);
     api.WithEnvironment("ScreenHire__Email__SendGrid__ApiKey", sendGridKey);
     worker.WithEnvironment("ScreenHire__Email__SendGrid__ApiKey", sendGridKey);
+}
+
+// Our own legal documents' addresses: plain settings, read by the API for the sign-in page's agreement line.
+foreach (var (key, value) in settings.GetSection("Legal").AsEnumerable(makePathsRelative: true))
+{
+    if (value is not null)
+    {
+        api.WithEnvironment($"ScreenHire__Legal__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+    }
 }
 
 foreach (var (key, value) in settings.GetSection("CareersEmbedding").AsEnumerable(makePathsRelative: true))

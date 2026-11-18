@@ -4,12 +4,15 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { SignInLegal } from './signInLegal.ts';
 import type { SignInProvider } from './signInProvider.ts';
 
 /**
- * How a person can sign in here: the configured identity providers, and whether email links work.
+ * How a person can sign in here: the configured identity providers, whether email links work, and the legal documents the
+ * sign-in page's agreement line links to.
  */
 export interface SignInMethods {
   providers: SignInProvider[];
   magicLinkEnabled: boolean;
+  legal: SignInLegal;
 }

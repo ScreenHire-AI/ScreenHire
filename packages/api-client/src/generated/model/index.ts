@@ -383,6 +383,7 @@ export * from './signalCategory.ts';
 export * from './signalConfidence.ts';
 export * from './signalEvidence.ts';
 export * from './signalWeight.ts';
+export * from './signInLegal.ts';
 export * from './signInMethods.ts';
 export * from './signInProvider.ts';
 export * from './simulatedAutomation.ts';

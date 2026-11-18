@@ -170,7 +170,9 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 - **Sign-in through an organization's own identity provider:** one company's Okta or Entra ID, required for its members,
   set up by its Owner. Sign-in today offers Google, Microsoft, emailed links and passkeys, plus any OpenID Connect
   provider the installation configures for everyone ([sign-in and tenancy](architecture/sign-in-and-tenancy.md)). A
-  per-organization provider is an enterprise feature, and no first customer needs it. GitHub sign-in stays out: few
+  per-organization provider is an enterprise feature, and no first customer needs it. The sign-in page asks for the email
+  first, so this is where it will enter: Continue can send a company's email domain to its own identity provider. Nothing
+  is built for it yet. GitHub sign-in stays out: few
   recruiters have an account, and it would be one more button for everyone else (owner's review of competitor sign-in
   pages, 2026-11-17).
 - **The recruiter dashboard inside a customer's own site:** only if a customer asks. Sign-in cookies are SameSite Lax
@@ -186,6 +188,9 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 
 - **Hosting:** defined and written down, not deployed. The [deploy runbook](operations/deploy.md) lists every owner step. CI runs on GitHub Actions (ADR-0020).
 - **Billing:** built behind a local fake: plans, a free trial, Stripe Checkout and the portal, and a 402 when a plan has no room for another open job ([billing](architecture/billing.md), ADR-0029). What is left is the owner's: a Stripe account, products and prices, the prices and limits themselves, tax and the terms of service ([MVP status](status.md#owner-actions)).
+- **Legal documents:** the Terms of Service, the Privacy Policy and a Data Processing Agreement with its sub-processor
+  list, before the first paying customer. They are the owner's to write (a legal call). The sign-in page links each one
+  from `ScreenHire:Legal:TermsUrl`, `PrivacyUrl` and `DpaUrl` and leaves a line out until its address is set.
 - **Compliance** ([legal](research/legal.md)): bias audits,
   Colorado and California automated-decision rules (due 1 January 2027), EU AI Act provider duties (due 2 December
   2027), the customer documentation pack.

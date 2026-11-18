@@ -60,12 +60,14 @@ internal static class AuthEndpoints
     }
 
     // Also hands out the antiforgery token the sign-in page's POSTs need.
-    private static Ok<SignInMethods> GetSignInMethods(HttpContext context, ExternalProviders providers, IServiceProviderIsService services)
+    private static Ok<SignInMethods> GetSignInMethods(
+        HttpContext context, ExternalProviders providers, IServiceProviderIsService services, IOptions<LegalOptions> legal)
     {
         Antiforgery.IssueRequestToken(context);
         return TypedResults.Ok(new SignInMethods(
             [.. providers.All.Select(p => new SignInProvider(p.Id, p.DisplayName))],
-            services.IsService(typeof(MagicLinks))));
+            services.IsService(typeof(MagicLinks)),
+            new SignInLegal(LegalOptions.Link(legal.Value.TermsUrl), LegalOptions.Link(legal.Value.PrivacyUrl), LegalOptions.Link(legal.Value.DpaUrl))));
     }
 
     // Signed in or not, the answer carries a fresh antiforgery token: the dashboard asks on every page load, and a page

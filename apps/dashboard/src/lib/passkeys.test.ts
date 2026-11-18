@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cancelledPrompt, fakeCredential, stubWebAuthn, unstubWebAuthn } from '../test-support/webauthn.js';
-import { deviceName, passkeysSupported, runPasskeyRegistration, runPasskeySignIn } from './passkeys.js';
+import { conditionalPasskeysSupported, deviceName, passkeysSupported, runPasskeyRegistration, runPasskeySignIn } from './passkeys.js';
 
 const options = (extra: object = {}) => Response.json({ optionsJson: JSON.stringify({ challenge: 'abc', ...extra }) });
 
@@ -40,6 +40,19 @@ describe('passkeysSupported', () => {
   });
 });
 
+describe('conditionalPasskeysSupported', () => {
+  it('is true only where the browser can offer a passkey inside a field', async () => {
+    await expect(conditionalPasskeysSupported()).resolves.toBe(false);
+
+    stubWebAuthn();
+    await expect(conditionalPasskeysSupported()).resolves.toBe(false);
+
+    unstubWebAuthn();
+    stubWebAuthn({ conditional: true });
+    await expect(conditionalPasskeysSupported()).resolves.toBe(true);
+  });
+});
+
 describe('runPasskeySignIn', () => {
   it('asks for options, lets the browser choose, and sends the answer as text', async () => {
     const credentials = stubWebAuthn();
@@ -53,6 +66,19 @@ describe('runPasskeySignIn', () => {
     expect(credentials.get).toHaveBeenCalledWith({ publicKey: { challenge: 'abc' } });
     const sent = posts['POST /v1/auth/passkeys/sign-in'] as { credentialJson: string };
     expect(JSON.parse(sent.credentialJson)).toEqual(fakeCredential().toJSON());
+  });
+
+  it('waits quietly for a pick in the email field when asked to, and ends as cancelled when its signal aborts', async () => {
+    const credentials = stubWebAuthn({ conditional: true });
+    stubApi({ 'POST /v1/auth/passkeys/sign-in/options': () => options() });
+    const waiting = new AbortController();
+
+    const outcome = runPasskeySignIn({ signal: waiting.signal });
+    await vi.waitFor(() => expect(credentials.get).toHaveBeenCalledOnce());
+    expect(credentials.get).toHaveBeenCalledWith({ publicKey: { challenge: 'abc' }, mediation: 'conditional', signal: waiting.signal });
+    waiting.abort();
+
+    await expect(outcome).resolves.toEqual({ kind: 'cancelled' });
   });
 
   it('is cancelled, not failed, when the person closes the browser prompt', async () => {
