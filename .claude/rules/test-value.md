@@ -68,13 +68,13 @@ Pick the lowest tier that can fail for the reason the bug would. The tiers, and 
 ### The bar for a CI job
 
 - **Cost is slots, not minutes.** The repository is public, so runner minutes are free. What is scarce is the 20 jobs
-  the account runs at once, which every open pull request shares. A pull request starts 19. Spend a slot by giving
+  the account runs at once, which every open pull request shares. A pull request starts 18. Spend a slot by giving
   one up.
 - **Name what a new job catches that nothing else can,** in the workflow's comment, with what it costs.
 - **Size the suites to finish together.** A pull request waits for its slowest job, so a slot belongs to the suite
   that is the pole, and a suite far under it gives shards up. A shard is not free: before its first test an
   integration shard spends about two minutes and an end-to-end shard about three (setup, the builds, its own AppHost),
-  which is why integration has 6 shards and not 8.
+  which is why integration has 5 shards and not 8: its slowest job still ends before the slowest end-to-end job.
 - **Cut shards by measured time.** `scripts/test-shard.mjs` weighs each class by what CI measured
   (`tests/shard-durations.json`). Refresh the file when one shard's test step runs about 25% past its suite's average
   in several runs (`node scripts/ci-timings.mjs --last 10` prints each shard's), or when `TestShardPlanTests` says the
