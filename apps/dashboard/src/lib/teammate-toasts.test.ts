@@ -195,6 +195,34 @@ describe('teammate toasts', () => {
       expect(new Set(shown.map((toast) => toast.id)).size).toBe(2);
     });
 
+    it('never goes back to an older count when the first application is read after the next one counted', async () => {
+      const source = sources();
+      let answer!: (detail: ApplicationDetail) => void;
+      source.application.mockImplementationOnce(() => new Promise<ApplicationDetail>((resolve) => (answer = resolve)));
+      const toasts = new TeammateToasts(source, (toast) => shown.push(toast));
+      await toasts.receive(applied(1));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      await toasts.receive(applied(2));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      answer({ id: applicationId(1), candidate: { fullName: 'Taylor Brook' }, jobTitle: 'Platform Engineer', stage: { id: 'applied', name: 'Applied' } } as unknown as ApplicationDetail);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(texts()).toEqual(['2 new applications to Platform Engineer']);
+    });
+
+    it('still counts an application that could not be read, without showing it', async () => {
+      const source = sources();
+      source.application.mockRejectedValueOnce(new Error('gone'));
+      const toasts = new TeammateToasts(source, (toast) => shown.push(toast));
+      await toasts.receive(applied(1));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      expect(texts()).toEqual([]);
+
+      await toasts.receive(applied(2));
+      await vi.advanceTimersByTimeAsync(groupWindow);
+      expect(texts()).toEqual(['2 new applications to Platform Engineer']);
+    });
+
     it("keeps a member's own additions apart: they name the member", async () => {
       const toasts = new TeammateToasts(sources(), (toast) => shown.push(toast));
       await toasts.receive(applied(1, jordan));

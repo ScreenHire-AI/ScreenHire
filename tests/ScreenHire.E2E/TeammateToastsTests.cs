@@ -148,15 +148,26 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(toasts.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" })).ToHaveAttributeAsync("href", new Regex($"/applications/{first}$"));
         await Expect(toasts).Not.ToContainTextAsync("verif", new() { IgnoreCase = true });
 
-        // A second one inside the minute takes the first's place, and links to the job's Not screened candidates.
+        // A second one inside the minute takes the first's place, and links to the job's Not screened candidates. The Owner
+        // is on the Candidates page by then (moved there in the app, so the live connection stays), where the link must
+        // still narrow the list to the job.
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Candidates", Exact = true }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Candidates");
         await ApplyAsync(slug, teamJobId, "Noa Reyes");
         var count = toasts.GetByRole(AriaRole.Link, new() { Name = "2 new applications" });
         await Expect(count).ToBeVisibleAsync(new() { Timeout = 30_000 });
         await Expect(toasts).ToContainTextAsync("2 new applications to Platform Engineer");
         await Expect(toasts).Not.ToContainTextAsync("Casey Morgan applied");
+        // Long after the quiet job's application would have raised a toast: still none.
+        await Expect(toasts).Not.ToContainTextAsync("Data Engineer");
         await Expect(count).ToHaveAttributeAsync("href", new Regex($"/candidates[?]view=not-screened&job={teamJobId}$"));
         await count.ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex("/candidates[?]view=not-screened"));
+        await Expect(Page).ToHaveURLAsync(new Regex($"/candidates[?]view=not-screened&job={teamJobId}$"));
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Job: Platform Engineer" })).ToBeVisibleAsync();
+        var table = Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" });
+        await Expect(table.GetByRole(AriaRole.Link, new() { Name = "Noa Reyes" })).ToBeVisibleAsync();
+        await Expect(table.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" })).ToBeVisibleAsync();
+        await Expect(table.GetByRole(AriaRole.Link, new() { Name = "Jamie Rowe" })).ToHaveCountAsync(0);
     }
 
     // The careers site's own submission: the public route its apply form posts to.
