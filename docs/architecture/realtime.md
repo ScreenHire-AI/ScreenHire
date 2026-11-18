@@ -172,8 +172,8 @@ and the cookie applies.
 ## Who made a change
 
 An event a person causes carries `ActorUserId`: the member who made the change, or null when no member did (an API key,
-an automation, the candidate, the demo's setup). `ApplicationMoved`, `ApplicationSubmitted` (a candidate added by hand; null when the candidate applied or a key added them),
-`ApplicationNoteAdded`, `ApplicationTagsChanged`, `ScorecardSubmitted`, `ApplicationEmailed`, the three task events and
+an automation, the candidate, the demo's setup). `ApplicationMoved`, `ApplicationSubmitted` (a candidate added by hand;
+null when the candidate applied or a key added them), `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ScorecardSubmitted`, `ApplicationEmailed`, the three task events and
 `HiringTemplateVersionPublished` have it, and `TeammateMentioned` has its `AuthorUserId`. The task events also carry
 `AssigneeUserId` (null for anyone on the hiring team), and `HiringTemplateVersionPublished` and `TemplateChanged` carry
 `PreviousEditorUserId`: the member who changed the template last, read from its change history before the publish
@@ -197,8 +197,9 @@ feeds every event to `TeammateToasts` (`apps/dashboard/src/lib/teammate-toasts.t
 The person's own move shows in the same tray, from the page that made it rather than from the event: `createMoves`
 (`#lib/moves.svelte.ts`) calls the shell's `toast` with "You moved Joel Mensah to Technical exercise" and the job as its second
 line, and a move that failed stays on the page beside what failed. The tray is a polite live region, so the toast is also what a
-screen reader hears. Every teammate toast needs an `ActorUserId` that is not the person's own. A change by an API key, an automation or the candidate
-never toasts: it is not a teammate's, and a key may be the person's own AI assistant, except a new application (below). Any event the table does not name
+screen reader hears. Every teammate toast needs an `ActorUserId` that is not the person's own. A change by an API key, an
+automation or the candidate never toasts: it is not a teammate's, and a key may be the person's own AI assistant. The one
+exception is a new application, which tells the job's hiring team ("New applications", below). Any event the table does not name
 never toasts, so a verification result (`VerificationAssessed`) cannot. Every edit of a hiring, email or scorecard
 template (create, change, archive, restore, delete or reset, and a hiring template's default team) raises
 `TemplateChanged` so open dashboards refresh the template lists and pickers. It toasts for an email template or a
@@ -249,7 +250,9 @@ These have no actor to group by, so they group by job (`Applied:<jobId>`), and f
 (`appliedWindow`). The first application to a job shows after the usual group window. Any more within a minute of that
 toast replace it, in the tray and with a fresh lifetime (`Notifications.toast` replaces a toast sent again under its id),
 as "3 new applications to Senior .NET Engineer", linking to `/candidates?view=not-screened&job=<jobId>`. A burst that
-arrives together reads no candidate. After the minute the next application starts a new toast.
+arrives together reads no candidate, and a count read late never replaces a higher one. After the minute the next
+application starts a new toast. The Candidates page starts its list again when a link names other jobs, so the link
+filters by the job even when the person is already on that page.
 
 ## Contract test
 
@@ -297,7 +300,7 @@ otherwise run.
 | `TeammateChangesRealtimeTests` (integration) | a person's move, note, tags, scorecard, task create, complete and reopen, and email carry their `actorUserId`, and the task events `assigneeUserId`; the same move by an API key carries none; publishing a template another member last changed carries both ids; each reaches its own organization only |
 | `NotificationSettingsTests` (integration) | the defaults, saving and reading back, each member and each organization keeping their own, a kind named twice, antiforgery, and an API key refused |
 | `teammate-changes.test.ts`, `teammate-toasts.test.ts`, `notifications.test.ts` (Vitest) | which changes toast and their words, grouping, new applications (the hiring team only, one count for a minute, replacing the toast in the tray), a mention's note left to its card, the shared limit of three, and the countdown and what holds it |
-| `TeammateToastsTests` (Playwright) | a recruiter's move shows as a toast in the owner's dashboard with its link, the owner's own move does not, turning Moves off in the sheet stops it, and on a phone the toast ends above the jobs list's action bar; a candidate applying toasts a member on the job's hiring team and not one who is off it, and a second application takes the first's place with a link to Not screened |
+| `TeammateToastsTests` (Playwright) | a recruiter's move shows as a toast in the owner's dashboard with its link, the owner's own move does not, turning Moves off in the sheet stops it, and on a phone the toast ends above the jobs list's action bar; a candidate applying toasts a member on the job's hiring team and not one who is off it, and a second application takes the first's place with a link to the job's Not screened candidates, which filters by the job even from the Candidates page |
 | `LiveUpdatesTests` (Playwright) | two browser contexts in one organization: publishing and closing a job in one updates the other without a reload, over the hub's WebSocket (no fallback transport) |
 
 `CheckLiveUpdates` exists so that a test, or an operator, can prove the worker-to-browser path without a feature that
