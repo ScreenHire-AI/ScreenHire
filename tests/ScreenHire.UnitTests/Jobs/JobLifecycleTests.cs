@@ -337,6 +337,14 @@ public sealed class JobLifecycleTests
         JobLocation.Describe(WorkplaceType.Onsite, [new("Leeds", null, null)], []).Should().Be("Leeds");
     }
 
+    [Fact]
+    public void One_place_reads_as_its_set_parts_with_the_country_named()
+    {
+        new JobLocation("London", "England", "GB").Label().Should().Be("London, England, United Kingdom");
+        new JobLocation(null, "Leinster", " ie ").Label().Should().Be("Leinster, Ireland");
+        new JobLocation(null, null, null).Label().Should().BeEmpty();
+    }
+
     private static HiringTemplateDefinition Definition(string firstStage) =>
         new(HiringWorkflow.Default with { Stages = [new("applied", "Applied", StageKind.Applied), new(firstStage, "On site", StageKind.Interview)] }, PostingDefaults.None);
 

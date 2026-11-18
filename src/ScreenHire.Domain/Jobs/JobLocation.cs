@@ -18,8 +18,14 @@ public sealed record JobLocation(string? City, string? Region, string? Country)
             return applicantLocationRequirements.Count == 0 ? "Remote" : $"Remote ({string.Join(", ", applicantLocationRequirements.Select(CountryNames.Name))})";
         }
 
-        return string.Join("; ", locations.Select(l => string.Join(", ", new[] { l.City, l.Region, CountryNames.Name(l.Country) }.Where(p => !string.IsNullOrWhiteSpace(p)))));
+        return string.Join("; ", locations.Select(l => l.Label()));
     }
+
+    /// <summary>
+    /// This place on one line, such as "London, England, United Kingdom": the parts that are set, with the country as its
+    /// English name.
+    /// </summary>
+    public string Label() => string.Join(", ", new[] { City, Region, CountryNames.Name(Country) }.Where(p => !string.IsNullOrWhiteSpace(p)));
 }
 
 /// <summary>What a salary figure is per: schema.org <c>unitText</c>.</summary>

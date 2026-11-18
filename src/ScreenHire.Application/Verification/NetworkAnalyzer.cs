@@ -63,7 +63,7 @@ public sealed class NetworkAnalyzer(IIpIntelligence intelligence) : IVerificatio
             {
                 counter.Add(new CounterEvidence(
                     $"The exit is in {InSentence(claimed)}, the country the candidate's phone number belongs to.",
-                    SignalEvidence.Fact("Phone number country", CountryName(claimed))));
+                    SignalEvidence.Fact("Phone number country", CountryNames.Name(claimed))));
             }
 
             signals.Add(new ObservedSignal(
@@ -89,20 +89,17 @@ public sealed class NetworkAnalyzer(IIpIntelligence intelligence) : IVerificatio
             signals.Add(new ObservedSignal(
                 SignalCatalogue.GeoClaimMismatch,
                 SignalConfidence.Medium,
-                [SignalEvidence.Fact("Phone number country", CountryName(claimed)), SignalEvidence.Fact("Network country", CountryName(observed)), source],
+                [SignalEvidence.Fact("Phone number country", CountryNames.Name(claimed)), SignalEvidence.Fact("Network country", CountryNames.Name(observed)), source],
                 new Dictionary<string, string> { ["claimed"] = InSentence(claimed), ["observed"] = InSentence(observed) }));
         }
 
         return Task.FromResult(new AnalyzerResult(signals));
     }
 
-    /// <summary>A country's English name from its ISO code, or the code itself when .NET does not know it.</summary>
-    public static string CountryName(string code) => CountryNames.Name(code);
-
     /// <summary>A country's name as it reads inside a sentence: "the United Kingdom", "Ireland".</summary>
     public static string InSentence(string code)
     {
-        var name = CountryName(code);
+        var name = CountryNames.Name(code);
         return name.StartsWith("United ", StringComparison.Ordinal) || name.EndsWith(" Republic", StringComparison.Ordinal)
             || name is "Netherlands" or "Philippines" or "Bahamas" or "Gambia" or "Maldives"
             ? $"the {name}"
@@ -110,7 +107,7 @@ public sealed class NetworkAnalyzer(IIpIntelligence intelligence) : IVerificatio
     }
 
     private static IEnumerable<SignalEvidence> Country(IpLookup lookup) =>
-        lookup.Country is { } country ? [SignalEvidence.Fact("Network country", CountryName(country))] : [];
+        lookup.Country is { } country ? [SignalEvidence.Fact("Network country", CountryNames.Name(country))] : [];
 
     private static string Describe(IpLookup lookup) => (lookup.Organization, lookup.Asn) switch
     {
