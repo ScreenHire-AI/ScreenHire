@@ -307,21 +307,15 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
     private Task<List<string>> TelemetryBeaconsAsync() => ApplySteps.TelemetryBeaconsAsync(Page.MainFrame);
 
     // Waits until the organization has at least `count` telemetry snapshots stored.
-    private async Task StoredSnapshotsAsync(Guid organizationId, int count)
-    {
-        for (var attempt = 0; attempt < 100; attempt++)
-        {
-            await using var db = await TenantDbAsync(organizationId);
-            if (await db.TelemetrySnapshots.CountAsync(Ct) >= count)
+    private Task StoredSnapshotsAsync(Guid organizationId, int count) =>
+        Wait.UntilAsync(
+            async () =>
             {
-                return;
-            }
-
-            await Task.Delay(100, Ct);
-        }
-
-        throw new TimeoutException($"Expected {count} stored telemetry snapshots.");
-    }
+                await using var db = await TenantDbAsync(organizationId);
+                return await db.TelemetrySnapshots.CountAsync(Ct) >= count;
+            },
+            $"{count} stored telemetry snapshots",
+            Ct);
 
     private async Task<ScreenHireDbContext> TenantDbAsync(Guid organizationId)
     {

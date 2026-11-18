@@ -159,27 +159,8 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
 
     // The worker records a send after the mail goes out, and the page offers the messages from that record, so the inbox can
     // be a moment ahead of the page, which has no script to catch up.
-    private static async Task WaitForAnotherSendRecordAsync(ApiSession session, Guid applicationId, int sentBefore)
-    {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        deadline.CancelAfter(TimeSpan.FromSeconds(60));
-        while (true)
-        {
-            if (await SendsRecordedAsync(session, applicationId) > sentBefore)
-            {
-                return;
-            }
-
-            try
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(250), deadline.Token);
-            }
-            catch (OperationCanceledException) when (!Ct.IsCancellationRequested)
-            {
-                throw new TimeoutException("The send was not recorded within 60 s.");
-            }
-        }
-    }
+    private static Task WaitForAnotherSendRecordAsync(ApiSession session, Guid applicationId, int sentBefore) =>
+        Wait.UntilAsync(async () => await SendsRecordedAsync(session, applicationId) > sentBefore, "the send to be recorded", Ct);
 
     private static async Task<int> SendsRecordedAsync(ApiSession session, Guid applicationId)
     {
@@ -189,31 +170,14 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
 
     // The link in the email whose subject starts with the given text (the candidate may have others, such as the receipt for an
     // application). Polls the inbox until it is there.
-    private async Task<Match> PortalLinkAsync(string email, string subjectStart)
-    {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        deadline.CancelAfter(TimeSpan.FromSeconds(60));
-        while (true)
-        {
-            var link = (await Fixture.Mailpit.MessagesAsync(email, Ct))
+    private Task<Match> PortalLinkAsync(string email, string subjectStart) =>
+        Wait.ForAsync(
+            async () => (await Fixture.Mailpit.MessagesAsync(email, Ct))
                 .Where(message => message.Subject.StartsWith(subjectStart, StringComparison.Ordinal))
                 .Select(message => PortalLink().Match(message.Text))
-                .FirstOrDefault(match => match.Success);
-            if (link is not null)
-            {
-                return link;
-            }
-
-            try
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(250), deadline.Token);
-            }
-            catch (OperationCanceledException) when (!Ct.IsCancellationRequested)
-            {
-                throw new TimeoutException("The portal link did not reach the candidate's inbox within 60 s.");
-            }
-        }
-    }
+                .FirstOrDefault(match => match.Success),
+            "the portal link to reach the candidate's inbox",
+            Ct);
 
     private static async Task<JsonElement> ReadAsync(HttpResponseMessage response, HttpStatusCode expected)
     {

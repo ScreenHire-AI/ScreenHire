@@ -44,20 +44,20 @@ public sealed class ApiReferenceTests(ProductionApiFixture fixture) : IClassFixt
     }
 
     // The process is running before Kestrel listens, so the first requests may be refused.
-    private static async Task<HttpResponseMessage> GetOnceListeningAsync(HttpClient client, string path, CancellationToken cancellationToken)
-    {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(ListenTimeout);
-        while (true)
-        {
-            try
+    private static Task<HttpResponseMessage> GetOnceListeningAsync(HttpClient client, string path, CancellationToken cancellationToken) =>
+        Wait.ForAsync<HttpResponseMessage>(
+            async deadline =>
             {
-                return await client.GetAsync(path, deadline.Token);
-            }
-            catch (HttpRequestException)
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(500), deadline.Token);
-            }
-        }
-    }
+                try
+                {
+                    return await client.GetAsync(path, deadline);
+                }
+                catch (HttpRequestException)
+                {
+                    return null;
+                }
+            },
+            () => $"the Production API to listen and answer {path}",
+            cancellationToken,
+            ListenTimeout);
 }

@@ -15,20 +15,7 @@ public sealed class DashboardThemeEmptyTests(E2EFixture fixture) : ProofWalk(fix
         await UseDarkThemeAsync();
         await Page.SetViewportSizeAsync(1440, 1000);
 
-        async Task Check(string name)
-        {
-            if (!await Page.EvaluateAsync<bool>("() => document.documentElement.classList.contains('dark')"))
-            {
-                Problems.Add($"{name}: the page is not in the dark theme");
-            }
-
-            await CollectAxeAsync(name);
-            await CollectOverflowAsync(name);
-            await CollectFieldEdgesAsync(name);
-            _ = await ScreenshotAsync("dark-empty", name);
-        }
-
-        await WalkEmptyGroupAsync(group, "dark empty", Check);
+        await WalkEmptyGroupAsync(group, "dark empty", name => CheckDarkAsync("dark-empty", name));
         ExpectNoProblems($"The dark theme, empty ({group})");
     }
 }

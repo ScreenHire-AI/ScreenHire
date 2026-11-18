@@ -16,6 +16,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, interviewer, jobId, roleCatalogue, stages, user, userAs } from '../../../../test-support/fixtures.js';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
+import { nothingHappensFor } from '../../../../test-support/quiet.js';
 import { stubViewport } from '../../../../test-support/viewport.js';
 import { formatDateTime } from '#lib/dates.js';
 import { botVerification, pendingVerification } from '../../../../test-support/verification-fixtures.js';
@@ -2313,7 +2314,7 @@ describe('application page', () => {
     // A query the page asked for has been answered, so a control that should have appeared by now is really absent.
     const answered = async (fetch: ReturnType<typeof stubApi>, path: string) => {
       await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url) === path)).toBe(true));
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await nothingHappensFor(50, 'a control the answered query does not allow');
     };
 
     it('offers Schedule interview beside Email, to someone who may email candidates, where this deployment can send', async () => {

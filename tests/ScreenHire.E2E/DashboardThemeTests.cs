@@ -2,36 +2,23 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The dashboard in its dark theme (design system 3.3): every route, every tab and the overlays at 1440 px, each with axe's
-/// colour-contrast rule on. The walk is one row per group of routes (<see cref="ProofWalk.WalkGroups"/>); each row collects
-/// every failure and asserts once, so a run lists all the pages to fix. <see cref="DashboardThemeEmptyTests"/> walks a new
-/// organization's pages the same way.
+/// colour-contrast rule on. The walk is one row per group of routes; each row collects every failure and asserts once, so a
+/// run lists all the pages to fix. This class walks the pages a team works in and the overlays
+/// (<see cref="ProofWalk.WorkGroups"/>), <see cref="DashboardThemeSetupTests"/> the pages it sets things up in, and
+/// <see cref="DashboardThemeEmptyTests"/> a new organization's pages. They are three classes because CI gives a whole class
+/// to one shard, and the dark walk as one class outweighed an average shard.
 /// </summary>
 public sealed class DashboardThemeTests(E2EFixture fixture) : ProofWalk(fixture)
 {
     [Theory]
-    [MemberData(nameof(WalkGroups), MemberType = typeof(ProofWalk))]
+    [MemberData(nameof(WorkGroups), MemberType = typeof(ProofWalk))]
     public async Task Every_dashboard_page_tab_and_overlay_passes_axe_in_the_dark_theme(string group)
     {
         await PrepareAsync();
         await UseDarkThemeAsync();
         await Page.SetViewportSizeAsync(1440, 1000);
 
-        async Task Check(string name)
-        {
-            // The theme follows the system until a person picks one, so a dark system opens the dashboard dark.
-            var dark = await Page.EvaluateAsync<bool>("() => document.documentElement.classList.contains('dark')");
-            if (!dark)
-            {
-                Problems.Add($"{name}: the page is not in the dark theme");
-            }
-
-            await CollectAxeAsync(name);
-            await CollectOverflowAsync(name);
-            await CollectFieldEdgesAsync(name);
-            _ = await ScreenshotAsync("dark", name);
-        }
-
-        await WalkGroupAsync(group, "dark", Check);
+        await WalkGroupAsync(group, "dark", name => CheckDarkAsync("dark", name));
         ExpectNoProblems($"The dark theme ({group})");
     }
 

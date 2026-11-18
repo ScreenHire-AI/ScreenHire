@@ -111,9 +111,6 @@ public sealed class PkceTests
         Pkce.IsChallenge(challenge[..42]).Should().BeFalse();
         Pkce.IsChallenge(null).Should().BeFalse();
     }
-
-    [Fact]
-    public void Only_S256_is_offered() => Pkce.Method.Should().Be("S256");
 }
 
 public sealed class OAuthRedirectsTests

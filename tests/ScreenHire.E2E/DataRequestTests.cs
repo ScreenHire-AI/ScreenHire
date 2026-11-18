@@ -138,28 +138,11 @@ public sealed partial class DataRequestTests(E2EFixture fixture) : BrowserTest(f
 
     // The email that carries the link (the candidate may have others, such as the receipt for an application). Polls the
     // inbox until it is there.
-    private async Task<Match> DataRequestLinkAsync(string email)
-    {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        deadline.CancelAfter(TimeSpan.FromSeconds(60));
-        while (true)
-        {
-            var link = (await Fixture.Mailpit.MessagesAsync(email, Ct)).Select(message => DataRequestLink().Match(message.Text)).FirstOrDefault(match => match.Success);
-            if (link is not null)
-            {
-                return link;
-            }
-
-            try
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(250), deadline.Token);
-            }
-            catch (OperationCanceledException) when (!Ct.IsCancellationRequested)
-            {
-                throw new TimeoutException("The data request link did not reach the candidate's inbox within 60 s.");
-            }
-        }
-    }
+    private Task<Match> DataRequestLinkAsync(string email) =>
+        Wait.ForAsync(
+            async () => (await Fixture.Mailpit.MessagesAsync(email, Ct)).Select(message => DataRequestLink().Match(message.Text)).FirstOrDefault(match => match.Success),
+            "the data request link to reach the candidate's inbox",
+            Ct);
 
     private static async Task<JsonElement> ReadAsync(HttpResponseMessage response, HttpStatusCode expected)
     {

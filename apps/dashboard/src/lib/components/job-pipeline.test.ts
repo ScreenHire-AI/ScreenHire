@@ -6,6 +6,7 @@ import { preferences } from '#lib/preferences.svelte.js';
 import type { VerificationFilter } from '#lib/verification.js';
 import { apiStub, applications, savedView, stages, user, viewList } from '../../test-support/fixtures.js';
 import JobPipelineHarness from '../../test-support/job-pipeline-harness.svelte';
+import { nothingHappensFor } from '../../test-support/quiet.js';
 import { stubViewport } from '../../test-support/viewport.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 
@@ -167,7 +168,7 @@ describe('job pipeline', () => {
     renderPipeline({ verificationFilter: { authenticity: 'Pending' } });
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
     expect(within(selectionBar()).getByRole('button', { name: 'Move 1 selected…' })).toBeInTheDocument();
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await nothingHappensFor(50, 'an Email button for rows a verification filter picked');
     expect(within(selectionBar()).queryByRole('button', { name: /^Email/ })).toBeNull();
   });
 
@@ -343,7 +344,7 @@ describe('job pipeline views', () => {
     await waitFor(() => expect(within(filters()).getByRole('button', { name: /^Pending/ })).toHaveAttribute('aria-pressed', 'true'));
 
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Casey Morgan' }));
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await nothingHappensFor(50, 'an Email or Save candidate button in a view that holds a verification level');
     expect(within(selectionBar()).queryByRole('button', { name: /^Email/ })).toBeNull();
     expect(within(selectionBar()).queryByRole('button', { name: /Save candidate/ })).toBeNull();
 

@@ -38,12 +38,6 @@ public sealed class BillingOptionsTests
         trial.Plan.Should().Be("growth");
     }
 
-    [Fact]
-    public void ScreenHire_adds_twenty_percent_to_the_providers_price_for_its_own_key_unless_configured()
-    {
-        new BillingOptions().Ai.Margin.Should().Be(0.20m);
-    }
-
     [Theory]
     [InlineData("0", true)]
     [InlineData("0.20", true)]

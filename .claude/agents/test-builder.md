@@ -38,6 +38,8 @@ If the prompt names neither, use write mode.
 
 - The brief (acceptance criteria) and the docs it names. Expected behaviour comes from these.
 - `docs/process/testing.md` if it exists: tier layout, fixtures, how to run one test.
+- `.claude/rules/test-value.md`: what a test must earn before it is added, and the limits CI holds a test to (no
+  test longer than a shard's parallel tests, a class with its own AppHost runs alone).
 - The existing tests next to the code you are covering. Copy their structure and helpers; do not invent new ones.
 
 ## Tiers
@@ -66,8 +68,10 @@ Pick the cheapest tier that can prove the behaviour.
 2. **Red-green every new test.** Make it fail for the right reason first (break the code under test, or assert the
    wrong value), see it fail, then restore and see it pass. Report how you did it.
 3. **No fixed waits.** No `Task.Delay`, `Thread.Sleep` or `WaitForTimeoutAsync` to wait for state. Await the
-   condition: `WaitForResourceHealthyAsync`, Playwright's auto-waiting `Expect(locator)` assertions, polling a query
-   until it holds.
+   condition: `WaitForResourceHealthyAsync`, Playwright's auto-waiting `Expect(locator)` assertions, or
+   `Wait.UntilAsync` and `Wait.ForAsync` (`tests/ScreenHire.Testing`), which poll until a condition holds. To show
+   that something does not happen, name the window: `Wait.ForNothingAsync` in .NET, `nothingHappensFor` in the
+   dashboard's `test-support`. `TestSuiteRulesTests` fails on a sleep written out in a test.
 4. **No retries** to make a test pass. A flaky test has a cause (shared data, ordering, an unawaited task, a fixed
    port); fix it.
 5. **Isolation.** Integration and end-to-end tests run against a fresh AppHost (`PersistData=false`,

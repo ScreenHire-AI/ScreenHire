@@ -34,6 +34,9 @@ public sealed class CiWorkflowTests
         CiWorkflow.AppHostImages(CiWorkflow.RepositoryAppHost()).Should().HaveCountGreaterThanOrEqualTo(5,
             "AppHost.cs names Postgres, Azurite, Mailpit, Dev SSO and Caddy");
         CiWorkflow.PulledImages(files[CiWorkflow.CiPath]).Should().Contain("caddy:2.10.2-alpine");
+        CiWorkflow.CacheKeyFiles(files).Should().Contain(
+            ["pnpm-lock.yaml", "global.json", "dotnet-tools.json", "Directory.Packages.props", "**/*.csproj"],
+            "the cache check reads the setup action's keys: the NuGet key's hashFiles and setup-node's pnpm cache");
     }
 
     [Theory]
@@ -66,6 +69,32 @@ public sealed class CiWorkflowTests
 
         CiWorkflow.Problems(files, CiWorkflow.RepositoryAppHost()).Should()
             .Contain(problem => problem.Contains(expected, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    // A file joins a cache key and the fill does not run when it changes.
+    [InlineData(CiWorkflow.SetupActionPath, "'**/*.csproj') }}", "'**/*.csproj', 'Directory.Build.props') }}", "does not fill main's caches when Directory.Build.props changes")]
+    [InlineData(CiWorkflow.CachesPath, "      - global.json\n", "", "does not fill main's caches when global.json changes")]
+    [InlineData(CiWorkflow.CachesPath, "      - pnpm-lock.yaml\n", "", "does not fill main's caches when pnpm-lock.yaml changes")]
+    [InlineData(CiWorkflow.CachesPath, "      - global.json\n", "      - global.json\n      - docs/**\n", "fills main's caches when docs/** changes, and no cache key is made from it")]
+    [InlineData(CiWorkflow.CachesPath, "  workflow_dispatch:", "  workflow_dispatch:\n  pull_request:", "must not run on a pull request (pull_request)")]
+    [InlineData(CiWorkflow.CachesPath, "uses: ./.github/actions/setup", "uses: actions/setup-dotnet@v6", "must set up through .github/actions/setup")]
+    public void A_broken_rule_in_the_workflow_that_fills_the_caches_is_reported(string path, string needle, string replacement, string expected)
+    {
+        var files = CiWorkflow.RepositoryGitHubFiles();
+        files[path] = ReplaceExactly(files[path], needle, replacement);
+
+        CiWorkflow.Problems(files, CiWorkflow.RepositoryAppHost()).Should()
+            .Contain(problem => problem.StartsWith(CiWorkflow.CachesPath, StringComparison.Ordinal) && problem.Contains(expected, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_repository_with_no_workflow_to_fill_the_caches_is_reported()
+    {
+        var files = CiWorkflow.RepositoryGitHubFiles();
+        files.Remove(CiWorkflow.CachesPath).Should().BeTrue();
+
+        CiWorkflow.Problems(files, CiWorkflow.RepositoryAppHost()).Should().ContainSingle().Which.Should().StartWith($"{CiWorkflow.CachesPath} does not exist");
     }
 
     [Fact]

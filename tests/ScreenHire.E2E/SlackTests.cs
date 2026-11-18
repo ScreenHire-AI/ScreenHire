@@ -343,22 +343,15 @@ public sealed class SlackTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     // Polls the Slack status (the page's own data) until the check holds; the worker records a problem after a post.
-    private static async Task WaitForStatusAsync(ApiSession session, Func<JsonElement, bool> done, string because)
-    {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(60);
-        while (DateTimeOffset.UtcNow < deadline)
-        {
-            using var response = await session.Client.GetAsync("/v1/slack", Ct);
-            if (done(await response.Content.ReadFromJsonAsync<JsonElement>(Ct)))
+    private static Task WaitForStatusAsync(ApiSession session, Func<JsonElement, bool> done, string because) =>
+        Wait.UntilAsync(
+            async () =>
             {
-                return;
-            }
-
-            await Task.Delay(200, Ct);
-        }
-
-        throw new TimeoutException($"Timed out waiting for {because}.");
-    }
+                using var response = await session.Client.GetAsync("/v1/slack", Ct);
+                return done(await response.Content.ReadFromJsonAsync<JsonElement>(Ct));
+            },
+            because,
+            Ct);
 
     // The person's menu holds Slack account, whose sheet links the account through the sandbox's sign-in and opens again
     // on return, showing the link and the two switches.

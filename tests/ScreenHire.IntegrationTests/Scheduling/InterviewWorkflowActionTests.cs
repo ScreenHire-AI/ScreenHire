@@ -101,8 +101,7 @@ public sealed class InterviewWorkflowActionTests(AppHostFixture fixture)
             .Should().Be(run.GetProperty("id").GetGuid());
 
         // Delivered again (a redelivered or retried message): the action has finished, so nothing more is made or sent.
-        await RedeliverAsync(world, run);
-        await Task.Delay(TimeSpan.FromSeconds(3), Ct);
+        await RedeliverAsync(world, run, untilHandled: true);
         (await world.InterviewsAsync(application)).Should().ContainSingle();
         (await fixture.Mailpit.MessagesAsync(email, Ct)).Count(m => m.Subject.Contains("Pick a time", StringComparison.Ordinal)).Should().Be(1);
 
@@ -288,8 +287,9 @@ public sealed class InterviewWorkflowActionTests(AppHostFixture fixture)
         return detail;
     }
 
-    // Sends the first action's message again to the stack's worker.
-    private async Task RedeliverAsync(InterviewWorld world, JsonElement run, string key = "")
+    // Sends the first action's message again to the stack's worker. With untilHandled it returns once the worker has
+    // handled that second copy: for the test that shows it made nothing, where there is no change to wait on.
+    private async Task RedeliverAsync(InterviewWorld world, JsonElement run, string key = "", bool untilHandled = false)
     {
         var runId = run.GetProperty("id").GetGuid();
         Guid actionId;
@@ -302,6 +302,14 @@ public sealed class InterviewWorkflowActionTests(AppHostFixture fixture)
         }
 
         await using var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
-        await publisher.Services.GetRequiredService<IMessageBus>().PublishAsync(new ExecuteAutomationAction(world.OrganizationId, actionId, actionKey));
+        Task Publish() => publisher.Services.GetRequiredService<IMessageBus>().PublishAsync(new ExecuteAutomationAction(world.OrganizationId, actionId, actionKey)).AsTask();
+        if (untilHandled)
+        {
+            await WolverineStore.WaitUntilHandledAsync(fixture, actionId.ToString(), ".ExecuteAutomationAction", Publish, Ct);
+        }
+        else
+        {
+            await Publish();
+        }
     }
 }

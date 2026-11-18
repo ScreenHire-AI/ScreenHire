@@ -649,19 +649,7 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
     // asks while a start may be under way.
     private static async Task EventuallyAsync(Func<Task<string?>> unmet)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        deadline.CancelAfter(Deadline);
         string? last = null;
-        try
-        {
-            while ((last = await unmet()) is not null)
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(500), deadline.Token);
-            }
-        }
-        catch (OperationCanceledException) when (!Ct.IsCancellationRequested)
-        {
-            throw new TimeoutException($"After {Deadline.TotalSeconds:0} seconds the demo was still missing: {last}.");
-        }
+        await Wait.UntilAsync(async () => (last = await unmet()) is null, () => $"the demo, which was still missing: {last}", Ct, Deadline);
     }
 }

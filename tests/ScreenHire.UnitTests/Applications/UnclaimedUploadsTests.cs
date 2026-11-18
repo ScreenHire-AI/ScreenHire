@@ -15,6 +15,11 @@ public sealed class UnclaimedUploadsTests
     [Fact]
     public void The_grace_is_one_day_as_the_privacy_page_says()
     {
+        // The candidate's privacy page makes the promise, so the page and the grace are read together: one changed without
+        // the other fails here.
+        var page = File.ReadAllText(RepositoryFiles.PathTo("apps", "careers", "src", "pages", "[organization]", "privacy.astro"));
+
+        page.Should().Contain("one that is never sent with an application is deleted after a day");
         UnclaimedUploads.Grace.Should().Be(TimeSpan.FromDays(1));
     }
 

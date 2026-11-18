@@ -97,8 +97,22 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         ("settings", "/settings/data-requests"),
     ];
 
+    /// <summary>The groups a team sets things up in. Every other group is one it works in.</summary>
+    private static readonly string[] SetupSide = ["verification", "organization", "integrations"];
+
     /// <summary>The rows of the walk over the scene: every group of <see cref="RouteTable"/>, then the overlays.</summary>
     public static TheoryData<string> WalkGroups => [.. RouteTable.Select(route => route.Group).Distinct(), OverlaysGroup];
+
+    /// <summary>
+    /// The same rows as two halves, for a walk whose rows together outweigh an average CI shard and so need two classes
+    /// (the dark theme's: axe's colour contrast at 1440 px costs more a page than the phone's checks). This half is the
+    /// pages a team works in, then the overlays; <see cref="SetupGroups"/> is the rest. A group is on the setup side or
+    /// it is here, so the halves leave no row out.
+    /// </summary>
+    public static TheoryData<string> WorkGroups => [.. RouteTable.Select(route => route.Group).Distinct().Except(SetupSide), OverlaysGroup];
+
+    /// <summary>The other half of <see cref="WorkGroups"/>: the pages a team sets things up in.</summary>
+    public static TheoryData<string> SetupGroups => [.. RouteTable.Select(route => route.Group).Distinct().Intersect(SetupSide)];
 
     /// <summary>The rows of the walk over a new organization: every group of <see cref="EmptyRouteTable"/>.</summary>
     public static TheoryData<string> EmptyGroups => [.. EmptyRouteTable.Select(route => route.Group).Distinct()];
@@ -221,6 +235,10 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
             await Page.GotoAsync(DashboardUrl(path));
             await SettleAsync();
             await check(path);
+            if (TabsAreRoutes(path))
+            {
+                return;
+            }
 
             var tabs = Page.Locator("main [role=tablist]").First.GetByRole(AriaRole.Tab);
             var count = await tabs.CountAsync();
@@ -238,6 +256,13 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
             Problems.Add($"{path} ({mode}): the walk could not finish: {FirstLine(exception)}");
         }
     }
+
+    /// <summary>
+    /// The Verification area's tabs are its pages, each at its own address and each in the route table. Opening every tab
+    /// from every one of them checked each page eight times: one row of the walk ran 145 s on CI that way, against 19 to
+    /// 58 s for the others.
+    /// </summary>
+    private static bool TabsAreRoutes(string path) => path.StartsWith("/verification", StringComparison.Ordinal);
 
     /// <summary>
     /// Opens what the routes do not show on their own and runs <paramref name="check"/> on each: the command palette, the
@@ -361,6 +386,24 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         }
 
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+    }
+
+    /// <summary>
+    /// The dark theme's check of one page: it is in the dark theme, it passes axe with the colour-contrast rule on, it
+    /// does not scroll sideways and its fields' edges can be seen. <paramref name="mode"/> names its screenshot.
+    /// </summary>
+    protected async Task CheckDarkAsync(string mode, string name)
+    {
+        // The theme follows the system until a person picks one, so a dark system opens the dashboard dark.
+        if (!await Page.EvaluateAsync<bool>("() => document.documentElement.classList.contains('dark')"))
+        {
+            Problems.Add($"{name}: the page is not in the dark theme");
+        }
+
+        await CollectAxeAsync(name);
+        await CollectOverflowAsync(name);
+        await CollectFieldEdgesAsync(name);
+        _ = await ScreenshotAsync(mode, name);
     }
 
     protected async Task CollectAxeAsync(string name)

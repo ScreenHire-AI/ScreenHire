@@ -304,18 +304,14 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
 
         var tenant = new TenantContext();
         tenant.SetOrganization(organizationId);
-        for (var attempt = 0; attempt < 600; attempt++)
-        {
-            await using var db = await Fixture.CreateDbContextAsync(tenant, Ct);
-            if (await db.VerificationAnalyzerRuns.Where(r => r.ApplicationId == applicationId).Select(r => r.Analyzer).Distinct().CountAsync(Ct) >= 8)
+        await Wait.UntilAsync(
+            async () =>
             {
-                return;
-            }
-
-            await Task.Delay(100, Ct);
-        }
-
-        throw new TimeoutException("Expected every verification analyzer to run on the farm's first application.");
+                await using var db = await Fixture.CreateDbContextAsync(tenant, Ct);
+                return await db.VerificationAnalyzerRuns.Where(r => r.ApplicationId == applicationId).Select(r => r.Analyzer).Distinct().CountAsync(Ct) >= 8;
+            },
+            "every verification analyzer to run on the farm's first application",
+            Ct);
     }
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });

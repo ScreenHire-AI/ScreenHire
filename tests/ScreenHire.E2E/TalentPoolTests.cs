@@ -245,25 +245,11 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
     // the receipt for an application). Polls the inbox until it is there.
     private async Task<string> InvitationTextAsync(string email)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        deadline.CancelAfter(TimeSpan.FromSeconds(60));
-        while (true)
-        {
-            var invitation = (await Fixture.Mailpit.MessagesAsync(email, Ct)).FirstOrDefault(message => StopLink().IsMatch(message.Text));
-            if (invitation is not null)
-            {
-                return invitation.Text;
-            }
-
-            try
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(250), deadline.Token);
-            }
-            catch (OperationCanceledException) when (!Ct.IsCancellationRequested)
-            {
-                throw new TimeoutException("The invitation did not reach the candidate's inbox within 60 s.");
-            }
-        }
+        var invitation = await Wait.ForAsync(
+            async () => (await Fixture.Mailpit.MessagesAsync(email, Ct)).FirstOrDefault(message => StopLink().IsMatch(message.Text)),
+            "the invitation to reach the candidate's inbox",
+            Ct);
+        return invitation.Text;
     }
 
     private async Task SignInAsync(string email)

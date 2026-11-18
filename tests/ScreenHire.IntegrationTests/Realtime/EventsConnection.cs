@@ -87,26 +87,12 @@ internal sealed class EventsConnection : IAsyncDisposable
 
     private async Task<JsonElement> WaitForAsync(string type, string described, Func<JsonElement, bool> matches, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(Deadline);
-        try
-        {
-            while (true)
-            {
-                if (received.FirstOrDefault(e => e.Type == type && matches(e.Data)) is { } match)
-                {
-                    return match.Data;
-                }
-
-                await Task.Delay(TimeSpan.FromMilliseconds(100), deadline.Token);
-            }
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            throw new TimeoutException(
-                $"No {type} with {described} within {Deadline.TotalSeconds:0} seconds. Received: " +
-                string.Join(", ", received.Select(e => $"{e.Type} {e.Data}")));
-        }
+        var match = await Wait.ForAsync(
+            _ => Task.FromResult(received.FirstOrDefault(e => e.Type == type && matches(e.Data))),
+            () => $"a {type} with {described}. Received: {string.Join(", ", received.Select(e => $"{e.Type} {e.Data}"))}",
+            cancellationToken,
+            Deadline);
+        return match.Data;
     }
 
     /// <summary>Whether any received event, of any type, mentions <paramref name="id"/>.</summary>

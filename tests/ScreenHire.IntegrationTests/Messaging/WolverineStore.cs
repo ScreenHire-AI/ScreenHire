@@ -10,9 +10,6 @@ namespace ScreenHire.IntegrationTests.Messaging;
 /// </summary>
 internal sealed class WolverineStore(string connectionString, string schema = "wolverine")
 {
-    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(60);
-    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(200);
-
     /// <summary>The worker's store and the shared queues (schema <c>wolverine</c>).</summary>
     public static async Task<WolverineStore> ForAppHostAsync(AppHostFixture fixture, CancellationToken cancellationToken) =>
         new(await fixture.GetOwnerConnectionStringAsync(cancellationToken));
@@ -123,21 +120,25 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
     }
 
     /// <summary>Polls <paramref name="probe"/> until it holds, failing with <paramref name="because"/> after the deadline.</summary>
-    public static async Task WaitUntilAsync(Func<Task<bool>> probe, string because, CancellationToken cancellationToken)
+    public static Task WaitUntilAsync(Func<Task<bool>> probe, string because, CancellationToken cancellationToken) =>
+        Wait.UntilAsync(probe, because, cancellationToken);
+
+    /// <summary>
+    /// Runs <paramref name="publish"/> and waits until the worker has handled one more message of
+    /// <paramref name="messageType"/> with <paramref name="bodyContains"/> in its body than before. For a test that goes on
+    /// to show the message changed nothing: once its handler has run there is nothing left to wait out, so no fixed delay
+    /// stands in for it.
+    /// </summary>
+    public static async Task WaitUntilHandledAsync(
+        AppHostFixture fixture, string bodyContains, string messageType, Func<Task> publish, CancellationToken cancellationToken)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(Deadline);
-        try
-        {
-            while (!await probe())
-            {
-                await Task.Delay(PollInterval, deadline.Token);
-            }
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            throw new TimeoutException($"Waited {Deadline.TotalSeconds:0} seconds for {because}.");
-        }
+        var store = await ForAppHostAsync(fixture, cancellationToken);
+        var before = await store.CountHandledAsync(bodyContains, cancellationToken, messageType);
+        await publish();
+        await WaitUntilAsync(
+            async () => await store.CountHandledAsync(bodyContains, cancellationToken, messageType) > before,
+            $"the worker to handle {messageType} for {bodyContains}",
+            cancellationToken);
     }
 
     public async Task DropSchemaAsync(CancellationToken cancellationToken)

@@ -19,6 +19,14 @@ internal static partial class CiWorkflow
     public const string CiPath = ".github/workflows/ci.yml";
 
     /// <summary>
+    /// The workflow that fills main's caches after a push that changed what a cache key is made from. ci.yml's own jobs
+    /// save the caches, and ci.yml skips them on a push whose tree a pull request already passed.
+    /// </summary>
+    public const string CachesPath = ".github/workflows/caches.yml";
+
+    public const string SetupActionPath = ".github/actions/setup/action.yml";
+
+    /// <summary>
     /// The job that says whether a push to main landed a tree its pull request already tested
     /// (<c>scripts/tested-tree.mjs</c>). The gate needs it for the answer, and every other job needs it to be skipped.
     /// </summary>
@@ -175,6 +183,8 @@ internal static partial class CiWorkflow
             problems.Add($"{CiPath}: a pull request starts {started} jobs at once, over the account's {ConcurrentJobs}, so one always waits for a runner: give a job up before adding one (.claude/rules/test-value.md)");
         }
 
+        problems.AddRange(CacheFillProblems(gitHubFiles));
+
         var pulled = PulledImages(ci);
         var used = AppHostImages(appHost);
         foreach (var image in used.Except(pulled))
@@ -248,6 +258,74 @@ internal static partial class CiWorkflow
         }
 
         return legs;
+    }
+
+    /// <summary>
+    /// What a push must change for a cache key to change: the files the setup action's keys hash, the lockfile behind
+    /// setup-node's own pnpm cache, the action that defines the keys and the workflow that fills them.
+    /// </summary>
+    public static IReadOnlySet<string> CacheKeyFiles(IReadOnlyDictionary<string, string> gitHubFiles)
+    {
+        var files = new HashSet<string>(StringComparer.Ordinal) { ".github/actions/setup/**", CachesPath };
+        if (!gitHubFiles.TryGetValue(SetupActionPath, out var action))
+        {
+            return files;
+        }
+
+        foreach (Match hash in HashFilesCall().Matches(action))
+        {
+            files.UnionWith(QuotedArgument().Matches(hash.Groups["arguments"].Value).Select(argument => argument.Groups["value"].Value));
+        }
+
+        if (PnpmStoreCache().IsMatch(action))
+        {
+            files.Add("pnpm-lock.yaml");
+        }
+
+        return files;
+    }
+
+    /// <summary>
+    /// What is wrong with the workflow that fills main's caches: it must run on a push to main that changes any file a
+    /// cache key is made from, never on a pull request (its jobs would take slots from every one), and set up through the
+    /// setup action, so the keys it saves under are the ones the test jobs restore.
+    /// </summary>
+    private static List<string> CacheFillProblems(IReadOnlyDictionary<string, string> gitHubFiles)
+    {
+        var problems = new List<string>();
+        if (!gitHubFiles.TryGetValue(CachesPath, out var caches))
+        {
+            problems.Add($"{CachesPath} does not exist, so nothing saves main's caches after a dependency change: {CiPath} skips its jobs on a push a pull request already tested");
+            return problems;
+        }
+
+        var on = Child(Root(caches), "on");
+        foreach (var trigger in new[] { "pull_request", "pull_request_target" })
+        {
+            if (Child(on, trigger) is not null || Strings(on).Contains(trigger))
+            {
+                problems.Add($"{CachesPath} must not run on a pull request ({trigger}): its jobs would take the account's slots from every one");
+            }
+        }
+
+        var filled = Strings(Child(Child(on, "push"), "paths")).ToHashSet(StringComparer.Ordinal);
+        var hashed = CacheKeyFiles(gitHubFiles);
+        foreach (var file in hashed.Except(filled).Order(StringComparer.Ordinal))
+        {
+            problems.Add($"{CachesPath} does not fill main's caches when {file} changes, and a cache key is made from it ({SetupActionPath}): add it to on.push.paths");
+        }
+
+        foreach (var file in filled.Except(hashed).Order(StringComparer.Ordinal))
+        {
+            problems.Add($"{CachesPath} fills main's caches when {file} changes, and no cache key is made from it ({SetupActionPath}): remove it from on.push.paths");
+        }
+
+        if (!caches.Contains("uses: ./.github/actions/setup", StringComparison.Ordinal))
+        {
+            problems.Add($"{CachesPath} must set up through .github/actions/setup, or it saves under keys the test jobs do not restore");
+        }
+
+        return problems;
     }
 
     /// <summary>The workflow's <c>env.APPHOST_IMAGES</c>, normalized like <see cref="AppHostImages"/>.</summary>
@@ -335,4 +413,14 @@ internal static partial class CiWorkflow
 
     [GeneratedRegex(@"WithImageRegistry\(\s*""(?<registry>[^""]+)""\s*\)")]
     private static partial Regex ImageRegistryCall();
+
+    [GeneratedRegex(@"hashFiles\((?<arguments>[^)]*)\)")]
+    private static partial Regex HashFilesCall();
+
+    [GeneratedRegex(@"'(?<value>[^']+)'")]
+    private static partial Regex QuotedArgument();
+
+    // setup-node's own cache of the pnpm store, whose key is the lockfile's hash.
+    [GeneratedRegex(@"^\s*cache:\s*pnpm\s*$", RegexOptions.Multiline)]
+    private static partial Regex PnpmStoreCache();
 }

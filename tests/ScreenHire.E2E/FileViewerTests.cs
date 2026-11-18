@@ -153,17 +153,15 @@ public sealed class FileViewerTests(E2EFixture fixture) : BrowserTest(fixture)
         await ReadAsync(await session.PostAsync($"/v1/jobs/{jobId}/publish", new { }, Ct), HttpStatusCode.OK);
         var applicationId = await Fixture.ApplyAsync(slug, jobId, applicant, Ct);
 
-        for (var tries = 0; ; tries++)
-        {
-            var application = await ReadAsync(await session.Client.GetAsync($"/v1/applications/{applicationId}", Ct), HttpStatusCode.OK);
-            if (application.GetProperty("files")[0].GetProperty("scanStatus").GetString() != "Pending")
+        await Wait.UntilAsync(
+            async () =>
             {
-                return (email, applicationId);
-            }
-
-            tries.Should().BeLessThan(120, "the worker records each file's scan within a minute");
-            await Task.Delay(500, Ct);
-        }
+                var application = await ReadAsync(await session.Client.GetAsync($"/v1/applications/{applicationId}", Ct), HttpStatusCode.OK);
+                return application.GetProperty("files")[0].GetProperty("scanStatus").GetString() != "Pending";
+            },
+            "the worker to record the file's scan",
+            Ct);
+        return (email, applicationId);
     }
 
     private static async Task<JsonElement> ReadAsync(HttpResponseMessage response, HttpStatusCode expected)

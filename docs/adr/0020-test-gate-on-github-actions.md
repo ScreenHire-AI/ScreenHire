@@ -64,7 +64,9 @@ one check, `Gate`. It made CI a second opinion. This decision makes it the gate.
     because the change is about them.
 12. **A push to `main` skips its tests when a pull request already passed that tree.** Amended 2026-11-07, after the
     overnight run: 15 pushes to `main` used 865 job-minutes, 28% of the night, and 8 of them carried a tree a pull
-    request run had passed; two overlapping runs fill the account's 40 running jobs and a third queues. The
+    request run had passed; the account runs 20 jobs at once, so one run fills it and a second queues (the 40 running
+    for 39 seconds that night was a burst: every other day from 2026-11-07 to 2026-11-18 peaked at exactly 20,
+    [testing.md](../process/testing.md#time)). The
     `tested-tree` job (`scripts/tested-tree.mjs`) compares the pushed tree with the tree of the merged PR's head and
     asks for a successful `Gate` there. Equal trees skip every other job, and `Gate` accepts the skip. Different trees
     (a squash of a branch that was behind `main`), a direct push, a manual run and any doubt run everything. The trees

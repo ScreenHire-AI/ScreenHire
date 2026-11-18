@@ -1,0 +1,92 @@
+name: Caches
+
+# Fills main's caches after a push that changed what a cache key is made from, so pull requests restore them.
+#
+# A pull request run restores a cache saved on its own ref or on main, never one another pull request saved. The jobs
+# that save one are ci.yml's, and ci.yml skips them on a push whose tree a pull request already passed (its
+# `tested-tree` job), which is nearly every push. So after a dependency change landed, main held no cache under the new
+# key, and every pull request installed its packages from the network in every job, and Chromium in every end-to-end
+# shard, until the next push that ran in full (docs/process/testing.md, "A push to main that is already tested").
+#
+# What it catches that nothing else does: nothing about the code. It is here for the seconds every pull request would
+# otherwise spend. What it costs: three jobs on a push that changes a path below, and none on any other push or on any
+# pull request. A job in ci.yml behind `tested-tree` would instead take its slots after every merge, or need each key's
+# text copied into a lookup. The path filter is the platform's own way to say "a key changed".
+#
+# Each leg sets up the way the jobs it fills for do, through .github/actions/setup, so the keys are the action's own.
+# The cache actions save in their post steps, and only when the job succeeded, so a failed install saves nothing and
+# the worst a failed fill costs is the installs the pull requests would have run anyway. A push that also runs its
+# suite fills the same keys from ci.yml's jobs: a key is saved once, so the two do not collide.
+#
+# CiWorkflowTests fails when the paths below stop matching what the setup action's keys hash, when this workflow gains
+# a pull request trigger, and on the rules every workflow keeps (the pinned runner, a timeout, no secret).
+# `gh workflow run Caches --ref main` fills them by hand.
+
+on:
+  push:
+    branches: [main, 'speed-up-the-ci-gate-*']
+    paths:
+      - pnpm-lock.yaml
+      - global.json
+      - dotnet-tools.json
+      - Directory.Packages.props
+      - '**/*.csproj'
+      - .github/actions/setup/**
+      - .github/workflows/caches.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push waits for a fill in flight to end. Cancelling it would save nothing, and the next push may not change
+# a key.
+concurrency:
+  group: caches-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  fill:
+    name: Fill ${{ matrix.cache }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # What checks, the end-to-end shards and lighthouse restore: every package of the solution, the pnpm store and
+          # Chromium. The end-to-end tests are built because the browser's revision comes from their Playwright driver.
+          - cache: the solution's packages, the pnpm store and Chromium
+            node: 'true'
+            nuget-cache: all
+            playwright: 'true'
+            fill: >-
+              dotnet restore ScreenHire.slnx
+              && dotnet build tests/ScreenHire.E2E -p:RunAnalyzers=false -p:EnforceCodeStyleInBuild=false -p:OpenApiGenerateDocuments=false
+              && node scripts/install-browsers.mjs --no-build
+          - cache: the integration tests' packages
+            node: 'false'
+            nuget-cache: integration
+            playwright: 'false'
+            fill: dotnet restore tests/ScreenHire.IntegrationTests
+          - cache: the AppHost's packages
+            node: 'false'
+            nuget-cache: infra
+            playwright: 'false'
+            fill: dotnet restore apps/apphost
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up the toolchain
+        uses: ./.github/actions/setup
+        with:
+          node: ${{ matrix.node }}
+          nuget-cache: ${{ matrix.nuget-cache }}
+          playwright: ${{ matrix.playwright }}
+      - name: Fill ${{ matrix.cache }}
+        run: ${{ matrix.fill }}

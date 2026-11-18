@@ -537,7 +537,7 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
             },
             "the 50%, 80% and 100% budget emails",
             Ct);
-        await Task.Delay(TimeSpan.FromSeconds(2), Ct);
+        await Wait.ForNothingAsync(TimeSpan.FromSeconds(2), "a second email for a share of the budget already alerted", Ct);
 
         alerts = [.. (await fixture.Mailpit.MessagesAsync(ownerEmail, Ct)).Where(m => subjects.Contains(m.Subject))];
         alerts.Should().HaveCount(3, "each share alerted once, though the second application found all three already passed");
@@ -560,7 +560,7 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
             },
             "the Verification suggested email",
             Ct);
-        await Task.Delay(TimeSpan.FromSeconds(2), Ct); // a second copy, if there were one, would have arrived by now
+        await Wait.ForNothingAsync(TimeSpan.FromSeconds(2), "a second copy of the Verification suggested email", Ct);
         return [.. (await fixture.Mailpit.MessagesAsync(address, Ct)).Where(m => m.Subject == VerificationAlertWording.SuggestedSubject)];
     }
 

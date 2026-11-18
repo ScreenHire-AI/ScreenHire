@@ -29,11 +29,11 @@ concurrency:
 # What a shard costs (.claude/rules/test-value.md; the measurements are in docs/process/testing.md, "Time"): a pull
 # request waits for its slowest job, and the account runs 20 jobs at once, shared by every pull request. A pull request
 # starts 19 here: checks, 2 Vitest, 6 integration, 8 end-to-end, infra and lighthouse. CiWorkflowTests fails past 20,
-# so a new job means giving one up. An Aspire shard spends about a minute and a half to two and a half minutes before
-# its first test (setup, the builds, its own AppHost), on every shard, which is why integration has 6 shards and not 8:
-# two more would save its tests about 15 s each and it already ends before the end-to-end shards. The shards are cut on
-# measured seconds (tests/shard-durations.json), and TestShardPlanTests fails when a class or a single test is too
-# heavy for a shard, or when too many classes have no measurement.
+# so a new job means giving one up. Before its first test an integration shard spends about two minutes and an
+# end-to-end shard about three (setup, the builds, its own AppHost), on every shard, which is why integration has 6
+# shards and not 8: the two more saved its test step about 20 s, and it ends before the end-to-end shards either way.
+# The shards are cut on measured seconds (tests/shard-durations.json), and TestShardPlanTests fails when a class or a
+# single test is too heavy for a shard, or when too many classes have no measurement.
 #
 # Every job runs on ubuntu-24.04, pinned: ubuntu-latest moved to a new Ubuntu on 2026-10-19, and the caches are keyed
 # on runner.os, which reads Linux on every release. Move all jobs together.

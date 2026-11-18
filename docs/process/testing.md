@@ -26,10 +26,20 @@ sources:
   - resource: scripts/install-browsers.mjs
   - resource: global.json
   - resource: .github/workflows/ci.yml
+  - resource: .github/workflows/caches.yml
   - resource: .github/actions/setup/action.yml
   - resource: scripts/test-shard.mjs
+  - resource: scripts/ci-timings.mjs
+  - resource: scripts/ci-together.mjs
+  - resource: tests/shard-durations.json
   - resource: scripts/tested-tree.mjs
   - resource: .github/actions/tested-tree/action.yml
+  - resource: tests/ScreenHire.Testing/Wait.cs
+  - resource: apps/dashboard/src/test-support/quiet.ts
+  - resource: tests/ScreenHire.E2E/DashboardThemeSetupTests.cs
+  - resource: tests/ScreenHire.E2E/DashboardThemeEmptyTests.cs
+  - resource: tests/ScreenHire.E2E/DashboardPhoneEmptyTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/OwnStackRun.cs
 ---
 # Testing
 
@@ -51,6 +61,8 @@ When Docker is down, `pnpm docker:start` starts Docker Desktop and waits for the
 
 Pick the lowest tier that can catch the bug. A rule in the domain gets a unit test even when an integration test also
 covers the endpoint. End-to-end tests prove that the pieces connect and render; they do not enumerate edge cases.
+What a test must earn before it is added, and the limits CI holds a test and a job to, are in
+[`.claude/rules/test-value.md`](../../.claude/rules/test-value.md).
 
 ## Running
 
@@ -167,10 +179,13 @@ There is no reset between tests and no Respawn. Instead:
 - **A test that needs a different stack gets a fixture of its own.** Subclass `AppHostFixture`, add the AppHost
   settings through `ExtraArguments`, and use it as the class's `IClassFixture`. `DevelopmentDemoTests` does this with
   `--ScreenHire:Demo=true`: it checks the data `pnpm dev` seeds on Brightwater, and that a second start of the API adds
-  none, on a stack the other tests never see. Each such fixture boots another stack, about 25 s, so keep them rare.
-  A stack whose startup is heavy goes in a collection with `DisableParallelization = true`, as the demo's
-  `DevelopmentDemoRun` does: run beside the parallel tests, the demo's burst held the shared stack's worker past their
-  deadlines.
+  none, on a stack the other tests never see. Each such fixture boots another stack, about 40 s on CI, so keep them
+  rare. Its class goes in a collection with `DisableParallelization = true`, which runs alone after the parallel tests:
+  `OwnStackRun` in the integration tests, or a collection of its own as the demo's `DevelopmentDemoRun` has. Run beside
+  the parallel tests, the demo's burst held the shared stack's worker past their deadlines, and `ApiReferenceTests`
+  missed its one-minute deadline three times. Alone, the class's cost is also a span on the shard's clock that CI's
+  sharder can weigh ([Continuous integration](#continuous-integration)). `TestShardPlanTests` fails on a class with a
+  stack of its own that is in no such collection.
 - `TestData` is the one place tests write to the database directly. It writes as the application role
   (`screenhire_app`, which neither owns the tables nor bypasses RLS) with the organization as tenant, so row-level
   security checks test data too. `fixture.CreateDbContextAsync(tenant, ...)` gives a context on the same role.
@@ -297,8 +312,25 @@ handful of records never shows (design system S9).
 run: a published job with three synthetic applicants whose checks have run, a hiring, scorecard and email template, a custom
 role, an API key, a webhook endpoint and a task). Each route and each tab of its first tab list is a step, and the overlays
 the routes do not show (command palette, shortcuts, the bell, the Add candidate sheet, the Close job dialog, the file viewer,
-and on a phone the navigation sheet) are steps too. `ProofWalk` collects every failure and asserts once at the end, so one
-run lists every page to fix.
+and on a phone the navigation sheet) are steps too. `ProofWalk` collects every failure and asserts once at the end of a
+row, so one run lists every page to fix.
+
+The walk is a theory, one row per group of routes, never one method:
+
+- `ProofWalk`'s route table gives each route its group (work, job, applications, templates, verification, organization,
+  integrations), and the theory's rows are the table's groups plus the overlays, so a route cannot be left out of every
+  row. Each row signs in for itself and only reads the scene, so CI runs the rows side by side.
+- As one method each walk ran 169 and 203 s on CI, and a shard cannot end before its longest test
+  ([`.claude/rules/test-value.md`](../../.claude/rules/test-value.md)). The rows run 13 to 58 s.
+- The sign-in page and the onboarding page are each checked by one row only, so two rows never write the same
+  screenshot.
+- The Verification area's tabs are its pages, each at its own address and each in the table, so the walk opens each of
+  them once and does not open every tab from every one. It used to: each of the seven pages was checked eight times, and
+  that one row ran 145 s.
+- The dark walk is two classes, `DashboardThemeTests` (the pages a team works in, and the overlays) and
+  `DashboardThemeSetupTests` (the pages it sets things up in), because CI gives a whole class to one shard and the dark
+  walk as one class outweighed an average shard. The walks of a new organization are classes of their own for the same
+  reason: `DashboardThemeEmptyTests` and `DashboardPhoneEmptyTests`.
 
 - Dark: a context whose system theme is dark (`UseDarkThemeAsync`), 1440 px, axe with colour-contrast on, and a check that
   the page is in the dark theme. A second test makes a heading unreadable and expects axe to say so, so a pass means the
@@ -314,8 +346,9 @@ run lists every page to fix.
   pins the voice of the notice and the confirmation (no "thorough checks", no claim that no software decides).
 - `theme-contrast.test.ts` (Vitest) computes what axe cannot read from the tokens, in both themes: the focus ring at 3:1,
   status icons at 3:1, status labels at 4.5:1 and the chart colour at 3:1.
-- Each class also signs a new person in, checks the onboarding page they land on, sets up an organization there and walks
-  its list pages, which is where the empty states show (`EmptyOrganizationAsync`).
+- `DashboardThemeEmptyTests` and `DashboardPhoneEmptyTests` walk a new organization's pages, which is where the empty
+  states show, in three rows. The first signs a new person in, checks the onboarding page they land on and sets the
+  organization up there (`EmptyOrganizationAsync`). The other two set theirs up through the API and then sign in.
 - The walks share one scene, unlike the rule that each test makes its own organization: they open dialogs and sheets but
   never submit them, so the scene stays as it was built.
 - Each step also measures every text field's edge against what surrounds it, with the colours the browser drew, and fails
@@ -451,11 +484,20 @@ another's.
 | `tested-tree` | On a push only: `scripts/tested-tree.mjs` asks whether the pushed tree is the tree of a merged PR's head with `Gate` green on it. Its answer skips every job below. It reads checks and pull requests, nothing else. Kangentic's copy of this job took 10 to 12 s on its last five pushes to `main` | 5 min |
 | `checks` | `pnpm verify:dotnet`, `pnpm verify:contract`, `pnpm check`, `pnpm -r build`, Vitest for every package but the dashboard, and `dotnet test --project tests/ScreenHire.UnitTests`. Every step runs even when an earlier one failed, and the last step fails the job if any did, so a run reports every broken check at once | 20 min |
 | `vitest` (2 shards) | The dashboard's Vitest suite with Vitest's own `--shard`. No .NET | 15 min |
-| `integration` (8 shards) | `tests/ScreenHire.IntegrationTests` on the runner's Docker Engine, one AppHost per shard | 25 min |
-| `e2e` (8 shards) | `pnpm -r build`, then `tests/ScreenHire.E2E` with Playwright's Chromium, one AppHost per shard | 25 min |
+| `integration` (6 shards) | `tests/ScreenHire.IntegrationTests` on the runner's Docker Engine, one AppHost per shard. The image pulls and the test build run side by side (`scripts/ci-together.mjs`) | 25 min |
+| `e2e` (8 shards) | The image pulls, `pnpm -r build` and the test build side by side, then `tests/ScreenHire.E2E` with Playwright's Chromium, one AppHost per shard | 25 min |
 | `infra` | `dotnet aspire publish` writes the Azure Bicep from the AppHost's publish model (`apps/apphost/AzurePublish.cs`) and `diff -r` compares it with the committed `infra/`. Provisions nothing, logs in to nothing, reads no secret ([deploy](../operations/deploy.md)) | 15 min |
 | `lighthouse` | `pnpm verify:lighthouse` on the marketing build, only when the change touches `apps/marketing`, `packages/plans`, `packages/ui`, `pnpm-lock.yaml` or `tools/lighthouse` (otherwise a notice says so). It installs `tools/lighthouse` in its own step. Report-only: a budget miss is a warning, the job stays green, and it is not in the gate, because shared runners have no LCP baseline yet | 20 min |
 | `gate` (`Gate`) | Nothing but a check that `checks`, `infra` and every shard of `vitest`, `integration` and `e2e` succeeded. It runs even when they fail (`always()`), so a skipped or cancelled job never reads as a pass, except a job `tested-tree` skipped on purpose. The board's skills read it by name on the PR's head. Branch protection on `main` did not require it as of 2026-10-31 (an owner action), so the skills check it themselves | 5 min |
+
+A pull request starts 19 of these at once: `checks`, 2 `vitest`, 6 `integration`, 8 `e2e`, `infra` and `lighthouse`. The
+account runs 20 jobs at once ([Time](#time)), shared by every open pull request, and `CiWorkflowTests` fails when a
+pull request would start more: adding a job means giving one up
+([`.claude/rules/test-value.md`](../../.claude/rules/test-value.md)).
+
+A second workflow, [`.github/workflows/caches.yml`](../../.github/workflows/caches.yml), runs on a push to `main` that
+changes what a cache key is made from, and on no pull request
+([A push to main that is already tested](#a-push-to-main-that-is-already-tested)).
 
 ### A push to main that is already tested
 
@@ -477,7 +519,8 @@ the PR right after the merge. The job prints which of these it found (`[tested-t
 job on a push now starts after this one.
 
 The measured reason (the overnight run of 2026-11-07, 07:00 to 12:00 UTC): 48 run attempts and 1,056 jobs, at most 40
-running at once, which looks like the account's limit, so two runs nearly fill it and a third queues. Jobs waited 1,368
+running at once. That 40 was one burst of 39 seconds: the account's limit is 20 ([Time](#time)), so one run fills it
+and a second queues. Jobs waited 1,368
 minutes against 3,102 running; a pull request run took 13 to 14 minutes at the peak and about 5 alone. The 15 pushes to
 `main` used 865 job-minutes, 28% of the night, and 8 of them carried a tree a pull request had passed. Run by hand
 against GitHub's API afterwards, the script skips those 8, `bbe200b` among them, and runs the other 7.
@@ -489,19 +532,37 @@ would have shown on the next pull request run that contains the code, where the 
 above catch it. What the push run exists for survives: two green branches that break each other always produce a tree
 no pull request ran, so that push runs in full (ADR-0020, decision 12).
 
-A skipped push also leaves less behind. Lighthouse does not report on it, and it uploads no `durations-*` artifacts. It
-saves no caches either, and pull request runs restore theirs from `main`. After a dependency bump lands by skip, each
-pull request run restores an older cache or none until the next push that runs in full.
-`gh workflow run CI --ref main` refills them sooner.
+A skipped push also leaves less behind. Lighthouse does not report on it, and it uploads no `durations-*` artifacts. Its
+jobs save no caches either, and a pull request run restores a cache saved on its own ref or on `main`, never one another
+pull request saved. So after a dependency bump landed by skip, `main` held nothing under the new key, and every pull
+request installed its packages from the network in every job, and Chromium in every end-to-end shard, until the next
+push that ran in full.
+
+[`.github/workflows/caches.yml`](../../.github/workflows/caches.yml) closes that gap:
+
+- It runs on a push to `main` that changes a file a cache key is made from: `pnpm-lock.yaml`, `global.json`,
+  `dotnet-tools.json`, `Directory.Packages.props`, a `.csproj`, the setup action or the workflow itself. It runs on no
+  other push and on no pull request, so it takes no slot from one.
+- It has one job per cache family, each set up through `.github/actions/setup` as the jobs it fills for are, so the keys
+  are the action's own: the solution's packages with the pnpm store and Chromium (what `checks`, `e2e` and `lighthouse`
+  restore), the integration tests' packages, and the AppHost's.
+- The cache actions save in their post steps, and only when the job succeeded, so a failed install saves nothing.
+- `gh workflow run Caches --ref main` fills them by hand.
+
+It is a workflow of its own and not a job in `ci.yml` behind `tested-tree`, because that job would run after every
+merge, or need each key's text copied into a lookup. The path filter is GitHub's own way to say "a key changed". The
+cost is a second fill on the rare push that changes a key and also runs its suite. `CiWorkflowTests` fails when the
+paths stop matching what the setup action's keys hash, and when the workflow gains a pull request trigger.
 
 The Testing column is not capped for now. A cap moves the wait from CI's queue to the board's, and agents there also
 run local checks. Measure the queue again after the next large run before changing shards.
 
 xUnit and Microsoft Testing Platform have no shard option, so [`scripts/test-shard.mjs`](../../scripts/test-shard.mjs)
 splits a .NET test project by class:
-- it lists the built project's tests (`dotnet test --list-tests`);
-- it weighs each class by its measured seconds in [`tests/shard-durations.json`](../../tests/shard-durations.json), or,
-  for a class with no measurement, by its test count times the median seconds per test;
+- it lists the built project's tests (`dotnet test --list-tests`), and fails when the listing's own count and the tests
+  it could place differ, so a line it cannot read is never a test that runs in no shard;
+- it weighs each class by what CI measured ([`tests/shard-durations.json`](../../tests/shard-durations.json)), or, for
+  a class with no measurement, by its test count times the median seconds per test;
 - it gives each class, whole, to the lightest shard, heaviest class first;
 - it prints one shard's `--filter-class` arguments.
 
@@ -509,20 +570,54 @@ A class stays whole because a class fixture can boot a stack of its own (`Develo
 class fails rather than run everything. After a build, `node scripts/test-shard.mjs tests/ScreenHire.E2E 2 8` prints
 what CI's second end-to-end shard runs.
 
-Every Aspire shard writes xUnit's CTRF report (`TestResults/*.ctrf.json`, uploaded as `durations-<suite>-<shard>`) and
-prints its 15 slowest tests. When the shards drift apart, refresh the measurements from a green run whose shards ran. A
-push that skipped its tests uploads none:
+What a class weighs follows how a shard spends its test step. xUnit runs 4 tests at once on the runners, so a shard
+takes its AppHost's start, then the larger of its longest test and its tests' summed seconds over 4, then each class
+that runs alone, one after another. `tests/shard-durations.json` holds what that needs:
+
+| In the file | What it is | How a class weighs |
+|---|---|---|
+| `seconds` | A class's test seconds, summed | Those seconds |
+| `alone` | The seconds of the shard's clock a class takes when it runs alone, after the parallel tests, the AppHost it boots for itself included | Those seconds times `parallelism`: nothing runs beside it, so a second of it costs what 4 test-seconds cost |
+| `longest` | A class's longest test | Not a weight: a shard cannot end before its longest test, so the limit below reads it |
+| `parallelism` | 4 | |
+
+A class runs alone when it is in a collection with `DisableParallelization`. Every class that boots an AppHost of its
+own is in one (`OwnStackRun`, `DevelopmentDemoRun`, `MarketingScreenshotsRun`), so two stacks never start at once and the
+class's cost is a span on the clock that can be measured. The keys of `alone` say which classes these are.
+
+Every Aspire shard writes xUnit's CTRF report (`TestResults/*.ctrf.json`, uploaded as `durations-<suite>-<shard>`).
+Refresh the measurements from one or more green runs whose shards ran (a push that skipped its tests uploads none). The
+script takes the mean over the reports it is given and rewrites the file:
 
 ```
-gh run download <run-id> -p "durations-*" -D TestResults/durations
-node scripts/test-shard.mjs --record TestResults/durations > tests/shard-durations.json
+gh run download <run-id> -p "durations-*" -D TestResults/durations/<run-id>
+node scripts/test-shard.mjs --record TestResults/durations
 ```
 
-A stale file still splits correctly, only less evenly, and a new class gets its estimate until the next refresh.
+It reads only when each test ended and how long it took. xUnit stamps a test's `start` when it is queued, not when it
+begins, so every parallel test of a run carries the same one.
+
+`TestShardPlanTests` holds the file to the limits of [`.claude/rules/test-value.md`](../../.claude/rules/test-value.md),
+at the shard counts `ci.yml` uses (`node scripts/test-shard.mjs --check ScreenHire.E2E=8 ScreenHire.IntegrationTests=6`
+prints the same):
+
+- no class heavier than an average shard, unless it runs alone and so cannot be split: split the class;
+- no test longer than an average shard's parallel tests take (its weight over 4): make it a theory over groups, as
+  `ProofWalk` is;
+- at most a quarter of a project's test classes without a measurement: refresh the file;
+- the keys of `alone` are the classes the sources run alone, and no class boots its own AppHost beside the parallel
+  tests.
+
+Refresh sooner when one shard's test step runs about 25% past its suite's average in several runs.
+`node scripts/ci-timings.mjs --last 10` prints each shard's.
 
 Meziantou.ShardedTest does the same per test, but it has no licence (ADR-0008), and it builds a VSTest `--filter`,
-which `dotnet test` on this platform does not take. Each Aspire shard boots its own AppHost, about 40 s, so a shard is
-worth adding while its tests run well past that. Raise a matrix's `shard` list and `shards` value together.
+which `dotnet test` on this platform does not take.
+
+A shard is not free. Before its first test an end-to-end shard spends about three minutes and an integration shard
+about two (setup, the builds, its own AppHost), on every shard. So a suite is given shards while
+it is the pole, the job a pull request waits for, and gives them up when it is far under it: integration went from 8
+shards to 6 on 2026-11-18 ([Time](#time)). Raise or lower a matrix's `shard` list and `shards` value together.
 
 Three settings make each shard faster without changing what it proves:
 - **Test-only builds** (`TEST_BUILD_FLAGS`): no analyzers, no code-style enforcement and no build-time OpenAPI
@@ -562,7 +657,9 @@ credential (the consistency check's LLM is the Development fake). No test retrie
 `CiWorkflowTests` (`tests/ScreenHire.UnitTests/Tooling/`) fails when a job leaves `ubuntu-24.04` or has no timeout,
 when `Gate` does not need every test job, when a matrix's `shard` list is not 1 to its `shards` value, when anything under `.github/` reads `secrets.` or runs on a self-hosted
 runner, and when `APPHOST_IMAGES` differs from the images `apps/apphost/AppHost.cs` names. That is why `AppHost.cs`
-names Azurite's and Mailpit's tags itself: bump them with the Aspire packages.
+names Azurite's and Mailpit's tags itself: bump them with the Aspire packages. It also fails when a pull request would
+start more than 20 jobs, and when `caches.yml` stops matching the setup action's cache keys. `TestSuiteRulesTests`
+fails on changed-files test selection or a retry in a workflow, a package script or a Vitest configuration.
 
 ### What differs on Linux
 
@@ -645,12 +742,22 @@ port, shared data, or ordering between tests. Never add retries, sleeps or `Skip
 through the gate. In end-to-end tests, wait on a condition (`Expect(...)`, a health check), never on time. A change to the test harness, or a flake fix, is proven in CI: the same commit passes twice in a row
 with no change, the second time through `gh run rerun <run-id>`.
 
+Off a page, a .NET test waits with [`Wait`](../../tests/ScreenHire.Testing/Wait.cs): `Wait.UntilAsync` and
+`Wait.ForAsync` poll until a condition holds or a deadline passes, and name what they waited for when it does. To show
+that something does not happen (a second email inside a cooldown, a control that must not appear), a test names the
+window: `Wait.ForNothingAsync` in .NET, `nothingHappensFor` (`apps/dashboard/src/test-support/quiet.ts`) in the
+dashboard's Vitest tests, each with its reason. Where the thing that would cause it can be waited for, wait for that:
+`WolverineStore.WaitUntilHandledAsync` returns once the worker has handled the message. `TestSuiteRulesTests`
+(`tests/ScreenHire.UnitTests/Tooling/`) fails on a `Task.Delay`, a `Thread.Sleep`, a `WaitForTimeoutAsync` or a timer
+sleep written into a test, on a skipped or exclusive test, and on a retry.
+
 ### Flake history
 
 What failed the gate with no change, and the cause that was fixed, so the next flake is compared with these first.
 
 | When | Symptom | Cause and fix |
 |---|---|---|
+| 2026-11-18 | A local run of eleven end-to-end classes with every test in parallel (`--parallel all`, which has no limit of 4 on the dev machine): `MarketingScreenshotsTests` failed before its test began. Its own stack's `dashboard` resource never passed its health check ("Failed to connect to http://localhost:<port>/"). The class passed alone straight after, 1 of 1, and the other 35 tests of the run passed. | Not proven; the machine is the suspect. 25 containers from other worktrees' stacks were up, and the class boots a second stack with the demo's data. It is the unexplained start of the 2026-11-07 row again (the dashboard resource reported as failed to start, with no reason in the log). The branch changed only how the class polls for an email and for the analyzers, which it had not reached. If it recurs on a quiet machine, keep `TestResults/logs/MarketingDemoFixture/dashboard.log` before rerunning. |
 | 2026-11-17 | CI run 44237368429 (#156, a `kangentic.json` change, end-to-end shard 4): `WebhookStatesTests.An_endpoint_that_times_out_fails_gives_up_is_turned_off_and_a_rotated_secret_each_say_so_with_a_way_forward` found no delivery row within 60 s, the fourth time. The shard's `worker.log` showed the delivery tried three times and Succeeded at 04:30:28, while the failure's page snapshot read "Deliveries 0 No deliveries yet" with live updates connected. | Found and fixed: the endpoint page's delivery log polled every 5 s only while `endpoint.data?.data.enabled` was true, read inside TanStack's `refetchInterval` callback, which TanStack calls again only after that query fetches. When the empty log answered before the endpoint, the callback read `undefined`, the log never polled, and nothing else refreshes it. The page now reads `enabled` in the query's options function, which re-runs when the endpoint arrives, and `webhook-endpoint-page.test.ts` reproduces the order (it failed before the fix). The three earlier rows below were this race. |
 | 2026-11-09 | CI runs 42651302349 (#148, shard 4) and 42653228974 (#147, shard 4 of 8, on its second run): `WebhookStatesTests.An_endpoint_that_times_out_fails_gives_up_is_turned_off_and_a_rotated_secret_each_say_so_with_a_way_forward` never saw a delivery row read Delivered within 60 s. Neither branch changed webhook code, and both passed on a rerun of the failed job with no push. | Not proven. This is the third occurrence in the table (see the entry below). The next failure should read the worker's delivery attempts in that shard's `e2e-results` artifact before the wait changes. |
 | 2026-11-09 | CI run 42575960660 (a pull request), end-to-end shard 2: `WebhookStatesTests.An_endpoint_that_times_out_fails_gives_up_is_turned_off_and_a_rotated_secret_each_say_so_with_a_way_forward` waited 60 s for its newest delivery row to read Delivered. The branch changed the candidate page and the candidates table and not webhooks; `main` passed the class in its own gate, and the class passed 8 of 8 alone with `LargeListsTests` on the branch's merged build. | Not proven. The test waits on the worker's retries with backoff on a shared runner. If it fails again, read the `e2e-results-2` logs for the worker's delivery attempts before changing the wait. In the same run `LargeListsTests` failed for a real reason, not a flake: it read the candidates panel's count, which the redesign moved to the List choice. |

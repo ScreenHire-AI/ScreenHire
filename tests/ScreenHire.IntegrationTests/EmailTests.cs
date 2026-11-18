@@ -534,23 +534,9 @@ public sealed class EmailTests(AppHostFixture fixture)
         ["applicationIds"] = new JsonArray([.. applicationIds.Select(id => JsonValue.Create(id))]),
     };
 
-    private async Task<MailpitMessage> WaitForSubjectAsync(string address, string marker)
-    {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
-        while (true)
-        {
-            var match = (await fixture.Mailpit.MessagesAsync(address, Ct)).FirstOrDefault(m => m.Subject.Contains(marker, StringComparison.Ordinal));
-            if (match is not null)
-            {
-                return match;
-            }
-
-            if (DateTimeOffset.UtcNow > deadline)
-            {
-                throw new TimeoutException($"Mailpit received no email with {marker} in its subject.");
-            }
-
-            await Task.Delay(200, Ct);
-        }
-    }
+    private Task<MailpitMessage> WaitForSubjectAsync(string address, string marker) =>
+        Wait.ForAsync(
+            async () => (await fixture.Mailpit.MessagesAsync(address, Ct)).FirstOrDefault(m => m.Subject.Contains(marker, StringComparison.Ordinal)),
+            $"an email with {marker} in its subject",
+            Ct);
 }

@@ -40,6 +40,7 @@ sources:
   - resource: .claude/rules/no-personal-info.md
   - resource: .claude/rules/skill-authoring.md
   - resource: .claude/rules/svelte-dashboard.md
+  - resource: .claude/rules/test-value.md
   - resource: .claude/rules/unattended-runs.md
   - resource: .claude/rules/utc-timestamps.md
   - resource: .claude/rules/writing-style.md
@@ -109,6 +110,7 @@ convention; the rule holds the detail.
 | [`utc-timestamps`](../../.claude/rules/utc-timestamps.md) | `src`, `apps/api`, `apps/worker` | `DateTimeOffset` in UTC from `TimeProvider`, `timestamp with time zone` |
 | [`svelte-dashboard`](../../.claude/rules/svelte-dashboard.md) | `apps/dashboard`, `packages/ui` | Svelte 5 runes, SvelteKit 3 imports, generated client, shadcn-svelte, tokens, status marks, accessibility; points to the design system for how screens look |
 | [`astro-public`](../../.claude/rules/astro-public.md) | `apps/careers`, `apps/marketing` | about 0 KB JS (one upload island), forms that work without JS, strict CSP, SEO and JSON-LD, domains as configuration, notice before collection, marketing pages built from the shell and banned from generated-page decoration |
+| [`test-value`](../../.claude/rules/test-value.md) | `tests`, `*.test.ts`, `.github`, the shard and CI timing scripts | what earns a test (the lowest tier that can fail for the bug, real code, a condition and never a sleep, no test longer than a shard's parallel phase) and what earns a CI job (20 slots, suites sized to finish together, shards cut by measured time, changes measured by paired runs) |
 | [`docs-stay-in-sync`](../../.claude/rules/docs-stay-in-sync.md) | sources that docs enumerate | update the doc that lists an item when the item changes |
 | [`skill-authoring`](../../.claude/rules/skill-authoring.md) | `.claude/skills`, `.claude/agents`, `.claude/rules` | grounded commands, no questions, read-only reviewers, no forked mutating skills |
 
