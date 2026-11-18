@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace ScreenHire.E2E;
@@ -53,8 +54,8 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await Page.RouteAsync("**/v1/auth/providers", async route =>
         {
             var response = await route.FetchAsync();
-            var methods = System.Text.Json.Nodes.JsonNode.Parse(await response.TextAsync())!.AsObject();
-            methods["providers"] = new System.Text.Json.Nodes.JsonArray();
+            var methods = JsonNode.Parse(await response.TextAsync())!.AsObject();
+            methods["providers"] = new JsonArray();
             await route.FulfillAsync(new() { Response = response, Body = methods.ToJsonString() });
         });
         await GoToAsync("dashboard", "/sign-in");

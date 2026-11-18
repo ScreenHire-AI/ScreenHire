@@ -172,9 +172,8 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
   provider the installation configures for everyone ([sign-in and tenancy](architecture/sign-in-and-tenancy.md)). A
   per-organization provider is an enterprise feature, and no first customer needs it. The sign-in page asks for the email
   first, so this is where it will enter: Continue can send a company's email domain to its own identity provider. Nothing
-  is built for it yet. GitHub sign-in stays out: few
-  recruiters have an account, and it would be one more button for everyone else (owner's review of competitor sign-in
-  pages, 2026-11-17).
+  is built for it yet. GitHub sign-in stays out: few recruiters have an account, and it would be one more button for
+  everyone else (owner's review of competitor sign-in pages, 2026-11-17).
 - **The recruiter dashboard inside a customer's own site:** only if a customer asks. Sign-in cookies are SameSite Lax
   or Strict and do not reach a cross-site frame, Google's and Microsoft's sign-in pages refuse to load in a frame, and
   allowing framing invites clickjacking. The API and webhooks are the usual way to integrate.
