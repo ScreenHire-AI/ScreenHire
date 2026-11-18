@@ -82,14 +82,20 @@
     () => params.endpointId,
     () => ({ query: { refetchInterval: (query) => (query.state.data?.data.enabled ? 5000 : false) } }),
   );
+  // `enabled` is read in the options function, which re-runs when the endpoint arrives, not only inside
+  // `refetchInterval`, which TanStack calls again only after this query fetches: an empty log that answered before the
+  // endpoint would otherwise never start polling, and say "No deliveries yet" while the worker delivers.
   const deliveries = createListWebhookDeliveries(
     () => params.endpointId,
     undefined,
-    () => ({
-      query: {
-        refetchInterval: (query) => (endpoint.data?.data.enabled || query.state.data?.data.some((delivery) => delivery.status === 'Pending') ? 5000 : false),
-      },
-    }),
+    () => {
+      const enabled = endpoint.data?.data.enabled === true;
+      return {
+        query: {
+          refetchInterval: (query) => (enabled || query.state.data?.data.some((delivery) => delivery.status === 'Pending') ? 5000 : false),
+        },
+      };
+    },
   );
   const update = createUpdateWebhookEndpoint(() => ({ mutation: { onSettled: settled } }));
   const remove = createDeleteWebhookEndpoint(() => ({ mutation: { onSettled: settled } }));
