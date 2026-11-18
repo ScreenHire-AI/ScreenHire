@@ -213,7 +213,7 @@ describe('the Views list in the sidebar', () => {
     expect(within(sheet).getByRole('heading', { name: 'Team queue' })).toBeInTheDocument();
   });
 
-  it('has no Browse team views button without the views to browse, and keeps it in the icon rail as an icon with its label for screen readers', () => {
+  it('has no Browse team views button without the views to browse, and hides it in the icon rail', () => {
     stubViewport(1280);
     const { unmount } = render(ShellHarness, { props: { user, viewActions: actions() } });
     expect(within(main()).queryByRole('button', { name: 'Browse team views' })).toBeNull();
@@ -222,9 +222,7 @@ describe('the Views list in the sidebar', () => {
     render(ShellHarness, {
       props: { user, viewActions: actions(), teamViews: { views: [], seenAt: '2026-10-01T00:00:00Z', jobTitles: {} } },
     });
-    const button = within(main()).getByRole('button', { name: 'Browse team views' });
-    expect(button.closest('li')).not.toHaveClass('group-data-[collapsible=icon]:hidden');
-    expect(within(button).getByText('Browse team views')).toHaveClass('group-data-[collapsible=icon]:sr-only');
+    expect(within(main()).getByRole('button', { name: 'Browse team views' }).closest('li')).toHaveClass('group-data-[collapsible=icon]:hidden');
   });
 
   it('gives a tablet a button that opens the full sidebar, where the Views menus are', async () => {
