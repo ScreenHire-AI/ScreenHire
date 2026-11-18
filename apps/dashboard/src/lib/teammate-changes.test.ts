@@ -1,6 +1,14 @@
 import type { RealtimeEvent } from '@screenhire/realtime';
 import { describe, expect, it } from 'vitest';
-import { changeFor, defaultNotificationSettings, groupKey, groupToastFor, toastFor, type ChangeContext } from './teammate-changes.js';
+import {
+  appliedGroupToastFor,
+  changeFor,
+  defaultNotificationSettings,
+  groupKey,
+  groupToastFor,
+  toastFor,
+  type ChangeContext,
+} from './teammate-changes.js';
 
 const me = '0199f0c4-0000-7000-8000-00000000000a';
 const jordan = '0199f0c4-0000-7000-8000-00000000000b';
@@ -14,6 +22,11 @@ const context: ChangeContext = { userId: me, teamJobIds: new Set([teamJob]), set
 const moved = (actorUserId: string | null, jobId = teamJob): RealtimeEvent => ({
   type: 'ApplicationMoved',
   data: { ...ids, jobId, fromStageId: 'applied', toStageId: 'interview', movedAt: at, actorUserId },
+});
+
+const submitted = (actorUserId: string | null, jobId = teamJob): RealtimeEvent => ({
+  type: 'ApplicationSubmitted',
+  data: { ...ids, jobId, stageId: 'applied', submittedAt: at, actorUserId },
 });
 
 const task = (type: 'ApplicationTaskCreated' | 'ApplicationTaskCompleted', assigneeUserId: string | null): RealtimeEvent =>
@@ -145,5 +158,45 @@ describe('toast words', () => {
     const toast = groupToastFor('t-4', 'Emails', teamJob, 12, 'Jordan Ellis', 'Platform Engineer');
     expect(toast.sentence).toEqual(['Jordan Ellis emailed 12 candidates on ', 'Platform Engineer', '']);
     expect(toast.href).toBe(`/jobs/${teamJob}`);
+  });
+});
+
+describe('a new application', () => {
+  it('toasts the hiring team when the candidate or an API key made it, with no member behind it', () => {
+    expect(changeFor(submitted(null), context)).toEqual({ kind: 'NewCandidates', actorUserId: null, applicationId: ids.applicationId, jobId: teamJob });
+  });
+
+  it("is only for members on the job's hiring team", () => {
+    expect(changeFor(submitted(null, otherJob), context)).toBeUndefined();
+  });
+
+  it('stays a teammate change when a member added the candidate by hand, and never toasts that member', () => {
+    expect(changeFor(submitted(jordan), context)).toEqual({ kind: 'NewCandidates', actorUserId: jordan, applicationId: ids.applicationId, jobId: teamJob });
+    expect(changeFor(submitted(me), context)).toBeUndefined();
+  });
+
+  it('follows the New candidates setting and the toasts switch, and needs a signed-in person', () => {
+    expect(changeFor(submitted(null), { ...context, settings: { ...defaultNotificationSettings, off: ['NewCandidates'] } })).toBeUndefined();
+    expect(changeFor(submitted(null), { ...context, settings: { ...defaultNotificationSettings, toasts: false } })).toBeUndefined();
+    expect(changeFor(submitted(null), { ...context, userId: undefined })).toBeUndefined();
+  });
+
+  it("groups by job alone, apart from a member's additions to it", () => {
+    expect(groupKey(changeFor(submitted(null), context)!)).toBe(`Applied:${teamJob}`);
+    expect(groupKey(changeFor(submitted(jordan), context)!)).toBe(`NewCandidates:${jordan}:${teamJob}`);
+  });
+
+  it('says who applied to what, with the candidate as the link and no one acting', () => {
+    const toast = toastFor('t-7', changeFor(submitted(null), context)!, { actorName: '', candidateName: 'Taylor Brook', jobTitle: 'Senior .NET Engineer' });
+    expect(toast.sentence.join('')).toBe('Taylor Brook applied to Senior .NET Engineer');
+    expect(toast.href).toBe(`/applications/${ids.applicationId}`);
+    expect(toast.context).toBe('');
+  });
+
+  it("words several as a count on the job, linking to the job's Not screened candidates, with no verification wording", () => {
+    const toast = appliedGroupToastFor('t-8', teamJob, 3, 'Senior .NET Engineer');
+    expect(toast.sentence.join('')).toBe('3 new applications to Senior .NET Engineer');
+    expect(toast.href).toBe(`/candidates?view=not-screened&job=${teamJob}`);
+    expect(toast.sentence.join('')).not.toMatch(/verif|fraud|suspicious/i);
   });
 });

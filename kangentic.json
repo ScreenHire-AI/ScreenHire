@@ -213,6 +213,23 @@
       "color": "#10b981"
     }
   ],
+  "profiles": [
+    {
+      "id": "0120283c-28e9-4a61-90a3-2498c60d5e2f",
+      "name": "Upgrade",
+      "description": "Dependency upgrade tasks from /upgrade-deps. Runs Executing and Testing on Opus: Executing does the migration, and /pull-request fixes code in Testing when CI fails. Both run on Sonnet otherwise.",
+      "columns": {
+        "d33d4435-8173-40eb-9437-9143cf787ee0": {
+          "modelOverride": "opus",
+          "effortOverride": "high"
+        },
+        "bbc605fd-c21e-46f3-b0b3-78c6a897e2f4": {
+          "modelOverride": "opus",
+          "effortOverride": "high"
+        }
+      }
+    }
+  ],
   "stopScript": "set ASPIRE_CLI_TELEMETRY_OPTOUT=true&& dotnet aspire stop --non-interactive --nologo --apphost apps/apphost/ScreenHire.AppHost.csproj",
   "_modifiedBy": "7ef4fd0cb484"
 }

@@ -118,6 +118,31 @@ public sealed class AiUsageTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task The_summary_says_when_the_newest_call_happened_whatever_the_range_and_nothing_before_the_first()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        var before = (await tenant.GetAsync($"{Usage}/summary")).Expect(HttpStatusCode.OK);
+        before.At("lastCallAt").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null, "nothing has been called yet");
+
+        var now = DateTimeOffset.UtcNow;
+        var newest = now.AddDays(-3);
+        await SeedAsync(tenant.OrganizationId, now.AddDays(-40), 100);
+        await SeedAsync(tenant.OrganizationId, newest, 100);
+
+        // A range holding only the older call, a range holding nothing and the default month all name the one newest call.
+        var olderOnly = $"from={Uri.EscapeDataString(now.AddDays(-45).ToString("O"))}&to={Uri.EscapeDataString(now.AddDays(-35).ToString("O"))}";
+        var empty = $"from={Uri.EscapeDataString(now.AddDays(-20).ToString("O"))}&to={Uri.EscapeDataString(now.AddDays(-10).ToString("O"))}";
+        foreach (var query in new[] { "", $"?{olderOnly}", $"?{empty}" })
+        {
+            var summary = (await tenant.GetAsync($"{Usage}/summary{query}")).Expect(HttpStatusCode.OK);
+            summary.At("lastCallAt").GetDateTimeOffset().Should().BeCloseTo(newest, TimeSpan.FromMilliseconds(1), query);
+        }
+
+        (await tenant.GetAsync($"{Usage}/summary?{olderOnly}")).Expect(HttpStatusCode.OK).At("totals.calls").GetInt32().Should().Be(1);
+        (await tenant.GetAsync($"{Usage}/summary?{empty}")).Expect(HttpStatusCode.OK).At("totals.calls").GetInt32().Should().Be(0);
+    }
+
+    [Fact]
     public async Task Owners_and_Admins_read_usage_and_everyone_else_is_refused_and_only_an_Owner_sets_the_limits()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

@@ -68,16 +68,17 @@
   <p class="sr-only" role="status">Loading the overview…</p>
 {:else}
   <div class="grid grid-cols-2 gap-4 md:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
+    {#snippet lastChecked()}
+      {#if result.lastCheckedAt}Last checked <RelativeTime at={result.lastCheckedAt} class="inline" />{/if}
+    {/snippet}
+    <!-- Passed only when there is a date, so the tile has no empty line under its value (L1). -->
     <ReportStat
       icon={ClipboardCheckIcon}
       title="Applications checked"
       value={count.format(result.checked)}
       share={result.pending > 0 ? `${result.pending} still being checked` : null}
-    >
-      {#snippet footnote()}
-        {#if result.lastCheckedAt}Last checked <RelativeTime at={result.lastCheckedAt} class="inline" />{/if}
-      {/snippet}
-    </ReportStat>
+      footnote={result.lastCheckedAt ? lastChecked : undefined}
+    />
     {#snippet levelMark(state: VerificationState)}
       {#if state.kind === 'review' || state.kind === 'verify'}
         <LevelMark steps={state.steps} tone={state.kind} size="lg" />

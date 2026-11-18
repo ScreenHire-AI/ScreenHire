@@ -12,7 +12,7 @@ const job = (overrides: Partial<PublicJob> = {}): PublicJob => ({
   id: '0199f0c4-0000-7000-8000-000000000001',
   title: 'Engineer',
   slug: 'engineer',
-  location: 'London, GB',
+  location: 'London, United Kingdom',
   workplaceType: 'Onsite',
   employmentType: 'FullTime',
   salaryMin: 50000,

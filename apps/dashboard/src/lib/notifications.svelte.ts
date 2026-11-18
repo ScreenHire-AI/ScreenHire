@@ -70,9 +70,20 @@ export class Notifications {
     this.#trim([notification, ...this.items]);
   }
 
-  /** Adds a toast once. It pushes out the oldest toast; while three cards are open it does not show, as they need the person. */
+  /**
+   * Adds a toast. It pushes out the oldest toast; while three cards are open it does not show, as they need the person.
+   * A toast sent again under its id takes the place of the one showing and starts its lifetime over (a count that grew).
+   */
   toast(toast: Toast): void {
-    if (this.items.some((item) => item.id === toast.id)) return;
+    const showing = this.items.findIndex((item) => item.id === toast.id);
+    if (showing >= 0) {
+      if (!isToast(this.items[showing]!)) return;
+      this.#remaining.set(toast.id, toastLifetime);
+      this.items = this.items.map((item, index) => (index === showing ? { ...toast, toast: true } : item));
+      this.#start();
+      return;
+    }
+
     if (this.items.length >= maxNotifications && !this.items.some(isToast)) return;
     this.#remaining.set(toast.id, toastLifetime);
     this.#trim([{ ...toast, toast: true }, ...this.items]);

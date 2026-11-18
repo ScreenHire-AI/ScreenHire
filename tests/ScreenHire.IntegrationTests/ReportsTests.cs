@@ -251,6 +251,46 @@ public sealed class ReportsTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task The_report_says_when_the_newest_application_arrived_whatever_the_range_and_nothing_before_the_first()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var none = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+        none.At("lastApplicationAt").ValueKind.Should().Be(JsonValueKind.Null, "nothing has been applied for yet");
+
+        var (platform, data) = await SeedAsync(owner.OrganizationId);
+
+        // The newest application, to Platform, arrived 6 days ago.
+        var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+        report.At("lastApplicationAt").GetDateTimeOffset().Should().BeCloseTo(DaysAgo(6), TimeSpan.FromMilliseconds(1));
+
+        // A range before it, with no applications in it, still names it.
+        var older = $"from={Uri.EscapeDataString(DaysAgo(400).ToString("O"))}&to={Uri.EscapeDataString(DaysAgo(200).ToString("O"))}";
+        var past = (await owner.GetAsync($"/v1/reports/hiring?{older}")).Expect(HttpStatusCode.OK);
+        past.At("headline.applications").GetInt32().Should().Be(0);
+        past.At("lastApplicationAt").GetDateTimeOffset().Should().BeCloseTo(DaysAgo(6), TimeSpan.FromMilliseconds(1));
+
+        // It follows the jobs in scope: Data's newest application arrived 14 days ago, and a job nobody can see has none.
+        var dataOnly = (await owner.GetAsync($"/v1/reports/hiring?{Range}&jobId={data}")).Expect(HttpStatusCode.OK);
+        dataOnly.At("lastApplicationAt").GetDateTimeOffset().Should().BeCloseTo(DaysAgo(14), TimeSpan.FromMilliseconds(1));
+        var unknown = (await owner.GetAsync($"/v1/reports/hiring?{Range}&jobId={Guid.NewGuid()}")).Expect(HttpStatusCode.OK);
+        unknown.At("lastApplicationAt").ValueKind.Should().Be(JsonValueKind.Null);
+
+        // A member on only their jobs sees the newest of those: the job they are on, and nothing of the other.
+        using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer", jobAccess: "HiringTeamOnly");
+        await owner.SetHiringTeamAsync(data, await owner.MemberIdAsync(viewer.UserId));
+        var theirs = (await viewer.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
+        theirs.At("lastApplicationAt").GetDateTimeOffset().Should().BeCloseTo(DaysAgo(14), TimeSpan.FromMilliseconds(1), "Platform's newer application is not theirs to see");
+        var hidden = (await viewer.GetAsync($"/v1/reports/hiring?{Range}&jobId={platform}")).Expect(HttpStatusCode.OK);
+        hidden.At("lastApplicationAt").ValueKind.Should().Be(JsonValueKind.Null, "a job they cannot see says nothing about it");
+
+        // Another organization's newer application never counts.
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        await SeedAsync(other.OrganizationId);
+        (await viewer.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK)
+            .At("lastApplicationAt").GetDateTimeOffset().Should().BeCloseTo(DaysAgo(14), TimeSpan.FromMilliseconds(1));
+    }
+
+    [Fact]
     public async Task A_member_on_only_their_jobs_sees_only_those_jobs_numbers()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
