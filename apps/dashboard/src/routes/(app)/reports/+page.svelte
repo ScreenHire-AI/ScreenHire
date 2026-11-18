@@ -348,11 +348,18 @@
             role="group"
             aria-label="Headline numbers"
           >
-            <ReportStat class={statSpans[0]} icon={InboxIcon} title="Applications" value={countText(data.headline.applications)} change={changeText(data.headline.applications, previous?.applications)}>
-              {#snippet footnote()}
-                {#if data.lastApplicationAt}Last application <RelativeTime at={data.lastApplicationAt} class="inline" />{/if}
-              {/snippet}
-            </ReportStat>
+            {#snippet lastApplication()}
+              {#if data.lastApplicationAt}Last application <RelativeTime at={data.lastApplicationAt} class="inline" />{/if}
+            {/snippet}
+            <!-- Passed only when there is a date, so the tile has no empty line under its value (L1). -->
+            <ReportStat
+              class={statSpans[0]}
+              icon={InboxIcon}
+              title="Applications"
+              value={countText(data.headline.applications)}
+              change={changeText(data.headline.applications, previous?.applications)}
+              footnote={data.lastApplicationAt ? lastApplication : undefined}
+            />
             <ReportStat
               class={statSpans[1]}
               icon={CalendarCheckIcon}

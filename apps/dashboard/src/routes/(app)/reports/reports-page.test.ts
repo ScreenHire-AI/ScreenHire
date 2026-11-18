@@ -136,6 +136,9 @@ describe('reports page', () => {
 
     const stats = await screen.findByRole('group', { name: 'Headline numbers' });
     expect(within(stats).queryByText(/Last application/)).toBeNull();
+    // No empty line under the value either: the Applications tile has no share, so it has no line at all.
+    const card = within(stats).getByText('Applications').closest('[data-slot="report-stat"]') as HTMLElement;
+    expect(card.querySelector('p')).toBeNull();
   });
 
   it('packs each headline number into two rows: the title, then the value with its change on the same line', async () => {

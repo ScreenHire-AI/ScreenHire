@@ -83,11 +83,11 @@
   </div>
 
   <div class="grid grid-cols-2 gap-4 md:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
-    <ReportStat icon={ActivityIcon} title="Model calls" value={formatTokens(data.totals.calls)}>
-      {#snippet footnote()}
-        {#if data.lastCallAt}Last call <RelativeTime at={data.lastCallAt} class="inline" />{/if}
-      {/snippet}
-    </ReportStat>
+    {#snippet lastCall()}
+      {#if data.lastCallAt}Last call <RelativeTime at={data.lastCallAt} class="inline" />{/if}
+    {/snippet}
+    <!-- Passed only when there is a date, so the tile has no empty line under its value (L1). -->
+    <ReportStat icon={ActivityIcon} title="Model calls" value={formatTokens(data.totals.calls)} footnote={data.lastCallAt ? lastCall : undefined} />
     <ReportStat
       icon={CoinsIcon}
       title="Tokens"

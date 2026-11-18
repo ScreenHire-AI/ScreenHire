@@ -74,6 +74,8 @@ describe('the Usage tab', () => {
 
     const stat = (await screen.findByText('Model calls')).closest('[data-slot="report-stat"]') as HTMLElement;
     expect(stat).not.toHaveTextContent(/Last call/);
+    // No empty line under the value either: the tile has no share, so it has no line at all.
+    expect(stat.querySelector('p')).toBeNull();
   });
 
   it('shows the month against the budget and the cap', async () => {
