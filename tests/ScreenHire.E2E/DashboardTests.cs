@@ -35,7 +35,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
 
         // The stack sets the Terms and the Privacy Policy and no Data Processing Agreement: the line names those two.
         var line = Page.Locator("[data-slot=sign-in-footer]");
-        await Expect(line).ToContainTextAsync("By continuing, you agree to ScreenHire's Terms of Service and Privacy Policy.");
+        await Expect(line).ToHaveTextAsync(new Regex(@"^By continuing, you agree to ScreenHire's Terms of Service( \(opens in a new tab\))? and Privacy Policy( \(opens in a new tab\))?\.$"));
         await Expect(line.GetByRole(AriaRole.Link, new() { Name = "Terms of Service" })).ToHaveAttributeAsync("href", "https://example.com/terms");
         await Expect(line.GetByRole(AriaRole.Link, new() { Name = "Privacy Policy" })).ToHaveAttributeAsync("href", "https://example.com/privacy");
         await Expect(line.GetByText("Data Processing Agreement")).ToHaveCountAsync(0);
@@ -47,7 +47,9 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
     [Fact]
     public async Task Sign_in_with_only_email_links_has_the_field_and_Continue_and_no_divider()
     {
-        // The shared stack always has Dev SSO, so the answer to "which ways are set up" is trimmed to email links alone.
+        // The shared stack always has Dev SSO and the browser has passkeys, so the answer to "which ways are set up" is trimmed
+        // to email links and the browser's passkey support is taken away.
+        await Page.AddInitScriptAsync("delete window.PublicKeyCredential");
         await Page.RouteAsync("**/v1/auth/providers", async route =>
         {
             var response = await route.FetchAsync();
