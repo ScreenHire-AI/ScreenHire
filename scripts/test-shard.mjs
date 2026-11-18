@@ -31,8 +31,8 @@
 //   - `longest`: each class's longest test. A shard cannot end before its longest test, however light the shard is.
 //
 // The limits --check holds (.claude/rules/test-value.md): no class heavier than an average shard, unless it runs alone
-// and so cannot be split; no test longer than an average shard's parallel phase; and, given the classes on disk, at
-// most a quarter of a project's classes without a measurement.
+// and so cannot be split; no test over a quarter longer than an average shard's parallel tests take; and, given the
+// classes on disk, at most a quarter of a project's classes without a measurement.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -41,6 +41,10 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const defaultDurations = join(root, 'tests', 'shard-durations.json');
 const refresh = 'gh run download <run-id> -p "durations-*" -D TestResults/durations, then node scripts/test-shard.mjs --record TestResults/durations';
+
+// How far past an average shard's parallel tests one test may run. The same quarter a shard may run past its suite's
+// average before its weights are refreshed, and it covers the estimate: the runners run 3.6 to 4 tests at once, not 4.
+const LONGEST_TEST_TOLERANCE = 1.25;
 
 function fail(message) {
   console.error(message);
@@ -182,8 +186,8 @@ export function check(durations, shardsByProject, classesOnDisk) {
         problems.push(`${type} weighs ${round(durations.seconds[type])} test-seconds, more than an average shard of ${project} (${round(average)} over ${shards} shards), so its shard always runs long. Split the class.`);
       }
 
-      if ((durations.longest[type] ?? 0) > phase) {
-        problems.push(`${type} has a test of ${round(durations.longest[type])} s, longer than an average shard's parallel tests take in ${project} (${round(phase)} s), and a shard cannot end before its longest test. Split the test, or make it a theory over groups.`);
+      if ((durations.longest[type] ?? 0) > phase * LONGEST_TEST_TOLERANCE) {
+        problems.push(`${type} has a test of ${round(durations.longest[type])} s, over a quarter longer than an average shard's parallel tests take in ${project} (${round(phase)} s), and a shard cannot end before its longest test. Split the test, or make it a theory over groups.`);
       }
     }
 

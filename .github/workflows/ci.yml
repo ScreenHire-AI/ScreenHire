@@ -388,12 +388,15 @@ jobs:
             echo "marketing=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Set up the toolchain
+        id: setup
         if: ${{ steps.changes.outputs.marketing == 'true' }}
         uses: ./.github/actions/setup
         with:
           playwright: 'true'
+      # Only when the cache did not hold it: the install builds the end-to-end tests to reach Playwright's driver, about
+      # a minute for a browser that is already there.
       - name: Install Playwright's Chromium
-        if: ${{ steps.changes.outputs.marketing == 'true' }}
+        if: ${{ steps.changes.outputs.marketing == 'true' && steps.setup.outputs.chromium-cached != 'true' }}
         run: pnpm e2e:install
       - name: Build the marketing site
         if: ${{ steps.changes.outputs.marketing == 'true' }}

@@ -60,8 +60,8 @@ Pick the lowest tier that can fail for the reason the bug would. The tiers, and 
   pays when the seed is what costs: tests that only read one seed build it once a run and share it (`ProofScene`,
   `BusyOrganization`), and each still signs in for itself.
 - **A shard cannot end before its longest test.** xUnit runs 4 tests at once on the runners, so a test that walks
-  many pages is a theory over groups of them, one row a group (`ProofWalk`), never one method. No test runs longer
-  than an average shard's parallel tests take.
+  many pages is a theory over groups of them, one row a group (`ProofWalk`), never one method. No test runs over a
+  quarter longer than an average shard's parallel tests take.
 - **A class that boots an AppHost of its own runs alone,** in a collection with `DisableParallelization`
   (`OwnStackRun`), so two stacks never start at once and the sharder can weigh the class by its time on the clock.
 
@@ -99,9 +99,9 @@ Pick the lowest tier that can fail for the reason the bug would. The tiers, and 
   would start more than 20 jobs, counting each matrix leg, and when the workflow that fills `main`'s caches stops
   matching the cache keys.
 - **Test.** `TestShardPlanTests` fails, at the shard counts `ci.yml` uses, when a class outweighs an average shard,
-  when a single test outlasts an average shard's parallel tests, when over a quarter of a project's test classes have
-  no measurement, when a class with an AppHost of its own is in no collection that runs alone, and when
-  `tests/shard-durations.json` and the sources disagree about which classes run alone.
+  when a single test runs over a quarter past an average shard's parallel tests, when over a quarter of a project's
+  test classes have no measurement, when a class with an AppHost of its own is in no collection that runs alone, and
+  when `tests/shard-durations.json` and the sources disagree about which classes run alone.
 - **Test.** `TestShardTests` fails when the sharder would leave a test in no shard: a listing whose count and lines
   disagree fails the shard.
 - **Test.** `TestSuiteRulesTests` fails on changed-files selection or a retry in the workflow, a package script or a

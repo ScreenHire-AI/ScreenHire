@@ -5,7 +5,7 @@ namespace ScreenHire.UnitTests.Tooling;
 /// <summary>
 /// The measurements CI's shards are cut on (<c>tests/shard-durations.json</c>) keep the limits of
 /// <c>.claude/rules/test-value.md</c>, at the shard counts <c>ci.yml</c> uses: no class heavier than an average shard, no
-/// test longer than an average shard's parallel tests take, at most a quarter of a project's classes unmeasured, and the
+/// test over a quarter longer than an average shard's parallel tests take, at most a quarter of a project's classes unmeasured, and the
 /// classes weighed as running alone are the ones the sources run alone. <c>scripts/test-shard.mjs --check</c> does the
 /// arithmetic, so this holds no copy of it. Each red case edits a copy of the real file, or the real sources in memory,
 /// so a check that cannot fail would show here.

@@ -602,8 +602,8 @@ at the shard counts `ci.yml` uses (`node scripts/test-shard.mjs --check ScreenHi
 prints the same):
 
 - no class heavier than an average shard, unless it runs alone and so cannot be split: split the class;
-- no test longer than an average shard's parallel tests take (its weight over 4): make it a theory over groups, as
-  `ProofWalk` is;
+- no test over a quarter longer than an average shard's parallel tests take (its weight over 4): make it a theory over
+  groups, as `ProofWalk` is;
 - at most a quarter of a project's test classes without a measurement: refresh the file;
 - the keys of `alone` are the classes the sources run alone, and no class boots its own AppHost beside the parallel
   tests.
