@@ -8,8 +8,9 @@ namespace ScreenHire.UnitTests.Tooling;
 /// same files edited in memory. Every job runs on the pinned Ubuntu and has a timeout; <c>Gate</c> needs every test
 /// job and <c>tested-tree</c>, and every job but those two answers to <c>tested-tree</c>; nothing reads a secret or runs
 /// on a self-hosted runner (the repository's logs are public, and a self-hosted runner would run any pull request's
-/// code); and the images CI pulls before the tests are the ones
-/// <c>apps/apphost/AppHost.cs</c> runs. <see cref="Problems"/> returns what breaks a rule, empty when nothing does.
+/// code); the images CI pulls before the tests are the ones <c>apps/apphost/AppHost.cs</c> runs; and a pull request
+/// starts no more jobs at once than the account runs at once (<see cref="ConcurrentJobs"/>).
+/// <see cref="Problems"/> returns what breaks a rule, empty when nothing does.
 /// </summary>
 internal static partial class CiWorkflow
 {
@@ -27,6 +28,14 @@ internal static partial class CiWorkflow
     public const string SkipCondition = "needs.tested-tree.outputs.tested != 'true'";
 
     /// <summary>
+    /// How many jobs the account runs at once: GitHub Free's limit for an organization, and what the runs of 2026-11-07 to
+    /// 2026-11-18 peaked at on every day but two short bursts (docs/process/testing.md, "Time"). A pull request that starts
+    /// more leaves a job waiting for a runner even when nothing else is running, as 21 did until 2026-11-18. Adding a job
+    /// means giving one up (.claude/rules/test-value.md).
+    /// </summary>
+    public const int ConcurrentJobs = 20;
+
+    /// <summary>
     /// Jobs outside the gate's list on purpose: the gate itself, Lighthouse, which only reports, and the job that decides
     /// whether the others run.
     /// </summary>
@@ -34,7 +43,7 @@ internal static partial class CiWorkflow
 
     public sealed record Job(
         string Id, string? Name, IReadOnlyList<string> RunsOn, string? TimeoutMinutes, IReadOnlyList<string> Needs, string? If,
-        IReadOnlyList<string> Shard, IReadOnlyList<string> Shards, IReadOnlyDictionary<string, string> Permissions);
+        IReadOnlyList<string> Shard, IReadOnlyList<string> Shards, IReadOnlyDictionary<string, string> Permissions, int? Legs);
 
     /// <summary>Every file under <c>.github/</c> in the repository, by its '/'-separated repo path.</summary>
     public static Dictionary<string, string> RepositoryGitHubFiles()
@@ -157,6 +166,15 @@ internal static partial class CiWorkflow
             }
         }
 
+        if (jobs.Where(StartsOnAPullRequest).FirstOrDefault(job => job.Legs is null) is { } uncounted)
+        {
+            problems.Add($"{CiPath}: job '{uncounted.Id}' has a matrix this check cannot count (include or exclude), so the jobs a pull request starts are unknown");
+        }
+        else if (PullRequestJobs(ci) is var started && started > ConcurrentJobs)
+        {
+            problems.Add($"{CiPath}: a pull request starts {started} jobs at once, over the account's {ConcurrentJobs}, so one always waits for a runner: give a job up before adding one (.claude/rules/test-value.md)");
+        }
+
         var pulled = PulledImages(ci);
         var used = AppHostImages(appHost);
         foreach (var image in used.Except(pulled))
@@ -193,8 +211,43 @@ internal static partial class CiWorkflow
                 Scalar(Child(job, "if")),
                 Strings(Child(Child(Child(job, "strategy"), "matrix"), "shard")),
                 Strings(Child(Child(Child(job, "strategy"), "matrix"), "shards")),
-                Permissions(Child(job, "permissions")));
+                Permissions(Child(job, "permissions")),
+                Legs(Child(Child(job, "strategy"), "matrix")));
         }).ToList();
+    }
+
+    /// <summary>
+    /// How many jobs a pull request run starts at once: every job that answers to <see cref="TestedTreeJob"/> with the skip
+    /// condition, a matrix counted once per leg. That leaves out the job that runs on a push only and the gate, which
+    /// starts when the others have ended.
+    /// </summary>
+    public static int PullRequestJobs(string workflow) => Jobs(workflow).Where(StartsOnAPullRequest).Sum(job => job.Legs ?? 0);
+
+    private static bool StartsOnAPullRequest(Job job) => job.If?.Contains(SkipCondition, StringComparison.Ordinal) == true;
+
+    /// <summary>
+    /// The jobs a matrix makes: the product of its lists' lengths, 1 with no matrix, and null when it has <c>include</c> or
+    /// <c>exclude</c>, which this does not work out.
+    /// </summary>
+    private static int? Legs(YamlNode? matrix)
+    {
+        if (matrix is not YamlMappingNode mapping)
+        {
+            return 1;
+        }
+
+        var legs = 1;
+        foreach (var (key, value) in mapping.Children)
+        {
+            if (Scalar(key) is "include" or "exclude" || value is not YamlSequenceNode list)
+            {
+                return null;
+            }
+
+            legs *= list.Children.Count;
+        }
+
+        return legs;
     }
 
     /// <summary>The workflow's <c>env.APPHOST_IMAGES</c>, normalized like <see cref="AppHostImages"/>.</summary>

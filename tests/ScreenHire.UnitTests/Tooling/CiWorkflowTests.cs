@@ -5,7 +5,8 @@ namespace ScreenHire.UnitTests.Tooling;
 /// <summary>
 /// The CI workflow keeps its rules (<see cref="CiWorkflow"/>): the pinned runner, a timeout on every job, a Gate that
 /// needs every test job, every job answering to the job that skips a tested tree, no secrets and no self-hosted runner,
-/// and the AppHost's images pulled before the tests. Each red case edits the real files in memory and runs the same
+/// the AppHost's images pulled before the tests, and no more jobs started by a pull request than the account runs at
+/// once. Each red case edits the real files in memory and runs the same
 /// check the repository test runs, so a check that cannot fail would show here.
 /// </summary>
 public sealed class CiWorkflowTests
@@ -26,6 +27,10 @@ public sealed class CiWorkflowTests
         jobs.Where(job => job.Shard.Count > 0).Select(job => job.Id).Should().Equal(["vitest", "integration", "e2e"],
             "the shard check reads the matrices");
         jobs.Should().AllSatisfy(job => job.RunsOn.Should().NotBeEmpty());
+        // The count of what a pull request starts reads each job: one for checks, infra and lighthouse, a leg per shard.
+        jobs.Where(job => job.Legs != 1).Select(job => (job.Id, job.Legs)).Should().Equal(
+            [("vitest", 2), ("integration", 6), ("e2e", 8)], "each matrix counts once per shard");
+        CiWorkflow.PullRequestJobs(files[CiWorkflow.CiPath]).Should().Be(19, "checks, 2 Vitest, 6 integration, 8 end-to-end, infra and lighthouse");
         CiWorkflow.AppHostImages(CiWorkflow.RepositoryAppHost()).Should().HaveCountGreaterThanOrEqualTo(5,
             "AppHost.cs names Postgres, Azurite, Mailpit, Dev SSO and Caddy");
         CiWorkflow.PulledImages(files[CiWorkflow.CiPath]).Should().Contain("caddy:2.10.2-alpine");
@@ -44,6 +49,8 @@ public sealed class CiWorkflowTests
     [InlineData("      pull-requests: read\n", "", "tested-tree job needs pull-requests: read")]
     [InlineData("shard: [1, 2]\n        shards: [2]", "shard: [1]\n        shards: [2]", "job 'vitest' runs shards [1] of [2]")]
     [InlineData("shard: [1, 2]\n        shards: [2]", "shard: [1, 2]", "job 'vitest' runs shards [1, 2] of []")]
+    [InlineData("shard: [1, 2, 3, 4, 5, 6, 7, 8]\n        shards: [8]", "shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n        shards: [10]", "a pull request starts 21 jobs at once, over the account's 20")]
+    [InlineData("shard: [1, 2]\n        shards: [2]", "include: [{ shard: 1 }, { shard: 2 }]", "job 'vitest' has a matrix this check cannot count")]
     [InlineData("if: ${{ always() }}\n    runs-on", "runs-on", "if: always()")]
     [InlineData("name: Gate\n", "name: Required\n", "not 'Gate'")]
     [InlineData("DOTNET_NOLOGO: 'true'", "DOTNET_NOLOGO: ${{ secrets.NUGET_TOKEN }}", "reads a secret")]

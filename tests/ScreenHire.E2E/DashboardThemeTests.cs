@@ -2,12 +2,15 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The dashboard in its dark theme (design system 3.3): every route, every tab and the overlays at 1440 px, each with axe's
-/// colour-contrast rule on. The walk collects every failure and asserts once, so a run lists all the pages to fix.
+/// colour-contrast rule on. The walk is one row per group of routes (<see cref="ProofWalk.WalkGroups"/>); each row collects
+/// every failure and asserts once, so a run lists all the pages to fix. <see cref="DashboardThemeEmptyTests"/> walks a new
+/// organization's pages the same way.
 /// </summary>
 public sealed class DashboardThemeTests(E2EFixture fixture) : ProofWalk(fixture)
 {
-    [Fact]
-    public async Task Every_dashboard_page_tab_and_overlay_passes_axe_in_the_dark_theme()
+    [Theory]
+    [MemberData(nameof(WalkGroups), MemberType = typeof(ProofWalk))]
+    public async Task Every_dashboard_page_tab_and_overlay_passes_axe_in_the_dark_theme(string group)
     {
         await PrepareAsync();
         await UseDarkThemeAsync();
@@ -28,47 +31,8 @@ public sealed class DashboardThemeTests(E2EFixture fixture) : ProofWalk(fixture)
             _ = await ScreenshotAsync("dark", name);
         }
 
-        // The sign-in page is a dashboard route that a signed-out person sees.
-        await GoToAsync("dashboard", "/sign-in");
-        await SettleAsync();
-        await Check("/sign-in");
-
-        await SignInAsync();
-        foreach (var path in Routes())
-        {
-            await WalkAsync(path, "dark", Check);
-        }
-
-        await WalkOverlaysAsync("dark", Check);
-        ExpectNoProblems("The dark theme");
-    }
-
-    [Fact]
-    public async Task Onboarding_and_the_empty_states_of_a_new_organization_pass_axe_in_the_dark_theme()
-    {
-        await UseDarkThemeAsync();
-        await Page.SetViewportSizeAsync(1440, 1000);
-
-        async Task Check(string name)
-        {
-            if (!await Page.EvaluateAsync<bool>("() => document.documentElement.classList.contains('dark')"))
-            {
-                Problems.Add($"{name}: the page is not in the dark theme");
-            }
-
-            await CollectAxeAsync(name);
-            await CollectOverflowAsync(name);
-            await CollectFieldEdgesAsync(name);
-            _ = await ScreenshotAsync("dark-empty", name);
-        }
-
-        await EmptyOrganizationAsync(Check);
-        foreach (var path in EmptyRoutes())
-        {
-            await WalkAsync(path, "dark empty", Check);
-        }
-
-        ExpectNoProblems("The dark theme, empty");
+        await WalkGroupAsync(group, "dark", Check);
+        ExpectNoProblems($"The dark theme ({group})");
     }
 
     [Fact]
@@ -89,4 +53,3 @@ public sealed class DashboardThemeTests(E2EFixture fixture) : ProofWalk(fixture)
         problems.Should().NotBeNull().And.Contain("color-contrast");
     }
 }
-

@@ -13,6 +13,7 @@ public sealed class TaxOnFixture : AppHostFixture
 /// tax is added at checkout and the sandbox's checkout records that it asked for tax and a tax id, in the query of the address
 /// it sends the browser back to. The shared stack has tax off, which <see cref="BillingTests"/> runs on.
 /// </summary>
+[Collection<OwnStackRun>]
 public sealed class BillingTaxTests(TaxOnFixture fixture) : IClassFixture<TaxOnFixture>
 {
     [Fact]

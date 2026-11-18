@@ -7,6 +7,7 @@ namespace ScreenHire.IntegrationTests.Production;
 /// The API reference is public in production at the same path as in development: it documents the public API and holds
 /// no data, and the dashboard's API keys and Webhooks pages link to it.
 /// </summary>
+[Collection<OwnStackRun>]
 public sealed class ApiReferenceTests(ProductionApiFixture fixture) : IClassFixture<ProductionApiFixture>
 {
     private static readonly TimeSpan StartTimeout = TimeSpan.FromMinutes(3);

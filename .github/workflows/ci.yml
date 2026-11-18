@@ -24,8 +24,16 @@ concurrency:
 # runners: the dashboard's Vitest suite (Vitest's --shard), and the integration and
 # end-to-end suites by test class (scripts/test-shard.mjs; xUnit has no shard option). Every matrix sets
 # fail-fast: false, so one shard's failure never hides another's. Adding a shard is one more number in its matrix's
-# `shard` list and a new `shards` value; CiWorkflowTests fails when the list is not 1 to shards. Each Aspire shard
-# boots its own AppHost (about 40 s), so a shard is worth adding while its tests run well past that.
+# `shard` list and a new `shards` value; CiWorkflowTests fails when the list is not 1 to shards.
+#
+# What a shard costs (.claude/rules/test-value.md; the measurements are in docs/process/testing.md, "Time"): a pull
+# request waits for its slowest job, and the account runs 20 jobs at once, shared by every pull request. A pull request
+# starts 19 here: checks, 2 Vitest, 6 integration, 8 end-to-end, infra and lighthouse. CiWorkflowTests fails past 20,
+# so a new job means giving one up. An Aspire shard spends about a minute and a half to two and a half minutes before
+# its first test (setup, the builds, its own AppHost), on every shard, which is why integration has 6 shards and not 8:
+# two more would save its tests about 15 s each and it already ends before the end-to-end shards. The shards are cut on
+# measured seconds (tests/shard-durations.json), and TestShardPlanTests fails when a class or a single test is too
+# heavy for a shard, or when too many classes have no measurement.
 #
 # Every job runs on ubuntu-24.04, pinned: ubuntu-latest moved to a new Ubuntu on 2026-10-19, and the caches are keyed
 # on runner.os, which reads Linux on every release. Move all jobs together.
@@ -191,8 +199,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
-        shards: [8]
+        shard: [1, 2, 3, 4, 5, 6]
+        shards: [6]
     steps:
       - name: Check out
         uses: actions/checkout@v7
@@ -203,10 +211,13 @@ jobs:
         with:
           node: 'false'
           nuget-cache: integration
-      - name: Pull the AppHost's container images
-        run: printf '%s\n' $APPHOST_IMAGES | xargs -P 5 -n 1 docker pull -q
-      - name: Build the integration tests
-        run: dotnet build tests/ScreenHire.IntegrationTests $TEST_BUILD_FLAGS
+      # The pulls and the build read nothing of each other's, so they run side by side (scripts/ci-together.mjs prints
+      # each one's log in its own group, and its seconds).
+      - name: Image pulls and the test build, side by side
+        run: |
+          node scripts/ci-together.mjs \
+            "Pull the AppHost's container images" "printf '%s\n' \$APPHOST_IMAGES | xargs -P 5 -n 1 docker pull -q" \
+            "Build the integration tests" "dotnet build tests/ScreenHire.IntegrationTests \$TEST_BUILD_FLAGS"
       - name: Integration tests (shard ${{ matrix.shard }}/${{ matrix.shards }})
         env:
           SHARD: ${{ matrix.shard }}
@@ -258,12 +269,14 @@ jobs:
         uses: ./.github/actions/setup
         with:
           playwright: 'true'
-      - name: Pull the AppHost's container images
-        run: printf '%s\n' $APPHOST_IMAGES | xargs -P 5 -n 1 docker pull -q
-      - name: Frontend builds (pnpm -r build)
-        run: pnpm -r build
-      - name: Build the end-to-end tests
-        run: dotnet build tests/ScreenHire.E2E $TEST_BUILD_FLAGS
+      # None of the three reads another's output (the test build writes no OpenAPI document, TEST_BUILD_FLAGS), so they
+      # run side by side. In a row they took 14, 62 and 52 s at the median, on every shard.
+      - name: Image pulls, frontend builds and the test build, side by side
+        run: |
+          node scripts/ci-together.mjs \
+            "Pull the AppHost's container images" "printf '%s\n' \$APPHOST_IMAGES | xargs -P 5 -n 1 docker pull -q" \
+            "Frontend builds (pnpm -r build)" "pnpm -r build" \
+            "Build the end-to-end tests" "dotnet build tests/ScreenHire.E2E \$TEST_BUILD_FLAGS"
       # The Chromium revision the built Microsoft.Playwright driver wants, from the cache when it holds it. No
       # install-deps: the ubuntu-24.04 image already has Chromium's system libraries.
       - name: Install Playwright's Chromium
