@@ -1122,7 +1122,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   saying how far it reaches: Customize for that board and Edit details for every board. A customized board whose job
   changed since has the badge Job changed instead of Customized, with the reason in its tooltip. A draft or closed job has no
   menus: its header publishes or closes it, and while it is a draft the band's line under the title says, quietly, what the
-  check before publishing found ("2 things to check before publishing", a text button that opens the Publish check dialog; nothing when
+  check before publishing found ("2 things to check before publishing", plain muted text, since Publish opens the Publish check dialog; nothing when
   there is nothing, and nothing for someone who may not edit jobs). A posting whose checks
   found issues is "did not take this job", never "refused": only a board's own answer is a refusal. On the board, the
   closed stages share one Closed column (section 5), whose rows take a dropped card, and a calm card shows no level.

@@ -53,15 +53,15 @@
   // The views already in the sidebar when it opened: one added during the visit keeps its mark until the sheet closes.
   let inSidebarOnOpen = $state(new Set<string>());
   let wasOpen = false;
-  // The row being added or removed (its buttons wait, so a second press cannot send a second request) and the row that
-  // failed, which says so itself: the sheet scrolls as a whole, so a line at its top could be out of sight.
-  let pendingId = $state('');
-  let failed = $state<{ id: string; message: string } | null>(null);
+  // The rows being added or removed (each one's buttons wait, so a second press cannot send a second request) and the
+  // rows that failed, each saying so itself: the sheet scrolls as a whole, so a line at its top could be out of sight.
+  let pending = $state<string[]>([]);
+  let failures = $state<Record<string, string>>({});
   $effect(() => {
     if (open && !wasOpen) {
       seenOnOpen = seenAt;
       inSidebarOnOpen = new Set(views.filter((view) => view.inSidebar).map((view) => view.id));
-      failed = null;
+      failures = {};
       void actions.markTeamViewsOpened();
     }
     wasOpen = open;
@@ -81,11 +81,14 @@
   const countText = (count: number) => `Shows ${count} ${count === 1 ? 'candidate' : 'candidates'} now`;
 
   async function change(view: SavedViewSummary, work: () => Promise<string | null>) {
-    pendingId = view.id;
-    failed = null;
-    const message = await work();
-    pendingId = '';
-    if (message) failed = { id: view.id, message };
+    pending = [...pending, view.id];
+    delete failures[view.id];
+    try {
+      const message = await work();
+      if (message) failures[view.id] = message;
+    } finally {
+      pending = pending.filter((id) => id !== view.id);
+    }
   }
 </script>
 
@@ -124,17 +127,17 @@
               </Button>
               {#if view.inSidebar}
                 <span class="inline-flex items-center gap-1.5 text-caption text-muted-foreground"><CheckIcon aria-hidden="true" class="size-3.5" />In your sidebar</span>
-                <Button variant="outline" size="sm" disabled={pendingId === view.id} onclick={() => void change(view, () => actions.removeFromSidebar(view))}>
+                <Button variant="outline" size="sm" disabled={pending.includes(view.id)} onclick={() => void change(view, () => actions.removeFromSidebar(view))}>
                   Remove <span class="sr-only">{view.name} from your sidebar</span>
                 </Button>
               {:else}
                 <!-- Outline like Preview: every row has an Add, and a sheet of rows has no one primary action (A1). -->
-                <Button variant="outline" size="sm" disabled={pendingId === view.id} onclick={() => void change(view, () => actions.addToSidebar(view))}>
+                <Button variant="outline" size="sm" disabled={pending.includes(view.id)} onclick={() => void change(view, () => actions.addToSidebar(view))}>
                   <PlusIcon aria-hidden="true" />Add <span class="sr-only">{view.name} to your sidebar</span>
                 </Button>
               {/if}
             </div>
-            {#if failed?.id === view.id}<FailureText message={failed.message} />{/if}
+            {#if failures[view.id]}<FailureText message={failures[view.id]} />{/if}
           </li>
         {/each}
       </ul>

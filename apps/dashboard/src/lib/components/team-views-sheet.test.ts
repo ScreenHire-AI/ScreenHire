@@ -134,6 +134,33 @@ describe('the sheet of team views', () => {
     await waitFor(() => expect(add).toBeEnabled());
   });
 
+  it('holds each row on its own while two requests run, and keeps the failure of the one that failed', async () => {
+    const viewActions = actions();
+    let finishFirst: (value: string | null) => void = () => {};
+    let finishSecond: (value: string | null) => void = () => {};
+    viewActions.addToSidebar
+      .mockReturnValueOnce(new Promise((resolve) => { finishFirst = resolve; }))
+      .mockReturnValueOnce(new Promise((resolve) => { finishSecond = resolve; }));
+    show([shared({ id: 'a', name: 'Team queue' }), shared({ id: 'b', name: 'Other view' })], viewActions);
+
+    const first = await screen.findByRole('button', { name: 'Add Team queue to your sidebar' });
+    const second = screen.getByRole('button', { name: 'Add Other view to your sidebar' });
+    await fireEvent.click(first);
+    await fireEvent.click(second);
+    expect(first).toBeDisabled();
+    expect(second).toBeDisabled();
+
+    // The first finishing with a failure frees only its own row, which says so; the second still waits.
+    finishFirst('Could not add "Team queue" to your sidebar (HTTP 404).');
+    await waitFor(() => expect(first).toBeEnabled());
+    expect(second).toBeDisabled();
+    expect((await screen.findByRole('alert')).closest('li')).toHaveTextContent('Team queue');
+
+    finishSecond(null);
+    await waitFor(() => expect(second).toBeEnabled());
+    expect(screen.getByRole('alert').closest('li')).toHaveTextContent('Team queue');
+  });
+
   it('stops saying it is counting when the candidates cannot be read', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/applications': () => new Response('{}', { status: 500 }) })));
     render(WithQueryClient, { props: { component: Sheet, props: { open: true, views: [shared()], seenAt, jobTitles: {}, actions: actions() } } });
