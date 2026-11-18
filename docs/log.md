@@ -1,5 +1,21 @@
 # Log
 
+## 2026-11-18
+
+**CI's gate was measured and resized, and a rule now holds it there.** A pull request waited a median 508 s for `Gate`,
+and the slowest job was always the end-to-end shard that held one of two tests walking every dashboard page in one
+method, 169 and 203 s each. Those walks are theories over groups of routes now, the Verification pages they opened
+eight times each are opened once, the shards are cut on what each class costs the clock, a shard pulls its images and
+builds side by side, and integration runs on 5 shards. At the median the slowest job of a run went from 448 s to
+366 s, the slowest end-to-end shard's tests from 254 s to 167 s, and a run from 4,909 job-seconds to 4,154. What is
+left is mostly setup, builds and the stack's start, on whichever shard draws the slowest runner. A pull request starts
+18 jobs, on an account that turned out to run 20 at once, not 40. `.github/workflows/caches.yml` fills `main`'s caches
+after a dependency change, which the skipped pushes had left empty. [`.claude/rules/test-value.md`](../.claude/rules/test-value.md) says what
+earns a test and a CI job, and `CiWorkflowTests`, `TestShardPlanTests` and `TestSuiteRulesTests` hold what a scan can:
+20 jobs a pull request, no class or test too heavy for a shard, no stale measurements, no retry, skip or fixed sleep.
+The audit of the tests removed two and moved none: the suite was not padded
+([testing.md](process/testing.md#time)).
+
 ## 2026-11-09
 
 **The launch-readiness workflow is finished, and its design reviews left a list for the owner.** Four design reviews walked

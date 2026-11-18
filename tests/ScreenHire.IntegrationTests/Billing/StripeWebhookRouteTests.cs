@@ -30,6 +30,7 @@ public sealed class StripeModeFixture : AppHostFixture
 /// signature check, <c>BillingEventApplier</c> under row-level security and the outbox save, end to end. The unit tests
 /// cover the reading of an event and <see cref="BillingWebhookTests"/> covers what the service does with one.
 /// </summary>
+[Collection<OwnStackRun>]
 public sealed class StripeWebhookRouteTests(StripeModeFixture fixture) : IClassFixture<StripeModeFixture>
 {
     private const string Path = "/v1/webhooks/stripe";

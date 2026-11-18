@@ -92,7 +92,7 @@ public sealed partial class PublicPortalTests(AppHostFixture fixture)
         (await RequestLinkAsync(client, world.Slug, world.Person.Email)).StatusCode.Should().Be(HttpStatusCode.Accepted);
         (await RequestLinkAsync(client, world.Slug, world.Person.Email)).StatusCode.Should().Be(HttpStatusCode.Accepted, "the answer is the same inside the cooldown");
         await WaitForLinkMailsAsync(world.Person.Email, 1);
-        await Task.Delay(TimeSpan.FromSeconds(2), Ct);
+        await Wait.ForNothingAsync(TimeSpan.FromSeconds(2), "a second link email inside the cooldown", Ct);
         (await LinkMailsAsync(world.Person.Email)).Should().ContainSingle("a second email would have been queued by now");
 
         await fixture.OwnerSqlAsync("UPDATE candidates SET portal_link_sent_at = now() - interval '10 minutes' WHERE id = @id", ("id", world.CandidateId));

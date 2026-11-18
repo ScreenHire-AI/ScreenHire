@@ -2,6 +2,7 @@ import type { TalentPoolMember } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, jobs } from '../../test-support/fixtures.js';
+import { nothingHappensFor } from '../../test-support/quiet.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import InviteToApplySheet from './invite-to-apply-sheet.svelte';
 
@@ -44,7 +45,7 @@ describe('invite to apply sheet', () => {
 
     const sheet = await screen.findByRole('dialog', { name: 'Invite Casey Morgan to apply' });
     await waitFor(() => expect(sheet).toHaveTextContent('Brightwater would like you to apply'));
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await nothingHappensFor(100, 'a second request for the preview');
     expect(preview).toHaveBeenCalledTimes(1);
 
     await fireEvent.click(within(sheet).getByRole('button', { name: 'Send invitation' }));

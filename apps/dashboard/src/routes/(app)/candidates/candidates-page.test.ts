@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ApplicationSummary, SavedViewSummary } from '@screenhire/api-client';
 import { goto } from '$app/navigation';
 import { apiStub, applications, jobs, savedView, user, userAs, viewList } from '../../../test-support/fixtures.js';
+import { nothingHappensFor } from '../../../test-support/quiet.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -218,7 +219,7 @@ describe('candidates page', () => {
     render_(flagged);
     await fireEvent.click(await screen.findByRole('checkbox', { name: `Select ${applications[0]!.candidateName}` }));
     await waitFor(() => expect(document.querySelector('[data-selected-count]')).toHaveTextContent('Selected 1'));
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await nothingHappensFor(50, 'an Email button for rows a verification view picked');
     expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
   });
 
@@ -335,7 +336,7 @@ describe('candidates page views', () => {
       ['a built-in verification view', { baseView: 'needs-review' }],
     ])('offers no Email in a view that holds %s', async (_, filters) => {
       await open(filters);
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await nothingHappensFor(50, 'an Email button in a view that holds a verification level');
 
       expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
     });

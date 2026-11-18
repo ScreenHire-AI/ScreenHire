@@ -75,7 +75,7 @@ public sealed class InterviewLifecycleTests(AppHostFixture fixture)
         var (interviewId, _) = await world.ScheduledAsync();
 
         (await world.Owner.PostAsync($"/v1/applications/{world.ApplicationId}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
-        await Task.Delay(TimeSpan.FromSeconds(2), Ct);
+        await Wait.ForNothingAsync(TimeSpan.FromSeconds(2), "the move to cancel the interview, as a move that ends the application does", Ct);
 
         (await world.StoredAsync(interviewId)).Status.Should().Be(InterviewStatus.Open);
     }

@@ -96,7 +96,7 @@ public sealed class JobScopeRealtimeTests(AppHostFixture fixture)
         var job = (await owner.CreateJobAsync(Samples.RemoteJob("Not theirs"))).Id();
         await owner.PublishJobAsync(job);
         await ownerEvents.WaitForAsync("JobPublished", "jobId", job, Ct);
-        await Task.Delay(TimeSpan.FromSeconds(1), Ct);
+        await Wait.ForNothingAsync(TimeSpan.FromSeconds(1), "an event about a job the member is not on to reach their connection", Ct);
         again.ReceivedAnythingAbout(job).Should().BeFalse();
     }
 

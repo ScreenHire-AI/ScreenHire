@@ -10,7 +10,7 @@ subsystem.
 
 | Path | What |
 |---|---|
-| `.github` | GitHub Actions: `workflows/ci.yml` (the gate's suites on Linux, the `infra` job that regenerates the Azure Bicep, and the `tested-tree` job that skips a push to `main` whose tree a PR already passed), the shared toolchain setup, `actions/setup`, and `actions/tested-tree`, which runs `scripts/tested-tree.mjs` |
+| `.github` | GitHub Actions: `workflows/ci.yml` (the gate's suites on Linux, the `infra` job that regenerates the Azure Bicep, and the `tested-tree` job that skips a push to `main` whose tree a PR already passed), `workflows/caches.yml` (fills `main`'s caches after a push that changes a cache key), the shared toolchain setup, `actions/setup`, and `actions/tested-tree`, which runs `scripts/tested-tree.mjs` |
 | `infra` | The Azure Bicep that `dotnet aspire publish` generates from the AppHost's publish model (`apps/apphost/AzurePublish.cs`), with `azure.yaml` at the root for `azd`. Generated: never edit it, regenerate it ([`docs/operations/deploy.md`](docs/operations/deploy.md)) |
 | `apps/apphost` | .NET Aspire AppHost — runs the whole stack locally; in publish mode (`dotnet aspire publish`) it builds the Azure model in `AzurePublish.cs` |
 | `apps/migrator` | Console app run for a deployment, with the database owner's login: applies the EF migrations, gives `screenhire_app` its login and creates Wolverine's tables. The API and worker never hold that login |
@@ -69,10 +69,13 @@ subsystem.
   `pnpm -r --if-present test` (Vitest) and `dotnet test --solution
   ScreenHire.slnx` (Microsoft Testing Platform via `global.json`: unit, Aspire integration and Playwright
   end-to-end; the last two boot the AppHost, so Docker must be running (`pnpm docker:start`), and the end-to-end
-  tests serve the `pnpm -r build` output).
+  tests serve the `pnpm -r build` output, which must be built with `NODE_ENV` unset (`env -u NODE_ENV pnpm -r build`):
+  a shell that has it as `development` builds the frontends in development mode, and the fixture refuses that build).
 - **Tests:** which tier for what, running one test, the shared `AppHostFixture`, data isolation (each test creates its
   own organization; the seeded `brightwater` is read-only) and the flake policy are in
-  [`docs/process/testing.md`](docs/process/testing.md). The AppHost's `ScreenHire:Frontends` is `Dev` (default),
+  [`docs/process/testing.md`](docs/process/testing.md). What earns a test and a CI job, and the limits CI holds each to
+  (20 jobs a pull request, no test longer than a shard's parallel tests, a condition and never a sleep), are in
+  `.claude/rules/test-value.md`. The AppHost's `ScreenHire:Frontends` is `Dev` (default),
   `Built` (the production builds served as they ship, used by the end-to-end tests) or `None` (used by the integration tests).
   `ScreenHire:Distribution:*` (the local sandbox board, `GoogleIndexing:Mode` `Off`/`Local`/`Google`) is forwarded to
   the API and worker alike; see [`docs/architecture/job-distribution.md`](docs/architecture/job-distribution.md) §5.
@@ -137,6 +140,10 @@ subsystem.
 - After changing code a doc describes: `node scripts/docs-bundle.mjs sources <file>` names the docs whose `sources:`
   list it (`/sync-docs`). A new or changed doc keeps its frontmatter and its line in the folder's `index.md` in step;
   `DocsBundleTests` checks both (ADR-0012).
+- When `TestShardPlanTests` says CI's measurements are stale, or one shard runs about 25% past its suite's average
+  (`node scripts/ci-timings.mjs --last 10`): `gh run download <run-id> -p "durations-*" -D TestResults/durations/<run-id>`
+  for a green run or two, then `node scripts/test-shard.mjs --record TestResults/durations`, and commit
+  `tests/shard-durations.json` ([`docs/process/testing.md`](docs/process/testing.md#continuous-integration)).
 - After changing an `ITenantEvent` record: `UPDATE_REALTIME_CONTRACT=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*RealtimeContractTests"`
   rewrites `packages/realtime/contract/events.json`; then update `packages/realtime/src/events.ts` until
   `pnpm --filter @screenhire/realtime test` passes, and commit both (`/add-realtime-event`).

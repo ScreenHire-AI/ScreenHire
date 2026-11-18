@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
+import { nothingHappensFor } from '../../test-support/quiet.js';
 import { UndoOffer } from '../undo.svelte.js';
 import UndoNotice from './undo-notice.svelte';
 
@@ -63,7 +64,7 @@ describe('undo notice', () => {
       const button = await undoButton();
 
       await fireEvent.pointerEnter(button.closest('[data-undo-notice]')!);
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      await nothingHappensFor(400, 'the offer to time out while the pointer is on the card');
       expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
 
       await fireEvent.pointerLeave(button.closest('[data-undo-notice]')!);
@@ -79,7 +80,7 @@ describe('undo notice', () => {
 
       button.blur();
       button.focus();
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      await nothingHappensFor(400, 'the offer to time out once the person has moved focus to the card');
 
       expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
     });

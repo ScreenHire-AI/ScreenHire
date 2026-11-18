@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goto } from '$app/navigation';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import { user, userAs } from '../../test-support/fixtures.js';
+import { nothingHappensFor } from '../../test-support/quiet.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import CommandPalette from './command-palette.svelte';
 
@@ -146,7 +147,7 @@ describe('command palette', () => {
     const { searches, input } = renderPalette();
 
     await fireEvent.input(input, { target: { value: 'c' } });
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await nothingHappensFor(300, 'a search for one character, once typing has paused');
     expect(searches).toEqual([]);
 
     for (const value of ['cm', 'cm.', 'cm.h']) await fireEvent.input(input, { target: { value } });

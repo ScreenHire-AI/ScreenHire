@@ -3,6 +3,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, jobId } from '../../../../../test-support/fixtures.js';
+import { nothingHappensFor } from '../../../../../test-support/quiet.js';
 import WithQueryClient from '../../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -233,7 +234,7 @@ describe('edit job details page', () => {
       open('nonsense');
 
       const title = await screen.findByLabelText('Title');
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await nothingHappensFor(100, 'the focus to move to a field the address did not name');
       expect(title).not.toHaveFocus();
       expect(document.body).toHaveFocus();
     });

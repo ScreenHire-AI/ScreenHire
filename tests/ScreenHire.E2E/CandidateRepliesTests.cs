@@ -144,22 +144,19 @@ public sealed class CandidateRepliesTests(E2EFixture fixture) : BrowserTest(fixt
     // The id of the one email to the candidate, as Messages lists it: the send the provider's event names.
     private static async Task<Guid> LatestEmailIdAsync(Scene scene)
     {
-        for (var attempt = 0; attempt < 100; attempt++)
-        {
-            using var response = await scene.Session.Client.GetAsync($"/v1/applications/{scene.ApplicationId}", Ct);
-            var application = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
-            var candidateId = application.GetProperty("candidate").GetProperty("id").GetGuid();
-            using var listed = await scene.Session.Client.GetAsync($"/v1/candidates/{candidateId}/emails", Ct);
-            var emails = await listed.Content.ReadFromJsonAsync<JsonElement>(Ct);
-            if (emails.GetArrayLength() > 0)
+        var id = await Wait.ForAsync(
+            async () =>
             {
-                return emails[0].GetProperty("id").GetGuid();
-            }
-
-            await Task.Delay(100, Ct);
-        }
-
-        throw new TimeoutException("The email never appeared in Messages.");
+                using var response = await scene.Session.Client.GetAsync($"/v1/applications/{scene.ApplicationId}", Ct);
+                var application = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
+                var candidateId = application.GetProperty("candidate").GetProperty("id").GetGuid();
+                using var listed = await scene.Session.Client.GetAsync($"/v1/candidates/{candidateId}/emails", Ct);
+                var emails = await listed.Content.ReadFromJsonAsync<JsonElement>(Ct);
+                return emails.GetArrayLength() > 0 ? emails[0].GetProperty("id").GetString() : null;
+            },
+            "the email to appear in Messages",
+            Ct);
+        return Guid.Parse(id);
     }
 
     private async Task SignInAsync(string email)

@@ -48,6 +48,7 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 | 0013 | Accepted, amended by 0016 and 0017 |
 | 0017 | Accepted, decision 13 amended by 0023 for a candidate's header, decision 16 amended by 0019, decision 17 amended by 0026 |
 | 0023 | Accepted, decision 3 amended by 0025 |
+| 0020 | Accepted, amended 2026-11-07 (a push to `main` whose tree a pull request passed skips its tests); the account's job limit it names corrected from 40 to 20 on 2026-11-18 |
 | 0026 | Accepted, amended 2026-11-07 (Branding's wide edit pane) |
 | 0027 | Accepted, amended 2026-11-07 (the fourth step is Offer, and a stage takes its step from its place in the pipeline) |
 | 0028 | Accepted, amended 2026-11-07 (removing a member disconnects the assistants they connected) |

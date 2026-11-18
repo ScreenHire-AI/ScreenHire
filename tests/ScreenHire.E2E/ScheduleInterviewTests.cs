@@ -298,28 +298,11 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         }
     }
 
-    private async Task<MailpitMessage> WaitForEmailAsync(string address, string subject)
-    {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        deadline.CancelAfter(TimeSpan.FromSeconds(60));
-        while (true)
-        {
-            var found = (await Fixture.Mailpit.MessagesAsync(address, Ct)).FirstOrDefault(m => m.Subject.Contains(subject, StringComparison.Ordinal));
-            if (found is not null)
-            {
-                return found;
-            }
-
-            try
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(250), deadline.Token);
-            }
-            catch (OperationCanceledException) when (!Ct.IsCancellationRequested)
-            {
-                throw new TimeoutException($"No email about \"{subject}\" reached the candidate within 60 s.");
-            }
-        }
-    }
+    private Task<MailpitMessage> WaitForEmailAsync(string address, string subject) =>
+        Wait.ForAsync(
+            async () => (await Fixture.Mailpit.MessagesAsync(address, Ct)).FirstOrDefault(m => m.Subject.Contains(subject, StringComparison.Ordinal)),
+            $"an email about \"{subject}\" to reach the candidate",
+            Ct);
 
     private static async Task<JsonElement> ReadAsync(HttpResponseMessage response, HttpStatusCode expected)
     {

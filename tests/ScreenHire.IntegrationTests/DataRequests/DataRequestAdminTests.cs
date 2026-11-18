@@ -324,7 +324,7 @@ public sealed partial class DataRequestAdminTests(AppHostFixture fixture)
         (await world.Owner.PostAsync($"/v1/data-requests/{requestId}/erase", new JsonObject { ["confirmation"] = world.Person.FullName })).Expect(HttpStatusCode.Conflict);
 
         // One mail only, however the message was delivered.
-        await Task.Delay(TimeSpan.FromSeconds(2), Ct);
+        await Wait.ForNothingAsync(TimeSpan.FromSeconds(2), "a second email about the declined request", Ct);
         (await fixture.Mailpit.MessagesAsync(world.Person.Email, Ct)).Count(m => m.Subject.StartsWith("About your request to ", StringComparison.Ordinal)).Should().Be(1);
     }
 
@@ -426,14 +426,21 @@ public sealed partial class DataRequestAdminTests(AppHostFixture fixture)
         using var admin = await fixture.InviteAndJoinAsync(world.Owner, "Admin", adminEmail);
         using var recruiter = await fixture.InviteAndJoinAsync(world.Owner, "Recruiter", recruiterEmail);
 
+        // The handler emails everyone it is going to before it ends, so once the worker has handled the event there is no
+        // later email to wait out.
+        var requestId = Guid.NewGuid();
         await using var sender = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
-        await sender.Services.GetRequiredService<IMessageBus>()
-            .PublishAsync(new DataRequestReceived(world.OrganizationId, Guid.NewGuid(), DataRequestKind.Copy, DateTimeOffset.UtcNow));
+        await WolverineStore.WaitUntilHandledAsync(
+            fixture,
+            requestId.ToString(),
+            ".DataRequestReceived",
+            () => sender.Services.GetRequiredService<IMessageBus>()
+                .PublishAsync(new DataRequestReceived(world.OrganizationId, requestId, DataRequestKind.Copy, DateTimeOffset.UtcNow)).AsTask(),
+            Ct);
 
         var mail = await WaitForMailAsync(adminEmail, "A candidate asked for a copy of their data");
         mail.Text.Should().Contain("Settings > Data requests").And.Contain("/settings/data-requests");
         mail.Text.Should().NotContain(world.Person.FullName).And.NotContain(world.Person.Email);
-        await Task.Delay(TimeSpan.FromSeconds(2), Ct);
         (await fixture.Mailpit.MessagesAsync(recruiterEmail, Ct)).Should().NotContain(m => m.Subject.StartsWith("A candidate asked", StringComparison.Ordinal),
             "a Recruiter cannot open the page");
     }

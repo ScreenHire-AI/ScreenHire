@@ -7,6 +7,7 @@ namespace ScreenHire.IntegrationTests.Production;
 /// The API reference is public in production at the same path as in development: it documents the public API and holds
 /// no data, and the dashboard's API keys and Webhooks pages link to it.
 /// </summary>
+[Collection<OwnStackRun>]
 public sealed class ApiReferenceTests(ProductionApiFixture fixture) : IClassFixture<ProductionApiFixture>
 {
     private static readonly TimeSpan StartTimeout = TimeSpan.FromMinutes(3);
@@ -43,20 +44,20 @@ public sealed class ApiReferenceTests(ProductionApiFixture fixture) : IClassFixt
     }
 
     // The process is running before Kestrel listens, so the first requests may be refused.
-    private static async Task<HttpResponseMessage> GetOnceListeningAsync(HttpClient client, string path, CancellationToken cancellationToken)
-    {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(ListenTimeout);
-        while (true)
-        {
-            try
+    private static Task<HttpResponseMessage> GetOnceListeningAsync(HttpClient client, string path, CancellationToken cancellationToken) =>
+        Wait.ForAsync<HttpResponseMessage>(
+            async deadline =>
             {
-                return await client.GetAsync(path, deadline.Token);
-            }
-            catch (HttpRequestException)
-            {
-                await Task.Delay(TimeSpan.FromMilliseconds(500), deadline.Token);
-            }
-        }
-    }
+                try
+                {
+                    return await client.GetAsync(path, deadline);
+                }
+                catch (HttpRequestException)
+                {
+                    return null;
+                }
+            },
+            () => $"the Production API to listen and answer {path}",
+            cancellationToken,
+            ListenTimeout);
 }

@@ -3,6 +3,7 @@ import { render, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goto } from '$app/navigation';
 import { userAs } from '../../../test-support/fixtures.js';
+import { nothingHappensFor } from '../../../test-support/quiet.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import WithShell from '../../../test-support/with-shell.svelte';
 import type { SettingsFeatures } from '../../../lib/settings.js';
@@ -35,7 +36,7 @@ describe('the Settings address', () => {
   it('goes nowhere for a role with no settings page, which the layout answers', async () => {
     renderHome(userAs('Recruiter'));
 
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await nothingHappensFor(20, 'a navigation for a role with no settings page');
     expect(goto).not.toHaveBeenCalled();
   });
 });

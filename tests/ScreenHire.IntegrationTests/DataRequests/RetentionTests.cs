@@ -173,8 +173,7 @@ public sealed class RetentionTests(AppHostFixture fixture)
         (await owner.GetAsync($"{Path}/preview?months=6")).At("applications").GetInt32().Should().Be(0, "a second run finds nothing");
 
         // A run with nothing to delete adds no entry.
-        await RunAsync(world.OrganizationId);
-        await Task.Delay(TimeSpan.FromSeconds(2), Ct);
+        await RunAndWaitAsync(world.OrganizationId);
         (await owner.GetAsync("/v1/organization/membership-log")).Body.EnumerateArray()
             .Count(e => e.GetProperty("kind").GetString() == "RetentionApplied").Should().Be(1);
     }
@@ -202,8 +201,7 @@ public sealed class RetentionTests(AppHostFixture fixture)
         // Turned off again, the next run leaves the rest alone.
         (await on.Owner.PutAsync(Path, new JsonObject { ["months"] = null })).Expect(HttpStatusCode.OK);
         var later = await RejectedAsync(on.Owner, (await on.Owner.CreateApplicationAsync(on.JobId, ApiSession.NewEmail("late"), "Late Person")).Id(), monthsAgo: 30);
-        await RunAsync(on.OrganizationId);
-        await Task.Delay(TimeSpan.FromSeconds(2), Ct);
+        await RunAndWaitAsync(on.OrganizationId);
         (await on.Owner.GetAsync($"/v1/applications/{later}")).Expect(HttpStatusCode.OK);
     }
 
@@ -322,6 +320,11 @@ public sealed class RetentionTests(AppHostFixture fixture)
         await using var db = await VerificationSupport.TenantDbAsync(fixture, organizationId);
         return await db.Applications.CountAsync(Ct);
     }
+
+    // The same, waited for until the worker has handled it: for a run that must change nothing, where there is no
+    // change to wait on.
+    private Task RunAndWaitAsync(Guid organizationId) =>
+        WolverineStore.WaitUntilHandledAsync(fixture, organizationId.ToString(), ".PurgeOrganizationEndedApplications", () => RunAsync(organizationId), Ct);
 
     // What the daily sweep sends for one organization.
     private async Task RunAsync(Guid organizationId)

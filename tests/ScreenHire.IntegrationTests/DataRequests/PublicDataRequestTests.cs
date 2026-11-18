@@ -98,7 +98,7 @@ public sealed partial class PublicDataRequestTests(AppHostFixture fixture)
         second.StatusCode.Should().Be(HttpStatusCode.Accepted, "the answer is the same inside the cooldown");
         (await LinkSentAtAsync(world.CandidateId)).Should().Be(claimed, "the second request did not claim anything");
         await WaitForLinkMailsAsync(world.Email, 1);
-        await Task.Delay(TimeSpan.FromSeconds(2), Ct);
+        await Wait.ForNothingAsync(TimeSpan.FromSeconds(2), "a second link email inside the cooldown", Ct);
         (await LinkMailsAsync(world.Email)).Should().ContainSingle("a second email would have been queued by now");
 
         // Once the cooldown has passed (the claim moved back in time), the next request sends again.

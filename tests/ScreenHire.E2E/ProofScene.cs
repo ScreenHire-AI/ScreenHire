@@ -152,17 +152,13 @@ public sealed class ProofScene
 
         var tenant = new TenantContext();
         tenant.SetOrganization(organizationId);
-        for (var attempt = 0; attempt < 600; attempt++)
-        {
-            await using var db = await fixture.CreateDbContextAsync(tenant, cancellationToken);
-            if (await db.VerificationAnalyzerRuns.Where(r => r.ApplicationId == applicationId).Select(r => r.Analyzer).Distinct().CountAsync(cancellationToken) >= 8)
+        await Wait.UntilAsync(
+            async () =>
             {
-                return;
-            }
-
-            await Task.Delay(100, cancellationToken);
-        }
-
-        throw new TimeoutException($"Expected every verification analyzer to run on application {applicationId}.");
+                await using var db = await fixture.CreateDbContextAsync(tenant, cancellationToken);
+                return await db.VerificationAnalyzerRuns.Where(r => r.ApplicationId == applicationId).Select(r => r.Analyzer).Distinct().CountAsync(cancellationToken) >= 8;
+            },
+            $"every verification analyzer to run on application {applicationId}",
+            cancellationToken);
     }
 }

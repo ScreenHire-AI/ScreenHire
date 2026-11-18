@@ -114,6 +114,42 @@ public class E2EFixture : AppHostFixture
                 $"The end-to-end tests serve the frontends' production builds, and these are missing: {string.Join(", ", missing)}. " +
                 "Run `pnpm -r build` first (`pnpm verify` does). Rebuild after changing a frontend, or the tests see the old build.");
         }
+
+        if (DevelopmentBuildFile(Path.Combine(root, CareersClientScripts)) is { } file)
+        {
+            throw new InvalidOperationException(
+                $"The frontends were not built for production: {CareersClientScripts}/{Path.GetFileName(file)} names a Svelte source file by " +
+                "its path on this machine, which only Svelte's development mode writes, so the tests would not see what ships. " +
+                "`pnpm -r build` does that in a shell where NODE_ENV is development, which a shell can inherit from the app that " +
+                "started it. Build again with it unset: `env -u NODE_ENV pnpm -r build` in Git Bash, or " +
+                "`$env:NODE_ENV = $null; pnpm -r build` in PowerShell.");
+        }
+    }
+
+    // The careers site's client scripts: five small files, read as the sign of how every frontend was built, since one
+    // `pnpm -r build` builds them all in one environment.
+    private const string CareersClientScripts = "apps/careers/dist/client/_astro";
+
+    /// <summary>
+    /// The first script under <paramref name="folder"/> that names a <c>.svelte</c> source file as a string, or null.
+    /// Svelte's development mode gives each component its file's path; a production build has none. On 2026-11-18 a shell
+    /// with NODE_ENV=development built the frontends that way, 11 KB larger for the careers runtime, and the one sign was
+    /// the apply page's JavaScript budget missing by 17 bytes on the dev machine and passing on CI
+    /// (docs/process/testing.md, "Flake history").
+    /// </summary>
+    internal static string? DevelopmentBuildFile(string folder)
+    {
+        if (!Directory.Exists(folder))
+        {
+            return null;
+        }
+
+        string[] ends = [".svelte`", ".svelte\"", ".svelte'"];
+        return Directory.EnumerateFiles(folder, "*.js").Order(StringComparer.Ordinal).FirstOrDefault(file =>
+        {
+            var script = File.ReadAllText(file);
+            return ends.Any(end => script.Contains(end, StringComparison.Ordinal));
+        });
     }
 
     private static async Task<IBrowser> LaunchChromiumAsync(IPlaywright playwright)

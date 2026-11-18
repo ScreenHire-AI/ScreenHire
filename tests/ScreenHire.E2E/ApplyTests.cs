@@ -70,7 +70,11 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
         applyPage.Status.Should().Be(200);
         (await applyPage.AllHeadersAsync()).Should().NotContainKey("set-cookie", "the form sets no cookies");
         await Page.Locator("astro-island:not([ssr])").WaitForAsync(); // hydrated
-        (await JavaScriptBytesAsync(scripts)).Should().BeLessThanOrEqualTo(JavaScriptBudgetBytes, "the apply page ships about 22 KB of JavaScript at most");
+        var javaScript = await JavaScriptAsync(scripts);
+        javaScript.Sum(script => script.Bytes).Should().BeLessThanOrEqualTo(
+            JavaScriptBudgetBytes,
+            "the apply page ships about 22 KB of JavaScript at most, and it loaded {0}",
+            string.Join(", ", javaScript.Select(script => $"{script.Name} ({script.Bytes})")));
 
         await ApplyAsync(organization, "jo.park@example.com", javaScript: true);
 
@@ -307,21 +311,15 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
     private Task<List<string>> TelemetryBeaconsAsync() => ApplySteps.TelemetryBeaconsAsync(Page.MainFrame);
 
     // Waits until the organization has at least `count` telemetry snapshots stored.
-    private async Task StoredSnapshotsAsync(Guid organizationId, int count)
-    {
-        for (var attempt = 0; attempt < 100; attempt++)
-        {
-            await using var db = await TenantDbAsync(organizationId);
-            if (await db.TelemetrySnapshots.CountAsync(Ct) >= count)
+    private Task StoredSnapshotsAsync(Guid organizationId, int count) =>
+        Wait.UntilAsync(
+            async () =>
             {
-                return;
-            }
-
-            await Task.Delay(100, Ct);
-        }
-
-        throw new TimeoutException($"Expected {count} stored telemetry snapshots.");
-    }
+                await using var db = await TenantDbAsync(organizationId);
+                return await db.TelemetrySnapshots.CountAsync(Ct) >= count;
+            },
+            $"{count} stored telemetry snapshots",
+            Ct);
 
     private async Task<ScreenHireDbContext> TenantDbAsync(Guid organizationId)
     {
@@ -361,20 +359,22 @@ public sealed class ApplyTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     // The JavaScript the page loaded, brotli-compressed as it would be served, plus its inline scripts (JSON-LD is data).
-    private async Task<long> JavaScriptBytesAsync(IEnumerable<IResponse> scripts)
+    // Each script keeps its file name and its bytes, so a miss of the budget says which one grew, and two builds can be
+    // told apart: a file's name carries a hash of its content.
+    private async Task<List<(string Name, long Bytes)>> JavaScriptAsync(IEnumerable<IResponse> scripts)
     {
-        long total = 0;
+        var loaded = new List<(string Name, long Bytes)>();
         foreach (var script in scripts)
         {
-            total += Brotli(await script.BodyAsync());
+            loaded.Add((new Uri(script.Url).Segments[^1], Brotli(await script.BodyAsync())));
         }
 
         foreach (var inline in await Page.Locator("script:not([src]):not([type='application/ld+json'])").AllInnerTextsAsync())
         {
-            total += Brotli(Encoding.UTF8.GetBytes(inline));
+            loaded.Add(("inline", Brotli(Encoding.UTF8.GetBytes(inline))));
         }
 
-        return total;
+        return loaded;
     }
 
     private static long Brotli(byte[] bytes)

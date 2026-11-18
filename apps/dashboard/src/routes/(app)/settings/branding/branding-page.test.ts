@@ -407,7 +407,7 @@ describe('branding page', () => {
     const brand = await brandField();
     const form = brand.closest('form')!;
     // The layout itself (the editor's width, the rows, the page not scrolling) is checked in a browser, at 1440 by 900,
-    // by SettingsTests; jsdom has no layout. Here: where the controls are.
+    // by SettingsBrandingTests; jsdom has no layout. Here: where the controls are.
     const row = document.querySelector<HTMLElement>('[data-edit-preview-row]')!;
     const saveButton = within(row).getByRole('button', { name: 'Save branding' });
     expect(saveButton).toHaveAttribute('form', form.id);

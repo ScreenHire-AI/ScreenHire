@@ -648,22 +648,14 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
     // Waits up to a minute for an email to this address whose subject matches, and returns the first link in it.
     private async Task<string> LinkInEmailAsync(string address, Func<string, bool> subject, Regex link)
     {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(60);
-        while (DateTimeOffset.UtcNow < deadline)
-        {
-            var match = (await Fixture.Mailpit.MessagesAsync(address, Ct))
+        var match = await Wait.ForAsync(
+            async () => (await Fixture.Mailpit.MessagesAsync(address, Ct))
                 .Where(m => subject(m.Subject))
                 .Select(m => link.Match(m.Text))
-                .FirstOrDefault(m => m.Success);
-            if (match is not null)
-            {
-                return match.Value;
-            }
-
-            await Task.Delay(250, Ct);
-        }
-
-        throw new TimeoutException($"The email with the link never reached {address}.");
+                .FirstOrDefault(m => m.Success),
+            $"the email with the link to reach {address}",
+            Ct);
+        return match.Value;
     }
 
     // Brightwater's brand as a studio would set it: a second colour, a heading font and a logo, saved in the editor.
@@ -712,18 +704,15 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
     {
         var tenant = new TenantContext();
         tenant.SetOrganization(organizationId);
-        for (var attempt = 0; attempt < 1200; attempt++)
-        {
-            await using var db = await Fixture.CreateDbContextAsync(tenant, Ct);
-            if (await db.VerificationAnalyzerRuns.Where(r => r.ApplicationId == applicationId).Select(r => r.Analyzer).Distinct().CountAsync(Ct) >= 8)
+        await Wait.UntilAsync(
+            async () =>
             {
-                return;
-            }
-
-            await Task.Delay(100, Ct);
-        }
-
-        throw new TimeoutException($"Expected every verification analyzer to run on application {applicationId}.");
+                await using var db = await Fixture.CreateDbContextAsync(tenant, Ct);
+                return await db.VerificationAnalyzerRuns.Where(r => r.ApplicationId == applicationId).Select(r => r.Analyzer).Distinct().CountAsync(Ct) >= 8;
+            },
+            $"every verification analyzer to run on application {applicationId}",
+            Ct,
+            deadline: TimeSpan.FromMinutes(2));
     }
 
     private static async Task<JsonElement> ReadAsync(HttpResponseMessage response, HttpStatusCode expected)

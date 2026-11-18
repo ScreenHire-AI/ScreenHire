@@ -7,9 +7,116 @@ namespace ScreenHire.E2E;
 /// Walks every dashboard route of a <see cref="ProofScene"/> in the browser and collects what fails, so one run of a proof
 /// test reports every page at once instead of stopping at the first. Each derived test chooses the context (dark theme, or a
 /// phone with a touch screen) and which checks matter; the walk does the rest.
+/// <para>
+/// The walk is a theory over groups of routes, one test per group. As one test it ran about three minutes, and a CI shard
+/// cannot end before its longest test (.claude/rules/test-value.md). The groups come from the route table itself
+/// (<see cref="WalkGroups"/>, <see cref="EmptyGroups"/>), so a route cannot be left out of every row. Each row signs in
+/// for itself and only reads the scene, so the rows run side by side.
+/// </para>
 /// </summary>
 public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixture)
 {
+    /// <summary>The row that opens what the routes do not show on their own (<see cref="WalkOverlaysAsync"/>).</summary>
+    private const string OverlaysGroup = "overlays";
+
+    /// <summary>
+    /// Every dashboard route that has a page, by the group of the walk that opens it, with the scene's records filled in
+    /// when the walk runs. A group is a few routes that take about half a minute together on CI.
+    /// </summary>
+    private static readonly (string Group, Func<ProofScene, string> Path)[] RouteTable =
+    [
+        ("work", _ => "/"),
+        ("work", _ => "/candidates"),
+        ("work", _ => "/tasks"),
+        ("work", _ => "/reports"),
+        ("work", _ => "/jobs/new"),
+        ("job", scene => $"/jobs/{scene.JobId}"),
+        ("job", scene => $"/jobs/{scene.JobId}/edit"),
+        ("job", scene => $"/jobs/{scene.JobId}/workflow"),
+        ("applications", scene => $"/applications/{scene.BotApplicationId}"),
+        ("applications", scene => $"/applications/{scene.GenuineApplicationId}"),
+        ("applications", scene => $"/candidates/{scene.BotCandidateId}"),
+        ("templates", _ => "/templates"),
+        ("templates", _ => "/templates/new"),
+        ("templates", scene => $"/templates/{scene.TemplateId}"),
+        ("templates", _ => "/templates/emails/new"),
+        ("templates", scene => $"/templates/emails/{scene.EmailTemplateId}"),
+        ("templates", scene => $"/templates/scorecards/{scene.ScorecardTemplateId}"),
+        ("verification", _ => "/verification"),
+        ("verification", _ => "/verification/activity"),
+        ("verification", _ => "/verification/checks"),
+        ("verification", _ => "/verification/policy"),
+        ("verification", _ => "/verification/ai-model"),
+        ("verification", _ => "/verification/notifications"),
+        ("verification", _ => "/verification/usage"),
+        ("organization", _ => "/settings"),
+        ("organization", _ => "/settings/organization"),
+        ("organization", _ => "/settings/careers-site"),
+        ("organization", _ => "/settings/branding"),
+        ("organization", _ => "/settings/team"),
+        ("organization", _ => "/settings/roles"),
+        ("organization", _ => "/settings/roles/compare"),
+        ("organization", _ => "/settings/roles/viewer"),
+        ("organization", scene => $"/settings/roles/{scene.RoleId}"),
+        ("integrations", _ => "/settings/sending-domain"),
+        ("integrations", _ => "/settings/data-requests"),
+        ("integrations", _ => "/settings/billing"),
+        ("integrations", _ => "/settings/api-keys"),
+        ("integrations", _ => "/settings/webhooks"),
+        ("integrations", _ => "/settings/webhooks/new"),
+        ("integrations", scene => $"/settings/webhooks/{scene.EndpointId}"),
+        ("integrations", scene => $"/settings/webhooks/{scene.EndpointId}/edit"),
+        ("integrations", _ => "/settings/mcp-server"),
+        ("integrations", _ => "/settings/slack"),
+        ("integrations", _ => "/account/passkeys"),
+    ];
+
+    /// <summary>
+    /// The pages that list records, which an empty organization shows as empty states, and the pages a new Owner meets in the
+    /// first hour (New job, Billing on the trial, Branding with nothing set), which only an organization this new shows. By
+    /// group, as <see cref="RouteTable"/> is. The first group is the one that onboards in the browser.
+    /// </summary>
+    private static readonly (string Group, string Path)[] EmptyRouteTable =
+    [
+        ("first hour", "/"),
+        ("first hour", "/jobs/new"),
+        ("first hour", "/settings/billing"),
+        ("first hour", "/settings/branding"),
+        ("first hour", "/settings/careers-site"),
+        ("lists", "/candidates"),
+        ("lists", "/tasks"),
+        ("lists", "/reports"),
+        ("lists", "/templates"),
+        ("lists", "/verification"),
+        ("lists", "/verification/activity"),
+        ("lists", "/verification/usage"),
+        ("settings", "/settings/team"),
+        ("settings", "/settings/api-keys"),
+        ("settings", "/settings/webhooks"),
+        ("settings", "/settings/slack"),
+        ("settings", "/settings/data-requests"),
+    ];
+
+    /// <summary>The groups a team sets things up in. Every other group is one it works in.</summary>
+    private static readonly string[] SetupSide = ["verification", "organization", "integrations"];
+
+    /// <summary>The rows of the walk over the scene: every group of <see cref="RouteTable"/>, then the overlays.</summary>
+    public static TheoryData<string> WalkGroups => [.. RouteTable.Select(route => route.Group).Distinct(), OverlaysGroup];
+
+    /// <summary>
+    /// The same rows as two halves, for a walk whose rows together outweigh an average CI shard and so need two classes
+    /// (the dark theme's: axe's colour contrast at 1440 px costs more a page than the phone's checks). This half is the
+    /// pages a team works in, then the overlays; <see cref="SetupGroups"/> is the rest. A group is on the setup side or
+    /// it is here, so the halves leave no row out.
+    /// </summary>
+    public static TheoryData<string> WorkGroups => [.. RouteTable.Select(route => route.Group).Distinct().Except(SetupSide), OverlaysGroup];
+
+    /// <summary>The other half of <see cref="WorkGroups"/>: the pages a team sets things up in.</summary>
+    public static TheoryData<string> SetupGroups => [.. RouteTable.Select(route => route.Group).Distinct().Intersect(SetupSide)];
+
+    /// <summary>The rows of the walk over a new organization: every group of <see cref="EmptyRouteTable"/>.</summary>
+    public static TheoryData<string> EmptyGroups => [.. EmptyRouteTable.Select(route => route.Group).Distinct()];
+
     protected static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     protected ProofScene Scene { get; private set; } = null!;
@@ -22,6 +129,67 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
     }
 
     protected string DashboardUrl(string pathAndQuery) => new Uri(Fixture.GetEndpoint("dashboard"), pathAndQuery).ToString();
+
+    /// <summary>
+    /// Walks one group of the scene's dashboard as its Owner and runs <paramref name="check"/> on each page and tab, or on
+    /// each overlay. The first group also checks the sign-in page, the one dashboard route a signed-out person sees, before
+    /// it signs in. Only that group does, so two rows never write the same screenshot.
+    /// </summary>
+    protected async Task WalkGroupAsync(string group, string mode, Func<string, Task> check)
+    {
+        if (group == RouteTable[0].Group)
+        {
+            await GoToAsync("dashboard", "/sign-in");
+            await SettleAsync();
+            await check("/sign-in");
+        }
+
+        await SignInAsync();
+        if (group == OverlaysGroup)
+        {
+            await WalkOverlaysAsync(mode, check);
+            return;
+        }
+
+        var routes = RouteTable.Where(route => route.Group == group).Select(route => route.Path(Scene)).ToList();
+        routes.Should().NotBeEmpty("the row for '{0}' walks at least one route", group);
+        foreach (var path in routes)
+        {
+            await WalkAsync(path, mode, check);
+        }
+    }
+
+    /// <summary>
+    /// Walks one group of a new organization's pages, where the empty states show. The first group signs a new person in
+    /// through the browser, runs <paramref name="check"/> on the onboarding page they land on and sets the organization up
+    /// there (<see cref="EmptyOrganizationAsync"/>). The other groups set theirs up through the API and then sign in, so
+    /// the onboarding page is checked, and its screenshot written, once.
+    /// </summary>
+    protected async Task WalkEmptyGroupAsync(string group, string mode, Func<string, Task> check)
+    {
+        if (group == EmptyRouteTable[0].Group)
+        {
+            await EmptyOrganizationAsync(check);
+        }
+        else
+        {
+            var email = ApiSession.NewEmail("e2e-empty");
+            using (var session = new ApiSession(Fixture))
+            {
+                await session.SignInWithDevSsoAsync(email, Ct);
+                await session.OnboardAsync(Ct);
+            }
+
+            await SignInAsync(email);
+        }
+
+        var routes = EmptyRouteTable.Where(route => route.Group == group).Select(route => route.Path).ToList();
+        routes.Should().NotBeEmpty("the row for '{0}' walks at least one route", group);
+        foreach (var path in routes)
+        {
+            await WalkAsync(path, mode, check);
+        }
+    }
 
     /// <summary>
     /// Signs a new person in through Dev SSO in the browser, runs <paramref name="check"/> on the onboarding page they land
@@ -44,89 +212,17 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
     }
 
-    /// <summary>
-    /// The pages that list records, which an empty organization shows as empty states, and the pages a new Owner meets in the
-    /// first hour (New job, Billing on the trial, Branding with nothing set), which only an organization this new shows.
-    /// </summary>
-    protected static IReadOnlyList<string> EmptyRoutes() =>
-    [
-        "/",
-        "/jobs/new",
-        "/settings/billing",
-        "/settings/branding",
-        "/settings/careers-site",
-        "/candidates",
-        "/tasks",
-        "/reports",
-        "/templates",
-        "/verification",
-        "/verification/activity",
-        "/verification/usage",
-        "/settings/team",
-        "/settings/api-keys",
-        "/settings/webhooks",
-        "/settings/slack",
-        "/settings/data-requests",
-    ];
-
     /// <summary>Signs in through Dev SSO as the scene's Owner and waits for the Jobs page.</summary>
-    protected async Task SignInAsync()
+    protected Task SignInAsync() => SignInAsync(Scene.OwnerEmail);
+
+    private async Task SignInAsync(string email)
     {
         await GoToAsync("dashboard", "/sign-in");
         await Page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" }).ClickAsync();
-        await Page.GetByLabel("Any email address").FillAsync(Scene.OwnerEmail);
+        await Page.GetByLabel("Any email address").FillAsync(email);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Sign in with this address" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
     }
-
-    /// <summary>Every dashboard route that has a page, with the records of the scene filled in.</summary>
-    protected IReadOnlyList<string> Routes() =>
-    [
-        "/",
-        "/candidates",
-        "/tasks",
-        "/reports",
-        "/jobs/new",
-        $"/jobs/{Scene.JobId}",
-        $"/jobs/{Scene.JobId}/edit",
-        $"/jobs/{Scene.JobId}/workflow",
-        $"/applications/{Scene.BotApplicationId}",
-        $"/applications/{Scene.GenuineApplicationId}",
-        $"/candidates/{Scene.BotCandidateId}",
-        "/templates",
-        "/templates/new",
-        $"/templates/{Scene.TemplateId}",
-        "/templates/emails/new",
-        $"/templates/emails/{Scene.EmailTemplateId}",
-        $"/templates/scorecards/{Scene.ScorecardTemplateId}",
-        "/verification",
-        "/verification/activity",
-        "/verification/checks",
-        "/verification/policy",
-        "/verification/ai-model",
-        "/verification/notifications",
-        "/verification/usage",
-        "/settings",
-        "/settings/organization",
-        "/settings/careers-site",
-        "/settings/branding",
-        "/settings/team",
-        "/settings/roles",
-        "/settings/roles/compare",
-        "/settings/roles/viewer",
-        $"/settings/roles/{Scene.RoleId}",
-        "/settings/sending-domain",
-        "/settings/data-requests",
-        "/settings/billing",
-        "/settings/api-keys",
-        "/settings/webhooks",
-        "/settings/webhooks/new",
-        $"/settings/webhooks/{Scene.EndpointId}",
-        $"/settings/webhooks/{Scene.EndpointId}/edit",
-        "/settings/mcp-server",
-        "/settings/slack",
-        "/account/passkeys",
-    ];
 
     /// <summary>
     /// Opens <paramref name="path"/>, waits for it to load and runs <paramref name="check"/> on it and on each of its tabs.
@@ -139,6 +235,10 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
             await Page.GotoAsync(DashboardUrl(path));
             await SettleAsync();
             await check(path);
+            if (TabsAreRoutes(path))
+            {
+                return;
+            }
 
             var tabs = Page.Locator("main [role=tablist]").First.GetByRole(AriaRole.Tab);
             var count = await tabs.CountAsync();
@@ -156,6 +256,13 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
             Problems.Add($"{path} ({mode}): the walk could not finish: {FirstLine(exception)}");
         }
     }
+
+    /// <summary>
+    /// The Verification area's tabs are its pages, each at its own address and each in the route table. Opening every tab
+    /// from every one of them checked each page eight times: one row of the walk ran 145 s on CI that way, against 19 to
+    /// 58 s for the others. <c>ProofWalkRoutesTests</c> in the unit tests fails when a tab has no row in the table.
+    /// </summary>
+    private static bool TabsAreRoutes(string path) => path.StartsWith("/verification", StringComparison.Ordinal);
 
     /// <summary>
     /// Opens what the routes do not show on their own and runs <paramref name="check"/> on each: the command palette, the
@@ -279,6 +386,24 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         }
 
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+    }
+
+    /// <summary>
+    /// The dark theme's check of one page: it is in the dark theme, it passes axe with the colour-contrast rule on, it
+    /// does not scroll sideways and its fields' edges can be seen. <paramref name="mode"/> names its screenshot.
+    /// </summary>
+    protected async Task CheckDarkAsync(string mode, string name)
+    {
+        // The theme follows the system until a person picks one, so a dark system opens the dashboard dark.
+        if (!await Page.EvaluateAsync<bool>("() => document.documentElement.classList.contains('dark')"))
+        {
+            Problems.Add($"{name}: the page is not in the dark theme");
+        }
+
+        await CollectAxeAsync(name);
+        await CollectOverflowAsync(name);
+        await CollectFieldEdgesAsync(name);
+        _ = await ScreenshotAsync(mode, name);
     }
 
     protected async Task CollectAxeAsync(string name)

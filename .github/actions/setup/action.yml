@@ -22,6 +22,13 @@ inputs:
     description: Restore the cached Chromium the end-to-end tests and Lighthouse drive ('true' or 'false'); the job installs it.
     default: 'false'
 
+outputs:
+  chromium-cached:
+    description: >-
+      'true' when the cache held Playwright's Chromium for this Microsoft.Playwright version. A job that would build the
+      end-to-end tests only to install the browser (lighthouse) skips that then.
+    value: ${{ steps.chromium.outputs.cache-hit }}
+
 runs:
   using: composite
   steps:
@@ -88,6 +95,7 @@ runs:
         echo "version=$version" >> "$GITHUB_OUTPUT"
 
     - name: Cache Playwright's Chromium
+      id: chromium
       if: ${{ inputs.playwright == 'true' }}
       uses: actions/cache@v6
       with:
