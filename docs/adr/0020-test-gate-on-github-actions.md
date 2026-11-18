@@ -6,7 +6,8 @@ tags: [adr, ci, testing, process, kangentic]
 ---
 # ADR-0020: The test gate runs on GitHub Actions, and agents run only fast checks and their own tests locally
 
-- **Status:** Accepted (2026-10-31), amended (2026-11-07)
+- **Status:** Accepted (2026-10-31), amended (2026-11-07). The account's limit named in decision 12 was corrected from
+  40 to 20 on 2026-11-18, when it was measured. No decision changed
 - **Deciders:** Owner, through task #80 on the board
 - **Amends:** ADR-0003's Lighthouse enforcement (report-only in CI until it is calibrated on the runners)
 - **Detail:** [`docs/process/testing.md`](../process/testing.md#continuous-integration),
