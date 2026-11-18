@@ -1469,7 +1469,7 @@
           <OverviewStat icon={UsersIcon} title="New this week" value="12" href="#overview-stat" />
           <OverviewStat icon={UsersIcon} title="Not screened" value="8" href="#overview-stat" />
           <OverviewStat icon={HourglassIcon} title="Interviews this week" value="3" href="#overview-stat" />
-          <OverviewStat icon={UsersIcon} title="Open jobs" value="3 of 5" href="#overview-stat" />
+          <OverviewStat icon={UsersIcon} title="Open jobs" value="3 of 5" unit="on your plan" href="#overview-stat" />
         </div>
       </section>
 

@@ -12,6 +12,7 @@
     icon: Icon,
     title,
     value,
+    unit,
     href,
     class: className,
   }: {
@@ -19,6 +20,8 @@
     title: string;
     /** The value, formatted ("16", "3 of 5"). */
     value: string;
+    /** What the value is measured against, in words ("on your plan"): beside the value, or on the line under it when the tile is too narrow. */
+    unit?: string;
     /** The list the number counts. */
     href: string;
     class?: string;
@@ -34,7 +37,11 @@
       </Card.Title>
     </Card.Header>
     <Card.Content>
-      <span class="text-metric tabular-nums">{value}</span>
+      <!-- The unit never cuts or shrinks: a tile too narrow for it moves it to its own line, and the value keeps its place. -->
+      <div class="flex flex-wrap items-baseline gap-x-2">
+        <span class="text-metric tabular-nums">{value}</span>
+        {#if unit}<span class="text-body text-muted-foreground">{unit}</span>{/if}
+      </div>
     </Card.Content>
   </Card.Root>
 </a>

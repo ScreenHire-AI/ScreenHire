@@ -14,8 +14,9 @@
 
   // The four numbers above the table on Jobs (design system section 11, Overview stat): new applications this week, those
   // not yet screened, interviews this week and open jobs. Each opens the list it counts, and counts with the list's own
-  // predicate (`saved-views.ts`), so a tile and its list agree. Open jobs reads "3 of 5" against the plan's limit for whoever
-  // may manage billing, the only people the plan is shown to. A number that cannot load leaves its tile out, never a zero.
+  // predicate (`saved-views.ts`), so a tile and its list agree. Open jobs reads "3 of 5 on your plan" against the plan's limit
+  // for whoever may manage billing, the only people the plan is shown to, and opens Billing for them; with no limit it is the
+  // count alone and opens the open jobs. A number that cannot load leaves its tile out, never a zero.
   let { jobs, user }: { jobs: readonly JobSummary[] | null | undefined; user: CurrentUser | null | undefined } = $props();
 
   const applications = createListApplications(() => ({ query: { staleTime: 60_000 } }));
@@ -29,10 +30,11 @@
   };
 
   const openJobs = $derived(jobs?.filter((job) => job.status === 'Open').length);
-  const openJobsValue = $derived.by(() => {
+  const openJobsStat = $derived.by(() => {
     if (openJobs === undefined) return undefined;
     const plan = billing.data?.data;
-    return plan?.available && plan.activeJobLimit !== null ? openJobsText({ openJobs, activeJobLimit: plan.activeJobLimit }) : `${openJobs}`;
+    if (!plan?.available || plan.activeJobLimit === null) return { value: `${openJobs}`, unit: undefined, href: '/?status=Open' };
+    return { value: openJobsText({ openJobs, activeJobLimit: plan.activeJobLimit }), unit: 'on your plan', href: '/settings/billing' };
   });
 
   const applicationTiles = [
@@ -56,8 +58,8 @@
         {/if}
       {/each}
     {/if}
-    {#if openJobsValue !== undefined}
-      <OverviewStat icon={BriefcaseIcon} title="Open jobs" value={openJobsValue} href="/?status=Open" />
+    {#if openJobsStat !== undefined}
+      <OverviewStat icon={BriefcaseIcon} title="Open jobs" value={openJobsStat.value} unit={openJobsStat.unit} href={openJobsStat.href} />
     {:else if jobs === undefined}
       <Skeleton class="h-28 rounded-panel" />
     {/if}
