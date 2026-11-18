@@ -12,7 +12,14 @@ public sealed record ViewPreferences
     /// <summary>The ids of the built-in views (<c>BuiltInViews</c>) the member hid, in the order they hid them.</summary>
     public IReadOnlyList<string> HiddenBuiltIns { get; init; } = [];
 
-    public bool Equals(ViewPreferences? other) => other is not null && HiddenBuiltIns.SequenceEqual(other.HiddenBuiltIns);
+    /// <summary>
+    /// When the member last opened the sheet of team views, or null if they never did. A view shared since then is marked
+    /// New there; until the first visit the member's own start stands in, so a new member does not see a backlog as New.
+    /// </summary>
+    public DateTimeOffset? TeamViewsOpenedAt { get; init; }
 
-    public override int GetHashCode() => HashCode.Combine(HiddenBuiltIns.Count, HiddenBuiltIns.Count > 0 ? HiddenBuiltIns[0] : null);
+    public bool Equals(ViewPreferences? other) =>
+        other is not null && HiddenBuiltIns.SequenceEqual(other.HiddenBuiltIns) && TeamViewsOpenedAt == other.TeamViewsOpenedAt;
+
+    public override int GetHashCode() => HashCode.Combine(HiddenBuiltIns.Count, HiddenBuiltIns.Count > 0 ? HiddenBuiltIns[0] : null, TeamViewsOpenedAt);
 }

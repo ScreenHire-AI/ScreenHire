@@ -393,6 +393,8 @@ internal static class TeamEndpoints
         await outbox.PublishAsync(new RemoveInterviewerFromInterviews(member.OrganizationId, member.UserId, member.Id));
         // So do their private views, which nobody else can see. Views they shared stay with the team (docs/architecture/saved-views.md).
         await db.SavedFilterViews.Where(v => v.OwnerUserId == member.UserId && !v.IsShared).ExecuteDeleteAsync(cancellationToken);
+        // And the shared views they had added to their sidebar, which they would not find again if they rejoined.
+        await db.SavedViewMembers.Where(m => m.UserId == member.UserId).ExecuteDeleteAsync(cancellationToken);
         db.MembershipEvents.Add(new MembershipEvent
         {
             OrganizationId = member.OrganizationId,

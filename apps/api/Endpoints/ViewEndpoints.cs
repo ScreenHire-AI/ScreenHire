@@ -25,6 +25,9 @@ internal static class ViewEndpoints
     /// <summary>Views one person keeps, so a runaway client cannot fill the table.</summary>
     public const int MaxViewsPerPerson = 200;
 
+    /// <summary>Who saved a shared view when its owner has left the organization.</summary>
+    private const string FormerTeammate = "A former teammate";
+
     public static IEndpointRouteBuilder MapViewEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/v1/views").WithTags("Views").RequireAuthorization();
@@ -49,11 +52,22 @@ internal static class ViewEndpoints
         group.MapPut("/hidden-built-ins", UpdateHiddenViews).WithName("UpdateHiddenViews")
             .RequireAntiforgeryToken()
             .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/{viewId:guid}/sidebar", AddToSidebar).WithName("AddViewToSidebar")
+            .RequireAntiforgeryToken()
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapDelete("/{viewId:guid}/sidebar", RemoveFromSidebar).WithName("RemoveViewFromSidebar")
+            .RequireAntiforgeryToken()
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/team-views-opened", MarkTeamViewsOpened).WithName("MarkTeamViewsOpened")
+            .RequireAntiforgeryToken()
+            .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
 
-    // The member's own views and the shared ones, oldest first. A view of a job they cannot see, and a shared view that picks
-    // one, are left out: Jobs reads through the job scope.
+    // The member's own views and the shared ones they may see, oldest first. A view of a job they cannot see, and a shared view
+    // that picks one, are left out: Jobs reads through the job scope. Sharing is an offer, so a shared view is in the sidebar
+    // only when the member added it (inSidebar); the list still holds the rest, which is what the sheet of team views and a
+    // preview read.
     private static async Task<Ok<ViewList>> ListViews(ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
         TypedResults.Ok(await BuildListAsync(db, tenant, cancellationToken));
 
@@ -67,12 +81,23 @@ internal static class ViewEndpoints
             .ToListAsync(cancellationToken);
         var seenJobs = await SeenJobsAsync(db, views, cancellationToken);
         var permissions = await PermissionsAsync(db, tenant, cancellationToken);
-        var preferences = tenant.MemberId is { } memberId
-            ? await db.OrganizationMembers.AsNoTracking().Where(m => m.Id == memberId).Select(m => m.Views).SingleOrDefaultAsync(cancellationToken)
+        var member = tenant.MemberId is { } memberId
+            ? await db.OrganizationMembers.AsNoTracking().Where(m => m.Id == memberId)
+                .Select(m => new { m.Views, m.CreatedAt }).SingleOrDefaultAsync(cancellationToken)
             : null;
+        var seen = views.Where(v => ViewPolicy.MaySee(v, userId, seenJobs)).ToList();
+        var added = await db.SavedViewMembers.AsNoTracking()
+            .Where(m => m.UserId == userId)
+            .OrderBy(m => m.Position).ThenBy(m => m.AddedAt)
+            .Select(m => m.ViewId)
+            .ToListAsync(cancellationToken);
+        var addedSet = added.ToHashSet();
+        var names = await OwnerNamesAsync(db, seen, cancellationToken);
         return new ViewList(
-            [.. views.Where(v => ViewPolicy.MaySee(v, userId, seenJobs)).Select(v => SavedViewSummary.From(v, userId, ViewPolicy.MayChange(v, userId, permissions)))],
-            preferences?.HiddenBuiltIns ?? []);
+            [.. seen.Select(v => SavedViewSummary.From(v, userId, ViewPolicy.MayChange(v, userId, permissions), addedSet.Contains(v.Id), names.GetValueOrDefault(v.OwnerUserId, FormerTeammate)))],
+            member?.Views.HiddenBuiltIns ?? [],
+            [.. added.Where(id => seen.Any(v => v.Id == id && v.OwnerUserId != userId))],
+            member?.Views.TeamViewsOpenedAt ?? member?.CreatedAt ?? DateTimeOffset.UnixEpoch);
     }
 
     private static async Task<Results<Created<SavedViewSummary>, ValidationProblem, ProblemHttpResult>> CreateView(
@@ -130,7 +155,7 @@ internal static class ViewEndpoints
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("name", "You already have a view with this name here."));
         }
 
-        return TypedResults.Created($"/v1/views/{view.Id}", SavedViewSummary.From(view, userId, canEdit: true));
+        return TypedResults.Created($"/v1/views/{view.Id}", await SummaryAsync(db, view, userId, cancellationToken));
     }
 
     private static async Task<Results<Ok<SavedViewSummary>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateView(
@@ -168,13 +193,23 @@ internal static class ViewEndpoints
         }
 
         var changed = name is not null && view.Rename(name, now);
+        var madePrivate = false;
         if (request.Shared is { } shared)
         {
-            changed |= view.SetShared(shared, now);
+            var sharedChanged = view.SetShared(shared, now);
+            madePrivate = sharedChanged && !shared;
+            changed |= sharedChanged;
         }
 
         if (changed)
         {
+            if (madePrivate)
+            {
+                // A private view leaves every sidebar. Sharing it again offers it afresh, in nobody's sidebar. Not a tracked kind,
+                // so a bulk delete is fine.
+                await db.SavedViewMembers.Where(m => m.ViewId == view.Id).ExecuteDeleteAsync(cancellationToken);
+            }
+
             await outbox.PublishAsync(new ViewsChanged(view.OrganizationId, view.Id, now, tenant.UserId));
             try
             {
@@ -186,7 +221,7 @@ internal static class ViewEndpoints
             }
         }
 
-        return TypedResults.Ok(SavedViewSummary.From(view, tenant.UserId, canEdit: true));
+        return TypedResults.Ok(await SummaryAsync(db, view, tenant.UserId, cancellationToken));
     }
 
     private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> DeleteView(
@@ -253,7 +288,7 @@ internal static class ViewEndpoints
             }
         }
 
-        return TypedResults.Ok(SavedViewSummary.From(view, tenant.UserId, canEdit: true));
+        return TypedResults.Ok(await SummaryAsync(db, view, tenant.UserId, cancellationToken));
     }
 
     private static ProblemHttpResult NameTakenOnRestore() => TypedResults.Problem(
@@ -279,12 +314,112 @@ internal static class ViewEndpoints
             return TypedResults.NotFound();
         }
 
-        if (member.SetViews(new ViewPreferences { HiddenBuiltIns = request.HiddenBuiltIns }))
+        if (member.SetViews(member.Views with { HiddenBuiltIns = request.HiddenBuiltIns }))
         {
             await db.SaveChangesAsync(cancellationToken);
         }
 
         return TypedResults.Ok(await BuildListAsync(db, tenant, cancellationToken));
+    }
+
+    // Adds a shared view to the member's own sidebar. Nothing to add for their own view, which is always there; a view they
+    // cannot see is not found. Appended after the ones they added, and a second request changes nothing. It raises no event:
+    // only this person's list changes, as when they hide a built-in view.
+    private static async Task<Results<NoContent, NotFound>> AddToSidebar(
+        Guid viewId, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (tenant.UserId is not { } userId || tenant.OrganizationId is not { } organizationId
+            || await FindVisibleAsync(db, userId, viewId, cancellationToken) is not { } view)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (view.OwnerUserId == userId || await db.SavedViewMembers.AnyAsync(m => m.ViewId == viewId && m.UserId == userId, cancellationToken))
+        {
+            return TypedResults.NoContent();
+        }
+
+        var last = await db.SavedViewMembers.Where(m => m.UserId == userId).Select(m => (int?)m.Position).MaxAsync(cancellationToken);
+        db.SavedViewMembers.Add(SavedViewMember.Create(organizationId, viewId, userId, (last ?? -1) + 1, time.GetUtcNow()));
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            // Two adds at the same moment: the other one won, and the view is in the sidebar either way.
+        }
+
+        return TypedResults.NoContent();
+    }
+
+    // Takes a shared view out of the member's own sidebar. The view stays shared, and a second request changes nothing.
+    private static async Task<NoContent> RemoveFromSidebar(
+        Guid viewId, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
+    {
+        if (tenant.UserId is { } userId)
+        {
+            await db.SavedViewMembers.Where(m => m.ViewId == viewId && m.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        }
+
+        return TypedResults.NoContent();
+    }
+
+    // The member opened the sheet of team views: what was shared before now is no longer New the next time.
+    private static async Task<Results<NoContent, NotFound>> MarkTeamViewsOpened(
+        ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+    {
+        var member = await db.OrganizationMembers.SingleOrDefaultAsync(m => m.Id == tenant.MemberId, cancellationToken);
+        if (member is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (member.SetViews(member.Views with { TeamViewsOpenedAt = time.GetUtcNow() }))
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return TypedResults.NoContent();
+    }
+
+    // The summary of a view the member just changed or saved, which they may change.
+    private static async Task<SavedViewSummary> SummaryAsync(
+        ScreenHireDbContext db, SavedFilterView view, Guid? userId, CancellationToken cancellationToken)
+    {
+        var names = await OwnerNamesAsync(db, [view], cancellationToken);
+        var added = view.OwnerUserId == userId
+            || await db.SavedViewMembers.AsNoTracking().AnyAsync(m => m.ViewId == view.Id && m.UserId == userId, cancellationToken);
+        return SavedViewSummary.From(view, userId, canEdit: true, added, names.GetValueOrDefault(view.OwnerUserId, FormerTeammate));
+    }
+
+    // Who saved each view, by display name. Users are not tenant rows, so only people who are members of this organization are
+    // read: a former member's name is not given out, and the caller says "A former teammate".
+    private static async Task<Dictionary<Guid, string>> OwnerNamesAsync(
+        ScreenHireDbContext db, IEnumerable<SavedFilterView> views, CancellationToken cancellationToken)
+    {
+        var owners = views.Select(v => v.OwnerUserId).Distinct().ToList();
+        if (owners.Count == 0)
+        {
+            return [];
+        }
+
+        var people = await db.OrganizationMembers.AsNoTracking()
+            .Where(m => owners.Contains(m.UserId))
+            .Join(db.Users.AsNoTracking(), m => m.UserId, u => u.Id, (m, u) => new { u.Id, u.DisplayName, u.Email })
+            .ToListAsync(cancellationToken);
+        return people.ToDictionary(p => p.Id, p => p.DisplayName ?? p.Email ?? FormerTeammate);
+    }
+
+    // A view the member sees, whether or not they may change it: their own, or a shared one of jobs they see.
+    private static async Task<SavedFilterView?> FindVisibleAsync(
+        ScreenHireDbContext db, Guid userId, Guid viewId, CancellationToken cancellationToken)
+    {
+        var view = await db.SavedFilterViews.AsNoTracking()
+            .Where(v => v.Id == viewId && v.DeletedAt == null && (v.IsShared || v.OwnerUserId == userId))
+            .Where(v => v.JobId == null || db.Jobs.Any(j => j.Id == v.JobId))
+            .SingleOrDefaultAsync(cancellationToken);
+        return view is not null && ViewPolicy.MaySee(view, userId, await SeenJobsAsync(db, [view], cancellationToken)) ? view : null;
     }
 
     // The tracked view, when the member may change it. Another member's private view, and a view of a job they cannot see or

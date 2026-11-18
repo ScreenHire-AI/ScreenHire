@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { CalendarStatus, CurrentUser, SavedViewSummary, SlackStatus } from '@screenhire/api-client';
+  import CircleMinusIcon from '~icons/lucide/circle-minus';
   import ChevronDownIcon from '~icons/lucide/chevron-down';
   import ChevronsUpDownIcon from '~icons/lucide/chevrons-up-down';
   import EllipsisIcon from '~icons/lucide/ellipsis';
@@ -19,6 +20,7 @@
   import CalendarAccountSheet from '#lib/components/calendar-account-sheet.svelte';
   import RenameViewDialog from '#lib/components/rename-view-dialog.svelte';
   import SlackAccountSheet from '#lib/components/slack-account-sheet.svelte';
+  import TeamViewsSheet from '#lib/components/team-views-sheet.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Kbd } from '#lib/components/ui/kbd/index.js';
@@ -40,6 +42,7 @@
     user,
     views,
     viewActions,
+    teamViews,
     slack,
     calendar,
     calendarOpen = $bindable(false),
@@ -53,6 +56,11 @@
     views: { visible: readonly SidebarView[]; hidden: readonly SidebarView[] };
     /** What the views menus do; without it the rows are plain links. */
     viewActions?: ViewActions;
+    /**
+     * What the sheet of team views lists: every view in the person's list, when they last opened the sheet, and the job
+     * titles for its filter lines. Without it (or without `viewActions`) the sidebar has no Browse team views button.
+     */
+    teamViews?: { views: readonly SavedViewSummary[]; seenAt: string; jobTitles: Readonly<Record<string, string>> };
     /** Slack for this person (`GET /v1/slack`), for the Slack account item in their menu; missing while it loads. */
     slack?: SlackStatus;
     /** The person's calendar (`GET /v1/calendar`), for the Calendar item in their menu; missing while it loads. */
@@ -62,6 +70,8 @@
     /** How many open tasks are the person's own, in the count badge after My tasks; missing while it loads, and nothing at none. */
     openTasks?: number;
   } = $props();
+
+  let teamViewsOpen = $state(false);
 
   const sidebar = Sidebar.useSidebar();
   const shell = getShell();
@@ -247,6 +257,14 @@
               {/each}
             {/if}
           {/if}
+          {#if teamViews && viewActions}
+            <Sidebar.MenuItem class="group-data-[collapsible=icon]:hidden">
+              <Sidebar.MenuButton onclick={() => (teamViewsOpen = true)} aria-haspopup="dialog" class="text-muted-foreground">
+                <UsersIcon aria-hidden="true" />
+                <span class="min-w-0 flex-1 truncate">Browse team views</span>
+              </Sidebar.MenuButton>
+            </Sidebar.MenuItem>
+          {/if}
         </Sidebar.Menu>
         <FailureText message={viewFailure} class="px-2 group-data-[collapsible=icon]:hidden" />
       </Sidebar.Group>
@@ -341,6 +359,9 @@
   </Sidebar.Footer>
 </Sidebar.Root>
 
+{#if teamViews && viewActions}
+  <TeamViewsSheet bind:open={teamViewsOpen} views={teamViews.views} seenAt={teamViews.seenAt} jobTitles={teamViews.jobTitles} actions={viewActions} onnavigate={closeSheet} />
+{/if}
 {#if calendar && calendarAvailable}
   <CalendarAccountSheet bind:open={calendarOpen} status={calendar} outcome={calendarOutcome} />
 {/if}
@@ -350,11 +371,12 @@
 
 <!-- One row of the Views list: the link with its icon and name, and for a person who may change it the menu that shows
      on hover and on focus (A4: the button has a label and a tooltip). A built-in view's menu hides it; a saved view's
-     renames, shares or deletes it. A saved view the person cannot change has no menu. -->
+     renames, shares or deletes it when the person may change it, and a teammate's shared view they added can be removed
+     from the sidebar. The person's own view that they cannot change does not exist, so every saved row has a menu. -->
 {#snippet viewRow(view: SidebarView, hiddenRow: boolean)}
   {@const saved = view.saved}
   {@const actions = viewActions}
-  {@const menu = actions && (view.builtIn || saved?.canEdit)}
+  {@const menu = actions && (view.builtIn || saved?.canEdit || (saved && !saved.mine))}
   <Sidebar.MenuItem>
     <Sidebar.MenuButton
       isActive={currentView === view.key}
@@ -402,14 +424,23 @@
               {#if hiddenRow}<EyeIcon aria-hidden="true" />Show in sidebar{:else}<EyeOffIcon aria-hidden="true" />Hide from sidebar{/if}
             </DropdownMenu.Item>
           {:else if saved}
-            <DropdownMenu.Item onSelect={() => (renameQueued = saved)}><PencilIcon aria-hidden="true" />Rename</DropdownMenu.Item>
-            <DropdownMenu.Item onSelect={() => void run(actions.setShared(saved, !saved.shared))}>
-              {#if saved.shared}<LockIcon aria-hidden="true" />Make private{:else}<UsersIcon aria-hidden="true" />Share with the team{/if}
-            </DropdownMenu.Item>
-            <DropdownMenu.Separator />
-            <DropdownMenu.Item variant="destructive" onSelect={() => void run(actions.remove(saved))}>
-              <Trash2Icon aria-hidden="true" />Delete view
-            </DropdownMenu.Item>
+            {#if !saved.mine}
+              <!-- A teammate's view the person added: leaving the sidebar keeps it shared, and Browse team views adds it again. -->
+              <DropdownMenu.Item onSelect={() => void run(actions.removeFromSidebar(saved))}>
+                <CircleMinusIcon aria-hidden="true" />Remove from sidebar
+              </DropdownMenu.Item>
+            {/if}
+            {#if saved.canEdit}
+              {#if !saved.mine}<DropdownMenu.Separator />{/if}
+              <DropdownMenu.Item onSelect={() => (renameQueued = saved)}><PencilIcon aria-hidden="true" />Rename</DropdownMenu.Item>
+              <DropdownMenu.Item onSelect={() => void run(actions.setShared(saved, !saved.shared))}>
+                {#if saved.shared}<LockIcon aria-hidden="true" />Make private{:else}<UsersIcon aria-hidden="true" />Share with the team{/if}
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator />
+              <DropdownMenu.Item variant="destructive" onSelect={() => void run(actions.remove(saved))}>
+                <Trash2Icon aria-hidden="true" />Delete view
+              </DropdownMenu.Item>
+            {/if}
           {/if}
         </DropdownMenu.Content>
       </DropdownMenu.Root>

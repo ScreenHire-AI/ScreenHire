@@ -170,6 +170,8 @@ public sealed class ScreenHireDbContext
 
     public DbSet<SavedFilterView> SavedFilterViews => Set<SavedFilterView>();
 
+    public DbSet<SavedViewMember> SavedViewMembers => Set<SavedViewMember>();
+
     public DbSet<Notification> Notifications => Set<Notification>();
 
     public DbSet<ScorecardTemplate> ScorecardTemplates => Set<ScorecardTemplate>();

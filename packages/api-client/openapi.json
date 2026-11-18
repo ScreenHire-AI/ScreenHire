@@ -8875,6 +8875,95 @@
         ]
       }
     },
+    "/v1/views/{viewId}/sidebar": {
+      "put": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "AddViewToSidebar",
+        "parameters": [
+          {
+            "name": "viewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "RemoveViewFromSidebar",
+        "parameters": [
+          {
+            "name": "viewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/views/team-views-opened": {
+      "put": {
+        "tags": [
+          "Views"
+        ],
+        "operationId": "MarkTeamViewsOpened",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/jobs/{jobId}/hiring-team": {
       "get": {
         "tags": [
@@ -25213,6 +25302,9 @@
           "shared",
           "mine",
           "canEdit",
+          "inSidebar",
+          "ownerName",
+          "sharedAt",
           "filters",
           "updatedAt"
         ],
@@ -25244,6 +25336,19 @@
           "canEdit": {
             "type": "boolean"
           },
+          "inSidebar": {
+            "type": "boolean"
+          },
+          "ownerName": {
+            "type": "string"
+          },
+          "sharedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
           "filters": {
             "$ref": "#/components/schemas/ViewFilters"
           },
@@ -25252,7 +25357,7 @@
             "format": "date-time"
           }
         },
-        "description": "A saved view as the signed-in member sees it: their own, and the team's shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone's views)."
+        "description": "A saved view as the signed-in member sees it: their own, and the team's shared ones they may see. `mine` is whether\nthey saved it; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone's\nviews). `inSidebar` is whether it sits in their sidebar: their own always do, and a shared one does once they added\nit. `ownerName` is who saved it, and `sharedAt` when it was last shared (null while private)."
       },
       "ScheduleInterviewRequest": {
         "required": [
@@ -28635,7 +28740,9 @@
       "ViewList": {
         "required": [
           "views",
-          "hiddenBuiltIns"
+          "hiddenBuiltIns",
+          "sidebarOrder",
+          "teamViewsSeenAt"
         ],
         "type": "object",
         "properties": {
@@ -28650,9 +28757,20 @@
             "items": {
               "type": "string"
             }
+          },
+          "sidebarOrder": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "teamViewsSeenAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
-        "description": "The views the member sees, oldest first, and the ids of the built-in views they hid."
+        "description": "The views the member sees, oldest first, and the ids of the built-in views they hid. `sidebarOrder` is the ids of\nthe shared views they added, in the order they sit in the sidebar. `teamViewsSeenAt` is when they last opened the\nsheet of team views (their own start until then): a view shared after it is New."
       },
       "ViewScope": {
         "enum": [

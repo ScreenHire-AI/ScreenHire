@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ApplicationSummary } from '@screenhire/api-client';
 import { applications, savedView, stages } from '../test-support/fixtures.js';
-import { defaultSorts, differsFromView, filtersOf, sameFilters, sortOf, unfiltered, verificationOf, viewMatcher } from './view-filters.js';
+import { defaultSorts, describeFilters, differsFromView, filtersOf, sameFilters, sortOf, unfiltered, verificationOf, viewMatcher } from './view-filters.js';
 
 const now = Date.parse('2026-10-20T12:00:00Z');
 const withVerification = (application: ApplicationSummary, authenticity: 'NoConcerns' | 'ReviewSuggested'): ApplicationSummary => ({
@@ -127,5 +127,31 @@ describe('the rows a saved view picks', () => {
 
     expect(applications.filter(matches).map((application) => application.candidateName)).toEqual(['Jordan Lee']);
     expect(matches(kept)).toBe(false);
+  });
+});
+
+describe("a view's filters in one line", () => {
+  const base = savedView().filters;
+
+  it('names the built-in view, jobs, stages, verification level and tag, and not the sort', () => {
+    const line = describeFilters(
+      { ...base, baseView: 'needs-review', jobIds: ['job-1'], stages: ['screening'], authenticity: 'ReviewSuggested', tag: 'Referral', sortColumn: 'name' },
+      { jobTitles: { 'job-1': 'Platform Engineer' }, stageNames: { screening: 'Screening' } },
+    );
+
+    expect(line).toBe('To review, Platform Engineer, stage Screening, Review suggested, tagged Referral');
+  });
+
+  it('says so when a view filters nothing, and words checks that have not run', () => {
+    expect(describeFilters(base)).toBe('Every candidate');
+    expect(describeFilters({ ...base, authenticity: 'Pending' })).toBe('checks not run yet');
+  });
+
+  it('counts many jobs instead of listing them, skips a job it cannot name, and never shows AI assistance', () => {
+    const titles = { a: 'One', b: 'Two', c: 'Three' };
+
+    expect(describeFilters({ ...base, jobIds: ['a', 'b', 'c'] }, { jobTitles: titles })).toBe('3 jobs');
+    expect(describeFilters({ ...base, jobIds: ['a', 'gone'] }, { jobTitles: titles })).toBe('One');
+    expect(describeFilters({ ...base, aiAssistance: 'StrongIndicators' })).toBe('Every candidate');
   });
 });

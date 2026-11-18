@@ -139,3 +139,26 @@ export function viewMatcher(
     (names.length === 0 ||
       (scope === 'Candidates' ? names.includes(stageLabel(application)) : names.includes(application.stage.id) && !application.keptInMindAt));
 }
+
+/**
+ * A view's filters in one plain line, for the sheet of team views: "To review, Platform Engineer, Screening". Sort is not
+ * a filter and AI assistance never filters, so neither shows. A view that filters nothing says so. Job titles and stage
+ * names come from the caller: a job's table keeps stage ids, so `stageNames` maps those to the names people read.
+ */
+export function describeFilters(
+  filters: ViewFilters,
+  context: { jobTitles: Readonly<Record<string, string>>; stageNames?: Readonly<Record<string, string>> } = { jobTitles: {} },
+): string {
+  const parts: string[] = [];
+  if (filters.baseView) parts.push(findSavedView(filters.baseView)?.label ?? 'A built-in view');
+  const jobs = filters.jobIds.map((id) => context.jobTitles[id]).filter((title): title is string => Boolean(title));
+  if (jobs.length > 0) parts.push(jobs.length > 2 ? `${jobs.length} jobs` : jobs.join(' or '));
+  if (filters.stages.length > 0) {
+    const names = filters.stages.map((stage) => context.stageNames?.[stage] ?? stage);
+    parts.push(`stage ${names.join(' or ')}`);
+  }
+  const authenticity = verificationOf(filters).authenticity;
+  if (authenticity) parts.push(authenticity === 'Pending' ? 'checks not run yet' : authenticityLevels[authenticity].label);
+  if (filters.tag) parts.push(`tagged ${filters.tag}`);
+  return parts.length > 0 ? parts.join(', ') : 'Every candidate';
+}

@@ -100,6 +100,35 @@ public sealed partial class ViewPolicyTests
     }
 
     [Fact]
+    public void A_view_remembers_when_it_was_last_shared_and_a_rename_does_not_move_it()
+    {
+        var later = Now.AddMinutes(5);
+        View().SharedAt.Should().BeNull("a private view was never offered");
+        View(shared: true).SharedAt.Should().Be(Now);
+
+        var view = View();
+        view.SetShared(true, later);
+        view.SharedAt.Should().Be(later);
+        view.Rename("Interviewing now", later.AddMinutes(1));
+        view.SetShared(true, later.AddMinutes(2)).Should().BeFalse();
+        view.SharedAt.Should().Be(later, "only sharing moves it");
+
+        view.SetShared(false, later.AddMinutes(3));
+        view.SharedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_person_adds_a_shared_view_in_a_place_and_the_row_carries_where_and_when()
+    {
+        var row = SavedViewMember.Create(Organization, Guid.CreateVersion7(), Someone, position: 2, Now);
+
+        row.OrganizationId.Should().Be(Organization);
+        row.UserId.Should().Be(Someone);
+        row.Position.Should().Be(2);
+        row.AddedAt.Should().Be(Now);
+    }
+
+    [Fact]
     public void Undo_has_a_minute()
     {
         var view = View();
@@ -120,6 +149,8 @@ public sealed partial class ViewPolicyTests
         new ViewDefinition { Stages = ["Screening"] }.Should().NotBe(new ViewDefinition { Stages = ["Interview"] });
         new ViewPreferences { HiddenBuiltIns = ["overdue"] }.Should().Be(new ViewPreferences { HiddenBuiltIns = ["overdue"] });
         ViewPreferences.Default.Should().NotBe(new ViewPreferences { HiddenBuiltIns = ["overdue"] });
+        new ViewPreferences { TeamViewsOpenedAt = Now }.Should().Be(new ViewPreferences { TeamViewsOpenedAt = Now });
+        ViewPreferences.Default.Should().NotBe(new ViewPreferences { TeamViewsOpenedAt = Now });
     }
 
     [Fact]

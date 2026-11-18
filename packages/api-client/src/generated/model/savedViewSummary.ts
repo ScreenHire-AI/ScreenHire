@@ -8,8 +8,10 @@ import type { ViewFilters } from './viewFilters.ts';
 import type { ViewScope } from './viewScope.ts';
 
 /**
- * A saved view as the signed-in member sees it: their own, and the team's shared ones. `mine` is whether they saved
- * it; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone's views).
+ * A saved view as the signed-in member sees it: their own, and the team's shared ones they may see. `mine` is whether
+ * they saved it; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone's
+ * views). `inSidebar` is whether it sits in their sidebar: their own always do, and a shared one does once they added
+ * it. `ownerName` is who saved it, and `sharedAt` when it was last shared (null while private).
  */
 export interface SavedViewSummary {
   id: string;
@@ -20,6 +22,10 @@ export interface SavedViewSummary {
   shared: boolean;
   mine: boolean;
   canEdit: boolean;
+  inSidebar: boolean;
+  ownerName: string;
+  /** @nullable */
+  sharedAt: string | null;
   filters: ViewFilters;
   updatedAt: string;
 }
