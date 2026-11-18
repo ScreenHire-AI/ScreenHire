@@ -69,7 +69,8 @@ subsystem.
   `pnpm -r --if-present test` (Vitest) and `dotnet test --solution
   ScreenHire.slnx` (Microsoft Testing Platform via `global.json`: unit, Aspire integration and Playwright
   end-to-end; the last two boot the AppHost, so Docker must be running (`pnpm docker:start`), and the end-to-end
-  tests serve the `pnpm -r build` output).
+  tests serve the `pnpm -r build` output, which must be built with `NODE_ENV` unset (`env -u NODE_ENV pnpm -r build`):
+  a shell that has it as `development` builds the frontends in development mode, and the fixture refuses that build).
 - **Tests:** which tier for what, running one test, the shared `AppHostFixture`, data isolation (each test creates its
   own organization; the seeded `brightwater` is read-only) and the flake policy are in
   [`docs/process/testing.md`](docs/process/testing.md). What earns a test and a CI job, and the limits CI holds each to

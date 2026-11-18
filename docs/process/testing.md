@@ -102,6 +102,17 @@ The end-to-end tests serve the frontends' **production builds**, so run `pnpm -r
 own (`pnpm verify` and CI's `e2e` job build first). They fail fast, naming the missing folders, when a build is absent; after changing a
 frontend, rebuild or they test the old build. `HEADED=1` shows the browser while you debug.
 
+Build with `NODE_ENV` unset. Vite keeps a `NODE_ENV` the shell already has, so in a shell where it is `development`
+`pnpm -r build` compiles every Svelte component in development mode: the careers runtime came out 11 KB larger, and
+each component carried its source file's path on the build machine. A shell can inherit the variable from the app
+that started it, and CI's runners do not set it. `E2EFixture` refuses such a build before it boots anything and says
+so (`E2EFixture.DevelopmentBuildFile` reads the careers site's client scripts, since one `pnpm -r build` builds every
+frontend in one environment):
+
+```
+env -u NODE_ENV pnpm -r build
+```
+
 ## Fixtures
 
 ### `AppHostFixture` (`tests/ScreenHire.Testing`)
@@ -933,6 +944,7 @@ What failed the gate with no change, and the cause that was fixed, so the next f
 
 | When | Symptom | Cause and fix |
 |---|---|---|
+| 2026-11-18 | Locally, 2 of 2: `ApplyTests.Candidate_applies_with_JavaScript_and_the_resume_goes_straight_to_storage` found 22,545 bytes of JavaScript on the apply page against its budget of 22,528. The careers sources were the ones three CI runs had just passed (44263046484, 44263988292, 44265246886), and the assertion named no script. | Not a flake, and not the page: the shell had `NODE_ENV=development`, which Vite keeps, so `pnpm -r build` had compiled the Svelte components in development mode. The careers runtime was 44,641 bytes against 33,405 built with the variable unset, and `FileField`'s script held the build machine's path to two `.svelte` files, which is how it was found. Built with `NODE_ENV` unset, the class passed 11 of 11. `E2EFixture` now refuses a build whose careers scripts name a `.svelte` source file, in under a second and with the command that fixes it (`BrowserTestTests` holds the check), and the budget's assertion lists each script with its bytes. The run before the fix (76 tests, 75 passed) had tested a development-mode build, so the branch's end-to-end classes were run again on a production build: 81 of 81. |
 | 2026-11-18 | A local run of eleven end-to-end classes with every test in parallel (`--parallel all`, which has no limit of 4 on the dev machine): `MarketingScreenshotsTests` failed before its test began. Its own stack's `dashboard` resource never passed its health check ("Failed to connect to http://localhost:<port>/"). The class passed alone straight after, 1 of 1, and the other 35 tests of the run passed. | Not proven; the machine is the suspect. 25 containers from other worktrees' stacks were up, and the class boots a second stack with the demo's data. It is the unexplained start of the 2026-11-07 row again (the dashboard resource reported as failed to start, with no reason in the log). The branch changed only how the class polls for an email and for the analyzers, which it had not reached. If it recurs on a quiet machine, keep `TestResults/logs/MarketingDemoFixture/dashboard.log` before rerunning. |
 | 2026-11-17 | CI run 44237368429 (#156, a `kangentic.json` change, end-to-end shard 4): `WebhookStatesTests.An_endpoint_that_times_out_fails_gives_up_is_turned_off_and_a_rotated_secret_each_say_so_with_a_way_forward` found no delivery row within 60 s, the fourth time. The shard's `worker.log` showed the delivery tried three times and Succeeded at 04:30:28, while the failure's page snapshot read "Deliveries 0 No deliveries yet" with live updates connected. | Found and fixed: the endpoint page's delivery log polled every 5 s only while `endpoint.data?.data.enabled` was true, read inside TanStack's `refetchInterval` callback, which TanStack calls again only after that query fetches. When the empty log answered before the endpoint, the callback read `undefined`, the log never polled, and nothing else refreshes it. The page now reads `enabled` in the query's options function, which re-runs when the endpoint arrives, and `webhook-endpoint-page.test.ts` reproduces the order (it failed before the fix). The three earlier rows below were this race. |
 | 2026-11-09 | CI runs 42651302349 (#148, shard 4) and 42653228974 (#147, shard 4 of 8, on its second run): `WebhookStatesTests.An_endpoint_that_times_out_fails_gives_up_is_turned_off_and_a_rotated_secret_each_say_so_with_a_way_forward` never saw a delivery row read Delivered within 60 s. Neither branch changed webhook code, and both passed on a rerun of the failed job with no push. | Not proven. This is the third occurrence in the table (see the entry below). The next failure should read the worker's delivery attempts in that shard's `e2e-results` artifact before the wait changes. |
