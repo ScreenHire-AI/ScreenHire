@@ -28,6 +28,7 @@ sources:
   - resource: src/ScreenHire.Application/Distribution/PublishCheck.cs
   - resource: apps/api/Hiring/JobPublishCheckReads.cs
   - resource: apps/dashboard/src/lib/components/publish-check-dialog.svelte
+  - resource: apps/dashboard/src/routes/(app)/jobs/[jobId]/+page.svelte
   - resource: apps/dashboard/src/lib/publish-check.ts
   - resource: apps/dashboard/src/lib/components/customize-posting-form.svelte
   - resource: apps/dashboard/src/lib/components/customize-posting-sheet.svelte

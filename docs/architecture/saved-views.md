@@ -154,6 +154,8 @@ There is no toast or bell line when a teammate shares a view; the sheet's New ma
   from the applications list, read only while the sheet is open, with the same `viewMatcher` the pages filter by. Opening the
   sheet saves the visit, and its New marks stay until it closes. A view already in the person's sidebar when the sheet
   opens carries no New mark, so the views the migration kept in every sidebar do not all read New on the first visit.
+  A row's Add and Remove wait while their request runs, and a failure shows on its own row. If the applications list cannot
+  be read the count line stays blank.
 
 ## Tests
 
