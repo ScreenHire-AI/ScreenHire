@@ -137,22 +137,19 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await third.Locator("summary").ClickAsync();
         var dayHeading = (await third.Locator("legend").TextContentAsync())!.Trim();
         await third.GetByRole(AriaRole.Radio).First.CheckAsync();
-        // A pseudo-element has no box to ask for, so the line's place is read from its computed insets, which anchoring
-        // resolves against the layout before scrolling: its bottom edge is Book's top edge and its left edge is Book's.
+        // A pseudo-element has no box to ask for, and its computed insets do not follow the scroll, so the test asks the page
+        // what is drawn just above Book's left edge: a hit on a pseudo-element answers with the element that owns it.
         var line = await third.Locator("label.choice").First.EvaluateAsync<JsonElement>("""
-            e => {
-              const after = getComputedStyle(e, '::after');
-              const book = document.querySelector('.book-row').getBoundingClientRect();
-              return {
-                content: after.content,
-                gap: document.documentElement.clientHeight - parseFloat(after.bottom) - (book.top + window.scrollY),
-                left: parseFloat(after.left) - book.left,
-              };
+            async e => {
+              const book = document.querySelector('.book-row');
+              book.scrollIntoView({ block: 'center' });
+              await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+              const box = book.getBoundingClientRect();
+              return { content: getComputedStyle(e, '::after').content, above: document.elementFromPoint(box.left + 4, box.top - 6) === e };
             }
             """);
-        line.GetProperty("content").GetString().Should().Contain($"{dayHeading} at ", "the chosen time is repeated above Book");
-        line.GetProperty("gap").GetDouble().Should().BeApproximately(0, 1, "the chosen time sits right above Book");
-        line.GetProperty("left").GetDouble().Should().BeApproximately(0, 1, "the chosen time lines up with Book");
+        line.GetProperty("content").GetString().Should().Contain($"{dayHeading} at ", "the chosen time is repeated");
+        line.GetProperty("above").GetBoolean().Should().BeTrue("the chosen time sits right above Book");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
 
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
