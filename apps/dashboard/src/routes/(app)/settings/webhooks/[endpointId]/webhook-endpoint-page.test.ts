@@ -132,6 +132,41 @@ describe('webhook endpoint page', () => {
     expect(await screen.findByText('No deliveries yet.')).toBeInTheDocument();
   });
 
+  // The race behind WebhookStatesTests' flake (docs/process/testing.md, flake history): an empty log that answered
+  // before the endpoint did must still start polling once the endpoint says it is on, or it says "No deliveries yet" for
+  // ever while the worker delivers.
+  it('keeps reading the log of an endpoint that is on, even when the empty log answered before the endpoint', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let releaseEndpoint: () => void = () => {};
+      const endpointArrives = new Promise<void>((resolve) => (releaseEndpoint = resolve));
+      let current: WebhookDeliveryEntry[] = [];
+      let logReads = 0;
+      renderPage(endpoint(), {
+        [`GET /v1/webhooks/${endpointId}`]: async () => {
+          await endpointArrives;
+          return Response.json(endpoint());
+        },
+        [`GET /v1/webhooks/${endpointId}/deliveries`]: () => {
+          logReads += 1;
+          return Response.json(current);
+        },
+      });
+
+      // The empty log has answered; only then does the endpoint.
+      await waitFor(() => expect(logReads).toBe(1));
+      await vi.advanceTimersByTimeAsync(0);
+      releaseEndpoint();
+      expect(await screen.findByText(/No deliveries yet/)).toBeInTheDocument();
+
+      current = [delivery('d9', 'Succeeded', 'job.published', { lastStatusCode: 200 })];
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(await screen.findByRole('row', { name: /Job published/ })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('replays a finished delivery with a POST', async () => {
     const fetchMock = renderPage(endpoint(), { [`POST /v1/webhooks/${endpointId}/deliveries/d2/replay`]: () => Response.json({}, { status: 202 }) });
 
