@@ -56,7 +56,9 @@ public static class Wait
                 await Task.Delay(PollInterval, expiry.Token);
             }
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        // Only the deadline reads as a timeout. A cancellation from anywhere else, such as an HttpClient's own timeout
+        // inside the read, is thrown as it is: it did not wait this long.
+        catch (OperationCanceledException) when (expiry.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
             throw new TimeoutException($"Waited {limit.TotalSeconds:0} seconds for {because()}.");
         }

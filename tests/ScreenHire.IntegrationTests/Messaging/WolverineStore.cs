@@ -133,7 +133,11 @@ internal sealed class WolverineStore(string connectionString, string schema = "w
         AppHostFixture fixture, string bodyContains, string messageType, Func<Task> publish, CancellationToken cancellationToken)
     {
         var store = await ForAppHostAsync(fixture, cancellationToken);
-        var before = await store.CountHandledAsync(bodyContains, cancellationToken, messageType);
+
+        // Every copy the worker has taken so far, handled or still in its handler, and not only the handled ones: an
+        // earlier copy is marked Handled a moment after its effects show, and counted as the new one it would end this
+        // wait before the new one is handled. A copy put off to a later time is left out, since it is not handled now.
+        var before = await store.CountAsync("wolverine_incoming_envelopes", bodyContains, cancellationToken, "status <> 'Scheduled'", messageType);
         await publish();
         await WaitUntilAsync(
             async () => await store.CountHandledAsync(bodyContains, cancellationToken, messageType) > before,
