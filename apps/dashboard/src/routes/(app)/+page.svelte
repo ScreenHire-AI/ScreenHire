@@ -316,7 +316,7 @@
                 <p class="text-body text-muted-foreground">
                   {setup.remaining.length} {setup.remaining.length === 1 ? 'step' : 'steps'} left to set up your organization.
                 </p>
-                <Button variant="ghost" size="lg" onclick={() => setupPanel.open()}>Open the setup checklist</Button>
+                <Button variant="secondary" size="lg" onclick={() => setupPanel.open()}>Open the setup checklist</Button>
               {/if}
             </Empty.Content>
           {/if}

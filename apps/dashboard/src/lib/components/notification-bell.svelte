@@ -45,25 +45,27 @@
 
   let open = $state(false);
   let panel = $state<HTMLElement | null>(null);
-  let setupSection = $state<HTMLElement | null>(null);
-  // Set when the panel opens for its setup steps, so focus starts there and not on the panel's top.
+  // Set when the panel opens for its setup steps, so focus starts there and not on the panel's top, until it closes:
+  // bits-ui can ask where focus goes more than once while the panel opens. The section is found in the panel each time.
   let focusSetup = false;
   let handledRequests = setupPanel.requests;
-  let tour = $state(false);
 
+  $effect(() => {
+    if (!open) focusSetup = false;
+  });
   $effect(() => {
     if (setupPanel.requests > handledRequests) {
       handledRequests = setupPanel.requests;
       focusSetup = true;
+      // Already open: no autofocus follows, so move focus to the steps here.
+      if (open) panel?.querySelector<HTMLElement>('[data-bell-setup]')?.focus();
       open = true;
     }
   });
+  // The one-time open after onboarding is taken only once the steps are known and some remain, so a bell that unmounts
+  // before then (the person moved on while the steps loaded) leaves it for the next one.
   $effect(() => {
-    if (user?.id && preferences.takeSetupTour(user.id)) tour = true;
-  });
-  $effect(() => {
-    if (tour && setup.steps && setup.remaining.length > 0) {
-      tour = false;
+    if (user?.id && setup.steps && setup.remaining.length > 0 && preferences.takeSetupTour(user.id)) {
       focusSetup = true;
       open = true;
     }
@@ -103,8 +105,8 @@
     bind:ref={panel}
     onOpenAutoFocus={(event) => {
       event.preventDefault();
-      (focusSetup ? (setupSection ?? panel) : panel)?.focus();
-      focusSetup = false;
+      const setupSection = focusSetup ? panel?.querySelector<HTMLElement>('[data-bell-setup]') : null;
+      (setupSection ?? panel)?.focus();
     }}
     align="end"
     collisionPadding={16}
@@ -119,7 +121,7 @@
     </header>
 
     {#if setup.steps}
-      <section bind:this={setupSection} tabindex="-1" aria-labelledby="bell-setup-title" class="flex outline-hidden flex-col gap-1 border-b border-border-subtle px-4 py-3">
+      <section data-bell-setup tabindex="-1" aria-labelledby="bell-setup-title" class="flex flex-col gap-1 outline-hidden border-b border-border-subtle px-4 py-3">
         <div class="flex items-center gap-2">
           <h3 id="bell-setup-title" class="min-w-0 flex-1 truncate font-semibold">Finish setting up</h3>
           <IconButton label="Hide setup in this browser" onclick={() => setup.dismiss()}><XIcon aria-hidden="true" /></IconButton>

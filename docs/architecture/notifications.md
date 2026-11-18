@@ -48,8 +48,9 @@ Opening the panel marks nothing read; following an alert's link does.
 Two things open the panel at its setup section. The Jobs empty state, while steps remain, says how many are left and has a button,
 Open the setup checklist, which counts up `setupPanel.requests` (`setup-panel.svelte.ts`); every page mounts its own bell, which
 opens when the count passes the one it saw when it mounted. And right after onboarding creates the organization, the page
-queues a one-time ask in `preferences` for that person (`queueSetupTour`); the first bell to mount takes it (`takeSetupTour`,
-so it never opens itself twice) and opens as soon as the steps are known. In both cases focus starts on the setup section.
+queues a one-time ask in `preferences` for that person (`queueSetupTour`); the first bell that has steps to show takes it
+(`takeSetupTour`, so it never opens itself twice) and opens, so a bell that unmounts while the steps load leaves it for the next
+one. In both cases focus starts on the setup section, until the panel closes.
 
 The panel is called Needs attention, because Notifications already names the toast settings in the account menu and the
 toast tray. The bell holds no team news: that stays in the tray (the realtime doc).
