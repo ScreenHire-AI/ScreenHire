@@ -148,8 +148,13 @@ export const GetSignInMethodsResponse = zod.object({
   "id": zod.string(),
   "displayName": zod.string()
 }).describe('An identity provider button on the sign-in page.')),
-  "magicLinkEnabled": zod.boolean()
-}).describe('How a person can sign in here: the configured identity providers, and whether email links work.')
+  "magicLinkEnabled": zod.boolean(),
+  "legal": zod.object({
+  "termsUrl": zod.string().nullable(),
+  "privacyUrl": zod.string().nullable(),
+  "dpaUrl": zod.string().nullable()
+}).describe('The addresses of the documents the agreement line names (`ScreenHire:Legal`). Each is null until it is configured, and\nthe page names only the ones that are.')
+}).describe('How a person can sign in here: the configured identity providers, whether email links work, and the legal documents the\nsign-in page\'s agreement line links to.')
 
 
 export const GetCurrentUserResponse = zod.object({
@@ -1861,6 +1866,20 @@ export const UpdateJobResponse = zod.object({
   "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
 }).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
+
+
+export const GetJobPublishCheckParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const GetJobPublishCheckResponse = zod.object({
+  "items": zod.array(zod.object({
+  "kind": zod.enum(['TemplatePrompt', 'NoCity', 'NoSalary', 'ShortDescription']).describe('What a publish check found, so a person can tell one problem from another.'),
+  "field": zod.enum(['Description', 'City', 'Salary']).describe('The field of Edit details that fixes a problem.'),
+  "text": zod.string(),
+  "boards": zod.array(zod.string())
+}).describe('One thing to check before a job goes live: a sentence, the field that fixes it and the boards it matters to.'))
+}).describe('What to check before a job goes live (`GET /v1/jobs/{jobId}/publish-check`); it warns and never blocks.')
 
 
 export const GetJobHistoryParams = zod.object({
@@ -7804,6 +7823,9 @@ export const ListViewsResponse = zod.object({
   "shared": zod.boolean(),
   "mine": zod.boolean(),
   "canEdit": zod.boolean(),
+  "inSidebar": zod.boolean(),
+  "ownerName": zod.string(),
+  "sharedAt": zod.iso.datetime({"offset":true}).nullable(),
   "filters": zod.object({
   "baseView": zod.string().nullable(),
   "jobIds": zod.array(zod.uuid()),
@@ -7815,9 +7837,11 @@ export const ListViewsResponse = zod.object({
   "sortDescending": zod.boolean()
 }).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.'),
   "updatedAt": zod.iso.datetime({"offset":true})
-}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s views).')),
-  "hiddenBuiltIns": zod.array(zod.string())
-}).describe('The views the member sees, oldest first, and the ids of the built-in views they hid.')
+}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones they may see. `mine` is whether\nthey saved it; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s\nviews). `inSidebar` is whether it sits in their sidebar: their own always do, and a shared one does once they added\nit. `ownerName` is who saved it, and `sharedAt` when it was last shared (null while private).')),
+  "hiddenBuiltIns": zod.array(zod.string()),
+  "sidebarOrder": zod.array(zod.uuid()),
+  "teamViewsSeenAt": zod.iso.datetime({"offset":true})
+}).describe('The views the member sees, oldest first, and the ids of the built-in views they hid. `sidebarOrder` is the ids of\nthe shared views they added, in the order they sit in the sidebar. `teamViewsSeenAt` is when they last opened the\nsheet of team views (their own start until then): a view shared after it is New.')
 
 
 export const CreateViewBody = zod.object({
@@ -7845,6 +7869,9 @@ export const CreateViewResponse = zod.object({
   "shared": zod.boolean(),
   "mine": zod.boolean(),
   "canEdit": zod.boolean(),
+  "inSidebar": zod.boolean(),
+  "ownerName": zod.string(),
+  "sharedAt": zod.iso.datetime({"offset":true}).nullable(),
   "filters": zod.object({
   "baseView": zod.string().nullable(),
   "jobIds": zod.array(zod.uuid()),
@@ -7856,7 +7883,7 @@ export const CreateViewResponse = zod.object({
   "sortDescending": zod.boolean()
 }).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.'),
   "updatedAt": zod.iso.datetime({"offset":true})
-}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s views).')
+}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones they may see. `mine` is whether\nthey saved it; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s\nviews). `inSidebar` is whether it sits in their sidebar: their own always do, and a shared one does once they added\nit. `ownerName` is who saved it, and `sharedAt` when it was last shared (null while private).')
 
 
 export const UpdateViewParams = zod.object({
@@ -7876,6 +7903,9 @@ export const UpdateViewResponse = zod.object({
   "shared": zod.boolean(),
   "mine": zod.boolean(),
   "canEdit": zod.boolean(),
+  "inSidebar": zod.boolean(),
+  "ownerName": zod.string(),
+  "sharedAt": zod.iso.datetime({"offset":true}).nullable(),
   "filters": zod.object({
   "baseView": zod.string().nullable(),
   "jobIds": zod.array(zod.uuid()),
@@ -7887,7 +7917,7 @@ export const UpdateViewResponse = zod.object({
   "sortDescending": zod.boolean()
 }).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.'),
   "updatedAt": zod.iso.datetime({"offset":true})
-}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s views).')
+}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones they may see. `mine` is whether\nthey saved it; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s\nviews). `inSidebar` is whether it sits in their sidebar: their own always do, and a shared one does once they added\nit. `ownerName` is who saved it, and `sharedAt` when it was last shared (null while private).')
 
 
 export const DeleteViewParams = zod.object({
@@ -7909,6 +7939,9 @@ export const RestoreViewResponse = zod.object({
   "shared": zod.boolean(),
   "mine": zod.boolean(),
   "canEdit": zod.boolean(),
+  "inSidebar": zod.boolean(),
+  "ownerName": zod.string(),
+  "sharedAt": zod.iso.datetime({"offset":true}).nullable(),
   "filters": zod.object({
   "baseView": zod.string().nullable(),
   "jobIds": zod.array(zod.uuid()),
@@ -7920,7 +7953,7 @@ export const RestoreViewResponse = zod.object({
   "sortDescending": zod.boolean()
 }).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.'),
   "updatedAt": zod.iso.datetime({"offset":true})
-}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s views).')
+}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones they may see. `mine` is whether\nthey saved it; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s\nviews). `inSidebar` is whether it sits in their sidebar: their own always do, and a shared one does once they added\nit. `ownerName` is who saved it, and `sharedAt` when it was last shared (null while private).')
 
 
 export const UpdateHiddenViewsBody = zod.object({
@@ -7936,6 +7969,9 @@ export const UpdateHiddenViewsResponse = zod.object({
   "shared": zod.boolean(),
   "mine": zod.boolean(),
   "canEdit": zod.boolean(),
+  "inSidebar": zod.boolean(),
+  "ownerName": zod.string(),
+  "sharedAt": zod.iso.datetime({"offset":true}).nullable(),
   "filters": zod.object({
   "baseView": zod.string().nullable(),
   "jobIds": zod.array(zod.uuid()),
@@ -7947,9 +7983,28 @@ export const UpdateHiddenViewsResponse = zod.object({
   "sortDescending": zod.boolean()
 }).describe('What a view filters and how it sorts. `baseView` is a built-in view this one narrows; `jobIds` and\n`stages` pick jobs and stages (stage names on the Candidates page, stage ids on a job\'s table); `authenticity`\nis an authenticity level name or `Pending`; `aiAssistance` an AI assistance level name; `sortColumn` the\nsorted column, or none for the table\'s own order. Search text is not saved.'),
   "updatedAt": zod.iso.datetime({"offset":true})
-}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones. `mine` is whether they saved\nit; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s views).')),
-  "hiddenBuiltIns": zod.array(zod.string())
-}).describe('The views the member sees, oldest first, and the ids of the built-in views they hid.')
+}).describe('A saved view as the signed-in member sees it: their own, and the team\'s shared ones they may see. `mine` is whether\nthey saved it; `canEdit` whether they may rename, share or delete it (its owner, or a role that edits anyone\'s\nviews). `inSidebar` is whether it sits in their sidebar: their own always do, and a shared one does once they added\nit. `ownerName` is who saved it, and `sharedAt` when it was last shared (null while private).')),
+  "hiddenBuiltIns": zod.array(zod.string()),
+  "sidebarOrder": zod.array(zod.uuid()),
+  "teamViewsSeenAt": zod.iso.datetime({"offset":true})
+}).describe('The views the member sees, oldest first, and the ids of the built-in views they hid. `sidebarOrder` is the ids of\nthe shared views they added, in the order they sit in the sidebar. `teamViewsSeenAt` is when they last opened the\nsheet of team views (their own start until then): a view shared after it is New.')
+
+
+export const AddViewToSidebarParams = zod.object({
+  "viewId": zod.uuid()
+})
+
+export const AddViewToSidebarResponse = zod.void()
+
+
+export const RemoveViewFromSidebarParams = zod.object({
+  "viewId": zod.uuid()
+})
+
+export const RemoveViewFromSidebarResponse = zod.void()
+
+
+export const MarkTeamViewsOpenedResponse = zod.void()
 
 
 export const GetJobHiringTeamParams = zod.object({

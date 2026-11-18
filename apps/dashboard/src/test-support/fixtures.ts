@@ -176,6 +176,9 @@ export function savedView({ filters, ...overrides }: Partial<SavedViewSummary> =
     shared: false,
     mine: true,
     canEdit: true,
+    inSidebar: true,
+    ownerName: 'Avery Quinn',
+    sharedAt: null,
     filters: {
       baseView: null,
       jobIds: [],
@@ -193,7 +196,18 @@ export function savedView({ filters, ...overrides }: Partial<SavedViewSummary> =
 }
 
 /** The views list `GET /v1/views` returns. */
-export const viewList = (views: SavedViewSummary[] = [], hiddenBuiltIns: string[] = []): ViewList => ({ views, hiddenBuiltIns });
+export const viewList = (
+  views: SavedViewSummary[] = [],
+  hiddenBuiltIns: string[] = [],
+  overrides: Partial<Pick<ViewList, 'sidebarOrder' | 'teamViewsSeenAt'>> = {},
+): ViewList => ({
+  views,
+  hiddenBuiltIns,
+  // The shared views a person added, in the order they sit: what the sidebar lists after their own.
+  sidebarOrder: views.filter((view) => view.inSidebar && !view.mine).map((view) => view.id),
+  teamViewsSeenAt: '2026-10-01T00:00:00Z',
+  ...overrides,
+});
 
 export function board(id: string, name: string, overrides: Partial<BoardSummary> = {}): BoardSummary {
   return {

@@ -180,4 +180,31 @@ describe('toasts in the tray', () => {
     tray.dismiss('toast');
     expect(ids(tray)).toEqual([]);
   });
+
+  it('replaces a toast sent again under its id, in place and with a fresh lifetime', () => {
+    vi.useFakeTimers();
+    try {
+      const tray = new Notifications();
+      const toast = (count: number): Toast => ({
+        id: 'change:1',
+        kind: 'NewCandidates',
+        sentence: ['', `${count} new applications`, ' to Senior .NET Engineer'],
+        href: '/candidates?view=not-screened',
+        context: '',
+      });
+      tray.add(teamNotification('run-1', undefined, application));
+      tray.toast(toast(2));
+      vi.advanceTimersByTime(toastLifetime - 1_000);
+      tray.toast(toast(3));
+      vi.advanceTimersByTime(toastLifetime - 1_000);
+
+      expect(tray.items.map((item) => item.id)).toEqual(['change:1', 'run-1']);
+      expect(tray.items[0]).toMatchObject({ sentence: ['', '3 new applications', ' to Senior .NET Engineer'] });
+      vi.advanceTimersByTime(2_000);
+      expect(tray.items.map((item) => item.id)).toEqual(['run-1']);
+      tray.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

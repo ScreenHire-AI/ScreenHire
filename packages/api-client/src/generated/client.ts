@@ -114,6 +114,7 @@ import type {
   JobBoardJobList,
   JobDetail,
   JobPostingStatus,
+  JobPublishCheck,
   JobSummary,
   JobTemplateDiff,
   JobVersionDetail,
@@ -3320,6 +3321,56 @@ return apiFetch<updateJobResponse>(getUpdateJobUrl(jobId),
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateJobRequest)
+  }
+);}
+
+
+
+export type getJobPublishCheckResponse200 = {
+  data: JobPublishCheck
+  status: 200
+}
+
+export type getJobPublishCheckResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobPublishCheckResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobPublishCheckResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getJobPublishCheckResponseSuccess = (getJobPublishCheckResponse200) & {
+  headers: Headers;
+};
+export type getJobPublishCheckResponseError = (getJobPublishCheckResponse401 | getJobPublishCheckResponse404 | getJobPublishCheckResponse429) & {
+  headers: Headers;
+};
+
+export type getJobPublishCheckResponse = (getJobPublishCheckResponseSuccess | getJobPublishCheckResponseError)
+
+export const getGetJobPublishCheckUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/publish-check`
+}
+
+export const getJobPublishCheck = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getJobPublishCheckResponse> => {
+
+  return apiFetch<getJobPublishCheckResponse>(getGetJobPublishCheckUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 
@@ -9389,6 +9440,136 @@ return apiFetch<updateHiddenViewsResponse>(getUpdateHiddenViewsUrl(),
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateHiddenViewsRequest)
+  }
+);}
+
+
+
+export type addViewToSidebarResponse204 = {
+  data: void
+  status: 204
+}
+
+export type addViewToSidebarResponse401 = {
+  data: void
+  status: 401
+}
+
+export type addViewToSidebarResponse404 = {
+  data: void
+  status: 404
+}
+
+export type addViewToSidebarResponseSuccess = (addViewToSidebarResponse204) & {
+  headers: Headers;
+};
+export type addViewToSidebarResponseError = (addViewToSidebarResponse401 | addViewToSidebarResponse404) & {
+  headers: Headers;
+};
+
+export type addViewToSidebarResponse = (addViewToSidebarResponseSuccess | addViewToSidebarResponseError)
+
+export const getAddViewToSidebarUrl = (viewId: string,) => {
+
+
+
+
+  return `/v1/views/${viewId}/sidebar`
+}
+
+export const addViewToSidebar = async (viewId: string, options?: Parameters<typeof apiFetch>[1]): Promise<addViewToSidebarResponse> => {
+
+  return apiFetch<addViewToSidebarResponse>(getAddViewToSidebarUrl(viewId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+export type removeViewFromSidebarResponse204 = {
+  data: void
+  status: 204
+}
+
+export type removeViewFromSidebarResponse401 = {
+  data: void
+  status: 401
+}
+
+export type removeViewFromSidebarResponseSuccess = (removeViewFromSidebarResponse204) & {
+  headers: Headers;
+};
+export type removeViewFromSidebarResponseError = (removeViewFromSidebarResponse401) & {
+  headers: Headers;
+};
+
+export type removeViewFromSidebarResponse = (removeViewFromSidebarResponseSuccess | removeViewFromSidebarResponseError)
+
+export const getRemoveViewFromSidebarUrl = (viewId: string,) => {
+
+
+
+
+  return `/v1/views/${viewId}/sidebar`
+}
+
+export const removeViewFromSidebar = async (viewId: string, options?: Parameters<typeof apiFetch>[1]): Promise<removeViewFromSidebarResponse> => {
+
+  return apiFetch<removeViewFromSidebarResponse>(getRemoveViewFromSidebarUrl(viewId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type markTeamViewsOpenedResponse204 = {
+  data: void
+  status: 204
+}
+
+export type markTeamViewsOpenedResponse401 = {
+  data: void
+  status: 401
+}
+
+export type markTeamViewsOpenedResponse404 = {
+  data: void
+  status: 404
+}
+
+export type markTeamViewsOpenedResponseSuccess = (markTeamViewsOpenedResponse204) & {
+  headers: Headers;
+};
+export type markTeamViewsOpenedResponseError = (markTeamViewsOpenedResponse401 | markTeamViewsOpenedResponse404) & {
+  headers: Headers;
+};
+
+export type markTeamViewsOpenedResponse = (markTeamViewsOpenedResponseSuccess | markTeamViewsOpenedResponseError)
+
+export const getMarkTeamViewsOpenedUrl = () => {
+
+
+
+
+  return `/v1/views/team-views-opened`
+}
+
+export const markTeamViewsOpened = async ( options?: Parameters<typeof apiFetch>[1]): Promise<markTeamViewsOpenedResponse> => {
+
+  return apiFetch<markTeamViewsOpenedResponse>(getMarkTeamViewsOpenedUrl(),
+  {
+    ...options,
+    method: 'PUT'
+
+
   }
 );}
 

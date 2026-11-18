@@ -113,10 +113,9 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 2. **Make the setup checklist findable.** It lives only in the bell, which shows an unlabelled count, and the Jobs
    empty state never mentions it. Label the badge on a new organization ("Setup 5"), point to it from the empty state,
    or open the bell once after onboarding. Size S. (#149)
-3. **Check a job before it goes live.** Three of the five built-in templates ship fill-in prompts as the description,
-   so a new Owner can publish "Describe the work, the office and the team." to the public careers page, and some boards
-   refuse an on-site job without a city only after publishing. Warn, not block, when Publish is pressed, with a link
-   to Edit details. Size M. (#149)
+3. **Check a job before it goes live.** Built: Publish warns, never blocks, about template fill-in text, a missing city or
+   salary a chosen board needs, and a description a board would refuse, with Edit details beside each and Publish anyway
+   ([job distribution](architecture/job-distribution.md#check-before-publishing)). Kept here so the numbers below hold.
 4. **Say what "Open jobs 1 of 10" counts.** The tile does not say 10 is the plan's limit. "1 of 10 on your plan",
    linking to Billing, if it fits a phone tile. Size S. (#149)
 5. **Tell a new Owner about the trial.** Only Billing, the bell near the end and a "0 of 10" tile say there is one, how
@@ -170,9 +169,10 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 - **Sign-in through an organization's own identity provider:** one company's Okta or Entra ID, required for its members,
   set up by its Owner. Sign-in today offers Google, Microsoft, emailed links and passkeys, plus any OpenID Connect
   provider the installation configures for everyone ([sign-in and tenancy](architecture/sign-in-and-tenancy.md)). A
-  per-organization provider is an enterprise feature, and no first customer needs it. GitHub sign-in stays out: few
-  recruiters have an account, and it would be one more button for everyone else (owner's review of competitor sign-in
-  pages, 2026-11-17).
+  per-organization provider is an enterprise feature, and no first customer needs it. The sign-in page asks for the email
+  first, so this is where it will enter: Continue can send a company's email domain to its own identity provider. Nothing
+  is built for it yet. GitHub sign-in stays out: few recruiters have an account, and it would be one more button for
+  everyone else (owner's review of competitor sign-in pages, 2026-11-17).
 - **The recruiter dashboard inside a customer's own site:** only if a customer asks. Sign-in cookies are SameSite Lax
   or Strict and do not reach a cross-site frame, Google's and Microsoft's sign-in pages refuse to load in a frame, and
   allowing framing invites clickjacking. The API and webhooks are the usual way to integrate.
@@ -186,6 +186,9 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 
 - **Hosting:** defined and written down, not deployed. The [deploy runbook](operations/deploy.md) lists every owner step. CI runs on GitHub Actions (ADR-0020).
 - **Billing:** built behind a local fake: plans, a free trial, Stripe Checkout and the portal, and a 402 when a plan has no room for another open job ([billing](architecture/billing.md), ADR-0029). What is left is the owner's: a Stripe account, products and prices, the prices and limits themselves, tax and the terms of service ([MVP status](status.md#owner-actions)).
+- **Legal documents:** the Terms of Service, the Privacy Policy and a Data Processing Agreement with its sub-processor
+  list, before the first paying customer. They are the owner's to write (a legal call). The sign-in page links each one
+  from `ScreenHire:Legal:TermsUrl`, `PrivacyUrl` and `DpaUrl` and leaves a line out until its address is set.
 - **Compliance** ([legal](research/legal.md)): bias audits,
   Colorado and California automated-decision rules (due 1 January 2027), EU AI Act provider duties (due 2 December
   2027), the customer documentation pack.

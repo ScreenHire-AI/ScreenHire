@@ -1,12 +1,11 @@
 <script lang="ts">
   import KeyRoundIcon from '~icons/lucide/key-round';
   import LogInIcon from '~icons/lucide/log-in';
-  import MailIcon from '~icons/lucide/mail';
   import { getChallengeProviderUrl, requestMagicLink } from '@screenhire/api-client';
   import { RequestMagicLinkBody } from '@screenhire/api-client/zod';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { goto } from '$app/navigation';
   import FailureText from '#lib/components/failure-text.svelte';
   import GoogleMark from '#lib/components/provider-marks/google-mark.svelte';
@@ -16,7 +15,7 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
-  import { passkeysSupported, runPasskeySignIn } from '#lib/passkeys.js';
+  import { conditionalPasskeysSupported, passkeysSupported, runPasskeySignIn } from '#lib/passkeys.js';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
@@ -74,12 +73,11 @@
   const passkeys = passkeysSupported();
   let passkeyBusy = $state(false);
   let passkeyFailed = $state(false);
+  // The quiet wait behind the email field, where a browser that can offers a saved passkey in the field's own list. It
+  // ends when the person presses the passkey button instead, or leaves the page.
+  let conditional: AbortController | undefined;
 
-  async function signInWithAPasskey() {
-    passkeyBusy = true;
-    passkeyFailed = false;
-    const outcome = await runPasskeySignIn();
-    passkeyBusy = false;
+  async function finishPasskeySignIn(outcome: Awaited<ReturnType<typeof runPasskeySignIn>>) {
     if (outcome.kind === 'success') {
       // The session cookie is set; the guard runs again and finds the person, on to where this visit was going.
       await goto(data.returnUrl, { invalidateAll: true });
@@ -88,20 +86,56 @@
     }
   }
 
+  async function signInWithAPasskey() {
+    conditional?.abort();
+    passkeyBusy = true;
+    passkeyFailed = false;
+    const outcome = await runPasskeySignIn();
+    passkeyBusy = false;
+    await finishPasskeySignIn(outcome);
+  }
+
+  onMount(() => {
+    if (!data.methods.magicLinkEnabled) return;
+    const waiting = new AbortController();
+    conditional = waiting;
+    void conditionalPasskeysSupported().then(async (available) => {
+      if (available && !waiting.signal.aborted) {
+        await finishPasskeySignIn(await runPasskeySignIn({ signal: waiting.signal }));
+      }
+    });
+    return () => waiting.abort();
+  });
+
   const providers = $derived(data.methods.providers);
   const magicLink = $derived(data.methods.magicLinkEnabled);
   const anyMethod = $derived(providers.length > 0 || magicLink || passkeys);
+  // The passkey button and the providers: the other ways in, below the email field.
+  const others = $derived(providers.length > 0 || passkeys);
+
+  // The documents the agreement line names: only the ones that have an address, each with the words that lead into it.
+  const agreements = $derived(
+    [
+      { name: 'Terms of Service', href: data.methods.legal.termsUrl },
+      { name: 'Privacy Policy', href: data.methods.legal.privacyUrl },
+      { name: 'Data Processing Agreement', href: data.methods.legal.dpaUrl },
+    ]
+      .filter((document): document is { name: string; href: string } => Boolean(document.href))
+      .map((document, index, all) => ({ ...document, lead: index === 0 ? ' ' : index === all.length - 1 ? ' and ' : ', ' })),
+  );
 </script>
 
 <svelte:head>
   <title>Sign in · ScreenHire</title>
 </svelte:head>
 
-<!-- One centred card (design system section 7): the providers, an "or" divider, then the email link. -->
+<!-- One centred card (design system section 7): the email field and Continue, an "or" divider, then the passkey and the
+     providers, and the agreement line at the foot. -->
 <SignInCard
   title={sentTo ? 'Check your email' : 'Sign in to ScreenHire'}
   description={!sentTo && anyMethod ? 'New here? Signing in creates your account.' : undefined}
   bind:heading
+  footer={!sentTo && agreements.length > 0 ? agreement : undefined}
 >
   {#if sentTo}
     <div class="flex flex-col gap-2" role="status">
@@ -120,7 +154,37 @@
       <FailureText message="That passkey did not work. Use another way to sign in." />
     {/if}
 
-    {#if providers.length > 0 || passkeys}
+    {#if magicLink}
+      <form method="POST" use:enhance novalidate aria-label="Email link" class="flex flex-col gap-4">
+        <Field.Field data-invalid={$errors.email ? true : undefined}>
+          <Field.Label for="email">Work email</Field.Label>
+          <!-- `webauthn` lets a browser offer a saved passkey in this field (conditional mediation) where it can. -->
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email webauthn"
+            required
+            bind:value={$form.email}
+            aria-invalid={$errors.email ? 'true' : undefined}
+            aria-describedby={$errors.email ? 'email-error' : undefined}
+          />
+          <Field.Error id="email-error" errors={$errors.email?.map((message) => ({ message }))} />
+        </Field.Field>
+        <Button type="submit" size="lg" class="w-full" disabled={$submitting}>Continue</Button>
+        {#if $errors._errors}
+          <FailureText message={$errors._errors[0]} />
+        {/if}
+      </form>
+    {/if}
+
+    {#if magicLink && others}
+      <div data-slot="or-divider" class="flex items-center gap-3 text-muted-foreground">
+        <span aria-hidden="true" class="h-px flex-1 bg-border"></span>or<span aria-hidden="true" class="h-px flex-1 bg-border"></span>
+      </div>
+    {/if}
+
+    {#if others}
       <ul class="flex flex-col gap-2">
         {#if passkeys}
           <li>
@@ -147,37 +211,18 @@
       </ul>
     {/if}
 
-    {#if (providers.length > 0 || passkeys) && magicLink}
-      <div data-slot="or-divider" class="flex items-center gap-3 text-muted-foreground">
-        <span aria-hidden="true" class="h-px flex-1 bg-border"></span>or<span aria-hidden="true" class="h-px flex-1 bg-border"></span>
-      </div>
-    {/if}
-
-    {#if magicLink}
-      <form method="POST" use:enhance novalidate aria-label="Email link" class="flex flex-col gap-4">
-        <Field.Field data-invalid={$errors.email ? true : undefined}>
-          <Field.Label for="email">Work email</Field.Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            required
-            bind:value={$form.email}
-            aria-invalid={$errors.email ? 'true' : undefined}
-            aria-describedby={$errors.email ? 'email-error' : undefined}
-          />
-          <Field.Error id="email-error" errors={$errors.email?.map((message) => ({ message }))} />
-        </Field.Field>
-        <Button type="submit" size="lg" class="w-full" disabled={$submitting}><MailIcon aria-hidden="true" />Email me a sign-in link</Button>
-        {#if $errors._errors}
-          <FailureText message={$errors._errors[0]} />
-        {/if}
-      </form>
-    {/if}
-
     {#if !anyMethod}
       <FailureText message="Sign-in is not set up on this server yet." />
     {/if}
   {/if}
 </SignInCard>
+
+<!-- "By continuing, you agree to ScreenHire's Terms of Service, Privacy Policy and Data Processing Agreement.", naming only the documents with an address. -->
+{#snippet agreement()}
+  By continuing, you agree to ScreenHire's{#each agreements as document (document.name)}{document.lead}<a
+      href={document.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="underline underline-offset-2 hover:text-foreground">{document.name}<span class="sr-only">{' '}(opens in a new tab)</span></a
+    >{/each}.
+{/snippet}

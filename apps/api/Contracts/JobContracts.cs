@@ -1,4 +1,5 @@
 using FluentValidation;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Content;
@@ -317,3 +318,12 @@ internal sealed class JobPublishValidator : AbstractValidator<JobSnapshot>
             .WithMessage("A remote job needs the countries candidates may work from before publishing.");
     }
 }
+
+/// <summary>What to check before a job goes live (<c>GET /v1/jobs/{jobId}/publish-check</c>); it warns and never blocks.</summary>
+/// <remarks>
+/// <c>items</c> is empty when there is nothing to say. Each item has a <c>kind</c>, the <c>field</c> of Edit details that
+/// fixes it, one sentence of <c>text</c> and the <c>boards</c> it matters to (empty for a template's fill-in text, which is
+/// about the careers page too). A board's own rule is checked on the boards the publish would use: every available board for
+/// a draft, the boards an open job is on. A closed job has no items.
+/// </remarks>
+public sealed record JobPublishCheck(IReadOnlyList<PublishCheckItem> Items);

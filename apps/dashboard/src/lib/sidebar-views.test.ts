@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { jobId, savedView } from '../test-support/fixtures.js';
 import { sidebarViews, viewHref } from './sidebar-views.js';
 
-const input = { saved: [], hiddenBuiltIns: [], jobTitles: {} };
+const input = { saved: [], hiddenBuiltIns: [], sidebarOrder: [], jobTitles: {} };
 
 describe('the sidebar views', () => {
   it('lists the built-in views first, then the saved ones', () => {
@@ -62,5 +62,25 @@ describe('the sidebar views', () => {
     const { visible } = sidebarViews({ ...input, saved: [mine, theirs] });
 
     expect(visible.find((view) => view.key === 'a')!.icon).not.toBe(visible.find((view) => view.key === 'b')!.icon);
+  });
+
+  it('leaves a shared view out until the person adds it: sharing is an offer', () => {
+    const mine = savedView({ id: 'a', name: 'Mine' });
+    const offered = savedView({ id: 'b', name: 'Offered', shared: true, mine: false, canEdit: false, inSidebar: false });
+    const { visible } = sidebarViews({ ...input, saved: [mine, offered] });
+
+    expect(visible.map((view) => view.key)).toContain('a');
+    expect(visible.map((view) => view.key)).not.toContain('b');
+  });
+
+  it('lists the views a person owns, then the shared ones they added in the order they added them', () => {
+    const shared = (id: string, name: string) => savedView({ id, name, shared: true, mine: false, canEdit: false, inSidebar: true });
+    const first = shared('first', 'First added');
+    const second = shared('second', 'Second added');
+    const mine = savedView({ id: 'mine', name: 'Mine, saved last' });
+    // The server lists views oldest first, so the added ones can arrive in either order.
+    const { visible } = sidebarViews({ ...input, saved: [first, second, mine], sidebarOrder: ['second', 'first'] });
+
+    expect(visible.slice(-3).map((view) => view.key)).toEqual(['mine', 'second', 'first']);
   });
 });

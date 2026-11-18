@@ -107,6 +107,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
 
         // Where the phone pictures stop: between elements, never through the middle of one.
         static ILocator Stage4(IPage page) => page.GetByRole(AriaRole.List, new() { Name = "Stages in order" }).Locator("> li").Nth(3);
+        static ILocator Book(IPage page) => page.GetByRole(AriaRole.Button, new() { Name = "Book this time" });
         static ILocator Entry(IPage page, string text) => page.Locator("main ol[aria-label] > li").Filter(new() { HasText = text });
 
         var screens = new List<Screen>
@@ -141,11 +142,11 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
                 WideTo: page => PanelTitled(page, "Candidate journey"), WideMargin: 4,
                 Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Candidate journey"), To: Stage4)),
 
-            // 7. The candidate's interview booking page, before they pick a time. Both pictures end after the second day of times;
-            // the window is tall enough for two whole days when the run starts early and today has times all day.
+            // 7. The candidate's interview booking page, before they pick a time: the first day open, the other days one line each.
+            // Both pictures end at the Book button.
             new("interview-booking", bookingLink, "Pick a time for your interview", _ => Task.CompletedTask, Public: true, Height: 1150,
-                WideTo: page => page.Locator("main fieldset").Nth(1), WideMargin: 12,
-                Phone: new(Height: 2400, Margin: 12, To: page => page.Locator("main fieldset").Nth(1))),
+                WideTo: Book, WideMargin: 12,
+                Phone: new(Height: 1400, Margin: 12, To: Book)),
 
             // 8. Slack, connected, in Settings, whose menu lists each integration beside the other settings.
             new("integrations", DashboardUrl("/settings/slack"), "Slack",

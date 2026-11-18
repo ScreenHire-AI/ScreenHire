@@ -115,7 +115,7 @@ page says under each one what their role can and cannot do. No password anywhere
 | Unverified address | Avery's address from a provider that does not vouch for it: ScreenHire refuses to link it, and the sign-in page says why |
 | Any email address you type | A new user each time you use a new address, the way to show onboarding again. An address someone already uses signs in as them |
 
-**Email me a sign-in link**, under the card's "or", works too: the link arrives in Mailpit, and opening it asks for
+The **Work email** field and **Continue**, above the card's "or", work too: the link arrives in Mailpit, and opening it asks for
 one more click (**Sign in**) so a mail scanner cannot use it up.
 
 Avery manages the team in **Organization > Team**: **Invite** sends the invitation to Mailpit. Its link opens the
@@ -183,7 +183,9 @@ built-in rejection email. The jobs `DevelopmentDataSeeder` makes have no history
 ## A five-minute demo
 
 1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, opens on the last
-   updated, sorts by any column header, and the Status filter counts what is open and what is a draft. The sidebar's views pick out what needs attention: "To review" and "To verify".
+   updated, sorts by any column header, and the Status filter counts what is open and what is a draft. The sidebar's views pick out what needs attention: "To review" and "To verify". A view someone shares with the team
+   is an offer: sign in as Jordan Ellis in a second browser, open Browse team views at the foot of the Views list, preview it
+   and add it to see it in the sidebar.
 2. **Verification, explained (90 s).** Open Senior .NET Engineer. The authenticity chips over the table count the seven
    applicants by level, each chip filters the table to it, and each row has its level. Open Jordan Vale and its Verification tab, marked with a dot: the level sits on its three-step scale, a card per kind of check says what it found, and the tab lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting

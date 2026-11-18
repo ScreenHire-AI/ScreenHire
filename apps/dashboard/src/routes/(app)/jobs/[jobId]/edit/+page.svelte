@@ -2,6 +2,7 @@
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
   import { ApiError, createGetJob } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import HeaderBand from '#lib/components/header-band.svelte';
   import JobAiUsePanel from '#lib/components/job-ai-use-panel.svelte';
   import JobDetailsForm from '#lib/components/job-details-form.svelte';
@@ -74,7 +75,7 @@
       </Panel>
     {:else}
       <div class="flex flex-col gap-5">
-        <JobDetailsForm job={detail} cancelHref={jobHref} onsaved={saved} />
+        <JobDetailsForm job={detail} cancelHref={jobHref} onsaved={saved} focus={page.url.searchParams.get('focus')} />
         <JobAiUsePanel job={detail} />
       </div>
     {/if}

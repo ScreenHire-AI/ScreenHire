@@ -59,6 +59,7 @@ function stub(detail: JobDetail, routes: Parameters<typeof apiStub>[0] = {}) {
       'GET /v1/organization': () => Response.json(organization),
       'GET /v1/organization/members': () => Response.json([]),
       [`GET /v1/jobs/${jobId}/hiring-team`]: () => Response.json([]),
+      [`GET /v1/jobs/${jobId}/publish-check`]: () => Response.json({ items: [] }),
       ...routes,
     }),
   );
@@ -557,6 +558,89 @@ describe('job page', () => {
 
       expect((await screen.findAllByText('Careers page')).length).toBeGreaterThan(0);
       expect(screen.queryByRole('heading', { name: 'Embed on your website' })).toBeNull();
+    });
+  });
+
+  describe('check before publishing', () => {
+    const publish = `/v1/jobs/${jobId}/publish`;
+    const checkPath = `/v1/jobs/${jobId}/publish-check`;
+    const draft = { ...job, status: 'Draft', publishedAt: null, postings: [] } as unknown as JobDetail;
+    const items = [
+      { kind: 'TemplatePrompt', field: 'Description', text: 'The description still has the template\'s fill-in text, "Describe the work, the office and the team."', boards: [] },
+      { kind: 'NoCity', field: 'City', text: 'Talent.com needs a city for an on-site or hybrid job.', boards: ['Talent.com'] },
+    ];
+    const routes = (body: unknown[] | 'fails') => ({
+      [`GET ${checkPath}`]: () => (body === 'fails' ? Response.json({ title: 'Server error' }, { status: 500 }) : Response.json({ items: body })),
+      [`POST ${publish}`]: () => Response.json({}),
+    });
+    const posted = (fetchMock: ReturnType<typeof stub>) => fetchMock.mock.calls.some(([url, init]) => url === publish && init?.method === 'POST');
+
+    it('publishes at once when there is nothing to check', async () => {
+      const fetchMock = stub(draft, routes([]));
+
+      await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
+
+      await waitFor(() => expect(posted(fetchMock)).toBe(true));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /to check before publishing/ })).not.toBeInTheDocument();
+    });
+
+    it('lists each problem with the field that fixes it, and publishes only on Publish anyway', async () => {
+      const fetchMock = stub(draft, routes(items));
+
+      await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
+
+      const dialog = await screen.findByRole('dialog', { name: '2 things to check before publishing' });
+      expect(within(dialog).getByText(/fill-in text/)).toBeInTheDocument();
+      expect(within(dialog).getByText('Talent.com needs a city for an on-site or hybrid job.')).toBeInTheDocument();
+      expect(within(dialog).getByRole('link', { name: 'Edit details, description' })).toHaveAttribute('href', `/jobs/${jobId}/edit?focus=description`);
+      expect(within(dialog).getByRole('link', { name: 'Edit details, city' })).toHaveAttribute('href', `/jobs/${jobId}/edit?focus=city`);
+      // The way out goes to the first problem's field.
+      expect(within(dialog).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit?focus=description`);
+      expect(posted(fetchMock)).toBe(false);
+
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Publish anyway' }));
+
+      await waitFor(() => expect(posted(fetchMock)).toBe(true));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('does not stand in the way when the check cannot be read', async () => {
+      const fetchMock = stub(draft, routes('fails'));
+
+      await fireEvent.click(await screen.findByRole('button', { name: 'Publish to 2 boards' }));
+
+      await waitFor(() => expect(posted(fetchMock)).toBe(true));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('says in the header band, quietly, how many things to check while the job is a draft', async () => {
+      const fetchMock = stub(draft, routes(items));
+
+      const line = await screen.findByRole('button', { name: '2 things to check before publishing' });
+      expect(posted(fetchMock)).toBe(false);
+
+      await fireEvent.click(line);
+      expect(await screen.findByRole('dialog', { name: '2 things to check before publishing' })).toBeInTheDocument();
+    });
+
+    it('says "1 thing" for one, and nothing at all for a job that is open or a role that cannot publish', async () => {
+      stub(draft, routes([items[1]]));
+      expect(await screen.findByRole('button', { name: '1 thing to check before publishing' })).toBeInTheDocument();
+      cleanup();
+
+      const open = stub(job, routes(items));
+      await screen.findByRole('button', { name: /Hiring team/ });
+      expect(open.mock.calls.some(([url]) => url === checkPath)).toBe(false);
+      expect(screen.queryByRole('button', { name: /to check before publishing/ })).not.toBeInTheDocument();
+      cleanup();
+
+      page.data = { user: userAs('Viewer') };
+      const viewer = stub(draft, routes(items));
+      await screen.findByRole('button', { name: /Hiring team/ });
+      await waitFor(() => expect(viewer.mock.calls.some(([url]) => url === '/v1/boards')).toBe(true));
+      expect(viewer.mock.calls.some(([url]) => url === checkPath)).toBe(false);
+      expect(screen.queryByRole('button', { name: /to check before publishing/ })).not.toBeInTheDocument();
     });
   });
 });

@@ -24,7 +24,10 @@ public sealed class LiveUpdatesTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Button, new() { Name = "Create organization" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/"));
         var organizationId = await OrganizationIdAsync(Page);
-        await Fixture.AddJobsAsync(organizationId, [TestData.NewJob(organizationId, "live-updates", title)], cancellationToken);
+        var job = TestData.NewJob(organizationId, "live-updates", title);
+        // Long enough for every board, so Publish has nothing to check first.
+        job.Description = "<p>Run the recruiter dashboard's release train with the platform team, from the first branch to the shipped build, every single week.</p>";
+        await Fixture.AddJobsAsync(organizationId, [job], cancellationToken);
         await Page.ReloadAsync();
         await Expect(StatusOf(Page, title)).ToHaveTextAsync("Draft");
 

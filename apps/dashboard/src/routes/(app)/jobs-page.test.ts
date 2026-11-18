@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { page } from '$app/state';
+import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
+import { setupPanel } from '#lib/setup-panel.svelte.js';
 import { apiStub, applications, jobs, now, user, userAs } from '../../test-support/fixtures.js';
 import { stubViewport } from '../../test-support/viewport.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
@@ -189,6 +191,44 @@ describe('jobs page', () => {
     expect(screen.queryByRole('group', { name: 'Overview' })).toBeNull();
   });
 
+  describe('a new team', () => {
+    // The signed-in Owner alone, nothing set, no job: four setup steps are open (no email provider here).
+    const newTeam = {
+      'GET /v1/jobs': () => Response.json([]),
+      'GET /v1/organization/members': () => Response.json([{ id: 'avery' }]),
+      'GET /v1/organization/invitations': () => Response.json([]),
+      'GET /v1/organization/branding': () => Response.json({ brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
+      'GET /v1/organization': () => Response.json({ embedOrigins: [], questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE, lastUpdated: { at: null, by: null, created: true } }),
+      'GET /v1/organization/sending-domain': () => Response.json({ available: false, sandbox: false, domain: null }),
+    };
+
+    it('points to the setup checklist while steps remain, and the button asks the bell to open at it', async () => {
+      vi.stubGlobal('fetch', vi.fn(apiStub(newTeam)));
+      renderPage();
+
+      expect(await screen.findByText('4 steps left to set up your organization.')).toBeInTheDocument();
+      const before = setupPanel.requests;
+      await fireEvent.click(screen.getByRole('button', { name: 'Open the setup checklist' }));
+      expect(setupPanel.requests).toBe(before + 1);
+    });
+
+    it('counts the steps left in its line, so a team that did some sees what remains', async () => {
+      vi.stubGlobal('fetch', vi.fn(apiStub({ ...newTeam, 'GET /v1/organization/members': () => Response.json([{ id: 'avery' }, { id: 'sam' }]) })));
+      renderPage();
+
+      expect(await screen.findByText('3 steps left to set up your organization.')).toBeInTheDocument();
+    });
+
+    it('says nothing of setup to someone who cannot do the steps', async () => {
+      page.data = { user: userAs('Recruiter') };
+      vi.stubGlobal('fetch', vi.fn(apiStub(newTeam)));
+      renderPage();
+
+      expect(await screen.findByText('No jobs yet')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Open the setup checklist' })).toBeNull();
+    });
+  });
+
   it('offers no actions on a closed job', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([closed]) })));
     renderPage();
@@ -261,7 +301,13 @@ describe('jobs page actions', () => {
 
   it('publishes a draft from its row menu and refetches the list', async () => {
     const url = `/v1/jobs/${jobs[0]!.id}/publish`;
-    const fetchMock = vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs), [`POST ${url}`]: () => Response.json({}) }));
+    const fetchMock = vi.fn(
+      apiStub({
+        'GET /v1/jobs': () => Response.json(jobs),
+        [`GET /v1/jobs/${jobs[0]!.id}/publish-check`]: () => Response.json({ items: [] }),
+        [`POST ${url}`]: () => Response.json({}),
+      }),
+    );
     vi.stubGlobal('fetch', fetchMock);
     renderPage();
 
@@ -270,6 +316,32 @@ describe('jobs page actions', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({ method: 'POST' })));
     await waitFor(() => expect(fetchMock.mock.calls.filter(([request]) => request === '/v1/jobs')).toHaveLength(2));
+  });
+
+  it('asks first when the check has something to say, and publishes on Publish anyway', async () => {
+    const url = `/v1/jobs/${jobs[0]!.id}/publish`;
+    const items = [{ kind: 'NoCity', field: 'City', text: 'Talent.com needs a city for an on-site or hybrid job.', boards: ['Talent.com'] }];
+    const fetchMock = vi.fn(
+      apiStub({
+        'GET /v1/jobs': () => Response.json(jobs),
+        [`GET /v1/jobs/${jobs[0]!.id}/publish-check`]: () => Response.json({ items }),
+        [`POST ${url}`]: () => Response.json({}),
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    renderPage();
+
+    const menu = await openRowMenu('Customer Success Lead');
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Publish to every board' }));
+
+    const dialog = await screen.findByRole('dialog', { name: '1 thing to check before publishing' });
+    expect(within(dialog).getByText('Talent.com needs a city for an on-site or hybrid job.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Edit details, city' })).toHaveAttribute('href', `/jobs/${jobs[0]!.id}/edit?focus=city`);
+    expect(fetchMock).not.toHaveBeenCalledWith(url, expect.anything());
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Publish anyway' }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({ method: 'POST' })));
   });
 
   it('closes an open job only after the confirmation', async () => {
@@ -384,13 +456,15 @@ describe('jobs page, overview', () => {
     // Only the booking inside the week counts; the one twelve days out does not.
     expect(tile('Interviews this week')).toHaveTextContent('1');
     expect(tile('Interviews this week')).toHaveAttribute('href', '/candidates?view=interviews-this-week');
-    expect(tile('Open jobs')).toHaveAttribute('href', '/?status=Open');
+    expect(tile('Open jobs')).toBeInTheDocument();
   });
 
   it('shows an Owner open jobs against the plan limit, and anyone else the count alone', async () => {
     stubOverview();
     const { unmount } = renderPage();
-    await waitFor(() => expect(tile('Open jobs')).toHaveTextContent('1 of 5'));
+    await waitFor(() => expect(tile('Open jobs')).toHaveTextContent('1 of 5 on your plan'));
+    // The Owner's tile opens Billing, where the plan is changed.
+    expect(tile('Open jobs')).toHaveAttribute('href', '/settings/billing');
     unmount();
 
     page.data = { user: userAs('Recruiter') };
@@ -398,7 +472,24 @@ describe('jobs page, overview', () => {
     renderPage();
     await waitFor(() => expect(tile('Open jobs')).toHaveTextContent('Open jobs 1'));
     expect(tile('Open jobs')).not.toHaveTextContent('of');
+    expect(tile('Open jobs')).not.toHaveTextContent('on your plan');
+    expect(tile('Open jobs')).toHaveAttribute('href', '/?status=Open');
     expect(fetch).not.toHaveBeenCalledWith('/v1/organization/billing', expect.anything());
+  });
+
+  it('shows the count alone, linked to the open jobs, when billing is off or the plan has no limit', async () => {
+    stubOverview({ 'GET /v1/organization/billing': () => Response.json({ ...billing, activeJobLimit: null }) });
+    const { unmount } = renderPage();
+    await waitFor(() => expect(tile('Open jobs')).toHaveTextContent('Open jobs 1'));
+    expect(tile('Open jobs')).not.toHaveTextContent('on your plan');
+    expect(tile('Open jobs')).toHaveAttribute('href', '/?status=Open');
+    unmount();
+
+    stubOverview({ 'GET /v1/organization/billing': () => Response.json({ ...billing, available: false }) });
+    renderPage();
+    await waitFor(() => expect(tile('Open jobs')).toHaveTextContent('Open jobs 1'));
+    expect(tile('Open jobs')).not.toHaveTextContent('on your plan');
+    expect(tile('Open jobs')).toHaveAttribute('href', '/?status=Open');
   });
 
   it('leaves the application numbers out when they cannot load, rather than showing zero', async () => {

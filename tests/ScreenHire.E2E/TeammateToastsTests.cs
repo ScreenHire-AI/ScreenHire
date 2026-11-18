@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ScreenHire.E2E;
 
@@ -10,7 +11,8 @@ namespace ScreenHire.E2E;
 /// Recruiter on one job's hiring team. The Owner's dashboard is open and live: the Recruiter's move reaches it as a toast
 /// that names the Recruiter, the candidate (a link to their page) and the stage; the Owner's own move makes none; the
 /// Owner turns Moves off in the Teammate changes sheet and the next move is silent; and on a phone the toast sits above the
-/// page's action bar.
+/// page's action bar. A candidate applying through the careers site toasts the members on the job's hiring team only, and
+/// several applications within a minute fold into one toast that links to the job's Not screened candidates.
 /// </summary>
 public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -111,6 +113,95 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         toastBox.Should().NotBeNull();
         barBox.Should().NotBeNull();
         (toastBox!.Y + toastBox.Height).Should().BeLessThanOrEqualTo(barBox!.Y, "the toast sits above the action bar, never over it");
+    }
+
+    [Fact]
+    public async Task A_candidate_applying_toasts_the_jobs_hiring_team_and_not_a_member_who_is_not_on_it()
+    {
+        using var ownerSession = new ApiSession(Fixture);
+        var ownerEmail = ApiSession.NewEmail("owner");
+        await ownerSession.SignInWithDevSsoAsync(ownerEmail, Ct);
+        var slug = $"test-{Guid.NewGuid():N}";
+        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
+        var quietJobId = await PublishJobAsync(ownerSession, "Data Engineer");
+        var teamJobId = await PublishJobAsync(ownerSession, "Platform Engineer");
+
+        var recruiterEmail = ApiSession.NewEmail("recruiter");
+        using var recruiterSession = await InviteAsync(ownerSession, recruiterEmail, "Recruiter");
+        var members = await ReadAsync(await ownerSession.Client.GetAsync("/v1/organization/members", Ct), HttpStatusCode.OK);
+        Guid MemberId(string email) => members.EnumerateArray().Single(member => member.GetProperty("email").GetString() == email).GetProperty("id").GetGuid();
+        // The Owner sees every job but is on the hiring team of only one of them.
+        await ReadAsync(await ownerSession.PutAsync($"/v1/jobs/{quietJobId}/hiring-team", new { memberIds = new[] { MemberId(recruiterEmail) } }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await ownerSession.PutAsync($"/v1/jobs/{teamJobId}/hiring-team", new { memberIds = new[] { MemberId(ownerEmail) } }, Ct), HttpStatusCode.OK);
+
+        await Page.SetViewportSizeAsync(1440, 1000);
+        await SignInAsync(Page, ownerEmail);
+        await Expect(LiveIndicator(Page)).ToContainTextAsync("Live updates: Connected");
+        var toasts = Page.GetByRole(AriaRole.Region, new() { Name = "Notifications" });
+
+        // An application to the job the Owner is not on the team of makes no toast. The application to their own job
+        // after it is the marker: its toast arrives after any this one would have raised.
+        await ApplyAsync(slug, quietJobId, "Jamie Rowe");
+        var first = await ApplyAsync(slug, teamJobId, "Casey Morgan");
+        await Expect(toasts).ToContainTextAsync("Casey Morgan applied to Platform Engineer", new() { Timeout = 30_000 });
+        await Expect(toasts).Not.ToContainTextAsync("Data Engineer");
+        await Expect(toasts.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" })).ToHaveAttributeAsync("href", new Regex($"/applications/{first}$"));
+        await Expect(toasts).Not.ToContainTextAsync("verif", new() { IgnoreCase = true });
+
+        // A second one inside the minute takes the first's place, and links to the job's Not screened candidates. The Owner
+        // is on the Candidates page by then (moved there in the app, so the live connection stays), where the link must
+        // still narrow the list to the job.
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Candidates", Exact = true }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Candidates");
+        await ApplyAsync(slug, teamJobId, "Noa Reyes");
+        var count = toasts.GetByRole(AriaRole.Link, new() { Name = "2 new applications" });
+        await Expect(count).ToBeVisibleAsync(new() { Timeout = 30_000 });
+        await Expect(toasts).ToContainTextAsync("2 new applications to Platform Engineer");
+        await Expect(toasts).Not.ToContainTextAsync("Casey Morgan applied");
+        // Long after the quiet job's application would have raised a toast: still none.
+        await Expect(toasts).Not.ToContainTextAsync("Data Engineer");
+        await Expect(count).ToHaveAttributeAsync("href", new Regex($"/candidates[?]view=not-screened&job={teamJobId}$"));
+        await count.ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex($"/candidates[?]view=not-screened&job={teamJobId}$"));
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Job: Platform Engineer" })).ToBeVisibleAsync();
+        var table = Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" });
+        await Expect(table.GetByRole(AriaRole.Link, new() { Name = "Noa Reyes" })).ToBeVisibleAsync();
+        await Expect(table.GetByRole(AriaRole.Link, new() { Name = "Casey Morgan" })).ToBeVisibleAsync();
+        await Expect(table.GetByRole(AriaRole.Link, new() { Name = "Jamie Rowe" })).ToHaveCountAsync(0);
+    }
+
+    // The careers site's own submission: the public route its apply form posts to.
+    private async Task<Guid> ApplyAsync(string slug, Guid jobId, string fullName)
+    {
+        var parts = fullName.Split(' ');
+        using var anonymous = Fixture.CreateHttpClient("api");
+        using var applied = await anonymous.PostAsJsonAsync($"/v1/public/organizations/{slug}/jobs/{jobId}/applications", new JsonObject
+        {
+            ["candidate"] = new JsonObject { ["firstName"] = parts[0], ["lastName"] = parts[1], ["email"] = ApiSession.NewEmail(parts[0].ToLowerInvariant()) },
+            ["privacyNoticeVersion"] = "2026-11-07.1",
+            ["answers"] = new JsonArray(),
+            ["aiUseDeclaration"] = "DidNotUse",
+        }, Ct);
+        applied.StatusCode.Should().Be(HttpStatusCode.Created, await applied.Content.ReadAsStringAsync(Ct));
+        return (await applied.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("applicationId").GetGuid();
+    }
+
+    private static async Task<Guid> PublishJobAsync(ApiSession session, string title)
+    {
+        var job = await ReadAsync(await session.PostAsync(
+            "/v1/jobs",
+            new
+            {
+                title,
+                description = "<p>Build and run the things people rely on.</p>",
+                employmentType = "FullTime",
+                workplaceType = "Remote",
+                applicantLocationRequirements = Gb,
+            },
+            Ct), HttpStatusCode.Created);
+        var id = job.GetProperty("id").GetGuid();
+        await ReadAsync(await session.PostAsync($"/v1/jobs/{id}/publish", new { }, Ct), HttpStatusCode.OK);
+        return id;
     }
 
     private static async Task MoveAsync(ApiSession session, Guid applicationId, string toStageId)

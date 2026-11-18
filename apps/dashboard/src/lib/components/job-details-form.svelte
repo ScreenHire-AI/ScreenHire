@@ -4,7 +4,7 @@
   import { ApiError, createUpdateJob } from '@screenhire/api-client/svelte-query';
   import { UpdateJobBody } from '@screenhire/api-client/zod';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { untrack } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
@@ -39,13 +39,22 @@
   import { jobsPath } from '#lib/realtime.js';
   import { isBlank } from '#lib/rich-text.js';
 
+  // The fields a link can send someone to: the publish check's `field` names (#lib/publish-check.ts) and the input each one is.
+  const focusTargets: Record<string, string> = { description: 'job-description', city: 'job-city', salary: 'job-salary-min' };
+
   // The API's limit (JobSummaryText.MaxLength): what a careers card can show of it is three lines.
   const summaryMax = 160;
 
   // "Edit details": the job's posting content after it was created (PUT /v1/jobs/{id}), on the form template. The
   // workflow has its own page. An open job's edit is live on the careers page at once; boards get it when the job is
   // published again.
-  let { job, cancelHref, onsaved }: { job: JobDetail; cancelHref: string; onsaved?: (message: string) => void } = $props();
+  // `focus` names the field the person came to fix (the publish check's Edit details): it takes the focus once the form is on screen.
+  let {
+    job,
+    cancelHref,
+    onsaved,
+    focus = null,
+  }: { job: JobDetail; cancelHref: string; onsaved?: (message: string) => void; focus?: string | null } = $props();
 
   const queryClient = useQueryClient();
   const update = createUpdateJob(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, jobsPath) } }));
@@ -141,6 +150,25 @@
         }
       }
     },
+  });
+
+  // The description's editor is attached after the form is drawn, so the field is looked for on the next few frames.
+  onMount(() => {
+    const id = focusTargets[focus ?? ''];
+    if (!id) return;
+    let frames = 0;
+    let frame = 0;
+    const find = () => {
+      const field = document.getElementById(id);
+      if (field) {
+        field.focus();
+        field.scrollIntoView({ block: 'center' });
+      } else if (frames++ < 30) {
+        frame = requestAnimationFrame(find);
+      }
+    };
+    frame = requestAnimationFrame(find);
+    return () => cancelAnimationFrame(frame);
   });
 
   const describedBy = (id: string, error: unknown, hint?: string) => [hint, error ? id : undefined].filter(Boolean).join(' ') || undefined;

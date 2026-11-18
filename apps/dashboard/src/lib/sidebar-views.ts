@@ -25,12 +25,15 @@ export function viewHref(view: Pick<SavedViewSummary, 'id' | 'scope' | 'jobId'>)
 }
 
 /**
- * The sidebar's views: the built-in ones the person has not hidden, then the saved ones they see (their own and the
- * team's); and the built-in ones they hid, behind "Show hidden views". A view has no count: it only filters.
+ * The sidebar's views: the built-in ones the person has not hidden, then the saved ones they own, then the team's shared
+ * views they added (in the order they added them); and the built-in ones they hid, behind "Show hidden views". A shared view
+ * nobody added for themselves is not here: it waits in the sheet of team views. A view has no count: it only filters.
  */
 export function sidebarViews(input: {
   saved: readonly SavedViewSummary[];
   hiddenBuiltIns: readonly string[];
+  /** The ids of the shared views the person added, in order (`ViewList.sidebarOrder`). */
+  sidebarOrder: readonly string[];
   jobTitles: Readonly<Record<string, string>>;
 }): { visible: SidebarView[]; hidden: SidebarView[] } {
   const builtIn = builtInViews.map(
@@ -42,7 +45,12 @@ export function sidebarViews(input: {
       icon: view.icon ?? ListFilterIcon,
     }),
   );
-  const saved = input.saved.map((view): SidebarView => {
+  const rank = new Map(input.sidebarOrder.map((id, index) => [id, index]));
+  const own = input.saved.filter((view) => view.mine);
+  const added = input.saved
+    .filter((view) => !view.mine && view.inSidebar)
+    .sort((a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity));
+  const saved = [...own, ...added].map((view): SidebarView => {
     return {
       key: view.id,
       label: view.name,

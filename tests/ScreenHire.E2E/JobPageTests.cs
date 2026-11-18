@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ScreenHire.Application.Verification;
+using ScreenHire.Domain.Hiring;
 
 namespace ScreenHire.E2E;
 
@@ -259,6 +260,51 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         fit.GetProperty("pageSideways").GetInt32().Should().Be(0, "the page never scrolls sideways (F1)");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-job-board-1920-light");
+    }
+
+    [Fact]
+    public async Task A_job_made_from_a_starting_template_warns_before_publishing_and_Publish_anyway_publishes_it()
+    {
+        // A new Owner's first job: the Office role template, with its fill-in text and a country but no city.
+        var email = ApiSession.NewEmail("e2e-publish-check");
+        var title = $"Office Coordinator {Guid.NewGuid().ToString("N")[..4]}";
+        using var session = await SessionAsync(email);
+        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        var job = await ReadAsync(await session.PostAsync(
+            "/v1/jobs",
+            new { title, templateVersionId = SystemTemplates.OfficeRoleVersion1, locations = new[] { new { country = "GB" } } },
+            Ct), HttpStatusCode.Created);
+        var jobId = job.GetProperty("id").GetGuid();
+        await Page.SetViewportSizeAsync(1440, 1040);
+        await SignInAsync(Page, email);
+        await GoToJobAsync(jobId);
+        var band = Page.Locator("[data-slot='header-band']");
+
+        // The same list sits in the header band while the job is a draft, so nobody meets it only at the last click.
+        await Expect(band.GetByRole(AriaRole.Button, new() { Name = "2 things to check before publishing" })).ToBeVisibleAsync();
+
+        await band.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
+        var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "2 things to check before publishing" });
+        await Expect(dialog).ToContainTextAsync("The description still has the template's fill-in text");
+        await Expect(dialog).ToContainTextAsync("Talent.com needs a city for an on-site or hybrid job.");
+        await ExpectNoAccessibilityViolationsAsync();
+        (await ReadAsync(await session.Client.GetAsync($"/v1/jobs/{jobId}", Ct), HttpStatusCode.OK)).GetProperty("status").GetString().Should().Be("Draft");
+
+        // Edit details goes to the field, not just the page.
+        await dialog.GetByRole(AriaRole.Link, new() { Name = "Edit details, description" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Form, new() { Name = "Edit job details" })).ToBeVisibleAsync();
+        await Expect(Page.Locator("#job-description")).ToBeFocusedAsync();
+        Page.Url.Should().EndWith($"/jobs/{jobId}/edit?focus=description");
+
+        // Warn, never block: the job goes live as it is.
+        await GoToJobAsync(jobId);
+        await band.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
+        await Page.GetByRole(AriaRole.Dialog, new() { Name = "2 things to check before publishing" })
+            .GetByRole(AriaRole.Button, new() { Name = "Publish anyway" }).ClickAsync();
+
+        await Expect(band.Locator("[data-published]")).ToContainTextAsync("Published. It is on your careers page now.");
+        await Expect(band.GetByRole(AriaRole.Button, new() { NameRegex = new("to check before publishing") })).ToHaveCountAsync(0);
+        (await ReadAsync(await session.Client.GetAsync($"/v1/jobs/{jobId}", Ct), HttpStatusCode.OK)).GetProperty("status").GetString().Should().Be("Open");
     }
 
     private sealed record Scene(string Email, string Slug, Guid JobId, string Title, IReadOnlyList<Guid> Applications);

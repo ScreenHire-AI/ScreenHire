@@ -212,12 +212,18 @@
   const undo = new UndoOffer();
   setUndo(undo);
   const viewActions = createViewActions({ undo, hiddenBuiltIns: () => savedViewList.data?.data.hiddenBuiltIns ?? [] });
+  const jobTitles = $derived(Object.fromEntries((jobList.data?.data ?? []).map((job) => [job.id, job.title])));
   const views = $derived(
     sidebarViews({
       saved: savedViewList.data?.data.views ?? [],
       hiddenBuiltIns: savedViewList.data?.data.hiddenBuiltIns ?? [],
-      jobTitles: Object.fromEntries((jobList.data?.data ?? []).map((job) => [job.id, job.title])),
+      sidebarOrder: savedViewList.data?.data.sidebarOrder ?? [],
+      jobTitles,
     }),
+  );
+  // What the sheet of team views offers: sharing is an offer, and a person adds the views they want to their sidebar.
+  const teamViews = $derived(
+    savedViewList.data ? { views: savedViewList.data.data.views, seenAt: savedViewList.data.data.teamViewsSeenAt, jobTitles } : undefined,
   );
 
   // The person's own open tasks, for the count after My tasks. Live updates invalidate it with the tasks page's lists.
@@ -245,7 +251,7 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {views} {viewActions} slack={slack.data?.data} calendar={calendar.data?.data} {openTasks} bind:calendarOpen />
+  <AppSidebar user={data.user} {views} {viewActions} {teamViews} slack={slack.data?.data} calendar={calendar.data?.data} {openTasks} bind:calendarOpen />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>

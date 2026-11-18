@@ -6,10 +6,12 @@
   import UserPlusIcon from '~icons/lucide/user-plus';
   import UsersRoundIcon from '~icons/lucide/users-round';
   import WorkflowIcon from '~icons/lucide/workflow';
+  import type { PublishCheckItem } from '@screenhire/api-client';
   import {
     ApiError,
     createGetJob,
     createGetJobHiringTeam,
+    createGetJobPublishCheck,
     createListBoards,
     createListJobApplications,
     createListTeamMembers,
@@ -29,6 +31,7 @@
   import HiringTeamSheet from '#lib/components/hiring-team-sheet.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import PlanProblemNotice from '#lib/components/plan-problem-notice.svelte';
+  import PublishCheckDialog from '#lib/components/publish-check-dialog.svelte';
   import JobEmbedPanel from '#lib/components/job-embed-panel.svelte';
   import JobPipeline from '#lib/components/job-pipeline.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
@@ -55,6 +58,7 @@
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath, planProblem, type PlanProblem } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
+  import { fetchPublishCheck, thingsToCheck } from '#lib/publish-check.js';
   import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
@@ -100,6 +104,16 @@
   // Edit details, Publish and Close all need Edit jobs, so someone without it is not offered them (A3).
   const mayEdit = $derived(can(page.data.user, 'EditJobs'));
   const publishable = $derived(mayEdit && detail?.status === 'Draft' && boardCount > 0);
+  // What the check before publishing found, for the quiet line in the header band while the job is a draft. It reads the
+  // same list the API serves a key and the MCP server; Publish asks again, because the job may have changed since.
+  const check = createGetJobPublishCheck(
+    () => params.jobId,
+    () => ({ query: { enabled: publishable } }),
+  );
+  const checkItems = $derived(publishable ? (check.data?.data.items ?? []) : []);
+  let checkOpen = $state(false);
+  let checkShown = $state<PublishCheckItem[]>([]);
+  let checking = $state(false);
   // A posting that needs fixes is a notice where people will see it, naming the board, with a link to the fix (E2). Only
   // an open job is on the boards.
   const problems = $derived(detail?.status === 'Open' && boards.data ? postingProblems(rows) : []);
@@ -144,7 +158,22 @@
   let publishedJobId = $state<string | null>(null);
   const published = $derived(publishedJobId === params.jobId && detail?.status !== 'Closed');
 
-  // A draft's primary action: publish to every board at once.
+  // A draft's primary action. The check warns and never blocks: with nothing to say it publishes at once, otherwise it
+  // asks first, and a check that cannot be read does not stand in the way.
+  async function publishChecked() {
+    checking = true;
+    const items = await fetchPublishCheck(queryClient, params.jobId);
+    checking = false;
+    if (items.length === 0) {
+      await publishEverywhere();
+      return;
+    }
+
+    checkShown = items;
+    checkOpen = true;
+  }
+
+  // Publish to every board at once.
   async function publishEverywhere() {
     publishFailure = '';
     publishRefused = null;
@@ -233,7 +262,7 @@
     <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
       <!-- What saving the details or publishing did, in the band's line under the title, so a long message never pushes
            the actions onto a second row. -->
-      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || boardsUpdated || published || added ? outcome : undefined}>
+      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || boardsUpdated || published || added || checkItems.length > 0 ? outcome : undefined}>
         {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
         {#snippet actions()}
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
@@ -402,11 +431,12 @@
     {/if}
 
     <CloseJobDialog jobId={detail.id} bind:open={confirmClose} />
+    <PublishCheckDialog bind:open={checkOpen} jobId={detail.id} items={checkShown} busy={publish.isPending} onpublish={publishEverywhere} />
   {/if}
 </main>
 
 {#snippet publishButton()}
-  <Button size="lg" disabled={publish.isPending} onclick={publishEverywhere}>
+  <Button size="lg" disabled={publish.isPending || checking} onclick={publishChecked}>
     <SendIcon aria-hidden="true" />Publish to {boardCount === 1 ? '1 board' : `${boardCount} boards`}
   </Button>
 {/snippet}
@@ -421,4 +451,9 @@
     {#if added}Added <a href={`/applications/${added.applicationId}`} class="underline underline-offset-2">{added.name}</a> to this job.{/if}
   </p>
   <FailureText message={publishFailure} />
+  <p class="empty:hidden" data-publish-check>
+    {#if checkItems.length > 0}
+      <button type="button" class="underline underline-offset-2 pointer-coarse:min-h-11" aria-haspopup="dialog" onclick={() => { checkShown = checkItems; checkOpen = true; }}>{thingsToCheck(checkItems.length)}</button>
+    {/if}
+  </p>
 {/snippet}

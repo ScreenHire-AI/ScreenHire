@@ -1,6 +1,9 @@
 import type { SavedViewSummary } from '@screenhire/api-client';
 import {
+  createAddViewToSidebar,
   createDeleteView,
+  createMarkTeamViewsOpened,
+  createRemoveViewFromSidebar,
   createRestoreView,
   createUpdateHiddenViews,
   createUpdateView,
@@ -18,6 +21,12 @@ export interface ViewActions {
   remove(view: SavedViewSummary): Promise<string | null>;
   /** Hides a built-in view from the sidebar (or shows it again), for this person only. */
   setHidden(builtInId: string, hidden: boolean): Promise<string | null>;
+  /** Adds a shared view to this person's own sidebar. */
+  addToSidebar(view: SavedViewSummary): Promise<string | null>;
+  /** Takes a shared view out of this person's sidebar; it stays shared. */
+  removeFromSidebar(view: SavedViewSummary): Promise<string | null>;
+  /** Notes that the person opened the sheet of team views, so what was shared before now is no longer New. */
+  markTeamViewsOpened(): Promise<string | null>;
 }
 
 /**
@@ -32,6 +41,9 @@ export function createViewActions(options: { undo: UndoOffer; hiddenBuiltIns: ()
   const remove = createDeleteView(() => ({ mutation: { onSettled: refetch } }));
   const restore = createRestoreView(() => ({ mutation: { onSettled: refetch } }));
   const hide = createUpdateHiddenViews(() => ({ mutation: { onSettled: refetch } }));
+  const add = createAddViewToSidebar(() => ({ mutation: { onSettled: refetch } }));
+  const take = createRemoveViewFromSidebar(() => ({ mutation: { onSettled: refetch } }));
+  const opened = createMarkTeamViewsOpened(() => ({ mutation: { onSettled: refetch } }));
   // The route replaces the whole list, so changes run one at a time: each reads the list the last one left, after its refetch.
   let hiding: Promise<string | null> = Promise.resolve(null);
 
@@ -62,5 +74,9 @@ export function createViewActions(options: { undo: UndoOffer; hiddenBuiltIns: ()
       });
       return hiding;
     },
+    addToSidebar: (view) => attempt(() => add.mutateAsync({ viewId: view.id }), `Could not add "${view.name}" to your sidebar`),
+    removeFromSidebar: (view) => attempt(() => take.mutateAsync({ viewId: view.id }), `Could not remove "${view.name}" from your sidebar`),
+    // The refetch carries the new date; the open sheet keeps the date it opened with, so its New marks stay until it closes.
+    markTeamViewsOpened: () => attempt(() => opened.mutateAsync(), 'Could not note that you opened the team views'),
   };
 }
