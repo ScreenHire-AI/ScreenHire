@@ -328,7 +328,8 @@ The walk is a theory, one row per group of routes, never one method:
   screenshot.
 - The Verification area's tabs are its pages, each at its own address and each in the table, so the walk opens each of
   them once and does not open every tab from every one. It used to: each of the seven pages was checked eight times, and
-  that one row ran 145 s.
+  that one row ran 145 s. `ProofWalkRoutesTests` (unit) fails when a tab of the area has no row in the table, since the
+  walk would no longer reach it through the tab strip.
 - The dark walk is two classes, `DashboardThemeTests` (the pages a team works in, and the overlays) and
   `DashboardThemeSetupTests` (the pages it sets things up in), because CI gives a whole class to one shard and the dark
   walk as one class outweighed an average shard. The walks of a new organization are classes of their own for the same
@@ -796,7 +797,9 @@ run on the same ref, so a group's runs go one after another.
 What the tables do not show:
 
 - **Queueing is the larger half of a busy hour, and no layout removes it.** In 16 of the 23 runs before, a job waited
-  over 20 s for a runner, 112 s at the median and 652 s at the worst. The dispatched runs shared the account with other
+  over 20 s for a runner: the longest wait in such a run was 155 s at the median and 652 s at the worst. With those
+  waits counted, the 23 runs took 508 s from start to `Gate` at the median (347 to 1,229), against 462 s for the 7
+  that did not queue. The dispatched runs shared the account with other
   tasks' pull requests too: in six of the nine a job waited over 20 s, up to 633 s. What a layout can do is ask for
   fewer runners for less time: 18 jobs and not 21, and 15% fewer job-seconds a run.
 - **The account runs 20 jobs at once.** The organization is on GitHub Free, whose limit is 20. Over every CI run from
@@ -894,7 +897,7 @@ flagged and of every end-to-end class's timings on CI. It found little to remove
   those screens still open on the demo's data. The sharder now weighs it for what it costs.
 - **What a test pays before its first assertion.** An end-to-end test of a public page takes about 1.3 s in all. One
   with its own organization, the Dev SSO round trip and the first dashboard load takes at least 3 to 4 s, and 134 of
-  the 225 end-to-end tests pay that: about 470 of the suite's 2,235 test-seconds, which at 4 tests at once is about
+  the 225 end-to-end tests pay that (207 before the walks became rows, 18 more): about 470 of the suite's 2,235 test-seconds, which at 4 tests at once is about
   15 s of each shard. Half of the 1,215 integration tests take under 0.3 s in all, sign-in included. So tests keep
   their own organization and their own sign-in. Sharing either would save a few seconds a shard, and each test signing
   in as a person does is what makes them independent.

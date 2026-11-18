@@ -18,7 +18,7 @@ integration tests, with few duplicates. The wait was structure:
   test.
 - Their classes had no measurement, so the sharder weighed them at an eighth of what they cost.
 - One row of those walks opened the same seven pages eight times each.
-- An integration shard spent 98 s and an end-to-end shard 174 s before its tests, on every shard.
+- An integration shard spent 99 s and an end-to-end shard 175 s before its tests, on every shard.
 - A pull request started 21 jobs on an account that runs 20, so one always waited.
 
 The measurements, what each change saved and what the audit of the tests found are in
@@ -53,7 +53,8 @@ Pick the lowest tier that can fail for the reason the bug would. The tiers, and 
   `Wait.ForNothingAsync`, which takes its reason.
 - **Know what a test pays before its first assertion.** Measured on CI on 2026-11-18: an end-to-end test of a public
   page takes about 1.3 s in all, and one with its own organization, the Dev SSO round trip and the first dashboard
-  load at least 3 to 4 s, on 134 of the 225 end-to-end tests. An integration test's organization and session cost
+  load at least 3 to 4 s, on 134 of the 225 end-to-end tests (207 before the walks became rows). An integration
+  test's organization and session cost
   under 0.3 s: half of that suite's 1,215 tests take less than that in all. With 4 tests at once that is about 15 s of
   an end-to-end shard's 300 and about 7 s of an integration shard's 220, so a test keeps its own organization and
   signs in as a person does ([test data](../../docs/process/testing.md#test-data-isolate-by-organization)). Sharing
