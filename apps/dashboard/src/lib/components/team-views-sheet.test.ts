@@ -106,9 +106,73 @@ describe('the sheet of team views', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not add "Team queue" to your sidebar (HTTP 404).');
   });
 
-  it('says so when nobody has shared a view', async () => {
+  it("says a failure on the row that failed, not at the sheet's top", async () => {
+    const viewActions = actions();
+    viewActions.addToSidebar.mockResolvedValueOnce('Could not add "Team queue" to your sidebar (HTTP 404).');
+    show([shared({ id: 'a', name: 'Team queue' }), shared({ id: 'b', name: 'Other view' })], viewActions);
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add Team queue to your sidebar' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.closest('li')).toHaveTextContent('Team queue');
+    expect(alert.closest('li')).not.toHaveTextContent('Other view');
+  });
+
+  it('holds the row\'s button while its request runs, so a second press sends nothing', async () => {
+    const viewActions = actions();
+    let finish: (value: null) => void = () => {};
+    viewActions.addToSidebar.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+    show([shared({ name: 'Team queue' })], viewActions);
+
+    const add = await screen.findByRole('button', { name: 'Add Team queue to your sidebar' });
+    await fireEvent.click(add);
+    // A disabled button takes no press in a browser, which is what stops the second request.
+    expect(add).toBeDisabled();
+    expect(viewActions.addToSidebar).toHaveBeenCalledTimes(1);
+
+    finish(null);
+    await waitFor(() => expect(add).toBeEnabled());
+  });
+
+  it('holds each row on its own while two requests run, and keeps the failure of the one that failed', async () => {
+    const viewActions = actions();
+    let finishFirst: (value: string | null) => void = () => {};
+    let finishSecond: (value: string | null) => void = () => {};
+    viewActions.addToSidebar
+      .mockReturnValueOnce(new Promise((resolve) => { finishFirst = resolve; }))
+      .mockReturnValueOnce(new Promise((resolve) => { finishSecond = resolve; }));
+    show([shared({ id: 'a', name: 'Team queue' }), shared({ id: 'b', name: 'Other view' })], viewActions);
+
+    const first = await screen.findByRole('button', { name: 'Add Team queue to your sidebar' });
+    const second = screen.getByRole('button', { name: 'Add Other view to your sidebar' });
+    await fireEvent.click(first);
+    await fireEvent.click(second);
+    expect(first).toBeDisabled();
+    expect(second).toBeDisabled();
+
+    // The first finishing with a failure frees only its own row, which says so; the second still waits.
+    finishFirst('Could not add "Team queue" to your sidebar (HTTP 404).');
+    await waitFor(() => expect(first).toBeEnabled());
+    expect(second).toBeDisabled();
+    expect((await screen.findByRole('alert')).closest('li')).toHaveTextContent('Team queue');
+
+    finishSecond(null);
+    await waitFor(() => expect(second).toBeEnabled());
+    expect(screen.getByRole('alert').closest('li')).toHaveTextContent('Team queue');
+  });
+
+  it('stops saying it is counting when the candidates cannot be read', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/applications': () => new Response('{}', { status: 500 }) })));
+    render(WithQueryClient, { props: { component: Sheet, props: { open: true, views: [shared()], seenAt, jobTitles: {}, actions: actions() } } });
+
+    await screen.findByRole('heading', { name: shared().name });
+    await waitFor(() => expect(screen.queryByText('Counting candidates…')).not.toBeInTheDocument());
+  });
+
+  it('says so when nobody has shared a view, and where to share one', async () => {
     show([savedView()]);
 
     expect(await screen.findByText(/Nobody has shared a view yet/)).toBeInTheDocument();
+    expect(screen.getByText(/open its menu in the sidebar and choose Share with the team/)).toBeInTheDocument();
   });
 });

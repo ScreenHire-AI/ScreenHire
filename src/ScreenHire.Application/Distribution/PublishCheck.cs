@@ -58,7 +58,7 @@ public static class PublishChecks
         if (left.Count > 0)
         {
             // A prompt is a sentence with its own full stop, so the item's sentence ends inside the quotes unless more follows.
-            var end = left.Count > 1 ? $" and {left.Count - 1} more." : left[0].EndsWith('.') || left[0].EndsWith('?') || left[0].EndsWith('!') ? "" : ".";
+            var end = left.Count > 1 ? $" and {left.Count - 1} more like it." : left[0].EndsWith('.') || left[0].EndsWith('?') || left[0].EndsWith('!') ? "" : ".";
             items.Add(new(PublishCheckKind.TemplatePrompt, PublishCheckField.Description,
                 $"The description still has the template's fill-in text, \"{left[0]}\"{end}", []));
         }

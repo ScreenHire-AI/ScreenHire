@@ -452,8 +452,7 @@
   </p>
   <FailureText message={publishFailure} />
   <p class="empty:hidden" data-publish-check>
-    {#if checkItems.length > 0}
-      <button type="button" class="underline underline-offset-2 pointer-coarse:min-h-11" aria-haspopup="dialog" onclick={() => { checkShown = checkItems; checkOpen = true; }}>{thingsToCheck(checkItems.length)}</button>
-    {/if}
+    <!-- Plain text: underlined text is a link (A5), and Publish opens the list, so the line only says it is coming. -->
+    {#if checkItems.length > 0}<span class="text-muted-foreground">{thingsToCheck(checkItems.length)}</span>{/if}
   </p>
 {/snippet}
