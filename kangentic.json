@@ -1,6 +1,5 @@
 {
   "version": 1,
-  "stopScript": "set ASPIRE_CLI_TELEMETRY_OPTOUT=true&& dotnet aspire stop --non-interactive --nologo --apphost apps/apphost/ScreenHire.AppHost.csproj",
   "columns": [
     {
       "id": "1fe3f089-d5a2-41d3-a23a-3f1e86e8d50a",
@@ -19,17 +18,19 @@
       "modelOverride": "sonnet",
       "effortOverride": "high",
       "planApproval": "automatic",
-      "planExitTarget": "Executing",
       "automations": {
         "onTurnEnd": [
           {
             "name": "Dependency missing",
             "type": "notify",
-            "finalLine": "Blocked: dependency not on main",
+            "condition": {
+              "text": "Blocked: dependency not on main"
+            },
             "title": "Blocked on a dependency: #{{taskNumber}} {{title}}"
           }
         ]
-      }
+      },
+      "planExitTarget": "Executing"
     },
     {
       "id": "d33d4435-8173-40eb-9437-9143cf787ee0",
@@ -45,21 +46,27 @@
           {
             "name": "On to Code Review",
             "type": "move_to_column",
-            "finalLine": "Findings: applied",
+            "condition": {
+              "text": "Findings: applied"
+            },
             "maxRuns": 4,
             "targetColumn": "Code Review"
           },
           {
             "name": "Apply findings",
             "type": "send_message",
-            "finalLine": "Implementation: complete",
+            "condition": {
+              "text": "Implementation: complete"
+            },
             "message": "Check your last message for findings, recommendations or follow-up changes you have not applied yet, and apply them here in this task, not as follow-up tasks. Skip any that is already filed as a task on the board: someone else owns it, possibly with an agent running on it. Never delete or move a task. A finding nobody has filed still ships in this task. Where one needs a decision, take your recommended option and name the alternative. If there are none, say so. If you changed anything, re-run /verify (pnpm verify:fast and the tests you added or changed) and commit. Either way, end your turn with a short summary and the line \"Findings: applied\".",
             "mode": "immediate"
           },
           {
             "name": "Dependency missing",
             "type": "notify",
-            "finalLine": "Blocked: dependency not on main",
+            "condition": {
+              "text": "Blocked: dependency not on main"
+            },
             "title": "Blocked on a dependency: #{{taskNumber}} {{title}}"
           }
         ]
@@ -90,7 +97,9 @@
           {
             "name": "Back for revisions",
             "type": "move_to_column",
-            "finalLine": "Verdict: Blocked",
+            "condition": {
+              "text": "Verdict: Blocked"
+            },
             "maxRuns": 3,
             "targetColumn": "Executing",
             "message": "Code Review sent this back. Do the numbered steps above its verdict, commit, then end your turn with a short summary and the line \"Findings: applied\".\n\n{{agentReply}}"
@@ -98,14 +107,18 @@
           {
             "name": "On to Testing",
             "type": "move_to_column",
-            "finalLine": "Verdict: Ready",
+            "condition": {
+              "text": "Verdict: Ready"
+            },
             "maxRuns": 3,
             "targetColumn": "Testing"
           },
           {
             "name": "Review stuck",
             "type": "notify",
-            "finalLine": "Verdict: Blocked",
+            "condition": {
+              "text": "Verdict: Blocked"
+            },
             "title": "Review blocked: #{{taskNumber}} {{title}}"
           }
         ]
@@ -134,14 +147,18 @@
           {
             "name": "On to Merge",
             "type": "move_to_column",
-            "finalLine": "PR: ready to merge",
+            "condition": {
+              "text": "PR: ready to merge"
+            },
             "maxRuns": 3,
             "targetColumn": "Merge"
           },
           {
             "name": "Testing blocked",
             "type": "notify",
-            "finalLine": "PR: blocked",
+            "condition": {
+              "text": "PR: blocked"
+            },
             "title": "Testing blocked: #{{taskNumber}} {{title}}"
           }
         ]
@@ -157,6 +174,7 @@
       "permissionMode": "auto",
       "modelOverride": "sonnet",
       "effortOverride": "high",
+      "maxAgents": 1,
       "automations": {
         "onEnter": [
           {
@@ -170,14 +188,18 @@
           {
             "name": "Finish",
             "type": "move_to_column",
-            "finalLine": "PR: merged",
+            "condition": {
+              "text": "PR: merged"
+            },
             "maxRuns": 3,
             "targetColumn": "Done"
           },
           {
             "name": "Merge blocked",
             "type": "notify",
-            "finalLine": "PR: blocked",
+            "condition": {
+              "text": "PR: blocked"
+            },
             "title": "Merge blocked: #{{taskNumber}} {{title}}"
           }
         ]
@@ -191,5 +213,6 @@
       "color": "#10b981"
     }
   ],
+  "stopScript": "set ASPIRE_CLI_TELEMETRY_OPTOUT=true&& dotnet aspire stop --non-interactive --nologo --apphost apps/apphost/ScreenHire.AppHost.csproj",
   "_modifiedBy": "7ef4fd0cb484"
 }
