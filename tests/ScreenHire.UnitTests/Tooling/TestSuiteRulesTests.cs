@@ -58,6 +58,11 @@ public sealed class TestSuiteRulesTests
     [InlineData("tests/ScreenHire.E2E/ProofWalk.cs", "        await SignInAsync();", "        await Page.WaitForTimeoutAsync(500);", "`WaitForTimeoutAsync(` sleeps for a fixed time")]
     [InlineData(UnitTest, "        exitCode.Should().Be(1);", "        Thread.Sleep(500);", "`Thread.Sleep(` sleeps for a fixed time")]
     [InlineData(DashboardTest, "    await nothingHappensFor(20, 'a navigation for a role with no settings page');", "    await new Promise((resolve) => setTimeout(resolve, 20));", "`setTimeout(resolve, 20)` sleeps on a timer")]
+    // The same sleep written another way: behind an arrow, with the delay in a name, or through Node's promise timers.
+    [InlineData(DashboardTest, "    await nothingHappensFor(20, 'a navigation for a role with no settings page');", "    await new Promise<void>((resolve) => setTimeout(() => resolve(), 20));", "`setTimeout(() => resolve(), 20)` sleeps on a timer")]
+    [InlineData(DashboardTest, "    await nothingHappensFor(20, 'a navigation for a role with no settings page');", "    await new Promise<void>((resolve) => setTimeout(() => { resolve(); }, 20));", "`setTimeout(() => { resolve(); }, 20)` sleeps on a timer")]
+    [InlineData(DashboardTest, "    await nothingHappensFor(20, 'a navigation for a role with no settings page');", "    await new Promise((resolve) => setTimeout(resolve, wait));", "`setTimeout(resolve, wait)` sleeps on a timer")]
+    [InlineData(DashboardTest, "import { nothingHappensFor } from '../../../test-support/quiet.js';", "import { setTimeout as sleep } from 'node:timers/promises';", "`from 'node:timers/promises'` sleeps on a timer")]
     public void A_broken_rule_is_reported_with_its_file_and_line(string path, string needle, string replacement, string expected)
     {
         var files = TestSuiteRules.RepositoryRuleFiles();

@@ -161,8 +161,9 @@ internal static partial class TestSuiteRules
     [GeneratedRegex(@"\b(?:it|test|describe)\.(?:skip|only|todo|skipIf|runIf|fails)\b")]
     private static partial Regex SkippedScriptTest();
 
-    // A promise that resolves on a timer of more than zero: `setTimeout(resolve, 50)`. A zero or absent delay is a turn
-    // of the event loop, not a wait.
-    [GeneratedRegex(@"\bsetTimeout\(\s*\w+\s*,\s*[1-9]\d*\s*\)")]
+    // A promise that resolves on a timer: `setTimeout(resolve, 50)`, the same behind an arrow
+    // (`setTimeout(() => resolve(), 50)`), a delay held in a name (`setTimeout(resolve, wait)`), and Node's promise
+    // timers, which a test imports only to sleep. A zero or absent delay is a turn of the event loop, not a wait.
+    [GeneratedRegex(@"\bsetTimeout\(\s*(?:\w+|\(\s*\)\s*=>\s*\{?\s*\w+\(\s*\)\s*;?\s*\}?)\s*,\s*(?!0\s*\))[^\s,)][^,)]*\)|\bfrom\s+['""](?:node:)?timers/promises['""]")]
     private static partial Regex ScriptSleep();
 }

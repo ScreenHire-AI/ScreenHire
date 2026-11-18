@@ -260,7 +260,7 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
     /// <summary>
     /// The Verification area's tabs are its pages, each at its own address and each in the route table. Opening every tab
     /// from every one of them checked each page eight times: one row of the walk ran 145 s on CI that way, against 19 to
-    /// 58 s for the others.
+    /// 58 s for the others. <c>ProofWalkRoutesTests</c> in the unit tests fails when a tab has no row in the table.
     /// </summary>
     private static bool TabsAreRoutes(string path) => path.StartsWith("/verification", StringComparison.Ordinal);
 
