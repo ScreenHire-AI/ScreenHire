@@ -49,4 +49,30 @@
     height: 1px;
     overflow: hidden;
   }
+
+  /* A time on the interview page is a chip: the radio covers it, invisible, so the whole chip is the target and the page is
+     three times to a row on a phone. The checked chip shows the choice (background and ring), and focus shows on the chip. */
+  .time-chip:has(:focus-visible) {
+    outline: 2px solid var(--candidate-brand-ui);
+    outline-offset: 2px;
+  }
+
+  /* The time picked, repeated above Book (the interview page). A checked time's label carries it in data-chosen and CSS
+     anchors it to the Book row, so there is no script and no copy of the text in the page. Only where the browser can
+     anchor; elsewhere the checked time itself shows the choice. The empty alternative text keeps it out of the radio's name. */
+  @supports (anchor-name: --book) {
+    .times-form .book-row {
+      anchor-name: --book;
+      margin-top: 1rem;
+    }
+
+    .times-form .choice:has(:checked)::after {
+      content: attr(data-chosen) / "";
+      position: absolute;
+      position-anchor: --book;
+      bottom: anchor(top);
+      left: 0;
+      @apply text-candidate-body font-semibold text-candidate-foreground;
+    }
+  }
 }
