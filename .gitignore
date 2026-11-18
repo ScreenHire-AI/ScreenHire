@@ -3,6 +3,9 @@
 .claude/settings.local.json
 kangentic.local.json
 
+# /upgrade-deps research cache (scripts/upgrade-deps.mjs): briefs are local and never committed
+.upgrade-deps/
+
 # .NET
 bin/
 obj/
