@@ -82,12 +82,42 @@ describe('notification bell', () => {
     const { unmount } = renderBell();
 
     const panel = await screen.findByRole('dialog', { name: 'Needs attention' });
-    expect(await within(panel).findByRole('region', { name: 'Finish setting up' })).toBeInTheDocument();
+    const setup = await within(panel).findByRole('region', { name: 'Finish setting up' });
+    await waitFor(() => expect(setup).toHaveFocus());
     unmount();
 
     renderBell();
-    await bell();
+    // Once the steps are in, the moment it would open.
+    await screen.findByRole('button', { name: 'Notifications, 4 need attention' });
     expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull();
+  });
+
+  it('keeps the open after onboarding for a bell that has steps to show, so one with none does not spend it', async () => {
+    preferences.queueSetupTour(user.id);
+    stub([], 0);
+    // The same person, seen first by a bell that holds no setup steps for them.
+    const { unmount } = renderBell(userAs('Recruiter'));
+    await screen.findByRole('button', { name: 'Notifications' });
+    expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull();
+    unmount();
+
+    renderBell();
+    expect(await screen.findByRole('dialog', { name: 'Needs attention' })).toBeInTheDocument();
+  });
+
+  it('starts focus on the panel again when it is opened by hand after a page opened it at the steps', async () => {
+    stub([], 0);
+    renderBell();
+    await screen.findByRole('button', { name: 'Notifications, 4 need attention' });
+
+    setupPanel.open();
+    const panel = await screen.findByRole('dialog', { name: 'Needs attention' });
+    await waitFor(() => expect(within(panel).getByRole('region', { name: 'Finish setting up' })).toHaveFocus());
+    await fireEvent.keyDown(panel, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull());
+
+    const reopened = await openBell();
+    await waitFor(() => expect(reopened).toHaveFocus());
   });
 
   it('does not open by itself for anyone who did not just finish onboarding', async () => {

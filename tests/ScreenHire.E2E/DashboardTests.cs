@@ -67,7 +67,8 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
 
         // A new organization's bell opens by itself once, at the setup steps, with the focus there.
         var bell = Page.GetByRole(AriaRole.Dialog, new() { Name = "Needs attention" });
-        await Expect(bell.GetByRole(AriaRole.Region, new() { Name = "Finish setting up" })).ToBeVisibleAsync();
+        var steps = bell.GetByRole(AriaRole.Region, new() { Name = "Finish setting up" });
+        await Expect(steps).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(bell).ToBeHiddenAsync();
 
@@ -76,13 +77,13 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(jobs).ToContainTextAsync("left to set up your organization");
         await ExpectNoAccessibilityViolationsAsync();
         await jobs.GetByRole(AriaRole.Button, new() { Name = "Open the setup checklist" }).ClickAsync();
-        await Expect(bell.GetByRole(AriaRole.Region, new() { Name = "Finish setting up" })).ToBeVisibleAsync();
+        await Expect(steps).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(bell).ToBeHiddenAsync();
 
-        // A reload does not open it again: it opened by itself once.
+        // A reload does not open it again: it opened by itself once. The line needs the steps, so they are in by then.
         await Page.ReloadAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" })).ToContainTextAsync("No jobs yet");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" })).ToContainTextAsync("left to set up your organization");
         await Expect(bell).ToBeHiddenAsync();
 
         // The user menu names the account and signs out.
