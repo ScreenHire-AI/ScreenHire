@@ -629,7 +629,7 @@
   bind:open={publishCheckOpen}
   jobId="0199e8a0-0000-7000-8000-0000000000aa"
   items={[
-    { kind: 'TemplatePrompt', field: 'Description', text: "The description still has the template's fill-in text, 'Describe the work, the office and the team.'.", boards: [] },
+    { kind: 'TemplatePrompt', field: 'Description', text: 'The description still has the template\'s fill-in text, "Describe the work, the office and the team."', boards: [] },
     { kind: 'NoCity', field: 'City', text: 'Talent.com needs a city for an on-site or hybrid job.', boards: ['Talent.com'] },
   ]}
   onpublish={() => {}}

@@ -2,10 +2,9 @@
   import PencilIcon from '~icons/lucide/pencil';
   import SendIcon from '~icons/lucide/send';
   import type { PublishCheckItem } from '@screenhire/api-client';
-  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import { editHref, fieldWords, thingsToCheck } from '#lib/publish-check.js';
-  import { cn } from '#lib/utils.js';
 
   // The check before a job goes live (design system section 11, Confirm dialog; docs/architecture/job-distribution.md,
   // "Check before publishing"). It warns and never blocks: each problem is one sentence with the link that fixes it, and
@@ -45,7 +44,7 @@
     </ul>
     <Dialog.Footer>
       {#if first}
-        <a href={editHref(jobId, first.field)} class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}><PencilIcon aria-hidden="true" />Edit details</a>
+        <Button href={editHref(jobId, first.field)} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
       {/if}
       <Button size="lg" disabled={busy} onclick={() => { open = false; onpublish(); }}><SendIcon aria-hidden="true" />Publish anyway</Button>
     </Dialog.Footer>

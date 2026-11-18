@@ -57,9 +57,10 @@ public static class PublishChecks
         var left = templatePrompts.Where(prompt => text.Contains(prompt, StringComparison.Ordinal)).ToList();
         if (left.Count > 0)
         {
-            var more = left.Count > 1 ? $" and {left.Count - 1} more" : "";
+            // A prompt is a sentence with its own full stop, so the item's sentence ends inside the quotes unless more follows.
+            var end = left.Count > 1 ? $" and {left.Count - 1} more." : left[0].EndsWith('.') || left[0].EndsWith('?') || left[0].EndsWith('!') ? "" : ".";
             items.Add(new(PublishCheckKind.TemplatePrompt, PublishCheckField.Description,
-                $"The description still has the template's fill-in text, \"{left[0]}\"{more}.", []));
+                $"The description still has the template's fill-in text, \"{left[0]}\"{end}", []));
         }
 
         var problems = boards

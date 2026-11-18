@@ -566,7 +566,7 @@ describe('job page', () => {
     const checkPath = `/v1/jobs/${jobId}/publish-check`;
     const draft = { ...job, status: 'Draft', publishedAt: null, postings: [] } as unknown as JobDetail;
     const items = [
-      { kind: 'TemplatePrompt', field: 'Description', text: 'The description still has the template\'s fill-in text, "Describe the work, the office and the team.".', boards: [] },
+      { kind: 'TemplatePrompt', field: 'Description', text: 'The description still has the template\'s fill-in text, "Describe the work, the office and the team."', boards: [] },
       { kind: 'NoCity', field: 'City', text: 'Talent.com needs a city for an on-site or hybrid job.', boards: ['Talent.com'] },
     ];
     const routes = (body: unknown[] | 'fails') => ({

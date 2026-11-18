@@ -35,7 +35,7 @@ public sealed class PublishChecksTests
 
         item.Kind.Should().Be(PublishCheckKind.TemplatePrompt);
         item.Field.Should().Be(PublishCheckField.Description);
-        item.Text.Should().Be("The description still has the template's fill-in text, \"Describe the work, the office and the team.\".");
+        item.Text.Should().Be("The description still has the template's fill-in text, \"Describe the work, the office and the team.\"");
     }
 
     [Fact]

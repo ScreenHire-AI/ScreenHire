@@ -6,7 +6,7 @@ import { jobId } from '../../test-support/fixtures.js';
 import PublishCheckDialog from './publish-check-dialog.svelte';
 
 const items: PublishCheckItem[] = [
-  { kind: 'TemplatePrompt', field: 'Description', text: 'The description still has the template\'s fill-in text, "Describe the work, the office and the team.".', boards: [] },
+  { kind: 'TemplatePrompt', field: 'Description', text: 'The description still has the template\'s fill-in text, "Describe the work, the office and the team."', boards: [] },
   { kind: 'NoCity', field: 'City', text: 'Talent.com needs a city for an on-site or hybrid job.', boards: ['Talent.com'] },
   { kind: 'NoSalary', field: 'Salary', text: 'Pay Board needs a salary.', boards: ['Pay Board'] },
 ];

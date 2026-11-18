@@ -7,16 +7,16 @@ import type { QueryClient } from '@tanstack/svelte-query';
  * the list, so the dashboard, an API key and the MCP server read the same one. It warns and never blocks.
  */
 
-/** The `focus` value on the edit page for each field the check names (`JobDetailsForm` focuses its input). */
-const focusNames: Record<PublishCheckField, string> = { Description: 'description', City: 'city', Salary: 'salary' };
+/**
+ * The fields' words: a link's accessible name ("Edit details, city") and the `focus` value on the edit page
+ * (`JobDetailsForm` focuses that field's input).
+ */
+export const fieldWords: Record<PublishCheckField, string> = { Description: 'description', City: 'city', Salary: 'salary' };
 
 /** Where Edit details goes for one field: the edit page, with that field focused. */
 export function editHref(jobId: string, field: PublishCheckField): string {
-  return `/jobs/${jobId}/edit?focus=${focusNames[field]}`;
+  return `/jobs/${jobId}/edit?focus=${fieldWords[field]}`;
 }
-
-/** The fields' words, for a link's accessible name ("Edit details, city"). */
-export const fieldWords: Record<PublishCheckField, string> = { Description: 'description', City: 'city', Salary: 'salary' };
 
 /** The header line's words: "1 thing to check before publishing". */
 export function thingsToCheck(count: number): string {
