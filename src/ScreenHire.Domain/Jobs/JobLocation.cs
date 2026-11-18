@@ -7,17 +7,18 @@ namespace ScreenHire.Domain.Jobs;
 public sealed record JobLocation(string? City, string? Region, string? Country)
 {
     /// <summary>
-    /// A one-line label for lists and page titles, such as "London, England, GB" or "Remote (GB, IE)". Structured data
-    /// (JSON-LD, feeds) uses the fields, never this.
+    /// A one-line label for lists and page titles, such as "London, England, United Kingdom" or "Remote (United Kingdom,
+    /// Ireland)": countries are names, regions stay as given, and a code .NET does not know stays a code. Structured
+    /// data (JSON-LD, feeds) uses the fields and the ISO code, never this.
     /// </summary>
     public static string Describe(WorkplaceType workplaceType, IReadOnlyList<JobLocation> locations, IReadOnlyList<string> applicantLocationRequirements)
     {
         if (workplaceType == WorkplaceType.Remote)
         {
-            return applicantLocationRequirements.Count == 0 ? "Remote" : $"Remote ({string.Join(", ", applicantLocationRequirements)})";
+            return applicantLocationRequirements.Count == 0 ? "Remote" : $"Remote ({string.Join(", ", applicantLocationRequirements.Select(CountryNames.Name))})";
         }
 
-        return string.Join("; ", locations.Select(l => string.Join(", ", new[] { l.City, l.Region, l.Country }.Where(p => !string.IsNullOrWhiteSpace(p)))));
+        return string.Join("; ", locations.Select(l => string.Join(", ", new[] { l.City, l.Region, CountryNames.Name(l.Country) }.Where(p => !string.IsNullOrWhiteSpace(p)))));
     }
 }
 

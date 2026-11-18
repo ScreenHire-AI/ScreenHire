@@ -27,8 +27,8 @@ export function formatSalary(min?: number | null, max?: number | null, currency?
 }
 
 /**
- * The chips a job shows: at most three, in order. Place (the workplace type goes into it, as "London, GB (Hybrid)",
- * unless the job is on-site or the location already says so, as "Remote (GB, IE)" does), the kind of contract, and the
+ * The chips a job shows: at most three, in order. Place (the workplace type goes into it, as "London, United Kingdom (Hybrid)",
+ * unless the job is on-site or the location already says so, as "Remote (United Kingdom, Ireland)" does), the kind of contract, and the
  * pay when there is one.
  */
 export function jobFacts(job: {

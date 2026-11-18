@@ -188,8 +188,8 @@ internal static class DistributionMappings
             content.OrganizationName,
             job.Department is { } department ? [new JobBoardDepartment(department)] : [],
             [.. job.Locations.Select(l => new JobBoardOffice(
-                l.City ?? l.Region ?? l.Country ?? "",
-                string.Join(", ", new[] { l.City, l.Region, l.Country }.Where(p => !string.IsNullOrWhiteSpace(p)))))],
+                l.City ?? l.Region ?? CountryNames.Name(l.Country),
+                string.Join(", ", new[] { l.City, l.Region, CountryNames.Name(l.Country) }.Where(p => !string.IsNullOrWhiteSpace(p)))))],
             job.EmploymentType, job.WorkplaceType,
             job.Salary is { } salary
                 ? [new JobBoardPayRange(MinorUnits(salary.Min, salary.Currency), MinorUnits(salary.Max, salary.Currency), salary.Currency, salary.Period)]

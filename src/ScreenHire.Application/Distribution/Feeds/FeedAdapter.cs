@@ -93,23 +93,7 @@ internal static class FeedXml
     public static string Number(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 
     /// <summary>The English name of an ISO 3166-1 alpha-2 country, such as <c>United Kingdom</c> for <c>GB</c>.</summary>
-    public static string CountryName(string? code)
-    {
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            return "";
-        }
-
-        try
-        {
-            return new RegionInfo(code).EnglishName;
-        }
-        catch (ArgumentException)
-        {
-            // An unknown code, or a runtime without region data: the code is still meaningful to a board.
-            return code;
-        }
-    }
+    public static string CountryName(string? code) => CountryNames.Name(code);
 
     /// <summary>
     /// Where the job is, for one-line location fields: the first location, or for a remote job the first country

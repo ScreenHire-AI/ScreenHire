@@ -47,23 +47,23 @@ describe('formatSalary', () => {
 });
 
 describe('jobFacts', () => {
-  const job = { location: 'London, England, GB', workplaceType: 'Hybrid', employmentType: 'FullTime', salaryMin: 60_000, salaryMax: 75_000, salaryCurrency: 'GBP' };
+  const job = { location: 'London, England, United Kingdom', workplaceType: 'Hybrid', employmentType: 'FullTime', salaryMin: 60_000, salaryMax: 75_000, salaryCurrency: 'GBP' };
 
   it('lists place, contract and pay, in that order, and never more than three', () => {
-    expect(jobFacts(job)).toEqual(['London, England, GB (Hybrid)', 'Full-time', '£60k–£75k']);
+    expect(jobFacts(job)).toEqual(['London, England, United Kingdom (Hybrid)', 'Full-time', '£60k–£75k']);
     expect(jobFacts(job).length).toBeLessThanOrEqual(3);
   });
 
   it('leaves the pay out when there is none', () => {
-    expect(jobFacts({ ...job, salaryMin: null, salaryMax: null })).toEqual(['London, England, GB (Hybrid)', 'Full-time']);
+    expect(jobFacts({ ...job, salaryMin: null, salaryMax: null })).toEqual(['London, England, United Kingdom (Hybrid)', 'Full-time']);
   });
 
   it('names an on-site job by its address alone', () => {
-    expect(jobFacts({ ...job, workplaceType: 'Onsite' })).toEqual(['London, England, GB', 'Full-time', '£60k–£75k']);
+    expect(jobFacts({ ...job, workplaceType: 'Onsite' })).toEqual(['London, England, United Kingdom', 'Full-time', '£60k–£75k']);
   });
 
   it('does not say remote twice when the location already does', () => {
-    expect(jobFacts({ ...job, location: 'Remote (GB, IE)', workplaceType: 'Remote' })).toEqual(['Remote (GB, IE)', 'Full-time', '£60k–£75k']);
+    expect(jobFacts({ ...job, location: 'Remote (United Kingdom, Ireland)', workplaceType: 'Remote' })).toEqual(['Remote (United Kingdom, Ireland)', 'Full-time', '£60k–£75k']);
   });
 
   it('keeps the workplace type in the place when the location does not name it', () => {

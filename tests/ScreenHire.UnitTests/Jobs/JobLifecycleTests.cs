@@ -311,13 +311,30 @@ public sealed class JobLifecycleTests
     }
 
     [Theory]
-    [InlineData(WorkplaceType.Remote, "Remote (GB, IE)")]
-    [InlineData(WorkplaceType.Hybrid, "London, England, GB; Leeds, GB")]
-    public void The_location_label_reads_from_the_structured_fields(WorkplaceType workplace, string expected)
+    [InlineData(WorkplaceType.Remote, "Remote (United Kingdom, Ireland)")]
+    [InlineData(WorkplaceType.Hybrid, "London, England, United Kingdom; Leeds, United Kingdom")]
+    public void The_location_label_names_the_country_and_keeps_the_region_as_given(WorkplaceType workplace, string expected)
     {
         JobLocation[] locations = [new("London", "England", "GB"), new("Leeds", null, "GB")];
 
         JobLocation.Describe(workplace, locations, ["GB", "IE"]).Should().Be(expected);
+    }
+
+    [Fact]
+    public void The_location_label_covers_a_city_alone_one_remote_country_and_no_remote_countries()
+    {
+        JobLocation.Describe(WorkplaceType.Onsite, [new("Leeds", null, "GB")], []).Should().Be("Leeds, United Kingdom");
+        JobLocation.Describe(WorkplaceType.Onsite, [new(null, null, "US")], []).Should().Be("United States");
+        JobLocation.Describe(WorkplaceType.Remote, [], ["IE"]).Should().Be("Remote (Ireland)");
+        JobLocation.Describe(WorkplaceType.Remote, [], []).Should().Be("Remote");
+    }
+
+    [Fact]
+    public void The_location_label_falls_back_to_the_code_for_a_country_it_does_not_know_and_skips_a_missing_one()
+    {
+        JobLocation.Describe(WorkplaceType.Onsite, [new("Nowhere", null, "ZZ")], []).Should().Be("Nowhere, ZZ");
+        JobLocation.Describe(WorkplaceType.Remote, [], ["GB", "ZZ"]).Should().Be("Remote (United Kingdom, ZZ)");
+        JobLocation.Describe(WorkplaceType.Onsite, [new("Leeds", null, null)], []).Should().Be("Leeds");
     }
 
     private static HiringTemplateDefinition Definition(string firstStage) =>
