@@ -7,6 +7,7 @@ import {
   getListTeamMembersQueryOptions,
 } from '@screenhire/api-client/svelte-query';
 import { useQueryClient } from '@tanstack/svelte-query';
+import { tick } from 'svelte';
 import { enteringLines } from '#lib/automation-sentence.js';
 import { preferences } from '#lib/preferences.svelte.js';
 import { describeError, invalidatePath } from '#lib/query.js';
@@ -67,6 +68,8 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
 
   let confirmation = $state<MoveConfirmation | null>(null);
   let answerQuestion: ((moved: boolean) => void) | undefined;
+  // What had the focus when the person answered Move, which gets it back once the move is done (`refocus`).
+  let afterMove: HTMLElement | null = null;
 
   // Set from the moment a move starts asking until the person answers, so a second move (two quick drops) cannot take the
   // question over and leave the first one waiting for ever.
@@ -141,6 +144,7 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
     /** The person's answer to the question: Move (`true`, with whether to stop asking) or Cancel (`false`). */
     answer(moved: boolean, dontAskAgain = false) {
       if (moved && dontAskAgain) preferences.setConfirmMoves(false);
+      afterMove = moved ? (confirmation?.restoreFocusTo ?? null) : null;
       const resolve = answerQuestion;
       answerQuestion = undefined;
       confirmation = null;
@@ -166,7 +170,10 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
     /** Moves one application, after asking if its stage does something; `note` is kept on the move's entry in its Activity. */
     async move(application: Movable, to: WorkflowStage, note?: string): Promise<boolean> {
       failure = '';
-      return (await ask([application], to)) && (await perform(application, to, note));
+      if (!(await ask([application], to))) return false;
+      const moved = await perform(application, to, note);
+      if (afterMove) await refocus(afterMove);
+      return moved;
     },
 
     /**
@@ -178,9 +185,38 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
       failure = '';
       if (applications.length === 0) return [];
       if (!(await ask(applications, to))) return applications.map((application) => application.id);
-      return performAll(applications, to);
+      const failed = await performAll(applications, to);
+      if (afterMove) await refocus(afterMove);
+      return failed;
     },
   };
+
+  /**
+   * After a move the person said yes to, the focus goes back to what asked, once the move is done: a Move to stage button
+   * is disabled while its move runs, which drops the focus to the page. A control the move took away is left alone, and so
+   * is a focus something else took (the board puts it on the moved card).
+   */
+  async function refocus(back: HTMLElement): Promise<void> {
+    afterMove = null;
+    await tick();
+    // The button comes back on once the mutation's state reaches the page, which can be a task after the move resolves.
+    if (back.matches(':disabled')) await enabled(back);
+    const active = document.activeElement;
+    if ((active && active !== document.body) || !back.isConnected || back.matches(':disabled')) return;
+    back.focus();
+  }
+
+  /** Resolves once `element` is no longer disabled, or after two seconds. */
+  function enabled(element: HTMLElement): Promise<void> {
+    return new Promise((resolve) => {
+      const done = () => (observer.disconnect(), clearTimeout(timer), resolve());
+      const observer = new MutationObserver(() => {
+        if (!element.matches(':disabled')) done();
+      });
+      const timer = setTimeout(done, 2000);
+      observer.observe(element, { attributes: true, attributeFilter: ['disabled'] });
+    });
+  }
 
   async function perform(application: Movable, to: WorkflowStage, note?: string): Promise<boolean> {
     const stage: ApplicationStage = { id: to.id, name: to.name, kind: to.kind };

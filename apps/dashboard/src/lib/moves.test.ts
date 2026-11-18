@@ -66,7 +66,7 @@ describe('moving several applications', () => {
 describe('confirming a move', () => {
   const email = { id: 'email-on-screening', trigger: { type: 'StageEntered', stageId: 'screening' }, actions: [{ type: 'SendEmail', emailTemplate: 'stage-change' }] };
 
-  function stubJob(automations: unknown[]) {
+  function stubJob(automations: unknown[], onMove?: () => void | Promise<void>) {
     const posted: string[] = [];
     const routes: Parameters<typeof apiStub>[0] = {
       [`GET /v1/jobs/${jobId}`]: () => Response.json({ id: jobId, workflow: { stages, questionnaire: { questions: [] }, automations } }),
@@ -77,7 +77,11 @@ describe('confirming a move', () => {
       'GET /v1/candidates': () => Response.json([]),
     };
     for (const application of applications) {
-      routes[`POST /v1/applications/${application.id}/move`] = () => (posted.push(application.id), Response.json({}));
+      routes[`POST /v1/applications/${application.id}/move`] = async () => {
+        posted.push(application.id);
+        await onMove?.();
+        return Response.json({});
+      };
     }
     vi.stubGlobal('fetch', vi.fn(apiStub(routes)));
     return posted;
@@ -112,10 +116,8 @@ describe('confirming a move', () => {
     expect(screen.getByRole('status').textContent).toBe('');
   });
 
-  it('gives the focus back to the button whose menu started the move, not to the menu item that is gone', async () => {
-    stubJob([email]);
-    renderMoves();
-    // A menu as bits-ui draws it: the open trigger names its menu in aria-controls, and the chosen item has the focus.
+  // A menu as bits-ui draws it: the open trigger names its menu in aria-controls, and the chosen item has the focus.
+  function openMenu() {
     const opener = Object.assign(document.createElement('button'), { textContent: 'Move to stage' });
     opener.setAttribute('aria-controls', 'stage-menu');
     const menu = Object.assign(document.createElement('div'), { id: 'stage-menu' });
@@ -125,6 +127,13 @@ describe('confirming a move', () => {
     menu.append(item);
     document.body.append(opener, menu);
     item.focus();
+    return { opener, menu };
+  }
+
+  it('gives the focus back to the button whose menu started the move on Cancel, not to the menu item that is gone', async () => {
+    stubJob([email]);
+    renderMoves();
+    const { opener, menu } = openMenu();
 
     try {
       await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
@@ -132,6 +141,34 @@ describe('confirming a move', () => {
       menu.remove();
       await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
+      await waitFor(() => expect(document.activeElement).toBe(opener));
+    } finally {
+      opener.remove();
+    }
+  });
+
+  it('gives the focus back to that button after Move, once the move that disabled it is done', async () => {
+    // The candidate page disables Move to stage while its move runs, which drops the focus to the page, and turns it back on
+    // only once the mutation's state reaches the page, a little after the move answers.
+    let opener: HTMLButtonElement | undefined;
+    const posted = stubJob([email], async () => {
+      await waitFor(() => expect(document.activeElement).toBe(opener));
+      // A browser drops the focus from a button it disables; jsdom keeps it, so the test drops it first.
+      opener!.blur();
+      opener!.disabled = true;
+      setTimeout(() => (opener!.disabled = false), 20);
+    });
+    renderMoves();
+    const opened = openMenu();
+    opener = opened.opener;
+
+    try {
+      await fireEvent.click(screen.getByRole('button', { name: 'Move one' }));
+      const dialog = await screen.findByRole('dialog');
+      opened.menu.remove();
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Move' }));
+
+      await waitFor(() => expect(posted).toEqual([casey.id]));
       await waitFor(() => expect(document.activeElement).toBe(opener));
     } finally {
       opener.remove();
