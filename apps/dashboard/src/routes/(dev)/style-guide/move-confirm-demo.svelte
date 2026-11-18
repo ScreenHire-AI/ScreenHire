@@ -6,7 +6,7 @@
   // The move confirmation with nothing behind it: the question a move into Technical exercise asks, answered by either button.
   let confirmation = $state<MoveConfirmation | null>(null);
   let answered = $state('');
-  const moves = {
+  const moves: Pick<Moves, 'confirmation' | 'answer'> = {
     get confirmation() {
       return confirmation;
     },
@@ -14,7 +14,7 @@
       answered = moved ? 'Moved.' : 'Cancelled.';
       confirmation = null;
     },
-  } as unknown as Moves;
+  };
 
   function ask() {
     answered = '';

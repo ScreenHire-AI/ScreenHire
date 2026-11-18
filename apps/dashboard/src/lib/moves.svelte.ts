@@ -73,18 +73,16 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
   let asking = false;
 
   /**
-   * What entering `to` does for these applications' jobs, in words. It reads the job the page already holds (its list
-   * refetches when a teammate edits the template), so a move never waits on the network for it, and it names people and
-   * emails only once a stage has something to say. Empty when nothing runs there, or when the job cannot be read: a move is
-   * never held up by that.
+   * What entering `to` does for these applications' jobs, in words. It reads the job from the cache when the page holds
+   * it (its query refetches when a teammate edits the template) and fetches it otherwise, and it fetches people and email
+   * names only once a stage has something to say. Empty when nothing runs there, or when the job cannot be read: a move is
+   * never held up by a failed read.
    */
   async function entering(applications: readonly Movable[], to: WorkflowStage): Promise<string[]> {
     try {
       const jobIds = [...new Set(applications.map((application) => application.jobId))];
       const workflows = await Promise.all(jobIds.map(async (jobId) => (await queryClient.ensureQueryData(getGetJobQueryOptions(jobId))).data.workflow));
-      const runsHere = workflows.filter((workflow) =>
-        workflow.automations.some((automation) => automation.enabled !== false && automation.trigger.type === 'StageEntered' && automation.trigger.stageId === to.id),
-      );
+      const runsHere = workflows.filter((workflow) => enteringLines(workflow, to.id).length > 0);
       if (runsHere.length === 0) return [];
       const [members, templates] = await Promise.allSettled([
         queryClient.ensureQueryData(getListTeamMembersQueryOptions()),
@@ -101,6 +99,17 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
     }
   }
 
+  /**
+   * What gets the focus back once the question is answered: the focused element, or, when that is an item in a menu (Move to
+   * stage), the button that opened the menu, because the item is gone once the menu closes.
+   */
+  function opener(): HTMLElement | null {
+    const active = globalThis.document?.activeElement;
+    if (!(active instanceof HTMLElement) || active === document.body) return null;
+    const menu = active.closest('[role="menu"]');
+    return (menu?.id && document.querySelector<HTMLElement>(`[aria-controls="${menu.id}"]`)) || active;
+  }
+
   /** Asks, when the stage has something to say. True when the move may go ahead; false when cancelled or another question is open. */
   async function ask(applications: readonly Movable[], to: WorkflowStage): Promise<boolean> {
     if (asking) return false;
@@ -110,12 +119,11 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
       const lines = await entering(applications, to);
       if (lines.length === 0) return true;
       const one = applications.length === 1;
-      const active = globalThis.document?.activeElement;
       confirmation = {
         title: one ? `Move ${applications[0]!.candidateName} to ${to.name}?` : `Move ${applications.length} candidates to ${to.name}?`,
         intro: one ? 'Moving them there will:' : 'Each of them gets:',
         lines,
-        restoreFocusTo: active instanceof HTMLElement && active !== document.body ? active : null,
+        restoreFocusTo: opener(),
       };
       return await new Promise<boolean>((resolve) => {
         answerQuestion = resolve;

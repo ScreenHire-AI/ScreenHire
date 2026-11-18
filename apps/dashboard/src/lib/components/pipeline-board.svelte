@@ -89,6 +89,10 @@
     if (await moves.move(card, stage)) return;
     columns = build();
     drawn++;
+    // Redrawing the columns takes the focus with the old cards; it goes to the card back in its place.
+    await tick();
+    const active = document.activeElement;
+    if (!active || active === document.body) document.querySelector<HTMLElement>(`[data-card-id="${card.id}"]`)?.focus();
   }
 
   function onfinalize(stage: WorkflowStage, event: CustomEvent<DndEvent<Card>>) {

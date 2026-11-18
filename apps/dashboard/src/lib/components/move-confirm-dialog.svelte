@@ -11,7 +11,7 @@
   // that goes through it (menu, keyboard, drag, bulk) gets this one dialog. Escape, the close button and Cancel are all
   // Cancel, which does nothing and gives the focus back to what had it. "Don't ask again" is the person's, in this browser,
   // and the account menu turns it back on.
-  let { moves }: { moves: Moves } = $props();
+  let { moves }: { moves: Pick<Moves, 'confirmation' | 'answer'> } = $props();
 
   const question = $derived(moves.confirmation);
   let dontAskAgain = $state(false);
@@ -27,11 +27,10 @@
   async function answer(moved: boolean) {
     const back = shown?.restoreFocusTo;
     moves.answer(moved, dontAskAgain);
-    // After Move the move control puts the focus on the card in its new place; after Cancel it stays where it was.
-    if (!moved) {
-      await tick();
-      if (back?.isConnected) back.focus();
-    }
+    // The focus goes back to what had it (a card, the Move to stage button), so it never falls to the page. The board's
+    // keyboard path then moves it to the card in its new place, and a cancelled drop to the card back in its column.
+    await tick();
+    if (back?.isConnected) back.focus();
   }
 
   // Leaving the page while the question is open is Cancel, so the move that waits on it ends.
@@ -47,8 +46,9 @@
   }}
 >
   <Dialog.Content class="sm:max-w-md" onCloseAutoFocus={(event) => event.preventDefault()}>
-    <Dialog.Header>
-      <Dialog.Title>{shown?.title}</Dialog.Title>
+    <!-- The title holds a name and a stage of any length, so it keeps clear of the close button and wraps under itself. -->
+    <Dialog.Header class="pr-8">
+      <Dialog.Title class="leading-tight">{shown?.title}</Dialog.Title>
       <Dialog.Description>{shown?.intro}</Dialog.Description>
     </Dialog.Header>
     <ul aria-label="What happens" class="flex list-disc flex-col gap-1.5 pl-5 text-body">

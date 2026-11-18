@@ -16,7 +16,7 @@ export interface TableSort {
 const themeKey = 'screenhire:theme';
 const shortcutsKey = 'screenhire:shortcuts';
 const confirmMovesKey = 'screenhire:confirm-moves';
-const sortKey =(table: string) => `screenhire:sort:${table}`;
+const sortKey = (table: string) => `screenhire:sort:${table}`;
 const setupKey = (organizationId: string) => `screenhire:setup-dismissed:${organizationId}`;
 const pipelineViewKey = 'screenhire:pipeline-view';
 
