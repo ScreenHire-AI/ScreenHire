@@ -19,6 +19,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/notification-bell.svelte
   - resource: apps/dashboard/src/lib/notification-lines.ts
   - resource: apps/dashboard/src/lib/setup-progress.svelte.ts
+  - resource: apps/dashboard/src/lib/setup-panel.svelte.ts
+  - resource: apps/dashboard/src/lib/preferences.svelte.ts
   - resource: apps/dashboard/src/lib/setup-checklist.ts
   - resource: apps/dashboard/src/lib/components/jobs-overview.svelte
   - resource: apps/dashboard/src/lib/components/overview-stat.svelte
@@ -42,6 +44,12 @@ A bell in the top bar holds what needs one person's attention. It has two parts:
 Setup used to sit on top of Jobs. A team can use ScreenHire fully without a careers site or an email domain, so it no longer
 takes over the page where people look at their jobs. The bell's count is the setup steps left plus the alerts not yet read.
 Opening the panel marks nothing read; following an alert's link does.
+
+Two things open the panel at its setup section. The Jobs empty state, while steps remain, says how many are left and has a button,
+Open the setup checklist, which counts up `setupPanel.requests` (`setup-panel.svelte.ts`); every page mounts its own bell, which
+opens when the count passes the one it saw when it mounted. And right after onboarding creates the organization, the page
+queues a one-time ask in `preferences` for that person (`queueSetupTour`); the first bell to mount takes it (`takeSetupTour`,
+so it never opens itself twice) and opens as soon as the steps are known. In both cases focus starts on the setup section.
 
 The panel is called Needs attention, because Notifications already names the toast settings in the account menu and the
 toast tray. The bell holds no team news: that stays in the tray (the realtime doc).
@@ -143,7 +151,7 @@ its list cannot disagree. "This week" is a rolling seven days.
 | New this week | applications submitted in the last 7 days | `/candidates?view=new-this-week` |
 | Not screened | applications in the first stage that nobody kept in mind | `/candidates?view=not-screened` |
 | Interviews this week | applications with a booked interview starting within 7 days (`nextInterviewAt` on the application summary) | `/candidates?view=interviews-this-week` |
-| Open jobs | open jobs, as "3 of 5" against the plan's limit for whoever may manage billing | `/?status=Open` |
+| Open jobs | open jobs, as "3 of 5 on your plan" against the plan's limit for whoever may manage billing (the limit comes from the billing route, which only they may read; "on your plan" drops under the number in a narrow tile). With no limit, or for anyone else, the count alone | `/settings/billing` with a limit shown, otherwise `/?status=Open` |
 
 An organization with no jobs yet sees no overview: four zeros say nothing to a new team, so the numbers start with the first job and
 the empty state says what to do first.
@@ -198,7 +206,8 @@ Both are forwarded to the API and the worker by the AppHost.
 - Integration: raising, reading, dismissing and clearing through the real worker queue, per-person isolation, row-level security,
   the live event, retention, the schedules, and the daily check on a real Wolverine host with the sandbox zone as fake DNS.
 - Vitest: the bell, the Jobs tiles, the new views, the lines and the Email domain page.
-- End to end: a new Owner sees setup in the bell and not on Jobs.
+- End to end: a new Owner's bell opens by itself once at the setup steps after onboarding, the Jobs empty state points to them
+  and its button opens them again.
 
 ## Not built
 

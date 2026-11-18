@@ -2,13 +2,17 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import WithTooltips from '../../../test-support/with-tooltips.svelte';
+import { goto } from '$app/navigation';
+import { preferences } from '#lib/preferences.svelte.js';
 import Page from './+page.svelte';
+
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), beforeNavigate: vi.fn(), afterNavigate: vi.fn(), onNavigate: vi.fn() }));
 
 const session = vi.hoisted(() => ({ signOutAndRedirect: vi.fn(async () => {}) }));
 vi.mock(import('#lib/session.js'), () => session);
 
 type Data = Parameters<typeof Page>[1]['data'];
-const data = { user: { email: 'avery@example.com' } } as Data;
+const data = { user: { id: 'user-avery', email: 'avery@example.com' } } as Data;
 const show = () => render(WithTooltips, { props: { component: Page, props: { params: {}, data } } });
 
 const meta = { name: 'ScreenHire', version: '1', environment: 'Development', apiOrigin: 'https://api.example.com', careersUrlPattern: 'https://{tenant}.careers.example.com' };
@@ -17,7 +21,10 @@ describe('onboarding page', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json(meta)));
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
 
   it('is the form template: the account under the title, the fields in one panel, and passes axe', async () => {
     show();
@@ -61,6 +68,17 @@ describe('onboarding page', () => {
 
     await fireEvent.input(screen.getByLabelText('Organization name'), { target: { value: 'Harbour Lane' } });
     expect(document.getElementById('slug-hint')).toHaveTextContent('Lower-case letters, numbers and hyphens');
+  });
+
+  it('asks the bell to open itself at the setup steps, once, when the organization is created', async () => {
+    show();
+
+    await fireEvent.input(screen.getByLabelText('Organization name'), { target: { value: 'Harbour Lane' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Create organization' }));
+
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/', { invalidateAll: true }));
+    expect(preferences.takeSetupTour('user-avery')).toBe(true);
+    expect(preferences.takeSetupTour('user-avery')).toBe(false);
   });
 
   it('signs out from the header band', async () => {

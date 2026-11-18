@@ -64,7 +64,26 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" })).ToContainTextAsync("No jobs yet");
+
+        // A new organization's bell opens by itself once, at the setup steps, with the focus there.
+        var bell = Page.GetByRole(AriaRole.Dialog, new() { Name = "Needs attention" });
+        await Expect(bell.GetByRole(AriaRole.Region, new() { Name = "Finish setting up" })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(bell).ToBeHiddenAsync();
+
+        // The empty state says the steps are there, and its button opens them again.
+        var jobs = Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" });
+        await Expect(jobs).ToContainTextAsync("left to set up your organization");
         await ExpectNoAccessibilityViolationsAsync();
+        await jobs.GetByRole(AriaRole.Button, new() { Name = "Open the setup checklist" }).ClickAsync();
+        await Expect(bell.GetByRole(AriaRole.Region, new() { Name = "Finish setting up" })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(bell).ToBeHiddenAsync();
+
+        // A reload does not open it again: it opened by itself once.
+        await Page.ReloadAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" })).ToContainTextAsync("No jobs yet");
+        await Expect(bell).ToBeHiddenAsync();
 
         // The user menu names the account and signs out.
         await Page.GetByRole(AriaRole.Button, new() { Name = email }).ClickAsync();

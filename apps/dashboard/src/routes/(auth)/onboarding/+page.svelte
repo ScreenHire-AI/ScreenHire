@@ -16,6 +16,7 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { applyValidationProblem, slugify } from '#lib/forms.js';
+  import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
   import type { PageProps } from './$types';
 
@@ -48,7 +49,9 @@
 
       const response = await completeOnboarding(form.data);
       if (response.status === 200 || response.status === 409) {
-        // 409: this person already has an organization, so there is nothing to set up.
+        // The bell opens by itself at its setup steps, once, on the page this lands on. A 409 means this person already
+        // has an organization, so there is nothing new to set up.
+        if (response.status === 200 && data.user?.id) preferences.queueSetupTour(data.user.id);
         await goto('/', { invalidateAll: true });
       } else if (response.status === 400) {
         applyValidationProblem(form, response.data);

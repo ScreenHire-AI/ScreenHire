@@ -50,9 +50,13 @@
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath, planProblem, type PlanProblem } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
+  import { setupPanel } from '#lib/setup-panel.svelte.js';
+  import { createSetupProgress } from '#lib/setup-progress.svelte.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
   const queryClient = useQueryClient();
+  // The bell's setup steps (the same queries, so the same cache), for the empty state's pointer to them.
+  const setup = createSetupProgress(() => page.data.user);
   // Live JobPublished, JobClosed and HiringTemplateVersionPublished events refetch this list (#lib/realtime.ts).
   const jobs = createListJobs();
   // The Jobs overview above asks the same question, so this reads its cache. A count that has not arrived leaves its cell
@@ -307,6 +311,13 @@
             </Empty.Header>
             <Empty.Content>
               <Button href="/jobs/new" variant="outline" size="lg"><PlusIcon aria-hidden="true" />New job</Button>
+              <!-- The setup steps live in the bell behind a bare count, so a new team is told where they are (section 9). -->
+              {#if setup.remaining.length > 0}
+                <p class="text-body text-muted-foreground">
+                  {setup.remaining.length} {setup.remaining.length === 1 ? 'step' : 'steps'} left to set up your organization.
+                </p>
+                <Button variant="ghost" size="lg" onclick={() => setupPanel.open()}>Open the setup checklist</Button>
+              {/if}
             </Empty.Content>
           {/if}
         </Empty.Root>
