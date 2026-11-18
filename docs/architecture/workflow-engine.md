@@ -328,6 +328,11 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     The facts are grouped as Their answers, The application and ScreenHire's checks; a fixed list of values is ticked,
     one value stored as is and two or more as is one of. The sheet has Name, On and Done; Edit as rules swaps in
     `automation-form.svelte` in place, and Remove is there.
+  - **What a move sets off.** `enteringLines` in the same module says what entering a stage does, one sentence per
+    automation that fires on it, in the list's words ("Send the "Moved to the next step" email."). The dashboard asks
+    with it before a move (`createMoves`, `move-confirm-dialog.svelte`), unless the person ticked Don't ask again. An
+    automation that is off or that a check drives is left out, and so is any step that asks for a check, so the
+    question never mentions verification.
   - **The guardrail in the choices.** `violations` ports `DefinitionValidator.DrivenAutomations` and its rules: the steps
     a check drives (directly, or through a tag it adds, a stage it moves into, any stage exit once it moves anyone, a
     stageless reviewer decision or time limit) outside asking a teammate to review, adding a tag or moving into a

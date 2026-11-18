@@ -667,6 +667,33 @@ export function automationLine(
   return `When ${triggerClause(automation.trigger, workflow)}${condition}, ${steps.length > 0 ? steps.join(' and ') : 'nothing happens yet'}.`;
 }
 
+/**
+ * What moving someone into a stage sets off, one sentence per automation that runs on entering it, in the map's words:
+ * "Send the "Moved to the next step" email." or "If Right to work is No, ask the team to review." (the move confirmation).
+ * An automation that is switched off is not listed. An automation a check drives is left out, with any step that asks
+ * for a check, so the list never mentions verification: a move is never decided by it (ADR-0004).
+ */
+export function enteringLines(
+  workflow: HiringWorkflow,
+  stageId: string,
+  members?: Parameters<typeof describeAction>[2],
+  templateNames?: Parameters<typeof describeAction>[3],
+): string[] {
+  const driven = checkDrivenIds(workflow);
+  return workflow.automations.flatMap((automation, index) => {
+    if (automation.enabled === false || driven.has(index)) return [];
+    if (automation.trigger.type !== 'StageEntered' || automation.trigger.stageId !== stageId) return [];
+    const steps = automation.actions.filter((action) => action.type !== 'RequestVerification');
+    if (steps.length === 0) return [];
+    const rules = automation.conditions?.rules ?? [];
+    const titles = rules.map((rule) => ruleTitle(rule, workflow, automation.trigger.type));
+    const condition = titles.length === 0 ? '' : `If ${automation.conditions?.match === 'Any' && titles.length > 1 ? titles.join(' or ') : titles.join(' and ')}, `;
+    const words = steps.map((action) => describeAction(action, workflow, members, templateNames));
+    const first = condition ? lowerFirst(words[0]!) : words[0]!;
+    return [`${condition}${[first, ...words.slice(1).map(lowerFirst)].join(' and ')}.`];
+  });
+}
+
 /** The map's trigger title as the clause after "When": a node title such as "Moves into Phone call" has no subject. */
 function triggerClause(trigger: Automation['trigger'], workflow: HiringWorkflow): string {
   const title = lowerFirst(triggerTitle(trigger, workflow));
