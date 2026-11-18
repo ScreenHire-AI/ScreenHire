@@ -43,7 +43,8 @@
       {/each}
     </ul>
     <Dialog.Footer>
-      {#if first}
+      <!-- With one problem its row already has this link (W7); the footer's is the way out of a list of several. -->
+      {#if first && items.length > 1}
         <Button href={editHref(jobId, first.field)} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
       {/if}
       <Button size="lg" disabled={busy} onclick={() => { open = false; onpublish(); }}><SendIcon aria-hidden="true" />Publish anyway</Button>

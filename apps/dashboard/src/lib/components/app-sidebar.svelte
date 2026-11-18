@@ -258,10 +258,11 @@
             {/if}
           {/if}
           {#if teamViews && viewActions}
-            <Sidebar.MenuItem class="group-data-[collapsible=icon]:hidden">
-              <Sidebar.MenuButton onclick={() => (teamViewsOpen = true)} aria-haspopup="dialog" class="text-muted-foreground">
+            <Sidebar.MenuItem>
+              <!-- In the rail it is the icon with its label in a tooltip: a view nobody added is in no sidebar, so the rail would otherwise have no way to it. -->
+              <Sidebar.MenuButton onclick={() => (teamViewsOpen = true)} aria-haspopup="dialog" tooltipContent="Browse team views" class="text-muted-foreground">
                 <UsersIcon aria-hidden="true" />
-                <span class="min-w-0 flex-1 truncate">Browse team views</span>
+                <span class="min-w-0 flex-1 truncate group-data-[collapsible=icon]:sr-only">Browse team views</span>
               </Sidebar.MenuButton>
             </Sidebar.MenuItem>
           {/if}

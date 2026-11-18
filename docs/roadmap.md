@@ -132,10 +132,11 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
     absorb number 2. Size L. (#149)
 13. **A calmer Jobs empty state for a new team.** It shows New job, "5 steps left to set up your organization" and Open
     the setup checklist, while the bell already carries the count 5 (W7). Keep the heading, one line and the one action
-    (New job), and leave the checklist to the bell it opens from. Size S. (second walk-through)
-14. **Show Edit details once in the Publish check.** With one problem the dialog has an Edit details link on its row and
-    another in the footer that goes to the same field (W7). The footer's is for several problems. Drop it for one. Size S.
+    (New job), and leave the checklist to the bell it opens from. The alternative is to keep the pointer and drop only the
+    count sentence. The pointer was the point of the checklist item above, so this is the owner's call. Size S.
     (second walk-through)
+14. **Show Edit details once in the Publish check.** Built: with one problem the row's link is the only one, and the
+    footer's Edit details appears for several. Kept here so the numbers hold. (second walk-through)
 15. **Decide whether the bell opens itself.** After onboarding the bell opens once, takes focus and covers the top bar's
     Search and Jobs controls until closed. A dot on the bell with a tooltip is quieter and needs no dismissing, but loses
     the nudge. An owner's call, then Size S. (second walk-through)

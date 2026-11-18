@@ -147,7 +147,7 @@ There is no toast or bell line when a teammate shares a view; the sheet's New ma
   first in the menu (the view stays shared). All of them are menu items, so the keyboard reaches them. A
   tablet's icon rail has no room for the menus, so its top bar has a button that opens the full sidebar.
 
-- **Browse team views.** A button at the foot of the Views list (not in the icon rail) opens `TeamViewsSheet`: the shared
+- **Browse team views.** A button at the foot of the Views list (an icon with a tooltip in the icon rail) opens `TeamViewsSheet`: the shared
   views that are a teammate's, newest share first. Each row has its name and a New mark, who shared it, its filters in one
   muted line (`describeFilters`, which leaves out the sort and AI assistance), how many candidates it shows now, Preview and
   Add (or "In your sidebar" and Remove). Preview opens the view's page and adds nothing. The count is read in the browser
