@@ -283,7 +283,8 @@ Authors check their screens against this list, and the `design-review` agent rep
   beside Last updated.
 - **T7** A page that sums up activity (an overview, a report, a usage page) says how recent its numbers are: when the
   newest thing it counts happened, as time ago with the exact time on hover (T5), in one muted line under the headline it
-  belongs to ("Last checked 2 hours ago" under Applications checked on the Verification Overview). It is the newest event,
+  belongs to ("Last checked 2 hours ago" under Applications checked on the Verification Overview, "Last application 3 hours ago"
+  under Applications on Reports, "Last call 5 minutes ago" under Model calls on the Usage tab). It is the newest event,
   never when the page loaded, because live updates keep a page's data current and "Updated just now" says nothing. With
   nothing to count yet, the line is left out (L1).
 
@@ -566,7 +567,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - No cursor class on a component. Buttons, summaries, selects and switch labels get the hand from `theme.css` (A10).
 - A kicker adds to the breadcrumb and never repeats it (W7): a page whose kicker would be its own name has none.
 - A job's facts are at most three chips (place, contract, pay) from one component, `JobFacts`, on the board, the job and the
-  apply form. The workplace type goes into the place chip ("London, England, GB (Hybrid)"), and is left out when the job is
+  apply form. The workplace type goes into the place chip ("London, England, United Kingdom (Hybrid)"), and is left out when the job is
   on-site or the location already says it. Chips are never links or buttons (A5).
 - A job card on the board (`JobCard`) reads title, the job's short summary clamped to three lines with `line-clamp-3`
   (CSS only, no script), then the chips. The summary is at most 160 characters, about the job rather than the company; until

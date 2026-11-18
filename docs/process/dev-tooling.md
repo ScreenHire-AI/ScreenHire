@@ -19,6 +19,8 @@ sources:
   - resource: .claude/skills/sync-docs/SKILL.md
   - resource: .claude/skills/task-review/SKILL.md
   - resource: .claude/skills/task-review/visual-probe.js
+  - resource: .claude/skills/upgrade-deps/SKILL.md
+  - resource: .claude/skills/upgrade-deps/apply.md
   - resource: .claude/skills/verify/SKILL.md
   - resource: apps/dashboard/package.json
   - resource: apps/dashboard/scripts/prebundle.mjs
@@ -32,6 +34,7 @@ sources:
   - resource: .claude/agents/review-finder.md
   - resource: .claude/agents/tenant-isolation-guard.md
   - resource: .claude/agents/test-builder.md
+  - resource: .claude/agents/upgrade-researcher.md
   - resource: .claude/rules/astro-public.md
   - resource: .claude/rules/cli-features-over-custom-layers.md
   - resource: .claude/rules/docs-stay-in-sync.md
@@ -69,6 +72,7 @@ A skill is a procedure, run with `/<name>` or loaded by Claude Code when the tas
 | [`merge-back`](../../.claude/skills/merge-back/SKILL.md) | the owner lands a small tooling, config or docs change from the root checkout | commit, rebase onto `origin/main`, path-scoped checks (or `full` for `pnpm verify`), push to `main` with no PR; only when the owner asks, and it refuses inside a task worktree |
 | [`preview`](../../.claude/skills/preview/SKILL.md) | looking at the app, or checking a change in it (`/run` uses it) | starts the stack through the Aspire CLI (`dotnet aspire start --isolated` in a worktree), waits with `aspire wait` until the demo data is in, reports URLs and logins from `aspire describe`, signs in as Avery Quinn in the task's browser pane, rebuilds one service after a code change; `fresh` for a clean demo (the default in a worktree, so it leaves no volumes; `keep` persists them), `api` for the backend only, `stop` for `aspire stop`; Kangentic's Stop script ends a parked task's stack |
 | [`sync-docs`](../../.claude/skills/sync-docs/SKILL.md) | a change touches commands, AppHost resources, projects, `.claude/` or `docs/` | owns the source-to-doc anchor table, maps a changed file to its docs with `node scripts/docs-bundle.mjs sources`, runs `doc-auditor`, fixes drifted docs and prose |
+| [`upgrade-deps`](../../.claude/skills/upgrade-deps/SKILL.md) | upgrading pnpm, NuGet or local dotnet tool dependencies ("what can we upgrade") | `node scripts/upgrade-deps.mjs inventory` says what can move, splitting a group whose newest release is a major; `upgrade-researcher` agents write one brief per group into the gitignored `.upgrade-deps/` cache; from the root checkout it files one `dependencies` task on the `Upgrade` profile, and inside a task it follows [`apply.md`](../../.claude/skills/upgrade-deps/apply.md) phase by phase ([dependency-upgrades.md](dependency-upgrades.md)) |
 | [`verify`](../../.claude/skills/verify/SKILL.md) | before every commit, before calling implementation done, and inside Code Review and Testing | the local checks: `pnpm verify:fast` and the tests the branch added or changed, by class or file; `/verify full` runs `pnpm verify` for the owner |
 | [`task-review`](../../.claude/skills/task-review/SKILL.md) | the Code Review column runs it | independent review with the agents below; for a dashboard change it starts `/preview`, screenshots `/style-guide` and the changed pages at 1440, 768 and 390px, measures them with [`visual-probe.js`](../../.claude/skills/task-review/visual-probe.js) and hands both to `design-review`, then stops the stack; fixes findings and proves the fixes with `/verify` and the covering test classes by name; `Verdict: Ready` or `Verdict: Blocked` |
 | [`pull-request`](../../.claude/skills/pull-request/SKILL.md) | the Testing column runs it | commit, merge `main`, `/sync-docs`, `/verify`, one push, open and link the PR, watch CI's `Gate` with up to three fix rounds (one push each), report the Lighthouse result |
@@ -92,6 +96,7 @@ report findings as `file:line`, severity, evidence and fix; the caller verifies 
 | [`doc-auditor`](../../.claude/agents/doc-auditor.md) | read-only | `/sync-docs` | lists in docs against the sources that define them |
 | [`design-review`](../../.claude/agents/design-review.md) | read-only | `/task-review` (UI changes), `/add-dashboard-page` | screens against the review checklist in `docs/design/design-system.md`, the one source of truth for UI, with section 22 and the Public pages group for marketing pages; reads the screenshots and probe measurements `/task-review` passes it for the checks code cannot show |
 | [`test-builder`](../../.claude/agents/test-builder.md) | writes tests | the three page skills, `/task-review` | picks the tier, writes and red-greens tests; audit-only mode returns a gap table |
+| [`upgrade-researcher`](../../.claude/agents/upgrade-researcher.md) | writes briefs only, enforced by `scripts/upgrade-researcher-guard.mjs` | `/upgrade-deps` | reads the release notes for every version crossed, how the repo uses the package and the target's licence, and writes one JSON brief per group: verdict, risk, breaking changes with a `find` regex and a test, what to adopt and remove, gates |
 
 ## Rules
 
@@ -126,6 +131,8 @@ Every command in these files was run once when they were written (October 2026),
 | `merge-pull-request` Step 2 (merge `origin/main` into a conflicting PR, `pnpm verify:fast`, push, one CI run) | `merge-pull-request` | it needs a PR that conflicts with `main`; the steps are `/pull-request`'s Steps 2 and 7, which were run |
 | `az` (every command but `--help`), `dotnet aspire do provision-azure-bicep-resources`, `dotnet aspire deploy`, `azd`, `wrangler` | `docs/operations/deploy.md` | they create or change cloud resources, which a task never does (`.claude/rules/unattended-runs.md`); `dotnet aspire publish`, the migrator (against a local PostgreSQL) and the careers image build were run |
 | `git rebase origin/main` and its conflict steps (`git diff --name-only --diff-filter=U`, `git checkout --ours`, `git rebase --continue`), `git push origin HEAD:main` | `merge-back` | they move `main`, so they run only when the owner asks for a merge back |
+| `upgrade-deps` Steps 4 to 7 (the `upgrade-researcher` agents, `kangentic_create_task`, `kangentic_update_task`, `kangentic_remove_task_attachment`) | `upgrade-deps` | a full research pass costs millions of tokens (Kangentic measured 3.6M for 28 groups), and filing puts a task on the board; the inventory, `lockdiff`, `record-blocker` (on a throwaway brief), `cache-dir`, `kangentic_search_tasks` and `kangentic_list_board_profiles` were run on 2026-11-18. The guard was run by piping tool calls into it, as `UpgradeResearcherGuardTests` does, and once live from the agent: its hook refused `node -v` and let `npm view semver version` through |
+| `pnpm up -r <package>@<version>`, `pnpm update -r --no-save`, `pnpm up` and `pnpm update` with `--dir tools/lighthouse --ignore-workspace`, `dotnet tool update <tool> --version <version> --local`, `dotnet package update` | `upgrade-deps/apply.md`, `dependency-upgrades.md` | they change the lockfiles and manifests, so they were run on 2026-11-18 in scratch copies outside the repo (a two-package workspace, a copy of `tools/lighthouse`, a one-project NuGet setup), not on this checkout |
 
 The unit, Vitest and end-to-end commands (`dotnet test --project tests/ScreenHire.UnitTests --filter-class ...`,
 `pnpm --filter @screenhire/careers test`, `dotnet test --project tests/ScreenHire.E2E --filter-class ...`) were run

@@ -10,6 +10,8 @@ sources:
   - resource: src/ScreenHire.Application/Distribution/Adapters/OwnChannelAdapters.cs
   - resource: src/ScreenHire.Application/Distribution/Adapters/SandboxBoardAdapter.cs
   - resource: src/ScreenHire.Application/Distribution/BoardRegistry.cs
+  - resource: src/ScreenHire.Domain/Jobs/CountryNames.cs
+  - resource: src/ScreenHire.Domain/Jobs/JobLocation.cs
   - resource: src/ScreenHire.Application/Distribution/BoardUrls.cs
   - resource: src/ScreenHire.Application/Distribution/Boards.cs
   - resource: src/ScreenHire.Application/Distribution/DistributionOptions.cs
@@ -265,6 +267,11 @@ response carries `Cache-Control: public, max-age=300`, an `ETag` and `Last-Modif
 unchanged feed keeps its ETag. Content goes in CDATA, and characters XML cannot carry are dropped. Feeds are per
 tenant. One ATS-wide feed across tenants would need a materialized snapshot built by the worker, because row-level
 security gives the API no cross-tenant read.
+
+Text a person reads writes a country as its English name (`United Kingdom`, from `CountryNames`, which reads .NET's
+`RegionInfo`): the feeds' location lines, the job-board API's `location.name` and offices, and the one-line label
+(`JobLocation.Label`) the dashboard and careers pages show. A code .NET does not know stays as the code. Structured
+fields keep the ISO 3166-1 alpha-2 code: our own XML feed and JSON-LD `addressCountry`. A third-party board's country field follows that board's own format.
 
 | Board | Format | Source (accessed 2026-10-20) |
 |---|---|---|
