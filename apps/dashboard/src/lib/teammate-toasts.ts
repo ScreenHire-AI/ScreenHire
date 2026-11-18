@@ -1,9 +1,12 @@
 import type { ApplicationDetail, ApplicationTaskEntry, MemberJob, MemberNotificationSettings, TeamMember } from '@screenhire/api-client';
 import type { RealtimeEvent } from '@screenhire/realtime';
 import {
+  appliedGroupToastFor,
+  appliedWindow,
   changeFor,
   groupKey,
   groupToastFor,
+  isApplied,
   toastFor,
   type TeammateChange,
   type TemplateType,
@@ -29,6 +32,14 @@ interface Pending {
   timer: ReturnType<typeof setTimeout>;
 }
 
+// The applications to one job that one toast has announced since it first showed: the toast's id, so the next ones
+// replace it, and how many it counts. Forgotten after the applied window.
+interface AppliedRun {
+  id: string;
+  count: number;
+  timer: ReturnType<typeof setTimeout>;
+}
+
 /**
  * Turns teammates' changes in the live events into toasts (docs/architecture/realtime.md, "Teammates' changes as
  * toasts"). Each change waits {@link groupWindow} under its group, before anything is read: one becomes a toast about
@@ -42,6 +53,7 @@ export class TeammateToasts {
   // Notes that mentioned this person, by application and author, while they could still be waiting here, each with the
   // timer that forgets it.
   readonly #mentions = new Map<string, ReturnType<typeof setTimeout>>();
+  readonly #applied = new Map<string, AppliedRun>();
   #count = 0;
   #disposed = false;
 
@@ -77,6 +89,8 @@ export class TeammateToasts {
     this.#pending.clear();
     for (const timer of this.#mentions.values()) clearTimeout(timer);
     this.#mentions.clear();
+    for (const run of this.#applied.values()) clearTimeout(run.timer);
+    this.#applied.clear();
   }
 
   async #context(userId: string | undefined) {
@@ -107,6 +121,11 @@ export class TeammateToasts {
     if (!first) return;
 
     try {
+      if (isApplied(first)) {
+        await this.#flushApplied(first.jobId, changes);
+        return;
+      }
+
       const members = await this.#sources.members();
       const actorName = members.find((member) => member.userId === first.actorUserId)?.displayName ?? 'A teammate';
       const id = `change:${++this.#count}`;
@@ -123,6 +142,34 @@ export class TeammateToasts {
     } catch {
       // The record is gone or hidden now, or the network failed: the change stays where it happened.
     }
+  }
+
+  // New applications have no actor to name. The first to a job shows after the group window, as any change does; any more
+  // within the applied window fold into that same toast, which then counts them ("3 new applications to ..."). A busy
+  // job so makes one toast that grows for a minute, not one per candidate and not a minute's wait for the first.
+  async #flushApplied(jobId: string, changes: readonly TeammateChange[]): Promise<void> {
+    if (this.#disposed) return;
+    // Counted before anything is read, so a second batch that arrives while the first is being read adds to the same run.
+    const previous = this.#applied.get(jobId);
+    const run: AppliedRun = {
+      id: previous?.id ?? `change:${++this.#count}`,
+      count: (previous?.count ?? 0) + changes.length,
+      // The window runs from the run's first toast, so a steady trickle starts a new toast each minute.
+      timer: previous?.timer ?? setTimeout(() => this.#applied.delete(jobId), appliedWindow),
+    };
+    this.#applied.set(jobId, run);
+
+    if (run.count === 1) {
+      const first = changes[0]!;
+      const facts = await this.#facts(first);
+      if (!this.#disposed) this.#show(toastFor(run.id, first, { actorName: '', ...facts }));
+      return;
+    }
+
+    const members = await this.#sources.members();
+    const memberId = members.find((member) => member.userId === this.#sources.userId())?.id;
+    const jobs = memberId ? await this.#sources.memberJobs(memberId) : [];
+    if (!this.#disposed) this.#show(appliedGroupToastFor(run.id, jobId, run.count, jobs.find((job) => job.id === jobId)?.title));
   }
 
   async #facts(change: TeammateChange) {

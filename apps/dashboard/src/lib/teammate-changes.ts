@@ -9,9 +9,26 @@ export type TaskAction = 'created' | 'completed' | 'reopened';
 /** The templates a teammate's change can be about: a published hiring template version, or an edit of an email template or a scorecard. */
 export type TemplateType = 'HiringTemplate' | 'EmailTemplate' | 'ScorecardTemplate';
 
+/**
+ * A candidate applying through the careers site, or an API key adding one: a New candidates change with no member behind
+ * it, for the members on the job's hiring team.
+ */
+export interface AppliedChange {
+  kind: 'NewCandidates';
+  actorUserId: null;
+  applicationId: string;
+  jobId: string;
+}
+
+/** Whether the change is an application nobody on the team added, which reads "applied to" rather than "added". */
+export function isApplied(change: TeammateChange): change is AppliedChange {
+  return change.kind === 'NewCandidates' && change.actorUserId === null;
+}
+
 /** A teammate's change that the person may want to hear about, from one live event (ids only, as the event has them). */
 export type TeammateChange =
   | { kind: CandidateKind; actorUserId: string; applicationId: string; jobId: string }
+  | AppliedChange
   | { kind: 'Tasks'; actorUserId: string; applicationId: string; jobId: string; taskId: string; action: TaskAction }
   | { kind: 'Templates'; actorUserId: string; templateType: TemplateType; templateId: string; version?: number };
 
@@ -29,7 +46,6 @@ export const defaultNotificationSettings: MemberNotificationSettings = { toasts:
 
 const candidateEvents: Partial<Record<RealtimeEvent['type'], CandidateKind>> = {
   ApplicationMoved: 'Moves',
-  ApplicationSubmitted: 'NewCandidates',
   ApplicationNoteAdded: 'Notes',
   ApplicationTagsChanged: 'Tags',
   ApplicationEmailed: 'Emails',
@@ -61,6 +77,14 @@ function describe(event: RealtimeEvent, context: ChangeContext): TeammateChange 
       if (kind === 'HiringTemplate' || !actorUserId || !previousEditorUserId || previousEditorUserId !== me) return undefined;
       return { kind: 'Templates', actorUserId, templateType: kind, templateId };
     }
+    case 'ApplicationSubmitted': {
+      // A member's own addition is a teammate's change; one with no member behind it is a candidate applying, and tells the team.
+      const { actorUserId, applicationId, jobId } = event.data;
+      if (!context.teamJobIds.has(jobId)) return undefined;
+      return actorUserId
+        ? { kind: 'NewCandidates', actorUserId, applicationId, jobId }
+        : { kind: 'NewCandidates', actorUserId: null, applicationId, jobId };
+    }
     default: {
       const kind = candidateEvents[event.type];
       if (!kind || !('actorUserId' in event.data) || !('applicationId' in event.data) || !('jobId' in event.data)) return undefined;
@@ -74,7 +98,8 @@ function describe(event: RealtimeEvent, context: ChangeContext): TeammateChange 
 /**
  * The teammate's change in `event` that this person should see as a toast, or undefined. A change needs a member behind
  * it (an API key, an automation or the candidate is no teammate, and a key may be the person's own assistant), never
- * the person themselves, and a kind they have not turned off.
+ * the person themselves, and a kind they have not turned off. The one exception is a new application, which the
+ * candidate or a key makes and the job's hiring team hears of.
  */
 export function changeFor(event: RealtimeEvent, context: ChangeContext): TeammateChange | undefined {
   if (!context.userId || !context.settings.toasts) return undefined;
@@ -88,6 +113,7 @@ export function changeFor(event: RealtimeEvent, context: ChangeContext): Teammat
  * as a bulk move. A task or a template is always its own.
  */
 export function groupKey(change: TeammateChange): string {
+  if (isApplied(change)) return `Applied:${change.jobId}`;
   switch (change.kind) {
     case 'Tasks':
       return `Tasks:${change.taskId}:${change.action}`;
@@ -147,6 +173,16 @@ export function toastFor(id: string, change: TeammateChange, facts: ChangeFacts)
   const actor = facts.actorName;
   const candidate = facts.candidateName ?? 'a candidate';
   const job = facts.jobTitle ?? '';
+  if (isApplied(change)) {
+    return {
+      id,
+      kind: change.kind,
+      sentence: ['', candidate, ` applied to ${job || 'a job'}`],
+      href: `/applications/${change.applicationId}`,
+      context: '',
+    };
+  }
+
   switch (change.kind) {
     case 'Tasks':
       return {
@@ -190,6 +226,23 @@ export function groupToastFor(id: string, kind: CandidateKind, jobId: string, co
     kind,
     sentence: [`${actorName} ${groupWords[kind](count)}`, jobTitle ?? 'a job', ''],
     href: `/jobs/${jobId}`,
+    context: '',
+  };
+}
+
+/** The list a job's new applications wait in: its candidates not yet screened (saved-views.ts). */
+export const notScreenedHref = (jobId: string) => `/candidates?view=not-screened&job=${encodeURIComponent(jobId)}`;
+
+/** How long new applications to one job keep folding into the toast that announced the first. */
+export const appliedWindow = 60_000;
+
+/** One toast for several applications to one job, linking to the job's Not screened candidates. */
+export function appliedGroupToastFor(id: string, jobId: string, count: number, jobTitle: string | undefined): Toast {
+  return {
+    id,
+    kind: 'NewCandidates',
+    sentence: ['', `${count} new applications`, ` to ${jobTitle ?? 'a job'}`],
+    href: notScreenedHref(jobId),
     context: '',
   };
 }
