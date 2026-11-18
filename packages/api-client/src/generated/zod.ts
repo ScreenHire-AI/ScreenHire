@@ -148,8 +148,13 @@ export const GetSignInMethodsResponse = zod.object({
   "id": zod.string(),
   "displayName": zod.string()
 }).describe('An identity provider button on the sign-in page.')),
-  "magicLinkEnabled": zod.boolean()
-}).describe('How a person can sign in here: the configured identity providers, and whether email links work.')
+  "magicLinkEnabled": zod.boolean(),
+  "legal": zod.object({
+  "termsUrl": zod.string().nullable(),
+  "privacyUrl": zod.string().nullable(),
+  "dpaUrl": zod.string().nullable()
+}).describe('The addresses of the documents the agreement line names (`ScreenHire:Legal`). Each is null until it is configured, and\nthe page names only the ones that are.')
+}).describe('How a person can sign in here: the configured identity providers, whether email links work, and the legal documents the\nsign-in page\'s agreement line links to.')
 
 
 export const GetCurrentUserResponse = zod.object({

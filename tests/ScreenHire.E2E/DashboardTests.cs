@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace ScreenHire.E2E;
@@ -9,15 +10,61 @@ namespace ScreenHire.E2E;
 /// </summary>
 public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fixture)
 {
-    [Fact]
-    public async Task Signed_out_visitor_is_sent_to_sign_in()
+    [Theory]
+    [InlineData(390, 844)]
+    [InlineData(1440, 900)]
+    public async Task Signed_out_visitor_is_sent_to_sign_in_to_email_first_then_the_other_ways_and_the_agreement(int width, int height)
     {
+        await Page.SetViewportSizeAsync(width, height);
         await GoToAsync("dashboard", "/");
 
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/sign-in"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Sign in to ScreenHire");
-        await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" })).ToBeVisibleAsync();
+        var provider = Page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" });
+        await Expect(provider).ToBeVisibleAsync();
+        var email = Page.GetByLabel("Work email");
+        await Expect(email).ToBeVisibleAsync();
+        await Expect(email).ToHaveAttributeAsync("autocomplete", "email webauthn");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Continue", Exact = true })).ToBeVisibleAsync();
+
+        // The email field comes first, then the "or" divider, then the other ways in (design system section 7).
+        var emailBox = (await email.BoundingBoxAsync())!;
+        var dividerBox = (await Page.Locator("[data-slot=or-divider]").BoundingBoxAsync())!;
+        var providerBox = (await provider.BoundingBoxAsync())!;
+        emailBox.Y.Should().BeLessThan(dividerBox.Y);
+        dividerBox.Y.Should().BeLessThan(providerBox.Y);
+
+        // The stack sets the Terms and the Privacy Policy and no Data Processing Agreement: the line names those two.
+        var line = Page.Locator("[data-slot=sign-in-footer]");
+        await Expect(line).ToHaveTextAsync(new Regex(@"^By continuing, you agree to ScreenHire's Terms of Service( \(opens in a new tab\))? and Privacy Policy( \(opens in a new tab\))?\.$"));
+        await Expect(line.GetByRole(AriaRole.Link, new() { Name = "Terms of Service" })).ToHaveAttributeAsync("href", "https://example.com/terms");
+        await Expect(line.GetByRole(AriaRole.Link, new() { Name = "Privacy Policy" })).ToHaveAttributeAsync("href", "https://example.com/privacy");
+        await Expect(line.GetByText("Data Processing Agreement")).ToHaveCountAsync(0);
+        (await Page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= document.documentElement.clientWidth"))
+            .Should().BeTrue("the card never scrolls the page sideways");
+        await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    [Fact]
+    public async Task Sign_in_with_only_email_links_has_the_field_and_Continue_and_no_divider()
+    {
+        // The shared stack always has Dev SSO and the browser has passkeys, so the answer to "which ways are set up" is trimmed
+        // to email links and the browser's passkey support is taken away.
+        await Page.AddInitScriptAsync("delete window.PublicKeyCredential");
+        await Page.RouteAsync("**/v1/auth/providers", async route =>
+        {
+            var response = await route.FetchAsync();
+            var methods = JsonNode.Parse(await response.TextAsync())!.AsObject();
+            methods["providers"] = new JsonArray();
+            await route.FulfillAsync(new() { Response = response, Body = methods.ToJsonString() });
+        });
+        await GoToAsync("dashboard", "/sign-in");
+
         await Expect(Page.GetByLabel("Work email")).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Continue", Exact = true })).ToBeVisibleAsync();
+        await Expect(Page.Locator("[data-slot=or-divider]")).ToHaveCountAsync(0);
+        await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" })).ToHaveCountAsync(0);
+        await Expect(Page.Locator("[data-slot=sign-in-footer]")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
     }
 
@@ -82,7 +129,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await GoToAsync("dashboard", "/sign-in");
 
         await Page.GetByLabel("Work email").FillAsync(owner);
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Email me a sign-in link" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue", Exact = true }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Check your email");
         await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync(owner);
 

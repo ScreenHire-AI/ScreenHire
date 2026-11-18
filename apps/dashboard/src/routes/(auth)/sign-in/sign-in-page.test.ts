@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goto } from '$app/navigation';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
-import { cancelledPrompt, stubWebAuthn, unstubWebAuthn } from '../../../test-support/webauthn.js';
+import { cancelledPrompt, fakeCredential, stubWebAuthn, unstubWebAuthn } from '../../../test-support/webauthn.js';
 import WithTooltips from '../../../test-support/with-tooltips.svelte';
 import Page from './+page.svelte';
 import { load } from './+page.js';
@@ -12,9 +12,11 @@ vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await import
 
 type Data = Parameters<typeof Page>[1]['data'];
 
+const noLegal = { termsUrl: null, privacyUrl: null, dpaUrl: null };
+
 const data = (overrides: Partial<Data> = {}): Data => ({
   user: null,
-  methods: { providers: [{ id: 'dev-sso', displayName: 'Dev SSO' }], magicLinkEnabled: true },
+  methods: { providers: [{ id: 'dev-sso', displayName: 'Dev SSO' }], magicLinkEnabled: true, legal: noLegal },
   returnUrl: '/candidates',
   errorMessage: undefined,
   ...overrides,
@@ -27,7 +29,7 @@ describe('sign-in page', () => {
     vi.unstubAllGlobals();
   });
 
-  it('is one centred card: the mark, one h1 and a line on new accounts, the providers, then the email link, and passes axe', async () => {
+  it('is one centred card: the mark, one h1 and a line on new accounts, the email field, then the providers, and passes axe', async () => {
     show(data());
 
     const card = document.querySelector<HTMLElement>('[data-slot="sign-in-card"]')!;
@@ -53,6 +55,7 @@ describe('sign-in page', () => {
             { id: 'dev-sso', displayName: 'Dev SSO' },
           ],
           magicLinkEnabled: true,
+          legal: noLegal,
         },
       }),
     );
@@ -68,23 +71,23 @@ describe('sign-in page', () => {
     expect(devSso.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('puts an "or" divider between the providers and the email link, only when both are offered', () => {
+  it('puts the "or" divider between the email form and the other ways in, only when both are offered', () => {
     const { unmount } = show(data());
 
     const divider = screen.getByText('or');
     expect(divider).toHaveAttribute('data-slot', 'or-divider');
-    const lastProvider = screen.getByRole('link', { name: 'Continue with Dev SSO' });
     const email = screen.getByLabelText('Work email');
-    expect(lastProvider.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(divider.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const provider = screen.getByRole('link', { name: 'Continue with Dev SSO' });
+    expect(email.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(divider.compareDocumentPosition(provider) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     unmount();
 
-    show(data({ methods: { providers: [], magicLinkEnabled: true } }));
+    show(data({ methods: { providers: [], magicLinkEnabled: true, legal: noLegal } }));
     expect(screen.queryByText('or')).not.toBeInTheDocument();
   });
 
   it('has no divider when only providers are offered', () => {
-    show(data({ methods: { providers: [{ id: 'google', displayName: 'Google' }], magicLinkEnabled: false } }));
+    show(data({ methods: { providers: [{ id: 'google', displayName: 'Google' }], magicLinkEnabled: false, legal: noLegal } }));
 
     expect(screen.getByRole('link', { name: 'Continue with Google' })).toBeInTheDocument();
     expect(screen.queryByText('or')).not.toBeInTheDocument();
@@ -96,7 +99,7 @@ describe('sign-in page', () => {
     show(data());
 
     await fireEvent.input(screen.getByLabelText('Work email'), { target: { value: 'avery@example.com' } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Email me a sign-in link' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     const heading = await screen.findByRole('heading', { level: 1, name: 'Check your email' });
     await vi.waitFor(() => expect(heading).toHaveFocus());
@@ -111,7 +114,7 @@ describe('sign-in page', () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(null, { status: 202 })));
     show(data());
     await fireEvent.input(screen.getByLabelText('Work email'), { target: { value: 'avery@example.com' } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Email me a sign-in link' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findByRole('heading', { level: 1, name: 'Check your email' });
 
     await fireEvent.click(screen.getByRole('button', { name: 'Send another link' }));
@@ -127,7 +130,7 @@ describe('sign-in page', () => {
     show(data({ returnUrl: '/oauth/authorize?client_id=abc&state=xyz' }));
 
     await fireEvent.input(screen.getByLabelText('Work email'), { target: { value: 'avery@example.com' } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Email me a sign-in link' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     await screen.findByRole('heading', { level: 1, name: 'Check your email' });
     const [input, init] = fetchMock.mock.calls[0]!;
@@ -147,11 +150,11 @@ describe('sign-in page', () => {
     show(data());
 
     expect(screen.getByLabelText('Work email')).toHaveAttribute('type', 'email');
-    expect(screen.getByRole('button', { name: 'Email me a sign-in link' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
   });
 
   it('hides what is not configured', () => {
-    show(data({ methods: { providers: [], magicLinkEnabled: true } }));
+    show(data({ methods: { providers: [], magicLinkEnabled: true, legal: noLegal } }));
 
     expect(screen.queryByRole('link', { name: /Continue with/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
@@ -165,13 +168,209 @@ describe('sign-in page', () => {
   });
 
   it('says why a provider sign-in came back when no sign-in method is left to offer', () => {
-    show(data({ methods: { providers: [], magicLinkEnabled: false }, errorMessage: "We couldn't sign you in with that provider." }));
+    show(data({ methods: { providers: [], magicLinkEnabled: false, legal: noLegal }, errorMessage: "We couldn't sign you in with that provider." }));
 
     const card = document.querySelector('[data-slot="sign-in-card"]');
     expect(card).toHaveTextContent("We couldn't sign you in with that provider.");
     expect(card).toHaveTextContent('Sign-in is not set up on this server yet.');
     // Nothing to sign in with, so no line about what signing in does.
     expect(card).not.toHaveTextContent('New here?');
+  });
+});
+
+describe('the order of the card', () => {
+  afterEach(() => {
+    unstubWebAuthn();
+    vi.unstubAllGlobals();
+  });
+
+  // What the card shows, top to bottom: the email field, Continue, the one divider, the passkey, then each provider.
+  const order = () =>
+    [...document.querySelectorAll<HTMLElement>('[data-slot="sign-in-card"] :is(input, button, a, [data-slot="or-divider"])')].map((element) =>
+      element instanceof HTMLInputElement ? 'email field' : (element.textContent ?? '').trim(),
+    );
+
+  it.each([
+    { email: true, passkey: true, providers: true, expected: ['email field', 'Continue', 'or', 'Sign in with a passkey', 'Continue with Google', 'Continue with Dev SSO'] },
+    { email: true, passkey: true, providers: false, expected: ['email field', 'Continue', 'or', 'Sign in with a passkey'] },
+    { email: true, passkey: false, providers: true, expected: ['email field', 'Continue', 'or', 'Continue with Google', 'Continue with Dev SSO'] },
+    { email: true, passkey: false, providers: false, expected: ['email field', 'Continue'] },
+    { email: false, passkey: true, providers: true, expected: ['Sign in with a passkey', 'Continue with Google', 'Continue with Dev SSO'] },
+    { email: false, passkey: true, providers: false, expected: ['Sign in with a passkey'] },
+    { email: false, passkey: false, providers: true, expected: ['Continue with Google', 'Continue with Dev SSO'] },
+    { email: false, passkey: false, providers: false, expected: [] },
+  ])('email links $email, passkeys $passkey, providers $providers', ({ email, passkey, providers, expected }) => {
+    if (passkey) stubWebAuthn();
+    show(
+      data({
+        methods: {
+          providers: providers
+            ? [
+                { id: 'google', displayName: 'Google' },
+                { id: 'dev-sso', displayName: 'Dev SSO' },
+              ]
+            : [],
+          magicLinkEnabled: email,
+          legal: noLegal,
+        },
+      }),
+    );
+
+    expect(order()).toEqual(expected);
+    // One divider at most, and none when there is only one kind of way in.
+    expect(screen.queryAllByText('or')).toHaveLength(email && (passkey || providers) ? 1 : 0);
+    expect(screen.queryByText('Sign-in is not set up on this server yet.') !== null).toBe(!email && !passkey && !providers);
+  });
+
+  it('gives the email field a hint for a saved passkey, and Continue is the form submit', () => {
+    show(data());
+
+    const field = screen.getByLabelText('Work email');
+    expect(field).toHaveAttribute('autocomplete', 'email webauthn');
+    expect(field).toHaveAttribute('type', 'email');
+    const button = screen.getByRole('button', { name: 'Continue' });
+    expect(button).toHaveAttribute('type', 'submit');
+    expect(button).toHaveClass('w-full');
+  });
+});
+
+describe('the agreement line', () => {
+  const withLegal = (legal: Data['methods']['legal']) =>
+    data({ methods: { providers: [{ id: 'dev-sso', displayName: 'Dev SSO' }], magicLinkEnabled: true, legal } });
+  const footer = () => document.querySelector<HTMLElement>('[data-slot="sign-in-footer"]');
+  // What a sighted person reads: each link also tells a screen reader that it opens a new tab.
+  const line = () => footer()?.textContent?.replaceAll(' (opens in a new tab)', '');
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('is left out when no address is configured', async () => {
+    show(withLegal(noLegal));
+
+    expect(footer()).toBeNull();
+    expect(screen.queryByText(/By continuing/)).not.toBeInTheDocument();
+    await expectNoAxeViolations(document.body);
+  });
+
+  it('names only the documents that have an address, each a link', async () => {
+    show(withLegal({ termsUrl: 'https://legal.example.com/terms', privacyUrl: null, dpaUrl: 'https://legal.example.com/dpa' }));
+
+    expect(line()).toBe("By continuing, you agree to ScreenHire's Terms of Service and Data Processing Agreement.");
+    expect(within(footer()!).getByRole('link', { name: /^Terms of Service/ })).toHaveAttribute('href', 'https://legal.example.com/terms');
+    expect(within(footer()!).getByRole('link', { name: /^Data Processing Agreement/ })).toHaveAttribute('href', 'https://legal.example.com/dpa');
+    expect(within(footer()!).queryByRole('link', { name: /Privacy Policy/ })).not.toBeInTheDocument();
+    await expectNoAxeViolations(document.body);
+  });
+
+  it('names one document alone', () => {
+    show(withLegal({ termsUrl: null, privacyUrl: 'https://legal.example.com/privacy', dpaUrl: null }));
+
+    expect(line()).toBe("By continuing, you agree to ScreenHire's Privacy Policy.");
+  });
+
+  it('names all three, the last after "and", at the foot of the card, and passes axe', async () => {
+    show(withLegal({ termsUrl: 'https://legal.example.com/terms', privacyUrl: 'https://legal.example.com/privacy', dpaUrl: 'https://legal.example.com/dpa' }));
+
+    expect(line()).toBe("By continuing, you agree to ScreenHire's Terms of Service, Privacy Policy and Data Processing Agreement.");
+    const card = document.querySelector('[data-slot="sign-in-card"]')!;
+    expect(card).toContainElement(footer());
+    expect(card.lastElementChild).toBe(footer());
+    for (const link of within(footer()!).getAllByRole('link')) {
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    }
+    await expectNoAxeViolations(document.body);
+  });
+
+  it('is gone once the link has been sent', async () => {
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => new Response(null, { status: 202 })));
+    show(withLegal({ termsUrl: 'https://legal.example.com/terms', privacyUrl: null, dpaUrl: null }));
+
+    await fireEvent.input(screen.getByLabelText('Work email'), { target: { value: 'avery@example.com' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await screen.findByRole('heading', { level: 1, name: 'Check your email' });
+    expect(footer()).toBeNull();
+  });
+});
+
+describe('a saved passkey in the email field', () => {
+  const optionsJson = () => Response.json({ optionsJson: JSON.stringify({ challenge: 'abc' }) });
+
+  afterEach(() => {
+    unstubWebAuthn();
+    vi.mocked(goto).mockClear();
+  });
+
+  it('is waited for quietly where the browser can offer one, and the button ends the wait', async () => {
+    const credentials = stubWebAuthn({ conditional: true });
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => optionsJson()));
+    show(data());
+
+    await vi.waitFor(() => expect(credentials.get).toHaveBeenCalledOnce());
+    const [request] = credentials.get.mock.calls[0]!;
+    expect(request).toEqual(expect.objectContaining({ mediation: 'conditional' }));
+    const signal = (request as { signal: AbortSignal }).signal;
+    expect(signal.aborted).toBe(false);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Sign in with a passkey' }));
+
+    expect(signal.aborted).toBe(true);
+    await vi.waitFor(() => expect(credentials.get).toHaveBeenCalledTimes(2));
+    expect(credentials.get.mock.calls[1]![0]).not.toHaveProperty('mediation');
+  });
+
+  it('signs in when the person picks one from the field', async () => {
+    stubWebAuthn({ conditional: true, get: async () => fakeCredential() });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async (input, init) =>
+        `${init?.method ?? 'GET'} ${String(input)}` === 'POST /v1/auth/passkeys/sign-in' ? new Response(null, { status: 204 }) : optionsJson(),
+      ),
+    );
+    show(data({ returnUrl: '/candidates' }));
+
+    await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates', { invalidateAll: true }));
+  });
+
+  it('says nothing when the quiet wait cannot start, such as when the rate limit refuses its options', async () => {
+    const credentials = stubWebAuthn({ conditional: true });
+    const api = vi.fn<typeof fetch>(async () => new Response(null, { status: 429 }));
+    vi.stubGlobal('fetch', api);
+    show(data());
+
+    await vi.waitFor(() => expect(api).toHaveBeenCalledOnce());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(credentials.get).not.toHaveBeenCalled();
+    expect(screen.queryByText('That passkey did not work. Use another way to sign in.')).not.toBeInTheDocument();
+  });
+
+  it('is not waited for where the browser cannot offer one, or when there is no email field', async () => {
+    const credentials = stubWebAuthn({ conditional: false });
+    const { unmount } = show(data());
+    await Promise.resolve();
+    expect(credentials.get).not.toHaveBeenCalled();
+    unmount();
+
+    unstubWebAuthn();
+    const withoutField = stubWebAuthn({ conditional: true });
+    show(data({ methods: { providers: [], magicLinkEnabled: false, legal: noLegal } }));
+    await Promise.resolve();
+    expect(withoutField.get).not.toHaveBeenCalled();
+  });
+
+  it('stops waiting when the person leaves the page', async () => {
+    const credentials = stubWebAuthn({ conditional: true });
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>(async () => optionsJson()));
+    const { unmount } = show(data());
+    await vi.waitFor(() => expect(credentials.get).toHaveBeenCalledOnce());
+    const signal = (credentials.get.mock.calls[0]![0] as { signal: AbortSignal }).signal;
+
+    unmount();
+
+    expect(signal.aborted).toBe(true);
+    vi.unstubAllGlobals();
   });
 });
 
@@ -195,7 +394,7 @@ describe('sign-in with a passkey', () => {
     expect(screen.queryByRole('button', { name: 'Sign in with a passkey' })).not.toBeInTheDocument();
   });
 
-  it('puts the button first among the providers, before the "or" divider, and passes axe', async () => {
+  it('puts the button first among the providers, after the "or" divider, and passes axe', async () => {
     stubWebAuthn();
     show(data());
 
@@ -203,18 +402,18 @@ describe('sign-in with a passkey', () => {
     expect(button.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     const provider = screen.getByRole('link', { name: 'Continue with Dev SSO' });
     expect(button.compareDocumentPosition(provider) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(button.compareDocumentPosition(screen.getByText('or')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText('or').compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     await expectNoAxeViolations(document.body);
   });
 
-  it('keeps the divider when the passkey is the only thing above the email form, and drops it when it is the only method', () => {
+  it('keeps the divider when the passkey is the only other way below the email form, and drops it when it is the only method', () => {
     stubWebAuthn();
-    const { unmount } = show(data({ methods: { providers: [], magicLinkEnabled: true } }));
+    const { unmount } = show(data({ methods: { providers: [], magicLinkEnabled: true, legal: noLegal } }));
     expect(screen.getByRole('button', { name: 'Sign in with a passkey' })).toBeInTheDocument();
     expect(screen.getByText('or')).toHaveAttribute('data-slot', 'or-divider');
     unmount();
 
-    show(data({ methods: { providers: [], magicLinkEnabled: false } }));
+    show(data({ methods: { providers: [], magicLinkEnabled: false, legal: noLegal } }));
     expect(screen.getByRole('button', { name: 'Sign in with a passkey' })).toBeInTheDocument();
     expect(screen.queryByText('or')).not.toBeInTheDocument();
     expect(screen.queryByText('Sign-in is not set up on this server yet.')).not.toBeInTheDocument();
@@ -256,6 +455,7 @@ describe('sign-in with a passkey', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('That passkey did not work. Use another way to sign in.');
     // Above the ways to try again (design system section 7).
+    expect(alert.compareDocumentPosition(screen.getByLabelText('Work email')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(alert.compareDocumentPosition(screen.getByRole('button', { name: 'Sign in with a passkey' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(alert.compareDocumentPosition(screen.getByRole('link', { name: 'Continue with Dev SSO' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(goto).not.toHaveBeenCalled();
@@ -265,7 +465,7 @@ describe('sign-in with a passkey', () => {
 });
 
 describe('sign-in page load', () => {
-  const methods = { providers: [], magicLinkEnabled: true };
+  const methods = { providers: [], magicLinkEnabled: true, legal: noLegal };
   const event = (search: string) => ({ url: new URL(`http://localhost/sign-in${search}`) }) as Parameters<typeof load>[0];
 
   afterEach(() => {

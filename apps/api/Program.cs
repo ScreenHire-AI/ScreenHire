@@ -103,6 +103,8 @@ builder.Services.AddScreenHireDataRequests();
 builder.Services.AddScreenHirePortal();
 // The sites an organization lets embed its careers pages (docs/architecture/careers-widget.md).
 builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(CareersEmbeddingOptions.Section);
+// The addresses of our Terms, Privacy Policy and DPA, which the sign-in page's agreement line links to.
+builder.Services.AddOptions<LegalOptions>().BindConfiguration(LegalOptions.Section);
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
 builder.Services.AddScreenHireSlack();
 builder.Services.AddOrganizationModels();

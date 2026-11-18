@@ -38,6 +38,7 @@ sources:
   - resource: apps/api/Endpoints/HiringTeamEndpoints.cs
   - resource: apps/api/Hiring/HiringTeams.cs
   - resource: apps/api/Configuration/DomainOptions.cs
+  - resource: apps/api/Configuration/LegalOptions.cs
   - resource: src/ScreenHire.Domain/Organizations/ApiKey.cs
   - resource: src/ScreenHire.Domain/Organizations/CustomRole.cs
   - resource: src/ScreenHire.Domain/Organizations/ITenantOwned.cs
@@ -82,6 +83,14 @@ There are no passwords. A person signs in with an identity provider, an emailed 
 creates their account (a passkey is added later, from a signed-in session). ASP.NET Core Identity is the user store
 (`ApplicationUser`, tables `users`, `user_logins`, `user_claims`, `user_tokens`, `user_passkeys`); the session is the `sh.session` cookie (HttpOnly, SameSite=Lax, 14 days sliding).
 
+The sign-in page puts the Work email field and a Continue button first, then one "or" divider, then "Sign in with a passkey"
+and each provider as equal buttons (design system section 7). The field carries `autocomplete="email webauthn"`, and where
+the browser supports conditional mediation the page starts a pending passkey request behind it, so a saved passkey shows up in
+the field's own list; pressing the passkey button ends that request first. The agreement line at the foot of the card links
+ScreenHire's Terms of Service, Privacy Policy and Data Processing Agreement from `ScreenHire:Legal:TermsUrl`, `PrivacyUrl` and
+`DpaUrl` (`LegalOptions`, forwarded to the API by the AppHost, nothing configured in the repository). An address counts only
+when it is an absolute http or https URL, and the line names only the documents that have one.
+
 Sign-in keeps no provider tokens. A member who connects a Google or Outlook calendar for interview scheduling goes through
 a separate OAuth flow with its own scopes and stored tokens, and removing the member deletes that connection and takes them off the interviews still to come
 ([interview scheduling](interview-scheduling.md)).
@@ -93,7 +102,7 @@ organization API key in place of the session ("API keys" below).
 
 | Route | What it does |
 |---|---|
-| `GET /v1/auth/providers` | The configured providers and whether email links work. Issues the antiforgery token. |
+| `GET /v1/auth/providers` | The configured providers, whether email links work, and the addresses of ScreenHire's Terms, Privacy Policy and Data Processing Agreement (`legal`, each null until `ScreenHire:Legal:TermsUrl`, `PrivacyUrl` or `DpaUrl` is set). Issues the antiforgery token. |
 | `GET /v1/auth/me` | The signed-in user and their organization, with their role, every permission it gives them and whether they see all jobs, or 401. Issues the antiforgery token either way. |
 | `GET /v1/auth/challenge/{provider}?returnUrl=` | Redirects to the provider (authorization code + PKCE). |
 | `GET /v1/auth/signin-{provider}` | The handler's redirect URI. The provider returns here with a code. |

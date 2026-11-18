@@ -115,7 +115,7 @@ page says under each one what their role can and cannot do. No password anywhere
 | Unverified address | Avery's address from a provider that does not vouch for it: ScreenHire refuses to link it, and the sign-in page says why |
 | Any email address you type | A new user each time you use a new address, the way to show onboarding again. An address someone already uses signs in as them |
 
-**Email me a sign-in link**, under the card's "or", works too: the link arrives in Mailpit, and opening it asks for
+The **Work email** field and **Continue**, above the card's "or", work too: the link arrives in Mailpit, and opening it asks for
 one more click (**Sign in**) so a mail scanner cannot use it up.
 
 Avery manages the team in **Organization > Team**: **Invite** sends the invitation to Mailpit. Its link opens the

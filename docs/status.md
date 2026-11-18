@@ -146,6 +146,10 @@ brackets.
   and `auth-trusted-proxies` parameters, which need the real ingress addresses (#11); keep access logs for 30 days or less (#11).
   Wolverine's static code generation was measured and is not needed at the planned size (the worker starts in 12 s and peaks at
   198 MB without it).
+- **Legal documents.** Write the Terms of Service, the Privacy Policy and a Data Processing Agreement with its
+  sub-processor list, and publish each at an address, before the first paying customer. Set `ScreenHire:Legal:TermsUrl`,
+  `PrivacyUrl` and `DpaUrl` (the API, through the AppHost) and the sign-in page's agreement line names each document that
+  has one; with none set the line is left out.
 - **Legal and policy.** A legal review of the notice on the job and apply pages and the privacy page, which say that applications are checked and what is collected but no longer how each check works; a legal review of the law tracker before publishing (#6); the analytics decision, with a privacy
   page and the ePrivacy position per market (#6); a legal review before any typing-rhythm signal (#18); a check of the
   device-check defaults per jurisdiction (notice outside the EU and EEA, consent inside) (#18). A legal review of saved candidates:
