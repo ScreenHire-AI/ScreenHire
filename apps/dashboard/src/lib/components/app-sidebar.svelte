@@ -258,6 +258,7 @@
             {/if}
           {/if}
           {#if teamViews && viewActions}
+            <!-- Not in the rail: its list scrolls, and a tenth icon below the fold fails the 24 px target size (WCAG 2.5.8) at 700 px tall. -->
             <Sidebar.MenuItem class="group-data-[collapsible=icon]:hidden">
               <Sidebar.MenuButton onclick={() => (teamViewsOpen = true)} aria-haspopup="dialog" class="text-muted-foreground">
                 <UsersIcon aria-hidden="true" />

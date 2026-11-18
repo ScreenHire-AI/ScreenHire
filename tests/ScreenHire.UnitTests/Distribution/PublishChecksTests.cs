@@ -43,7 +43,7 @@ public sealed class PublishChecksTests
     {
         var job = Job("<h2>About the role</h2><p>Describe the work, the office and the team.</p><h2>What we are looking for</h2><p>List the skills and experience that matter.</p>");
 
-        Run(job, [Careers]).Should().ContainSingle().Which.Text.Should().EndWith("and 1 more.");
+        Run(job, [Careers]).Should().ContainSingle().Which.Text.Should().EndWith("and 1 more like it.");
     }
 
     [Fact]

@@ -57,6 +57,16 @@
     outline-offset: 2px;
   }
 
+  /* A day closed after a time was picked in it keeps that choice in the form but draws none of its times, so its summary
+     says so: without this, Book could send a time that nothing on the page shows. Drawn by CSS, like the line above Book,
+     so the summary's own text stays the day and its count. */
+  .times-form details:not([open]):has(:checked) > summary::after {
+    content: "Time picked";
+    order: 1;
+    margin-left: auto;
+    @apply rounded-full bg-candidate-chip px-2 text-candidate-hint font-semibold text-candidate-chip-foreground;
+  }
+
   /* The time picked, repeated above Book (the interview page). A checked time's label carries it in data-chosen and CSS
      anchors it to the Book row, so there is no script and no copy of the text in the page. Only where the browser can
      anchor; elsewhere the checked time itself shows the choice. The empty alternative text keeps it out of the radio's name.

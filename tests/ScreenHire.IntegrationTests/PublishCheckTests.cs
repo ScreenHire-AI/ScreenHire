@@ -23,7 +23,7 @@ public sealed class PublishCheckTests(AppHostFixture fixture)
         items.Select(i => i.GetProperty("kind").GetString()).Should().Equal("TemplatePrompt", "NoCity");
         items[0].GetProperty("field").GetString().Should().Be("Description");
         items[0].GetProperty("text").GetString().Should().Be(
-            "The description still has the template's fill-in text, \"Describe the work, the office and the team.\" and 1 more.");
+            "The description still has the template's fill-in text, \"Describe the work, the office and the team.\" and 1 more like it.");
         items[1].GetProperty("field").GetString().Should().Be("City");
         items[1].GetProperty("boards").EnumerateArray().Select(b => b.GetString()).Should().Equal("Talent.com");
     }

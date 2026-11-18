@@ -281,7 +281,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         var band = Page.Locator("[data-slot='header-band']");
 
         // The same list sits in the header band while the job is a draft, so nobody meets it only at the last click.
-        await Expect(band.GetByRole(AriaRole.Button, new() { Name = "2 things to check before publishing" })).ToBeVisibleAsync();
+        await Expect(band.GetByText("2 things to check before publishing", new() { Exact = true })).ToBeVisibleAsync();
 
         await band.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog, new() { Name = "2 things to check before publishing" });
@@ -303,7 +303,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
             .GetByRole(AriaRole.Button, new() { Name = "Publish anyway" }).ClickAsync();
 
         await Expect(band.Locator("[data-published]")).ToContainTextAsync("Published. It is on your careers page now.");
-        await Expect(band.GetByRole(AriaRole.Button, new() { NameRegex = new("to check before publishing") })).ToHaveCountAsync(0);
+        await Expect(band.GetByText("to check before publishing")).ToHaveCountAsync(0);
         (await ReadAsync(await session.Client.GetAsync($"/v1/jobs/{jobId}", Ct), HttpStatusCode.OK)).GetProperty("status").GetString().Should().Be("Open");
     }
 

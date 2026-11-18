@@ -34,7 +34,7 @@
       <Dialog.Title>{thingsToCheck(items.length)}</Dialog.Title>
       <Dialog.Description>A board may refuse the job, or the careers page may look unfinished. You can publish anyway.</Dialog.Description>
     </Dialog.Header>
-    <ul class="flex flex-col divide-y divide-border-subtle rounded-panel border border-border">
+    <ul aria-label="Things to check" class="flex flex-col divide-y divide-border-subtle rounded-panel border border-border">
       {#each items as item (item.kind)}
         <li class="flex items-center justify-between gap-3 px-3.5 py-3 max-sm:flex-col max-sm:items-start">
           <p class="min-w-0">{item.text}</p>
@@ -43,7 +43,8 @@
       {/each}
     </ul>
     <Dialog.Footer>
-      {#if first}
+      <!-- With one problem its row already has this link (W7); the footer's is the way out of a list of several. -->
+      {#if first && items.length > 1}
         <Button href={editHref(jobId, first.field)} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
       {/if}
       <Button size="lg" disabled={busy} onclick={() => { open = false; onpublish(); }}><SendIcon aria-hidden="true" />Publish anyway</Button>

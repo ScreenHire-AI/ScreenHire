@@ -34,7 +34,10 @@ describe('publish check dialog', () => {
   it('says "1 thing" for one problem', async () => {
     renderDialog([items[1]!]);
 
-    expect(await screen.findByRole('dialog', { name: '1 thing to check before publishing' })).toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog', { name: '1 thing to check before publishing' });
+    // The row's own link is the one way to the field: a footer link to the same place would say it twice (W7).
+    expect(within(dialog).getAllByRole('link')).toHaveLength(1);
+    expect(within(dialog).getByRole('link', { name: 'Edit details, city' })).toBeInTheDocument();
   });
 
   it('has the way out to the first problem and Publish anyway as its one primary button', async () => {

@@ -150,6 +150,15 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
             """);
         line.GetProperty("content").GetString().Should().Contain($"{dayHeading} at ", "the chosen time is repeated");
         line.GetProperty("above").GetBoolean().Should().BeTrue("the chosen time sits right above Book");
+
+        // A day closed after a pick keeps the radio checked but draws none of its times, so its summary says a time is picked.
+        var summary = third.Locator("summary");
+        await summary.ScrollIntoViewIfNeededAsync();
+        await summary.ClickAsync();
+        await Expect(third).Not.ToHaveAttributeAsync("open", "");
+        (await summary.EvaluateAsync<string>("e => getComputedStyle(e, '::after').content")).Should().Be("\"Time picked\"");
+        await summary.ClickAsync();
+        await Expect(third).ToHaveAttributeAsync("open", "");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
 
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
