@@ -1,3 +1,4 @@
+using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Verification;
 
@@ -65,7 +66,7 @@ public sealed class IdentityAnalyzer(DisposableEmailDomains disposable, IMailDom
             signals.Add(new ObservedSignal(
                 SignalCatalogue.VoipPhone,
                 SignalConfidence.Medium,
-                [SignalEvidence.Fact("Number type", "Internet (VoIP) number"), SignalEvidence.Fact("Phone number country", NetworkAnalyzer.CountryName(voipRegion)),
+                [SignalEvidence.Fact("Number type", "Internet (VoIP) number"), SignalEvidence.Fact("Phone number country", CountryNames.Name(voipRegion)),
                     SignalEvidence.Fact("Source", "libphonenumber number ranges")],
                 new Dictionary<string, string> { ["region"] = region }));
         }

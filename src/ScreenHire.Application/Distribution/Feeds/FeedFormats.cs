@@ -90,7 +90,7 @@ public sealed class CareerjetFeedAdapter(TimeProvider time) : FeedAdapter(time)
             new XElement("location",
                 Data("city", city),
                 Data("region", region),
-                Data("country", CountryName(country))),
+                Data("country", CountryNames.Name(country))),
             Data("company", content.OrganizationName),
             Data("description", job.Description),
             Data("contract_type", job.EmploymentType switch
@@ -153,7 +153,7 @@ public sealed class TalentFeedAdapter(TimeProvider time) : FeedAdapter(time)
             Data("company", content.OrganizationName),
             Required("city", city),
             Required("state", region),
-            Data("country", CountryName(country)),
+            Data("country", CountryNames.Name(country)),
             Data("dateposted", Iso(content.DatePosted)),
             Data("url", BoardUrls.Tag(content.Url, BoardId)),
             Data("description", job.Description),
@@ -217,7 +217,7 @@ public sealed class AdzunaFeedAdapter(TimeProvider time) : FeedAdapter(time)
             Plain("id", content.JobId.ToString()),
             Data("description", job.Description),
             Data("url", BoardUrls.Tag(content.Url, BoardId)),
-            Data("location", city ?? region ?? (job.WorkplaceType == WorkplaceType.Remote ? "Remote" : CountryName(country))),
+            Data("location", city ?? region ?? (job.WorkplaceType == WorkplaceType.Remote ? "Remote" : CountryNames.Name(country))),
             // Adzuna's list of codes says UK, not GB.
             Plain("country", country == "GB" ? "UK" : country),
             Data("salary", SalaryText(job.Salary)),
