@@ -151,7 +151,9 @@ internal static class AiUsageHandlers
 
         var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
         var limits = await LimitsAsync(db, settings, verification.Value.Llm, now, cancellationToken);
-        return TypedResults.Ok(new AiUsageSummary(start, end, totals, byDay, byModel, byKey, limits));
+        // The newest call whatever the range: how recent the numbers are (design system T7), never when the page loaded.
+        var lastCallAt = await db.AiUsageCalls.AsNoTracking().MaxAsync(c => (DateTimeOffset?)c.OccurredAt, cancellationToken);
+        return TypedResults.Ok(new AiUsageSummary(start, end, totals, byDay, byModel, byKey, limits, lastCallAt));
     }
 
     public static async Task<Results<Ok<AiUsageCallPage>, ValidationProblem>> Calls(

@@ -77,6 +77,8 @@ describe('the Overview tab', () => {
 
     const stat = (await screen.findByText('Applications checked')).closest('[data-slot="report-stat"]') as HTMLElement;
     expect(stat).not.toHaveTextContent(/Last checked/);
+    // No empty line under the value either: nothing is pending, so the tile has no line at all.
+    expect(stat.querySelector('p')).toBeNull();
   });
 
   it('shows a score, a percentage or an AI-assistance count nowhere', async () => {

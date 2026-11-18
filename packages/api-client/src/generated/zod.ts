@@ -8807,7 +8807,8 @@ export const GetHiringReportResponse = zod.object({
   "inInterview": zod.int(),
   "daysOpen": zod.int(),
   "hires": zod.int()
-}).describe('An open job: when it opened, applications in the range, applications in an Interview stage now, days open and hires in the range.'))
+}).describe('An open job: when it opened, applications in the range, applications in an Interview stage now, days open and hires in the range.')),
+  "lastApplicationAt": zod.iso.datetime({"offset":true}).nullable()
 }).describe('The Reports page (docs/architecture/reports.md): headline numbers, applications and hires by week, the funnel, time to\nhire, sources and open jobs for the jobs the person can see, between two instants. All of it comes from one snapshot,\nso the numbers agree. Nothing here reads verification (verification) results.')
 
 
@@ -9697,8 +9698,9 @@ export const GetAiUsageSummaryResponse = zod.object({
   "used": zod.number(),
   "percent": zod.int()
 }).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')
-}).describe('This organization\'s AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester\'s days (`timeZone`). `limits` is\nthe month\'s position against the budget and cap, whatever range was asked for.')
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.'),
+  "lastCallAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('This organization\'s AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester\'s days (`timeZone`). `limits` is\nthe month\'s position against the budget and cap, whatever range was asked for. `lastCallAt` is when the newest model call\nhappened, whatever the range, so the page can say how recent its numbers are (design system T7); null before the first.')
 
 
 export const ListAiUsageCallsQueryParams = zod.object({

@@ -231,6 +231,16 @@ internal static class HiringReportReads
                 [.. Args(from, to)])
             .ToListAsync(cancellationToken);
 
+        // The newest application to the jobs in scope, whatever the range: how recent the page's numbers are (design system T7).
+        // It reads applications and jobs only, so the tenant and job_scope policies narrow it like every other panel.
+        var lastApplicationAt = (await db.Database.SqlQueryRaw<DateTimeOffset?>(
+                Scope + """
+
+                SELECT max(a.submitted_at) AS "Value" FROM applications a JOIN scoped_jobs j ON j.id = a.job_id
+                """,
+                [.. Args(from, to)])
+            .ToListAsync(cancellationToken)).Single();
+
         await transaction.CommitAsync(cancellationToken);
 
         return new HiringReport(
@@ -257,7 +267,8 @@ internal static class HiringReportReads
             [
                 .. openJobs.Select(j => new ReportOpenJob(
                     j.JobId, j.Title, j.PublishedAt, j.Applications, j.InInterview, DaysOpen(j.PublishedAt, now), j.Hires)),
-            ]);
+            ],
+            lastApplicationAt);
     }
 
     /// <summary>The ids of the applications submitted in the range that reached <paramref name="kind"/> or a later one.</summary>

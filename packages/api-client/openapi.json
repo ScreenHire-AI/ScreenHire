@@ -15685,7 +15685,8 @@
           "byDay",
           "byModel",
           "byKeySource",
-          "limits"
+          "limits",
+          "lastCallAt"
         ],
         "type": "object",
         "properties": {
@@ -15720,9 +15721,16 @@
           },
           "limits": {
             "$ref": "#/components/schemas/AiUsageLimitsView"
+          },
+          "lastCallAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
-        "description": "This organization's AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester's days (`timeZone`). `limits` is\nthe month's position against the budget and cap, whatever range was asked for."
+        "description": "This organization's AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester's days (`timeZone`). `limits` is\nthe month's position against the budget and cap, whatever range was asked for. `lastCallAt` is when the newest model call\nhappened, whatever the range, so the page can say how recent its numbers are (design system T7); null before the first."
       },
       "AiUsageTotals": {
         "required": [
@@ -19899,7 +19907,8 @@
           "funnel",
           "timeToHire",
           "sources",
-          "openJobs"
+          "openJobs",
+          "lastApplicationAt"
         ],
         "type": "object",
         "properties": {
@@ -19950,6 +19959,13 @@
             "items": {
               "$ref": "#/components/schemas/ReportOpenJob"
             }
+          },
+          "lastApplicationAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         },
         "description": "The Reports page (docs/architecture/reports.md): headline numbers, applications and hires by week, the funnel, time to\nhire, sources and open jobs for the jobs the person can see, between two instants. All of it comes from one snapshot,\nso the numbers agree. Nothing here reads verification (verification) results."
