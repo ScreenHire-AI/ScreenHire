@@ -44,23 +44,28 @@ export async function conditionalPasskeysSupported(): Promise<boolean> {
 /**
  * Signs in: asks the API for options, lets the person pick a passkey in the browser's prompt, and sends the answer.
  * With `conditional` the browser waits quietly until the person picks a saved passkey from the email field's own list,
- * and the signal ends that wait (when they press the button instead, or leave the page).
+ * and the signal ends that wait (when they press the button instead, or leave the page). A quiet wait that ends before
+ * the person picked a passkey (the options request was refused, say, by the rate limit) is `cancelled`, not `failed`:
+ * they did nothing, so the page has nothing to tell them.
  */
 export async function runPasskeySignIn(conditional?: { signal: AbortSignal }): Promise<PasskeyOutcome> {
+  let picked = false;
+  const quiet = (outcome: PasskeyOutcome): PasskeyOutcome => (conditional && !picked ? { kind: 'cancelled' } : outcome);
   try {
     const options = await makePasskeySignInOptions();
-    if (options.status !== 200) return { kind: 'failed' };
+    if (options.status !== 200) return quiet({ kind: 'failed' });
 
     const credential = await navigator.credentials.get({
       publicKey: PublicKeyCredential.parseRequestOptionsFromJSON(JSON.parse(options.data.optionsJson)),
       ...(conditional ? { mediation: 'conditional' as const, signal: conditional.signal } : {}),
     });
+    picked = true;
     if (!isPublicKeyCredential(credential)) return { kind: 'failed' };
 
     const response = await signInWithPasskey({ credentialJson: JSON.stringify(credential.toJSON()) });
     return response.status === 204 ? { kind: 'success', value: undefined } : { kind: 'failed' };
   } catch (error) {
-    return fromError(error);
+    return quiet(fromError(error));
   }
 }
 

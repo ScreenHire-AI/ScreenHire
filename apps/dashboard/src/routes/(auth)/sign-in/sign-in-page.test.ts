@@ -334,6 +334,18 @@ describe('a saved passkey in the email field', () => {
     await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates', { invalidateAll: true }));
   });
 
+  it('says nothing when the quiet wait cannot start, such as when the rate limit refuses its options', async () => {
+    const credentials = stubWebAuthn({ conditional: true });
+    const api = vi.fn<typeof fetch>(async () => new Response(null, { status: 429 }));
+    vi.stubGlobal('fetch', api);
+    show(data());
+
+    await vi.waitFor(() => expect(api).toHaveBeenCalledOnce());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(credentials.get).not.toHaveBeenCalled();
+    expect(screen.queryByText('That passkey did not work. Use another way to sign in.')).not.toBeInTheDocument();
+  });
+
   it('is not waited for where the browser cannot offer one, or when there is no email field', async () => {
     const credentials = stubWebAuthn({ conditional: false });
     const { unmount } = show(data());

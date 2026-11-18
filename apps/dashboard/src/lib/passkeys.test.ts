@@ -81,6 +81,25 @@ describe('runPasskeySignIn', () => {
     await expect(outcome).resolves.toEqual({ kind: 'cancelled' });
   });
 
+  it('ends a quiet wait as cancelled when its options are refused, and a pressed button as failed', async () => {
+    const credentials = stubWebAuthn({ conditional: true });
+    stubApi({ 'POST /v1/auth/passkeys/sign-in/options': () => new Response(null, { status: 429 }) });
+
+    await expect(runPasskeySignIn({ signal: new AbortController().signal })).resolves.toEqual({ kind: 'cancelled' });
+    await expect(runPasskeySignIn()).resolves.toEqual({ kind: 'failed' });
+    expect(credentials.get).not.toHaveBeenCalled();
+  });
+
+  it('fails a quiet wait once the person has picked a passkey the API then refuses', async () => {
+    stubWebAuthn({ conditional: true, get: async () => fakeCredential() });
+    stubApi({
+      'POST /v1/auth/passkeys/sign-in/options': () => options(),
+      'POST /v1/auth/passkeys/sign-in': () => new Response(null, { status: 401 }),
+    });
+
+    await expect(runPasskeySignIn({ signal: new AbortController().signal })).resolves.toEqual({ kind: 'failed' });
+  });
+
   it('is cancelled, not failed, when the person closes the browser prompt', async () => {
     stubWebAuthn({ get: async () => Promise.reject(cancelledPrompt()) });
     stubApi({ 'POST /v1/auth/passkeys/sign-in/options': () => options() });
