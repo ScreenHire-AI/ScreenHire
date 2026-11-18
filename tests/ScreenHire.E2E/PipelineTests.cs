@@ -111,28 +111,35 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Cancel" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();
+        // The dialog's overlay fades out after it, and takes a mouse press meant for the board until it is gone.
+        await Expect(Page.Locator("[data-slot='dialog-overlay']")).ToHaveCountAsync(0);
         await Expect(applied.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Applied" })).ToBeVisibleAsync();
         await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Screening" })).ToHaveCountAsync(0);
 
-        // Shift + Right opens the same question; Move moves, toasts, and the card keeps the focus.
-        await Page.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Applied" }).FocusAsync();
-        await Page.Keyboard.PressAsync("Shift+ArrowRight");
+        // The same drop, Move this time. Both drags come first, while nothing has changed: a list that refetches under a card in
+        // hand (a move's live update arrives a moment after its toast) gives the drag library the same card twice.
+        await DragCardToAsync(Page.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Applied" }), screening);
         await Expect(dialog).ToContainTextAsync(sentence);
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Move" }).ClickAsync();
         await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Screening" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Notifications" })).ToContainTextAsync("You moved Casey Morgan to Screening");
-        await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Casey Morgan, Screening" })).ToBeFocusedAsync();
+
+        // Shift + Right opens the same question for the next card, and Cancel gives the focus back to it.
+        var jordan = Page.GetByRole(AriaRole.Dialog, new() { Name = "Move Jordan Lee to Screening?" });
+        await Page.GetByRole(AriaRole.Listitem, new() { Name = "Jordan Lee, Applied" }).FocusAsync();
+        await Page.Keyboard.PressAsync("Shift+ArrowRight");
+        await Expect(jordan).ToContainTextAsync(sentence);
+        await jordan.GetByRole(AriaRole.Button, new() { Name = "Cancel" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Listitem, new() { Name = "Jordan Lee, Applied" })).ToBeFocusedAsync();
 
         // Ticking Don't ask again: that move goes through, and the next one asks nothing.
-        await DragCardToAsync(Page.GetByRole(AriaRole.Listitem, new() { Name = "Jordan Lee, Applied" }), screening);
-        var jordan = Page.GetByRole(AriaRole.Dialog, new() { Name = "Move Jordan Lee to Screening?" });
+        await Page.Keyboard.PressAsync("Shift+ArrowRight");
         await jordan.GetByRole(AriaRole.Checkbox, new() { Name = "Don't ask again" }).ClickAsync();
         await jordan.GetByRole(AriaRole.Button, new() { Name = "Move" }).ClickAsync();
-        await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Jordan Lee, Screening" })).ToBeVisibleAsync();
-        // The move is done once its toast shows: a drag begun while the last drop still settles is not picked up.
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Notifications" })).ToContainTextAsync("You moved Jordan Lee to Screening");
+        await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Jordan Lee, Screening" })).ToBeFocusedAsync();
 
-        await DragCardToAsync(Page.GetByRole(AriaRole.Listitem, new() { Name = "Riley Chen, Applied" }), screening);
+        await Page.GetByRole(AriaRole.Listitem, new() { Name = "Riley Chen, Applied" }).FocusAsync();
+        await Page.Keyboard.PressAsync("Shift+ArrowRight");
         await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Riley Chen, Screening" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Dialog)).ToHaveCountAsync(0);
 
@@ -478,12 +485,9 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         return version.GetProperty("id").GetGuid();
     }
 
-    // Drags a card to a stage's list with the mouse in steps, as svelte-dnd-action's pointer drag needs to see it. The page
-    // goes quiet first: the lists the previous move invalidates refetch after its toast shows, and a list that changes under a
-    // card in hand gives the drag library the same card twice. A person is never that quick, so the test waits instead.
+    // Drags a card to a stage's list with the mouse in steps, as svelte-dnd-action's pointer drag needs to see it.
     private async Task DragCardToAsync(ILocator card, ILocator list)
     {
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         var from = (await card.BoundingBoxAsync())!;
         var to = (await list.BoundingBoxAsync())!;
         await Page.Mouse.MoveAsync(from.X + (from.Width / 2), from.Y + (from.Height / 2));
