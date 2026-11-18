@@ -64,7 +64,8 @@ public sealed class JobAccessTests(AppHostFixture fixture)
         foreach (var path in new[]
                  {
                      $"/v1/jobs/{hidden.Id()}", $"/v1/jobs/{hidden.Id()}/applications", $"/v1/jobs/{hidden.Id()}/history",
-                     $"/v1/jobs/{hidden.Id()}/versions", $"/v1/jobs/{hidden.Id()}/hiring-team", $"/v1/applications/{hiddenApplication}",
+                     $"/v1/jobs/{hidden.Id()}/versions", $"/v1/jobs/{hidden.Id()}/hiring-team", $"/v1/jobs/{hidden.Id()}/publish-check",
+                     $"/v1/applications/{hiddenApplication}",
                      $"/v1/applications/{hiddenApplication}/timeline", $"/v1/candidates/{hiddenOnly.At("candidate").GetProperty("id").GetGuid()}",
                  })
         {

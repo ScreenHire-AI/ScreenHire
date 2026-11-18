@@ -27,6 +27,9 @@
     shared: false,
     mine: true,
     canEdit: true,
+    inSidebar: true,
+    ownerName: 'Avery Quinn',
+    sharedAt: null,
     filters,
     updatedAt: '2026-11-02T09:00:00+00:00',
   };

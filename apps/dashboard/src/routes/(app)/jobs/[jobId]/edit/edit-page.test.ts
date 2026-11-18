@@ -10,6 +10,10 @@ import Page from './+page.svelte';
 const navigation = vi.hoisted(() => ({ goto: vi.fn(async () => {}) }));
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: navigation.goto }));
 
+// The address the page is opened on; `?focus=` names the field the publish check sent the person to fix.
+const location = vi.hoisted(() => ({ url: new URL('http://dashboard.test/') }));
+vi.mock('$app/state', () => ({ page: location, navigating: { to: null } }));
+
 const job = {
   id: jobId,
   title: 'Senior .NET Engineer',
@@ -34,6 +38,7 @@ function renderPage(routes: Parameters<typeof apiStub>[0], client?: QueryClient)
 }
 
 afterEach(() => {
+  location.url = new URL('http://dashboard.test/');
   vi.unstubAllGlobals();
   navigation.goto.mockClear();
 });
@@ -194,5 +199,43 @@ describe('edit job details page', () => {
     expect(await screen.findByText('It does not exist, or it belongs to another organization.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to jobs' })).toHaveAttribute('href', '/');
     expect(screen.queryByRole('form')).not.toBeInTheDocument();
+  });
+
+  describe('when the publish check sent the person to a field (?focus=)', () => {
+    const onsite = { ...job, workplaceType: 'Onsite', locations: [{ city: null, region: null, country: 'GB' }], status: 'Draft' } as unknown as JobDetail;
+    const open = (focus: string) => {
+      location.url = new URL(`http://dashboard.test/jobs/${jobId}/edit?focus=${focus}`);
+      renderPage({ [`GET /v1/jobs/${jobId}`]: () => Response.json(onsite) });
+    };
+
+    it('puts the cursor in the city', async () => {
+      open('city');
+
+      const city = await screen.findByLabelText('City');
+      await waitFor(() => expect(city).toHaveFocus());
+    });
+
+    it('puts the cursor in the first salary field', async () => {
+      open('salary');
+
+      const from = await screen.findByLabelText('From');
+      await waitFor(() => expect(from).toHaveFocus());
+    });
+
+    it('puts the cursor in the description', async () => {
+      open('description');
+
+      await screen.findByRole('form', { name: 'Edit job details' });
+      await waitFor(() => expect(document.activeElement).toHaveAttribute('id', 'job-description'));
+    });
+
+    it('leaves the focus alone with no field named or one it does not know', async () => {
+      open('nonsense');
+
+      const title = await screen.findByLabelText('Title');
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(title).not.toHaveFocus();
+      expect(document.body).toHaveFocus();
+    });
   });
 });

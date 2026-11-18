@@ -7,9 +7,13 @@
 import type { SavedViewSummary } from './savedViewSummary.ts';
 
 /**
- * The views the member sees, oldest first, and the ids of the built-in views they hid.
+ * The views the member sees, oldest first, and the ids of the built-in views they hid. `sidebarOrder` is the ids of
+ * the shared views they added, in the order they sit in the sidebar. `teamViewsSeenAt` is when they last opened the
+ * sheet of team views (their own start until then): a view shared after it is New.
  */
 export interface ViewList {
   views: SavedViewSummary[];
   hiddenBuiltIns: string[];
+  sidebarOrder: string[];
+  teamViewsSeenAt: string;
 }

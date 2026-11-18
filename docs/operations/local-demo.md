@@ -183,7 +183,9 @@ built-in rejection email. The jobs `DevelopmentDataSeeder` makes have no history
 ## A five-minute demo
 
 1. **The jobs (30 s).** Sign in as Avery Quinn. The jobs list shows each job's status first, opens on the last
-   updated, sorts by any column header, and the Status filter counts what is open and what is a draft. The sidebar's views pick out what needs attention: "To review" and "To verify".
+   updated, sorts by any column header, and the Status filter counts what is open and what is a draft. The sidebar's views pick out what needs attention: "To review" and "To verify". A view someone shares with the team
+   is an offer: sign in as Jordan Ellis in a second browser, open Browse team views at the foot of the Views list, preview it
+   and add it to see it in the sidebar.
 2. **Verification, explained (90 s).** Open Senior .NET Engineer. The authenticity chips over the table count the seven
    applicants by level, each chip filters the table to it, and each row has its level. Open Jordan Vale and its Verification tab, marked with a dot: the level sits on its three-step scale, a card per kind of check says what it found, and the tab lists every reason (a hidden form field
    filled in, browser automation, a six-second form, a throwaway inbox, a phone number that is not valid, a hosting

@@ -18,7 +18,7 @@ public sealed class McpServerTests(AppHostFixture fixture)
     // test reads it; what the key did or could not do is the rest.
     private const string Assessed = "VerificationAssessed";
 
-    private static readonly string[] ReadTools = ["find_candidates", "find_jobs", "get_application", "get_hiring_report", "list_saved_candidates"];
+    private static readonly string[] ReadTools = ["check_job", "find_candidates", "find_jobs", "get_application", "get_hiring_report", "list_saved_candidates"];
 
     private static readonly string[] VerificationTools = ["find_candidates_by_verification_level", "get_verification"];
 

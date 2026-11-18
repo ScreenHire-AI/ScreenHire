@@ -18,7 +18,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
@@ -4879,6 +4879,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("scope");
 
+                    b.Property<DateTimeOffset?>("SharedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("shared_at");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -4901,6 +4905,40 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_saved_filter_views_scope", "scope IN ('Candidates', 'Job')");
                         });
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Views.SavedViewMember", b =>
+                {
+                    b.Property<Guid>("ViewId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("view_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTimeOffset>("AddedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("added_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.HasKey("ViewId", "UserId")
+                        .HasName("pk_saved_view_members");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_saved_view_members_user_id");
+
+                    b.HasIndex("OrganizationId", "UserId", "Position")
+                        .HasDatabaseName("ix_saved_view_members_organization_id_user_id_position");
+
+                    b.ToTable("saved_view_members", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookDelivery", b =>
@@ -6166,6 +6204,30 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasPrincipalKey("OrganizationId", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_saved_filter_views_jobs_organization_id_job_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Views.SavedViewMember", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_saved_view_members_organizations_organization_id");
+
+                    b.HasOne("ScreenHire.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_saved_view_members_users_user_id");
+
+                    b.HasOne("ScreenHire.Domain.Views.SavedFilterView", null)
+                        .WithMany()
+                        .HasForeignKey("ViewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_saved_view_members_saved_filter_views_view_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Webhooks.WebhookDelivery", b =>

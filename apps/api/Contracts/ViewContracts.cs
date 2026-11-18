@@ -32,18 +32,28 @@ public sealed record ViewFilters(
 }
 
 /// <summary>
-/// A saved view as the signed-in member sees it: their own, and the team's shared ones. <c>mine</c> is whether they saved
-/// it; <c>canEdit</c> whether they may rename, share or delete it (its owner, or a role that edits anyone's views).
+/// A saved view as the signed-in member sees it: their own, and the team's shared ones they may see. <c>mine</c> is whether
+/// they saved it; <c>canEdit</c> whether they may rename, share or delete it (its owner, or a role that edits anyone's
+/// views). <c>inSidebar</c> is whether it sits in their sidebar: their own always do, and a shared one does once they added
+/// it. <c>ownerName</c> is who saved it, and <c>sharedAt</c> when it was last shared (null while private).
 /// </summary>
 public sealed record SavedViewSummary(
-    Guid Id, string Name, ViewScope Scope, Guid? JobId, bool Shared, bool Mine, bool CanEdit, ViewFilters Filters, DateTimeOffset UpdatedAt)
+    Guid Id, string Name, ViewScope Scope, Guid? JobId, bool Shared, bool Mine, bool CanEdit, bool InSidebar, string OwnerName,
+    DateTimeOffset? SharedAt, ViewFilters Filters, DateTimeOffset UpdatedAt)
 {
-    internal static SavedViewSummary From(SavedFilterView view, Guid? userId, bool canEdit) =>
-        new(view.Id, view.Name, view.Scope, view.JobId, view.IsShared, view.OwnerUserId == userId, canEdit, ViewFilters.From(view.Definition), view.UpdatedAt);
+    internal static SavedViewSummary From(SavedFilterView view, Guid? userId, bool canEdit, bool inSidebar, string ownerName) =>
+        new(view.Id, view.Name, view.Scope, view.JobId, view.IsShared, view.OwnerUserId == userId, canEdit,
+            inSidebar || view.OwnerUserId == userId, ownerName, view.SharedAt, ViewFilters.From(view.Definition), view.UpdatedAt);
 }
 
-/// <summary>The views the member sees, oldest first, and the ids of the built-in views they hid.</summary>
-public sealed record ViewList(IReadOnlyList<SavedViewSummary> Views, IReadOnlyList<string> HiddenBuiltIns);
+/// <summary>
+/// The views the member sees, oldest first, and the ids of the built-in views they hid. <c>sidebarOrder</c> is the ids of
+/// the shared views they added, in the order they sit in the sidebar. <c>teamViewsSeenAt</c> is when they last opened the
+/// sheet of team views (their own start until then): a view shared after it is New.
+/// </summary>
+public sealed record ViewList(
+    IReadOnlyList<SavedViewSummary> Views, IReadOnlyList<string> HiddenBuiltIns, IReadOnlyList<Guid> SidebarOrder,
+    DateTimeOffset TeamViewsSeenAt);
 
 /// <summary>Saves the current filters and sort as a view; a job view names its job, a candidates view takes none.</summary>
 public sealed record CreateViewRequest(string Name, ViewScope Scope, Guid? JobId, bool Shared, ViewFilters Filters);

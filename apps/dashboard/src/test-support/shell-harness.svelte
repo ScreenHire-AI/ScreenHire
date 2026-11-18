@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CurrentUser, SavedViewSummary } from '@screenhire/api-client';
   import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
+  import { type ComponentProps } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
   import AppSidebar from '#lib/components/app-sidebar.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
@@ -21,6 +22,7 @@
     saved = [],
     hiddenBuiltIns = [],
     viewActions,
+    teamViews,
   }: {
     user: CurrentUser;
     crumbs?: readonly { label: string; href?: string }[];
@@ -29,6 +31,8 @@
     saved?: SavedViewSummary[];
     hiddenBuiltIns?: string[];
     viewActions?: ViewActions;
+    /** What the sheet of team views lists; without it the sidebar has no Browse team views button. */
+    teamViews?: ComponentProps<typeof AppSidebar>['teamViews'];
     /** The person's open tasks, as the layout counts them for the badge after My tasks. */
     openTasks?: number;
   } = $props();
@@ -36,7 +40,7 @@
   // The top bar's notification bell reads the notifications and the setup answers. No retries, so a request nobody stubbed fails at once.
   setQueryClientContext(new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }));
 
-  const views = $derived(sidebarViews({ saved, hiddenBuiltIns, jobTitles: {} }));
+  const views = $derived(sidebarViews({ saved, hiddenBuiltIns, sidebarOrder: saved.filter((view) => view.inSidebar && !view.mine).map((view) => view.id), jobTitles: {} }));
 
   let shortcutsOpen = $state(false);
   let notificationsOpen = $state(false);
@@ -56,7 +60,7 @@
 <!-- The root layout's tooltip provider. -->
 <Tooltip.Provider>
   <Sidebar.Provider open={laptop.current}>
-    <AppSidebar {user} {views} {viewActions} {openTasks} />
+    <AppSidebar {user} {views} {viewActions} {teamViews} {openTasks} />
     <Sidebar.Inset>
       <TopBar {crumbs} {back} />
       <main><h1>Page</h1></main>

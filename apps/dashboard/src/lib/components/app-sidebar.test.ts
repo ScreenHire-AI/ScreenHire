@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { preferences } from '#lib/preferences.svelte.js';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
-import { savedView, user } from '../../test-support/fixtures.js';
+import { apiStub, savedView, user } from '../../test-support/fixtures.js';
 import ShellHarness from '../../test-support/shell-harness.svelte';
 import { stubViewport } from '../../test-support/viewport.js';
 import type { ViewActions } from '../views.svelte.js';
@@ -19,6 +19,9 @@ const actions = () => ({
   setShared: vi.fn<ViewActions['setShared']>(async () => null),
   remove: vi.fn<ViewActions['remove']>(async () => null),
   setHidden: vi.fn<ViewActions['setHidden']>(async () => null),
+  addToSidebar: vi.fn<ViewActions['addToSidebar']>(async () => null),
+  removeFromSidebar: vi.fn<ViewActions['removeFromSidebar']>(async () => null),
+  markTeamViewsOpened: vi.fn<ViewActions['markTeamViewsOpened']>(async () => null),
 });
 
 afterEach(() => {
@@ -170,12 +173,56 @@ describe('the Views list in the sidebar', () => {
     expect(viewActions.rename).toHaveBeenLastCalledWith(expect.objectContaining({ id: view.id }), 'Weekly referrals');
   });
 
-  it('gives a view the person cannot change no menu', () => {
+  it("gives a teammate's view the person added a menu with Remove from sidebar and nothing they may not do", async () => {
     stubViewport(1280);
-    render(ShellHarness, { props: { user, saved: [savedView({ shared: true, mine: false, canEdit: false })], viewActions: actions() } });
+    const viewActions = actions();
+    render(ShellHarness, { props: { user, saved: [savedView({ shared: true, mine: false, canEdit: false })], viewActions } });
 
     expect(within(main()).getByRole('link', { name: /^Referrals in screening/ })).toBeInTheDocument();
-    expect(within(main()).queryByRole('button', { name: 'Actions for Referrals in screening' })).toBeNull();
+    const menu = await open('Referrals in screening');
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Remove from sidebar']);
+
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove from sidebar' }));
+    expect(viewActions.removeFromSidebar).toHaveBeenCalledWith(expect.objectContaining({ id: view.id }));
+  });
+
+  it("offers a role that edits anyone's views Remove from sidebar first, then Rename, Make private and Delete view", async () => {
+    stubViewport(1280);
+    render(ShellHarness, { props: { user, saved: [savedView({ shared: true, mine: false, canEdit: true })], viewActions: actions() } });
+
+    const menu = await open('Referrals in screening');
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual([
+      'Remove from sidebar',
+      'Rename',
+      'Make private',
+      'Delete view',
+    ]);
+  });
+
+  it('leaves a shared view nobody added out of the sidebar, and offers it in Browse team views', async () => {
+    stubViewport(1280);
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/applications': () => Response.json([]) })));
+    const offered = savedView({ id: 'offered', name: 'Team queue', shared: true, mine: false, canEdit: false, inSidebar: false });
+    const teamViews = { views: [offered], seenAt: '2026-10-01T00:00:00Z', jobTitles: {} };
+    render(ShellHarness, { props: { user, saved: [offered], viewActions: actions(), teamViews } });
+
+    expect(within(main()).queryByRole('link', { name: /^Team queue/ })).toBeNull();
+    await fireEvent.click(within(main()).getByRole('button', { name: 'Browse team views' }));
+
+    const sheet = await screen.findByRole('dialog', { name: 'Team views' });
+    expect(within(sheet).getByRole('heading', { name: 'Team queue' })).toBeInTheDocument();
+  });
+
+  it('has no Browse team views button without the views to browse, and hides it in the icon rail', () => {
+    stubViewport(1280);
+    const { unmount } = render(ShellHarness, { props: { user, viewActions: actions() } });
+    expect(within(main()).queryByRole('button', { name: 'Browse team views' })).toBeNull();
+    unmount();
+
+    render(ShellHarness, {
+      props: { user, viewActions: actions(), teamViews: { views: [], seenAt: '2026-10-01T00:00:00Z', jobTitles: {} } },
+    });
+    expect(within(main()).getByRole('button', { name: 'Browse team views' }).closest('li')).toHaveClass('group-data-[collapsible=icon]:hidden');
   });
 
   it('gives a tablet a button that opens the full sidebar, where the Views menus are', async () => {

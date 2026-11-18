@@ -11,8 +11,9 @@ public enum ViewScope
 
 /// <summary>
 /// A named filter and sort that someone saved on a candidate table (docs/architecture/saved-views.md). Private to its
-/// owner until <see cref="IsShared"/>; a shared view shows for everyone who can see its jobs: the job it filters, or every
-/// job it picks on the Candidates page (ADR-0015, <see cref="ViewPolicy.MaySee"/>). Only the owner, or a role with Edit
+/// owner until <see cref="IsShared"/>; a shared view is offered to everyone who can see its jobs: the job it filters, or
+/// every job it picks on the Candidates page (ADR-0015, <see cref="ViewPolicy.MaySee"/>). It is in a teammate's sidebar
+/// only once they add it (<see cref="SavedViewMember"/>); its owner always has it. Only the owner, or a role with Edit
 /// anyone's views, renames, shares or deletes it (<see cref="ViewPolicy"/>). Deleting is soft so Undo can restore the
 /// row for <see cref="RestoreWindow"/>; the API purges rows that stayed deleted.
 /// </summary>
@@ -42,6 +43,12 @@ public sealed class SavedFilterView : ITenantOwned
 
     public bool IsShared { get; private set; }
 
+    /// <summary>
+    /// When it was last shared with the team, or null while private. The sheet of team views marks a view New when this is
+    /// later than the person's last visit; a rename does not move it.
+    /// </summary>
+    public DateTimeOffset? SharedAt { get; private set; }
+
     public ViewDefinition Definition { get; private set; } = new();
 
     public DateTimeOffset CreatedAt { get; init; }
@@ -68,6 +75,7 @@ public sealed class SavedFilterView : ITenantOwned
             Scope = scope,
             JobId = jobId,
             IsShared = shared,
+            SharedAt = shared ? now : null,
             Definition = definition,
             CreatedAt = now,
             UpdatedAt = now,
@@ -96,6 +104,7 @@ public sealed class SavedFilterView : ITenantOwned
         }
 
         IsShared = shared;
+        SharedAt = shared ? now : null;
         UpdatedAt = now;
         return true;
     }

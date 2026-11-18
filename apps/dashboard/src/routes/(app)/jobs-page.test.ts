@@ -301,7 +301,13 @@ describe('jobs page actions', () => {
 
   it('publishes a draft from its row menu and refetches the list', async () => {
     const url = `/v1/jobs/${jobs[0]!.id}/publish`;
-    const fetchMock = vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs), [`POST ${url}`]: () => Response.json({}) }));
+    const fetchMock = vi.fn(
+      apiStub({
+        'GET /v1/jobs': () => Response.json(jobs),
+        [`GET /v1/jobs/${jobs[0]!.id}/publish-check`]: () => Response.json({ items: [] }),
+        [`POST ${url}`]: () => Response.json({}),
+      }),
+    );
     vi.stubGlobal('fetch', fetchMock);
     renderPage();
 
@@ -310,6 +316,32 @@ describe('jobs page actions', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({ method: 'POST' })));
     await waitFor(() => expect(fetchMock.mock.calls.filter(([request]) => request === '/v1/jobs')).toHaveLength(2));
+  });
+
+  it('asks first when the check has something to say, and publishes on Publish anyway', async () => {
+    const url = `/v1/jobs/${jobs[0]!.id}/publish`;
+    const items = [{ kind: 'NoCity', field: 'City', text: 'Talent.com needs a city for an on-site or hybrid job.', boards: ['Talent.com'] }];
+    const fetchMock = vi.fn(
+      apiStub({
+        'GET /v1/jobs': () => Response.json(jobs),
+        [`GET /v1/jobs/${jobs[0]!.id}/publish-check`]: () => Response.json({ items }),
+        [`POST ${url}`]: () => Response.json({}),
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    renderPage();
+
+    const menu = await openRowMenu('Customer Success Lead');
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Publish to every board' }));
+
+    const dialog = await screen.findByRole('dialog', { name: '1 thing to check before publishing' });
+    expect(within(dialog).getByText('Talent.com needs a city for an on-site or hybrid job.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Edit details, city' })).toHaveAttribute('href', `/jobs/${jobs[0]!.id}/edit?focus=city`);
+    expect(fetchMock).not.toHaveBeenCalledWith(url, expect.anything());
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Publish anyway' }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(url, expect.objectContaining({ method: 'POST' })));
   });
 
   it('closes an open job only after the confirmation', async () => {
