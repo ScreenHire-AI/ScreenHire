@@ -93,6 +93,12 @@ funnel row shows. The candidates page uses it for a funnel link (section 5). A k
   never another's.
 - **Open jobs** are the jobs with status Open that the person sees, narrowed by the job filter. Opened is the day it was first published; the page shows it as the tooltip on Days open and the export keeps it as a column. Days open is whole days
   since the job was first published, by the API's clock. In interview is now, not in the range.
+- **How recent the numbers are** is `lastApplicationAt`: the newest `submitted_at` among applications to the jobs in scope
+  (the job filter and the person's job access), whatever the range, so a range with nothing in it still says when the last
+  application came. It is one more query in the report's snapshot transaction, reading `applications` and `jobs` only, so
+  the tenant and `job_scope` policies narrow it like every other panel. It is null before the first application. The page
+  shows it as "Last application 3 hours ago" in the footnote of the Applications tile (design system T7, `RelativeTime`) and
+  leaves the line out when it is null. It is the newest event, never when the page loaded.
 - **The biggest drop** and the share of applicants are computed in the browser from the funnel rows
   (`#lib/reports.ts`, `biggestDrop`): the row below the last with the lowest moved-on share, among rows with at least 3
   applications, the earlier row on a tie.

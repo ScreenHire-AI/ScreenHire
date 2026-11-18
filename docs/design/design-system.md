@@ -283,7 +283,8 @@ Authors check their screens against this list, and the `design-review` agent rep
   beside Last updated.
 - **T7** A page that sums up activity (an overview, a report, a usage page) says how recent its numbers are: when the
   newest thing it counts happened, as time ago with the exact time on hover (T5), in one muted line under the headline it
-  belongs to ("Last checked 2 hours ago" under Applications checked on the Verification Overview). It is the newest event,
+  belongs to ("Last checked 2 hours ago" under Applications checked on the Verification Overview, "Last application 3 hours ago"
+  under Applications on Reports, "Last call 5 minutes ago" under Model calls on the Usage tab). It is the newest event,
   never when the page loaded, because live updates keep a page's data current and "Updated just now" says nothing. With
   nothing to count yet, the line is left out (L1).
 
