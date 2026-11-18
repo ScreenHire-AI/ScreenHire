@@ -14,7 +14,7 @@ namespace ScreenHire.IntegrationTests;
 /// </summary>
 public sealed class OAuthServerTests(AppHostFixture fixture)
 {
-    private static readonly string[] ReadTools = ["find_candidates", "find_jobs", "get_application", "get_hiring_report", "list_saved_candidates"];
+    private static readonly string[] ReadTools = ["check_job", "find_candidates", "find_jobs", "get_application", "get_hiring_report", "list_saved_candidates"];
 
     private static readonly string[] WriteTools = ["add_note", "add_tag", "create_task", "move_to_stage", "remove_tag"];
 

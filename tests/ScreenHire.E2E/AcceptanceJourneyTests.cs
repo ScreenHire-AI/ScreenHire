@@ -92,6 +92,10 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         // with its own name, not as a board that seems to stay Queued.
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Live updates" })).ToContainTextAsync("Live updates: Connected");
         await HeaderBand.GetByRole(AriaRole.Button, new() { NameRegex = new("^Publish to \\d+ boards?$") }).ClickAsync();
+        // The template's fill-in prompt is still in the description: the check warns, and the team publishes anyway.
+        var check = Page.GetByRole(AriaRole.Dialog, new() { Name = "1 thing to check before publishing" });
+        await Expect(check).ToContainTextAsync("fill-in text");
+        await check.GetByRole(AriaRole.Button, new() { Name = "Publish anyway" }).ClickAsync();
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Job postings") }).ClickAsync();
         await Expect(Board("careers")).ToContainTextAsync("Live: the board confirmed the job shows.");
         await Expect(Board("sandbox")).ToContainTextAsync("Live: the board confirmed the job shows.", WaitForBoard);

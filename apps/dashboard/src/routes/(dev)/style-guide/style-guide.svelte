@@ -36,6 +36,7 @@
   import ChartPanel, { type ChartColumn } from '#lib/components/chart-panel.svelte';
   import ChoiceCard from '#lib/components/choice-card.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
+  import PublishCheckDialog from '#lib/components/publish-check-dialog.svelte';
   import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
   import CountryPicker from '#lib/components/country-picker.svelte';
   import Picker from '#lib/components/picker.svelte';
@@ -163,6 +164,7 @@
 
   let shortcutsOpen = $state(false);
   let confirmOpen = $state(false);
+  let publishCheckOpen = $state(false);
   let typedConfirmOpen = $state(false);
   let emailOpen = $state(true);
   let secretOpen = $state(false);
@@ -623,6 +625,16 @@
 <ShortcutsDialog bind:open={shortcutsOpen} />
 <SecretDialog bind:open={secretOpen} title="Your new API key" label="API key" value="shk_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
 
+<PublishCheckDialog
+  bind:open={publishCheckOpen}
+  jobId="0199e8a0-0000-7000-8000-0000000000aa"
+  items={[
+    { kind: 'TemplatePrompt', field: 'Description', text: 'The description still has the template\'s fill-in text, "Describe the work, the office and the team."', boards: [] },
+    { kind: 'NoCity', field: 'City', text: 'Talent.com needs a city for an on-site or hybrid job.', boards: ['Talent.com'] },
+  ]}
+  onpublish={() => {}}
+/>
+
 <ConfirmDialog
   bind:open={confirmOpen}
   title="Close this job and remove it everywhere?"
@@ -1026,6 +1038,9 @@
         <Panel title="Confirm dialog" class="flex-[1_1_320px]">
           <Button variant="outline" onclick={() => (confirmOpen = true)}>Close the job</Button>
           <Button variant="outline" onclick={() => (typedConfirmOpen = true)}>Erase a candidate</Button>
+        </Panel>
+        <Panel title="Publish check dialog" class="flex-[1_1_320px]">
+          <Button variant="outline" onclick={() => (publishCheckOpen = true)}>Publish a draft</Button>
         </Panel>
         <Panel title="Secret dialog" class="flex-[1_1_320px]">
           <Button variant="outline" onclick={() => (secretOpen = true)}>Show a new key</Button>

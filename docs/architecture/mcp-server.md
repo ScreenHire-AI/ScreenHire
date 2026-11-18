@@ -15,6 +15,7 @@ sources:
   - resource: apps/api/Reports/HiringReportReads.cs
   - resource: apps/dashboard/src/routes/(app)/settings/mcp-server/+page.svelte
   - resource: apps/api/Applications/ApplicationReads.cs
+  - resource: apps/api/Hiring/JobPublishCheckReads.cs
   - resource: apps/api/Applications/ApplicationChanges.cs
   - resource: apps/api/Hiring/JobReads.cs
   - resource: tests/ScreenHire.IntegrationTests/McpServerTests.cs
@@ -58,13 +59,14 @@ the key's organization, scope and rate limit apply to everything it does: a conn
 
 Small verbs on one thing, in `apps/api/Mcp/HiringTools.cs` and, for verification, `VerificationTools.cs`. Each calls
 the service its route calls, never a copy of the rules: `JobReads`, `ApplicationReads`, `ApplicationChanges`,
-`HiringReportReads`, `TalentPoolReads` and `VerificationReads`. Validation, the 404 for an application the key cannot
+`HiringReportReads`, `TalentPoolReads`, `JobPublishCheckReads` and `VerificationReads`. Validation, the 404 for an application the key cannot
 see, the timeline entry that names the key, and the outbox events that reach open dashboards are therefore the route's
 own.
 
 | Tool | Mirrors | Needs |
 |---|---|---|
 | `find_jobs(text?, status?, limit?)` | `GET /v1/jobs` | Read |
+| `check_job(jobId)` | `GET /v1/jobs/{id}/publish-check` | Read |
 | `find_candidates(text?, jobId?, limit?)` | `GET /v1/applications`, `GET /v1/jobs/{id}/applications` | Read |
 | `get_application(applicationId)` | `GET /v1/applications/{id}` and its timeline | Read |
 | `add_note(applicationId, note)` | `POST /v1/applications/{id}/notes` | Write, Add notes and tags |
@@ -181,7 +183,7 @@ API on a public HTTPS host; locally the integration tests and the MCP client exe
 
 | Test | Proves |
 |---|---|
-| `McpServerTests` (integration) | a Write key lists the hiring tools and a Read key the five reads, neither a verification tool; a Verification read key also lists the two verification tools, whose descriptions and the server instructions say a level is never a reason to reject; the verification tools return evidence with the guidance and log each read under the key; a key without the scope is refused them and leaves no log row; the report and saved-candidate tools read; each tool's change lands in the timeline under the key; a move to Rejected works as over HTTP; a Read key's writes are refused and change nothing; another organization's jobs and applications are unreachable; no verification output from the hiring tools; only a valid key connects; the new tools read only the key's own organization |
+| `McpServerTests` (integration) | a Write key lists the hiring tools and a Read key the six reads, neither a verification tool; a Verification read key also lists the two verification tools, whose descriptions and the server instructions say a level is never a reason to reject; the verification tools return evidence with the guidance and log each read under the key; a key without the scope is refused them and leaves no log row; the report and saved-candidate tools read; each tool's change lands in the timeline under the key; a move to Rejected works as over HTTP; a Read key's writes are refused and change nothing; another organization's jobs and applications are unreachable; no verification output from the hiring tools; only a valid key connects; the new tools read only the key's own organization |
 | `VerificationReadScopeTests` (integration) | only an Owner gives the scope; a key without it is refused the verification routes; with it the reads work and each is in the review log with the key and its maker; the key still sees no verification in lists or the timeline and cannot dismiss or note; another organization's application is a 404; a list by level is newest first, never ranked |
 | `VerificationReadByKeyMigrationTests` (integration) | undoing the migration removes the key reads and the scope, keeps people's actions and the keys, and restores FORCE; deleting an organization takes its keys and their reads with it |
 | `ApplicationTasksTests` (integration) | the task route the `create_task` tool mirrors |

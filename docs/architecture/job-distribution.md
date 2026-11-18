@@ -25,6 +25,10 @@ sources:
   - resource: src/ScreenHire.Application/Distribution/JobBoardAdapter.cs
   - resource: src/ScreenHire.Application/Distribution/JobPostingsChanged.cs
   - resource: src/ScreenHire.Application/Distribution/PostingContents.cs
+  - resource: src/ScreenHire.Application/Distribution/PublishCheck.cs
+  - resource: apps/api/Hiring/JobPublishCheckReads.cs
+  - resource: apps/dashboard/src/lib/components/publish-check-dialog.svelte
+  - resource: apps/dashboard/src/lib/publish-check.ts
   - resource: apps/dashboard/src/lib/components/customize-posting-form.svelte
   - resource: apps/dashboard/src/lib/components/customize-posting-sheet.svelte
   - resource: src/ScreenHire.Domain/History/JobPostingChanges.cs
@@ -229,6 +233,35 @@ Customize changes what one board receives and posts to that board only. No other
 - **History:** a `JobPosting` is a tracked kind under the job's subject (`JobPostingChanges`): "customized the title
   for Adzuna", "went back to the job's description for Adzuna", with before and after. State changes make no line.
 
+### Check before publishing
+
+A new Owner can publish a template's fill-in prompt to the public careers page, and some boards refuse an on-site job
+without a city only after the job is out. The check says so first. It warns and never blocks: `POST /v1/jobs/{jobId}/publish`
+does not read it, and a person who presses Publish anyway publishes the job as it is.
+
+- **One list, one owner:** `GET /v1/jobs/{jobId}/publish-check` (`GetJobPublishCheck`, a read in the `AllowApiKeys` group, no
+  permission, another organization's job a 404) and the MCP `check_job` tool both call `JobPublishCheckReads`, which runs the
+  pure `PublishChecks.Run`. Each item has a `kind`, the `field` of Edit details that fixes it (`Description`, `City`,
+  `Salary`), one sentence of `text` and the `boards` it matters to. A closed job has no items.
+- **What it checks:**
+  - *Template prompt:* the description still holds a paragraph of a built-in template's description. The prompts are read from
+    the system template versions' posting defaults (`hiring_template_versions` with no organization), because their text lives
+    only in the migrations. Every `<p>` is a prompt, headings are not, and the match is exact on the text with tags removed
+    and white space collapsed.
+  - *No city:* an on-site or hybrid job with no city, when a chosen board needs one.
+  - *No salary:* no salary, when a chosen board needs one. No board asks for it today.
+  - *Short description:* shorter than a chosen board accepts. The item names the strictest board and its minimum.
+- **Boards come from the boards' own data:** `BoardCapabilities.Requirements` (`BoardRequirements`: `MinDescriptionLength`,
+  `CityForOnsite`, `Salary`). An adapter's `Validate` builds its messages from the same record (`Checks.Validate`), so a number
+  such as Adzuna's 100 characters lives once. The chosen boards are `DistributionPlanner.ChosenBoards`, the rule a publish uses:
+  every available board for a draft, the boards an open job is on that are not Closing or Closed. For a customized board the
+  length is measured on its own text.
+- **Dashboard:** Publish fetches the check fresh. With nothing to say it publishes at once. Otherwise the Publish check dialog
+  lists each problem in one sentence with Edit details beside it (`/jobs/{id}/edit?focus=description|city|salary`, which puts
+  the cursor in that field), and offers Publish anyway. A check that cannot be read never stands in the way. A draft's header
+  band shows the same count as a quiet line ("2 things to check before publishing") that opens the dialog. The Jobs list's
+  Publish to every board asks the same way. The Job postings panel's per-board posting and Update boards on an open job do not.
+
 ### Worker, idempotency and reconciliation
 
 - `SyncJobPosting` (`ITenantMessage`) carries `(jobId, boardId, jobVersion)`, the action and the posting's request
@@ -366,6 +399,8 @@ secrets locally, the secret store in a deployment) and passes it to both as `Goo
 | `DistributionPlannerTests`, `IndexingPlanTests` (unit) | the default boards, per-board states and estimates on publish and close, one event per change, one command per push board, the idempotency key, partner gating, hidden boards; deletes first within the quota |
 | `JobPostingTests`, `DistributionPlannerTests`, `JobPostingChangesTests` (unit) | a customized board is validated and sent on its own text while the others get the job's; a same-version re-post bumps `Sequence`; override changes make history lines and state churn makes none |
 | `PostingCustomizationTests` (integration) | a board that refused a short description takes a customized one and serves it in its feed while other feeds and the job version stay; a failing check changes nothing; the careers page, a draft job and another tenant are refused; a later publish keeps the customized field and flags the job change; the job's History records it |
+| `PublishChecksTests` (unit) | each check, remote needing no city, a second location's city, a salary requirement on a fake board, the strictest minimum named, tag-free length, an exact prompt match through tags and entities, headings not prompts, a customized board's own text, the chosen-board rule, and `Validate` and the check reading one record |
+| `PublishCheckTests` (integration) | a job from the Office role names the prompt and Talent.com's city, a job in the team's words has nothing to check, a short description names the board and publishing still works, a closed job has nothing, another organization's job is a 404, an API key and the MCP `check_job` tool read the same list |
 | `FeedFormatTests` (unit) | every feed validates against its board's schema; CDATA, `]]>` and control characters; per-board field mapping; validation issues |
 | `DistributionTests` (integration) | publish puts the job in every feed, the job-board API, the Indexing queue and the sandbox; close serves 410, drops it from the feeds, queues `URL_DELETED`, and the sandbox reports Closed only after its delay; per-board teardown; new versions; cache headers and 304; tenant isolation; the dispatcher sends queued notifications and Google never reaches Closed; a duplicate board command leaves one claim for its key and changes nothing |
 | `BoardAnswerRaceTests` (integration) | a changed publish and a close that arrive while a board answer is being saved (the test holds the posting's lock, as the worker does) wait for it and succeed, where both were a 409 |

@@ -1868,6 +1868,20 @@ export const UpdateJobResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+export const GetJobPublishCheckParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const GetJobPublishCheckResponse = zod.object({
+  "items": zod.array(zod.object({
+  "kind": zod.enum(['TemplatePrompt', 'NoCity', 'NoSalary', 'ShortDescription']).describe('What a publish check found, so a person can tell one problem from another.'),
+  "field": zod.enum(['Description', 'City', 'Salary']).describe('The field of Edit details that fixes a problem.'),
+  "text": zod.string(),
+  "boards": zod.array(zod.string())
+}).describe('One thing to check before a job goes live: a sentence, the field that fixes it and the boards it matters to.'))
+}).describe('What to check before a job goes live (`GET /v1/jobs/{jobId}/publish-check`); it warns and never blocks.')
+
+
 export const GetJobHistoryParams = zod.object({
   "jobId": zod.uuid()
 })

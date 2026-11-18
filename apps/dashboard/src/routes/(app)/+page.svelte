@@ -2,7 +2,7 @@
   import BriefcaseIcon from '~icons/lucide/briefcase';
   import PencilIcon from '~icons/lucide/pencil';
   import PlusIcon from '~icons/lucide/plus';
-  import type { JobStatus, JobSummary } from '@screenhire/api-client';
+  import type { JobStatus, JobSummary, PublishCheckItem } from '@screenhire/api-client';
   import { createListApplications, createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { goto } from '$app/navigation';
@@ -21,6 +21,7 @@
   } from '@tanstack/svelte-table';
   import ActionBar from '#lib/components/action-bar.svelte';
   import CloseJobDialog from '#lib/components/close-job-dialog.svelte';
+  import PublishCheckDialog from '#lib/components/publish-check-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import PlanProblemNotice from '#lib/components/plan-problem-notice.svelte';
@@ -50,6 +51,7 @@
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath, planProblem, type PlanProblem } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
+  import { fetchPublishCheck } from '#lib/publish-check.js';
   import { setupPanel } from '#lib/setup-panel.svelte.js';
   import { createSetupProgress } from '#lib/setup-progress.svelte.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
@@ -207,6 +209,28 @@
   let closeChosen = false;
   let confirmClose = $state(false);
 
+  // Publish asks the API what to check first (docs/architecture/job-distribution.md, "Check before publishing"): with
+  // nothing to say it publishes at once, otherwise a dialog lists it with Publish anyway. A check that cannot be read
+  // does not stand in the way.
+  let publishChosen: JobSummary | null = null;
+  let checkOpen = $state(false);
+  let checkJob = $state<JobSummary | null>(null);
+  let checkItems = $state<PublishCheckItem[]>([]);
+
+  async function startPublish(job: JobSummary) {
+    busyJobId = job.id;
+    const items = await fetchPublishCheck(queryClient, job.id);
+    if (items.length === 0) {
+      await publishJob(job);
+      return;
+    }
+
+    busyJobId = null;
+    checkJob = job;
+    checkItems = items;
+    checkOpen = true;
+  }
+
   async function publishJob(job: JobSummary) {
     busyJobId = job.id;
     failure = '';
@@ -229,6 +253,8 @@
   function onMenuClosed() {
     if (closeChosen) confirmClose = true;
     closeChosen = false;
+    if (publishChosen) void startPublish(publishChosen);
+    publishChosen = null;
   }
 
   function clearFilters() {
@@ -455,7 +481,7 @@
     </DropdownMenu.Item>
     <DropdownMenu.Separator />
     {#if job.status === 'Draft'}
-      <DropdownMenu.Item disabled={busyJobId === job.id} onSelect={() => publishJob(job)}>Publish to every board</DropdownMenu.Item>
+      <DropdownMenu.Item disabled={busyJobId === job.id} onSelect={() => (publishChosen = job)}>Publish to every board</DropdownMenu.Item>
     {:else}
       <DropdownMenu.Item variant="destructive" onSelect={() => askToClose(job)}>Close &amp; remove everywhere</DropdownMenu.Item>
     {/if}
@@ -467,3 +493,6 @@
 {/snippet}
 
 <CloseJobDialog jobId={closingId} bind:open={confirmClose} />
+{#if checkJob}
+  <PublishCheckDialog bind:open={checkOpen} jobId={checkJob.id} items={checkItems} onpublish={() => checkJob && publishJob(checkJob)} />
+{/if}

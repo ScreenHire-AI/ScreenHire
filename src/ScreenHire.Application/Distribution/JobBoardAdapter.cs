@@ -80,6 +80,10 @@ public enum BoardMode
 /// The board admits only cleared, paying customers (Indeed's partner rules): offered only when
 /// <c>Organization.MayUsePartnerBoards</c>.
 /// </param>
+/// <param name="Requirements">
+/// What the board refuses a job without. The adapter's <c>Validate</c> and the publish check
+/// (<see cref="PublishChecks"/>) both read it, so a number lives once.
+/// </param>
 public sealed record BoardCapabilities(
     BoardMode Mode,
     bool CanClose,
@@ -89,14 +93,28 @@ public sealed record BoardCapabilities(
     TimeSpan? PublishEta,
     TimeSpan? RemovalEta,
     int? DailyQuota = null,
-    bool PartnerGated = false)
+    bool PartnerGated = false,
+    BoardRequirements? Requirements = null)
 {
+    /// <summary>What the board refuses a job without; <see cref="BoardRequirements.None"/> when it names nothing.</summary>
+    public BoardRequirements Needs => Requirements ?? BoardRequirements.None;
+
     /// <summary>
     /// Whether this board can receive text of its own. The careers page is the job's own page and Google reads it, so
     /// neither (<see cref="BoardMode.Hosted"/>, <see cref="BoardMode.Notify"/>) takes an override; every board that is
     /// sent or serves a copy of the job does.
     /// </summary>
     public bool CanCustomize => Mode is not (BoardMode.Hosted or BoardMode.Notify);
+}
+
+/// <summary>
+/// The fields a board refuses a job without, as data. <paramref name="MinDescriptionLength"/> counts the description's
+/// text with tags removed (0: no minimum), <paramref name="CityForOnsite"/> asks for a city on every job that is not
+/// remote, and <paramref name="Salary"/> asks for a pay range.
+/// </summary>
+public sealed record BoardRequirements(int MinDescriptionLength = 0, bool CityForOnsite = false, bool Salary = false)
+{
+    public static BoardRequirements None { get; } = new();
 }
 
 /// <summary>

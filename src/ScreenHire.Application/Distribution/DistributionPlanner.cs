@@ -31,15 +31,7 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
 
         // The API refuses a named board the organization cannot use. A board the job is already on that has since been
         // unconfigured, or that the organization may no longer use, is left as it is rather than failing the publish.
-        var available = boards.AvailableTo(organization).Select(a => a.BoardId).ToList();
-        var targets = boardIds is not null
-            ? [.. boardIds.Distinct(StringComparer.Ordinal)]
-            : postings.Count == 0
-                ? available
-                : postings
-                    .Where(p => p.State is not (PostingState.Closed or PostingState.Closing) && available.Contains(p.BoardId, StringComparer.Ordinal))
-                    .Select(p => p.BoardId)
-                    .ToList();
+        var targets = ChosenBoards(boards.AvailableTo(organization).Select(a => a.BoardId).ToList(), postings, boardIds);
 
         var now = time.GetUtcNow();
         var added = new List<JobPosting>();
@@ -63,6 +55,24 @@ public sealed class DistributionPlanner(BoardRegistry boards, TimeProvider time)
         }
 
         return new DistributionChanges(added, messages);
+    }
+
+    /// <summary>
+    /// The boards a publish goes to: the ones named, or with none named every board <paramref name="available"/> to the
+    /// organization the first time, then the boards the job is already on that are still available and not going down.
+    /// The publish check asks the same question, so it warns about the boards the publish would use.
+    /// </summary>
+    public static List<string> ChosenBoards(IReadOnlyList<string> available, IReadOnlyList<JobPosting> postings, IReadOnlyCollection<string>? boardIds)
+    {
+        ArgumentNullException.ThrowIfNull(available);
+        ArgumentNullException.ThrowIfNull(postings);
+        return boardIds is not null
+            ? [.. boardIds.Distinct(StringComparer.Ordinal)]
+            : postings.Count == 0
+                ? [.. available]
+                : [.. postings
+                    .Where(p => p.State is not (PostingState.Closed or PostingState.Closing) && available.Contains(p.BoardId, StringComparer.Ordinal))
+                    .Select(p => p.BoardId)];
     }
 
     /// <summary>
