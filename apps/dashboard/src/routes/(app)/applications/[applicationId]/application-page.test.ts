@@ -1097,7 +1097,7 @@ describe('application page', () => {
 
     const rows = within(list).getAllByRole('button');
     expect(rows.map((row) => row.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      expect.stringContaining('Next steps for Senior .NET Engineer by Robin Ashby'),
+      expect.stringContaining('Next steps for Senior .NET Engineer Sent by Robin Ashby'),
       expect.stringContaining('Application received'),
     ]);
     expect(within(screen.getByRole('tablist', { name: 'Candidate sections' })).getByRole('tab', { name: /Messages/ })).toHaveTextContent('2');
@@ -1160,7 +1160,7 @@ describe('application page', () => {
 
     // Who it is from, not who sent it, and the files as a count.
     expect(row).toHaveTextContent('Re: Next steps');
-    expect(row).toHaveTextContent('Reply from casey.morgan@example.com');
+    expect(row).toHaveTextContent('From casey.morgan@example.com');
     expect(within(row).getByRole('img', { name: '2 files' })).toBeInTheDocument();
 
     await fireEvent.click(row);

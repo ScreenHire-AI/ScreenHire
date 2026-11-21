@@ -10,6 +10,8 @@
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { mergeProps } from 'bits-ui';
+  import { tick } from 'svelte';
+  import FailureText from '#lib/components/failure-text.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -24,6 +26,7 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import { notificationsPath } from '#lib/realtime.js';
   import { setupPanel } from '#lib/setup-panel.svelte.js';
+  import { isOpen, type SetupStep } from '#lib/setup-checklist.js';
   import { createSetupProgress } from '#lib/setup-progress.svelte.js';
 
   // The notification bell in the top bar (design system section 11, Notification bell): what needs this person's
@@ -32,7 +35,9 @@
   // Opening the panel marks nothing read; following an alert's link does. Alerts arrive live (`NotificationsChanged`
   // refetches the list), and a missed push costs nothing because the list is the server's, read again on reconnect.
   // The panel also opens at its setup section when a page asks (`setupPanel`, the Jobs empty state's button), and once by
-  // itself right after onboarding (`preferences.takeSetupTour`), as soon as the steps are known.
+  // itself right after onboarding (`preferences.takeSetupTour`), as soon as the steps are known. Each step has Not needed,
+  // and the section's icon button hides the whole checklist: both are saved on the server for the organization, so they hold
+  // for every Owner and Admin on every device, and Settings, General shows the checklist again.
   let { user }: { user: CurrentUser | null | undefined } = $props();
 
   const queryClient = useQueryClient();
@@ -50,8 +55,15 @@
   let focusSetup = false;
   let handledRequests = setupPanel.requests;
 
+  // Set once a step is skipped or the checklist hidden from this panel, so the panel says that it reaches the whole
+  // organization and where it comes back (design system A11), until the panel closes.
+  let changedHere = $state<'skipped' | 'hidden' | null>(null);
+
   $effect(() => {
-    if (!open) focusSetup = false;
+    if (!open) {
+      focusSetup = false;
+      changedHere = null;
+    }
   });
   $effect(() => {
     if (setupPanel.requests > handledRequests) {
@@ -77,7 +89,30 @@
   const label = $derived(count > 0 ? `Notifications, ${count} need attention` : 'Notifications');
   const empty = $derived(notifications.isSuccess && items.length === 0 && setup.remaining.length === 0);
   // The step's place in the whole list, so a step keeps its number as the ones before it are done.
-  const numbered = $derived((setup.steps ?? []).map((step, index) => ({ step, number: index + 1 })).filter(({ step }) => !step.done));
+  const numbered = $derived((setup.steps ?? []).map((step, index) => ({ step, number: index + 1 })).filter(({ step }) => isOpen(step)));
+
+  // The step's row goes with the click, so focus moves to the setup section, or to the panel once nothing is left in it.
+  async function skip(step: SetupStep) {
+    try {
+      await setup.skip(step.id);
+    } catch {
+      return; // `setup.failed` says so in the section.
+    }
+    changedHere = 'skipped';
+    await tick();
+    (panel?.querySelector<HTMLElement>('[data-bell-setup]') ?? panel)?.focus();
+  }
+
+  async function hide() {
+    try {
+      await setup.hide();
+    } catch {
+      return;
+    }
+    changedHere = 'hidden';
+    await tick();
+    panel?.focus();
+  }
 </script>
 
 <Popover.Root bind:open>
@@ -124,22 +159,27 @@
       <section data-bell-setup tabindex="-1" aria-labelledby="bell-setup-title" class="flex flex-col gap-1 outline-hidden border-b border-border-subtle px-4 py-3">
         <div class="flex items-center gap-2">
           <h3 id="bell-setup-title" class="min-w-0 flex-1 truncate font-semibold">Finish setting up</h3>
-          <IconButton label="Hide setup in this browser" onclick={() => setup.dismiss()}><XIcon aria-hidden="true" /></IconButton>
+          <IconButton label="Hide setup for everyone" onclick={hide} disabled={setup.saving}><XIcon aria-hidden="true" /></IconButton>
         </div>
         <ol aria-label="Setup steps" class="flex flex-col">
           {#each numbered as { step, number } (step.id)}
             <li class="flex min-w-0 items-center gap-3 py-1.5">
               <StepMarker state="upcoming">{number}</StepMarker>
-              <a href={step.href} onclick={() => (open = false)} class="block min-w-0 truncate py-0.5 font-semibold text-foreground underline underline-offset-2 pointer-coarse:py-3">{step.label}</a>
+              <a href={step.href} onclick={() => (open = false)} class="block min-w-0 break-words py-0.5 font-semibold text-foreground underline underline-offset-2 pointer-coarse:py-3">{step.label}</a>
               {#if step.optional}<span class="shrink-0 text-caption text-muted-foreground">Optional</span>{/if}
+              <Button variant="outline" size="sm" class="ml-auto shrink-0" aria-label={`Not needed: ${step.label}`} disabled={setup.saving} onclick={() => skip(step)}>Not needed</Button>
             </li>
           {/each}
         </ol>
         {#if setup.doneCount > 0}
           <p class="text-body text-muted-foreground">{setup.doneCount} {setup.doneCount === 1 ? 'step' : 'steps'} done</p>
         {/if}
+        <FailureText message={setup.failed ? 'Could not save that. Try again.' : null} />
       </section>
     {/if}
+
+    <!-- Neither has an Undo in the bell: Settings, General brings the steps back, so the panel says so and links there. -->
+    <p role="status" class="border-b border-border-subtle px-4 py-3 text-body text-muted-foreground empty:hidden">{#if changedHere === 'hidden'}Setup is hidden for everyone. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Show it again in Settings, General</a>.{:else if changedHere === 'skipped'}Not needed for everyone in your organization. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Bring it back in Settings, General</a>.{/if}</p>
 
     {#if notifications.isError}
       <div class="p-4">

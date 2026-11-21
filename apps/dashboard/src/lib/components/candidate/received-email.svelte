@@ -15,8 +15,8 @@
   import { needsAttention } from '#lib/status.js';
   import { replyHtml } from '#lib/received-email.js';
 
-  // One reply as it arrived, loaded when its row in Messages opens: who it is from, the message, and the files that came with
-  // it. The HTML is the sender's, cleaned by the API to the editor's elements, and still renders only in the preview's
+  // One reply as it arrived, loaded when its row in Messages opens: who it is from, on the toggle's line, the message, and
+  // the files that came with it. The HTML is the sender's, cleaned by the API to the editor's elements, and still renders only in the preview's
   // sandboxed frame. A file is offered once its malware scan allows it, as an applicant's upload is (docs/architecture/email.md).
   let { replyId }: { replyId: string } = $props();
 
@@ -27,19 +27,23 @@
 </script>
 
 <div class="flex min-w-0 flex-col gap-3">
-  {#if received}
-    <p class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 break-words">
-      <span class="text-muted-foreground">From</span>
-      <span class="font-semibold">{received.fromName ? `${received.fromName} <${received.fromAddress}>` : received.fromAddress}</span>
-      {#if received.autoReply}<Badge variant="muted">Automatic reply</Badge>{/if}
-    </p>
-  {/if}
-  <!-- The row that opened it shows the subject, so the preview does not repeat it (W4). -->
+  <!-- The row that opened it shows the subject, so the preview does not repeat it (W4). Who it is from shares a line with
+       the Email and Plain text toggle. -->
   <EmailPreview
     subject={false}
     preview={received ? { subject: received.subject, html: replyHtml(received), text: received.text } : undefined}
     failure={reply.isError ? describeError(reply.error, 'Could not load the reply') : undefined}
-  />
+  >
+    {#snippet header()}
+      {#if received}
+        <p class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 break-words">
+          <span class="text-muted-foreground">From</span>
+          <span class="font-semibold">{received.fromName ? `${received.fromName} <${received.fromAddress}>` : received.fromAddress}</span>
+          {#if received.autoReply}<Badge variant="muted">Automatic reply</Badge>{/if}
+        </p>
+      {/if}
+    {/snippet}
+  </EmailPreview>
   {#if received && received.attachments.length > 0}
     <ul aria-label="Attachments" class="flex flex-col gap-2">
       {#each received.attachments as file (file.id)}

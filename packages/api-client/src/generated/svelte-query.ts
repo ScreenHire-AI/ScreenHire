@@ -167,6 +167,7 @@ import type {
   OrganizationProfile,
   OrganizationRetention,
   OrganizationSendingDomain,
+  OrganizationSetup,
   OrganizationVerificationSettings,
   PasskeyList,
   PasskeyOptions,
@@ -226,6 +227,7 @@ import type {
   SetSendingDomainRequest,
   SignInMethods,
   SimulateWorkflowRequest,
+  SkipSetupStepRequest,
   SlackAccount,
   SlackAuthorization,
   SlackChannelOption,
@@ -13616,6 +13618,403 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getUpdateCareersEmbeddingMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getOrganizationSetupResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type getOrganizationSetupResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationSetupResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationSetupResponseSuccess = (getOrganizationSetupResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationSetupResponseError = (getOrganizationSetupResponse401 | getOrganizationSetupResponse404) & {
+  headers: Headers;
+};
+
+export const getGetOrganizationSetupUrl = () => {
+
+
+
+
+  return `/v1/organization/setup`
+}
+
+export const getOrganizationSetup = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getOrganizationSetupResponseSuccess> => {
+
+  return apiQueryFetch<getOrganizationSetupResponseSuccess>(getGetOrganizationSetupUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrganizationSetupQueryKey = () => {
+    return [
+    'v1','organization','setup'
+    ] as const;
+    }
+
+
+export const getGetOrganizationSetupQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizationSetup>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSetup>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizationSetupQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizationSetup>>> = ({ signal }) => getOrganizationSetup({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSetup>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrganizationSetupQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizationSetup>>>
+export type GetOrganizationSetupQueryError = ErrorType<void>
+
+
+
+export function createGetOrganizationSetup<TData = Awaited<ReturnType<typeof getOrganizationSetup>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getOrganizationSetup>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetOrganizationSetupQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type skipSetupStepResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type skipSetupStepResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type skipSetupStepResponse401 = {
+  data: void
+  status: 401
+}
+
+export type skipSetupStepResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type skipSetupStepResponse404 = {
+  data: void
+  status: 404
+}
+
+export type skipSetupStepResponseSuccess = (skipSetupStepResponse200) & {
+  headers: Headers;
+};
+export type skipSetupStepResponseError = (skipSetupStepResponse400 | skipSetupStepResponse401 | skipSetupStepResponse403 | skipSetupStepResponse404) & {
+  headers: Headers;
+};
+
+export const getSkipSetupStepUrl = () => {
+
+
+
+
+  return `/v1/organization/setup/skip`
+}
+
+export const skipSetupStep = async (skipSetupStepRequest: SkipSetupStepRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<skipSetupStepResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<skipSetupStepResponseSuccess>(getSkipSetupStepUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(skipSetupStepRequest)
+  }
+);}
+
+
+
+
+
+export const getSkipSetupStepMutationKey = () => ['skipSetupStep'] as const;
+
+export const getSkipSetupStepMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof skipSetupStep>>, TError,SkipSetupStepMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof skipSetupStep>>, TError,SkipSetupStepMutationVariables, TContext> => {
+
+const mutationKey = getSkipSetupStepMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof skipSetupStep>>, SkipSetupStepMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  skipSetupStep(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SkipSetupStepMutationResult = NonNullable<Awaited<ReturnType<typeof skipSetupStep>>>
+    export type SkipSetupStepMutationBody = SkipSetupStepRequest
+    export type SkipSetupStepMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SkipSetupStepMutationVariables = {data: SkipSetupStepRequest}
+
+    export const createSkipSetupStep = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof skipSetupStep>>, TError,SkipSetupStepMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof skipSetupStep>>,
+        TError,
+        SkipSetupStepMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSkipSetupStepMutationOptions(options?.()) }), queryClient);
+    }
+
+export type hideSetupResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type hideSetupResponse401 = {
+  data: void
+  status: 401
+}
+
+export type hideSetupResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type hideSetupResponse404 = {
+  data: void
+  status: 404
+}
+
+export type hideSetupResponseSuccess = (hideSetupResponse200) & {
+  headers: Headers;
+};
+export type hideSetupResponseError = (hideSetupResponse401 | hideSetupResponse403 | hideSetupResponse404) & {
+  headers: Headers;
+};
+
+export const getHideSetupUrl = () => {
+
+
+
+
+  return `/v1/organization/setup/hide`
+}
+
+export const hideSetup = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<hideSetupResponseSuccess> => {
+
+  return apiQueryFetch<hideSetupResponseSuccess>(getHideSetupUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getHideSetupMutationKey = () => ['hideSetup'] as const;
+
+export const getHideSetupMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof hideSetup>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof hideSetup>>, TError,void, TContext> => {
+
+const mutationKey = getHideSetupMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof hideSetup>>, void> = () => {
+
+
+          return  hideSetup(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HideSetupMutationResult = NonNullable<Awaited<ReturnType<typeof hideSetup>>>
+
+    export type HideSetupMutationError = ErrorType<void | ProblemDetails>
+
+
+    export const createHideSetup = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof hideSetup>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof hideSetup>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getHideSetupMutationOptions(options?.()) }), queryClient);
+    }
+
+export type showSetupAgainResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type showSetupAgainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type showSetupAgainResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type showSetupAgainResponse404 = {
+  data: void
+  status: 404
+}
+
+export type showSetupAgainResponseSuccess = (showSetupAgainResponse200) & {
+  headers: Headers;
+};
+export type showSetupAgainResponseError = (showSetupAgainResponse401 | showSetupAgainResponse403 | showSetupAgainResponse404) & {
+  headers: Headers;
+};
+
+export const getShowSetupAgainUrl = () => {
+
+
+
+
+  return `/v1/organization/setup/show`
+}
+
+export const showSetupAgain = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<showSetupAgainResponseSuccess> => {
+
+  return apiQueryFetch<showSetupAgainResponseSuccess>(getShowSetupAgainUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getShowSetupAgainMutationKey = () => ['showSetupAgain'] as const;
+
+export const getShowSetupAgainMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof showSetupAgain>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof showSetupAgain>>, TError,void, TContext> => {
+
+const mutationKey = getShowSetupAgainMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof showSetupAgain>>, void> = () => {
+
+
+          return  showSetupAgain(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ShowSetupAgainMutationResult = NonNullable<Awaited<ReturnType<typeof showSetupAgain>>>
+
+    export type ShowSetupAgainMutationError = ErrorType<void | ProblemDetails>
+
+
+    export const createShowSetupAgain = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof showSetupAgain>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof showSetupAgain>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getShowSetupAgainMutationOptions(options?.()) }), queryClient);
     }
 
 export type getOrganizationBrandingResponse200 = {

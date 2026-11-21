@@ -553,7 +553,8 @@ internal static class EmailEndpoints
     }
 
     // Every email that went to the candidate, about any of their applications, newest first: the Messages tab. Each is
-    // its timeline entry, with whether its copy was kept (emails sent before copies were kept have only a subject).
+    // its timeline entry, with whether its copy was kept (emails sent before copies were kept have only a subject), the
+    // first line of its text for the row, and for a reply the email it answers, so the tab can show it under that one.
     private static async Task<Results<Ok<List<CandidateEmailEntry>>, NotFound>> ListCandidateEmails(
         Guid candidateId, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
@@ -581,12 +582,18 @@ internal static class EmailEndpoints
                 Kept = entry.Type == ApplicationEventType.EmailReceived || db.ApplicationEmails.Any(e => e.Id == entry.Id),
                 From = db.InboundEmails.Where(r => r.Id == entry.Id).Select(r => r.FromAddress).FirstOrDefault(),
                 Attachments = db.InboundEmailAttachments.Count(a => a.InboundEmailId == entry.Id),
+                InReplyTo = db.InboundEmails.Where(r => r.Id == entry.Id).Select(r => (Guid?)r.SendId).FirstOrDefault(),
+                // The start of the text part, enough for its first line: never the whole of a long email.
+                Text = entry.Type == ApplicationEventType.EmailReceived
+                    ? db.InboundEmails.Where(r => r.Id == entry.Id).Select(r => r.TextBody.Substring(0, EmailSnippet.ReadLength)).FirstOrDefault()
+                    : db.ApplicationEmails.Where(e => e.Id == entry.Id).Select(e => e.TextBody.Substring(0, EmailSnippet.ReadLength)).FirstOrDefault(),
             }).ToListAsync(cancellationToken);
         return TypedResults.Ok(entries
             .Select(e => new CandidateEmailEntry(
                 e.Id, e.ApplicationId, e.JobTitle, e.Data.EmailTemplateId, e.Data.EmailSubject ?? "", e.ActorUserId, e.Data.AutomationRunId,
                 e.OccurredAt, e.Kept,
-                e.Type == ApplicationEventType.EmailReceived ? EmailDirection.Received : EmailDirection.Sent, e.From, e.Attachments))
+                e.Type == ApplicationEventType.EmailReceived ? EmailDirection.Received : EmailDirection.Sent, e.From, e.Attachments,
+                EmailSnippet.FirstLine(e.Text), e.InReplyTo))
             .ToList());
     }
 

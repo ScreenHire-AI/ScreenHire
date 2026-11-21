@@ -1,8 +1,17 @@
-import type { JobSummary, OrganizationBranding, OrganizationSendingDomain, PendingInvitation, TeamMember } from '@screenhire/api-client';
+import type {
+  JobSummary,
+  OrganizationBranding,
+  OrganizationSendingDomain,
+  OrganizationSetup,
+  PendingInvitation,
+  SetupStepId,
+  TeamMember,
+} from '@screenhire/api-client';
 
 /** One step of the Set up your organization panel. */
 export interface SetupStep {
-  id: 'team' | 'branding' | 'email' | 'job';
+  /** The server's name for the step, which it keeps when the organization skips it. */
+  id: SetupStepId;
   label: string;
   /** Where the step is done: the page the label links to. */
   href: string;
@@ -14,7 +23,21 @@ export interface SetupStep {
    * (the owner's walk-through, 2026-11-21).
    */
   optional?: boolean;
+  /**
+   * The organization said it does not need the step ('Not needed', saved on the server for every Owner and Admin). It
+   * leaves the list and never counts, but keeps its place, so the steps after it keep their numbers. Its settings page
+   * still does it.
+   */
+  skipped: boolean;
 }
+
+/** Each step's words, in the bell and on Settings, General, which names the steps the organization skipped. */
+export const setupStepLabels: Record<SetupStepId, string> = {
+  Branding: 'Set your branding',
+  Job: 'Publish your first job',
+  Team: 'Invite your team',
+  Email: 'Send email from your own domain',
+};
 
 /** The answers the steps read. A missing one (still loading) is `undefined`, and the panel waits for all of them. */
 export interface SetupInputs {
@@ -23,6 +46,8 @@ export interface SetupInputs {
   branding: OrganizationBranding | undefined;
   sendingDomain: OrganizationSendingDomain | undefined;
   jobs: readonly JobSummary[] | undefined;
+  /** The organization's own choices: the steps it skipped and whether it hid the checklist. */
+  setup: OrganizationSetup | undefined;
 }
 
 /**
@@ -34,28 +59,33 @@ export interface SetupInputs {
  * still loading, so the panel never flashes steps that are already done.
  */
 export function setupSteps(inputs: SetupInputs): SetupStep[] | undefined {
-  const { members, invitations, branding, sendingDomain, jobs } = inputs;
-  if (!members || !invitations || !branding || !sendingDomain || !jobs) return undefined;
+  const { members, invitations, branding, sendingDomain, jobs, setup } = inputs;
+  if (!members || !invitations || !branding || !sendingDomain || !jobs || !setup) return undefined;
 
-  const steps: SetupStep[] = [
+  const steps: Omit<SetupStep, 'skipped'>[] = [
     {
-      id: 'branding',
-      label: 'Set your branding',
+      id: 'Branding',
+      label: setupStepLabels.Branding,
       href: '/settings/branding',
       done: [branding.logo, branding.favicon, branding.sharingImage, branding.brandColor, branding.secondColor, branding.headingFont].some(
         (value) => value !== null && value !== undefined,
       ),
     },
-    { id: 'job', label: 'Publish your first job', href: '/jobs/new', done: jobs.some((job) => job.publishedAt !== null) },
-    { id: 'team', label: 'Invite your team', href: '/settings/team', done: members.length > 1 || invitations.length > 0 },
+    { id: 'Job', label: setupStepLabels.Job, href: '/jobs/new', done: jobs.some((job) => job.publishedAt !== null) },
+    { id: 'Team', label: setupStepLabels.Team, href: '/settings/team', done: members.length > 1 || invitations.length > 0 },
   ];
   // Last, because it is DNS work outside ScreenHire and the team can start without it.
   if (sendingDomain.available) {
-    steps.push({ id: 'email', label: 'Send email from your own domain', href: '/settings/sending-domain', done: sendingDomain.domain?.status === 'Verified', optional: true });
+    steps.push({ id: 'Email', label: setupStepLabels.Email, href: '/settings/sending-domain', done: sendingDomain.domain?.status === 'Verified', optional: true });
   }
-  return steps;
+  return steps.map((step) => ({ ...step, skipped: !step.done && setup.skippedSteps.includes(step.id) }));
 }
 
-/** Whether the panel shows: every answer is in, something is left to do, and nobody dismissed it. */
-export const showSetup = (steps: readonly SetupStep[] | undefined, dismissed: boolean) =>
-  !dismissed && steps !== undefined && steps.some((step) => !step.done);
+/** A step the list offers: not done and not skipped. */
+export const isOpen = (step: SetupStep) => !step.done && !step.skipped;
+
+/**
+ * Whether the panel shows: every answer is in, something is left to do, and nobody hid the checklist for the organization.
+ * Once every step left is done or skipped it goes by itself.
+ */
+export const showSetup = (steps: readonly SetupStep[] | undefined, hidden: boolean) => !hidden && steps !== undefined && steps.some(isOpen);

@@ -93,6 +93,36 @@ public sealed class Organization
     public void SetEmbedOrigins(IEnumerable<string> origins, bool allowLoopback) =>
         EmbedOrigins = Organizations.EmbedOrigins.NormalizeAll(origins, allowLoopback);
 
+    /// <summary>
+    /// The setup steps the organization said it does not need ("Not needed" in the bell), in the order they were skipped.
+    /// They leave the checklist for every Owner and Admin on every device; each stays reachable from its settings page.
+    /// Nothing secret, so it is fine that every tenant can read the row.
+    /// </summary>
+    public List<SetupStepId> SkippedSetupSteps { get; private set; } = [];
+
+    /// <summary>Whether someone hid the whole setup checklist for the organization. Settings, General shows it again.</summary>
+    public bool SetupHidden { get; private set; }
+
+    /// <summary>Takes <paramref name="step"/> off the setup checklist. Skipping a step twice changes nothing.</summary>
+    public void SkipSetupStep(SetupStepId step)
+    {
+        if (!SkippedSetupSteps.Contains(step))
+        {
+            // A new list, so EF sees the column change.
+            SkippedSetupSteps = [.. SkippedSetupSteps, step];
+        }
+    }
+
+    /// <summary>Hides the whole setup checklist for the organization.</summary>
+    public void HideSetup() => SetupHidden = true;
+
+    /// <summary>Brings the setup checklist back as it started: shown, with every step the organization skipped.</summary>
+    public void ShowSetupAgain()
+    {
+        SetupHidden = false;
+        SkippedSetupSteps = [];
+    }
+
     /// <summary>The careers-page palette, or null when the organization has no brand colour.</summary>
     public BrandPalette? GetBrandPalette() => BrandColor is null ? null : BrandPalette.Derive(BrandColor);
 

@@ -151,6 +151,7 @@ import type {
   OrganizationProfile,
   OrganizationRetention,
   OrganizationSendingDomain,
+  OrganizationSetup,
   OrganizationVerificationSettings,
   PasskeyList,
   PasskeyOptions,
@@ -210,6 +211,7 @@ import type {
   SetSendingDomainRequest,
   SignInMethods,
   SimulateWorkflowRequest,
+  SkipSetupStepRequest,
   SlackAccount,
   SlackAuthorization,
   SlackChannelOption,
@@ -7648,6 +7650,220 @@ return apiFetch<updateCareersEmbeddingResponse>(getUpdateCareersEmbeddingUrl(),
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(updateCareersEmbeddingRequest)
+  }
+);}
+
+
+
+export type getOrganizationSetupResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type getOrganizationSetupResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationSetupResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationSetupResponseSuccess = (getOrganizationSetupResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationSetupResponseError = (getOrganizationSetupResponse401 | getOrganizationSetupResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationSetupResponse = (getOrganizationSetupResponseSuccess | getOrganizationSetupResponseError)
+
+export const getGetOrganizationSetupUrl = () => {
+
+
+
+
+  return `/v1/organization/setup`
+}
+
+export const getOrganizationSetup = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationSetupResponse> => {
+
+  return apiFetch<getOrganizationSetupResponse>(getGetOrganizationSetupUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type skipSetupStepResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type skipSetupStepResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type skipSetupStepResponse401 = {
+  data: void
+  status: 401
+}
+
+export type skipSetupStepResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type skipSetupStepResponse404 = {
+  data: void
+  status: 404
+}
+
+export type skipSetupStepResponseSuccess = (skipSetupStepResponse200) & {
+  headers: Headers;
+};
+export type skipSetupStepResponseError = (skipSetupStepResponse400 | skipSetupStepResponse401 | skipSetupStepResponse403 | skipSetupStepResponse404) & {
+  headers: Headers;
+};
+
+export type skipSetupStepResponse = (skipSetupStepResponseSuccess | skipSetupStepResponseError)
+
+export const getSkipSetupStepUrl = () => {
+
+
+
+
+  return `/v1/organization/setup/skip`
+}
+
+export const skipSetupStep = async (skipSetupStepRequest: SkipSetupStepRequest, options?: Parameters<typeof apiFetch>[1]): Promise<skipSetupStepResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<skipSetupStepResponse>(getSkipSetupStepUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(skipSetupStepRequest)
+  }
+);}
+
+
+
+export type hideSetupResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type hideSetupResponse401 = {
+  data: void
+  status: 401
+}
+
+export type hideSetupResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type hideSetupResponse404 = {
+  data: void
+  status: 404
+}
+
+export type hideSetupResponseSuccess = (hideSetupResponse200) & {
+  headers: Headers;
+};
+export type hideSetupResponseError = (hideSetupResponse401 | hideSetupResponse403 | hideSetupResponse404) & {
+  headers: Headers;
+};
+
+export type hideSetupResponse = (hideSetupResponseSuccess | hideSetupResponseError)
+
+export const getHideSetupUrl = () => {
+
+
+
+
+  return `/v1/organization/setup/hide`
+}
+
+export const hideSetup = async ( options?: Parameters<typeof apiFetch>[1]): Promise<hideSetupResponse> => {
+
+  return apiFetch<hideSetupResponse>(getHideSetupUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type showSetupAgainResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type showSetupAgainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type showSetupAgainResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type showSetupAgainResponse404 = {
+  data: void
+  status: 404
+}
+
+export type showSetupAgainResponseSuccess = (showSetupAgainResponse200) & {
+  headers: Headers;
+};
+export type showSetupAgainResponseError = (showSetupAgainResponse401 | showSetupAgainResponse403 | showSetupAgainResponse404) & {
+  headers: Headers;
+};
+
+export type showSetupAgainResponse = (showSetupAgainResponseSuccess | showSetupAgainResponseError)
+
+export const getShowSetupAgainUrl = () => {
+
+
+
+
+  return `/v1/organization/setup/show`
+}
+
+export const showSetupAgain = async ( options?: Parameters<typeof apiFetch>[1]): Promise<showSetupAgainResponse> => {
+
+  return apiFetch<showSetupAgainResponse>(getShowSetupAgainUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 
