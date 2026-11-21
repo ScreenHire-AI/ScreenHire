@@ -113,6 +113,16 @@ public sealed record OrganizationProfile(
     int QuestionsPerPage, IReadOnlyList<string> EmbedOrigins);
 
 /// <summary>
+/// The organization's own choices about the dashboard's setup checklist. <c>skippedSteps</c> are the steps someone said the
+/// organization does not need, in the order they were skipped; <c>hidden</c> says someone hid the whole checklist. Both hold
+/// for every Owner and Admin on every device. Whether a step is done comes from the organization's data, not from here.
+/// </summary>
+public sealed record OrganizationSetup(bool Hidden, IReadOnlyList<SetupStepId> SkippedSteps);
+
+/// <summary>Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing.</summary>
+public sealed record SkipSetupStepRequest(SetupStepId Step);
+
+/// <summary>
 /// Replaces the sites allowed to embed the careers pages, at most 20. Each is an https site's address; a bare name gets
 /// https and a page's address keeps only its site, so <c>www.example.com/careers</c> saves as
 /// <c>https://www.example.com</c>. Duplicates are dropped and the order is kept. An empty list lets no other site frame

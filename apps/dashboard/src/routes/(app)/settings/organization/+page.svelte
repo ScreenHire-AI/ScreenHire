@@ -1,9 +1,11 @@
 <script lang="ts">
+  import ListChecksIcon from '~icons/lucide/list-checks';
   import SaveIcon from '~icons/lucide/save';
   import type { HttpValidationProblemDetails, OrganizationProfile } from '@screenhire/api-client';
   import {
     ApiError,
     createGetOrganization,
+    createGetOrganizationSetup,
     createUpdateOrganization,
     getGetOrganizationHistoryQueryOptions,
     getGetOrganizationQueryKey,
@@ -13,6 +15,7 @@
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
   import { invalidateAll } from '$app/navigation';
+  import { page } from '$app/state';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistoryFact from '#lib/components/history-fact.svelte';
@@ -30,6 +33,8 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError } from '#lib/query.js';
+  import { setupStepLabels } from '#lib/setup-checklist.js';
+  import { createShowSetupAgainAction, mayUseSetup } from '#lib/setup-progress.svelte.js';
 
   // The organization's name, which owners and admins can change, and what they cannot: where its data lives and when it
   // was created. The form template (section 7). The careers address, the apply form's questions per page and the sites
@@ -83,6 +88,25 @@
   });
 
   const region = (profile: OrganizationProfile) => profile.homeRegion.toUpperCase();
+
+  // The setup checklist in the notification bell, for whoever has one (Owners and Admins): once someone hid it or said a
+  // step is not needed, it comes back here, for the whole organization. Nothing to offer while it shows in full.
+  const mayUse = $derived(mayUseSetup(page.data.user));
+  const setup = createGetOrganizationSetup(() => ({ query: { enabled: mayUse } }));
+  const choices = $derived(setup.data?.data);
+  const showAgain = createShowSetupAgainAction();
+  let shownAgain = $state(false);
+  const offer = $derived(mayUse && choices !== undefined && (choices.hidden || choices.skippedSteps.length > 0));
+  const skippedLabels = $derived((choices?.skippedSteps ?? []).map((step) => setupStepLabels[step]));
+
+  async function restoreSetup() {
+    try {
+      await showAgain.mutateAsync();
+      shownAgain = true;
+    } catch {
+      // The panel's failure line says so.
+    }
+  }
 
 </script>
 
@@ -150,6 +174,22 @@
           {#if !detail.lastUpdated.created}<SummaryItem label="Created"><RelativeTime at={detail.createdAt} /></SummaryItem>{/if}
         </SummaryList>
       </Panel>
+
+      {#if offer || shownAgain}
+        <Panel title="Setup checklist">
+          <p role="status" class="text-body">
+            {#if !offer}The setup checklist is back in the notification bell.{:else if choices?.hidden}Hidden for everyone in your organization.{:else}Marked not needed: {skippedLabels.join(', ')}.{/if}
+          </p>
+          {#if offer}
+            {#snippet footer()}
+              <div class="flex flex-wrap items-center justify-end gap-2">
+                <FailureText message={showAgain.isError ? describeError(showAgain.error, 'Could not show the setup checklist') : null} class="mr-auto" />
+                <Button variant="outline" size="lg" disabled={showAgain.isPending} onclick={restoreSetup}><ListChecksIcon aria-hidden="true" />Show setup again</Button>
+              </div>
+            {/snippet}
+          {/if}
+        </Panel>
+      {/if}
     {/if}
   </div>
   </SettingsMenu>
