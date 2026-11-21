@@ -9,8 +9,8 @@
   // Asks before a move into a stage whose automations send an email, create a task or the like, and says what they do, in the
   // Automations map's words (design system section 11, Move confirmation). `moves` holds the question; every move control
   // that goes through it (menu, keyboard, drag, bulk) gets this one dialog. Escape, the close button and Cancel are all
-  // Cancel, which does nothing and gives the focus back to what had it. "Don't ask again" is the person's, in this browser,
-  // and the account menu turns it back on.
+  // Cancel, which does nothing and gives the focus back to what had it. "Don't ask again" is the person's, kept with their
+  // account, and Your account > Preferences turns it back on.
   let { moves }: { moves: Pick<Moves, 'confirmation' | 'answer'> } = $props();
 
   const question = $derived(moves.confirmation);

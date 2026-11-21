@@ -147,7 +147,7 @@ internal static class InterviewEndpoints
             return TypedResults.Problem(
                 title: "Calendar not connected",
                 detail: $"These interviewers have no working calendar connected: {string.Join(", ", missing.Select(id => byUser[id].DisplayName))}. "
-                    + "Ask them to connect a calendar from the account menu.",
+                    + "Ask them to connect a calendar in Your account, Connected accounts.",
                 statusCode: StatusCodes.Status422UnprocessableEntity,
                 extensions: new Dictionary<string, object?> { ["interviewerUserIds"] = missing });
         }

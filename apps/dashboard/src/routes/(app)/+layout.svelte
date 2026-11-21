@@ -264,11 +264,14 @@
     untrack(() => {
       configureDates({ language: details.language, timeZone: details.timeZone, dateFormat: details.dateFormat });
       preferences.applyHabits(details);
-      if (details.shortcutsEnabled == null || details.confirmMoves == null) saveHabits.mutate({ data: preferences.habits });
-      if (!details.timeZone) {
-        const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const zone = details.timeZone ? null : Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const fill = () => {
         if (zone) fillTimeZone.mutate({ data: { timeZone: zone } });
-      }
+      };
+      // One after the other: a person with no preferences row yet gets it from the first save, and two at once would both
+      // try to make it.
+      if (details.shortcutsEnabled == null || details.confirmMoves == null) saveHabits.mutate({ data: preferences.habits }, { onSettled: fill });
+      else fill();
     });
   });
 

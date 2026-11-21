@@ -141,7 +141,8 @@
           <p class="sr-only" role="status">Loading your profile…</p>
         </Panel>
       {:else}
-        <Panel title="Photo">
+        <!-- A footer only once there is a photo to remove, never an empty strip. -->
+        <Panel title="Photo" footer={details.photoUrl ? photoFooter : undefined}>
           <div class="flex items-center gap-4">
             {#if details.photoUrl}
               <img src={details.photoUrl} alt="" class="size-16 shrink-0 rounded-full object-cover" />
@@ -167,17 +168,15 @@
               />
               <Field.Description id="account-photo-hint">PNG, JPEG or WebP. It is cropped to a square.</Field.Description>
               <Field.Error errors={photoProblem ? [{ message: photoProblem }] : []} />
+              <p role="status" class="text-muted-foreground empty:hidden">{photoStatus}</p>
             </Field.Field>
           </div>
-          {#snippet footer()}
-            <div class="flex flex-wrap items-center justify-end gap-2">
-              <p role="status" class="mr-auto text-muted-foreground empty:hidden">{photoStatus}</p>
-              {#if details.photoUrl}
-                <Button variant="outline" size="lg" disabled={removePhoto.isPending} onclick={dropPhoto}>Remove photo</Button>
-              {/if}
-            </div>
-          {/snippet}
         </Panel>
+        {#snippet photoFooter()}
+          <div class="flex justify-end">
+            <Button variant="outline" size="lg" disabled={removePhoto.isPending} onclick={dropPhoto}>Remove photo</Button>
+          </div>
+        {/snippet}
 
         <form method="POST" use:enhance novalidate aria-label="Your profile">
           <Panel title="You">
@@ -199,8 +198,8 @@
               <!-- Read only, so a value and not a disabled input (E3); a long address wraps instead of being cut off. -->
               <div class="flex flex-col gap-1">
                 <span id="account-email-label" class="font-semibold">Email</span>
-                <p aria-labelledby="account-email-label" class="break-all">{details.email}</p>
-                <span class="text-caption text-muted-foreground">You sign in with this address, so it cannot change here.</span>
+                <p aria-labelledby="account-email-label" aria-describedby="account-email-hint" class="break-all">{details.email}</p>
+                <Field.Description id="account-email-hint">You sign in with this address, so it cannot change here.</Field.Description>
               </div>
               <Field.Field data-invalid={$errors.timeZone ? true : undefined}>
                 <Field.Label for="account-zone">Time zone</Field.Label>

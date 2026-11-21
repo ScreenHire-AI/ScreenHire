@@ -9,7 +9,9 @@ namespace ScreenHire.Domain.Notifications;
 /// </summary>
 /// <remarks>
 /// Row-level security is the organization's, as for <see cref="Notification"/>, because the worker writes rows for people it
-/// does not act as. Every read for a person narrows to <see cref="UserId"/>.
+/// does not act as, so it has no restrictive <c>job_scope</c> policy (ADR-0015) although it carries job ids. Every read for a
+/// person narrows to <see cref="UserId"/>, and the digest checks the job again when it sends. Only the worker reads the table;
+/// an API route that read it would need that policy first.
 /// </remarks>
 public sealed class DigestItem : ITenantOwned
 {

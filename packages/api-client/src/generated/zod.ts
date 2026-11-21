@@ -7924,7 +7924,7 @@ export const UpdateAccountPreferencesResponse = zod.object({
 
 export const UploadPhotoBody = zod.object({
   "data": zod.string()
-}).describe('A profile photo as base64, at most 512 KB once decoded, PNG, JPEG or WebP (read from the bytes, not the name). The\ndashboard crops and scales it to 256 pixels first, which also drops what the camera wrote into it.')
+}).describe('A profile photo as base64, at most 512 KB once decoded, PNG, JPEG or WebP (read from the bytes, not the name). The\ndashboard crops and scales it to 256 pixels first, which also drops what the camera wrote into it. The server checks\nonly the type and the size and keeps the bytes as sent, so a caller that skips the crop keeps its metadata.')
 
 export const UploadPhotoResponse = zod.object({
   "email": zod.string(),

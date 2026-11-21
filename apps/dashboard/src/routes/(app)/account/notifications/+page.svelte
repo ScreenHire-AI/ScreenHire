@@ -21,6 +21,7 @@
   import { draftFrom, inAppOn, requestFrom, setInApp, setToast, teammateToastLabels, type NoticeDraft } from '#lib/notice-grid.js';
   import { toastLifetime } from '#lib/notifications.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { cn } from '#lib/utils.js';
 
   // Your account > Notifications (docs/architecture/notifications.md, "Each person's choices"; design system section 21):
   // a row per kind of thing, and a column per way to hear of it. In the app switches the toast or card in the tray (the bell
@@ -79,7 +80,8 @@
   <HeaderBand title="Notifications" oneRow />
 
   <AccountMenu>
-    <div class="flex w-full max-w-form flex-col gap-5">
+    <!-- The switches keep the form column; the grid is a table, which never stops short (S6). -->
+    <div class="flex w-full flex-col gap-5">
       {#if notifications.isError && !draft}
         <Panel title="What you hear about">
           <QueryError message={describeError(notifications.error, 'Could not load your notification choices')} onretry={() => notifications.refetch()} inset />
@@ -94,7 +96,7 @@
       {:else}
         {@const current = draft}
         <form onsubmit={save} novalidate aria-label="Your notification choices" class="flex flex-col gap-5">
-          <Panel title="Toasts and jobs">
+          <Panel title="Toasts and jobs" class="max-w-form">
             <div class="flex flex-col gap-4">
               <div class="flex flex-col gap-2">
                 <span id="notice-scope" class="font-semibold">Jobs</span>
@@ -155,7 +157,7 @@
                     <Table.Row class="h-14">
                       <Table.Cell class="px-4.5">
                         <span class="flex flex-col">
-                          <span id={`notice-${row.kind}`} class="font-semibold">{words.label}</span>
+                          <span class="font-semibold">{words.label}</span>
                           <span class="text-caption text-muted-foreground">{words.hint}</span>
                         </span>
                       </Table.Cell>
@@ -188,12 +190,26 @@
                 {@const words = noticeRows[row.kind]}
                 <li class="flex flex-col gap-3 border-b border-border-subtle px-4 py-3 last:border-0">
                   <span class="flex flex-col">
-                    <span id={`notice-phone-${row.kind}`} class="font-semibold">{words.label}</span>
+                    <span class="font-semibold">{words.label}</span>
                     <span class="text-caption text-muted-foreground">{words.hint}</span>
                   </span>
                   <div class="flex items-center justify-between gap-4"><span>In the app</span>{@render inApp(row.kind, row.toasts, 'phone')}</div>
                   <div class="flex items-center justify-between gap-4"><span>Email</span>{@render email(row.kind, row.email, 'phone')}</div>
                   {#if showSlack}<div class="flex items-center justify-between gap-4"><span>Slack</span>{@render slack(row.kind, row.slack, 'phone')}</div>{/if}
+                  {#if row.kind === 'TeammateChanges' && expanded}
+                    <ul class="flex flex-col gap-3 border-l border-border-subtle pl-4" aria-label="Kinds of teammates' changes">
+                      {#each row.toasts as kind (kind)}
+                        <li class="flex items-center justify-between gap-4">
+                          <span id={`notice-phone-toast-${kind}`} class="text-muted-foreground">{teammateToastLabels[kind]}</span>
+                          <Switch
+                            aria-labelledby={`notice-phone-toast-${kind}`}
+                            checked={!current.toastsOff.includes(kind)}
+                            onCheckedChange={(on) => (current.toastsOff = setToast(current, kind, on))}
+                          />
+                        </li>
+                      {/each}
+                    </ul>
+                  {/if}
                 </li>
               {/each}
             </ul>
@@ -226,9 +242,9 @@
         checked={inAppOn(current, toasts)}
         onCheckedChange={(on) => (current.toastsOff = setInApp(current, toasts, on))}
       />
-      {#if kind === 'TeammateChanges' && where === 'table'}
-        <Button variant="ghost" size="sm" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>
-          Choose<ChevronDownIcon aria-hidden="true" class={['transition-transform', expanded && 'rotate-180']} />
+      {#if kind === 'TeammateChanges'}
+        <Button variant="outline" size="sm" aria-expanded={expanded} data-where={where} onclick={() => (expanded = !expanded)}>
+          Choose kinds<ChevronDownIcon aria-hidden="true" class={['transition-transform', expanded && 'rotate-180']} />
         </Button>
       {/if}
     </span>
@@ -237,7 +253,7 @@
 
 {#snippet email(kind: NoticeKind, value: EmailChoice, where: 'table' | 'phone')}
   <select
-    class={[selectClass, 'w-40']}
+    class={cn(selectClass, 'w-auto min-w-36')}
     aria-label={`${noticeRows[kind].label}: email`}
     {value}
     data-where={where}

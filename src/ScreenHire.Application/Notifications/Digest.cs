@@ -128,9 +128,12 @@ public static partial class SendDigestHandler
             .Where(i => i.UserId == message.UserId && i.SentAt == null && i.CreatedAt < message.Cutoff)
             .OrderBy(i => i.CreatedAt)
             .ToListAsync(cancellationToken);
-        var member = await db.OrganizationMembers
-            .Where(m => m.OrganizationId == message.OrganizationId && m.UserId == message.UserId)
-            .Select(m => new { m.Id })
+        var member = await (
+            from m in db.OrganizationMembers
+            where m.OrganizationId == message.OrganizationId && m.UserId == message.UserId
+            join role in db.CustomRoles on m.CustomRoleId equals role.Id into roles
+            from role in roles.DefaultIfEmpty()
+            select new { m.Id, m.Role, Custom = role == null ? null : role.Permissions })
             .SingleOrDefaultAsync(cancellationToken);
         var now = time.GetUtcNow();
         foreach (var item in items)
@@ -144,7 +147,17 @@ public static partial class SendDigestHandler
             return;
         }
 
-        var lines = await LinesAsync(db, message, items, links.Value, cancellationToken);
+        // What the person may see and wants now, not when each item was queued: a role that lost View AI usage, or a row since
+        // turned Off, leaves its items out.
+        var permissions = member.Role == OrganizationRole.Custom ? RolePermissions.ForCustom(member.Custom ?? []) : RolePermissions.Of(member.Role);
+        var preferences = await db.MemberPreferences.SingleOrDefaultAsync(p => p.MemberId == member.Id, cancellationToken);
+        var alerts = await OrganizationAlertDefaults.ReadAsync(db, cancellationToken);
+        var handlesBilling = permissions.Contains(Permission.ManageBilling);
+        var wanted = items
+            .Where(i => NoticeRows.For(i.Kind).IsFor(permissions)
+                && PersonNotices.Email(preferences, i.Kind, alerts, handlesBilling) != EmailChoice.Off)
+            .ToList();
+        var lines = await LinesAsync(db, message, wanted, links.Value, cancellationToken);
         var to = await db.Users.Where(u => u.Id == message.UserId).Select(u => u.Email).SingleOrDefaultAsync(cancellationToken);
         var organization = await db.Organizations.Where(o => o.Id == message.OrganizationId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
         if (lines.Count == 0 || to is null || organization is null)
@@ -154,7 +167,6 @@ public static partial class SendDigestHandler
         }
 
         await email.SendAsync(TeamEmail.WithFooter(DigestEmail.Compose(to, organization, lines), links.Value), cancellationToken);
-        var preferences = await db.MemberPreferences.SingleOrDefaultAsync(p => p.MemberId == member.Id, cancellationToken);
         if (preferences is null)
         {
             preferences = MemberPreferences.Create(message.OrganizationId, member.Id, message.UserId, now);

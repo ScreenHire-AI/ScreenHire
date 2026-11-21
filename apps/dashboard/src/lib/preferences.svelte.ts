@@ -92,10 +92,6 @@ class Preferences {
     });
   }
 
-  setTheme(theme: Theme): void {
-    this.setThemeChoice(theme);
-  }
-
   setThemeChoice(choice: ThemeChoice): void {
     this.themeChoice = choice;
     this.theme = resolve(choice);
@@ -104,7 +100,7 @@ class Preferences {
   }
 
   toggleTheme(): void {
-    this.setTheme(this.theme === 'dark' ? 'light' : 'dark');
+    this.setThemeChoice(this.theme === 'dark' ? 'light' : 'dark');
   }
 
   setReduceMotion(on: boolean): void {

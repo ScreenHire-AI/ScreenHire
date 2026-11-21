@@ -10,6 +10,7 @@ using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Notifications;
 using ScreenHire.Domain.Notifications;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Slack;
 using ScreenHire.Infrastructure.Identity;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -190,9 +191,9 @@ internal static class AccountEndpoints
         var permissions = await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken);
         var alerts = await OrganizationAlertDefaults.ReadAsync(db, cancellationToken);
         var (slackAvailable, link) = await SlackAsync(db, userId, cancellationToken);
-        // The row's default is the AI alerts' (the organization's switch) for anyone who sees AI use; someone who only handles
-        // billing hears only of the trial, whose reminders start at Instantly.
-        var handlesBilling = BillingOnly(permissions);
+        // Someone who handles billing gets the trial's reminders, which start at Instantly, so the row starts there for them and
+        // Off is a choice they can save; for anyone else it follows the organization's AI usage email.
+        var handlesBilling = HandlesBilling(permissions);
         var rows = NoticeRows.All.Where(r => r.IsFor(permissions)).Select(row => new NoticeRowState(
             row.Kind,
             row.Toasts,
@@ -210,7 +211,7 @@ internal static class AccountEndpoints
             preferences?.Scope ?? NoticeScope.MyJobs, !settings.Toasts, settings.CloseToasts, settings.Off, [.. rows], slackAvailable, link is not null);
     }
 
-    private static async Task<(bool Available, Domain.Slack.SlackAccountLink? Link)> SlackAsync(
+    private static async Task<(bool Available, SlackAccountLink? Link)> SlackAsync(
         ScreenHireDbContext db, Guid userId, CancellationToken cancellationToken)
     {
         var installation = await db.SlackInstallations.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
@@ -229,6 +230,23 @@ internal static class AccountEndpoints
         if (request.ToastsOff is null || request.Rows is null)
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("rows", "Send every row of the grid and the toasts that are off."));
+        }
+
+        // The string enum converter also reads numbers, so a value outside the lists would bind; Instantly, Daily digest and
+        // Off are the only email choices there are.
+        if (!Enum.IsDefined(request.Scope))
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("scope", "Choose My jobs or Everything I can see."));
+        }
+
+        if (request.ToastsOff.Any(kind => !Enum.IsDefined(kind)))
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("toastsOff", "Name only kinds of toast there are."));
+        }
+
+        if (request.Rows.Any(row => !Enum.IsDefined(row.Kind) || !Enum.IsDefined(row.Email)))
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("rows", "Choose Instantly, Daily digest or Off for each row of the grid."));
         }
 
         if (request.ToastsOff.Distinct().Count() != request.ToastsOff.Count)
@@ -250,7 +268,7 @@ internal static class AccountEndpoints
 
         var permissions = await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken);
         var alerts = await OrganizationAlertDefaults.ReadAsync(db, cancellationToken);
-        var handlesBilling = BillingOnly(permissions);
+        var handlesBilling = HandlesBilling(permissions);
         var visible = NoticeRows.All.Where(r => r.IsFor(permissions)).Select(r => r.Kind).ToHashSet();
         var (_, link) = await SlackAsync(db, userId, cancellationToken);
 
@@ -278,7 +296,7 @@ internal static class AccountEndpoints
             kind => NoticeDefaults.Email(kind, alerts, handlesBilling),
             kind => NoticeDefaults.Slack(kind, alerts));
         var hidden = choices.Where(c => !visible.Contains(c.Kind));
-        preferences.SetNotices(request.Scope, new Domain.Notifications.NoticeChoices { Choices = [.. kept.Choices, .. hidden] }, time.GetUtcNow());
+        preferences.SetNotices(request.Scope, new NoticeChoices { Choices = [.. kept.Choices, .. hidden] }, time.GetUtcNow());
         member.SetNotifications(new NotificationSettings { Toasts = !request.PauseToasts, CloseToasts = request.CloseToasts, Off = request.ToastsOff });
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok((await NotificationsAsync(db, tenant, cancellationToken))!);
@@ -404,8 +422,8 @@ internal static class AccountEndpoints
         return preferences;
     }
 
-    private static bool BillingOnly(IReadOnlySet<Permission> permissions) =>
-        permissions.Contains(Permission.ManageBilling) && !permissions.Contains(Permission.ViewAiUsage);
+    // The same rule as the trial's reminders in the worker (EmailTrialEnding), so the grid shows the default the emails follow.
+    private static bool HandlesBilling(IReadOnlySet<Permission> permissions) => permissions.Contains(Permission.ManageBilling);
 
     private static bool IsIanaZone(string? timeZone) =>
         timeZone is { Length: > 0 and <= MemberPreferences.MaxTimeZoneLength }

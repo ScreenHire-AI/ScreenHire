@@ -254,7 +254,6 @@ export * from './magicLinkVerification.ts';
 export * from './malwareScanStatus.ts';
 export * from './manualAutomationQueued.ts';
 export * from './memberJob.ts';
-export * from './memberNotificationSettings.ts';
 export * from './membershipEventKind.ts';
 export * from './membershipLogEntry.ts';
 export * from './modelPresetView.ts';

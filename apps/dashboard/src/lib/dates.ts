@@ -17,6 +17,8 @@ interface Formatters {
   relative: Intl.RelativeTimeFormat;
   monthDay: Intl.DateTimeFormat;
   dayMonth: Intl.DateTimeFormat;
+  /** Year, month and day in the person's zone, read as numbers to place an instant on a calendar day. */
+  calendarDay: Intl.DateTimeFormat;
 }
 
 let built: Formatters | undefined;
@@ -64,6 +66,7 @@ function formatters(): Formatters {
     relative: new Intl.RelativeTimeFormat(personLocales(), { numeric: 'auto' }),
     monthDay: new Intl.DateTimeFormat(dateLocales(), iso ? { month: '2-digit', day: '2-digit', timeZone } : { month: 'short', day: 'numeric', timeZone }),
     dayMonth: new Intl.DateTimeFormat(dateLocales(), { day: 'numeric', month: 'long', timeZone }),
+    calendarDay: new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'numeric', day: 'numeric', timeZone }),
   };
   return built;
 }
@@ -80,7 +83,7 @@ export const formatDateTime = (iso: string) => formatters().dateTime.format(new 
  */
 export function formatDateIn(iso: string, zone: string): string {
   try {
-    return new Intl.DateTimeFormat(dateLocales(), { dateStyle: 'medium', timeZone: zone }).format(new Date(iso));
+    return new Intl.DateTimeFormat(dateLocales(), { dateStyle: dateSettings.dateFormat === 'Iso' ? 'short' : 'medium', timeZone: zone }).format(new Date(iso));
   } catch {
     return formatDate(iso);
   }
@@ -121,24 +124,28 @@ export function timeSince(iso: string, now: number): string {
 /** The day and month an instant falls on, in the person's zone and locale order: `20 October` in en-GB, `October 20` in en-US. */
 export const formatDayMonth = (iso: string) => formatters().dayMonth.format(new Date(iso));
 
-/** The local day an instant falls on, as a key for grouping: `2026-10-25`. */
+/** The calendar day an instant falls on in the person's zone, the one the dates beside it are written in. */
+function calendarDay(at: Date): { year: number; month: number; day: number } {
+  const parts = formatters().calendarDay.formatToParts(at);
+  const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value);
+  return { year: part('year'), month: part('month'), day: part('day') };
+}
+
+/** The person's day an instant falls on, as a key for grouping: `2026-10-25`. */
 export function dayKey(iso: string): string {
-  const at = new Date(iso);
-  return `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, '0')}-${String(at.getDate()).padStart(2, '0')}`;
+  const { year, month, day: date } = calendarDay(new Date(iso));
+  return `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
 }
 
 /**
- * A day as a heading over that day's items, in the browser's locale: `Today`, `Yesterday`, `Oct 22`, or with the
- * year for another year, `Oct 22, 2025`.
+ * A day as a heading over that day's items, in the person's zone and language: `Today`, `Yesterday`, `Oct 22`, or with
+ * the year for another year, `Oct 22, 2025`.
  */
 export function dayLabel(iso: string, now: number): string {
-  const at = new Date(iso);
-  const today = new Date(now);
+  const at = calendarDay(new Date(iso));
+  const today = calendarDay(new Date(now));
   // A moment past this browser's clock, saved by a server whose clock runs ahead, is still today.
-  const days = Math.max(
-    0,
-    Math.round((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(at.getFullYear(), at.getMonth(), at.getDate())) / day),
-  );
+  const days = Math.max(0, Math.round((Date.UTC(today.year, today.month - 1, today.day) - Date.UTC(at.year, at.month - 1, at.day)) / day));
   if (days === 0 || days === 1) {
     const word = formatters().relative.format(-days, 'day');
     return word.charAt(0).toLocaleUpperCase(personLocales()) + word.slice(1);
@@ -150,7 +157,7 @@ export function dayLabel(iso: string, now: number): string {
 /** A date for a tracker's caption: `Oct 31`, with the year only for another year (`Oct 31, 2025`). */
 export function shortDate(iso: string, now: number): string {
   const at = new Date(iso);
-  return at.getFullYear() === new Date(now).getFullYear() ? formatters().monthDay.format(at) : formatters().date.format(at);
+  return calendarDay(at).year === calendarDay(new Date(now)).year ? formatters().monthDay.format(at) : formatters().date.format(at);
 }
 
 /** Time ago in text: `now`, `5 minutes ago`, `yesterday`; the date once it is more than a week old. */

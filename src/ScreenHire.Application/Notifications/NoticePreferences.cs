@@ -68,7 +68,8 @@ public static class NoticeDefaults
     /// <summary>
     /// The email default. Verification suggested and the AI use alerts follow the organization's alert settings. The trial's
     /// reminders (<paramref name="handlesBilling"/>) start at Instantly, as they have always gone to the people who handle
-    /// billing; the grid shows that default only to someone who handles billing and cannot see AI use.
+    /// billing, and the grid shows that default to everyone who handles billing, so Off is a choice they can save. Someone who
+    /// handles billing and never chose still gets the AI use alerts only while the organization's switch is on.
     /// </summary>
     public static EmailChoice Email(NoticeKind kind, OrganizationAlertDefaults alerts, bool handlesBilling = false)
     {

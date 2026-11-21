@@ -295,7 +295,7 @@ public static partial class ExecuteAutomationActionHandler
         var noCalendar = chosen.Where(id => !usable.ContainsKey(id)).Select(id => byUser[id].Name).ToList();
         if (noCalendar.Count > 0)
         {
-            return Failed($"These interviewers have no working calendar connected: {string.Join(", ", noCalendar)}. Ask them to connect one from the account menu.");
+            return Failed($"These interviewers have no working calendar connected: {string.Join(", ", noCalendar)}. Ask them to connect one in Your account, Connected accounts.");
         }
 
         // The settings validated when the workflow was saved; the host may no longer know the zone, for one.
