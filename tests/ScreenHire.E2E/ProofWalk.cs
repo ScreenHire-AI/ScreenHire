@@ -58,6 +58,7 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         ("organization", _ => "/settings/roles/compare"),
         ("organization", _ => "/settings/roles/viewer"),
         ("organization", scene => $"/settings/roles/{scene.RoleId}"),
+        ("organization", _ => "/settings/tags"),
         ("integrations", _ => "/settings/sending-domain"),
         ("integrations", _ => "/settings/data-requests"),
         ("integrations", _ => "/settings/billing"),

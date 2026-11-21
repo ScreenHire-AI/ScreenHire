@@ -22,6 +22,7 @@ using ScreenHire.Application.Privacy;
 using ScreenHire.Application.Slack;
 using ScreenHire.Application.SendingDomains;
 using ScreenHire.Application.TalentPool;
+using ScreenHire.Application.Tags;
 using ScreenHire.Application.Webhooks;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -207,6 +208,8 @@ public static class ScreenHireMessaging
         // data until the worker registers its blob store first.
         opts.Services.AddScreenHirePrivacy();
         opts.Services.AddScreenHireNotifications();
+        // Settings, Tags: how many applications one rename or delete changes at a time.
+        opts.Services.AddScreenHireTags();
         // The reminders before a free trial ends read the trial's settings and the plan catalogue (docs/architecture/billing.md).
         opts.Services.AddScreenHireTrialReminders();
         // The AI usage sweeps: the spike rule, the retention floor and asking again for paused AI checks.
