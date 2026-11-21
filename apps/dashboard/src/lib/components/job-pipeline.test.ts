@@ -1,5 +1,5 @@
-import type { SavedViewSummary, WorkflowStage } from '@screenhire/api-client';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import type { ApplicationSummary, SavedViewSummary, WorkflowStage } from '@screenhire/api-client';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goto } from '$app/navigation';
 import { preferences } from '#lib/preferences.svelte.js';
@@ -20,7 +20,7 @@ function canSendEmail() {
   vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }) })));
 }
 
-function renderPipeline(overrides: { stages?: WorkflowStage[]; verificationFilter?: VerificationFilter } = {}) {
+function renderPipeline(overrides: { stages?: WorkflowStage[]; applications?: ApplicationSummary[]; verificationFilter?: VerificationFilter } = {}) {
   return render(WithQueryClient, { props: { component: JobPipelineHarness, props: { stages, applications, ...overrides } } });
 }
 
@@ -236,6 +236,25 @@ describe('job pipeline', () => {
     expect(within(panelHeader()).getByRole('button', { name: 'Board' })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('draws no search, filters or Save view for a job nobody applied to, on a laptop or a phone (design system section 7)', () => {
+    renderPipeline({ applications: [] });
+
+    expect(screen.getByText('No candidates yet')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Candidates' })).toBeInTheDocument();
+    expect(within(panelHeader()).getByRole('group', { name: 'View' })).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox', { name: 'Search candidates' })).toBeNull();
+    expect(panel().querySelector('[data-filters]')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save view' })).toBeNull();
+    cleanup();
+
+    stubViewport(390);
+    renderPipeline({ applications: [] });
+    expect(screen.getByText('No candidates yet')).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox', { name: 'Search candidates' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sort' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Stage/ })).toBeNull();
+  });
+
   it('offers the Stage, Verification and Sort chips in one row above the list on a phone (L2, section 8)', () => {
     stubViewport(390);
     renderPipeline();
@@ -378,6 +397,16 @@ describe('job pipeline views', () => {
     expect(await screen.findByText('That view is no longer there, so this shows every candidate.')).toBeInTheDocument();
     expect(names()).toHaveLength(applications.length);
     expect(within(filters()).getByRole('button', { name: 'Save view' })).toBeDisabled();
+  });
+
+  it('says a view is gone on a job nobody has applied to, which draws no filters', async () => {
+    appPage.url = new URL('http://dashboard.test/jobs/job-1?tab=candidates&view=01a157d4-0000-7000-8000-0000000003ff');
+    stubViews([view]);
+    renderPipeline({ applications: [] });
+
+    expect(await screen.findByText('That view is no longer there, so this shows every candidate.')).toBeInTheDocument();
+    expect(screen.getByText('No candidates yet')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save view' })).toBeNull();
   });
 
   describe('rating column', () => {

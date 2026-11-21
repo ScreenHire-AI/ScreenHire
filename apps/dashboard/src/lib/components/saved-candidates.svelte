@@ -102,6 +102,8 @@
     ),
   );
   const filtering = $derived(Boolean(search.trim()) || tagFilter.length > 0 || jobFilter.length > 0);
+  // Nobody saved at all: the panel shows its title and the empty state, with no search over nothing (design system section 7).
+  const bare = $derived(saved.isSuccess && people.length === 0);
 
   // The table sorts (L2) and opens on people by name. Rating sorts by its number, highest first; people with no number
   // (blank, "After yours") stay last either way (as #lib/rating-column.ts, typed for this list). Last contacted
@@ -236,7 +238,7 @@
          only when a search or filter leaves fewer than that (W7). -->
     <Panel title="Saved candidates" count={saved.isSuccess && filtering ? shown.length : undefined} flush>
       {#snippet tools()}
-        <SearchField bind:value={search} label="Search saved candidates" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
+        {#if !bare}<SearchField bind:value={search} label="Search saved candidates" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
       {/snippet}
       {#if jobOptions.length > 0}
         <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">

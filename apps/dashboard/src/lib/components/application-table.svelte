@@ -387,13 +387,16 @@
   <!-- List items have no headers, so the Sort chip offers the headers' choices, beside the page's filters (L2). The row
        stays while a filter leaves nothing to list, so the filter can still change. The filters scroll rather than wrap
        (F5), with no scrollbar drawn under the chips (a chip cut at the edge says there are more), and the Sort chip stays in
-       view at the end. -->
+       view at the end. A page with no filters to draw and no rows has nothing to sort or filter, so it draws no row (design
+       system section 7). -->
+  {#if filters || rows.length > 0}
   <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-2">
     <!-- The filters keep their size and the row scrolls: shrunk to fit, a filter's label is cut to one letter (F5). -->
     <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] *:shrink-0">{@render filters?.()}</div>
     {@render filterAction?.()}
     <SortMenu {table} class="shrink-0" />
   </div>
+  {/if}
   {#if rows.length === 0}
     {@render empty()}
   {:else}
@@ -409,7 +412,9 @@
   <div class={['flex flex-col', fill && 'min-h-0 flex-1']} {onkeydown} {onfocusin}>
     <!-- relative: the containing block for the chips' absolutely placed sr-only labels, so this scroller clips them
          instead of the page scrolling sideways on a phone (F1). On a tablet the table scrolls sideways here, with the
-         checkbox and name columns stuck to its left edge (section 8). -->
+         checkbox and name columns stuck to its left edge (section 8). With no rows there is nothing to put the column headers
+         over, so the empty state stands alone. -->
+    {#if rows.length > 0}
     <div
       bind:this={scrollElement}
       onscroll={(event) => (scrolledSideways = event.currentTarget.scrollLeft > 0)}
@@ -470,6 +475,7 @@
         </tbody>
       </table>
     </div>
+    {/if}
     <!-- Outside the scroller, so a table wider than its panel never pushes the message out of view (F1). -->
     {#if rows.length === 0}{@render empty()}{/if}
   </div>

@@ -152,6 +152,14 @@ describe('my tasks page', () => {
     expect(await screen.findByText('Nothing done yet')).toBeInTheDocument();
   });
 
+  it('draws no search over an empty list, and keeps Open and Done so Done stays reachable (design system section 7)', async () => {
+    renderPage({ 'GET /v1/tasks?status=Open&scope=Everyone': () => Response.json([]) });
+
+    expect(await screen.findByText('Nothing to do')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Search tasks')).toBeNull();
+    expect(screen.getByRole('group', { name: 'Status' })).toBeInTheDocument();
+  });
+
   it("asks for each scope's own done tasks, so a busy team does not crowd out the person's", async () => {
     const fetch = renderPage();
     await screen.findByRole('region', { name: /^(Open|Done) tasks$/ });

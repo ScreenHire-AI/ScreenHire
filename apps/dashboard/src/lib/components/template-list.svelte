@@ -120,6 +120,9 @@
     );
   });
   const filtering = $derived(filter !== 'all' || Boolean(search.trim()));
+  // Nothing of this kind at all, archived included: the panel shows its title and the empty state, with no search or
+  // filters over nothing (design system section 7). One template brings them back.
+  const bare = $derived(!pending && !error && rows.length === 0);
 
   const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { basic: sortFn_basic, alphanumeric: sortFn_alphanumeric } });
   const column = createColumnHelper<typeof features, TemplateRow>();
@@ -198,10 +201,11 @@
 
 <Panel title={view.noun} flush footer={message || failure ? footer : undefined}>
   {#snippet tools()}
-    <SearchField bind:value={search} label={`Search ${view.noun.toLocaleLowerCase()}`} placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
+    {#if !bare}<SearchField bind:value={search} label={`Search ${view.noun.toLocaleLowerCase()}`} placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
   {/snippet}
 
   <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5), each with its count (T4). -->
+  {#if !bare}
   <div class="flex items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
     <div class="min-w-0 flex-1 overflow-x-auto [scrollbar-width:thin]">
       <div role="group" aria-label="Show" class="flex w-max gap-1">
@@ -215,6 +219,7 @@
     </div>
     {#if sidebar.isMobile && !pending}<SortMenu {table} class="shrink-0" />{/if}
   </div>
+  {/if}
 
   {#if error}
     <div class="p-4"><QueryError message={error} {onretry} inset /></div>
