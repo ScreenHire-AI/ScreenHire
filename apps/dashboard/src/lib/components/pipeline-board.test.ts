@@ -80,21 +80,8 @@ describe('pipeline board', () => {
     expect(card('Casey Morgan')).not.toHaveTextContent('·');
   });
 
-  it("shares the board's width among the stages with candidates, at least 264px, and keeps an empty one at 188px (section 5)", async () => {
-    stubApi();
-    renderBoard();
-
-    await screen.findByRole('list', { name: 'Applied stage' });
-    const classes = (id: string) => document.querySelector(`[data-stage-column="${id}"]`)!.classList;
-    for (const id of ['applied', 'screening']) {
-      expect(classes(id)).toContain('flex-1');
-      expect(classes(id)).toContain('min-w-66');
-    }
-    for (const id of ['interview', 'offer']) {
-      expect(classes(id)).toContain('w-47');
-      expect(classes(id)).not.toContain('flex-1');
-    }
-  });
+  // Column widths are layout, which only a browser measures: PipelineTests' widths test checks them (equal shares up to
+  // 384px, least widths 264px and 188px).
 
   it('counts the stages that end a candidacy in one 188px Closed column, without drawing their cards', async () => {
     const rows = [applications[0]!, { ...applications[1]!, stage: { id: 'hired', name: 'Hired', kind: 'Hired' as const } }, { ...applications[2]!, stage: { id: 'rejected', name: 'Rejected', kind: 'Rejected' as const } }];
@@ -222,6 +209,23 @@ describe('pipeline board', () => {
     expect(card('Casey Morgan').querySelector('[data-quiet], [data-status], [data-ai-mark]')).toBeNull();
     expect(within(card('Sam Taylor')).getByText('Verify')).toBeInTheDocument();
     expect(card('Sam Taylor').querySelector('[data-ai-mark]')).toHaveAttribute('data-ai-mark', 'SomeIndicators');
+  });
+
+  it("reads name then status, then tags, then when they applied, with the menu on the first row (the owner's walk-through, 2026-11-21)", async () => {
+    const rows = [{ ...applications[2]!, tags: ['remote', 'senior'], verification: summary({ authenticity: 'VerificationRecommended', authenticityReasons: ['A'] }) }];
+    stubApi({ rows });
+    renderBoard();
+
+    await screen.findByRole('list', { name: 'Applied stage' });
+    const text = card('Sam Taylor').textContent!.replace(/\s+/g, ' ');
+    const at = (words: string) => text.indexOf(words);
+    expect(at('Sam Taylor')).toBeLessThan(at('Verify'));
+    expect(at('Verify')).toBeLessThan(at('remote'));
+    expect(at('remote')).toBeLessThan(at('Applied'));
+    // The menu shares the name's row, so the card has no row for the menu alone.
+    const firstRow = within(card('Sam Taylor')).getByRole('link', { name: 'Sam Taylor' }).closest('li > span')!;
+    expect(within(firstRow as HTMLElement).getByRole('button', { name: 'Actions for Sam Taylor' })).toBeInTheDocument();
+    expect(within(firstRow as HTMLElement).getByText('Verify')).toBeInTheDocument();
   });
 
   it('moves a card into a closed stage from the keyboard, and focus follows to that stage', async () => {

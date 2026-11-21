@@ -29,13 +29,14 @@
   import type { StatusName } from '#lib/status.js';
   import { keptInMindLabel } from '#lib/talent-pool.js';
 
-  // A job's candidates by stage (design system sections 5 and 21). The stages with candidates share the board's width, at
-  // least 264px each, so a wide window gives their cards more room; an empty stage stays a 188px drop target, because
-  // width there holds nothing. The stages that end a candidacy share one 188px Closed column that counts each of them; each of its rows
-  // opens in place to list those candidates (A9), and the table has them too, under the Stage filter. Where the columns
-  // need more than the window, the board scrolls inside itself, sideways and down each column, and never moves the page.
-  // A card holds what a recruiter weighs at a glance: the name and rating, a status only when one needs a look, the tags,
-  // when they applied and, once they have moved on, how long they have been in this stage.
+  // A job's candidates by stage (design system sections 5 and 21). Every stage column shares the board's width equally, at
+  // most 384px, so a board with two busy stages does not stretch their cards across half the screen (the owner's
+  // walk-through, 2026-11-21). When the stages do not fit, a column narrows to its least: 264px with candidates, 188px
+  // empty, so the empty ones give way first. The stages that end a candidacy share one 188px Closed column that counts
+  // each of them; each of its rows opens in place to list those candidates (A9), and the table has them too, under the
+  // Stage filter. Where the columns need more than the window, the board scrolls inside itself, sideways and down each
+  // column, and never moves the page. A card is at most three rows: the name with any status that needs a look and the
+  // menu; the rating and tags; when they applied and, once they have moved on, how long they have been in this stage.
   let {
     applications,
     stages,
@@ -202,7 +203,7 @@
       <section
         aria-labelledby={`stage-${column.stage.id}`}
         data-stage-column={column.stage.id}
-        class={['flex max-h-full flex-col rounded-lg bg-secondary', count > 0 ? 'min-w-66 flex-1 basis-0' : 'w-47 shrink-0']}
+        class={['flex max-h-full max-w-96 flex-1 basis-0 flex-col rounded-lg bg-secondary', count > 0 ? 'min-w-66' : 'min-w-47']}
       >
         <h3 id={`stage-${column.stage.id}`} class="flex min-w-0 items-center gap-2 px-3 pt-3 pb-2 text-body font-semibold">
           <TruncatedText text={column.stage.name} />
@@ -218,61 +219,66 @@
           {#each column.cards as card (card.id)}
             {@const state = stateOf(card.verification)}
             {@const ai = aiMarkOf(card.verification)}
-            <!-- Calm says nothing (section 21): the status row shows only what needs a look or is still waiting. -->
+            <!-- Calm says nothing (section 21): the name shows a status only when it needs a look or is still waiting. -->
             {@const showStatus = isOverdue(card, clock.now) || state.kind !== 'clear' || ai !== undefined}
+            {@const rated = card.rating?.state === 'Rated' || card.rating?.state === 'AfterYourScorecard'}
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions: svelte-dnd-action makes each card focusable (tabindex 0) and draggable; these keys are its non-drag alternative -->
             <li
               data-card-id={card.id}
               aria-label={`${card.candidateName}, ${column.stage.name}`}
-              class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-card p-3 shadow-surface outline-offset-2"
+              class="group flex flex-col gap-2 rounded-lg border border-border-subtle bg-card p-3 shadow-surface outline-offset-2"
               onkeydown={(event) => onkeydown(card, event)}
             >
-              <span class="flex min-w-0 items-center gap-2">
+              <!-- Row 1: who, then any status that needs a look (T2; calm says nothing, section 21), as the application's own
+                   header reads; a long name pushes the status to the next line. The menu sits top right, shown on hover and
+                   focus, always on touch. -->
+              <span class="flex min-w-0 items-start gap-2">
                 <span
                   aria-hidden="true"
                   class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-bold text-secondary-foreground"
                   >{initials(card.candidateName)}</span
                 >
-                <span class="min-w-0 flex-1">
-                  <TruncatedText
-                    href={`/applications/${card.id}`}
-                    tabindex={-1}
-                    text={card.candidateName}
-                    class="font-semibold text-foreground no-underline hover:underline"
-                  />
+                <span class="flex min-h-7 min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                  <span class="min-w-0 max-w-full">
+                    <TruncatedText
+                      href={`/applications/${card.id}`}
+                      tabindex={-1}
+                      text={card.candidateName}
+                      class="font-semibold text-foreground no-underline hover:underline"
+                    />
+                  </span>
+                  {#if showStatus}
+                    <!-- Overdue is the team's status and leads. -->
+                    <OverdueBadge dueAt={card.slaDueAt} />
+                    {#if state.kind !== 'clear'}
+                      <VerificationChip {state} reasons={card.verification?.authenticityReasons.length ?? 0} />
+                    {/if}
+                    <AiMark level={ai} />
+                  {/if}
                 </span>
-                {#if card.rating?.state === 'Rated' || card.rating?.state === 'AfterYourScorecard'}
-                  <span class="relative shrink-0"><Rating rating={card.rating} /></span>
+                {#if moves.allowed}
+                  <span
+                    class="-my-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-state=open]]:opacity-100 pointer-coarse:opacity-100 motion-reduce:transition-none"
+                  >
+                    <ApplicationMenu candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />
+                  </span>
                 {/if}
               </span>
-              {#if showStatus}
-                <!-- Status first (T2); the column already says the stage. Overdue is the team's status and leads. -->
+              {#if rated || card.tags.length > 0}
+                <!-- Row 2: the rating, then the first three tags as facts and how many more (W3, never links). -->
                 <span class="flex flex-wrap items-center gap-1.5">
-                  <OverdueBadge dueAt={card.slaDueAt} />
-                  {#if state.kind !== 'clear'}
-                    <VerificationChip {state} reasons={card.verification?.authenticityReasons.length ?? 0} />
-                  {/if}
-                  <AiMark level={ai} />
-                </span>
-              {/if}
-              {#if card.tags.length > 0}
-                <!-- The first three tags as facts, then how many more (W3, never links). -->
-                <span class="flex flex-wrap items-center gap-1">
+                  {#if rated}<span class="relative shrink-0"><Rating rating={card.rating!} /></span>{/if}
                   {#each card.tags.slice(0, 3) as tag (tag)}<Badge variant="muted" class="max-w-full"><TruncatedText text={tag} /></Badge>{/each}
                   {#if card.tags.length > 3}<Badge variant="muted">+{card.tags.length - 3}</Badge>{/if}
                 </span>
               {/if}
-              <span class="flex items-center gap-2">
-                <span class="flex min-w-0 flex-1 flex-col text-caption text-muted-foreground">
-                  <span class="truncate">Applied <RelativeTime at={card.submittedAt} class="inline" /></span>
-                  <!-- Only once the candidate has moved on from where they started: until then it says the same as above. -->
-                  {#if Date.parse(card.stageEnteredAt) - Date.parse(card.submittedAt) > 60_000}
-                    <span class="truncate">In this stage {timeSince(card.stageEnteredAt, clock.now)}</span>
-                  {/if}
-                </span>
-                <span class="shrink-0">
-                  {#if moves.allowed}<ApplicationMenu candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />{/if}
-                </span>
+              <!-- Row 3: when they applied and, only once they have moved on from where they started, how long they have
+                   been in this stage; until then it would say the same. -->
+              <span class="flex min-w-0 flex-wrap gap-x-3 text-caption text-muted-foreground">
+                <span>Applied <RelativeTime at={card.submittedAt} class="inline" /></span>
+                {#if Date.parse(card.stageEnteredAt) - Date.parse(card.submittedAt) > 60_000}
+                  <span>In this stage {timeSince(card.stageEnteredAt, clock.now)}</span>
+                {/if}
               </span>
             </li>
           {/each}
