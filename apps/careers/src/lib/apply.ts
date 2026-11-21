@@ -410,6 +410,8 @@ export function toRequest(
     embedOrigin?: string | null;
     /** The job board whose link brought the candidate, already checked for shape. */
     source?: string | null;
+    /** The first language tag of the candidate's `Accept-Language`, which the API records to write their emails' dates in. */
+    language?: string | null;
   },
 ): PublicApplicationRequest {
   // The module never runs with the assistive-technology switch on; nothing it might have left is sent either, and no
@@ -448,6 +450,7 @@ export function toRequest(
     telemetry: measured ? (checks.telemetry ?? null) : null,
     embedOrigin: checks.embedOrigin ?? null,
     source: checks.source ?? null,
+    language: checks.language ?? null,
   };
 }
 

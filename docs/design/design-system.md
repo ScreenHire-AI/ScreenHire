@@ -918,8 +918,12 @@ overview waits for the first job, and the empty state says what to do first and 
 | Older than 7 days | The date | Oct 3, 2026 |
 | Last updated (T6) | Time ago and who, the exact time on hover; Created until the first change | 2 hours ago by Avery Quinn; Created 2 hours ago by Avery Quinn |
 
-Always the browser's locale (US English by default), through one shared formatter on `Intl.DateTimeFormat` and
-`Intl.RelativeTimeFormat` (`#lib/dates.ts`). The API never sends formatted dates (`.claude/rules/utc-timestamps.md`).
+Always the reader's locale. The dashboard uses the browser's (US English by default), through one shared formatter on
+`Intl.DateTimeFormat` and `Intl.RelativeTimeFormat` (`#lib/dates.ts`). The careers pages have no script, so the server
+writes every date and time of day with one helper (`apps/careers/src/lib/locale.ts`) from the request's `Accept-Language`,
+the first language `Intl` supports, else en-GB. A candidate's emails use the language recorded with the application (the
+same tag, sent when it was submitted), else en-GB, through one .NET helper (`CandidateLanguage`). Times keep the zone they
+state. The API never sends formatted dates (`.claude/rules/utc-timestamps.md`).
 
 ## 14. Icons
 

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Scheduling;
 
 namespace ScreenHire.Application.Scheduling;
@@ -17,22 +18,23 @@ namespace ScreenHire.Application.Scheduling;
 public static class InterviewText
 {
     /// <summary>
-    /// The interview's time for a reader, in <paramref name="timeZoneId"/>: <c>Tuesday, November 3, 2026, 10:00 AM to 10:30 AM
-    /// (Europe/London)</c>. US English whatever the host's culture, as the careers page writes it (design system section 13);
-    /// a zone this host does not know reads as UTC.
+    /// The interview's time for a reader, in <paramref name="timeZoneId"/> and <paramref name="culture"/> (the candidate's
+    /// recorded language, <see cref="CandidateLanguage.Culture"/>): <c>Tuesday, November 3, 2026, 10:00 AM to 10:30 AM
+    /// (Europe/London)</c> in en-US. The zone and the word "to" stay English. A zone this host does not know reads as UTC.
     /// </summary>
-    public static string Time(DateTimeOffset start, DateTimeOffset end, string timeZoneId)
+    public static string Time(DateTimeOffset start, DateTimeOffset end, string timeZoneId, CultureInfo culture)
     {
+        ArgumentNullException.ThrowIfNull(culture);
         var known = InterviewRequest.TryFindZone(timeZoneId, out var zone);
         var label = known ? timeZoneId : "UTC";
         var from = TimeZoneInfo.ConvertTime(start, zone);
         var to = TimeZoneInfo.ConvertTime(end, zone);
-        var culture = CultureInfo.GetCultureInfo("en-US");
-        var day = from.ToString("dddd, MMMM d, yyyy", culture);
-        var range = from.Date == to.Date
-            ? $"{from.ToString("h:mm tt", culture)} to {to.ToString("h:mm tt", culture)}"
-            : $"{from.ToString("h:mm tt", culture)} to {to.ToString("dddd, MMMM d, h:mm tt", culture)}";
-        return $"{day}, {range} ({label})";
+        var format = culture.DateTimeFormat;
+        var day = CandidateLanguage.Plain(from.ToString(format.LongDatePattern, culture));
+        var until = from.Date == to.Date
+            ? CandidateLanguage.Clock(to, culture)
+            : CandidateLanguage.Plain($"{to.ToString("dddd", culture)}, {to.ToString(format.MonthDayPattern, culture)}, ") + CandidateLanguage.Clock(to, culture);
+        return $"{day}, {CandidateLanguage.Clock(from, culture)} to {until} ({label})";
     }
 
     /// <summary>The length in words: <c>30 minutes</c>, <c>1 hour</c>, <c>1 hour 30 minutes</c>.</summary>

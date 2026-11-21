@@ -26,9 +26,11 @@ import {
   zoneName,
   zoneOptions,
 } from '../../../lib/interview';
+import { localeOf } from '../../../lib/locale';
 
 const { organization, token } = Astro.params;
 const base = basePath(Astro.request, organization!);
+const locale = localeOf(Astro.request);
 
 // A post answers with where to look next, and the page redirects to its own address with it, so a refresh never posts
 // twice. The address carries the zone, the picker and one outcome word; never the posted time.
@@ -60,12 +62,12 @@ const outcome = shownOutcome(query.get('outcome'));
 const notice = noticeFor(outcome);
 const zone = displayZone(interview?.timeZone);
 const minutes = interview?.durationMinutes ?? 30;
-const booked = state === 'Booked' && interview?.startsAt ? describeBooked(interview.startsAt, minutes, zone) : null;
+const booked = state === 'Booked' && interview?.startsAt ? describeBooked(interview.startsAt, minutes, zone, locale) : null;
 const changing = state === 'Booked' && !!interview?.canChange && query.get('change') === '1';
 // The team offered new times: the booked time stays until the candidate picks one, and they may move it whatever the notice.
 const newTimes = state === 'Booked' && !!interview?.newTimesOffered;
 const picking = state === 'Open' || changing;
-const days = interview ? groupByDay(interview.slots, zone) : [];
+const days = interview ? groupByDay(interview.slots, zone, locale) : [];
 const screen = screenOf(days, query.get('from'));
 const reference = new Date(interview?.slots[0] ?? interview?.startsAt ?? Date.now());
 const zones = interview ? zoneOptions(displayZone(interview.defaultTimeZone), zone, reference) : [];

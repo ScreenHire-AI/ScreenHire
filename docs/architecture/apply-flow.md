@@ -33,6 +33,7 @@ sources:
   - resource: packages/ui/src/questions/FileField.svelte
   - resource: packages/ui/src/questions/DropArea.svelte
   - resource: apps/api/Applications/ApplicationDrafts.cs
+  - resource: apps/careers/src/lib/locale.ts
   - resource: apps/api/Endpoints/PublicApplicationDraftEndpoints.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationDraft.cs
   - resource: src/ScreenHire.Application/Applications/DraftRetention.cs
@@ -112,6 +113,14 @@ link brought the candidate (below; like `SourceSite` it tags the link they follo
 and drops anything else without refusing the application. Nothing is read or stored at browsing time: the value is
 recorded with the application, after the notice. A saved draft's link does not carry `src`, so an application finished from
 a draft counts as the careers page. The automation fact `application.source` and the verification checks do not read it.
+
+`Language` is how the candidate's emails write dates, not a signal. The apply action sends the first tag of the request's
+`Accept-Language` as `language` with the submission and with the first save of a draft; `SubmitPublicApplication` keeps it as
+`JobApplication.Language` when it has the shape of a language tag (`CandidateLanguage.Normalize`) and drops anything else without
+refusing the application. A save's email uses the language the save request named, because no application exists yet. Nothing is
+stored at browsing time, and no check reads it ([email](email.md), "Dates in the candidate's language"). The pages write dates
+the same way from the request itself: every careers page reads `Accept-Language` on the server (`localeOf`, `apps/careers/src/lib/locale.ts`:
+the first language `Intl` supports, else en-GB), so a date and a time of day follow the reader and the pages still ship no script.
 
 
 Neither refuses a submission (CLAUDE.md non-negotiable 2), and knockout answers are stored like any other.

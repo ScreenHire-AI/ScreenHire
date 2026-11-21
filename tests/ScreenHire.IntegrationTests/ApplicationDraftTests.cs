@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -56,6 +57,41 @@ public sealed partial class ApplicationDraftTests(AppHostFixture fixture)
         var again = await client.GetFromJsonAsync<JsonElement>(DraftPath(organization, token), Ct);
         again.GetProperty("answers").GetArrayLength().Should().Be(2);
         (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().ContainSingle("saving again by the link sends no second email");
+    }
+
+    [Fact]
+    public async Task The_draft_email_writes_its_date_in_the_language_of_the_browser_that_saved_it_and_en_GB_without_one()
+    {
+        var (organization, job) = await OrganizationWithEngineeringJobAsync();
+        using var client = fixture.CreateHttpClient("api");
+        var german = ApiSession.NewEmail("draft");
+        var none = ApiSession.NewEmail("draft");
+        var junk = ApiSession.NewEmail("draft");
+
+        var withGerman = Draft(german, ("work_authorization", "yes"));
+        withGerman["language"] = "de-DE";
+        var withJunk = Draft(junk, ("work_authorization", "yes"));
+        withJunk["language"] = "<script>";
+        var germanReceipt = await PostAsync(client, organization, job, withGerman);
+        var noneReceipt = await PostAsync(client, organization, job, Draft(none, ("work_authorization", "yes")));
+        await PostAsync(client, organization, job, withJunk);
+
+        var date = germanReceipt.GetProperty("expiresAt").GetDateTimeOffset().UtcDateTime;
+        var deText = (await fixture.Mailpit.WaitForMessagesAsync(german, 1, Ct)).Single().Text;
+        deText.Should().Contain(string.Create(CultureInfo.InvariantCulture, $"{date.Day}. ") + CultureInfo.GetCultureInfo("de-DE").DateTimeFormat.GetMonthName(date.Month));
+
+        var noneDate = noneReceipt.GetProperty("expiresAt").GetDateTimeOffset().UtcDateTime;
+        var enText = (await fixture.Mailpit.WaitForMessagesAsync(none, 1, Ct)).Single().Text;
+        enText.Should().Contain(string.Create(CultureInfo.InvariantCulture, $"{noneDate.Day} ") + CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(noneDate.Month));
+
+        (await fixture.Mailpit.WaitForMessagesAsync(junk, 1, Ct)).Single().Text.Should().Contain("works until", "a language that is not a language tag never refuses the save");
+    }
+
+    private static async Task<JsonElement> PostAsync(HttpClient client, Organization organization, Job job, JsonObject body)
+    {
+        var response = await client.PostAsJsonAsync(DraftsPath(organization, job), body, Ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
+        return await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
     }
 
     [Fact]

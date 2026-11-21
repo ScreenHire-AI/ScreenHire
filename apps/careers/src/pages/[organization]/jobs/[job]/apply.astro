@@ -29,7 +29,8 @@ import {
   type ApplyState,
 } from '../../../../lib/apply';
 import { HONEYPOT_FIELD } from '../../../../lib/apply-server';
-import { fromDraft, longDate } from '../../../../lib/drafts';
+import { fromDraft } from '../../../../lib/drafts';
+import { localeOf, longDate } from '../../../../lib/locale';
 import { isToken } from '../../../../lib/questionnaire';
 import { answeredCount, describeSize, TextField } from '@screenhire/ui/questions';
 import { isOrigin, useEmbedding, withEmbed } from '../../../../lib/embed';
@@ -38,6 +39,7 @@ import { basePath } from '../../../../lib/host';
 
 const { organization, job: jobSlug } = Astro.params;
 const base = basePath(Astro.request, organization!);
+const locale = localeOf(Astro.request);
 const result = Astro.getActionResult(actions.apply);
 if (result?.data?.outcome === 'submitted') {
   // Inside the widget the confirmation stays in the frame; the applied page checks the site against the list again.
@@ -207,13 +209,13 @@ const answerText = (questionId: string): string => {
           <Notice
             kind="success"
             message={saved.emailed
-              ? `Saved. We emailed a link to ${saved.email} to finish by ${longDate(saved.expiresAt)}.`
-              : `Saved. The link we emailed to ${saved.email} opens these answers until ${longDate(saved.expiresAt)}.`}
+              ? `Saved. We emailed a link to ${saved.email} to finish by ${longDate(saved.expiresAt, locale)}.`
+              : `Saved. The link we emailed to ${saved.email} opens these answers until ${longDate(saved.expiresAt, locale)}.`}
             detail="Files are not kept, so attach them again when you come back. You can also carry on now."
           />
         )}
         {draft && step === 'details' && (
-          <Notice kind="success" message="Welcome back. Your saved answers are filled in." detail={`Attach your files again. We keep your answers until ${longDate(draft.expiresAt)}.`} />
+          <Notice kind="success" message="Welcome back. Your saved answers are filled in." detail={`Attach your files again. We keep your answers until ${longDate(draft.expiresAt, locale)}.`} />
         )}
         {draftProblem && (
           <Notice

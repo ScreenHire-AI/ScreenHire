@@ -29,7 +29,8 @@ export const CreatePublicApplicationDraftBody = zod.object({
   "accommodationRequested": zod.boolean().default(createPublicApplicationDraftBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(createPublicApplicationDraftBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullish(),
-  "botCheckToken": zod.string().nullish()
+  "botCheckToken": zod.string().nullish(),
+  "language": zod.string().nullish()
 }).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\nbeyond the first name and the email the link goes to.')
 
 export const CreatePublicApplicationDraftResponse = zod.object({
@@ -691,7 +692,8 @@ export const SubmitPublicApplicationBody = zod.object({
 }).describe('One cumulative snapshot of one page view\'s form telemetry: session aggregates only (CLAUDE.md non-negotiable 4), never\nkeystrokes, key values, timings per key or field content. Unknown members are refused, so nothing else can travel in\nit.')]).optional(),
   "keepForFutureRoles": zod.boolean().default(submitPublicApplicationBodyKeepForFutureRolesDefault),
   "embedOrigin": zod.string().nullish(),
-  "source": zod.string().nullish()
+  "source": zod.string().nullish(),
+  "language": zod.string().nullish()
 }).describe('A candidate\'s application from the careers page. The candidate is matched by email within the organization and\ncreated if new; an existing candidate\'s details are never changed by a public submission.')
 
 export const SubmitPublicApplicationResponse = zod.object({
@@ -748,7 +750,8 @@ export const SavePublicApplicationDraftBody = zod.object({
   "accommodationRequested": zod.boolean().default(savePublicApplicationDraftBodyAccommodationRequestedDefault),
   "aiUseDeclaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(savePublicApplicationDraftBodyAiUseDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
   "aiUseDetails": zod.string().nullish(),
-  "botCheckToken": zod.string().nullish()
+  "botCheckToken": zod.string().nullish(),
+  "language": zod.string().nullish()
 }).describe('What a candidate saves of the apply form to finish later (ApplicationDraft): their details, their\nanswers to the non-file questions, the assistive-technology switch and the AI-use answer. Nothing is required yet\nbeyond the first name and the email the link goes to.')
 
 export const SavePublicApplicationDraftResponse = zod.object({

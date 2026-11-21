@@ -253,7 +253,8 @@ internal static class PublicApplicationEndpoints
             await turnstile.VerifyAsync(request.BotCheckToken, remoteAddress, cancellationToken),
             futureRoles,
             await SourceSiteAsync(request.EmbedOrigin, job.OrganizationId, outbox.DbContext, cancellationToken),
-            SourceBoard(request.Source));
+            SourceBoard(request.Source),
+            CandidateLanguage.Normalize(request.Language));
 
         var submitted = await ApplicationSubmission.SubmitAsync(
             outbox, job, ApplicationSubmission.CandidateDetails.From(request.Candidate),
