@@ -117,7 +117,8 @@ carries, and a template cannot add one. The rendered subject is one line, cut at
 
 - Variables: `candidateName` (the full name), `firstName`, `lastName`, `jobTitle`, `organizationName`, `stageName`,
   `reason` in the rejection email only, and `questionnaireLink` in the follow-up questions email only. Nothing else, and
-  no member access (`candidateName.size`). A candidate from before the apply form asked for two names has their whole
+  no member access (`candidateName.size`), except `meeting.name` in the interview emails: what the candidate's stage calls
+  the meeting, in lower case (`trial shift`, `interview` when the stage names none). A candidate from before the apply form asked for two names has their whole
   name as `firstName` and an empty `lastName`. The built-in templates greet the candidate by `firstName`.
 - Tags: `if`, `unless`, `case` and comments. No `assign`, `for`, `include`, `render`, `raw` or other tags, and no ranges, so a
   template cannot loop or read anything beyond its values. Rendering also has a step limit.
@@ -129,7 +130,9 @@ carries, and a template cannot add one. The rendered subject is one line, cut at
 - The interview emails ([interview scheduling](interview-scheduling.md)) are sent only by scheduling, which makes their
   links, so like the talent pool invitation they are `invitationOnly` in the API: the composer never offers them, the
   generic send route refuses them and no `SendEmail` action may name them. `interview-invitation` must use
-  `{{ bookingLink }}` and may use `{{ interviewLength }}`. `interview-confirmation` must use `{{ interviewTime }}` and
+  `{{ bookingLink }}` and may use `{{ interviewLength }}`. Every interview email may use `{{ meeting.name }}`, and the built-in
+  wording does, so a trial shift is not called an interview; start a sentence with it as `{{ meeting.name | capitalize }}`.
+  `interview-confirmation` must use `{{ interviewTime }}` and
   `{{ manageLink }}` and may use `{{ meetingLink }}` (empty until the organizer's calendar event has one, so wrap it in
   `{% if meetingLink != blank %}`) and `{{ interviewLength }}`. `interview-cancelled` may use `{{ interviewTime }}`, which
   is empty when the offer was withdrawn before a time was booked. `interview-new-times` must use `{{ bookingLink }}` and may use

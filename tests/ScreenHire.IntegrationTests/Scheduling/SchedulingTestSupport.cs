@@ -97,11 +97,12 @@ internal static class SchedulingTestSupport
     /// </summary>
     public static async Task<Guid> AddInterviewAsync(
         this AppHostFixture fixture, JobApplication application, Guid[] interviewers, CancellationToken cancellationToken,
-        int minutes = 30, DateTimeOffset? windowStart = null, DateTimeOffset? windowEnd = null, DateTimeOffset? createdAt = null)
+        int minutes = 30, DateTimeOffset? windowStart = null, DateTimeOffset? windowEnd = null, DateTimeOffset? createdAt = null,
+        string? meetingName = null)
     {
         var now = createdAt ?? Now();
         var interview = InterviewRequest.Create(
-            application, minutes, windowStart ?? now, windowEnd ?? now.AddDays(14), "UTC", null, now);
+            application, minutes, windowStart ?? now, windowEnd ?? now.AddDays(14), "UTC", null, now, meetingName: meetingName);
         await using var db = await fixture.ContextAsync(application.OrganizationId, cancellationToken);
         db.InterviewRequests.Add(interview);
         for (var i = 0; i < interviewers.Length; i++)

@@ -91,8 +91,10 @@ who accepts an invitation (S), and the small readability fixes in Reports and Jo
 
 1. **Confirm a move, with what it will do.** Built: a dialog lists what entering the stage does, with Don't ask again kept
    per person ([workflow engine](architecture/workflow-engine.md)). Kept here so the numbers hold. (#166)
-2. **Name a stage's meeting.** Interview reminders and the booking page say "interview" for a trial shift. A
-   per-stage meeting name fixes the word. It is a backend change. Size S to M. (#147)
+2. **Name a stage's meeting.** Built: a stage's `meetingName` ("trial shift") replaces the word "interview" in the
+   interview emails, the booking page, the candidate's page, the scheduling sheet and the calendar event
+   ([interview scheduling](architecture/interview-scheduling.md#the-stages-meeting-name)). The Trade role template's
+   trial shift stage names it in Trade role version 3 and Hospitality version 2. (#147)
 
 #### Integrations
 

@@ -214,12 +214,13 @@ public sealed partial class PublicPortalTests(AppHostFixture fixture)
         using var world = await fixture.NewWorldAsync();
         using var client = NewClient();
         var application = await fixture.AddApplicationAsync(world.OrganizationId, Ct);
-        await fixture.AddInterviewAsync(application, [world.Owner.UserId], Ct);
+        await fixture.AddInterviewAsync(application, [world.Owner.UserId], Ct, meetingName: "trial shift");
         var token = Signer().Issue(world.OrganizationId, application.CandidateId);
 
         var portal = await client.GetFromJsonAsync<JsonElement>($"{Base(world.Slug)}/{token}", Ct);
         var waiting = portal.GetProperty("applications")[0].GetProperty("waiting").EnumerateArray().Single();
         waiting.GetProperty("kind").GetString().Should().Be("Interview");
+        waiting.GetProperty("meetingName").GetString().Should().Be("trial shift", "the page says what the stage calls the meeting");
         var interview = await client.GetFromJsonAsync<JsonElement>(
             $"/v1/public/organizations/{world.Slug}/interviews/{waiting.GetProperty("token").GetString()}", Ct);
         interview.GetProperty("state").GetString().Should().Be("Open");

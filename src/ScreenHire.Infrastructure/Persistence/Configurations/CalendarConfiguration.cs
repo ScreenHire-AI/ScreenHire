@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Scheduling;
@@ -58,6 +59,7 @@ internal sealed class InterviewRequestConfiguration : IEntityTypeConfiguration<I
         builder.Property(r => r.TimeZone).HasMaxLength(InterviewRequest.MaxTimeZoneLength);
         builder.Property(r => r.MeetingUrl).HasMaxLength(InterviewRequest.MaxMeetingUrlLength);
         builder.Property(r => r.SourceKey).HasMaxLength(InterviewRequest.MaxSourceKeyLength);
+        builder.Property(r => r.MeetingName).HasMaxLength(WorkflowStage.MaxMeetingNameLength);
 
         // The request goes with its application (and so its job), like the other rows under an application.
         builder.HasOne<JobApplication>().WithMany()

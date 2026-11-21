@@ -93,6 +93,8 @@ public enum PublicInterviewState
 /// times are offered; trying again later may work. <c>minNoticeHours</c> is how long before the start the candidate can
 /// still move or cancel. <c>newTimesOffered</c> is true while the team's offer of new times waits for the candidate: the
 /// booked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.
+/// <c>meetingName</c> is what the team calls the meeting (the stage's meeting name), in lower case, such as "trial shift"
+/// or "interview"; the page uses it for its title, headings and buttons.
 /// Nothing about the interviewers, and nothing from verification.
 /// </summary>
 public sealed record PublicInterview(
@@ -108,7 +110,8 @@ public sealed record PublicInterview(
     bool SlotsUnavailable,
     bool CanChange,
     int MinNoticeHours,
-    bool NewTimesOffered);
+    bool NewTimesOffered,
+    string MeetingName);
 
 /// <summary>The start time the candidate picked, one of the offered <c>slots</c>.</summary>
 public sealed record PublicInterviewChoice(DateTimeOffset Start);

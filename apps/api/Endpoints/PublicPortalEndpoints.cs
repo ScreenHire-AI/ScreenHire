@@ -213,7 +213,7 @@ internal static class PublicPortalEndpoints
                     .Select(r => new PublicPortalWaiting(PublicPortalWaitingKind.Questionnaire, questionnaireLinks.Issue(r))));
                 waiting.AddRange(interviews
                     .Where(i => i.ApplicationId == application.Id && i.EffectiveStatus(now) == InterviewStatus.Open)
-                    .Select(i => new PublicPortalWaiting(PublicPortalWaitingKind.Interview, interviewLinks.Issue(i))));
+                    .Select(i => new PublicPortalWaiting(PublicPortalWaitingKind.Interview, interviewLinks.Issue(i), i.MeetingNameOrDefault())));
             }
 
             applications.Add(new PublicPortalApplication(

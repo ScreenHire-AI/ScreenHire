@@ -172,7 +172,8 @@ internal static class InterviewEndpoints
         }
 
         var interview = InterviewRequest.Create(
-            application, request.DurationMinutes, request.WindowStart, request.WindowEnd, request.TimeZone!, tenant.UserId, now, dayStart, dayEnd);
+            application, request.DurationMinutes, request.WindowStart, request.WindowEnd, request.TimeZone!, tenant.UserId, now, dayStart, dayEnd,
+            meetingName: job.Workflow.FindStage(application.CurrentStageId)?.MeetingName);
         var attendees = chosen
             .Select((userId, index) => InterviewAttendee.Create(interview, userId, isOrganizer: index == 0, usable[userId]))
             .ToList();

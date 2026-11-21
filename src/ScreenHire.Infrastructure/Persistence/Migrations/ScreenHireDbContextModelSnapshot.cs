@@ -3420,6 +3420,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lookup_start");
 
+                    b.Property<string>("MeetingName")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("meeting_name");
+
                     b.Property<string>("MeetingUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")

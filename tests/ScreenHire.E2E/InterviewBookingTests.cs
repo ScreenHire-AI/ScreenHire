@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace ScreenHire.E2E;
@@ -27,7 +28,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         var response = await Page.GotoAsync(scene.Link);
         response!.Status.Should().Be(200);
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Pick a time for your interview");
-        await Expect(Page.Locator("main")).ToContainTextAsync($"{scene.JobTitle}. The interview takes 30 minutes.");
+        await Expect(Page.Locator("main")).ToContainTextAsync(new Regex($"Your interview for {Regex.Escape(scene.JobTitle)} at .+ takes 30 minutes\\."));
         (await Page.Locator("script:not([type='application/ld+json'])").CountAsync()).Should().Be(0, "the page ships no JavaScript");
         (await Page.Locator("[style]").CountAsync()).Should().Be(0, "the content security policy forbids inline styles");
         await Expect(Page.Locator("#tz")).ToHaveValueAsync("UTC");
@@ -35,7 +36,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
 
         // Pressing Book without a time books nothing and asks for one. The times carry no `required`: a closed day's radio
         // cannot take the browser's focus, so the browser would refuse the post without a word.
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Book your interview" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Pick a time for your interview");
         await Expect(Page.Locator("main")).ToContainTextAsync("Choose a time first.");
         (await scene.Interview(Ct)).GetProperty("status").GetString().Should().Be("Open");
@@ -54,7 +55,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
 
         morning = await OpenDayWithAsync("2:30 PM"); // the shots reopened the page in a new browser context
         await morning.CheckAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Book your interview" }).ClickAsync();
 
         // Back on the same address without the time that was posted, now booked, in the same zone.
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
@@ -118,7 +119,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await WithoutJavaScriptAsync();
         await Page.GotoAsync(scene.Link);
         await Page.GetByRole(AriaRole.Radio).First.CheckAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Book your interview" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
 
         // The interview is in UTC, so the day on the page is the start's UTC day.
@@ -140,6 +141,25 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await Expect(booked).ToContainTextAsync(britishDay);
         await Expect(booked).ToContainTextAsync($"{start.ToString("HH:mm", gb)} to {end.ToString("HH:mm", gb)}");
         await Expect(booked).Not.ToContainTextAsync(americanDay);
+    }
+
+    [Fact]
+    public async Task A_stage_that_calls_its_meeting_a_trial_shift_gives_the_page_and_the_confirmation_those_words()
+    {
+        using var scene = await SceneAsync("trial shift");
+        await WithoutJavaScriptAsync();
+        await Page.GotoAsync(scene.Link);
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Pick a time for your trial shift");
+        await Expect(Page).ToHaveTitleAsync(new Regex("^Pick a time for your trial shift"));
+        await Expect(Page.Locator("main")).ToContainTextAsync(new Regex($"Your trial shift for {Regex.Escape(scene.JobTitle)} at .+ takes 30 minutes\\."));
+        await Expect(Page.Locator("main")).Not.ToContainTextAsync("interview");
+
+        await Page.Locator("main form details").First.GetByRole(AriaRole.Radio).First.CheckAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Book your trial shift" }).ClickAsync();
+
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your trial shift is booked");
+        await Expect(Page.Locator("summary", new() { HasText = "Cancel this trial shift" })).ToBeVisibleAsync();
+        (await WaitForEmailAsync(scene.Candidate, "Your trial shift with")).Subject.Should().EndWith("is set");
     }
 
     [Fact]
@@ -193,7 +213,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         (await summary.EvaluateAsync<string>("e => getComputedStyle(e, '::after').content")).Should().Be("\"Time picked\"");
         await summary.ClickAsync();
         await Expect(third).ToHaveAttributeAsync("open", "");
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Book your interview" }).ClickAsync();
 
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Your time" })).ToContainTextAsync(dayHeading);
@@ -208,7 +228,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await WithoutJavaScriptAsync();
         await Page.GotoAsync(scene.Link);
         await Page.GetByRole(AriaRole.Radio).First.CheckAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Book your interview" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
         var interviewId = (await scene.Interview(Ct)).GetProperty("id").GetGuid();
 
@@ -221,7 +241,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         }
 
         // The email carries the link, and the page says the booked time stays until the candidate picks.
-        InterviewLink().IsMatch((await WaitForEmailAsync(scene.Candidate, "New times to talk")).Text).Should().BeTrue();
+        InterviewLink().IsMatch((await WaitForEmailAsync(scene.Candidate, "New times for your interview")).Text).Should().BeTrue();
         await Page.GotoAsync(scene.Link);
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("The team offered new times");
         await Expect(Page.Locator("main")).ToContainTextAsync("Your booked time stays until you pick a new one, and you can keep it.");
@@ -334,7 +354,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
 
     // A new organization with a job, an application, two members who each connected a sandbox calendar, and an interview
     // the owner offered for the next two weeks. Returns the link the candidate's email carries.
-    private async Task<Scene> SceneAsync()
+    private async Task<Scene> SceneAsync(string? meetingName = null)
     {
         var ownerEmail = ApiSession.NewEmail("e2e-interview");
         var recruiterEmail = ApiSession.NewEmail("e2e-interviewer");
@@ -374,6 +394,15 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
                     applicantLocationRequirements = Britain,
                 },
                 Ct), HttpStatusCode.Created);
+            if (meetingName is not null)
+            {
+                // Applications start in the first stage, so that stage names the meeting the interview is offered under.
+                var workflow = JsonNode.Parse(job.GetProperty("workflow").GetRawText())!.AsObject();
+                workflow["stages"]!.AsArray()[0]!.AsObject()["meetingName"] = meetingName;
+                await ReadAsync(await owner.PutAsync(
+                    $"/v1/jobs/{job.GetProperty("id").GetGuid()}/workflow", new { workflow, expectedWorkflowVersion = 1 }, Ct), HttpStatusCode.OK);
+            }
+
             var application = await ReadAsync(await owner.PostAsync(
                 $"/v1/jobs/{job.GetProperty("id").GetGuid()}/applications", new { candidate = new { fullName = "Riley Chen", email = candidate } }, Ct), HttpStatusCode.Created);
             var applicationId = application.GetProperty("id").GetGuid();

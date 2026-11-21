@@ -395,6 +395,32 @@ public sealed class InterviewRequestTests
         request.MeetingUrl.Should().BeNull();
     }
 
+    [Theory]
+    [InlineData("trial shift", "trial shift")]
+    [InlineData("  phone screen ", "phone screen")]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData("   ", null)]
+    public void The_request_keeps_the_meeting_name_it_was_made_with_and_reads_interview_without_one(string? given, string? stored)
+    {
+        var (application, _) = Requested();
+
+        var request = InterviewRequest.Create(application, 30, WindowStart, WindowEnd, "UTC", Recruiter, Now, meetingName: given);
+
+        request.MeetingName.Should().Be(stored);
+        request.MeetingNameOrDefault().Should().Be(stored ?? "interview");
+    }
+
+    [Fact]
+    public void A_meeting_name_over_forty_characters_is_refused_and_forty_is_kept()
+    {
+        var (application, _) = Requested();
+
+        InterviewRequest.Create(application, 30, WindowStart, WindowEnd, "UTC", Recruiter, Now, meetingName: new string('a', 40)).MeetingName.Should().HaveLength(40);
+        FluentActions.Invoking(() => InterviewRequest.Create(application, 30, WindowStart, WindowEnd, "UTC", Recruiter, Now, meetingName: new string('a', 41)))
+            .Should().Throw<ArgumentException>().WithParameterName("meetingName");
+    }
+
     private static bool CandidateMayChange(InterviewRequest request, DateTimeOffset now) => request.CanBeChangedByCandidate(now, TimeSpan.FromHours(24));
 
     private static (JobApplication Application, InterviewRequest Request) Requested()
