@@ -239,7 +239,7 @@ internal static class BillingEndpoints
         if (Entitlement.StateOf(account, time.GetUtcNow()) is BillingState.Active or BillingState.PastDue)
         {
             return TypedResults.Problem(
-                "This organization already has a subscription. Open the payment portal to change the plan.",
+                "This organization already has a subscription. Switch to another plan from the plans on the Billing page.",
                 statusCode: StatusCodes.Status409Conflict);
         }
 
@@ -282,7 +282,7 @@ internal static class BillingEndpoints
         var state = Entitlement.StateOf(account, time.GetUtcNow());
         if (state == BillingState.PastDue)
         {
-            return new PlanChangeCheck(null, Conflict: "Your last payment failed. Update your payment details with Manage billing before changing plan.");
+            return new PlanChangeCheck(null, Conflict: "Your last payment failed. Change the card on the Billing page before changing plan.");
         }
 
         if (state != BillingState.Active || account.ProviderSubscriptionId is null)
@@ -293,12 +293,12 @@ internal static class BillingEndpoints
         // A subscription set to end has no next payment to price, and a switch would not undo the cancellation.
         if (account.CancelsAtPeriodEnd)
         {
-            return new PlanChangeCheck(null, Conflict: "Your subscription is set to end. To keep it on another plan, renew it with Manage billing first.");
+            return new PlanChangeCheck(null, Conflict: "Your subscription is set to end. To keep it on another plan, renew it first: Change card on the Billing page opens the payment page.");
         }
 
         if (catalogue.Find(account.PlanKey) is not { } current)
         {
-            return new PlanChangeCheck(null, Conflict: "Your current plan is not one that is on offer, so a change cannot be priced here. Use Manage billing.");
+            return new PlanChangeCheck(null, Conflict: "Your current plan is not one that is on offer, so a change cannot be priced here. Change card on the Billing page opens the payment page, where it can change.");
         }
 
         if (string.Equals(current.Key, plan.Key, StringComparison.OrdinalIgnoreCase))
@@ -389,7 +389,7 @@ internal static class BillingEndpoints
         catch (BillingProviderException)
         {
             return TypedResults.Problem(
-                "The payment provider did not confirm the change. If your plan has not changed in a moment, check your payment details with Manage billing before trying again.",
+                "The payment provider did not confirm the change. If your plan has not changed in a moment, check your card with Change card before trying again.",
                 statusCode: StatusCodes.Status502BadGateway);
         }
 

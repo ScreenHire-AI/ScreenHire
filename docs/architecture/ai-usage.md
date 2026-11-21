@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "AI usage, budgets and the cap"
-description: "What ScreenHire records about every model call and what hangs on it: the provider presets for an own key, the append-only usage ledger with the provider's request id, tokens and cost, how a cost is found without a price list in code, the monthly budget, its 50, 80 and 100 percent alerts, the spike rule, the Owner's hard cap that pauses only the AI-based checks, resuming them, retention, who may see usage, the CSV, and what is not recorded."
+description: "What ScreenHire records about every model call and what hangs on it: the provider presets for an own key, the append-only usage ledger with the provider's request id, tokens and cost, how a cost is found without a price list in code, the one amount a customer sees for it, the monthly budget in billed dollars, its 50, 80 and 100 percent alerts, the spike rule, the Owner's hard cap that pauses only the AI-based checks, resuming them, retention, who may see usage, the CSV, and what is not recorded."
 tags: [verification, llm, usage, billing, notifications, tenancy]
 sources:
   - resource: src/ScreenHire.Domain/Verification/AiUsageCall.cs
@@ -9,6 +9,7 @@ sources:
   - resource: src/ScreenHire.Domain/Verification/VerificationSettings.cs
   - resource: src/ScreenHire.Infrastructure/Verification/Llm/AiUsageRecorder.cs
   - resource: src/ScreenHire.Infrastructure/Verification/Llm/AiUsageQueries.cs
+  - resource: src/ScreenHire.Infrastructure/Verification/Llm/AiUsageLimitsInForce.cs
   - resource: src/ScreenHire.Infrastructure/Verification/VerificationOptions.cs
   - resource: src/ScreenHire.Application/Verification/Models/ModelPresets.cs
   - resource: src/ScreenHire.Application/Verification/Models/OrganizationModels.cs
@@ -34,7 +35,7 @@ model today. People are wary of token use, and a provider's own dashboard shows 
 every call itself and shows it: the same numbers an organization can put next to its provider's bill, one to one, with the
 provider's own id for each response. The built-in key is billed at the provider's price plus a margin
 ([billing](billing.md#ai-usage): the worker reports each call to the payment provider's meter every 15 minutes). An organization's own
-key costs it nothing extra.
+key costs it nothing extra. Every amount shown for AI use is the one the customer pays (see "The amount shown" below).
 
 ## Providers
 
@@ -92,10 +93,29 @@ The margin is `ScreenHire:Billing:Ai:Margin` (default 0.20 from `packages/plans/
 (1 + margin) in whole micro-dollars, once, and `ai_usage_charges` records which ledger calls are settled, because this table is
 append-only and its rows commit late ([billing](billing.md#ai-usage)). A call whose cost is unknown is never charged.
 
+### The amount shown
+
+A customer sees one amount for AI use, the amount they pay, and never our margin (the owner's walk-through, 2026-11-21). The ledger keeps
+the provider's price; what the app shows is `AiCharge.Billed`:
+
+| Key | Amount | Label |
+|---|---|---|
+| ScreenHire's | the cost times (1 + margin), rounded to a micro-dollar: the figure the meter is sent | Cost |
+| The organization's own | the provider's price, which that provider charges; ScreenHire never bills it | Charged by your provider (estimate) |
+
+The margin is `BillingOptions.AiMarginInForce`: `Ai:Margin` while billing is on, 0 while it is off, because nobody is billed then. The
+summary (totals, by day, by model, by key), the call list, its CSV's `cost_usd`, the Activity log and its CSV, the budget and the cap, and
+the Billing page all use it (`AiUsageQueries.BilledAmount` where Postgres sums it). On the Usage tab the Cost tile is ScreenHire's key, and
+an own key's amount is its own line under it ("$0.12 more charged by your provider (estimate)"), its own column in the by-day table and
+"estimate" after its cost in the by-model table: the two are never added into one figure. Money shows with two decimals, and an amount
+above zero that would round to $0.00 reads "Under $0.01".
+
 ## Budget, alerts and the cap
 
-An Owner sets a monthly budget and an optional cap, in tokens or in dollars (one unit for both), with
-`PUT /v1/organization/ai-usage/limits`. That route needs Manage billing, an Owner-only permission, so an Admin who may edit the
+An Owner sets a monthly budget and an optional cap, in US dollars to the cent, with `PUT /v1/organization/ai-usage/limits`. Both count
+billed dollars, the amount above (owner decision, 2026-11-21), so a cap of $50 stops at $50 billed. A limit needs a price for the key in
+use: an own key's two prices, or the deployment's price for its model; with none the route refuses one, on the field it is about, and the
+form says why instead of showing its fields. Removing both always works. That route needs Manage billing, an Owner-only permission, so an Admin who may edit the
 rest of Verification cannot change spend controls. The month is the UTC calendar month and its use is the sum of the ledger.
 
 - **Budget.** Warns, stops nothing. A notification in the bell, and an email or Slack message when the organization chose them
@@ -108,20 +128,16 @@ rest of Verification cannot change spend controls. The month is the UTC calendar
 - **Defaults.** With no budget or cap of its own, ScreenHire's key falls back to `Llm:DefaultMonthlyTokenBudget` and
   `Llm:DefaultMonthlyTokenCap` (2,000,000 tokens each; a cap of 0 turns the deployment's off), so the key stops where it always did.
   An own key has neither unless the Owner sets one.
-- **Defaults in dollars.** A token count means little to a small team, so an organization with no limit of its own sees the default as
-  dollars: the Overview's AI budget panel, the Usage tab and the Notifications tab all read the same figure. The API prices it at the
-  model that answers on ScreenHire's key (`LlmOptions.ConfiguredPrice`: the comparison model for Anthropic, the fake model for Fake)
-  and a fixed mix of 80% input and 20% output tokens (`AiUsageMix.InputShare`: the consistency check reads long sources and answers
-  briefly). At 1.00 in and 4.00 out per million tokens that is 1.60 dollars per million, so 2,000,000 tokens show as $3.20, and what
-  was used is the month's tokens at the same price. Both are an estimate: the default is still enforced in tokens, so
-  "used of amount" is exactly the share (`percent`) the status, the alerts at 50%, 80% and 100% and the cap count. It can differ from
-  the Usage tab's Cost, which is what the calls actually cost at their own mix, so the limits panel says once, in a caption, that the
-  default counts tokens and its dollars are an estimate. Where the model has no input and output price in `Llm:Prices`, the default
-  stays in tokens. Each limit counts
-  in its own unit: once an Owner sets a budget, that budget keeps the unit they chose, and a cap they left alone is still the default
-  in dollars. With no limit of its own, the Owner's limits form starts in the default's unit and names its figure ("$3.20 a month"),
-  so a number typed after reading the Overview is dollars too. The API reads `Llm:Prices`, the model ids and the defaults, which the
-  AppHost forwards to it as to the worker, and which a deployment gives both (below).
+- **A limit stored in tokens.** Limits used to be set in tokens or dollars, and the deployment's default is still tokens. No stored
+  row is changed (no destructive migration). `AiUsageLimitsInForce`, which the API and the worker both use, converts a token limit once
+  to dollars at the key's price and the usual mix of 80% input and 20% output tokens (`AiUsageMix.BilledPerMillion`: ScreenHire's key at
+  `LlmOptions.ConfiguredPrice` times (1 + margin), an own key at its own two prices), to the cent, and then counts it against the dollars
+  billed, like any other. At 1.00 in and 4.00 out per million tokens and a 20% margin that is 1.92 dollars a million, so the 2,000,000-token
+  default is $3.84. "Used of amount", the share (`percent`), the badge, the alerts at 50%, 80% and 100% and the pause therefore all count
+  the same billed dollars. Where the key has no price, the limit stays in tokens and counts tokens, and the limits panel says once "In tokens
+  until the AI model has a price". The form opens with an Owner's own limit in dollars (one stored in tokens shown converted), so saving it
+  moves both limits to dollars; the default leaves the fields empty and names its figure ("$3.84 a month"). The API reads `Llm:Prices`, the
+  model ids and the defaults, which the AppHost forwards to it as to the worker, and which a deployment gives both (below).
 - **Resuming.** Raising or removing the cap, and a daily run at 05:12 UTC, ask again for the paused checks of an organization whose
   cap now allows it, `ResumeBatchSize` (200) at a time: a full batch sends the next one, after the last check it asked again. The asked-again check runs, and the pipeline reads it again, so the tab stops saying the AI
   checks were paused.
@@ -148,13 +164,13 @@ without it. Usage is never about a candidate and never shows a score.
 | `GET /v1/organization/ai-usage/summary` | View AI usage: totals, by day (in the requester's time zone, each day split between ScreenHire's key and the own key in tokens and cost), by model and by key, the month against the limits, and when the newest call happened (`lastCallAt`, whatever the range, null before the first) |
 | `GET /v1/organization/ai-usage/calls` | View AI usage: the calls, newest first, paged by the id of the last one (`before`), filtered by dates, key, provider, model, outcome, check and application |
 | `GET /v1/organization/ai-usage/calls/export` | View AI usage: the same calls as a CSV (RFC 4180, a byte order mark, formula-looking cells neutralised), at most 50,000 rows, said in the file when cut |
-| `PUT /v1/organization/ai-usage/limits` | Manage billing: the unit, the budget and the cap |
+| `PUT /v1/organization/ai-usage/limits` | Manage billing: the budget and the cap, in dollars |
 
 The call list is newest first by design (it pages by a server cursor), and the by-model table is ordered by cost, so neither has
 sortable headers.
 
 In the dashboard this is the Verification area ([verification-engine.md](verification-engine.md) section 10.11). The Usage tab shows the
-summary: calls, tokens and cost for a range, tokens by day for ScreenHire's key against the own key with its table, the month against
+summary: calls, tokens and the amount for AI use for a range (ScreenHire's key as Cost, an own key apart as its provider's estimate), tokens by day for ScreenHire's key against the own key with its table, the month against
 the budget and cap, and use by model and key. The Model calls tile ends with "Last call 5 minutes ago" (`lastCallAt`, the newest call
 whatever the range, left out before the first; design system T7). The calls themselves, with the provider's request id on each, are in the Activity log
 beside the rule-based check runs (section 10.12), where the CSV is `GET /v1/verification/activity/export`; `GET .../ai-usage/calls`
@@ -185,7 +201,7 @@ secrets `ScreenHire--Verification--Llm--Prices--<modelId>--Input` and `--Output`
 
 ## Tests
 
-`AiUsageRulesTests` (cost, thresholds, cap, spike, retention floor, CSV), `ModelPresetsTests` (every preset against replayed
-answers, the recorder), `AiUsageTests` (Aspire: the ledger, summary, list and CSV, permissions, validation, the cap pausing only
+`AiUsageRulesTests` (cost, the amount shown on each key, a token limit converted at the key's billed price or left in tokens, thresholds, cap, spike, retention floor, CSV), `ModelPresetsTests` (every preset against replayed
+answers, the recorder), `AiUsageTests` (Aspire: the ledger, summary, list and CSV in billed amounts and the Billing page's same figure, an own key's price beside ScreenHire's billed amount, limits in billed dollars with a token limit converted or left in tokens, permissions, validation in dollars, the cap pausing only
 the AI check and resuming it, the cap notification, the spike, retention, row-level security) and `VerificationOrganizationControlsTests`
 (the budget alerts and the own key).

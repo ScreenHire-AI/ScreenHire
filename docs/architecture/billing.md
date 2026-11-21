@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Billing, plans and the free trial"
-description: "How an organization pays and what its plan allows: the Off, Sandbox and Stripe modes, the plan catalogue shared with the pricing page, the trial that starts at sign-up and the reminders before it ends, the four entitlement states and the one thing a plan refuses (opening a draft job, as a 402), Checkout, the portal and the priced plan change, the signed Stripe webhook and its idempotency, AI use on ScreenHire's key reported to a Stripe meter at the provider's price plus a margin, the local sandbox, the three tables, the Owner's Billing page, tests and what is not built."
+description: "How an organization pays and what its plan allows: the Off, Sandbox and Stripe modes, the plan catalogue shared with the pricing page, the trial that starts at sign-up and the reminders before it ends, the four entitlement states and the one thing a plan refuses (opening a draft job, as a 402), Checkout, the portal and the priced plan change, the signed Stripe webhook and its idempotency, AI use on ScreenHire's key reported to a Stripe meter at the provider's price plus a margin and shown as one amount, the month added up, the invoices and the payment method, the local sandbox, the three tables, the Owner's Billing page, tests and what is not built."
 tags: [billing, stripe, plans, trial, entitlement]
 sources:
   - resource: packages/plans/plans.json
@@ -33,6 +33,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/plan-problem-notice.svelte
   - resource: apps/dashboard/src/lib/components/change-plan-dialog.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/billing/+page.svelte
+  - resource: apps/dashboard/src/lib/components/billing-invoices.svelte
   - resource: apps/dashboard/src/lib/query.ts
   - resource: apps/marketing/src/lib/pricing.ts
 ---
@@ -68,7 +69,7 @@ out the same way everywhere:
 | `Trial:Plan` | `packages/plans/trial.json` (`growth`) | The plan whose limit applies during the trial. With billing on, a key the catalogue does not have stops the host at start (`BillingTrialGate`), as a negative `Trial:Days` does, because neither would show up any other way |
 | `Trial:RemindDaysBefore` | `[7, 1]` | The days before `TrialEndsAt` the Owners are emailed. The day it ends is always reminded and is not a setting; a day below 1 stops the host at start. Configure it as a list (`ScreenHire__Billing__Trial__RemindDaysBefore__0=3`), which replaces the default |
 | `Plans:<key>:*` | the catalogue | Overrides `Name`, `Order`, `MonthlyPrice`, `Currency`, `ActiveJobs`, `Unlimited` and `StripePriceId` for one plan. A field left out keeps the catalogue's value |
-| `Ai:Margin` | `packages/plans/ai.json` (0.20) | The share added to the provider's price when AI use on ScreenHire's key is billed (0.20 is 20% on top). 0 to 10; anything else stops the host at start (`BillingAiGate`). The marketing site reads the same file to say "plus 20%", so a host that overrides this changes the file too. An organization's own key costs it nothing extra |
+| `Ai:Margin` | `packages/plans/ai.json` (0.20) | The share added to the provider's price when AI use on ScreenHire's key is billed (0.20 is 20% on top). 0 to 10; anything else stops the host at start (`BillingAiGate`). The marketing site reads the same file to say "plus 20%", so a host that overrides this changes the file too. An organization's own key costs it nothing extra. The app never shows it: every figure for AI use already includes it (`BillingOptions.AiMarginInForce`, which is 0 while billing is off) |
 | `Ai:StripePriceId` | none | The metered Stripe price on the meter. Checkout adds it to a new subscription, and Stripe mode reports no usage without it (a warning in the log). The sandbox needs none. Every subscribable plan must be in USD while it is set (`BillingAiGate`), because the ledger prices in US dollars and a Stripe subscription has one currency |
 | `Ai:MeterEventName` | `screenhire_ai_usage` | The `event_name` of the Stripe meter the owner creates |
 | `Ai:TrialAllowance` | 5.00 | US dollars of AI use on ScreenHire's key the free trial includes. 0 includes none |
@@ -216,16 +217,18 @@ adds the link to Billing only for an Owner.
 
 ## Checkout and the portal
 
-All five routes need Manage billing (`Permission.ManageBilling`, Owner-only, ADR-0014). A cookie session only: an API key
+All seven routes need Manage billing (`Permission.ManageBilling`, Owner-only, ADR-0014). A cookie session only: an API key
 gets nothing. With billing off each is a 404 except the first, which says `available: false`.
 
 | Route | What it does |
 |---|---|
-| `GET /v1/organization/billing` | The overview (`BillingOverview`): the state, the current plan, `trialEndsAt` while on the trial, `nextPaymentAt` and `nextPaymentAmount` while a subscription renews (no amount once it is set to cancel), `cancelsAtPeriodEnd`, `openJobs`, `activeJobLimit`, `canManage` (the portal can open) and every plan with its price, limit and `canSubscribe` |
+| `GET /v1/organization/billing` | The overview (`BillingOverview`): the state, the current plan, `trialEndsAt` while on the trial, `nextPaymentAt` and `nextPaymentAmount` while a subscription renews (no amount once it is set to cancel), `cancelsAtPeriodEnd`, `openJobs`, `activeJobLimit`, `canManage` (the portal can open), every plan with its price, limit and `canSubscribe`, this month's AI use (`aiUsage`) and this month added up (`thisMonth`, see The Billing page) |
 | `POST /v1/organization/billing/checkout` | Body `{ plan }`. Returns `{ url }` for the provider's checkout page. 400 for a plan that is unknown or cannot be subscribed to, 409 when the organization already has a subscription (Active or PastDue), 502 when Stripe cannot be reached |
 | `POST /v1/organization/billing/plan/preview` | Body `{ plan }`. Returns what switching the live subscription to that plan costs: `amountDueNow`, `nextPaymentAmount`, `nextPaymentAt`, `currency` and `prorationDate`. Changes nothing. 400 for a plan that is unknown, cannot be subscribed to or is the current one, 409 without an Active subscription (a trial or an ended organization chooses through Checkout, a payment that failed goes to Manage billing) or when the subscription is set to end (it is renewed with Manage billing first), 502 as above |
 | `POST /v1/organization/billing/plan` | Body `{ plan, prorationDate }`, the date the preview returned. Switches the plan and answers 204. The same refusals as the preview, plus 400 on `prorationDate` when it is more than 15 minutes old or in the future, and 502 when the payment provider refused the change (a declined card) or did not answer: the detail says to check Manage billing before trying again, because a timeout cannot tell whether Stripe made the change |
-| `POST /v1/organization/billing/portal` | Returns `{ url }` for the portal where the owner changes the card or cancels (and switches plan there too, unpriced by us). 409 before there is a subscription, 502 as above |
+| `POST /v1/organization/billing/portal` | Returns `{ url }` for the portal where the owner changes the card or cancels (and switches plan there too, unpriced by us). `?intent=ChangeCard` or `Cancel` names the control that opened it: Stripe opens the same portal for both, and the sandbox cancels only for `Cancel` (and with no intent). 409 before there is a subscription, 502 as above |
+| `GET /v1/organization/billing/invoices` | The customer's invoices, newest first (`IBillingProvider.ListInvoicesAsync`): date, amount (the total, tax included), currency, status (`Paid`, `Due` or `Void`) and the PDF's address. Empty before there is a customer, 502 as above |
+| `GET /v1/organization/billing/payment-method` | The payment method the plan is charged to (`IBillingProvider.GetPaymentMethodAsync`): its type, and for a card its network and last four digits. `method` is null before there is a customer or when none is on file, 502 as above |
 
 Stripe Checkout runs in subscription mode for the plan's `StripePriceId`, quantity 1. It carries the
 organization id and the plan key as `metadata` on the session and on the subscription, and the organization id as
@@ -233,6 +236,14 @@ organization id and the plan key as `metadata` on the session and on the subscri
 `<app url>/settings/billing?checkout=success` or `?checkout=cancelled`, built from `DomainOptions` as every dashboard
 link is (ADR-0003). The portal's return address is the Billing page. A Stripe error becomes a 502 with no key or
 customer in the message.
+
+**Invoices and the card in Stripe.** `ListInvoicesAsync` reads `GET /v1/invoices?customer=...&limit=24`, newest first. A draft is left out,
+`paid` is Paid, `open` and `uncollectible` are Due (an uncollectible invoice is still owed; Stripe has only stopped retrying it) and `void`
+is Void. The amount is `total` in the invoice's currency, and the link is Stripe's own `invoice_pdf` when it is https. `GetPaymentMethodAsync`
+reads the subscription with `expand[]=default_payment_method&expand[]=customer.invoice_settings.default_payment_method` in one call, because
+Stripe charges the subscription's own default first and the customer's when it has none
+(https://docs.stripe.com/api/subscriptions/update#update_subscription-default_payment_method). A customer with no subscription is read the same way
+through `customers/{id}`. A card gives its `brand` and `last4`, and any other method only its `type`.
 
 `StripeBillingProvider` calls Stripe with `HttpClient`, pins `Stripe-Version: 2024-06-20`, and uses one long-lived client
 instead of a factory client: the standard resilience handler would retry a Checkout call and could make a second session.
@@ -256,7 +267,7 @@ portal prorates at its own moment and by its own configuration, so a number show
 confirms there, and a one-item deep link would stop working the day a subscription gets a second item. The cost is that a
 payment which needs the Owner (a declined card, a 3-D Secure step) cannot be completed on our page. The change uses
 `payment_behavior=error_if_incomplete`, so a declined payment fails whole and leaves the subscription as it was. The 502 that
-follows points to Manage billing without promising nothing was charged, because a timeout reads the same way.
+follows points to Change card without promising nothing was charged, because a timeout reads the same way.
 
 `StripeBillingProvider.PreviewPlanChangeAsync` reads the subscription (`GET /v1/subscriptions/{id}`) for the item that carries
 one of the catalogue's prices, so an item that is not a plan is left alone. It then posts `invoices/create_preview`
@@ -331,7 +342,15 @@ the one metered thing on top of it.
 **The amount.** `AiCharge.Micros` prices one call: its cost in US dollars times (1 + margin), rounded half away from zero to a
 micro-dollar, a whole number. The unit is the micro-dollar because Stripe's meter takes positive integers and a call often costs a
 fraction of a cent. The Billing page sums the same function over the month, in SQL (Postgres rounds numeric half away from zero too),
-so its "Cost so far" and the meter agree to the micro-dollar for calls past the trial (the trial's allowance is said in its own line). A call with no known cost (`Unknown`, never a made-up zero) charges nothing.
+so its AI line and the meter agree to the micro-dollar for calls past the trial (the trial's allowance is its own line). A call with no known cost (`Unknown`, never a made-up zero) charges nothing.
+
+**One amount for AI use.** A customer sees one amount for AI use, the amount they pay, and never the provider's price or the margin
+(the owner's walk-through, 2026-11-21). `AiCharge.Billed` is that amount for one call: on ScreenHire's key `AiCharge.Micros` in dollars, the
+figure the meter is sent; on the organization's own key the provider's price, which that provider charges and ScreenHire never bills, so
+it is labelled "Charged by your provider (estimate)". The Usage tab, its by-day and by-model tables, the call list, the Activity log, both
+CSVs, the budget and the cap and the Billing page all show it (`AiUsageQueries.BilledAmount` in SQL). The margin is
+`BillingOptions.AiMarginInForce`: `Ai:Margin` while billing is on, and 0 while it is off, because nobody is billed then. The ledger keeps
+the provider's price, so a margin changed later reprices what is shown but never what was reported.
 
 **Reporting.** Every 15 minutes (`ReportAiUsage`, a recurring Wolverine schedule in the worker) one message for each organization
 (`ReportOrganizationAiUsage`, `[Deduplicated]` on the organization and the 15-minute slot) settles that organization's pending calls:
@@ -383,9 +402,8 @@ takes that customer's meter events, so the calls are recorded as `Reported`, but
 with provider `Sandbox`, is the record that the usage was reported, so the local demo and the tests show it. Brightwater is seeded Active on
 Unlimited with a trial that ended the day before, so the worker's next 15-minute report sends its demo calls to the sandbox meter in full.
 
-**Two cost numbers.** The Verification budget and cap, in dollars, sum the provider's cost. The invoice is that cost plus the margin, so
-a cap of $50 can become $60 billed. The Billing page labels both figures ("Provider's price" and "Cost so far"). Applying the margin to the
-built-in key's dollar limits is a later call.
+**Budgets and caps count billed dollars** (owner decision, 2026-11-21): the same amount the Usage tab and this page show, so a cap of $50
+stops at $50 billed ([AI usage](ai-usage.md#budget-alerts-and-the-cap)).
 
 ### Owner actions for AI usage
 
@@ -399,6 +417,9 @@ Billing code cannot do these. Until they are done Stripe mode reports no usage (
 4. Set `Verification:Llm:Prices:<model>` for the deployed model. A call recorded without a price is never billed.
 5. Add the metered item to any subscription made before the price was set. Check the first real meter event in Stripe's test mode
    ([status](../status.md#owner-actions)): no test here reaches Stripe, and the calls are pinned to API version `2024-06-20`.
+6. Decide the public pricing page's wording. It says "plus 20%" (`apps/marketing/src/lib/pricing.ts`, from `packages/plans/ai.json`) while
+   the app shows one amount and never the margin.
+7. Check the Billing page's invoices and card against a test-mode customer: the list, the PDF link and the card on file.
 
 ## Webhooks
 
@@ -447,7 +468,12 @@ of the API itself, mapped only in sandbox mode so the API's description never li
 - `GET /v1/billing/sandbox/checkout?state=...` "pays" for the plan in the state at once (an Active subscription on that
   plan, ending a month later, with a made-up customer and subscription id) and sends the browser back to the Billing page.
 - `GET /v1/billing/sandbox/portal?state=...` cancels the subscription at once (Ended), which is the one change worth trying
-  locally because it shows the ended state.
+  locally because it shows the ended state. Opened by Change card (the state carries the intent), it changes nothing and goes back.
+
+Once there is a customer, the sandbox lists three sample invoices, one a month at the plan's price, the newest at the start of the current
+period and Due while a payment has failed, and its card is the test Visa ending in 4242. A sample invoice's PDF is
+`GET /v1/billing/sandbox/invoices/{id}`, mapped only in sandbox mode, for an Owner: a one-page PDF written by hand
+(`SandboxBillingProvider.SampleInvoicePdf`, no PDF package), and a 404 for an id the sandbox never made.
 
 The routes are anonymous because the browser arrives by a plain navigation. What each does is in the `state`, a Data
 Protection value issued by the API under the purpose `ScreenHire.Billing.SandboxState.v1` that expires after 10 minutes,
@@ -469,28 +495,42 @@ Three tenant-owned tables, each with the `tenant_isolation` row-level security p
 
 ## The Billing page
 
-Settings > Billing (`/settings/billing`) is in the Settings menu's Organization group for an Owner, and only where a payment provider is set
-up (`available`): elsewhere the entry and the page are hidden, as Slack's are (design system A3). It shows the state as a
-status badge (Free trial, Active, Payment failed or Ended), the current plan, the trial's end or the next payment (and that
-the subscription will cancel), the open jobs against the limit (`3 of 5`, or `3` with none), and the plans. A plan has a Choose button while Trialing or Ended
-(`mayChoosePlan`), which goes to Checkout. With an Active subscription that is not set to end, every other plan has a Switch button, which opens
-`ChangePlanDialog`: it asks the preview route when it opens and shows "$X now, then $Y a month from DATE" in plain numbers
-("Nothing now" for a cheaper plan, with the line that the unused time is credited), and Confirm change sends the plan and the
-preview's `prorationDate`. The dialog is where the Owner decides, so its Confirm is the one primary there (A1); Manage billing
-stays the page's. The dialog takes focus itself when it opens, so the date's tooltip does not open over the text. A failed preview keeps Confirm
-off, and a refused change stays in the dialog, which prices it again. After it, the Plans panel says
-the plan is changing until the page shows it. Manage billing opens the portal for the card and for cancelling. The page
-refetches when `BillingChanged` arrives and when the browser returns from Checkout.
+Settings > Billing (`/settings/billing`) is the one place an Owner sees everything the organization pays, already added up. It is in the
+Settings menu's Organization group for an Owner, and in the account menu for the same people, and only where a payment provider is set up
+(`available`): elsewhere the entries and the page are hidden, as Slack's are (design system A3). It names no payment provider. Its panels,
+in order:
 
-Under Plans, an AI usage panel (from the overview's `aiUsage`, so the page makes no request of its own) says "AI checks on ScreenHire's
-key are billed at the provider's price plus 20%" (the percent is the API's, never typed in the page), then this UTC month's calls on the
-built-in key, "Provider's price" and "Cost so far" (with the margin) in US dollars with their sub-cent digits, and one sentence for where
-the organization stands: that billing for AI use is not set up where Stripe has no metered price (checked first, so a trial is never
-promised an invoice line that will not come), what the trial includes and that use above it is added to the first invoice, "AI use is
-billed once you choose a plan" after the trial, or what the trial covered once a plan is paying. Calls on the organization's own key and
-calls with no known price are each counted in a sentence of their own and are not charged. The footer says bringing your own key removes
-the charge, with a link to Verification to set it and one to the Verification area's Activity log (`/verification/activity`) for the
-call-by-call list. It adds no primary button (A1).
+- **Plan.** The state as a status badge beside the title (Free trial, Active, Payment failed or Ended), the current plan, the trial's end
+  or, for a subscription set to end, when it ends, and the open jobs against the limit (`3 of 5`, or `3` with none). The next payment is
+  not repeated here: This month so far says it (W7).
+- **This month so far** (`thisMonth` on the overview, `BillingEndpoints.ThisMonth`). Each charge on its own line: the plan at its monthly
+  price while subscribed ("Growth, free trial" at $0.00 on the trial, no line once ended), AI use on ScreenHire's key with its call count,
+  which links to the Verification area's Usage tab (no line where Stripe has no metered price, because none is billed), "Included in your
+  trial" taken off for what the allowance covers (`AiUsageBillingQueries.TrialCreditThisMonthAsync`: calls already settled as waived and the
+  trial calls still waiting, planned by `AiChargePlanner` as the report will settle them), and the total. Then "Next invoice about $X on
+  <date>" while a subscription runs: the next plan payment (none once it is set to end) plus this month's AI use, "about" because the
+  calendar month and the billing period differ, and "plus tax where it applies" while `taxAtCheckout`. On the trial it says nothing is
+  charged until a plan is chosen.
+- **Payment method**, once there is a customer (`canManage`): "Visa ending in 4242", with Change card and Cancel plan, which both open the
+  provider's portal with their intent (no Cancel plan for a plan already set to end). They replace the old "To change your card or cancel,
+  use Manage billing" line and the header's Manage billing button, so the words are the controls (A14) and the page has no primary button.
+- **Invoices**, once there is a customer (`BillingInvoices`, `GET .../invoices`): date, amount, status (Paid, Due, Void) and a PDF link
+  opening in a new tab, newest first, sortable (L2).
+- **Plans.** A plan has a Choose button while Trialing or Ended (`mayChoosePlan`), which goes to Checkout. With an Active subscription that
+  is not set to end, every other plan has a Switch button, which opens `ChangePlanDialog`: it asks the preview route when it opens and shows
+  "$X now, then $Y a month from DATE" ("Nothing now" for a cheaper plan, with the line that the unused time is credited), and Confirm change
+  sends the plan and the preview's `prorationDate`. The dialog's Confirm is the one primary there (A1). The dialog takes focus itself when it
+  opens, so the date's tooltip does not open over the text. A failed preview keeps Confirm off, and a refused change stays in the dialog,
+  which prices it again. After it, the Plans panel says the plan is changing until the page shows it.
+- **AI usage** (the overview's `aiUsage`): "This month: 59 AI calls, $0.05", the one amount, never the provider's price or the margin;
+  then one sentence for where the organization stands: that billing for AI use is not set up where Stripe has no metered price (checked
+  first, so a trial is never promised an invoice line that will not come), what the trial includes and that use above it is added to the
+  first invoice, "AI use is billed once you choose a plan" after the trial, or what the trial covered once a plan is paying. Calls on the
+  organization's own key and calls with no known price are each counted in a sentence of their own and are not charged. The footer says
+  bringing your own key removes the charge, with a link to Verification to set it and one to the Activity log for the call-by-call list.
+
+Money always has two decimals ($79.00, $0.05). The page refetches when `BillingChanged` arrives (which invalidates the invoices and the card
+too, by path) and when the browser returns from Checkout.
 
 A refused publish reaches a person at the three places a draft is opened (the jobs list, a job's page and its distribution
 panel) as `PlanProblemNotice` (a 402 is told from other failures by `planProblem` in `apps/dashboard/src/lib/query.ts`), a full-width notice above the table or panel in place of a plain failure line: the API's own
@@ -506,21 +546,22 @@ owner.
 | `EntitlementTests` (unit) | the trial's last moment, a subscription deciding the state, the plan in force, the publish decision for each state and limit, a trial that ran out told apart from a subscription that ended, an event applying only what it carries and an older one changing nothing |
 | `BillingProblemsTests` (unit) | the 402 problems: type, title and a detail that names the numbers, the singular, that open jobs stay open, and a trial that ran out never mentioning a subscription |
 | `StripeSignatureTests` (unit) | a good signature, another secret, a changed body or timestamp, the five-minute window both ways, a malformed header without throwing, several `v1` values |
-| `StripeBillingProviderTests` (unit) | the meter events (fields, identifier, a duplicate counted as taken, a refusal stopping the batch, no customer sending nothing), the metered item on Checkout only when its price is set, a preview and an event ignoring the metered line and item, and the Checkout and portal requests against a stub handler (fields, metadata, key, pinned version, customer reuse), the tax fields with tax off, on, on for an existing customer and on with tax ids off, the plan change's lookup, preview and update requests (the plan's item among others, the date, `always_invoice`, the idempotency key) and a preview read into amounts (prorations as due now, a downgrade at 0, a zero-decimal and a three-decimal currency, a missing next payment), refusals and network failures without the key, each event type read into the common event, a period end from the subscription or its first item, and a plan from the price, ahead of the metadata |
-| `SandboxBillingProviderTests` (unit) | the sandbox's links and state: what it names, whether tax and a tax id were asked for, its lifetime, a tampered, foreign or oversize state not reading, and no webhook; and its day-based proration (mid-period, first and last day, a downgrade, no known period end, a period end that has passed) |
-| `BillingTests` (integration) | the Owner's overview, the trial at sign-up and for an older organization, Checkout and the portal through the sandbox (asking for no tax on the shared stack), who may use them, and billing off |
+| `StripeBillingProviderTests` (unit) | the invoices (newest first, drafts left out, each status, a zero-decimal amount, only an https PDF link), the payment method (the subscription's own, then the customer's, a method that is not a card, none), a refused read never naming the key, the meter events (fields, identifier, a duplicate counted as taken, a refusal stopping the batch, no customer sending nothing), the metered item on Checkout only when its price is set, a preview and an event ignoring the metered line and item, and the Checkout and portal requests against a stub handler (fields, metadata, key, pinned version, customer reuse), the tax fields with tax off, on, on for an existing customer and on with tax ids off, the plan change's lookup, preview and update requests (the plan's item among others, the date, `always_invoice`, the idempotency key) and a preview read into amounts (prorations as due now, a downgrade at 0, a zero-decimal and a three-decimal currency, a missing next payment), refusals and network failures without the key, each event type read into the common event, a period end from the subscription or its first item, and a plan from the price, ahead of the metadata |
+| `SandboxBillingProviderTests` (unit) | the sample invoices (monthly at the plan's price, newest first, Due while past due, none before a customer), the test card, a well-formed sample PDF and none for an id it never made, the portal's intent in its state, the sandbox's links and state: what it names, whether tax and a tax id were asked for, its lifetime, a tampered, foreign or oversize state not reading, and no webhook; and its day-based proration (mid-period, first and last day, a downgrade, no known period end, a period end that has passed) |
+| `BillingTests` (integration) | the Owner's overview, the trial at sign-up and for an older organization, Checkout and the portal through the sandbox (asking for no tax on the shared stack), who may use them, and billing off; the invoices, their PDF and the card through the sandbox and who may read them; the portal opened to change the card leaving the plan and opened to cancel ending it; a paying month added up |
+| `BillingThisMonthTests` (unit) | This month so far in each state: the plan and AI use added up, the trial's credit taken off and never more than the use, a plan set to end invoicing only its AI use, an ended plan's missing line, and AI use that is not billed left out |
 | `BillingTaxTests` (integration) | on a stack of its own with `Stripe:Tax:Enabled`, the overview's `taxAtCheckout` and the sandbox Checkout asking for tax and a tax id |
 | `BillingPlanChangeTests` (integration) | the preview and the change through the sandbox: an upgrade's amounts bounded by the shipped prices, a downgrade owing nothing, a confirmation switching the plan and no other organization's, a stale or future `prorationDate` refused, a trial, an ended organization or a subscription set to end a 409, an unknown or current plan a 400 on `plan`, and Admins and Recruiters a 403 |
 | `BillingPlanLimitTests` (integration) | the 402 at the limit and when ended, open jobs left open, republish and close not counted, the whole organization counted for a member on "only jobs they're on", and no limit when billing is off |
 | `BillingPublishCheckTests` (integration) | the job being published is not counted, so a double submit is not refused for taking its own place, and a different draft still is |
 | `BillingWebhookTests` (integration) | the route is a 404 outside Stripe mode. What a delivery does once read, through `BillingService` against the stack's database: a replay applied once, an older event ignored, and an event for another organization not applied |
 | `StripeWebhookRouteTests` (integration) | on a stack of its own in Stripe mode, the route end to end: a signed event applied to the organization it names, a wrong or missing signature a 401, a redelivery changing nothing, an unknown organization a 200, and another organization untouched |
-| `BillingTests` (end-to-end) | an owner sees the trial and the plans and chooses one through Checkout, a publish past the limit shows the notice and its link to Billing, and a recruiter has no Billing entry |
-| `billing-page.test.ts`, `jobs-page.test.ts`, `distribution-panel.test.ts`, `job-page.test.ts`, `query.test.ts`, `settings.test.ts` (Vitest) | the page in each state, the plan change dialog (the cost before confirming, a downgrade's nothing now, the change sent with the preview's date, a failed preview and a refused change), the notice and its link for an owner and anyone else at each place a draft opens, the 402 read as a plan problem, the settings entry hidden without a provider |
+| `BillingTests` (end-to-end) | an owner sees the trial and the plans and chooses one through Checkout, then the month's total, the next invoice, the card and the sandbox's invoices, changes the card without losing the plan and reaches Billing from their own menu; a publish past the limit shows the notice and its link to Billing; and a recruiter has no Billing entry in Settings or their menu |
+| `billing-page.test.ts`, `billing.test.ts`, `app-sidebar.test.ts`, `jobs-page.test.ts`, `distribution-panel.test.ts`, `job-page.test.ts`, `query.test.ts`, `settings.test.ts` (Vitest) | the page in each state, this month added up, the payment method's two controls and their intents, the invoices, the AI usage panel's one amount, money in two decimals, the account menu's Billing entry, the plan change dialog (the cost before confirming, a downgrade's nothing now, the change sent with the preview's date, a failed preview and a refused change), the notice and its link for an owner and anyone else at each place a draft opens, the 402 read as a plan problem, the settings entry hidden without a provider |
 | `TrialRemindersTests` (unit) | the reminder days (7 and 1 by default, a configured list replacing them, a day below 1 refused), the steps planned for a fresh trial, one under way, one that ended and one shorter than the notice window, a reminder doing nothing after a subscription or for a changed trial, the id of the record that a trial's reminders are scheduled, and the email's words |
 | `TrialReminderTests` (integration) | on the running worker: signing up schedules the five steps, the worker leaves the account alone and an immediate checkout is applied, each email reaches every Owner once and a redelivery adds none, an Admin gets nothing, one `trial-ending` notification becomes one `trial-ended` one, the retention purge keeps it, and choosing a plan clears it and makes the reminders still waiting do nothing |
 | `AiChargeTests` (unit) | a call's charge in micro-dollars (cost plus the margin, half away from zero, nothing for a cost that is unknown or zero), the sum of rounded charges, and `AiChargePlanner`: trial calls waived in time order within the allowance, the first to pass it and every later one reported, earlier waivers counted, a call after the trial reported, a free call waived, the same decisions in any order |
-| `BillingAiUsageTests` (integration) | in process against the stack with a fixed clock: only built-in calls with a known cost reported, once, at cost plus the margin; a free call waived and never sent; the allowance; no report before a plan or after it ended, and the wait ending when a plan starts; batches and the follow-up key; a batch Stripe stops part-way keeping what it took and the next run sending only the rest; the Stripe event's fields; Stripe without a price or customer sending nothing; billing off; row-level security and no UPDATE on `ai_usage_charges`; the fan-out and the 15-minute schedule; the overview's month; the page's sum equal to what was reported |
+| `BillingAiUsageTests` (integration) | in process against the stack with a fixed clock: only built-in calls with a known cost reported, once, at cost plus the margin; a free call waived and never sent; the allowance; no report before a plan or after it ended, and the wait ending when a plan starts; batches and the follow-up key; a batch Stripe stops part-way keeping what it took and the next run sending only the rest; the Stripe event's fields; Stripe without a price or customer sending nothing; billing off; row-level security and no UPDATE on `ai_usage_charges`; the fan-out and the 15-minute schedule; the overview's month, with no provider's price or margin in it; the page's sum equal to what was reported; the trial credit agreeing with what the report waives |
 | `RolePermissionsTests` (unit) | Manage billing is an Owner-only permission and its routes join the route table |
 
 The test stacks pin nothing: they sell the plans in `plans.json`, and a test that needs a price or a limit reads it through
@@ -532,7 +573,7 @@ The test stacks pin nothing: they sell the plans in `plans.json`, and a test tha
 - A list of invoices or receipts; Stripe's portal has them.
 - Amounts read from Stripe except in a plan change's preview. The rest of the page shows the catalogue's price and Stripe
   charges its own.
-- Completing a payment that needs the Owner (3-D Secure) inside a plan change. It fails whole and sends the Owner to Manage billing.
+- Completing a payment that needs the Owner (3-D Secure) inside a plan change. It fails whole and sends the Owner to Change card.
 - Coupons and tax in a plan change's preview. Its amounts are the invoice lines' amounts, before discounts and tax, and only
   the lines Stripe returns with the preview (its first page) are read.
 - Seat-based pricing. A plan counts open jobs only.
