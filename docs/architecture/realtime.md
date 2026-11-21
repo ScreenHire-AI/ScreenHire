@@ -213,7 +213,7 @@ answered ("Taylor Brook answered Screening questionnaire", linking to the answer
 an automation's offer, toast nobody. Each of these is its own toast, never grouped with others. Any event the table does not
 name never toasts, so a verification result (`VerificationAssessed`) cannot; the Activity feed says only that the checks
 finished. Every edit of a hiring, email or scorecard
-template (create, change, archive, restore, delete or reset, and a hiring template's default team) raises
+template (create, change, archive, restore, delete or reset) raises
 `TemplateChanged` so open dashboards refresh the template lists and pickers. It toasts for an email template or a
 scorecard, to the member who changed it last before this edit ("Jordan Ellis changed the email template Stage change",
 linking to it), and never for a hiring template: its edits are drafts, and only its publish toasts. A template deleted

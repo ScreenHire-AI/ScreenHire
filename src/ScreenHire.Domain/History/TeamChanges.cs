@@ -81,4 +81,41 @@ public static class TeamChanges
 
         return before.RevokedAt is null && after.RevokedAt is not null ? [ChangeLine.Of("revoked the invitation to ", after.Email)] : [];
     }
+
+    /// <summary>
+    /// A named team in Teams: "added the team <b>Kitchen</b>", "renamed the team Kitchen to <b>Front of house</b>", "changed
+    /// who is in <b>Kitchen</b>" with how many joined and left, and "deleted the team <b>Kitchen</b>". The jobs a team was
+    /// added to keep their own copy, which the membership log records.
+    /// </summary>
+    /// <param name="before">The team before the save; null when the save added it.</param>
+    /// <param name="after">The team after the save; null when the save deleted it.</param>
+    public static IReadOnlyList<ChangeLine> Named(NamedTeam? before, NamedTeam? after)
+    {
+        if (after is null)
+        {
+            return before is null ? [] : [ChangeLine.Of("deleted the team ", before.Name)];
+        }
+
+        if (before is null)
+        {
+            return [ChangeLine.Of("added the team ", after.Name, "", [new("People", null, People(after.MemberIds.Count))])];
+        }
+
+        var lines = new List<ChangeLine>();
+        if (before.Name != after.Name)
+        {
+            lines.Add(ChangeLine.Of($"renamed the team {before.Name} to ", after.Name));
+        }
+
+        var joined = after.MemberIds.Except(before.MemberIds).Count();
+        var left = before.MemberIds.Except(after.MemberIds).Count();
+        if (joined > 0 || left > 0)
+        {
+            lines.Add(ChangeLine.Of("changed who is in ", after.Name, "", [new("People", People(before.MemberIds.Count), People(after.MemberIds.Count))]));
+        }
+
+        return lines;
+    }
+
+    private static string People(int count) => count == 1 ? "1 person" : $"{count} people";
 }

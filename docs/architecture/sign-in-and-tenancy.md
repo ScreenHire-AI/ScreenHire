@@ -54,6 +54,9 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/settings/api-keys/+page.svelte
   - resource: apps/api/Endpoints/VerificationEndpoints.cs
   - resource: apps/api/Endpoints/HiringTeamEndpoints.cs
+  - resource: apps/api/Endpoints/NamedTeamEndpoints.cs
+  - resource: apps/api/Contracts/NamedTeamContracts.cs
+  - resource: apps/api/Contracts/HiringTeamContracts.cs
   - resource: apps/api/Hiring/HiringTeams.cs
   - resource: apps/api/Configuration/DomainOptions.cs
   - resource: apps/api/Configuration/LegalOptions.cs
@@ -63,11 +66,13 @@ sources:
   - resource: src/ScreenHire.Domain/Organizations/IJobScoped.cs
   - resource: src/ScreenHire.Domain/Organizations/JobAccess.cs
   - resource: src/ScreenHire.Domain/Organizations/MembershipEvent.cs
+  - resource: src/ScreenHire.Domain/Organizations/NamedTeam.cs
   - resource: src/ScreenHire.Domain/Organizations/Organization.cs
   - resource: src/ScreenHire.Domain/Organizations/OrganizationInvitation.cs
   - resource: src/ScreenHire.Domain/Organizations/OrganizationMember.cs
   - resource: src/ScreenHire.Domain/Organizations/TeamPolicy.cs
   - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/CustomRoleConfiguration.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/NamedTeamConfiguration.cs
   - resource: src/ScreenHire.Infrastructure/Tenancy/ITenantContext.cs
   - resource: src/ScreenHire.Infrastructure/Tenancy/TenantSecurity.cs
   - resource: src/ScreenHire.Infrastructure/Tenancy/TenantSessionInterceptor.cs
@@ -80,6 +85,9 @@ sources:
   - resource: apps/dashboard/src/lib/hiring-team.ts
   - resource: apps/dashboard/src/lib/components/member-access-sheet.svelte
   - resource: apps/dashboard/src/lib/components/hiring-team-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/named-teams-panel.svelte
+  - resource: apps/dashboard/src/lib/components/team-sheet.svelte
+  - resource: apps/dashboard/src/routes/(app)/jobs/new/+page.svelte
   - resource: apps/dashboard/src/lib/components/member-jobs.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/team/+page.svelte
   - resource: apps/dashboard/src/lib/moves.svelte.ts
@@ -511,14 +519,15 @@ you are on." for a member on Only jobs they're on. Nothing is stored: a reload d
 removal with who did it, who it was about and the roles before and after, a custom role by its id and its name at the
 time; every custom role made, changed (`RoleUpdated`, with the old name after a rename) or deleted; and every job access
 change (`JobAccessChanged`) and person added to or removed from a hiring team (`AddedToHiringTeam`,
-`RemovedFromHiringTeam`, with the job or the hiring template). An invitation and a join record their job access. A job a
-key creates starts with its template's team, and those entries name the key (`actorApiKeyId`) instead of a person. The
+`RemovedFromHiringTeam`, with the job; entries from before templates lost their default team name the hiring template). An
+invitation and a join record their job access. An entry a key causes names the key (`actorApiKeyId`) instead of a person. The
 log shows job titles and template names as they are now, and leaves out entries about jobs the reader cannot see. Two membership facts have no entry: the
 founding Owner, whose membership onboarding creates with the organization, and an invitation accepted by someone who is
 already a member, which only uses up the invitation (its row keeps `accepted_at` and `accepted_by_user_id`). It is append-only for audit: `screenhire_app` has no
 `UPDATE` or `DELETE` on it. It holds user ids and no foreign key to `organization_members`, so a removal keeps its own
 record. The Team page's History sheet reads the change history instead, which says the same team changes in words and
-also records the founding Owner, as "created the team". Hiring teams stay in the membership log only.
+also records the founding Owner, as "created the team", and each named team added, renamed, given other people or deleted
+("added the team Kitchen"). A job's hiring team stays in the membership log only.
 
 ### Job access
 
@@ -538,11 +547,28 @@ not change):
 |---|---|---|
 | `GET /v1/jobs/{jobId}/hiring-team` | Anyone who sees the job | The people on the team, with their role name and whether they see all jobs. |
 | `PUT /v1/jobs/{jobId}/hiring-team` | Edit jobs | Sets the team to `memberIds`, plus another job's team when `copyFromJobId` names one the caller sees (400 otherwise). Someone who is not a member is 400. A member on Only jobs they're on cannot take themselves off (400). Raises `HiringTeamChanged`. |
-| `GET /v1/templates/{templateId}/hiring-team` | Any member | A hiring template's default team; empty for a ScreenHire template. |
-| `PUT /v1/templates/{templateId}/hiring-team` | Edit hiring templates | Sets it. 409 for a ScreenHire template, which has none. |
 
-`POST /v1/jobs` starts a job with its template's default team, current members only, and the person who creates it, in
-the same insert. Every person added or removed is a membership log entry, written under the member lock.
+`POST /v1/jobs` starts a job's team with the person who creates it, the people of the named team `teamId` who are still
+members, and `memberIds` (400 for anyone who is not a member, or a team that is not the organization's), in the same insert.
+Every person added or removed is a membership log entry. An API key sends neither (400 on `teamId`): it does not choose who
+works on a job, so its job starts with nobody on the team.
+
+**Named teams** (`named_teams`, `NamedTeam`, tenant-owned with row-level security) are the organization's groups of people,
+such as Engineering or Kitchen: a name, unique in any case, and member ids. Adding one to a job copies its people into the
+job's hiring team, as they are then; the job keeps that copy, so changing or deleting the team changes no job, and a team
+gives nobody access by itself. A job records the team it started with (`jobs.started_with_team_id`, set to null when the team
+is deleted) for one use: the next job's suggestion. Hiring templates have no team of their own: `AddNamedTeams` turned each
+template's default hiring team of current members into a team named "<template name> team" (a second of the same name gets
+" 2"), then dropped the column. `apps/api/Endpoints/NamedTeamEndpoints.cs`, session only, every change a line in the Team
+page's history:
+
+| Route | Who | What it does |
+|---|---|---|
+| `GET /v1/organization/teams` | Any member | The teams by name, each with its people who are still members, as a hiring team lists them. |
+| `GET /v1/organization/teams/suggested?templateVersionId=` | Any member | The team the newest job from the same template, or with the template's department (in any case), started with, among the jobs the reader sees; null without a template or a match. |
+| `POST /v1/organization/teams` | Manage the team | Makes a team. A name another team has, in any case, is 400 on `name`; someone who is not a member, 400 on `memberIds`. |
+| `PUT /v1/organization/teams/{teamId}` | Manage the team | Renames it and sets its people, with the same checks. |
+| `DELETE /v1/organization/teams/{teamId}` | Manage the team | Deletes it. Jobs keep their people. |
 
 The subset rule covers job access (`TeamPolicy.MayGiveJobAccess`): a member on Only jobs they're on cannot give All jobs,
 invite with it, or give the Owner or Admin role (403 "Needs all jobs"). Manage API keys, Manage webhooks, Manage
@@ -553,8 +579,12 @@ when that email is already a candidate only on jobs they cannot see.
 The dashboard: Team has a Jobs column ("All jobs" or "2 jobs"), and Edit access in a member's menu opens one sheet for
 their role and job access, which lists their jobs read only (`member-access-sheet.svelte`). The invite sheet asks for job
 access with one Only some jobs switch, off at the start; it sends no job ids, so the person joins hiring teams after
-they accept. The job page has a Hiring team button with its count (`hiring-team-sheet.svelte`), with Add a person and Copy
-from another job, and a hiring template its Default hiring team. The Role page shows each person's jobs. Settings leaves
+they accept. Team's second tab, Teams (`?tab=teams`, `named-teams-panel.svelte`), lists the named teams and opens each in
+the team sheet (`team-sheet.svelte`): a name and people, with New team as the tab's action. The job page has a Hiring team
+button with its count (`hiring-team-sheet.svelte`), with Add a person, Add a team and Copy from another job; Add a team puts
+the team's people in the list, so someone taken off before Save stays off. A new job asks Who's hiring? (`jobs/new`): a Team
+select that starts on the suggestion until the person picks one, and Add a person for anyone else; with nobody but its creator
+in the organization it is not shown. The Role page shows each person's jobs. Settings leaves
 out API keys and Webhooks for someone on Only jobs they're on.
 
 ## Tenant isolation

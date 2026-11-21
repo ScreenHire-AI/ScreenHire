@@ -23,7 +23,7 @@ public sealed partial class TrackedKindsTests
             typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(JobPosting), typeof(ScorecardTemplate),
             typeof(CustomRole), typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(RetentionSettings), typeof(TalentPoolEntry),
             typeof(SendingDomain),
-            typeof(OrganizationMember), typeof(OrganizationInvitation), typeof(ApiKey), typeof(WebhookEndpoint), typeof(WebhookEndpointSecret),
+            typeof(OrganizationMember), typeof(NamedTeam), typeof(OrganizationInvitation), typeof(ApiKey), typeof(WebhookEndpoint), typeof(WebhookEndpointSecret),
         ]);
     }
 

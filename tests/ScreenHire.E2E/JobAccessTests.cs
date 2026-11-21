@@ -86,6 +86,46 @@ public sealed class JobAccessTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(memberPage.GetByRole(AriaRole.Link, new() { Name = OtherJob })).ToBeVisibleAsync();
     }
 
+    // A new job asks Who's hiring? once the organization has more than its Owner. The Owner picks a named team made in
+    // Settings, and the new job's Hiring team holds the team's people next to the Owner. The API's tests own the rules
+    // (copying, suggestions, who may do what); this is the wiring a person sees.
+    [Fact]
+    public async Task A_new_job_takes_its_people_from_the_team_picked_under_whos_hiring()
+    {
+        using var ownerSession = new ApiSession(Fixture);
+        var ownerEmail = ApiSession.NewEmail("owner");
+        await ownerSession.SignInWithDevSsoAsync(ownerEmail, Ct);
+        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = Organization, slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        var memberEmail = ApiSession.NewEmail("viewer");
+        using var memberSession = await InviteAsync(ownerSession, memberEmail);
+        var members = await ReadAsync(await ownerSession.Client.GetAsync("/v1/organization/members", Ct), HttpStatusCode.OK);
+        var member = members.EnumerateArray().Single(m => m.GetProperty("email").GetString() == memberEmail);
+        var memberName = member.GetProperty("displayName").GetString()!;
+        await ReadAsync(await ownerSession.PostAsync("/v1/organization/teams", new { name = "Kitchen", memberIds = new[] { member.GetProperty("id").GetGuid() } }, Ct), HttpStatusCode.Created);
+
+        await Page.SetViewportSizeAsync(1440, 1000);
+        await SignInAsync(Page, ownerEmail);
+        await Page.GotoAsync(DashboardUrl("/jobs/new"));
+        var newJob = Page.GetByRole(AriaRole.Form, new() { Name = "New job" });
+        await newJob.GetByLabel("Title").FillAsync("Line cook");
+        await newJob.GetByLabel("Workplace").SelectOptionAsync(new SelectOptionValue { Label = "On-site" });
+        await newJob.GetByLabel("City").FillAsync("Leeds");
+        await newJob.GetByLabel("Country").SelectOptionAsync(new SelectOptionValue { Label = "United Kingdom" });
+        var whosHiring = newJob.GetByRole(AriaRole.Group, new() { Name = "Who's hiring?" });
+        await whosHiring.GetByLabel("Team").SelectOptionAsync(new SelectOptionValue { Label = "Kitchen (1 person)" });
+        await Expect(whosHiring.GetByLabel("Team")).ToHaveAccessibleDescriptionAsync($"{memberName}.");
+        await newJob.GetByRole(AriaRole.Textbox, new() { Name = "Description" }).ClickAsync();
+        await Page.Keyboard.TypeAsync("Run the grill on the evening service.");
+        await ExpectNoAccessibilityViolationsAsync();
+        await newJob.GetByRole(AriaRole.Button, new() { Name = "Create job" }).ClickAsync();
+
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Line cook");
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Hiring team") }).ClickAsync();
+        var people = Page.GetByRole(AriaRole.Dialog, new() { Name = "Hiring team" }).GetByRole(AriaRole.List, new() { Name = "People on the team" });
+        await Expect(people).ToContainTextAsync(memberName);
+        await Expect(people).ToContainTextAsync("Riley Harper");
+    }
+
     // The Owner invites an address on Only jobs they're on; the invited person accepts the emailed link in a session of
     // their own.
     private async Task<ApiSession> InviteAsync(ApiSession owner, string email)

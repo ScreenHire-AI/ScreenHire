@@ -267,7 +267,8 @@ organization's Owner or Admin also finds **Finish setting up** in the bell at th
   Deleting Interviewer is refused while Robin has it, saying so.
 - **Job access.** Team's Jobs column says "1 job" for Robin and "All jobs" for everyone else. **Edit access** in Robin's
   menu opens his role and job access, with the Senior .NET Engineer job listed. On a job, **Hiring team** lists Jordan
-  (on every job) and, on the .NET job, Robin; **Add a person** and **Copy from another job** change it. Sign in as Robin
+  (on every job) and, on the .NET job, Robin; **Add a person**, **Add a team** and **Copy from another job** change it.
+  Team's **Teams** tab holds Engineering, Jordan and Robin, which **New job** offers under Who's hiring. Sign in as Robin
   through Dev SSO: Jobs lists only Senior .NET Engineer, another job's address says it is not found, and the
   candidates, saved views and My tasks hold only that job's.
 - **Branding.** Brightwater's teal is saved. Type a pale brand colour such as ffd400: the field says links in it are

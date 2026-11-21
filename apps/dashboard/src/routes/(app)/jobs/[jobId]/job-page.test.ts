@@ -121,6 +121,34 @@ describe('job page', () => {
     await waitFor(() => expect(saved).toEqual([{ memberIds: [], copyFromJobId: null }]));
   });
 
+  // Add a team copies its people into the list; someone taken off before Save stays off, because only the list is sent.
+  it("adds a named team's people to the hiring team, and saves without anyone taken off again", async () => {
+    const jordan = { id: 'm-2', userId: 'u-2', email: 'jordan@example.com', displayName: 'Jordan Ellis', role: 'Recruiter', customRoleId: null, roleName: 'Recruiter', joinedAt: '2026-10-01T09:00:00Z', jobAccess: 'All', seesAllJobs: true, jobCount: 1 };
+    const robin = { id: 'm-3', userId: 'u-3', email: 'robin@example.com', displayName: 'Robin Hale', role: 'Viewer', customRoleId: null, roleName: 'Viewer', joinedAt: '2026-10-01T09:00:00Z', jobAccess: 'HiringTeamOnly', seesAllJobs: false, jobCount: 0 };
+    const person = (member: typeof jordan) => ({ memberId: member.id, userId: member.userId, email: member.email, displayName: member.displayName, roleName: member.roleName, seesAllJobs: member.seesAllJobs });
+    const saved: unknown[] = [];
+    page.data = { user };
+    stub(job, {
+      'GET /v1/organization/members': () => Response.json([jordan, robin]),
+      'GET /v1/organization/teams': () => Response.json([{ id: 'team-1', name: 'Kitchen', members: [person(jordan), person(robin)], createdAt: '2026-10-01T09:00:00Z', updatedAt: null }]),
+      'GET /v1/jobs': () => Response.json([]),
+      [`GET /v1/jobs/${jobId}/hiring-team`]: () => Response.json([]),
+      [`PUT /v1/jobs/${jobId}/hiring-team`]: (init) => (saved.push(JSON.parse(String(init?.body))), Response.json([])),
+    });
+
+    await fireEvent.click(await screen.findByRole('button', { name: /^Hiring team/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Hiring team' });
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Add a team' }));
+    await fireEvent.click(await screen.findByRole('option', { name: /Kitchen/ }));
+    expect(await within(sheet).findByText('Robin Hale')).toBeInTheDocument();
+    expect(within(sheet).getByText('Jordan Ellis')).toBeInTheDocument();
+
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Remove Robin Hale from the hiring team' }));
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(saved).toEqual([{ memberIds: ['m-2'], copyFromJobId: null }]));
+  });
+
   it('keeps Opened once someone has changed the job since it opened', async () => {
     stub({ ...job, lastUpdated: { at: '2026-10-20T12:00:00Z', by: 'ScreenHire' } } as JobDetail);
 
