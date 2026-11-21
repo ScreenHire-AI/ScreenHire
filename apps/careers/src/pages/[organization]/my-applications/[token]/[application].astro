@@ -1,10 +1,11 @@
 ---
 // The messages about one application (docs/architecture/candidate-portal.md): the emails the team sent to the candidate and
 // their replies, oldest first, with a box to reply from the page. A reply written here and a reply sent by email land in the
-// same place for the team. One native multipart form posted to the `sendPortalReply` action, so it
-// works with JavaScript off and ships no script. The reply form's own id makes sending it twice store one reply. The link is
-// the candidate's alone: never cached, indexed or sent on as a referrer. It collects the words and files and nothing else.
+// same place for the team. One native multipart form posted to the `sendPortalReply` action, so it works with JavaScript
+// off; the one island is its files field, which lists the chosen files with Remove. The reply form's own id makes sending
+// it twice store one reply. The link is the candidate's alone: never cached, indexed or sent on as a referrer. It collects the words and files and nothing else.
 import { actions } from 'astro:actions';
+import FilesField from '@screenhire/ui/questions/FilesField.svelte';
 import Notice from '../../../../components/Notice.astro';
 import Panel from '../../../../components/Panel.astro';
 import PortalLinkProblem from '../../../../components/PortalLinkProblem.astro';
@@ -13,7 +14,7 @@ import { getPublicOrganization, getPublicPortalMessages } from '../../../../lib/
 import { forwardedFor } from '../../../../lib/apply-server';
 import { localeOf, longDate } from '../../../../lib/locale';
 import { basePath } from '../../../../lib/host';
-import { FILE_TYPES, isGuid, isToken, MAX_FILES, newReplyKey, REPLY_MESSAGES } from '../../../../lib/portal';
+import { FILE_TYPES, isGuid, isToken, MAX_FILE_BYTES, MAX_FILES, newReplyKey, REPLY_MESSAGES } from '../../../../lib/portal';
 
 const { organization, token, application } = Astro.params;
 const base = basePath(Astro.request, organization!);
@@ -102,19 +103,18 @@ const heading = { open: messages?.jobTitle ?? 'Messages', busy: 'Too many attemp
                 <label for="body" class="text-candidate-body font-bold">Your message</label>
                 <textarea id="body" name="body" rows="6" required maxlength={messages.bodyMax} class="field-input">{result?.data?.body ?? ''}</textarea>
               </div>
-              <div class="flex flex-col gap-2">
-                <label for="files" class="text-candidate-body font-bold">
-                  Files <span class="font-medium text-candidate-muted-foreground">(optional)</span>
-                </label>
-                <p id="files-hint" class="text-candidate-hint text-candidate-muted-foreground">
-                  Up to {MAX_FILES} files, 10 MB in all. PDF, Word, PNG or JPEG.
-                </p>
-                {/* The same dashed frame the apply form's file field has before its script runs (design-system A12). A reply
-                    takes several files in one post, which the single-file drop area cannot, so it stays a plain input. */}
-                <div class="drop-area" data-tone="candidate">
-                  <input id="files" name="files" type="file" multiple accept={FILE_TYPES} aria-describedby="files-hint" class="file-input" />
-                </div>
-              </div>
+              {/* One island, the apply form's own file island in its several-files mode. Without script it is the named
+                  file input in its dashed frame and posts with the form. */}
+              <FilesField
+                client:load
+                name="files"
+                label="Files"
+                hint={`Up to ${MAX_FILES} files, 10 MB in all. PDF, Word, PNG or JPEG.`}
+                accept={FILE_TYPES.split(',')}
+                maxBytes={MAX_FILE_BYTES}
+                maxFiles={MAX_FILES}
+                maxTotalBytes={MAX_FILE_BYTES}
+              />
               <div class="flex flex-col gap-3 sm:flex-row">
                 <button type="submit" class="button-primary">Send message</button>
               </div>

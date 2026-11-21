@@ -23,6 +23,7 @@ sources:
   - resource: apps/api/Configuration/DomainOptions.cs
   - resource: apps/api/Endpoints/EmailEndpoints.cs
   - resource: apps/careers/src/lib/portal.ts
+  - resource: packages/ui/src/questions/FilesField.svelte
   - resource: apps/careers/src/actions/index.ts
   - resource: apps/careers/src/layouts/CareersLayout.astro
   - resource: apps/careers/src/pages/[organization]/my-applications/index.astro
@@ -144,7 +145,10 @@ the same sent email.
 - It answers the latest email that went for the application, which is the one the person is told about. With no email sent yet
   the route answers 409 and the page says the team has not written to the candidate: ingest needs a send to answer.
 - **Files.** A native `multipart/form-data` form with `<input type="file" multiple>`: up to 3 files, 10 MB in all (the careers
-  server takes 12 MB from a form), PDF, Word, PNG or JPEG. The careers server posts them to the API as base64 in JSON, and the
+  server takes 12 MB from a form), PDF, Word, PNG or JPEG. With JavaScript the input is the Drop area in its `multiple` mode
+  (`FilesField`, the page's one island): each file is a row with its name, size and Remove, the area refuses a file of the wrong type
+  or one over the count or the total in its own line in the field's error, and it keeps the named input holding exactly the rows,
+  so the form posts what is shown. Without it the input posts as the browser draws it, and the server checks the same limits. Either way the careers server posts the files to the API as base64 in JSON, and the
   existing `AttachmentFiles` checks (extension and first bytes) and malware scan apply.
 - **Idempotency.** The form carries its own random id (32 hex digits, made when the page renders). The reply is stored under
   the `Message-ID` `<portal-{application}-{id}@portal.invalid>`, so sending the same form twice, or a retry after a lost answer, stores one
@@ -179,8 +183,8 @@ now routes them like every other email about an application.
 
 ## Careers pages
 
-Under `apps/careers/src/pages/[organization]/my-applications/`. Each is server rendered with no client JavaScript; the only
-script is Cloudflare's bot check on the first page, and only where the deployment has one. The forms are native and post to the
+Under `apps/careers/src/pages/[organization]/my-applications/`. Each is server rendered. The one island is the reply form's
+`FilesField`, and the only other script is Cloudflare's bot check on the first page, where the deployment has one. The forms are native and post to the
 `requestPortalLink` and `sendPortalReply` Astro Actions, whose logic is in `apps/careers/src/lib/portal.ts`. Every call forwards
 the visitor's address, so the API's rate limit counts the visitor and not the careers server.
 
@@ -189,7 +193,7 @@ the visitor's address, so the API's rate limit counts the visitor and not the ca
 | `index.astro` | What happens, then one email field and "Email me a link". With the portal disabled, or any answer but 200 from `GET ""`, it says the page is not available and to reply to the last email. |
 | `sent.astro` | The one answer after asking: "If we have an application from that address, we have emailed a link". The same for an address that applied, one that did not and one in its cooldown. |
 | `[token]/index.astro` | The overview: a panel of saved applications to finish, then one panel per application titled with its job, holding its date and four steps (square markers on a line with the name under each, and `aria-current`, never colour alone) or its ended status, anything waiting as a button, and a link to its messages. |
-| `[token]/[application].astro` | The thread and a reply panel. Its files go in one multi-file input inside the apply form's dashed frame (the shared Drop area takes one file, so a reply has no per-file Remove yet). A redirect after a send (`?sent=1`) so a refresh never posts twice. |
+| `[token]/[application].astro` | The thread and a reply panel. Its files are `FilesField` (the shared Drop area in its `multiple` mode, with a name, size and Remove per file); without script it is one multi-file input in the same dashed frame. A redirect after a send (`?sent=1`) so a refresh never posts twice. |
 
 A forged, expired, wrong-organization or erased-candidate link, or a malformed one, shows "This link has expired or is not valid"
 with a link back to the form and the line to reply to the last email (status 404); a busy network says the same in a `Notice`

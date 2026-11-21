@@ -41,6 +41,14 @@ describe('sort header', () => {
     expect(header('Name')).toHaveAttribute('aria-sort', 'ascending');
   });
 
+  it('puts the icon after the text in a left-aligned column and before it in a right-aligned one, so the text ends where the values do', () => {
+    render(SortTableHarness);
+
+    const order = (name: string) => [...screen.getByRole('button', { name }).children].map((child) => child.tagName.toLowerCase());
+    expect(order('Name')).toEqual(['span', 'svg']);
+    expect(order('Last updated')).toEqual(['svg', 'span']);
+  });
+
   it('stores the sort a person chooses and opens on it after a reload', async () => {
     const first = render(SortTableHarness, { props: { sortId: 'templates' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Name' }));

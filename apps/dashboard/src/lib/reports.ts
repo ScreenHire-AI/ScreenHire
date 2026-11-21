@@ -34,7 +34,7 @@ export interface Change {
 }
 
 /**
- * A headline number's change in words ("18 more than before"), or null when the previous period has no number to compare.
+ * A headline number's change in words ("18 more than the previous period"), or null when the previous period has no number to compare.
  * `kind: 'days'` is a median in days, where lower reads as faster ("3 days faster"); medians compare as the whole days
  * they show. The arrow follows the number, never whether the change is good: the words and arrow stay neutral.
  */
@@ -46,8 +46,8 @@ export function changeText(current: number | null, previous: number | null | und
   if (difference === 0) return { text: 'No change', short: 'No change', direction: 'none' };
   const amount = Math.abs(difference);
   const direction = difference > 0 ? 'up' : 'down';
-  if (kind === 'days') return { text: `${daysText(amount)} ${difference > 0 ? 'slower' : 'faster'}`, short: daysText(amount), direction };
-  return { text: `${countText(amount)} ${difference > 0 ? 'more' : 'fewer'} than before`, short: countText(amount), direction };
+  if (kind === 'days') return { text: `${daysText(amount)} ${difference > 0 ? 'slower' : 'faster'} than the previous period`, short: daysText(amount), direction };
+  return { text: `${countText(amount)} ${difference > 0 ? 'more' : 'fewer'} than the previous period`, short: countText(amount), direction };
 }
 
 /** The share of applications that were hired: `18%`; null with no applications. */

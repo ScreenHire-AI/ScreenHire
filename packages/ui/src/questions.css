@@ -81,6 +81,15 @@
     @apply gap-2;
   }
 
+  /* A reply's files: one row each, the name taking what the size and Remove leave. */
+  .drop-area-files {
+    @apply flex flex-col gap-2;
+  }
+
+  .drop-area-file {
+    @apply flex min-h-11 items-center gap-3 rounded-lg border border-candidate-input-border bg-candidate-background py-1 pr-1 pl-3;
+  }
+
   .drop-area-button {
     @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-candidate-input-border bg-candidate-background px-4 font-semibold text-candidate-foreground;
   }
