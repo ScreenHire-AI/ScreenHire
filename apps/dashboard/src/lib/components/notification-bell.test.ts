@@ -28,7 +28,7 @@ const newOrganization = {
   'GET /v1/jobs': () => Response.json(jobs.map((job) => ({ ...job, publishedAt: null }))),
 };
 
-function stub(items: unknown[], unreadCount: number, extra: Record<string, () => Response> = {}) {
+function stub(items: unknown[], unreadCount: number, extra: Record<string, (init: RequestInit | undefined) => Response> = {}) {
   vi.stubGlobal(
     'fetch',
     vi.fn(apiStub({ ...newOrganization, 'GET /v1/notifications': () => Response.json({ items, unreadCount }), ...extra })),
