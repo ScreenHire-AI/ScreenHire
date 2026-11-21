@@ -32,6 +32,7 @@
   let careersUrlPattern = $state<string>();
   // The trial's length is configuration too (ScreenHire:Billing:Trial), 0 where billing is off, and is said under the button.
   let trialDays = $state(0);
+  const trialText = $derived(trialLine(trialDays));
   onMount(async () => {
     const response = await getMeta().catch(() => undefined);
     if (response?.status === 200) {
@@ -167,8 +168,8 @@
       <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create organization</Button>
     </div>
     <!-- One quiet line under the button, only where there is a trial. -->
-    {#if trialLine(trialDays)}
-      <p class="text-caption text-muted-foreground">{trialLine(trialDays)}</p>
+    {#if trialText}
+      <p class="text-caption text-muted-foreground">{trialText}</p>
     {/if}
   </div>
 {/snippet}
