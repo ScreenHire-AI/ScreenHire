@@ -119,7 +119,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         await WithoutJavaScriptAsync();
         await Page.GotoAsync(scene.Link);
         await Page.GetByRole(AriaRole.Radio).First.CheckAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Book your interview" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
 
         // The interview is in UTC, so the day on the page is the start's UTC day.
