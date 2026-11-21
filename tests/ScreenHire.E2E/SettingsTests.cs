@@ -76,6 +76,7 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
             ("/settings/roles/compare", "Compare roles"),
             ("/settings/roles/viewer", "Viewer"),
             ($"/settings/roles/{roleId}", "Interviewer"),
+            ("/settings/tags", "Tags"),
             ("/settings/branding", "Branding"),
             ("/settings/sending-domain", "Email domain"),
             ("/verification", "Verification"),
