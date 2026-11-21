@@ -59,6 +59,8 @@ internal sealed class ApplicationEventConfiguration : IEntityTypeConfiguration<A
             .HasPrincipalKey(a => new { a.OrganizationId, a.Id })
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(e => new { e.OrganizationId, e.ApplicationId, e.OccurredAt });
+        // The workspace's Activity feed: every application's entries, newest first, paged by time and id.
+        builder.HasIndex(e => new { e.OrganizationId, e.OccurredAt, e.Id }).IsDescending(false, true, true);
     }
 }
 

@@ -170,6 +170,7 @@ app.MapOrganizationEndpoints();
 app.MapTeamEndpoints();
 app.MapAccountEndpoints();
 app.MapNotificationEndpoints();
+app.MapActivityEndpoints();
 app.MapViewEndpoints();
 app.MapHiringTeamEndpoints();
 app.MapRoleEndpoints();

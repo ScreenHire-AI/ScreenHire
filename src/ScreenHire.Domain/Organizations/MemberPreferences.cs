@@ -44,6 +44,12 @@ public sealed class MemberPreferences : ITenantOwned
     /// <summary>The person's local date of the last daily digest sent, so a day gets at most one.</summary>
     public DateOnly? LastDigestOn { get; private set; }
 
+    /// <summary>
+    /// When the person last opened the bell's Activity tab, from the server's clock: the feed counts the changes after it
+    /// ("Since you were last here: 14 changes"). Null until they first open it.
+    /// </summary>
+    public DateTimeOffset? ActivitySeenAt { get; private set; }
+
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public static MemberPreferences Create(Guid organizationId, Guid memberId, Guid userId, DateTimeOffset now) =>
@@ -86,6 +92,18 @@ public sealed class MemberPreferences : ITenantOwned
     }
 
     public void MarkDigestSent(DateOnly localDate) => LastDigestOn = localDate;
+
+    /// <summary>
+    /// Records that the person has seen the activity up to <paramref name="now"/>. Never moves back, so two tabs that
+    /// open the feed out of order keep the later time. Not a preference, so <see cref="UpdatedAt"/> stays as it is.
+    /// </summary>
+    public void MarkActivitySeen(DateTimeOffset now)
+    {
+        if (ActivitySeenAt is null || now > ActivitySeenAt)
+        {
+            ActivitySeenAt = now;
+        }
+    }
 }
 
 /// <summary>How the dashboard writes a date: the browser's way for the language, or one fixed order.</summary>

@@ -24,6 +24,7 @@ import type {
   AccountDetails,
   AccountNotifications,
   AccountSignIn,
+  ActivityPage,
   AddApplicationNoteRequest,
   AddApplicationTagRequest,
   AddFromTalentPoolRequest,
@@ -97,6 +98,7 @@ import type {
   ExportAiUsageCallsParams,
   ExportVerificationActivityParams,
   FillTimeZoneRequest,
+  GetActivityParams,
   GetAiUsageSummaryParams,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
@@ -17614,6 +17616,199 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getDismissNotificationMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getActivityResponse200 = {
+  data: ActivityPage
+  status: 200
+}
+
+export type getActivityResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getActivityResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getActivityResponseSuccess = (getActivityResponse200) & {
+  headers: Headers;
+};
+export type getActivityResponseError = (getActivityResponse400 | getActivityResponse401) & {
+  headers: Headers;
+};
+
+export const getGetActivityUrl = (params?: GetActivityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["kinds"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/activity?${stringifiedParams}` : `/v1/activity`
+}
+
+export const getActivity = async (params?: GetActivityParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getActivityResponseSuccess> => {
+
+  return apiQueryFetch<getActivityResponseSuccess>(getGetActivityUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetActivityQueryKey = (params?: GetActivityParams,) => {
+    return [
+    'v1','activity', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetActivityQueryOptions = <TData = Awaited<ReturnType<typeof getActivity>>, TError = ErrorType<HttpValidationProblemDetails | void>>(params?: GetActivityParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getActivity>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetActivityQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getActivity>>> = ({ signal }) => getActivity(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getActivity>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getActivity>>>
+export type GetActivityQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetActivity<TData = Awaited<ReturnType<typeof getActivity>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ params?: () =>  GetActivityParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getActivity>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetActivityQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type markActivitySeenResponse204 = {
+  data: void
+  status: 204
+}
+
+export type markActivitySeenResponse401 = {
+  data: void
+  status: 401
+}
+
+export type markActivitySeenResponseSuccess = (markActivitySeenResponse204) & {
+  headers: Headers;
+};
+export type markActivitySeenResponseError = (markActivitySeenResponse401) & {
+  headers: Headers;
+};
+
+export const getMarkActivitySeenUrl = () => {
+
+
+
+
+  return `/v1/activity/seen`
+}
+
+export const markActivitySeen = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<markActivitySeenResponseSuccess> => {
+
+  return apiQueryFetch<markActivitySeenResponseSuccess>(getMarkActivitySeenUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkActivitySeenMutationKey = () => ['markActivitySeen'] as const;
+
+export const getMarkActivitySeenMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof markActivitySeen>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof markActivitySeen>>, TError,void, TContext> => {
+
+const mutationKey = getMarkActivitySeenMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markActivitySeen>>, void> = () => {
+
+
+          return  markActivitySeen(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkActivitySeenMutationResult = NonNullable<Awaited<ReturnType<typeof markActivitySeen>>>
+
+    export type MarkActivitySeenMutationError = ErrorType<void>
+
+
+    export const createMarkActivitySeen = <TError = ErrorType<void>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof markActivitySeen>>, TError,void, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof markActivitySeen>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getMarkActivitySeenMutationOptions(options?.()) }), queryClient);
     }
 
 export type listViewsResponse200 = {

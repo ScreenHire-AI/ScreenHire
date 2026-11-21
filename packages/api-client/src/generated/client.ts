@@ -8,6 +8,7 @@ import type {
   AccountDetails,
   AccountNotifications,
   AccountSignIn,
+  ActivityPage,
   AddApplicationNoteRequest,
   AddApplicationTagRequest,
   AddFromTalentPoolRequest,
@@ -81,6 +82,7 @@ import type {
   ExportAiUsageCallsParams,
   ExportVerificationActivityParams,
   FillTimeZoneRequest,
+  GetActivityParams,
   GetAiUsageSummaryParams,
   GetApiKeysHistoryParams,
   GetEmailTemplateHistoryParams,
@@ -9791,6 +9793,106 @@ export const getDismissNotificationUrl = (id: string,) => {
 export const dismissNotification = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<dismissNotificationResponse> => {
 
   return apiFetch<dismissNotificationResponse>(getDismissNotificationUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getActivityResponse200 = {
+  data: ActivityPage
+  status: 200
+}
+
+export type getActivityResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getActivityResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getActivityResponseSuccess = (getActivityResponse200) & {
+  headers: Headers;
+};
+export type getActivityResponseError = (getActivityResponse400 | getActivityResponse401) & {
+  headers: Headers;
+};
+
+export type getActivityResponse = (getActivityResponseSuccess | getActivityResponseError)
+
+export const getGetActivityUrl = (params?: GetActivityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["kinds"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/activity?${stringifiedParams}` : `/v1/activity`
+}
+
+export const getActivity = async (params?: GetActivityParams, options?: Parameters<typeof apiFetch>[1]): Promise<getActivityResponse> => {
+
+  return apiFetch<getActivityResponse>(getGetActivityUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type markActivitySeenResponse204 = {
+  data: void
+  status: 204
+}
+
+export type markActivitySeenResponse401 = {
+  data: void
+  status: 401
+}
+
+export type markActivitySeenResponseSuccess = (markActivitySeenResponse204) & {
+  headers: Headers;
+};
+export type markActivitySeenResponseError = (markActivitySeenResponse401) & {
+  headers: Headers;
+};
+
+export type markActivitySeenResponse = (markActivitySeenResponseSuccess | markActivitySeenResponseError)
+
+export const getMarkActivitySeenUrl = () => {
+
+
+
+
+  return `/v1/activity/seen`
+}
+
+export const markActivitySeen = async ( options?: Parameters<typeof apiFetch>[1]): Promise<markActivitySeenResponse> => {
+
+  return apiFetch<markActivitySeenResponse>(getMarkActivitySeenUrl(),
   {
     ...options,
     method: 'POST'

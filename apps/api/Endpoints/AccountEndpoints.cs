@@ -404,7 +404,7 @@ internal static class AccountEndpoints
     }
 
     /// <summary>The caller's preferences row here, made on the first save (tracked, so the caller saves it).</summary>
-    private static async Task<MemberPreferences?> PreferencesAsync(
+    internal static async Task<MemberPreferences?> PreferencesAsync(
         ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
     {
         if (tenant is not { OrganizationId: { } organizationId, MemberId: { } memberId, UserId: { } userId })

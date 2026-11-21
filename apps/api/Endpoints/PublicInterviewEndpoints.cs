@@ -221,7 +221,9 @@ internal static class PublicInterviewEndpoints
                 application.OrganizationId, application.Id, TriggerType.InterviewScheduled, StageId: null, interview.Id, now));
         }
 
-        await outbox.PublishAsync(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString()));
+        await outbox.PublishAsync(new InterviewChanged(
+            application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(),
+            reschedule ? InterviewChanges.Rescheduled : InterviewChanges.Booked, ByCandidate: true, StartsAt: interview.StartsAt));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
@@ -276,7 +278,9 @@ internal static class PublicInterviewEndpoints
             await outbox.PublishAsync(new CancelInterviewEvents(application.OrganizationId, application.Id, interview.Id, interview.Revision));
         }
 
-        await outbox.PublishAsync(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString()));
+        await outbox.PublishAsync(new InterviewChanged(
+            application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.Cancelled,
+            ByCandidate: true, StartsAt: interview.StartsAt));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.NoContent();
     }

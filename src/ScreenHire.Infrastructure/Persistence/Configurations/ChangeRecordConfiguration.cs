@@ -18,5 +18,7 @@ internal sealed class ChangeRecordConfiguration : IEntityTypeConfiguration<Chang
         builder.HasOne<Organization>().WithMany().HasForeignKey(r => r.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         // A subject's history, newest first, and its last change.
         builder.HasIndex(r => new { r.OrganizationId, r.SubjectKind, r.SubjectId, r.Sequence }).IsDescending(false, false, false, true);
+        // The workspace's Activity feed: one kind's records across every subject (every job's), newest first.
+        builder.HasIndex(r => new { r.OrganizationId, r.SubjectKind, r.OccurredAt, r.Id }).IsDescending(false, false, true, true);
     }
 }
