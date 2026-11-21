@@ -355,7 +355,7 @@ the job cannot book, move or cancel.
 
 | Route | What it does |
 |---|---|
-| `GET ?tz=` | State (`Open`, `Booked`, `Cancelled`, `Expired`), employer, job title, the booked time, the zone, the length, the offered times as UTC instants (for an Open interview, and for a Booked one the candidate can still change), `canChange`, `minNoticeHours` and `newTimesOffered` (the team offered new times and the booked time stays until the candidate picks one, until the offered days end). `slotsUnavailable` is true when a calendar cannot be read. It names no interviewer. |
+| `GET ?tz=` | State (`Open`, `Booked`, `Cancelled`, `Expired`), employer, job title, the booked time, the zone, the length, the offered times as UTC instants (for an Open interview, and for a Booked one the candidate can still change), `canChange`, `minNoticeHours`, `meetingName` (what the stage calls the meeting, "interview" when it names none) and `newTimesOffered` (the team offered new times and the booked time stays until the candidate picks one, until the offered days end). `slotsUnavailable` is true when a calendar cannot be read. It names no interviewer. |
 | `POST /book` `{start}` | Open to Booked. 204. |
 | `POST /reschedule` `{start}` | Moves a Booked interview. 204. |
 | `POST /cancel` | Cancels an Open or Booked interview. 204. |
@@ -380,7 +380,7 @@ an emailed answer lands in Messages) and end with the link to the candidate's ow
 `CreateInterviewEvents`, `UpdateInterviewEvents` and `CancelInterviewEvents` write one event per interviewer on their own
 calendar, so it lands natively whichever provider each uses. The organizer's event invites the candidate by address and
 asks for a meeting link; the other copies carry that link in their text and invite nobody. The title is
-`Interview: {candidate} - {job}` and the body holds the job, the candidate and a link to the application, nothing else.
+`Interview: {candidate} - {job}` (the meeting's name stands in for "Interview", capitalised) and the body holds the job, the candidate and a link to the application, nothing else.
 Event ids derive from the interview and the member, so creating twice finds the first. A find does not change the event's
 time, so a move with no saved id looks the event up first and moves it, and creates one only when there is none. A message does nothing when the
 request has a newer revision or is no longer in the state the message is about (`InterviewText.IsCurrent`). A member with
@@ -393,6 +393,27 @@ These handlers take the interviewers' locks before they read the request and hol
 the handler's transaction commits. `ScreenHire:Calendar:Timeout` (10 seconds) bounds each call, so a provider that hangs
 holds an interviewer's bookings for seconds, not for good. A cancellation or a move takes the same locks, so it cannot slip in while events are
 being written: it waits, then finds the event ids it needs to remove or move.
+
+## The stage's meeting name
+
+Every word for the meeting, to the candidate and the team, is "interview" unless the application's stage names it
+otherwise: `meetingName` on a `WorkflowStage` (optional, plain words in lower case, at most 40 characters; the template
+builder's "What the meeting is called", [workflow engine](workflow-engine.md#stages)). Offering an interview copies the
+stage's name onto the `InterviewRequest` (`MeetingName`, null for "interview"), from the application's current stage in the
+job's workflow, at both places a request is made: the offer route and the `ScheduleInterview` action. The copy is the
+name for the life of the request: a candidate who moves to another stage still hears "trial shift" in the confirmation, the
+reminders and the cancellation, and a request made before stages could name a meeting reads "interview".
+
+Where the name appears:
+
+- The five interview emails, as `{{ meeting.name }}` ([email](email.md)). The built-in wording uses it in every subject and
+  body, so a default stage reads "interview" where earlier wording said "conversation" or "talk".
+- The calendar event's title (`Trial shift: {candidate} - {job}`, capitalised) and the interviewer's reminder email.
+- The candidate's booking page: the title, the headings ("Pick a time for your trial shift", "Your trial shift is
+  booked"), the primary button ("Book your trial shift") and the cancel link, from `meetingName` in `GET ?tz=`.
+- The candidate's page (`PublicPortalWaiting.meetingName`: "Pick a time for your trial shift").
+- The dashboard's scheduling sheet and the "Schedule ..." button on the candidate page, from the candidate's current stage.
+  The Activity lines, the Interview panel and the generic automation labels keep the word "interview".
 
 ## Reminders
 

@@ -15,6 +15,8 @@ import type { PublicOrganization } from './publicOrganization.ts';
  * times are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can
  * still move or cancel. `newTimesOffered` is true while the team's offer of new times waits for the candidate: the
  * booked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.
+ * `meetingName` is what the team calls the meeting (the stage's meeting name), in lower case, such as "trial shift"
+ * or "interview"; the page uses it for its title, headings and buttons.
  * Nothing about the interviewers, and nothing from verification.
  */
 export interface PublicInterview {
@@ -33,4 +35,5 @@ export interface PublicInterview {
   canChange: boolean;
   minNoticeHours: number;
   newTimesOffered: boolean;
+  meetingName: string;
 }

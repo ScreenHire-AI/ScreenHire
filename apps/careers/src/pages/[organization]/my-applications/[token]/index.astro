@@ -11,6 +11,7 @@ import { getPublicOrganization, getPublicPortal } from '../../../../lib/api';
 import { forwardedFor } from '../../../../lib/apply-server';
 import { longDate } from '../../../../lib/drafts';
 import { basePath } from '../../../../lib/host';
+import { meetingNameOf } from '../../../../lib/interview';
 import { ENDED, isToken, stepStates } from '../../../../lib/portal';
 
 const { organization, token } = Astro.params;
@@ -34,7 +35,9 @@ Astro.response.status = status === 'open' ? 200 : status === 'busy' ? 429 : 404;
 
 const heading = { open: 'Your applications', busy: 'Too many attempts', expired: 'This link has expired or is not valid' }[status];
 const mine = `${base}/my-applications/${token}`;
-const waitingText = { Questionnaire: 'Answer the follow-up questions', Interview: 'Pick a time for your interview' };
+// An interview waits under the name its stage gives the meeting ("Pick a time for your trial shift").
+const waitingText = (item: { kind: 'Questionnaire' | 'Interview'; meetingName?: string | null }) =>
+  item.kind === 'Questionnaire' ? 'Answer the follow-up questions' : `Pick a time for your ${meetingNameOf(item.meetingName)}`;
 const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' };
 // The four steps are square markers on a line (design-system T4): a step done is filled with a tick, the step the application
 // is at is outlined with a filled centre, and the steps to come are empty. The name is under each marker, and a screen reader
@@ -132,7 +135,7 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
                 <ul class="mt-4 flex flex-col gap-2">
                   {application.waiting.map((item) => (
                     <li>
-                      <a href={`${base}/${waitingPath[item.kind]}/${item.token}`} class="button-secondary">{waitingText[item.kind]}</a>
+                      <a href={`${base}/${waitingPath[item.kind]}/${item.token}`} class="button-secondary">{waitingText(item)}</a>
                     </li>
                   ))}
                 </ul>

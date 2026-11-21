@@ -20,6 +20,7 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion3, 3, "Hourly role" },
         { SystemTemplates.OfficeRole, SystemTemplates.OfficeRoleVersion1, 1, "Office role" },
         { SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion1, 1, "Trade role with a trial shift" },
+        { SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion2, 2, "Trade role with a trial shift" },
         { SystemTemplates.HighVolume, SystemTemplates.HighVolumeVersion1, 1, "High volume" },
     };
 
@@ -84,6 +85,29 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         five.At("definition.workflow.automations.1.conditions.rules").EnumerateArray().Select(r => r.GetProperty("fact").GetString())
             .Should().OnlyContain(fact => fact!.StartsWith("verification.", StringComparison.Ordinal));
     }
+
+    // Version 2 is version 1 with the trial shift stage calling its meeting "trial shift" (migration AddTradeRoleVersion2).
+    // Version 1 is published, so it keeps its words, and a job copied from version 2 carries the name.
+    [Fact]
+    public async Task Trade_role_version_2_names_the_trial_shift_meeting_and_version_1_does_not()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+
+        var one = (await recruiter.GetAsync($"/v1/templates/{SystemTemplates.TradeRole}/versions/1")).Expect(HttpStatusCode.OK);
+        var two = (await recruiter.GetAsync($"/v1/templates/{SystemTemplates.TradeRole}/versions/2")).Expect(HttpStatusCode.OK);
+        var body = Samples.RemoteJob("Plumber");
+        body["templateVersionId"] = SystemTemplates.TradeRoleVersion2;
+        var job = await recruiter.CreateJobAsync(body);
+
+        StageOf(one.At("definition.workflow.stages"), "trial_shift").Has("meetingName").Should().BeFalse("a published version never changes");
+        StageOf(two.At("definition.workflow.stages"), "trial_shift").GetProperty("meetingName").GetString().Should().Be("trial shift");
+        two.At("definition.workflow.stages").EnumerateArray().Where(s => s.GetProperty("id").GetString() != "trial_shift")
+            .Should().OnlyContain(s => !s.Has("meetingName"), "only the trial shift stage names its meeting");
+        two.At("definition.workflow.stages").GetArrayLength().Should().Be(one.At("definition.workflow.stages").GetArrayLength());
+        StageOf(job.At("workflow.stages"), "trial_shift").GetProperty("meetingName").GetString().Should().Be("trial shift", "the job copies the stage as it is");
+    }
+
+    private static JsonElement StageOf(JsonElement stages, string id) => stages.EnumerateArray().Single(s => s.GetProperty("id").GetString() == id);
 
     // Every stored version names built-in scorecards (migration AddScorecardTemplates) and holds no copy of their questions.
     [Theory]

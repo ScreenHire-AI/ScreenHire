@@ -69,6 +69,7 @@ public static partial class SendInterviewNewTimesHandler
 
         var model = ApplicationEmails.ModelFor(candidate, job.Title, organization.Name, stageName: null) with
         {
+            MeetingName = interview.MeetingNameOrDefault(),
             BookingLink = links.Url(organization.Slug, links.Issue(interview)),
             InterviewLength = InterviewText.Length(interview.DurationMinutes),
             InterviewTime = interview.StartsAt is { } start ? InterviewText.Time(start, start + interview.Duration, interview.TimeZone) : null,
@@ -97,14 +98,15 @@ public static partial class SendInterviewNewTimesHandler
 public static class InterviewReminderEmail
 {
     public static EmailMessage Compose(
-        string to, string candidateName, string jobTitle, string organizationName, string time, string? meetingUrl, Uri? applicationLink)
+        string to, string candidateName, string jobTitle, string organizationName, string time, string? meetingUrl, Uri? applicationLink, string? meetingName = null)
     {
+        var meeting = InterviewText.Plain(meetingName ?? WorkflowStage.DefaultMeetingName);
         var who = InterviewText.Plain(candidateName);
         var where = $"{who}, {InterviewText.Plain(jobTitle)}, at {organizationName}";
-        var text = new List<string> { $"You interview a candidate in about a day: {where}.", time };
+        var text = new List<string> { $"Your {meeting} with a candidate is in about a day: {where}.", time };
         var html = new List<string>
         {
-            $"<p>You interview a candidate in about a day: {WebUtility.HtmlEncode(where)}.</p>",
+            $"<p>Your {WebUtility.HtmlEncode(meeting)} with a candidate is in about a day: {WebUtility.HtmlEncode(where)}.</p>",
             $"<p>{WebUtility.HtmlEncode(time)}</p>",
         };
         if (!string.IsNullOrEmpty(meetingUrl))
@@ -119,7 +121,7 @@ public static class InterviewReminderEmail
             html.Add($"<p><a href=\"{WebUtility.HtmlEncode(applicationLink.ToString())}\">Open the application</a></p>");
         }
 
-        return new EmailMessage(to, $"Interview in a day: {who}", string.Join("\n\n", text), string.Join('\n', html));
+        return new EmailMessage(to, $"{InterviewText.Sentence(meeting)} in a day: {who}", string.Join("\n\n", text), string.Join('\n', html));
     }
 }
 
@@ -177,6 +179,7 @@ public static partial class SendInterviewReminderHandler
         {
             var model = ApplicationEmails.ModelFor(candidate, job.Title, organization.Name, stageName: null) with
             {
+                MeetingName = interview.MeetingNameOrDefault(),
                 ManageLink = links.Url(organization.Slug, links.Issue(interview)),
                 MeetingLink = interview.MeetingUrl,
                 InterviewTime = timeText,
@@ -228,7 +231,7 @@ public static partial class SendInterviewReminderHandler
             }
 
             await email.SendAsync(
-                InterviewReminderEmail.Compose(to, candidate.FullName, job.Title, organization.Name, timeText, interview.MeetingUrl, link), cancellationToken);
+                InterviewReminderEmail.Compose(to, candidate.FullName, job.Title, organization.Name, timeText, interview.MeetingUrl, link, interview.MeetingNameOrDefault()), cancellationToken);
             attendee.MarkReminded(start);
         }
     }

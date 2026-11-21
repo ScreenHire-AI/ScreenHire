@@ -8,6 +8,7 @@ import {
   describeAction,
   describePath,
   errorsUnder,
+  offersMeetings,
   factsFor,
   canRemindIn,
   hasReminder,
@@ -565,5 +566,21 @@ describe('time limits and their reminder', () => {
     expect(hasReminder(remindFrom({ automations: [{ ...personsReminder, enabled: false }] }), 'screening')).toBe(false);
     expect(hasReminder(remindFrom({ automations: [{ ...personsReminder, trigger: { type: 'SlaBreached' } }] }), 'applied')).toBe(true);
     expect(hasReminder(remindFrom(), 'screening')).toBe(false);
+  });
+});
+
+describe('offersMeetings', () => {
+  it('asks on a stage where the team meets a candidate, not on Applied, Offer or a stage that ends the application', () => {
+    expect(offersMeetings({ id: 'screen', name: 'Phone call', kind: 'Screening' })).toBe(true);
+    expect(offersMeetings({ id: 'trial', name: 'Trial shift', kind: 'Assessment' })).toBe(true);
+    expect(offersMeetings({ id: 'talk', name: 'Interview', kind: 'Interview' })).toBe(true);
+    expect(offersMeetings({ id: 'custom', name: 'Tour', kind: 'Custom' })).toBe(true);
+    for (const kind of ['Applied', 'Offer', 'Hired', 'Rejected', 'Withdrawn'] as const) {
+      expect(offersMeetings({ id: kind, name: kind, kind })).toBe(false);
+    }
+  });
+
+  it('keeps asking on a stage that already has a name, so the name can be changed or cleared', () => {
+    expect(offersMeetings({ id: 'offer', name: 'Offer', kind: 'Offer', meetingName: 'start day' })).toBe(true);
   });
 });

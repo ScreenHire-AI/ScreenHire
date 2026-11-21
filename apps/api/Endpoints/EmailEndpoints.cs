@@ -123,6 +123,7 @@ internal static class EmailEndpoints
                 new(EmailTemplates.MeetingLink.Name, EmailTemplates.MeetingLink.Label, false, InvitationOnly: true),
                 new(EmailTemplates.InterviewTime.Name, EmailTemplates.InterviewTime.Label, false, InvitationOnly: true),
                 new(EmailTemplates.InterviewLength.Name, EmailTemplates.InterviewLength.Label, false, InvitationOnly: true),
+                new(EmailTemplates.MeetingName.Name, EmailTemplates.MeetingName.Label, false, InvitationOnly: true),
             ]));
     }
 

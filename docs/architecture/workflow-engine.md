@@ -162,9 +162,10 @@ Organization
 - **System templates** ship with the product (SMB quick-start), customers clone and edit them.
   Three of them are the starting points of the new hiring template screen (`/templates/new`): "Office role", "Trade role with a
   trial shift" and "High volume" (`AddStartingPointTemplates`, ids in `SystemTemplates.cs`, listed by the dashboard in
-  `starting-points.ts`, which a unit test keeps in step). Each is published version 1 with its questions, the built-in thank-you
+  `starting-points.ts`, which a unit test keeps in step). Each started as published version 1 with its questions, the built-in thank-you
   email, a reminder for the team on every stage with a time limit, and nothing that rejects anyone on a check; its description is the
-  card's example line. Choosing one is `POST /v1/templates` with `copyFromVersionId`; "Start from nothing" is the basic pipeline.
+  card's example line. Trade role is at version 2 (`AddTradeRoleVersion2`): its trial shift stage names its meeting "trial shift".
+  Choosing one is `POST /v1/templates` with `copyFromVersionId` (the latest version); "Start from nothing" is the basic pipeline.
 - **Archived templates.** An organization archives its own hiring template or library scorecard
   (`POST .../archive`, `.../unarchive`): it leaves the pickers, no new job starts from it (`POST /v1/jobs` answers 400),
   and it reads only until restored (409 on an edit). Jobs keep the copy they took, and stages that name an archived
@@ -183,6 +184,12 @@ Ordered list. Each stage has `id`, `name`, `kind` (`applied`, `screening`, `asse
 `offer`, `hired`, `rejected`, `withdrawn`, `custom`), `color`, optional SLA (e.g., "respond within 3 days"), and
 visibility rules (which roles see candidates here). `hired`/`rejected`/`withdrawn` are terminal. The SLA (`slaDays`, the
 builder's "time limit") measures the hiring team's delay, never the candidate: section 8 says what acts on it.
+A stage may also have a `meetingName`: what the meeting held there is called, in plain words and lower case ("trial shift",
+"phone screen"; at most 40 characters). It is optional and absent means "interview", so every stored definition reads as it
+did and needs no migration. The interview emails (`{{ meeting.name }}`), the candidate's booking page and page, the
+scheduling sheet and the calendar event name the meeting with it
+([interview scheduling](interview-scheduling.md#the-stages-meeting-name)). Validation refuses a blank or too long name at
+`stages[i].meetingName`.
 
 ### Automations (trigger → conditions → actions)
 
@@ -257,7 +264,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   vertical list) with its number, time limit, scorecard and automations; only automations carry an icon. An automation
   with no stage (the checks finishing, a manual run) is under "Any time"; an arriving application belongs to the first
   stage. Generated text never names a person: a reviewer is "the team". A stage's header opens its sheet.
-- **Pipeline:** `stage-cards.svelte`, the stages as cards (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`), with a plus between cards to insert one. A card opens `stage-sheet.svelte`: name, time limit as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other), scorecard, the automations that run there and More options with the stage's kind. A stage's kind follows its name (`kindFromName`) until it is set by hand. The name is matched by the words it contains, the first match winning: withdraw is Withdrawn; reject, not selected, declined, not hired or turned down is Rejected; hired, started or onboard is Hired; offer is Offer; interview is Interview; verif, background or reference is Verification; trial, test, task, assessment, skills, shift, group session or exercise is Assessment; phone, call, screen or review is Screening; anything else, and a stage still named New stage, is Custom. The first stage is always Applied, and setting a kind that ends the application removes the stage's reminder. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
+- **Pipeline:** `stage-cards.svelte`, the stages as cards (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`), with a plus between cards to insert one. A card opens `stage-sheet.svelte`: name, time limit as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other), scorecard, "What the meeting is called" (on every stage where a team meets a candidate: not Applied, Offer or a terminal stage), the automations that run there and More options with the stage's kind. A stage's kind follows its name (`kindFromName`) until it is set by hand. The name is matched by the words it contains, the first match winning: withdraw is Withdrawn; reject, not selected, declined, not hired or turned down is Rejected; hired, started or onboard is Hired; offer is Offer; interview is Interview; verif, background or reference is Verification; trial, test, task, assessment, skills, shift, group session or exercise is Assessment; phone, call, screen or review is Screening; anything else, and a stage still named New stage, is Custom. The first stage is always Applied, and setting a kind that ends the application removes the stage's reminder. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
   team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, never in
   the workflow: on the Templates page's Scorecards tab (`/templates/scorecards/{id}`), in the form builder

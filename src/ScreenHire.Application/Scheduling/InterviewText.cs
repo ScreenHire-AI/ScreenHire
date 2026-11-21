@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Scheduling;
 
 namespace ScreenHire.Application.Scheduling;
@@ -57,8 +58,13 @@ public static class InterviewText
     /// <summary>The text without angle brackets and control characters, so it cannot be read as markup or start a new line.</summary>
     public static string Plain(string text) => new([.. text.Where(c => c is not ('<' or '>') && !char.IsControl(c))]);
 
-    /// <summary>The title every interviewer's event has.</summary>
-    public static string EventTitle(string candidateName, string jobTitle) => $"Interview: {Plain(candidateName)} - {Plain(jobTitle)}";
+    /// <summary>The meeting's name starting a sentence or a title: its first letter in capitals ("Trial shift").</summary>
+    public static string Sentence(string meetingName) =>
+        Plain(meetingName) is { Length: > 0 } plain ? char.ToUpperInvariant(plain[0]) + plain[1..] : "Interview";
+
+    /// <summary>The title every interviewer's event has, led by what the stage calls the meeting ("Interview" when it names none).</summary>
+    public static string EventTitle(string candidateName, string jobTitle, string? meetingName = null) =>
+        $"{Sentence(meetingName ?? WorkflowStage.DefaultMeetingName)}: {Plain(candidateName)} - {Plain(jobTitle)}";
 
     /// <summary>
     /// The body of an interviewer's event: the job, the candidate, a link to the application in the dashboard when this

@@ -18,7 +18,7 @@
 
   const version = createGetHiringTemplateVersion(
     () => template?.id ?? '',
-    () => 1,
+    () => template?.latestPublishedVersion ?? 1,
     () => ({ query: { enabled: Boolean(template) } }),
   );
   const stages = $derived(

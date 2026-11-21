@@ -11,7 +11,7 @@ namespace ScreenHire.IntegrationTests.Scheduling;
 /// </summary>
 public sealed class InterviewReminderTests(AppHostFixture fixture)
 {
-    private const string CandidateSubject = "Reminder: your conversation";
+    private const string CandidateSubject = "Reminder: your interview";
     private const string InterviewerSubject = "Interview in a day";
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

@@ -7,7 +7,7 @@ namespace ScreenHire.UnitTests.Hiring;
 public sealed class StartingPointsTests
 {
     [Fact]
-    public void The_dashboards_starting_points_are_the_three_system_templates_and_their_first_versions_in_order()
+    public void The_dashboards_starting_points_are_the_three_system_templates_and_their_latest_versions_in_order()
     {
         var source = File.ReadAllText(RepositoryFiles.PathTo("apps", "dashboard", "src", "lib", "starting-points.ts"));
 
@@ -17,7 +17,7 @@ public sealed class StartingPointsTests
 
         pairs.Should().Equal(
             (SystemTemplates.OfficeRole, SystemTemplates.OfficeRoleVersion1),
-            (SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion1),
+            (SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion2),
             (SystemTemplates.HighVolume, SystemTemplates.HighVolumeVersion1));
     }
 }

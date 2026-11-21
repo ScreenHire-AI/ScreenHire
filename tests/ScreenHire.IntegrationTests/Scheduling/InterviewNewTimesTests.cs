@@ -34,7 +34,7 @@ public sealed class InterviewNewTimesTests(AppHostFixture fixture)
         offered.At("windowEnd").GetDateTimeOffset().Should().Be(windowEnd);
 
         // The candidate is emailed a link to pick, naming the time that stays until they do; the team's copy hides the link.
-        var email = await world.WaitForEmailAsync(world.CandidateEmail, "New times to talk");
+        var email = await world.WaitForEmailAsync(world.CandidateEmail, "New times for your interview");
         email.Text.Should().Contain("stays in place until you pick a new one").And.Contain("(UTC)");
         var newToken = InterviewWorld.TokenIn(email.Text);
         await world.WaitForTimelineAsync("InterviewNewTimesOffered");
@@ -67,7 +67,7 @@ public sealed class InterviewNewTimesTests(AppHostFixture fixture)
 
         // The offer does not touch the booking, so its reminders still go.
         await world.DeliverReminderAsync(interviewId, first, InterviewReminderKind.DayBefore);
-        await world.WaitForEmailAsync(world.CandidateEmail, "Reminder: your conversation");
+        await world.WaitForEmailAsync(world.CandidateEmail, "Reminder: your interview");
 
         // The candidate picks one of the new times: the same events move, and the offer is over.
         var picked = slots.First(s => s >= windowStart.AddDays(2));
@@ -93,7 +93,7 @@ public sealed class InterviewNewTimesTests(AppHostFixture fixture)
         var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
         (await store.ScheduledTimesAsync(interviewId.ToString(), Ct)).Should().Contain([picked.AddHours(-24), picked.AddHours(-1)]);
         await world.DeliverReminderAsync(interviewId, first, InterviewReminderKind.HourBefore);
-        (await fixture.Mailpit.MessagesAsync(world.CandidateEmail, Ct)).Count(m => m.Subject.Contains("Reminder: your conversation", StringComparison.Ordinal))
+        (await fixture.Mailpit.MessagesAsync(world.CandidateEmail, Ct)).Count(m => m.Subject.Contains("Reminder: your interview", StringComparison.Ordinal))
             .Should().Be(1, "the interview is no longer at the time the old reminder was about");
     }
 
@@ -134,12 +134,12 @@ public sealed class InterviewNewTimesTests(AppHostFixture fixture)
 
         var (firstStart, firstEnd) = Window(first.AddDays(5), days: 7);
         (await OfferAsync(world, interviewId, firstStart, firstEnd)).Expect(HttpStatusCode.OK);
-        await world.WaitForEmailAsync(world.CandidateEmail, "New times to talk");
+        await world.WaitForEmailAsync(world.CandidateEmail, "New times for your interview");
         var (secondStart, secondEnd) = Window(first.AddDays(20), days: 5);
         var again = (await OfferAsync(world, interviewId, secondStart, secondEnd)).Expect(HttpStatusCode.OK);
 
         again.At("windowStart").GetDateTimeOffset().Should().Be(secondStart);
-        await world.WaitForEmailAsync(world.CandidateEmail, "New times to talk", count: 2);
+        await world.WaitForEmailAsync(world.CandidateEmail, "New times for your interview", count: 2);
         InterviewWorld.SlotsOf((await world.PublicGetAsync(token)).Expect(HttpStatusCode.OK))
             .Should().NotBeEmpty().And.OnlyContain(s => s >= secondStart && s < secondEnd);
         (await world.StoredAsync(interviewId)).Revision.Should().Be(1, "an offer is not a change to the booking");

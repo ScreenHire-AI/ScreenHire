@@ -160,6 +160,7 @@ public static partial class DefinitionValidator
                 errors.Add(new(Join(stagePath, "slaDays"), $"The time limit for {stageName} must be between 1 and 365 days. Change it, or clear it."));
             }
 
+            ValidateMeetingName(stage, stagePath, stageName, errors);
             ValidateStageScorecard(stage, stagePath, template, errors);
         }
 
@@ -1333,6 +1334,18 @@ public static partial class DefinitionValidator
         else if (text.Length > maxLength)
         {
             errors.Add(new(path, $"{what} is too long. Keep it to {maxLength.ToString(CultureInfo.InvariantCulture)} characters or fewer."));
+        }
+    }
+
+    // The meeting's name goes into candidate emails and a page's title, so it is plain words: no markup, no line breaks.
+    private static void ValidateMeetingName(WorkflowStage stage, string stagePath, string stageName, List<DefinitionError> errors)
+    {
+        var path = Join(stagePath, "meetingName");
+        var before = errors.Count;
+        ValidateText(stage.MeetingName, path, WorkflowStage.MaxMeetingNameLength, required: false, $"The meeting name of {stageName}", errors);
+        if (errors.Count == before && stage.MeetingName is { } name && name.Any(c => c is '<' or '>' || char.IsControl(c)))
+        {
+            errors.Add(new(path, $"The meeting name of {stageName} can use plain words only. Remove the symbols and line breaks."));
         }
     }
 

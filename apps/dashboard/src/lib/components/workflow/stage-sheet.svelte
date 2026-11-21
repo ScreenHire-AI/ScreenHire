@@ -17,6 +17,8 @@
     errorsUnder,
     isTerminal,
     kindFromName,
+    maxMeetingNameLength,
+    offersMeetings,
     stageKindLabels,
     stageKinds,
     syncReminder,
@@ -122,6 +124,12 @@
   const reminderSaid = $derived(
     stage && stage.slaDays && !isTerminal(stage.kind) && canRemindIn(workflow, stage.id) ? `The team gets a reminder after ${timeLimitLabel(stage.slaDays)}.` : null,
   );
+  // The meeting's name is optional: an empty box removes it, and the meeting is called "interview" again.
+  function setMeetingName(raw: string) {
+    if (!stage) return;
+    stage.meetingName = raw.trim() ? raw : undefined;
+  }
+
   const hasScorecard = $derived(Boolean(stage?.scorecard || stage?.scorecardTemplateId));
 </script>
 
@@ -180,6 +188,21 @@
               <Button variant="outline" onclick={() => onscorecard(index)}>{hasScorecard ? 'Change' : 'Choose'}{' '}<span class="sr-only">scorecard for {stage.name}</span></Button>
             </div>
           </div>
+        {/if}
+
+        {#if offersMeetings(stage)}
+          <label class={labelClass}>
+            What the meeting is called
+            <Input
+              value={stage.meetingName ?? ''}
+              maxlength={maxMeetingNameLength}
+              placeholder="interview"
+              data-stage-meeting-name
+              aria-describedby="stage-meeting-name-hint"
+              oninput={(event) => setMeetingName(event.currentTarget.value)}
+            />
+          </label>
+          <p id="stage-meeting-name-hint" class="-mt-3 text-muted-foreground">Candidates see it in emails and on the page where they book, as in "Book your trial shift".</p>
         {/if}
 
         <div class="flex flex-col gap-2">

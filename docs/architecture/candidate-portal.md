@@ -83,7 +83,8 @@ applications to this organization (newest first):
 - the job's title and when they applied;
 - the funnel (below);
 - what is waiting: an open follow-up questionnaire or an interview to book, each as the token of its existing careers page
-  (`/questionnaires/{token}`, `/interviews/{token}`). The rules are the pages' own: a questionnaire is listed when it is
+  (`/questionnaires/{token}`, `/interviews/{token}`; an interview also carries `meetingName`, what its stage calls the meeting, so the
+  link reads "Pick a time for your trial shift"). The rules are the pages' own: a questionnaire is listed when it is
   unanswered, unexpired, still in the job's workflow, the job is not closed and the application has not ended; an interview
   when it is open and the application has not ended;
 - whether there are messages and whether the candidate can reply.

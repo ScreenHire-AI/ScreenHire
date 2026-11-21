@@ -116,6 +116,7 @@ public static partial class SendInterviewInvitationHandler
 
         var model = ApplicationEmails.ModelFor(candidate, job.Title, organization.Name, stageName: null) with
         {
+            MeetingName = interview.MeetingNameOrDefault(),
             BookingLink = links.Url(organization.Slug, links.Issue(interview)),
             InterviewLength = InterviewText.Length(interview.DurationMinutes),
         };
@@ -189,7 +190,7 @@ internal static partial class InterviewCalendarSync
 
         var (interview, application, job, candidate, organization) = context;
         var end = start + interview.Duration;
-        var title = InterviewText.EventTitle(candidate.FullName, job.Title);
+        var title = InterviewText.EventTitle(candidate.FullName, job.Title, interview.MeetingName);
         var link = dashboard.Value.Url($"/applications/{application.Id}");
         var attendees = await LoadAttendeesAsync(db, interviewId, cancellationToken);
         foreach (var attendee in attendees.Where(a => a.SyncStatus != InterviewSyncStatus.Synced))
@@ -243,6 +244,7 @@ internal static partial class InterviewCalendarSync
             var manageLink = links.Url(organization.Slug, links.Issue(interview));
             var model = ApplicationEmails.ModelFor(candidate, job.Title, organization.Name, stageName: null) with
             {
+                MeetingName = interview.MeetingNameOrDefault(),
                 ManageLink = manageLink,
                 MeetingLink = interview.MeetingUrl,
                 InterviewTime = InterviewText.Time(start, end, interview.TimeZone),
@@ -334,6 +336,7 @@ internal static partial class InterviewCalendarSync
         {
             var model = ApplicationEmails.ModelFor(candidate, job.Title, organization.Name, stageName: null) with
             {
+                MeetingName = interview.MeetingNameOrDefault(),
                 InterviewTime = interview.StartsAt is { } start ? InterviewText.Time(start, start + interview.Duration, interview.TimeZone) : null,
             };
             await SendAsync(db, email, renderer, headers, routing, organization, application, candidate, template, EmailTemplateIds.InterviewCancelled, model, sendId, now, cancellationToken);

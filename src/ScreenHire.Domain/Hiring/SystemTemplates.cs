@@ -44,6 +44,9 @@ public static class SystemTemplates
 
     public static readonly Guid TradeRoleVersion1 = new("0199e8a0-0000-7000-8000-000000000401");
 
+    /// <summary>Version 1 with the trial shift stage naming its meeting "trial shift" (migration <c>AddTradeRoleVersion2</c>).</summary>
+    public static readonly Guid TradeRoleVersion2 = new("0199e8a0-0000-7000-8000-000000000402");
+
     public static readonly Guid HighVolume = new("0199e8a0-0000-7000-8000-000000000005");
 
     public static readonly Guid HighVolumeVersion1 = new("0199e8a0-0000-7000-8000-000000000501");
