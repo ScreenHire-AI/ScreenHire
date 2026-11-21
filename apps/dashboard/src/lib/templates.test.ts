@@ -26,7 +26,7 @@ describe('templates', () => {
       { archived: false, usage: undefined },
     ];
 
-    expect(filterCounts(templates)).toEqual({ all: 4, 'in-use': 2, 'not-used': 2, archived: 1 });
+    expect(filterCounts(templates)).toEqual({ all: 4, 'in-use': 2, archived: 1 });
     expect(matchesFilter(templates[3]!, 'all')).toBe(false);
     expect(matchesFilter(templates[4]!, 'in-use')).toBe(false);
   });

@@ -25,6 +25,8 @@ afterEach(() => {
 describe('the Policy tab', () => {
   it('saves the default AI use and the device check, with by region as null', async () => {
     const bodies = renderPage(settingsWith());
+    // The fallback policy says it is the default, as Device check's does (the owner's walk-through, 2026-11-21).
+    expect(within(await screen.findByLabelText('AI use while applying')).getByRole('option', { name: 'Allowed with disclosure (default)' })).toBeInTheDocument();
     await fireEvent.change(await screen.findByLabelText('AI use while applying'), { target: { value: 'NotAllowed' } });
     const device = (await screen.findByLabelText('Device check')) as HTMLSelectElement;
     expect(device.value).toBe('ByRegion');

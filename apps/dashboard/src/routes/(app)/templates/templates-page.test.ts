@@ -133,16 +133,14 @@ describe('templates page', () => {
     await expectNoAxeViolations();
   });
 
-  it('filters by In use, Not used in 6 months and Archived, each with its count, and searches', async () => {
+  it('filters by In use and Archived, each with its count, and searches', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: 'Hiring templates' });
     const filters = screen.getByRole('group', { name: 'Show' });
     await waitFor(() => expect(within(filters).getByRole('button', { name: /In use/ })).toHaveTextContent('2'));
-    expect(within(filters).getByRole('button', { name: /Not used in 6 months/ })).toHaveTextContent('1');
     expect(within(filters).getByRole('button', { name: /Archived/ })).toHaveTextContent('1');
-
-    await fireEvent.click(within(filters).getByRole('button', { name: /Not used in 6 months/ }));
-    expect(within(table).getAllByRole('row')).toHaveLength(2);
+    // No "Not used in 6 months" pill: sorting Last used finds stale templates (the owner's walk-through, 2026-11-21).
+    expect(within(filters).queryByRole('button', { name: /Not used/ })).not.toBeInTheDocument();
     expect(within(table).getByText('Summer interns 2025')).toBeInTheDocument();
 
     await fireEvent.click(within(filters).getByRole('button', { name: /Archived/ }));

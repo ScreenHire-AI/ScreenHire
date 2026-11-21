@@ -96,11 +96,8 @@
         {/if}
       </fieldset>
 
-      {#if !detail.slackConnected}
-        <p class="text-muted-foreground">
-          Slack is not connected. <a href="/settings/slack" class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11">Connect it in Settings</a> to send direct messages.
-        </p>
-      {/if}
+      <!-- No nudge to connect Slack here: an integration shows in the product once it is connected, and otherwise only in
+           Settings > Integrations (design system, provider-neutral rule; the owner's walk-through, 2026-11-21). -->
     </div>
     {#snippet footer()}
       <div class="flex flex-wrap items-center justify-end gap-2">

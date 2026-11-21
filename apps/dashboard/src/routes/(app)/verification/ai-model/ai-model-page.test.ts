@@ -77,7 +77,7 @@ describe('the AI model tab', () => {
   it('offers the own-key fields only when the own key is chosen', async () => {
     renderPage(settingsWith());
     expect(screen.queryByLabelText('API key')).not.toBeInTheDocument();
-    expect(await screen.findByText(/bills you for what the checks use/)).toBeInTheDocument();
+    expect(await screen.findByText("You're billed for what the checks use.")).toBeInTheDocument();
 
     await fireEvent.click(await screen.findByRole('radio', { name: /^Your own key/ }));
 

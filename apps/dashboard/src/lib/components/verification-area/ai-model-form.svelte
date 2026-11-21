@@ -309,7 +309,7 @@
                   </Field.Field>
                 </div>
               {:else}
-                <p class="text-muted-foreground">ScreenHire pays the provider and bills you for what the checks use, at the provider's price plus a margin.</p>
+                <p class="text-muted-foreground">You're billed for what the checks use.</p>
               {/if}
             </div>
 
