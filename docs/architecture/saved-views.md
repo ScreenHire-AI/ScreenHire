@@ -32,7 +32,10 @@ sources:
 
 The sidebar's Views list holds two kinds of view. The built-in ones (To review, To verify, Overdue, New today, Not
 screened, Interviewing) are code: `savedViews` in `apps/dashboard/src/lib/saved-views.ts`, each a name, a plain icon
-(never a status icon) and a `matches` function over the rows. Two more, New this week and Interviews this week (`overviewViews`), open from the Jobs
+(never a status icon) and a `matches` function over the rows. To review holds Review and To verify holds Verify, each not
+dismissed, so the two never overlap. Each of those two is a verification level too (`authenticity` on the view): opening it puts
+the level in the Candidates filter row ("Verification: Review"), `verificationOf` in `view-filters.ts` reads it for a saved view
+built on one, and choosing another level, or Any state, leaves the view for the Candidates page with that filter. Two more, New this week and Interviews this week (`overviewViews`), open from the Jobs
 overview's numbers ([notifications](notifications.md), "The Jobs overview"); they resolve from `?view=` like the others but are not in the sidebar. The others are saved by people from the Candidates table or from one job's table, and
 live on the server. "Saved" now means saved candidates only, so the heading is Views.
 

@@ -346,12 +346,12 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
 
         var duplicates = verification.At("checksNotRun").EnumerateArray().Single(n => n.GetProperty("label").GetString() == "Duplicates");
         duplicates.GetProperty("kind").GetString().Should().Be("TurnedOff");
-        duplicates.GetProperty("note").GetString().Should().Be(RunNotes.DeviceNotCompared);
+        duplicates.GetProperty("note").GetString().Should().Be(RunNotes.Describe("duplicates", RunNotes.DeviceNotCompared), "the stored note, in the words people read now");
         // Duplicates still compared the email address, phone number and resume, so it is a note on that group, not a group that is off.
         var groups = verification.At("checkGroups").EnumerateArray().ToDictionary(g => g.GetProperty("group").GetString()!);
         groups["FormUse"].GetProperty("state").GetString().Should().Be("TurnedOff");
         groups["Duplicates"].GetProperty("state").GetString().Should().Be("NothingFound");
-        groups["Duplicates"].GetProperty("note").GetString().Should().Be(RunNotes.DeviceNotCompared);
+        groups["Duplicates"].GetProperty("note").GetString().Should().Be(RunNotes.Describe("duplicates", RunNotes.DeviceNotCompared));
     }
 
     [Fact]

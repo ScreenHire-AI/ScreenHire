@@ -24,17 +24,17 @@ public sealed partial class ProofWalkRoutesTests
     [Fact]
     public void The_check_reads_the_real_files()
     {
-        TabAddresses(Read(TabsPath)).Should().Contain(["/verification", "/verification/activity", "/verification/usage"])
-            .And.HaveCountGreaterThanOrEqualTo(7, "the area has seven tabs");
+        TabAddresses(Read(TabsPath)).Should().Contain(["/verification", "/verification/activity", "/verification/ai-use"])
+            .And.HaveCountGreaterThanOrEqualTo(4, "the area has four tabs");
         WalkedRoutes(Read(WalkPath)).Should().Contain(["/", "/candidates", "/verification", "/settings/team"])
             .And.HaveCountGreaterThan(30, "the route table holds every dashboard page");
     }
 
     [Theory]
     // A new tab with no row in the walk's table.
-    [InlineData(TabsPath, "href: '/verification/usage'", "href: '/verification/spend'", "/verification/spend")]
+    [InlineData(TabsPath, "href: '/verification/ai-use'", "href: '/verification/spend'", "/verification/spend")]
     // A row taken out of the table while its tab stays.
-    [InlineData(WalkPath, "        (\"verification\", _ => \"/verification/policy\"),\n", "", "/verification/policy")]
+    [InlineData(WalkPath, "        (\"verification\", _ => \"/verification/checks\"),\n", "", "/verification/checks")]
     public void A_tab_the_walk_would_not_open_is_reported(string path, string needle, string replacement, string expected)
     {
         var files = new Dictionary<string, string> { [TabsPath] = Read(TabsPath), [WalkPath] = Read(WalkPath) };

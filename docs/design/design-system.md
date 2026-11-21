@@ -49,6 +49,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/chart-panel.svelte
   - resource: apps/dashboard/src/lib/components/week-chart.svelte
   - resource: apps/dashboard/src/lib/components/expandable-row.svelte
+  - resource: apps/dashboard/src/lib/components/info-button.svelte
+  - resource: apps/dashboard/src/lib/components/alert-grid.svelte
   - resource: apps/dashboard/src/lib/components/email-preview.svelte
   - resource: apps/dashboard/src/lib/components/candidate/latest-message-panel.svelte
   - resource: apps/dashboard/src/lib/components/report-stat.svelte
@@ -223,9 +225,12 @@ Authors check their screens against this list, and the `design-review` agent rep
   about itself, unless it follows unsaved edits to something candidates already see (Branding), and then one line says so and that nothing is live until Save; a window icon beside the switch pops it out for someone who wants both, and the window follows the edits (the icon is left out on a phone, which has no room for a second window). The email composer keeps the switch and has no window: it is one email in a sheet, not wording
   others reuse. The Customize sheet does the same: its preview is the API's answer for one board's text, fetched when
   the preview opens, and it does not follow the edits.
-- **A9** Anything that opens in place says so: a `chevron-down` at the end of the row, turning up when it is open, and
-  the whole row is the control, with `aria-expanded`. A row with no chevron never expands. Expand all and Collapse all
-  sit above a list of them.
+- **A9** Anything that opens in place says so before it is hovered: a `chevron-down` beside the row's label, turning up
+  when it is open, a hover background and the hand cursor, and the whole row is the control, with `aria-expanded`. A
+  table row that opens keeps a button with the label and chevron in its cell for keyboards, and its detail is the next
+  row; the row itself carries `data-row-opens`, which the theme gives the hand cursor (A10). A row with no chevron never
+  expands. Expand all and Collapse all sit above a list of them (the owner's walk-through, 2026-11-21: a chevron at the far
+  end of the row read as decoration).
 - **A10** Anything that can be pressed shows the hand cursor, and a disabled control shows not-allowed. That covers
   buttons, tabs, switches, checkboxes, menu items and options, whichever component draws them, and a disabled text
   field or the label of a disabled control. It is one rule in the
@@ -289,10 +294,12 @@ Authors check their screens against this list, and the `design-review` agent rep
   A page that starts work outside ScreenHire, such as adding DNS records, says what will happen before anyone starts, in a
   How it works panel with its steps.
 - **W10** What to do comes first; audit details come last. When something was assessed, under which ruleset, a code
-  or an id goes on a panel's last line in caption size, never above the next step. Where a page's audit line speaks for
-  the whole page, such as the Verification tab's "No automated decision has been made" and its ruleset, it is the page's
-  last line instead, under every panel and in none of them (section 16). A calm result is shorter than a concern: one
-  quiet line, not the full layout.
+  or an id goes on a panel's last line in caption size, never above the next step. On a candidate's Verification tab, when
+  the checks ran is "Checked 19 minutes ago" in the Verification panel's header, the ruleset is in that word's tooltip, and
+  "No automated decision has been made. Every action is logged." is the panel's closing line, inside it; the ruleset is not a
+  line on the page, and stays in the activity log and its export (section 16). A clear result reassures without a verdict: a
+  check icon and "Nothing unusual found", never "Verified" or "Genuine", and the same six group tiles a concern gets, each
+  saying "Nothing found", "Off" or "Did not run", so it shows what was looked at.
 - **W12** One decision per screen. A screen shows the few things its next decision needs, and everything else is one
   click away (a row that opens, a sheet, a tooltip). A screen that makes people read paragraphs before they can act fails,
   whoever it is for: a plumber setting up a first job reads no more than a recruiter does.
@@ -880,7 +887,9 @@ in a development build, shows every component in each state, and its test fails 
 | Tabs | `RecordTabs` on shadcn `Tabs` (`line`) | A record's peer views in a fixed order, each with its count in the count badge. A candidate's section with nothing in it (Messages, Scorecards) shows no count, not a zero (W6). The pipeline page's tabs (Pipeline, Questions, Automations, Test) are this strip too, kept in the address as `?tab=`, so a job and its pipeline keep one frame (S8). The Verification area's tabs are this strip too, kept in the path (`/verification/usage`) so a link can name a tab, each left out of the strip for a role that cannot use it (A3). A count is a plain number, never a fraction (Job postings 7), always in the same grey count badge; a state that needs a look is the record's status beside its title, never a coloured tab, a dot or a lone icon (E2). The list scrolls sideways, never wraps (F5) |
 | Welcome line | `JoinedNotice` | What accepting an invitation did, said once on the first page after it: "You joined Harbour Lane Studio as Recruiter.", plus "You see the jobs you are on." for a member on Only jobs they're on. A `role="status"` line in the `secondary` colours with a Dismiss icon button (A4), no status icon (I2). It repeats the workspace and role the sidebar shows, on purpose: it confirms, once, what accepting did. It is not a `Notice` (a problem to fix) and not a toast. The Jobs list shows it from the `?joined=1` the accept redirect adds, reads it once and takes it out of the address, so nothing is stored |
 | Notice | `Notice` | A problem to fix: the verify status's soft colour, full width, the problem icon (section 14), what is wrong in words and a link to the fix, or the button that fixes it from there (E2) |
-| Expandable row | `ExpandableRow` | A list's row that opens in place to show more, such as an email on Messages: the whole row is the button, with `aria-expanded` and `chevron-down`, which turns up when it is open; what it shows follows the row, sliding open and shut in 180ms, ease-in-out, and at once with reduced motion, the chevron too (A17). Its words wrap rather than truncate, since a tooltip has no place inside a button; the one exception is a first line of what it opens to (an email's snippet), cut to the row's width because a click shows all of it. The rows share one surface and its dividers (S4) |
+| Info button | `InfoButton` | An explanation one press away (W12): a quiet `info` icon beside what it explains, whose words open in a popover on a click, a tap or keyboard focus and close on Escape, a click elsewhere or moving focus on. It holds words only, never a control, so focus stays on the button. It takes the long sentence a setting used to carry under its label; a short description stays one line (W4) |
+| Alert grid | `AlertGrid` | Notification choices as a table: a row per alert with its name and an Info button for what it says and to whom, then In the app as a fixed tick with screen-reader text (never a disabled checkbox, A3), Email only where this deployment can send it, and Slack only once Slack is connected (A15). Used on the Verification area's Checks and AI use tabs |
+| Expandable row | `ExpandableRow` | A list's row that opens in place to show more, such as an email on Messages: the whole row is the button, with `aria-expanded`, a hover background and `chevron-down` beside its words (A9), which turns up when it is open; what it shows follows the row, sliding open and shut in 180ms, ease-in-out, and at once with reduced motion, the chevron too (A17). Its words wrap rather than truncate, since a tooltip has no place inside a button; the one exception is a first line of what it opens to (an email's snippet), cut to the row's width because a click shows all of it. The rows share one surface and its dividers (S4) |
 | Summary card | shadcn `Card` as it is (`SummaryCard`), on a summary band (`SummaryBand`, section 6) | An icon in a neutral 32px chip and `Card.Title` (16/24 semibold); the count as a badge in `Card.Action`, saying what it counts (2 signals); `Card.Description` (14/20 muted, two lines at most, the rest in a tooltip). A link when it opens what it counts |
 | Bar chart | `BarChart` | A horizontal bar chart in HTML (section 3.5): each row's name, then its bars from one baseline, at most 24px thick, square at the baseline and rounded 4px at the end, with the value written at each tip in text colours, then an optional muted share (62%) after the first value and an optional muted note (84% moved on); the one row with the biggest drop has its note in semibold with a small down-right arrow, and its summary says "the biggest drop". A zero draws no bar but keeps the bar's line: its value starts just past the baseline, where a bar would begin, so the row is as tall as the others and never drops to a line of its own. Two series sit in pairs with a 2px gap and a legend above. The bars and note are one image that reads out the row's summary on hover, focus and tap (F4); the row's name beside it is a link when the row opens something (a funnel stage opens its candidates), so the link stays outside the image. The name sits beside the bars in a chart 28rem wide or more, and above them in a narrower one |
 | Chart panel | `ChartPanel` on `Panel`, `Toggle` and the sorted table (L2) | A report's chart: the title, Chart and Table toggles on the header's right, then the chart or the same numbers as a table, whose first column is the row's name (a link when the row opens something). In a panel narrower than 24rem the toggles show their icons only, with the word as the tooltip and for screen readers, so the title keeps its room. No sentence sits under the title (W9): what the numbers count is for screen readers only. On a phone the table view is list items, as every table is (L2): the row's name, then each number under its own label, with the Sort chip above, so no number is hidden off the edge. A panel with no chart is its table alone, without the toggles. The table view is flush: it runs edge to edge with its first and last columns on the panel's padding (L4), rows are 40px, the name column takes two fifths of the width and the numeric columns share the rest, right-aligned under right-aligned headers so the digits line up and spread across a wide panel rather than packing at its edge, and nothing sits under the last row. A fact that has no column of its own is the tooltip of the cell it explains (Opened on Days open). A chart fills its panel, so two panels in a row share a bottom edge without an empty band. The table opens on the chart's own order unless a default sort says otherwise. While new numbers load it keeps the old ones, dimmed, rather than a skeleton. An empty state replaces both views |
@@ -935,7 +944,8 @@ Keep it simple: say less, and say it once.
 Helper text only when a label cannot say it. Copy follows `.claude/rules/writing-style.md`.
 
 **One name for one thing.** The bell in the top bar is Notifications; the account menu's sheet that picks which teammates'
-changes show as toasts is Teammate changes, and Verification's alert settings tab keeps its own name. In Settings the group
+changes show as toasts is Teammate changes, and Verification's alerts sit with what they are about (Verification suggested on
+Checks, AI usage on AI use), each in an alert grid. In Settings the group
 is Careers site and its page is Careers page, so a sentence about the page says "careers page" (the careers page address,
 Careers page settings). After Publish the job page says where the job went, because the Publish button is gone. The Jobs
 overview waits for the first job, and the empty state says what to do first and where the setup steps are.
@@ -1010,7 +1020,7 @@ input those sequences act like single-key shortcuts.
 Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 
 - The Verification tab is organised by the six check groups the engine runs (`CheckGroup`): Network, Contact details,
-  Documents, Answers, Duplicates and Form use. The two assessments (authenticity and AI assistance) are not panels any
+  Documents, Answers, Duplicates and Form activity. The two assessments (authenticity and AI assistance) are not panels any
   more. The candidate's level shows once, as the mark in the page header (T2); the tab does not spell out Clear, Review
   and Verify again (W7).
 - The tab opens with the suggested next step. When the level needs a look it leads, semibold, in a callout edged in the
@@ -1026,9 +1036,9 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 - A map of the six groups follows, one tile per group, each a link to its panel with one state in icon, colour and words:
   "2 found" (counts toward the level, the review status at any level), "1 note" (AI help and context
   that never counts; the sparkles only when every note is AI help, otherwise the grey `info` mark), "Nothing
-  found", "Not checked" (a candidate a recruiter added by hand came through no careers form, so Network and Form use had
+  found", "Did not run" (a candidate a recruiter added by hand came through no careers form, so Network and Form activity had
   nothing to look at; it goes by the application's source alone, so a careers applicant who turned telemetry off with
-  the assistive-technology switch reads like any other) and "Turned off" (the organization's settings, with the note in
+  the assistive-technology switch reads like any other) and "Off" (the organization's settings, with the note in
   a tooltip). "AI checks paused" is the Answers tile when the organization's monthly AI cap paused the AI check and nothing
   else in the group found anything: the rule-based checks ran, and the note says it is no result about the candidate. Group icons sit on the tiles only, never in a panel header, and a group has no description paragraph.
 - Below the map is a panel for each group that has findings, titled with the group's name. Nothing else gets a panel:
@@ -1048,13 +1058,13 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   candidate's state, "To review", filters, automations and webhooks never read it. Once every finding that counts is
   explained, Dismiss reads Dismiss all and opens the dismiss dialog with the explained findings and their notes listed.
   A dismissed result keeps its explanations, read only.
-- A calm result (no finding in any group) is one line, "Nothing unusual in the checks that ran. No action needed.", with
-  the AI row, then one line for each group that is Turned off, Not checked or AI-checks-paused, so a quiet result is never read as a clean
-  one, then a collapsed "What was checked" naming the groups that ran and their checks. It has no map and no "nothing
-  found" lines (W10).
-- The page's last line is the audit line, caption size, under every panel and in none of them (not the footer of the Form use
-  panel or the calm panel): "No automated decision has been made. Every action is logged.", then "Assessed 2 hours ago" and
-  "Ruleset" (W10). A code or an id never sits above the next step.
+- A clear result (no finding in any group) opens with a `circle-check` in the clear colour and "Nothing unusual found",
+  semibold, with the next step as a muted line under it; never "Verified" or "Genuine". Then the AI row and the same map of
+  six tiles a concern gets, each "Nothing found", "Off", "Did not run" or "AI checks paused", so a quiet result is never read
+  as a clean one and it shows what was looked at (W10). There is no hidden "What was checked" list.
+- "Checked 2 hours ago" sits in the Verification panel's header, caption size, with the ruleset version in the tooltip of
+  "Checked". The panel's closing line, inside it and in caption size, is "No automated decision has been made. Every action
+  is logged." (W10). The ruleset is no line of its own on the page. A code or an id never sits above the next step.
 - There is no Review log panel and no Add review note button. Every review action is an entry in the candidate's
   Activity, under the Verification filter: a dismissal, an explanation, its undo, a note, evidence that a re-check added
   or took away, and each read through an API key (one line for a run of reads by one key, with the key and who made
@@ -1067,18 +1077,17 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
 
 ### The Verification area
 
-The area at `/verification` is the Area template (section 7): seven tabs under one header band, in this order, each at its own
-path. Everyone who can see verification has the area; what a role may use decides which tabs it sees.
+The area at `/verification` is the Area template (section 7): four tabs under one header band, in this order, each at its own
+path, grouped by what a setting affects (the owner's walk-through, 2026-11-21). Everyone who can see verification has the area;
+what a role may use decides which tabs it sees. The addresses of the tabs that merged (Usage, Policy, AI model, Notifications)
+lead to the tab that holds their settings now, with their query string.
 
 | Tab | Template | Who sees it |
 |---|---|---|
-| Overview | Report, full width | Everyone. Four stats (applications checked, then Clear, Review, Verify), a chart of the check groups that counted a signal in the most applications with its table, and, for who can see AI usage, the month against the budget |
-| Activity log | List, full width | Everyone sees which checks ran and how each ended. A model call's model, key, tokens, cost and provider request id, the key filter and the CSV are for who can see AI usage (View AI usage with All jobs) |
-| Usage | Report, full width | Who can see AI usage: calls, tokens and cost for a range, tokens by day split between ScreenHire's key and the organization's own with its table, the month against the budget and cap, and use by model and key. Cost is one amount, what the organization pays for ScreenHire's key, never the provider's price or a margin; an own key's amount is apart, named "Charged by your provider (estimate)", and never added to it. Money has two decimals. The budget and cap are in billed dollars, entered in dollars only (no unit menu); a limit stored in tokens shows in tokens only where the AI model has no price, with one caption saying so |
-| Checks | Form | Everyone reads which groups are on or off as text; Edit settings gets the switches and Save |
-| Policy | Form | Everyone reads the AI-use policy, device check and trusted lists as facts; Edit settings changes them |
-| AI model | Form | Edit settings |
-| Notifications | Form | Edit settings: the two alerts. The monthly budget and cap sit under them, set by an Owner and read by an Admin |
+| Overview | Report, full width | Everyone. Four stats (applications checked, then Clear, Review, Verify), a chart of all six check groups with the applications in which each counted a signal and its table (a group that is off reads Off, its name a link to Checks), and, for who can see AI usage, the month against the budget |
+| Activity log | List, full width | Everyone sees one row per run of the checks (an application's pass: "Frontend Engineer (Svelte), 8 checks, 1 did not run") with its Outcome as a status and nothing else in the cell (Nothing found, Found, Did not run). The row opens (A9) to its checks: why one did not run, as a sentence; what one found, in the candidate tab's words; for the AI check the model, key, tokens, cost and provider request id; Open application; and the ruleset in caption size. The call facts, the key filter and the CSV (one line per check, every column, with its run and ruleset) are for who can see AI usage (View AI usage with All jobs). Thresholds, weights and rules never appear |
+| Checks | Form, full width | Every switch that decides what runs: one section per group with its switch, two or three plain lines on what it looks at, one example of what it catches, what turning it off costs, and "Found something in 4 of 14 applications this month" (a count, never a score). Each setting sits in the group it tunes: AI use while applying ("Allowed with disclosure (default)") and "Compare each application's sources" in Answers, trusted networks in Network, trusted email domains and the device check in Duplicates, whose text says the device check also affects Form activity. Then the Verification suggested alert as an Alert grid, and one Save. Everyone reads it as text; Edit settings gets the controls |
+| AI use | Report and Form | Who pays and how much. For View AI usage with All jobs: calls, tokens and cost (the amount billed), use by day split between ScreenHire's key and the organization's own, and use by model and key. The monthly budget and cap, which apply whichever key is used: an Owner's form, an Admin's facts. For Edit settings: the AI usage alert as an Alert grid, and whose key runs the AI check, each choice with one line ("You're billed for what the checks use.") and the rest in an Info button; anyone else reads the key as a fact. Cost is one amount, what the organization pays for ScreenHire's key, never the provider's price or a margin; an own key's amount is apart, named "Charged by your provider (estimate)", and never added to it. Money has two decimals |
 
 - The Overview counts applications and nothing else: how many were checked this month, how many at each level, and in how
   many a group of checks counted a signal. There is no score, no percentage, no AI-assistance count (AI help never counts),
@@ -1087,7 +1096,7 @@ path. Everyone who can see verification has the area; what a role may use decide
 - A group that found something is a count of applications in the group's own words, never a status colour on a tab (E2).
 - Read-only is plain text, never a disabled control (A3). A tab someone cannot use is not in the strip.
 - The Signal Network has no control. It stays off until legal review, and a switch that cannot be turned on would be a
-  disabled control. When it can be, it joins the Policy tab.
+  disabled control. When it can be, it joins the Checks tab.
 - The Activity log and the call table are ordered by the server (newest first), so their headers do not sort (L2); the
   newest-first order is the point of a log.
 

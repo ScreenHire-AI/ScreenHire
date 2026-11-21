@@ -79,7 +79,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         var price = $"${ShippedPlans.Starter.MonthlyPrice:0.00}";
         await Expect(month).ToContainTextAsync(new System.Text.RegularExpressions.Regex($@"Starter\s*{System.Text.RegularExpressions.Regex.Escape(price)}"));
         await Expect(month.Locator("[data-total]")).ToHaveTextAsync(price);
-        await Expect(month.GetByRole(AriaRole.Link, new() { NameRegex = new("AI call") })).ToHaveAttributeAsync("href", "/verification/usage");
+        await Expect(month.GetByRole(AriaRole.Link, new() { NameRegex = new("AI call") })).ToHaveAttributeAsync("href", "/verification/ai-use");
         await Expect(month.Locator("[data-next-invoice]")).ToContainTextAsync($"Next invoice about {price} on");
 
         // The card and the sandbox's sample invoices, newest first, each with its PDF.
