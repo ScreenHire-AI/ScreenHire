@@ -7,10 +7,12 @@
 import type { CheckGroup } from './checkGroup.ts';
 
 /**
- * The number of applications in which a check group counted a signal towards the level.
+ * The number of applications in which a check group counted a signal towards the level, and whether the organization runs the
+ * group (`on`). A group that is off still has the count of the month's applications it found something in before it went off.
  */
 export interface VerificationGroupCount {
   group: CheckGroup;
   label: string;
   applications: number;
+  on: boolean;
 }

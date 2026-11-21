@@ -69,9 +69,10 @@ internal static class VerificationAreaHandlers
         var levels = new VerificationLevelCounts(
             AtLevel(AuthenticityLevel.NoConcerns), AtLevel(AuthenticityLevel.ReviewSuggested), AtLevel(AuthenticityLevel.VerificationRecommended));
 
-        // The groups whose checks counted a signal towards a level, one count per application.
+        // Every group, in the groups' order, with the applications in which it counted a signal towards a level (one count per
+        // application), and whether the organization runs it: a group that is off is listed as off, never left out.
         var countedIds = current.SelectMany(a => a.CountedSignalIds).ToHashSet();
-        var groups = new List<VerificationGroupCount>();
+        var counts = new Dictionary<CheckGroup, int>();
         if (countedIds.Count > 0)
         {
             var signals = await (
@@ -80,14 +81,17 @@ internal static class VerificationAreaHandlers
                     join application in applications on signal.ApplicationId equals application.Id
                     select signal)
                 .ToListAsync(cancellationToken);
-            groups =
-            [
-                .. signals.Where(s => countedIds.Contains(s.Id))
-                    .GroupBy(s => CheckGroups.OfSignal(s))
-                    .Select(g => new VerificationGroupCount(g.Key, CheckGroups.Label(g.Key), g.Select(s => s.ApplicationId).Distinct().Count()))
-                    .OrderByDescending(g => g.Applications).ThenBy(g => g.Group),
-            ];
+            counts = signals.Where(s => countedIds.Contains(s.Id))
+                .GroupBy(s => CheckGroups.OfSignal(s))
+                .ToDictionary(g => g.Key, g => g.Select(s => s.ApplicationId).Distinct().Count());
         }
+
+        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        List<VerificationGroupCount> groups =
+        [
+            .. Enum.GetValues<CheckGroup>().Select(group => new VerificationGroupCount(
+                group, CheckGroups.Label(group), counts.GetValueOrDefault(group), settings?.Runs(group) ?? true)),
+        ];
 
         var lastCheckedAt = assessments.Count == 0 ? (DateTimeOffset?)null : assessments.Max(a => a.AssessedAt);
         return TypedResults.Ok(new VerificationOverviewView(
@@ -125,12 +129,12 @@ internal static class VerificationAreaHandlers
 
         var usageVisible = await CanSeeUsageAsync(db, tenant, cancellationToken);
         var take = limit ?? DefaultPageSize;
-        var runs = await RunsAsync(db, from, to, group, keySource, outcome, cursor, take + 1, cancellationToken);
-        var calls = await CallsAsync(db, usageVisible, from, to, group, keySource, outcome, cursor, take + 1, cancellationToken);
-        var (page, more) = VerificationActivity.MergePage(runs, calls, take, e => e.At, e => e.Id);
-        var entries = await ToEntriesAsync(db, page, usageVisible, billing.Value.AiMarginInForce, cancellationToken);
-        var next = more && page.Count > 0 ? new VerificationActivity.Cursor(page[^1].At, page[^1].Id).Encode() : null;
-        return TypedResults.Ok(new VerificationActivityPage(entries, next, usageVisible));
+        var passes = await PassesAsync(db, from, to, group, keySource, outcome, cursor, take + 1, cancellationToken);
+        var lone = await LoneCallsAsync(db, usageVisible, from, to, group, keySource, outcome, cursor, take + 1, cancellationToken);
+        var (page, more) = VerificationActivity.MergePage(passes, lone, take, h => h.At, h => h.SortId);
+        var runs = await ToRunsAsync(db, page, usageVisible, billing.Value.AiMarginInForce, cancellationToken);
+        var next = more && page.Count > 0 ? new VerificationActivity.Cursor(page[^1].At, page[^1].SortId).Encode() : null;
+        return TypedResults.Ok(new VerificationActivityPage(runs, next, usageVisible));
     }
 
     public static async Task<Results<FileContentHttpResult, ValidationProblem>> Export(
@@ -144,22 +148,32 @@ internal static class VerificationAreaHandlers
             return TypedResults.ValidationProblem(problems);
         }
 
+        // The export stays one line per check run or model call, with every column, so a bill can be compared line by line with
+        // the provider's own logs. `run` says which run of the log the line belongs to, and `ruleset` which ruleset spoke then.
         var usageVisible = await CanSeeUsageAsync(db, tenant, cancellationToken);
         var runs = await RunsAsync(db, from, to, group, keySource, outcome, null, MaxExportRows + 1, cancellationToken);
         var calls = await CallsAsync(db, usageVisible, from, to, group, keySource, outcome, null, MaxExportRows + 1, cancellationToken);
         var (page, more) = VerificationActivity.MergePage(runs, calls, MaxExportRows, e => e.At, e => e.Id);
-        var entries = await ToEntriesAsync(db, page, usageVisible, billing.Value.AiMarginInForce, cancellationToken);
+        var context = await RunContextAsync(db, page.Select(r => r.ApplicationId), cancellationToken);
+        var margin = billing.Value.AiMarginInForce;
 
         var csv = new AiUsageCsv();
         csv.Row(
             "id", "at", "kind", "group", "check", "outcome", "application_id", "job", "note", "provider", "model", "key_source",
-            "provider_request_id", "input_tokens", "output_tokens", "cost_usd", "duration_ms", "error_kind");
-        foreach (var entry in entries)
+            "provider_request_id", "input_tokens", "output_tokens", "cost_usd", "duration_ms", "error_kind", "run", "ruleset");
+        foreach (var row in page)
         {
+            var call = usageVisible ? row.Call : null;
+            var passAt = row.Kind == VerificationActivityKind.CheckRun ? row.At : context.PassOfCall(row.ApplicationId, row.At);
+            var run = row.ApplicationId is { } applicationId && passAt is { } at
+                ? VerificationActivity.RunId(at, applicationId)
+                : VerificationActivity.CallRunId(row.Id);
             csv.Row(
-                entry.Id, entry.At, entry.Kind, entry.Group, entry.Check, entry.Outcome, entry.ApplicationId, entry.JobTitle, entry.Note,
-                entry.Call?.Provider, entry.Call?.Model, entry.Call?.KeySource, entry.Call?.ProviderRequestId, entry.Call?.InputTokens,
-                entry.Call?.OutputTokens, entry.Call?.Cost, entry.Call?.DurationMs, entry.Call?.ErrorKind);
+                row.Id, row.At, row.Kind, row.Group, row.Check, row.Outcome, row.ApplicationId, context.TitleOf(row.ApplicationId),
+                row.Note is null ? null : RunNotes.Describe(row.Check, row.Note),
+                call?.Provider, call?.Model, call?.KeySource, call?.ProviderRequestId, call?.InputTokens, call?.OutputTokens,
+                call is null ? null : AiCharge.Billed(call.Cost, call.KeySource, margin), call?.DurationMs, call?.ErrorKind,
+                run, passAt is { } when ? context.RulesetAt(row.ApplicationId, when) : null);
         }
 
         if (more)
@@ -174,7 +188,290 @@ internal static class VerificationAreaHandlers
     private static async Task<bool> CanSeeUsageAsync(ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
         tenant.SeesAllJobs && (await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken)).Contains(Permission.ViewAiUsage);
 
-    /// <summary>An entry before it has its job title, with the sort keys the merge reads.</summary>
+    /// <summary>
+    /// A run of the log before its rows are read: a pass of the checks over one application (<c>CallId</c> null), or a model
+    /// call on its own. <c>SortId</c> breaks a tie in time the way the cursor does: the application for a pass, the call for a call.
+    /// </summary>
+    private sealed record RunHead(DateTimeOffset At, Guid SortId, Guid? ApplicationId, Guid? CallId);
+
+    /// <summary>
+    /// The passes of the checks, newest first. A pass is every analyzer run the pipeline wrote for one application at one
+    /// instant (VerificationPipeline stamps them with the same time); a re-check's later revision is a pass of its own. A filter
+    /// keeps a pass when one of its checks matches it: the group, something found, or a check that did not look. "Nothing found"
+    /// keeps a pass in which nothing was found, and a key keeps a pass whose model calls used it.
+    /// </summary>
+    private static async Task<List<RunHead>> PassesAsync(
+        ScreenHireDbContext db, DateTimeOffset? from, DateTimeOffset? to, CheckGroup? group, AiKeySource? keySource,
+        VerificationActivityOutcome? outcome, VerificationActivity.Cursor? cursor, int take, CancellationToken cancellationToken)
+    {
+        if (outcome == VerificationActivityOutcome.Failed)
+        {
+            return []; // a failed model call is not a pass's outcome
+        }
+
+        var query = db.VerificationAnalyzerRuns.AsNoTracking().AsQueryable();
+        if (from is { } start)
+        {
+            query = query.Where(r => r.CompletedAt >= start);
+        }
+
+        if (to is { } end)
+        {
+            query = query.Where(r => r.CompletedAt < end);
+        }
+
+        var trusted = VerificationActivity.TrustedNotes;
+        var analyzers = group is { } wanted ? VerificationActivity.AnalyzersOf(wanted) : [];
+        var heads = query
+            .GroupBy(r => new { r.ApplicationId, r.CompletedAt })
+            .Select(g => new
+            {
+                g.Key.ApplicationId,
+                g.Key.CompletedAt,
+                Found = g.Count(r => r.SignalCount > 0),
+                NotRun = g.Count(r => r.SignalCount == 0 && r.Note != null && !trusted.Contains(r.Note)),
+                InGroup = g.Count(r => analyzers.Contains(r.Analyzer)),
+            });
+        if (group is not null)
+        {
+            heads = heads.Where(h => h.InGroup > 0);
+        }
+
+        heads = outcome switch
+        {
+            VerificationActivityOutcome.Found => heads.Where(h => h.Found > 0),
+            VerificationActivityOutcome.NotRun => heads.Where(h => h.NotRun > 0),
+            VerificationActivityOutcome.Completed => heads.Where(h => h.Found == 0),
+            _ => heads,
+        };
+        if (keySource is { } source)
+        {
+            // A call belongs to the first pass of its application at or after it (VerificationActivity.PassOfCall): no pass of
+            // that application falls between the call and this one.
+            heads = heads.Where(h => db.AiUsageCalls.Any(c =>
+                c.ApplicationId == h.ApplicationId && c.KeySource == source && c.OccurredAt <= h.CompletedAt
+                && !db.VerificationAnalyzerRuns.Any(p => p.ApplicationId == h.ApplicationId && p.CompletedAt < h.CompletedAt && p.CompletedAt >= c.OccurredAt)));
+        }
+
+        if (cursor is { } after)
+        {
+            heads = heads.Where(h => h.CompletedAt < after.At || (h.CompletedAt == after.At && h.ApplicationId.CompareTo(after.Id) < 0));
+        }
+
+        var rows = await heads.OrderByDescending(h => h.CompletedAt).ThenByDescending(h => h.ApplicationId).Take(take).ToListAsync(cancellationToken);
+        return [.. rows.Select(h => new RunHead(h.CompletedAt, h.ApplicationId, h.ApplicationId, null))];
+    }
+
+    /// <summary>
+    /// Model calls that belong to no pass, newest first: a connection test (no application), or a call whose application has no
+    /// pass after it yet.
+    /// </summary>
+    private static async Task<List<RunHead>> LoneCallsAsync(
+        ScreenHireDbContext db, bool usageVisible, DateTimeOffset? from, DateTimeOffset? to, CheckGroup? group, AiKeySource? keySource,
+        VerificationActivityOutcome? outcome, VerificationActivity.Cursor? cursor, int take, CancellationToken cancellationToken)
+    {
+        var query = CallQuery(db, usageVisible, from, to, group, keySource, outcome);
+        if (query is null)
+        {
+            return [];
+        }
+
+        query = query.Where(c => c.ApplicationId == null || !db.VerificationAnalyzerRuns.Any(r => r.ApplicationId == c.ApplicationId && r.CompletedAt >= c.OccurredAt));
+        if (cursor is { } after)
+        {
+            query = query.Where(c => c.OccurredAt < after.At || (c.OccurredAt == after.At && c.Id.CompareTo(after.Id) < 0));
+        }
+
+        var rows = await query.OrderByDescending(c => c.OccurredAt).ThenByDescending(c => c.Id)
+            .Select(c => new { c.Id, c.OccurredAt, c.ApplicationId })
+            .Take(take).ToListAsync(cancellationToken);
+        return [.. rows.Select(c => new RunHead(c.OccurredAt, c.Id, c.ApplicationId, c.Id))];
+    }
+
+    /// <summary>The model calls a filter keeps, or null when it keeps none (calls belong to Answers, and end completed or failed).</summary>
+    private static IQueryable<AiUsageCall>? CallQuery(
+        ScreenHireDbContext db, bool usageVisible, DateTimeOffset? from, DateTimeOffset? to, CheckGroup? group, AiKeySource? keySource,
+        VerificationActivityOutcome? outcome)
+    {
+        if ((group is { } wantedGroup && wantedGroup != CheckGroup.Answers)
+            || outcome is VerificationActivityOutcome.Found or VerificationActivityOutcome.NotRun)
+        {
+            return null;
+        }
+
+        var query = db.AiUsageCalls.AsNoTracking().AsQueryable();
+        if (!usageVisible)
+        {
+            // Calls are the organization's, not a job's. A member who cannot see usage sees only calls about an application they can open.
+            query = query.Where(c => c.ApplicationId != null && db.Applications.Any(a => a.Id == c.ApplicationId));
+        }
+
+        if (group is not null)
+        {
+            query = query.Where(c => c.CheckName.StartsWith(VerificationActivity.ConsistencyCallPrefix));
+        }
+
+        if (from is { } start)
+        {
+            query = query.Where(c => c.OccurredAt >= start);
+        }
+
+        if (to is { } end)
+        {
+            query = query.Where(c => c.OccurredAt < end);
+        }
+
+        if (keySource is { } source)
+        {
+            query = query.Where(c => c.KeySource == source);
+        }
+
+        return outcome switch
+        {
+            VerificationActivityOutcome.Completed => query.Where(c => c.Outcome == AiCallOutcome.Ok),
+            VerificationActivityOutcome.Failed => query.Where(c => c.Outcome != AiCallOutcome.Ok),
+            _ => query,
+        };
+    }
+
+    /// <summary>
+    /// What the log and the export need to know about the applications on a page: every pass time (to place a model call in its
+    /// run), the assessments' rulesets and the job titles. One query each, never one per row.
+    /// </summary>
+    private sealed class RunContext(
+        Dictionary<Guid, List<DateTimeOffset>> passes,
+        Dictionary<Guid, List<(DateTimeOffset AssessedAt, string RulesetVersion)>> assessments,
+        Dictionary<Guid, string> titles)
+    {
+        public List<DateTimeOffset> PassesOf(Guid applicationId) => passes.GetValueOrDefault(applicationId) ?? [];
+
+        public DateTimeOffset? PassOfCall(Guid? applicationId, DateTimeOffset occurredAt) =>
+            applicationId is { } id ? VerificationActivity.PassOfCall(PassesOf(id), occurredAt) : null;
+
+        public string? RulesetAt(Guid? applicationId, DateTimeOffset at) =>
+            applicationId is { } id && assessments.TryGetValue(id, out var list) ? VerificationActivity.RulesetAt(list, at) : null;
+
+        public string? TitleOf(Guid? applicationId) => applicationId is { } id ? titles.GetValueOrDefault(id) : null;
+    }
+
+    private static async Task<RunContext> RunContextAsync(ScreenHireDbContext db, IEnumerable<Guid?> applicationIds, CancellationToken cancellationToken)
+    {
+        var ids = applicationIds.OfType<Guid>().Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new RunContext([], [], []);
+        }
+
+        var passes = (await db.VerificationAnalyzerRuns.AsNoTracking()
+                .Where(r => ids.Contains(r.ApplicationId))
+                .Select(r => new { r.ApplicationId, r.CompletedAt })
+                .Distinct()
+                .ToListAsync(cancellationToken))
+            .GroupBy(r => r.ApplicationId)
+            .ToDictionary(g => g.Key, g => g.Select(r => r.CompletedAt).ToList());
+        var assessments = (await db.VerificationAssessments.AsNoTracking()
+                .Where(a => ids.Contains(a.ApplicationId) && a.Kind == VerificationAssessmentKind.Authenticity)
+                .Select(a => new { a.ApplicationId, a.AssessedAt, a.RulesetVersion })
+                .ToListAsync(cancellationToken))
+            .GroupBy(a => a.ApplicationId)
+            .ToDictionary(g => g.Key, g => g.Select(a => (a.AssessedAt, a.RulesetVersion)).ToList());
+        var titles = await db.Applications.AsNoTracking().Where(a => ids.Contains(a.Id))
+            .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { a.Id, j.Title })
+            .ToDictionaryAsync(x => x.Id, x => x.Title, cancellationToken);
+        return new RunContext(passes, assessments, titles);
+    }
+
+    /// <summary>Reads the rows of a page of runs: its check runs with what each found, and the model calls that belong to each.</summary>
+    private static async Task<List<VerificationActivityRun>> ToRunsAsync(
+        ScreenHireDbContext db, IReadOnlyList<RunHead> page, bool usageVisible, decimal margin, CancellationToken cancellationToken)
+    {
+        if (page.Count == 0)
+        {
+            return [];
+        }
+
+        var context = await RunContextAsync(db, page.Select(h => h.ApplicationId), cancellationToken);
+        var passHeads = page.Where(h => h.CallId is null).ToList();
+        var passApps = passHeads.Select(h => h.ApplicationId!.Value).Distinct().ToList();
+        var passTimes = passHeads.Select(h => h.At).Distinct().ToList();
+        var runRows = passApps.Count == 0
+            ? []
+            : await db.VerificationAnalyzerRuns.AsNoTracking()
+                .Where(r => passApps.Contains(r.ApplicationId) && passTimes.Contains(r.CompletedAt))
+                .ToListAsync(cancellationToken);
+        var runIds = runRows.Select(r => r.Id).ToList();
+        var signals = runIds.Count == 0
+            ? []
+            : await db.VerificationSignals.AsNoTracking()
+                .Where(s => runIds.Contains(s.AnalyzerRunId))
+                .Select(s => new { s.AnalyzerRunId, s.Code, s.Id })
+                .ToListAsync(cancellationToken);
+        var findings = signals
+            .GroupBy(s => s.AnalyzerRunId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<string>)[.. g.OrderBy(s => s.Id, Comparer<Guid>.Create(VerificationActivity.CompareIds)).Select(s => SignalCatalogue.TitleOf(s.Code)).Distinct()]);
+
+        // The calls that belong to the page's passes, and the calls on their own. Only calls about an application the reader can
+        // open reach a pass, since a pass is one of those applications.
+        var latestPass = passTimes.Count == 0 ? DateTimeOffset.MinValue : passTimes.Max();
+        var loneIds = page.Where(h => h.CallId is not null).Select(h => h.CallId!.Value).ToList();
+        var calls = await db.AiUsageCalls.AsNoTracking()
+            .Where(c => loneIds.Contains(c.Id) || (c.ApplicationId != null && passApps.Contains(c.ApplicationId.Value) && c.OccurredAt <= latestPass))
+            .ToListAsync(cancellationToken);
+
+        VerificationActivityCheck CallItem(AiUsageCall c) => new(
+            c.Id, VerificationActivityKind.ModelCall, c.OccurredAt, VerificationActivity.GroupOfCall(c.CheckName), c.CheckName,
+            VerificationActivity.OutcomeOfCall(c.Outcome), null, [],
+            usageVisible
+                ? new VerificationActivityCall(c.KeySource, c.Provider, c.Model, c.ProviderRequestId, c.InputTokens, c.OutputTokens,
+                    AiCharge.Billed(c.Cost, c.KeySource, margin), c.DurationMs, c.ErrorKind)
+                : null);
+
+        var result = new List<VerificationActivityRun>(page.Count);
+        foreach (var head in page)
+        {
+            if (head.CallId is { } callId)
+            {
+                var lone = calls.Single(c => c.Id == callId);
+                var item = CallItem(lone);
+                result.Add(new VerificationActivityRun(
+                    VerificationActivity.CallRunId(callId), head.At, lone.ApplicationId, context.TitleOf(lone.ApplicationId), item.Outcome,
+                    0, 0, 0, null, [item]));
+                continue;
+            }
+
+            var applicationId = head.ApplicationId!.Value;
+            var checks = runRows.Where(r => r.ApplicationId == applicationId && r.CompletedAt == head.At)
+                .Select(r => (Run: r, Outcome: VerificationActivity.OutcomeOfRun(r.Analyzer, r.SignalCount, r.Note)))
+                .ToList();
+            var passes = context.PassesOf(applicationId);
+            var items = checks
+                .Select(c => new VerificationActivityCheck(
+                    c.Run.Id, VerificationActivityKind.CheckRun, c.Run.CompletedAt, CheckGroups.Of(c.Run.Analyzer), c.Run.Analyzer, c.Outcome,
+                    c.Run.Note is null ? null : RunNotes.Describe(c.Run.Analyzer, c.Run.Note),
+                    findings.GetValueOrDefault(c.Run.Id) ?? [], null))
+                .Concat(calls
+                    .Where(c => c.ApplicationId == applicationId && VerificationActivity.PassOfCall(passes, c.OccurredAt) == head.At)
+                    .Select(CallItem))
+                // In the groups' order, a model call after the check it served, and the checks of a group by name.
+                .OrderBy(i => i.Group is { } itemGroup ? (int)itemGroup : int.MaxValue)
+                .ThenBy(i => i.Kind)
+                .ThenBy(i => i.At)
+                .ThenBy(i => i.Check, StringComparer.Ordinal)
+                .ToList();
+            var found = checks.Count(c => c.Outcome == VerificationActivityOutcome.Found);
+            var notRun = checks.Count(c => c.Outcome == VerificationActivityOutcome.NotRun);
+            result.Add(new VerificationActivityRun(
+                VerificationActivity.RunId(head.At, applicationId), head.At, applicationId, context.TitleOf(applicationId),
+                VerificationActivity.OutcomeOfPass(found, checks.Count - notRun), checks.Count, found, notRun,
+                context.RulesetAt(applicationId, head.At), items));
+        }
+
+        return result;
+    }
+
+    /// <summary>One check run or model call, a line of the export.</summary>
     private sealed record Row(
         Guid Id, VerificationActivityKind Kind, DateTimeOffset At, CheckGroup? Group, string Check, VerificationActivityOutcome Outcome,
         string? Note, Guid? ApplicationId, AiUsageCall? Call);
@@ -232,46 +529,12 @@ internal static class VerificationAreaHandlers
         ScreenHireDbContext db, bool usageVisible, DateTimeOffset? from, DateTimeOffset? to, CheckGroup? group, AiKeySource? keySource,
         VerificationActivityOutcome? outcome, VerificationActivity.Cursor? cursor, int take, CancellationToken cancellationToken)
     {
-        // Calls belong to the Answers group (or none), and end completed or failed.
-        if ((group is { } wantedGroup && wantedGroup != CheckGroup.Answers)
-            || outcome is VerificationActivityOutcome.Found or VerificationActivityOutcome.NotRun)
+        var query = CallQuery(db, usageVisible, from, to, group, keySource, outcome);
+        if (query is null)
         {
             return [];
         }
 
-        var query = db.AiUsageCalls.AsNoTracking().AsQueryable();
-        if (!usageVisible)
-        {
-            // Calls are the organization's, not a job's. A member who cannot see usage sees only calls about an application they can open.
-            query = query.Where(c => c.ApplicationId != null && db.Applications.Any(a => a.Id == c.ApplicationId));
-        }
-
-        if (group is not null)
-        {
-            query = query.Where(c => c.CheckName.StartsWith(VerificationActivity.ConsistencyCallPrefix));
-        }
-
-        if (from is { } start)
-        {
-            query = query.Where(c => c.OccurredAt >= start);
-        }
-
-        if (to is { } end)
-        {
-            query = query.Where(c => c.OccurredAt < end);
-        }
-
-        if (keySource is { } source)
-        {
-            query = query.Where(c => c.KeySource == source);
-        }
-
-        query = outcome switch
-        {
-            VerificationActivityOutcome.Completed => query.Where(c => c.Outcome == AiCallOutcome.Ok),
-            VerificationActivityOutcome.Failed => query.Where(c => c.Outcome != AiCallOutcome.Ok),
-            _ => query,
-        };
         if (cursor is { } after)
         {
             query = query.Where(c => c.OccurredAt < after.At || (c.OccurredAt == after.At && c.Id.CompareTo(after.Id) < 0));
@@ -283,27 +546,6 @@ internal static class VerificationAreaHandlers
             .. rows.Select(c => new Row(
                 c.Id, VerificationActivityKind.ModelCall, c.OccurredAt, VerificationActivity.GroupOfCall(c.CheckName), c.CheckName,
                 VerificationActivity.OutcomeOfCall(c.Outcome), null, c.ApplicationId, c)),
-        ];
-    }
-
-    private static async Task<List<VerificationActivityEntry>> ToEntriesAsync(
-        ScreenHireDbContext db, IReadOnlyList<Row> rows, bool usageVisible, decimal margin, CancellationToken cancellationToken)
-    {
-        var ids = rows.Where(r => r.ApplicationId is not null).Select(r => r.ApplicationId!.Value).Distinct().ToList();
-        var titles = ids.Count == 0
-            ? []
-            : await db.Applications.AsNoTracking().Where(a => ids.Contains(a.Id))
-                .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { a.Id, j.Title })
-                .ToDictionaryAsync(x => x.Id, x => x.Title, cancellationToken);
-        return
-        [
-            .. rows.Select(r => new VerificationActivityEntry(
-                r.Id, r.Kind, r.At, r.Group, r.Check, r.Outcome, r.Note, r.ApplicationId,
-                r.ApplicationId is { } id && titles.TryGetValue(id, out var title) ? title : null,
-                usageVisible && r.Call is { } c
-                    ? new VerificationActivityCall(c.KeySource, c.Provider, c.Model, c.ProviderRequestId, c.InputTokens, c.OutputTokens,
-                        AiCharge.Billed(c.Cost, c.KeySource, margin), c.DurationMs, c.ErrorKind)
-                    : null)),
         ];
     }
 }

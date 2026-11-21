@@ -42,6 +42,19 @@ public sealed class OrganizationControlsTests
     }
 
     [Fact]
+    public void A_note_stored_under_the_old_group_name_still_matches_and_reads_in_the_new_one()
+    {
+        // Run notes are stored values, matched by their exact text, so "Form use" stays in the stored note; people read "Form activity".
+        const string stored = "Form use checks are turned off in this organization's settings.";
+        CheckGroups.TurnedOffNote(CheckGroup.FormUse).Should().Be(stored, "a note written before the rename must keep matching");
+        RunNotes.Describe("behavioural", stored).Should().Be("Form activity checks are turned off in this organization's settings.");
+        RunNotes.Describe("duplicates", RunNotes.DeviceNotCompared).Should().Contain("form activity checks are turned off").And.NotContain("form use");
+        RunNotes.Describe("duplicates", RunNotes.TrustedEmailAndDeviceNotCompared).Should().Contain("form activity checks are turned off").And.NotContain("form use");
+        RunNotes.Describe("network", RunNotes.TrustedNetwork).Should().Be(RunNotes.TrustedNetwork, "a note with no group name in it reads as stored");
+        RunNotes.Describe("network", CheckGroups.TurnedOffNote(CheckGroup.Network)).Should().Be(CheckGroups.TurnedOffNote(CheckGroup.Network));
+    }
+
+    [Fact]
     public void The_defaults_run_every_group_and_trust_nothing()
     {
         var config = VerificationConfig.From(null);

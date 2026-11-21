@@ -68,8 +68,15 @@ public static class CheckGroups
         CheckGroup.Documents => "Documents",
         CheckGroup.Answers => "Answers",
         CheckGroup.Duplicates => "Duplicates",
-        _ => "Form use",
+        _ => "Form activity",
     };
+
+    /// <summary>
+    /// The group's name inside the notes runs store (<see cref="TurnedOffNote"/>). Frozen: stored notes are matched by their exact
+    /// text (<see cref="RunNotes.KindOf"/>), so renaming a group changes <see cref="Label"/> and never this. People read a stored
+    /// note through <see cref="RunNotes.Describe"/>, which words it with the label.
+    /// </summary>
+    private static string StoredName(CheckGroup group) => group == CheckGroup.FormUse ? "Form use" : Label(group);
 
     /// <summary>What a group looks at, in the words "What was checked" uses: names the checks, says nothing about what they mean.</summary>
     public static string Checked(CheckGroup group) => group switch
@@ -86,7 +93,10 @@ public static class CheckGroups
     /// What an analyzer run records when its group is off, so a reviewer who finds nothing from it knows the check did not
     /// run rather than ran clean.
     /// </summary>
-    public static string TurnedOffNote(CheckGroup group) => $"{Label(group)} checks are turned off in this organization's settings.";
+    public static string TurnedOffNote(CheckGroup group) => $"{StoredName(group)} checks are turned off in this organization's settings.";
+
+    /// <summary>What <see cref="TurnedOffNote"/> says to people, in the group's current name.</summary>
+    public static string TurnedOffSentence(CheckGroup group) => $"{Label(group)} checks are turned off in this organization's settings.";
 }
 
 /// <summary>Why an analyzer's run says it did not look, or did not count something, because of the organization's settings.</summary>
@@ -156,6 +166,26 @@ public static class RunNotes
             DeviceNotCompared => CheckNotRunKind.TurnedOff,
             _ when TrustedNotes.Contains(note) => CheckNotRunKind.Trusted,
             _ => null,
+        };
+    }
+
+    /// <summary>
+    /// A stored note in the words people read now. Notes are stored values and never rewritten, so one written under a group's
+    /// old name ("form use checks") is shown under its current one ("form activity checks"). Any other note is returned as it is.
+    /// </summary>
+    public static string Describe(string analyzer, string note)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+        if (CheckGroups.Of(analyzer) is { } group && note == CheckGroups.TurnedOffNote(group))
+        {
+            return CheckGroups.TurnedOffSentence(group);
+        }
+
+        return note switch
+        {
+            DeviceNotCompared => "The device was not compared because form activity checks are turned off in this organization's settings.",
+            TrustedEmailAndDeviceNotCompared => "A shared email address was not counted (trusted domain), and the device was not compared because form activity checks are turned off.",
+            _ => note,
         };
     }
 }

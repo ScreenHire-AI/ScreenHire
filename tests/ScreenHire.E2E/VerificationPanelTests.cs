@@ -100,7 +100,7 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
 
         await Expect(Region("Network").Locator("[data-signal='NET_DATACENTER_IP']")).ToBeVisibleAsync();
         await Expect(Region("Contact details").Locator("[data-signal='ID_PHONE_INVALID']")).ToBeVisibleAsync();
-        await Expect(Region("Form use").Locator("[data-signal='AUTO_WEBDRIVER']")).ToBeVisibleAsync();
+        await Expect(Region("Form activity").Locator("[data-signal='AUTO_WEBDRIVER']")).ToBeVisibleAsync();
         await Expect(Region("Authenticity")).ToHaveCountAsync(0);
         await Expect(Region("Review log")).ToHaveCountAsync(0);
         var map = summary.GetByRole(AriaRole.List, new() { Name = "Check groups" });
@@ -122,7 +122,7 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         // AI help is marked as information only on its own findings (the resume's) and nowhere else.
         await Expect(Region("Documents").Locator("[data-information-only]")).Not.ToHaveCountAsync(0);
         await Expect(Region("Network").Locator("[data-information-only]")).ToHaveCountAsync(0);
-        await Expect(Region("Form use").Locator("[data-information-only]")).ToHaveCountAsync(0);
+        await Expect(Region("Form activity").Locator("[data-information-only]")).ToHaveCountAsync(0);
         (await tab.TextContentAsync()).Should().NotContain("Declared AI use", "the declaration is on the Application tab, not repeated here");
         // A feature that does not exist yet is hidden, not shown disabled (design system A3).
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Request verification", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);

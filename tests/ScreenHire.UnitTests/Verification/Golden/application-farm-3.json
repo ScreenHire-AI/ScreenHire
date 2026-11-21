@@ -11,7 +11,7 @@
       "NET_GEO_CLAIM_MISMATCH"
     ],
     "appliedRules": [],
-    "summary": "5 observations from network, answers, duplicates and form use checks back each other up.",
+    "summary": "5 observations from network, answers, duplicates and form activity checks back each other up.",
     "nextStep": "Confirm the candidate is who they say they are before you spend interview time, for example on a short video call. These signals are not a reason to reject on their own.",
     "signals": [
       {

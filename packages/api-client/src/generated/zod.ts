@@ -10010,8 +10010,9 @@ export const GetVerificationOverviewResponse = zod.object({
   "groups": zod.array(zod.object({
   "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
   "label": zod.string(),
-  "applications": zod.int()
-}).describe('The number of applications in which a check group counted a signal towards the level.')),
+  "applications": zod.int(),
+  "on": zod.boolean()
+}).describe('The number of applications in which a check group counted a signal towards the level, and whether the organization runs the\ngroup (`on`). A group that is off still has the count of the month\'s applications it found something in before it went off.')),
   "lastCheckedAt": zod.iso.datetime({"offset":true}).nullable()
 }).describe('The Verification area\'s Overview: this month\'s applications (UTC calendar month) by authenticity level, and which check groups\ncounted a signal in the most of them. Counts of applications only. It holds no score, no percentage, no AI-assistance level\n(which never counts) and nothing about a person. For a member limited to some jobs it covers those jobs.')
 
@@ -10027,16 +10028,25 @@ export const ListVerificationActivityQueryParams = zod.object({
 })
 
 export const ListVerificationActivityResponse = zod.object({
-  "entries": zod.array(zod.object({
+  "runs": zod.array(zod.object({
+  "id": zod.string(),
+  "at": zod.iso.datetime({"offset":true}),
+  "applicationId": zod.uuid().nullable(),
+  "jobTitle": zod.string().nullable(),
+  "outcome": zod.enum(['Completed', 'Found', 'NotRun', 'Failed']).describe('How an entry of the activity log ended. A word for what happened, never a verdict on a person. A run (one pass of the checks\nover one application) ended VerificationActivityOutcome.Found when a check in it wrote signals, VerificationActivityOutcome.NotRun when none of its checks\nlooked, and VerificationActivityOutcome.Completed ("Nothing found") otherwise.'),
+  "checks": zod.int(),
+  "found": zod.int(),
+  "notRun": zod.int(),
+  "rulesetVersion": zod.string().nullable(),
+  "items": zod.array(zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['CheckRun', 'ModelCall']).describe('What one entry of the Verification area\'s activity log is.'),
   "at": zod.iso.datetime({"offset":true}),
   "group": zod.union([zod.null(),zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')]),
   "check": zod.string(),
-  "outcome": zod.enum(['Completed', 'Found', 'NotRun', 'Failed']).describe('How an entry of the activity log ended. A word for what happened, never a verdict on a person.'),
-  "note": zod.string().nullable(),
-  "applicationId": zod.uuid().nullable(),
-  "jobTitle": zod.string().nullable(),
+  "outcome": zod.enum(['Completed', 'Found', 'NotRun', 'Failed']).describe('How an entry of the activity log ended. A word for what happened, never a verdict on a person. A run (one pass of the checks\nover one application) ended VerificationActivityOutcome.Found when a check in it wrote signals, VerificationActivityOutcome.NotRun when none of its checks\nlooked, and VerificationActivityOutcome.Completed ("Nothing found") otherwise.'),
+  "reason": zod.string().nullable(),
+  "findings": zod.array(zod.string()),
   "call": zod.union([zod.null(),zod.object({
   "keySource": zod.enum(['BuiltIn', 'OwnKey']).describe('Whose key paid for a call.'),
   "provider": zod.string(),
@@ -10048,10 +10058,11 @@ export const ListVerificationActivityResponse = zod.object({
   "durationMs": zod.int(),
   "errorKind": zod.string().nullable()
 }).describe('What a model call cost and where to find it in the provider\'s own logs. Only for View AI usage with All jobs.')])
-}).describe('One check run or model call. `check` is the analyzer\'s name (`network`) or the model check\'s\n(`consistency.extraction`). `group` is null for a call that belongs to none. `note` is why a check did not look,\nwhen it did not. `jobTitle` and `applicationId` let a reader open the application; neither names the candidate.')),
+}).describe('One check run or model call inside a run. `check` is the analyzer\'s name (`network`) or the model check\'s\n(`consistency.extraction`). `group` is null for a call that belongs to none. `reason` is, in a sentence, why a\ncheck did not look or what the organization\'s trusted lists kept it from counting. `findings` are the titles of what it\nfound, in the candidate\'s Verification tab\'s words.'))
+}).describe('One run of the checks over one application, or one model call on its own. `checks`, `found` and `notRun` count\nits check runs; its `outcome` is Found when one found something, NotRun when none looked, and Completed ("Nothing\nfound") otherwise. `rulesetVersion` is the ruleset of the application\'s newest assessment at the run, null for a call on\nits own. `jobTitle` and `applicationId` let a reader open the application; neither names the candidate. Nothing here\nholds a threshold, a weight or a rule.')),
   "nextBefore": zod.string().nullable(),
   "usageVisible": zod.boolean()
-}).describe('A page of the activity log, newest first: check runs for everyone, and model calls (the AI checks). `usageVisible` says\nthe caller may see what a call cost and the provider\'s request id (View AI usage and All jobs); without it a model call has\nno `call` details, and only calls about an application the caller can open are listed. `nextBefore` goes back as\n`before` for the next page and is null on the last.')
+}).describe('A page of the activity log, newest first, one row per run: a pass of the checks over one application, or a model call that\nbelongs to no pass (a connection test). `usageVisible` says the caller may see what a call cost and the provider\'s\nrequest id (View AI usage and All jobs); without it a model call has no `call` details, and only calls about an\napplication the caller can open are listed. `nextBefore` goes back as `before` for the next page and is null on the last.')
 
 
 export const ExportVerificationActivityQueryParams = zod.object({

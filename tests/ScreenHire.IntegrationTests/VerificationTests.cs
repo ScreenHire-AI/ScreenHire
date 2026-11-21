@@ -39,7 +39,7 @@ public sealed class VerificationTests(AppHostFixture fixture)
         authenticity.GetProperty("level").GetString().Should().Be("VerificationRecommended");
         authenticity.GetProperty("reasonCodes").EnumerateArray().Select(c => c.GetString()).Should().Contain(
             [SignalCatalogue.Honeypot, SignalCatalogue.Webdriver, SignalCatalogue.DatacenterIp, SignalCatalogue.DisposableEmail, SignalCatalogue.SubmitVelocity]);
-        authenticity.GetProperty("summary").GetString().Should().StartWith("6 observations from network, contact details and form use checks");
+        authenticity.GetProperty("summary").GetString().Should().StartWith("6 observations from network, contact details and form activity checks");
         authenticity.GetProperty("nextStep").GetString().Should().Contain("not a reason to reject");
         authenticity.GetProperty("rulesetVersion").GetString().Should().Be(VerificationRuleset.Version);
         var datacenter = authenticity.GetProperty("signals").EnumerateArray().Single(s => s.GetProperty("code").GetString() == SignalCatalogue.DatacenterIp);

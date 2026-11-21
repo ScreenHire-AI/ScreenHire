@@ -5,7 +5,8 @@ namespace ScreenHire.UnitTests.Verification;
 
 /// <summary>
 /// The rules behind the Verification area's activity log (verification-engine.md 10.12): what a run or call ended as, which group a
-/// call belongs to, the cursor between pages, and how check runs and model calls become one newest-first page.
+/// call belongs to, how check runs and model calls make up one run, the ruleset a run was read under, the cursor between pages, and
+/// how two sources become one newest-first page.
 /// </summary>
 public sealed class VerificationActivityTests
 {
@@ -138,5 +139,45 @@ public sealed class VerificationActivityTests
 
         items.Select(i => i.Name).Should().Equal("high", "low");
         VerificationActivity.CompareIds(low, high).Should().BeNegative();
+    }
+    [Fact]
+    public void A_run_found_something_when_one_check_did_did_not_run_when_none_looked_and_otherwise_found_nothing()
+    {
+        VerificationActivity.OutcomeOfPass(found: 1, looked: 7).Should().Be(VerificationActivityOutcome.Found);
+        VerificationActivity.OutcomeOfPass(found: 0, looked: 7).Should().Be(VerificationActivityOutcome.Completed, "one check that did not look leaves 'Nothing found'");
+        VerificationActivity.OutcomeOfPass(found: 0, looked: 0).Should().Be(VerificationActivityOutcome.NotRun);
+    }
+
+    [Fact]
+    public void A_model_call_belongs_to_the_first_pass_of_its_application_at_or_after_it()
+    {
+        var passes = new[] { Noon.AddMinutes(10), Noon, Noon.AddMinutes(-10) };
+
+        VerificationActivity.PassOfCall(passes, Noon.AddMinutes(-1)).Should().Be(Noon, "the consistency check's calls come before the pass that reads them");
+        VerificationActivity.PassOfCall(passes, Noon).Should().Be(Noon);
+        VerificationActivity.PassOfCall(passes, Noon.AddMinutes(1)).Should().Be(Noon.AddMinutes(10));
+        VerificationActivity.PassOfCall(passes, Noon.AddMinutes(11)).Should().BeNull("no pass after it yet, so the call stands alone");
+        VerificationActivity.PassOfCall([], Noon).Should().BeNull();
+    }
+
+    [Fact]
+    public void A_run_is_read_under_the_ruleset_of_the_newest_assessment_at_or_before_it()
+    {
+        var assessments = new[] { (Noon.AddDays(-2), "2026.10.1"), (Noon, "2026.11.1"), (Noon.AddDays(1), "2026.11.2") };
+
+        VerificationActivity.RulesetAt(assessments, Noon).Should().Be("2026.11.1");
+        VerificationActivity.RulesetAt(assessments, Noon.AddHours(1)).Should().Be("2026.11.1");
+        VerificationActivity.RulesetAt(assessments, Noon.AddDays(-3)).Should().BeNull("nothing was assessed yet");
+    }
+
+    [Fact]
+    public void A_runs_id_is_stable_and_tells_a_pass_from_a_call_on_its_own()
+    {
+        var application = Guid.CreateVersion7();
+        var call = Guid.CreateVersion7();
+
+        VerificationActivity.RunId(Noon, application).Should().Be(VerificationActivity.RunId(Noon, application));
+        VerificationActivity.RunId(Noon, application).Should().NotBe(VerificationActivity.RunId(Noon.AddTicks(10), application));
+        VerificationActivity.CallRunId(call).Should().StartWith("call.").And.NotBe(VerificationActivity.RunId(Noon, call));
     }
 }

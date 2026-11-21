@@ -80,7 +80,7 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
         again.GetProperty("trustedNetworks").GetRawText().Should().Be(saved.GetProperty("trustedNetworks").GetRawText());
 
         var history = (await tenant.GetAsync($"{Settings}/history")).Expect(HttpStatusCode.OK).Body.GetRawText();
-        history.Should().Contain("documents checks").And.Contain("form use checks").And.Contain("partner.example.com").And.Contain("203.0.113.0/24");
+        history.Should().Contain("documents checks").And.Contain("form activity checks").And.Contain("partner.example.com").And.Contain("203.0.113.0/24");
         history.Should().Contain("Verification suggested alert by email");
     }
 
@@ -391,7 +391,7 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
         (await tenant.PutAsync(Settings, new JsonObject { ["llmConsistencyCheck"] = false, ["deviceCheck"] = "Consent", ["checks"] = new JsonObject { ["formUse"] = false } }))
             .Expect(HttpStatusCode.OK);
         var closed = await client.GetFromJsonAsync<JsonElement>(form, Ct);
-        closed.GetProperty("telemetry").GetProperty("sessionToken").GetString().Should().BeEmpty("with form use checks off, the careers page collects no form telemetry");
+        closed.GetProperty("telemetry").GetProperty("sessionToken").GetString().Should().BeEmpty("with form activity checks off, the careers page collects no form telemetry");
         closed.GetProperty("telemetry").GetProperty("deviceCheck").GetString().Should().Be("Off", "the page module that makes the device code does not run, so no consent box is offered");
 
         (await tenant.PutAsync(Settings, new JsonObject { ["llmConsistencyCheck"] = false, ["deviceCheck"] = "Consent" })).Expect(HttpStatusCode.OK);

@@ -12,7 +12,7 @@
       "NET_DATACENTER_IP"
     ],
     "appliedRules": [],
-    "summary": "6 observations from network, contact details and form use checks back each other up.",
+    "summary": "6 observations from network, contact details and form activity checks back each other up.",
     "nextStep": "Confirm the candidate is who they say they are before you spend interview time, for example on a short video call. These signals are not a reason to reject on their own.",
     "signals": [
       {

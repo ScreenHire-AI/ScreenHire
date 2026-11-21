@@ -4,16 +4,16 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
-import type { VerificationActivityEntry } from './verificationActivityEntry.ts';
+import type { VerificationActivityRun } from './verificationActivityRun.ts';
 
 /**
- * A page of the activity log, newest first: check runs for everyone, and model calls (the AI checks). `usageVisible` says
- * the caller may see what a call cost and the provider's request id (View AI usage and All jobs); without it a model call has
- * no `call` details, and only calls about an application the caller can open are listed. `nextBefore` goes back as
- * `before` for the next page and is null on the last.
+ * A page of the activity log, newest first, one row per run: a pass of the checks over one application, or a model call that
+ * belongs to no pass (a connection test). `usageVisible` says the caller may see what a call cost and the provider's
+ * request id (View AI usage and All jobs); without it a model call has no `call` details, and only calls about an
+ * application the caller can open are listed. `nextBefore` goes back as `before` for the next page and is null on the last.
  */
 export interface VerificationActivityPage {
-  entries: VerificationActivityEntry[];
+  runs: VerificationActivityRun[];
   /** @nullable */
   nextBefore: string | null;
   usageVisible: boolean;

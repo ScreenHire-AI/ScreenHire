@@ -74,7 +74,7 @@ internal static class PublicTelemetryEndpoints
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("sessionToken", "This form session has ended. Reload the form."));
         }
 
-        // Form use checks turned off after this page opened: its session is still good for 12 hours, and nothing it sends is kept.
+        // Form activity checks turned off after this page opened: its session is still good for 12 hours, and nothing it sends is kept.
         if (!(await TelemetrySessions.CollectionForAsync(job, verification.Value, db, cancellationToken)).FormTelemetry)
         {
             return TypedResults.Accepted((string?)null);
