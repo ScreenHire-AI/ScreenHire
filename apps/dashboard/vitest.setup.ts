@@ -37,23 +37,11 @@ Element.prototype.scrollIntoView ??= () => {};
 window.scrollBy = () => {};
 window.scrollTo = () => {};
 
-// jsdom has no Web Animations, and Svelte's transitions (a form builder row slides open and shut) play through
-// element.animate. Each one finishes at once, as a browser's does at zero length, so an outro still removes its element.
-// The bits-ui overlays read getAnimations, which tests that need it stub for themselves.
+// jsdom has no Web Animations. Svelte's transitions (a row sliding open, design system A17) run on `element.animate` and
+// finish on the animation's `onfinish`: give every element an animation that finishes on the next microtask, so what
+// opens appears and what closes leaves the DOM as it would after the motion.
 Element.prototype.animate ??= function () {
-  let finished: ((this: Animation, event: AnimationPlaybackEvent) => unknown) | null = null;
-  const animation = {
-    currentTime: 0,
-    playState: 'finished',
-    cancel() {},
-    finish() {},
-    get onfinish() {
-      return finished;
-    },
-    set onfinish(callback) {
-      finished = callback;
-      queueMicrotask(() => finished?.call(animation as unknown as Animation, new Event('finish') as AnimationPlaybackEvent));
-    },
-  };
+  const animation = { onfinish: null as null | (() => void), cancel() {}, currentTime: 0, playState: 'finished', effect: null };
+  queueMicrotask(() => animation.onfinish?.());
   return animation as unknown as Animation;
 };

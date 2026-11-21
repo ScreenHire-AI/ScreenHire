@@ -7315,6 +7315,180 @@
         ]
       }
     },
+    "/v1/organization/setup": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "GetOrganizationSetup",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSetup"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/setup/skip": {
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "SkipSetupStep",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkipSetupStepRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSetup"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/setup/hide": {
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "HideSetup",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSetup"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/setup/show": {
+      "post": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "ShowSetupAgain",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationSetup"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/organization/branding": {
       "get": {
         "tags": [
@@ -10225,6 +10399,240 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/tags": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "ListTags",
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "DeleteTag",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagChangeResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/tags/rename": {
+      "post": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "RenameTag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagChangeResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/tags/merge": {
+      "post": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "MergeTag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagChangeResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden",
@@ -18314,6 +18722,19 @@
             "type": "integer",
             "format": "int32",
             "default": 0
+          },
+          "snippet": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inReplyTo": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\nfor an email sent before ScreenHire kept each email's copy: only its subject is known."
@@ -22279,6 +22700,22 @@
         },
         "description": "One entry in the organization's membership log. `actorUserId` made the change, or `actorApiKeyId` when an\nAPI key did; `memberUserId` is who it is\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\n`role` are set where the kind has them, with the custom role's id and its name at the time; for RoleCreated,\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\nor a hiring template's default team (`hiringTemplateId`, with its name now). A reader who sees only their own\njobs gets no entries about the others. The data request kinds and CandidateErased from a request set `dataRequestId`\n(an id only, never the candidate); RetentionApplied sets `itemCount`, the applications it deleted."
       },
+      "MergeTagRequest": {
+        "required": [
+          "tag",
+          "into"
+        ],
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "into": {
+            "type": "string"
+          }
+        },
+        "description": "Merges a tag into another existing tag: every application with `tag` gets `into` instead."
+      },
       "ModelPresetView": {
         "required": [
           "provider",
@@ -22859,6 +23296,25 @@
           }
         },
         "description": "The organization's sending domain (Settings, Sending domain). `available` is false when this deployment has no email\nprovider: the page says so and offers nothing. `sandbox` says the records are made up for a local run. `domain`\nis null until one is added. `lastUpdated` is the newest change to it (added, verified, no longer verified), null with\nno domain; its History is `GET /v1/organization/sending-domain/history`."
+      },
+      "OrganizationSetup": {
+        "required": [
+          "hidden",
+          "skippedSteps"
+        ],
+        "type": "object",
+        "properties": {
+          "hidden": {
+            "type": "boolean"
+          },
+          "skippedSteps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetupStepId"
+            }
+          }
+        },
+        "description": "The organization's own choices about the dashboard's setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization's data, not from here."
       },
       "OrganizationVerificationSettings": {
         "required": [
@@ -25153,6 +25609,22 @@
         },
         "description": "Takes the candidate out of the saved candidates. `candidateAsked`: they asked to be removed, so their permission for\nfuture roles is withdrawn too, and they cannot be saved again until they give it on a new application."
       },
+      "RenameTagRequest": {
+        "required": [
+          "tag",
+          "newName"
+        ],
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "newName": {
+            "type": "string"
+          }
+        },
+        "description": "Renames a tag everywhere. `newName` must not be another tag already: merge into that one instead."
+      },
       "ReportHeadline": {
         "required": [
           "applications",
@@ -26220,6 +26692,15 @@
         },
         "description": "The domain to send from, such as `example.com`. Replaces the organization's current one."
       },
+      "SetupStepId": {
+        "enum": [
+          "Branding",
+          "Job",
+          "Team",
+          "Email"
+        ],
+        "description": "A step of the setup checklist in the dashboard's notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization's own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped."
+      },
       "SignalCategory": {
         "enum": [
           "Network",
@@ -26483,6 +26964,25 @@
           }
         },
         "description": "\"Test this workflow\" (workflow-engine.md §4): run a sample application through a workflow and see which automations\na trigger would fire. Nothing is saved or sent. `facts` is the sample application's snapshot; leave members out\nfor facts it does not have."
+      },
+      "SkipSetupStepRequest": {
+        "required": [
+          "step"
+        ],
+        "type": "object",
+        "properties": {
+          "step": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SetupStepId"
+              }
+            ]
+          }
+        },
+        "description": "Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing. Nullable\nonly so a body without it is refused rather than read as the first step."
       },
       "SlackAccount": {
         "required": [
@@ -26891,6 +27391,97 @@
           }
         },
         "description": "Makes another of the signed-in user's organizations the one they work in."
+      },
+      "TagChangeResult": {
+        "required": [
+          "jobs",
+          "drafts",
+          "views",
+          "stillNamedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "drafts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stillNamedBy": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagTemplateUse"
+            }
+          }
+        },
+        "description": "What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag."
+      },
+      "TagList": {
+        "required": [
+          "tags"
+        ],
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagSummary"
+            }
+          }
+        },
+        "description": "The organization's tags (`GET /v1/tags`), most used first: every tag on an application the reader can see, and\nevery tag an automation names in a job that is not closed or in a hiring template's draft or newest published version."
+      },
+      "TagSummary": {
+        "required": [
+          "name",
+          "applications",
+          "templates"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagTemplateUse"
+            }
+          }
+        },
+        "description": "One tag, as it is spelled where it is used most. `applications` counts the applications that have it (on the jobs\nthe reader sees); a tag only an automation names has none. `templates` lists the hiring templates whose newest\npublished version names it: a published version never changes, so they keep naming it after a rename until a new\nversion is published."
+      },
+      "TagTemplateUse": {
+        "required": [
+          "templateId",
+          "name",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "A hiring template whose newest published version names a tag."
       },
       "TalentPoolExit": {
         "enum": [
@@ -29417,6 +30008,9 @@
     },
     {
       "name": "Tasks"
+    },
+    {
+      "name": "Tags"
     },
     {
       "name": "Reports"

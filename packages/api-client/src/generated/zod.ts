@@ -7170,6 +7170,34 @@ export const UpdateCareersEmbeddingResponse = zod.object({
 }).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\nto the name, the questions per page or the sites, or when the organization was made; its history is\n`/v1/organization/history`.')
 
 
+export const GetOrganizationSetupResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
+export const SkipSetupStepBody = zod.object({
+  "step": zod.union([zod.null(),zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')])
+}).describe('Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing. Nullable\nonly so a body without it is refused rather than read as the first step.')
+
+export const SkipSetupStepResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
+export const HideSetupResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
+export const ShowSetupAgainResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
 export const getOrganizationBrandingResponseLastUpdatedCreatedDefault = false;
 
 export const GetOrganizationBrandingResponse = zod.object({
@@ -8829,6 +8857,69 @@ export const ReopenTaskResponse = zod.object({
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
+export const ListTagsResponse = zod.object({
+  "tags": zod.array(zod.object({
+  "name": zod.string(),
+  "applications": zod.int(),
+  "templates": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('One tag, as it is spelled where it is used most. `applications` counts the applications that have it (on the jobs\nthe reader sees); a tag only an automation names has none. `templates` lists the hiring templates whose newest\npublished version names it: a published version never changes, so they keep naming it after a rename until a new\nversion is published.'))
+}).describe('The organization\'s tags (`GET /v1/tags`), most used first: every tag on an application the reader can see, and\nevery tag an automation names in a job that is not closed or in a hiring template\'s draft or newest published version.')
+
+
+export const DeleteTagQueryParams = zod.object({
+  "tag": zod.string().optional()
+})
+
+export const DeleteTagResponse = zod.object({
+  "jobs": zod.int(),
+  "drafts": zod.int(),
+  "views": zod.int(),
+  "stillNamedBy": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates\'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag.')
+
+
+export const RenameTagBody = zod.object({
+  "tag": zod.string(),
+  "newName": zod.string()
+}).describe('Renames a tag everywhere. `newName` must not be another tag already: merge into that one instead.')
+
+export const RenameTagResponse = zod.object({
+  "jobs": zod.int(),
+  "drafts": zod.int(),
+  "views": zod.int(),
+  "stillNamedBy": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates\'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag.')
+
+
+export const MergeTagBody = zod.object({
+  "tag": zod.string(),
+  "into": zod.string()
+}).describe('Merges a tag into another existing tag: every application with `tag` gets `into` instead.')
+
+export const MergeTagResponse = zod.object({
+  "jobs": zod.int(),
+  "drafts": zod.int(),
+  "views": zod.int(),
+  "stillNamedBy": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates\'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag.')
+
+
 export const getHiringReportQueryTimeZoneDefault = `UTC`;
 
 export const GetHiringReportQueryParams = zod.object({
@@ -10463,7 +10554,9 @@ export const ListCandidateEmailsResponseItem = zod.object({
   "kept": zod.boolean(),
   "direction": zod.enum(['Sent', 'Received']).default(listCandidateEmailsResponseDirectionDefault).describe('Which way an email in Messages went.'),
   "fromAddress": zod.string().nullish(),
-  "attachmentCount": zod.int().default(listCandidateEmailsResponseAttachmentCountDefault)
+  "attachmentCount": zod.int().default(listCandidateEmailsResponseAttachmentCountDefault),
+  "snippet": zod.string().nullish(),
+  "inReplyTo": zod.uuid().nullish()
 }).describe('One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\nfor an email sent before ScreenHire kept each email\'s copy: only its subject is known.')
 export const ListCandidateEmailsResponse = zod.array(ListCandidateEmailsResponseItem)
 

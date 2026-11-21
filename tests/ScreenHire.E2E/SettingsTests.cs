@@ -67,6 +67,8 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
             (box!.Y + box.Height).Should().BeLessThanOrEqualTo(height, "the rail's Settings item is on screen");
         }
 
+        // A short create form is a sheet over its page (design system A16): the old Add endpoint and Edit addresses open the
+        // list, or the endpoint, with the sheet open, and the sheet is what the row checks.
         (string Path, string Title)[] pages =
         [
             ("/settings/organization", "General"),
@@ -76,6 +78,7 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
             ("/settings/roles/compare", "Compare roles"),
             ("/settings/roles/viewer", "Viewer"),
             ($"/settings/roles/{roleId}", "Interviewer"),
+            ("/settings/tags", "Tags"),
             ("/settings/branding", "Branding"),
             ("/settings/sending-domain", "Email domain"),
             ("/verification", "Verification"),
@@ -85,12 +88,21 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
             ("/settings/slack", "Slack"),
             ("/settings/webhooks/new", "Add endpoint"),
             ($"/settings/webhooks/{endpointId}", "Applicant sync"),
-            ($"/settings/webhooks/{endpointId}/edit", "Applicant sync"),
+            ($"/settings/webhooks/{endpointId}/edit", "Edit endpoint"),
         ];
         foreach (var (path, title) in pages)
         {
             await GoToAsync("dashboard", path);
-            await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(title);
+            if (path.EndsWith("/new", StringComparison.Ordinal) || path.EndsWith("/edit", StringComparison.Ordinal))
+            {
+                var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = title });
+                await Expect(sheet).ToBeVisibleAsync();
+                await Expect(sheet.GetByRole(AriaRole.Checkbox).First).ToBeVisibleAsync();
+            }
+            else
+            {
+                await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(title);
+            }
             // Skeletons gone: every page's panels have loaded.
             await Expect(Page.Locator("main [data-slot=skeleton]")).ToHaveCountAsync(0);
             (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
@@ -115,7 +127,7 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
         // that list, not the one before the answer, is what keeps this from depending on which comes first. Email domain may
         // carry its mark after its name, so each entry is matched by its start.
         await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(
-            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex("^Email domain"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
+            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex(@"^Tags\s*$"), new Regex("^Email domain"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
         await Expect(organization.GetByRole(AriaRole.Link, new() { Name = "Branding" })).ToHaveCountAsync(0);
         var team = await FrameAsync();
 
@@ -167,7 +179,7 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
         await Expect(menu.GetByRole(AriaRole.List, new() { Name = "Careers site", Exact = true }).GetByRole(AriaRole.Link)).ToHaveTextAsync(["Careers page", "Branding"]);
         var organization = menu.GetByRole(AriaRole.List, new() { Name = "Organization", Exact = true });
         await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(
-            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex(@"^Email domain\s*$"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
+            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex(@"^Tags\s*$"), new Regex(@"^Email domain\s*$"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
         await Expect(menu.Locator("[data-setting-mark]")).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
 

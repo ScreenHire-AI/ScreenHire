@@ -30,6 +30,8 @@ export const retentionPath = '/v1/organization/data-retention';
 export const verificationAreaPath = '/v1/verification';
 /** The signed-in member's bell (`/v1/notifications`). */
 export const notificationsPath = '/v1/notifications';
+/** The organization's tags (`/v1/tags`): the add field's suggestions and Settings, Tags. */
+export const tagsPath = '/v1/tags';
 
 /**
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
@@ -40,7 +42,8 @@ export const notificationsPath = '/v1/notifications';
  * VerificationAssessed changes the chips in every list, the job's overview, the Verification area's Overview and Activity log and the application's verification panel
  * (`/v1/applications/{id}/verification`). An automation run can also create a task, which My tasks (`/v1/tasks`) and the
  * application's own tasks show, and so can a person or an API key (ApplicationTaskCreated), which Activity shows too.
- * Tags show in every list, which filter by them. Every list also shows each application's last activity
+ * Tags show in every list, which filter by them, and in the organization's tags (`/v1/tags`), which count them and list the
+ * tags a job's or a template's automations name, so a changed workflow, a template edit or a new version refresh it. Every list also shows each application's last activity
  * (`lastActivityAt`), which anything the candidate or the team does moves: a note and its edits and deletion, a sent
  * email (ApplicationEmailed), answers to a follow-up questionnaire (QuestionnaireAnswered), a task, an automation run.
  * So those refetch the lists too, the job's own table (under `/v1/jobs`) and a candidate's applications included.
@@ -60,14 +63,14 @@ export const invalidations: InvalidationMap = {
   JobClosed: [jobsPath, reportsPath, billingPath],
   JobPostingsChanged: [jobsPath],
   // A changed time limit changes when applications fall overdue (slaDueAt), so the lists refetch too.
-  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath, reportsPath, templateUsagePath],
+  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath, reportsPath, templateUsagePath, tagsPath],
   // A job's team (`/v1/jobs/{id}/hiring-team`), the Team page's job counts, and for someone just added, the job itself.
   HiringTeamChanged: [jobsPath, membersPath, reportsPath],
-  HiringTemplateVersionPublished: [jobsPath, templatesPath, templateUsagePath],
+  HiringTemplateVersionPublished: [jobsPath, templatesPath, templateUsagePath, tagsPath],
   // Any template edit, of the three kinds: the Templates page, the pickers on a new job, the email composer and an
   // application's scorecard library read them, and the usage list shows where each is used. Events are mapped by
   // type, not by kind, so all of them refetch.
-  TemplateChanged: [templatesPath, emailTemplatesPath, scorecardTemplatesPath, templateUsagePath],
+  TemplateChanged: [templatesPath, emailTemplatesPath, scorecardTemplatesPath, templateUsagePath, tagsPath],
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath],
   // The application's Activity, the candidate's Messages (every email to them) and every list's last activity.
@@ -80,7 +83,7 @@ export const invalidations: InvalidationMap = {
   ApplicationNoteAdded: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteEdited: [jobsPath, applicationsPath, candidatesPath],
   ApplicationNoteDeleted: [jobsPath, applicationsPath, candidatesPath],
-  ApplicationTagsChanged: [jobsPath, applicationsPath, candidatesPath],
+  ApplicationTagsChanged: [jobsPath, applicationsPath, candidatesPath, tagsPath],
   // A scorecard changes the candidate's rating in the lists; a finished review task can show it to its reviewer.
   ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
   QuestionnaireAnswered: [jobsPath, applicationsPath, candidatesPath],

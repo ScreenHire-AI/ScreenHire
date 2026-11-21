@@ -447,6 +447,13 @@
 
   // Tags change in place here; nothing is saved.
   let sampleTags = $state(['Referral', 'Relocating to Leeds']);
+  // The organization's tags the field suggests (GET /v1/tags), most used first.
+  const sampleKnownTags = [
+    { name: 'Senior', applications: 12 },
+    { name: 'Referral', applications: 9 },
+    { name: 'Senior engineer', applications: 4 },
+    { name: 'Needs visa', applications: 2 },
+  ];
   let jobsChoice = $state<'All' | 'HiringTeamOnly'>('All');
   let countriesChoice = $state(['GB', 'IE']);
   const sampleTeam = [
@@ -645,7 +652,7 @@
 {/snippet}
 
 <ShortcutsDialog bind:open={shortcutsOpen} />
-<SecretDialog bind:open={secretOpen} title="Your new API key" label="API key" value="shk_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
+<SecretDialog bind:open={secretOpen} title="Your signing secret" label="Signing secret" value="whsec_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
 
 <PublishCheckDialog
   bind:open={publishCheckOpen}
@@ -1071,7 +1078,7 @@
           <Button variant="outline" onclick={() => (publishCheckOpen = true)}>Publish a draft</Button>
         </Panel>
         <Panel title="Secret dialog" class="flex-[1_1_320px]">
-          <Button variant="outline" onclick={() => (secretOpen = true)}>Show a new key</Button>
+          <Button variant="outline" onclick={() => (secretOpen = true)}>Show a signing secret</Button>
         </Panel>
         <Panel title="Email composer" class="flex-[1_1_320px]">
           <EmailComposerDemo />
@@ -1240,6 +1247,7 @@
         <Panel title="Tag list" class="flex-[1_1_320px]">
           <TagList
             tags={sampleTags}
+            suggestions={sampleKnownTags}
             onadd={async (tag) => ((sampleTags = [...sampleTags, tag]), true)}
             onremove={(tag) => (sampleTags = sampleTags.filter((other) => other !== tag))}
           />
@@ -1392,7 +1400,7 @@
 
       <Panel title="Expandable row">
         <ol aria-label="Emails" class="flex flex-col divide-y divide-border-subtle">
-          <li class="flex flex-col gap-3 py-2 first:pt-0 last:pb-0">
+          <li class="flex flex-col py-2 first:pt-0 last:pb-0">
             <ExpandableRow id="style-guide-email-1" bind:expanded={emailOpen}>
               {#snippet icon()}<SendIcon />{/snippet}
               {#snippet summary()}
@@ -1402,7 +1410,7 @@
               <p>Hi Priya, thank you for your time on Thursday. We would like to invite you to a second interview.</p>
             </ExpandableRow>
           </li>
-          <li class="flex flex-col gap-3 py-2 first:pt-0 last:pb-0">
+          <li class="flex flex-col py-2 first:pt-0 last:pb-0">
             <ExpandableRow id="style-guide-email-2">
               {#snippet icon()}<SendIcon />{/snippet}
               {#snippet summary()}
