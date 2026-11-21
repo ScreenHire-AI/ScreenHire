@@ -573,7 +573,7 @@ The data model and API from the jobs and templates task, and the engine that run
   `linkedin_export`), so `answers.{id}` names one question. No file questions: the follow-up page works without
   JavaScript and takes no uploads. The knockout rules apply to follow-up questions as to apply questions.
 - **AI use.** A definition has no AI-use policy. ScreenHire asks the question on every application, and the policy is
-  `VerificationSettings.DefaultAiUse` (Verification, Policy), which a job may override (`PUT /v1/jobs/{id}/ai-use`, in the
+  `VerificationSettings.DefaultAiUse` (Verification, Checks), which a job may override (`PUT /v1/jobs/{id}/ai-use`, in the
   job's own settings and not in its workflow). `AiUsePolicies.Effective` is the one place that decides: the job's override, else
   the organization's, else Allowed with disclosure. Definitions stored before this keep a `verificationPolicy` member, which
   reading ignores and the next save drops; migration `MoveAiUseToOrganizationAndJob` copied each job's own policy to its
