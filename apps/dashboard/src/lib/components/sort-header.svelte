@@ -15,6 +15,7 @@
   }: {
     // `any`: the header's value type, which differs from column to column.
     header: Header<TFeatures, TData, any>;
+    /** Classes for the `th`. `text-right` also puts the sort icon before the text (see `end` below). */
     class?: ClassValue;
   } = $props();
 

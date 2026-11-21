@@ -28,7 +28,7 @@ describe('bar chart', () => {
     const bars = list.querySelectorAll<HTMLElement>('.bg-chart-1');
     expect(bars).toHaveLength(1);
     expect(bars[0]!.style.width).toBe('max(2px, 1 * (100% - 5.5rem))');
-    // The zero keeps the bar's line, so its value sits on it as a one's would: an invisible stub, no drawn bar.
+    // The zero keeps the bar's line, with its value on it after an invisible stub: no drawn bar.
     const stub = hired!.querySelector<HTMLElement>('.bg-transparent')!;
     expect(stub.style.width).toBe('2px');
     expect(stub.nextElementSibling).toHaveTextContent('0');
