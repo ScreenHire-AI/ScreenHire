@@ -70,7 +70,7 @@ describe('role page', () => {
     expect(screen.queryByText(/\d of \d/)).not.toBeInTheDocument();
     expect(screen.getByText('Viewer')).toBeInTheDocument();
     expect(screen.getAllByText('Robin Hale').length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: 'History' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /History$/ })).toBeInTheDocument();
     await expectNoAxeViolations();
   });
 
@@ -113,7 +113,7 @@ describe('role page', () => {
     expect(within(screen.getByRole('region', { name: 'What this role can do' })).getByText('1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy role' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'History' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /History$/ })).not.toBeInTheDocument();
     expect(screen.getByText('ScreenHire')).toBeInTheDocument();
     await expectNoAxeViolations();
   });

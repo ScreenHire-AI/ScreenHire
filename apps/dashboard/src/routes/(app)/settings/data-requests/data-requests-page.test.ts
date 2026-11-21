@@ -348,7 +348,7 @@ describe('Data requests page: record retention', () => {
       return found!;
     });
     expect(fact).toHaveTextContent(/^Last updated:\s*Updated yesterday by you/);
-    expect(within(panel).getByRole('button', { name: /^History/ })).toBeInTheDocument();
+    expect(within(panel).getByRole('button', { name: /History$/ })).toBeInTheDocument();
     expect(document.querySelector('[data-slot="header-band"] [data-last-updated]')).toBeNull();
   });
 

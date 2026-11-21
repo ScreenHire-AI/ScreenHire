@@ -112,7 +112,7 @@ describe('edit saved note sheet', () => {
     renderSheet({ person: { ...person, noteUpdated: { at: '2026-10-25T13:22:00Z', by: 'Member', userId: user.id } } });
     const sheet = await screen.findByRole('dialog', { name: 'Edit note for Casey Morgan' });
 
-    await fireEvent.click(within(sheet).getByRole('button', { name: 'History' }));
+    await fireEvent.click(within(sheet).getByRole('button', { name: /History$/ }));
 
     expect(await screen.findByText('edited the note')).toBeInTheDocument();
   });
@@ -121,6 +121,6 @@ describe('edit saved note sheet', () => {
     renderSheet();
     const sheet = await screen.findByRole('dialog', { name: 'Edit note for Casey Morgan' });
 
-    expect(within(sheet).getByRole('button', { name: 'History' })).toBeInTheDocument();
+    expect(within(sheet).getByRole('button', { name: /History$/ })).toBeInTheDocument();
   });
 });

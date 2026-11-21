@@ -96,7 +96,7 @@ public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // Last updated names the person, and History says what they changed.
         await Expect(band).ToContainTextAsync("by you");
-        await band.GetByRole(AriaRole.Button, new() { Name = "History" }).ClickAsync();
+        await band.GetByRole(AriaRole.Button, new() { NameRegex = new("History$") }).ClickAsync();
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "History" });
         await Expect(sheet.GetByRole(AriaRole.Heading, new() { Name = "Today" })).ToBeVisibleAsync();
         await Expect(sheet.GetByRole(AriaRole.Listitem).First).ToContainTextAsync("You changed the subject");

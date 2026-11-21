@@ -133,7 +133,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         await SaveScreenshotAsync(Page, "dashboard-job-refused-posting-light");
 
         // A plain button shows the hand as a link does (A10): the browser's default for a button is the arrow.
-        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "History" })).ToHaveCSSAsync("cursor", "pointer");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new("History$") })).ToHaveCSSAsync("cursor", "pointer");
 
         // The notice links to the fix: the Job postings tab, where the notice stays and the row's menu holds the fixes.
         await notice.GetByRole(AriaRole.Link, new() { Name = "Fix on Job postings" }).ClickAsync();

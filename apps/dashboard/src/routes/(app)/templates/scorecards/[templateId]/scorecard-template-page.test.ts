@@ -117,7 +117,7 @@ describe('scorecard template page', () => {
     expect(await screen.findByText(/Copy this ScreenHire scorecard to change it/)).toBeInTheDocument();
     expect(screen.getByText('Built in')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy scorecard' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /History$/ })).toBeNull();
     expect(screen.queryByLabelText('Name')).toBeNull();
     expect(screen.getByRole('list', { name: 'Questions' })).toHaveTextContent('Problem solving');
     // Nothing can be edited, so the switch names what it shows instead of offering an edit (A8, E3).

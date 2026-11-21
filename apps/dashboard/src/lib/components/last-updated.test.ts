@@ -42,19 +42,23 @@ describe('last updated', () => {
     expect(words({ at: null, by: 'ScreenHire' })).toBe('By ScreenHire');
   });
 
-  it('keeps History a named button, icon-only in a narrow header band on the title row (S8), and in words elsewhere', () => {
+  it("makes the fact itself the History button, its name the visible words then History (the owner's walk-through, 2026-11-21)", async () => {
     const value: LastUpdate = { at: twoHoursAgo, by: 'Member', userId: 'u1' };
-    const { unmount } = render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', lead: true, titleRow: true, onhistory: () => {} } } });
+    const opened = vi.fn();
+    render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', lead: true, titleRow: true, onhistory: opened } } });
 
-    expect(screen.getByRole('button', { name: 'History' })).toBeInTheDocument();
-    expect(screen.getByText('History')).toHaveClass('@max-md:sr-only');
-    // The text gives way with an ellipsis, and the button does not shrink.
-    expect(screen.getByText(/Updated/).closest('span.truncate')).not.toBeNull();
-    expect(screen.getByRole('button', { name: 'History' })).toHaveClass('shrink-0', 'pointer-coarse:min-w-11');
-    unmount();
+    const fact = screen.getByRole('button', { name: 'Last updated: 2 hours ago by you. History' });
+    expect(fact).toHaveAttribute('aria-haspopup', 'dialog');
+    // On a title row the words still give way with an ellipsis, and nothing else sits beside them.
+    expect(fact).toHaveClass('truncate');
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    await fireEvent.click(fact);
+    expect(opened).toHaveBeenCalledOnce();
+  });
 
-    render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', onhistory: () => {} } } });
-    expect(screen.getByText('History')).not.toHaveClass('@max-md:sr-only');
+  it('is plain text when nothing can change the object', () => {
+    render(WithTooltips, { props: { component: LastUpdated, props: { value: { at: twoHoursAgo, by: 'Member', userId: 'u1' }, members, currentUserId: 'u1', titleRow: true } } });
+    expect(screen.queryByRole('button')).toBeNull();
   });
 
   it('holds the whole fact and the exact time in a tooltip on a title row, where the words can be cut (F5)', async () => {
@@ -70,9 +74,8 @@ describe('last updated', () => {
     const value: LastUpdate = { at: twoHoursAgo, by: 'Member', userId: 'u1' };
     render(WithTooltips, { props: { component: LastUpdated, props: { value, members, currentUserId: 'u1', lead: true, onhistory: () => {} } } });
 
-    expect(screen.getByText(/Updated/).closest('span.truncate')).toBeNull();
-    expect(screen.getByText('History')).not.toHaveClass('@max-md:sr-only');
-    expect(screen.getByRole('button', { name: 'History' }).parentElement).toHaveClass('flex-wrap');
+    expect(screen.getByRole('button', { name: /History$/ })).not.toHaveClass('truncate');
+    expect(screen.getByRole('button', { name: /History$/ }).parentElement).toHaveClass('flex-wrap');
   });
 
   it('is the value alone inside a fact, whose label says Created or Last updated', () => {

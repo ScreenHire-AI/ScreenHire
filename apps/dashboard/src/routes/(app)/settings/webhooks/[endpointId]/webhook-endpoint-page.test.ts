@@ -120,7 +120,7 @@ describe('webhook endpoint page', () => {
     });
 
     expect(await screen.findByText('you')).toBeInTheDocument();
-    await fireEvent.click(screen.getByRole('button', { name: /History/ }));
+    await fireEvent.click(screen.getByRole('button', { name: /History$/ }));
     const sheet = await screen.findByRole('dialog', { name: 'History' });
     expect(await within(sheet).findByText('rotated the signing secret')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(`/v1/webhooks/${endpointId}/history`, expect.anything());

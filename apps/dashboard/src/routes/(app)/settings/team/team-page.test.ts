@@ -556,7 +556,7 @@ describe('team page', () => {
     expect(updated).toHaveTextContent(/^Created:\s*Created 2 hours ago by you/);
     expect(updated.closest('[data-slot="header-band"]')?.querySelector('dl')).toBeNull();
 
-    await fireEvent.click(screen.getByRole('button', { name: /^History/ }));
+    await fireEvent.click(screen.getByRole('button', { name: /History$/ }));
     const sheet = await screen.findByRole('dialog', { name: 'History' });
     expect(await within(sheet).findByText('created the team')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/v1/organization/team/history', expect.anything());

@@ -130,7 +130,7 @@ describe('sending domain page', () => {
   it('shows who last changed the domain and opens its history beside the title', async () => {
     renderPage({ available: true, sandbox: false, domain: domain(), lastUpdated });
 
-    expect(await screen.findByRole('button', { name: /History/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /History$/ })).toBeInTheDocument();
   });
 
   it('says email still comes from ScreenHire until the domain is verified, then from the domain', async () => {
