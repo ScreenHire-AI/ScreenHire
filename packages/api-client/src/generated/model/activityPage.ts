@@ -5,12 +5,13 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ActivityEntry } from './activityEntry.ts';
+import type { ActivityScope } from './activityScope.ts';
 
 /**
  * One page of the workspace's activity, newest first. `nextBefore` is the cursor for the next page, or null after
  * the last. `seenAt` is when the person last opened the feed, null before the first time. `unseenCount` is how
  * many changes in this scope and these kinds came after that, other than the person's own, at most 100; null with no
- * `seenAt`.
+ * `seenAt`. `scope` is the scope the page covers: the one asked for, or the person's own choice.
  */
 export interface ActivityPage {
   entries: ActivityEntry[];
@@ -20,4 +21,5 @@ export interface ActivityPage {
   seenAt: string | null;
   /** @nullable */
   unseenCount: number | null;
+  scope: ActivityScope;
 }

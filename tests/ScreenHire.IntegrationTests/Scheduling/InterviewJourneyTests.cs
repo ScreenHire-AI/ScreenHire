@@ -39,6 +39,10 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
         var changed = await ours.WaitForAsync("InterviewChanged", "interviewId", interviewId, Ct);
         changed.GetProperty("status").GetString().Should().Be("Open");
         changed.GetProperty("applicationId").GetGuid().Should().Be(world.ApplicationId);
+        // Who changed it and how, for the hiring team's toasts: the member's own offer, which toasts nobody.
+        changed.GetProperty("change").GetString().Should().Be("Invited");
+        changed.GetProperty("actorUserId").GetGuid().Should().Be(world.Owner.UserId);
+        changed.GetProperty("byCandidate").GetBoolean().Should().BeFalse();
 
         // The invitation: a link whose token resolves, and a team copy that does not hold it.
         var invitation = await world.WaitForEmailAsync(world.CandidateEmail, "Pick a time");
@@ -85,6 +89,10 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
         var notOffered = await world.BookAsync(token, chosen.AddMinutes(7));
         notOffered.Expect(HttpStatusCode.Conflict).Text("type").Should().Be("slot_taken");
         (await world.BookAsync(token, chosen)).Expect(HttpStatusCode.NoContent);
+        var bookedLive = await ours.WaitForAsync("InterviewChanged", "change", "Booked", Ct);
+        bookedLive.GetProperty("byCandidate").GetBoolean().Should().BeTrue("the candidate booked from their own page");
+        bookedLive.GetProperty("startsAt").GetDateTimeOffset().Should().Be(chosen);
+        (!bookedLive.TryGetProperty("actorUserId", out var bookedBy) || bookedBy.ValueKind == JsonValueKind.Null).Should().BeTrue("no member booked it");
 
         var organizerEvents = await world.WaitForLiveEventsAsync(world.Owner.UserId, 1);
         var secondEvents = await world.WaitForLiveEventsAsync(world.Second.UserId, 1);

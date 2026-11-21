@@ -32,6 +32,8 @@ export const verificationAreaPath = '/v1/verification';
 export const notificationsPath = '/v1/notifications';
 /** The organization's tags (`/v1/tags`): the add field's suggestions and Settings, Tags. */
 export const tagsPath = '/v1/tags';
+/** The workspace's Activity feed in the bell (`/v1/activity`): every change to an application or a job refetches it while it is open. */
+export const activityPath = '/v1/activity';
 
 /**
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
@@ -59,49 +61,49 @@ export const tagsPath = '/v1/tags';
 export const invalidations: InvalidationMap = {
   // Reports list the open jobs, so opening and closing one refreshes them.
   // The Billing page counts open jobs against the plan's limit, so they refresh it as well.
-  JobPublished: [jobsPath, reportsPath, billingPath],
-  JobClosed: [jobsPath, reportsPath, billingPath],
-  JobPostingsChanged: [jobsPath],
+  JobPublished: [jobsPath, reportsPath, billingPath, activityPath],
+  JobClosed: [jobsPath, reportsPath, billingPath, activityPath],
+  JobPostingsChanged: [jobsPath, activityPath],
   // A changed time limit changes when applications fall overdue (slaDueAt), so the lists refetch too.
-  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath, reportsPath, templateUsagePath, tagsPath],
+  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath, reportsPath, templateUsagePath, tagsPath, activityPath],
   // A job's team (`/v1/jobs/{id}/hiring-team`), the Team page's job counts, and for someone just added, the job itself.
-  HiringTeamChanged: [jobsPath, membersPath, reportsPath],
+  HiringTeamChanged: [jobsPath, membersPath, reportsPath, activityPath],
   HiringTemplateVersionPublished: [jobsPath, templatesPath, templateUsagePath, tagsPath],
   // Any template edit, of the three kinds: the Templates page, the pickers on a new job, the email composer and an
   // application's scorecard library read them, and the usage list shows where each is used. Events are mapped by
   // type, not by kind, so all of them refetch.
   TemplateChanged: [templatesPath, emailTemplatesPath, scorecardTemplatesPath, templateUsagePath, tagsPath],
-  ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath, reportsPath],
-  ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath],
+  ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath, reportsPath, activityPath],
+  ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath, activityPath],
   // The application's Activity, the candidate's Messages (every email to them) and every list's last activity.
-  ApplicationEmailed: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
-  CandidateReplied: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
+  ApplicationEmailed: [jobsPath, applicationsPath, candidatesPath, talentPoolPath, activityPath],
+  CandidateReplied: [jobsPath, applicationsPath, candidatesPath, talentPoolPath, activityPath],
   CandidateEmailStatusChanged: [applicationsPath, candidatesPath],
   // An interview offered, booked, moved or cancelled: the application's interviews (`/v1/applications/{id}/interviews`),
   // its Activity and every list's last activity.
-  InterviewChanged: [jobsPath, applicationsPath, candidatesPath],
-  ApplicationNoteAdded: [jobsPath, applicationsPath, candidatesPath],
+  InterviewChanged: [jobsPath, applicationsPath, candidatesPath, activityPath],
+  ApplicationNoteAdded: [jobsPath, applicationsPath, candidatesPath, activityPath],
   ApplicationNoteEdited: [jobsPath, applicationsPath, candidatesPath],
-  ApplicationNoteDeleted: [jobsPath, applicationsPath, candidatesPath],
-  ApplicationTagsChanged: [jobsPath, applicationsPath, candidatesPath, tagsPath],
+  ApplicationNoteDeleted: [jobsPath, applicationsPath, candidatesPath, activityPath],
+  ApplicationTagsChanged: [jobsPath, applicationsPath, candidatesPath, tagsPath, activityPath],
   // A scorecard changes the candidate's rating in the lists; a finished review task can show it to its reviewer.
-  ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath, talentPoolPath],
-  QuestionnaireAnswered: [jobsPath, applicationsPath, candidatesPath],
-  ApplicationTaskCreated: [jobsPath, applicationsPath, candidatesPath, tasksPath],
+  ScorecardSubmitted: [jobsPath, applicationsPath, candidatesPath, talentPoolPath, activityPath],
+  QuestionnaireAnswered: [jobsPath, applicationsPath, candidatesPath, activityPath],
+  ApplicationTaskCreated: [jobsPath, applicationsPath, candidatesPath, tasksPath, activityPath],
   ApplicationTaskCompleted: [jobsPath, applicationsPath, candidatesPath, tasksPath],
   ApplicationTaskReopened: [jobsPath, applicationsPath, candidatesPath, tasksPath],
-  AutomationRunFinished: [jobsPath, applicationsPath, candidatesPath, tasksPath],
-  VerificationAssessed: [jobsPath, applicationsPath, candidatesPath, verificationAreaPath],
+  AutomationRunFinished: [jobsPath, applicationsPath, candidatesPath, tasksPath, activityPath],
+  VerificationAssessed: [jobsPath, applicationsPath, candidatesPath, verificationAreaPath, activityPath],
   // Keeping someone in mind ends their application in every list; leaving the pool, or an invitation, changes the pool
   // and the kept application's page.
-  TalentPoolChanged: [talentPoolPath, jobsPath, applicationsPath, candidatesPath],
+  TalentPoolChanged: [talentPoolPath, jobsPath, applicationsPath, candidatesPath, activityPath],
   // An erased candidate leaves every list, the pool and the job tables, and an open page of theirs finds nothing.
-  CandidateErased: [talentPoolPath, jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath, dataRequestsPath, retentionPath],
+  CandidateErased: [talentPoolPath, jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath, dataRequestsPath, retentionPath, activityPath],
   DataRequestReceived: [dataRequestsPath],
   DataRequestChanged: [dataRequestsPath],
   // Retention removed ended applications, some from candidates who keep another one: every list and count refetches, and
   // the retention panel's Last run and dry-run count change.
-  ApplicationsRemoved: [jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath, retentionPath],
+  ApplicationsRemoved: [jobsPath, applicationsPath, candidatesPath, tasksPath, reportsPath, retentionPath, activityPath],
   // A teammate's shared view appears in the sidebar, and a rename or a delete reaches everyone who sees it.
   ViewsChanged: [viewsPath],
   // The subscription changed (checkout done, a failed payment, a plan change or its end): the Billing page and its entry.

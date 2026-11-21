@@ -37,9 +37,9 @@ public enum ActivityScope
 /// One page of the workspace's activity, newest first. <c>nextBefore</c> is the cursor for the next page, or null after
 /// the last. <c>seenAt</c> is when the person last opened the feed, null before the first time. <c>unseenCount</c> is how
 /// many changes in this scope and these kinds came after that, other than the person's own, at most 100; null with no
-/// <c>seenAt</c>.
+/// <c>seenAt</c>. <c>scope</c> is the scope the page covers: the one asked for, or the person's own choice.
 /// </summary>
-public sealed record ActivityPage(IReadOnlyList<ActivityEntry> Entries, string? NextBefore, DateTimeOffset? SeenAt, int? UnseenCount);
+public sealed record ActivityPage(IReadOnlyList<ActivityEntry> Entries, string? NextBefore, DateTimeOffset? SeenAt, int? UnseenCount, ActivityScope Scope);
 
 /// <summary>One change somewhere in the workspace that the person may see.</summary>
 /// <remarks>

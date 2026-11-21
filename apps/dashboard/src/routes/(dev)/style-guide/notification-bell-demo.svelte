@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CurrentUser } from '@screenhire/api-client';
   import {
+    getGetActivityQueryKey,
     getGetOrganizationBrandingQueryKey,
     getGetOrganizationSendingDomainQueryKey,
     getListInvitationsQueryKey,
@@ -43,6 +44,31 @@
   );
   client.setQueryData(getGetOrganizationSendingDomainQueryKey(), answer({ available: true, sandbox: true, domain: null }));
   client.setQueryData(getListJobsQueryKey(), answer([]));
+  // The Activity tab: one teammate's move since the person last looked, and the job's creation before it.
+  const job = { jobId: 'demo-job-1', jobTitle: 'Senior .NET Engineer', fromStageName: null, stageName: null, followUpName: null, actorApiKeyName: null };
+  client.setQueryData(
+    getGetActivityQueryKey(),
+    answer({
+      entries: [
+        {
+          ...job, id: 'demo-activity-1', kind: 'Moves', occurredAt: '2026-11-08T09:30:00Z', by: 'Member', actorUserId: 'demo-user-2',
+          applicationId: 'demo-application-1', candidateName: 'Taylor Brook', toStageName: 'Interview', jobChange: null,
+          event: {
+            id: 'demo-activity-1', type: 'StageChanged', occurredAt: '2026-11-08T09:30:00Z', actorUserId: 'demo-user-2', fromStageId: 'screening',
+            toStageId: 'interview', note: null, tag: null, automationRunId: null, actorApiKeyId: null, scorecardId: null, stageId: null, recommendation: null,
+          },
+        },
+        {
+          ...job, id: 'demo-activity-2', kind: 'Jobs', occurredAt: '2026-11-07T15:00:00Z', by: 'Member', actorUserId: 'demo-user-1',
+          applicationId: null, candidateName: null, toStageName: null, event: null, jobChange: { created: true, line: null, moreLines: 0 },
+        },
+      ],
+      nextBefore: null,
+      seenAt: '2026-11-08T09:00:00Z',
+      unseenCount: 1,
+      scope: 'MyJobs',
+    }),
+  );
   setQueryClientContext(client);
 </script>
 

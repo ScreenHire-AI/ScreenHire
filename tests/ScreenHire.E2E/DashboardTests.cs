@@ -114,7 +114,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" })).ToContainTextAsync("No jobs yet");
 
         // A new organization's bell opens by itself once, at the setup steps, with the focus there.
-        var bell = Page.GetByRole(AriaRole.Dialog, new() { Name = "Needs attention" });
+        var bell = Page.GetByRole(AriaRole.Dialog, new() { Name = "Notifications" });
         var steps = bell.GetByRole(AriaRole.Region, new() { Name = "Finish setting up" });
         await Expect(steps).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Escape");

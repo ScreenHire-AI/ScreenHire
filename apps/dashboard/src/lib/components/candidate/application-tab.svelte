@@ -6,6 +6,7 @@
   import RelativeTime from '#lib/components/relative-time.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
+  import { linkedTo } from '#lib/linked.svelte.js';
 
   // The whole application (design system section 21): the answers, with what the candidate declared, then each
   // follow-up questionnaire an automation sent with its answers once given, read against the questions as the candidate
@@ -17,7 +18,7 @@
 
 {#each detail.followUps as followUp (followUp.id)}
   {@const asked = new Map(followUp.questions.map((question) => [question.id, question]))}
-  <Panel title={`Follow-up: ${followUp.name}`}>
+  <Panel id={`follow-up-${followUp.id}`} title={`Follow-up: ${followUp.name}`} {@attach linkedTo(`follow-up-${followUp.id}`)}>
     {#if followUp.completedAt}
       <p class="mb-3 text-muted-foreground">Answered <RelativeTime at={followUp.completedAt} class="inline" /></p>
       <SummaryList>

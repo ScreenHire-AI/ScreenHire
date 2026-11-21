@@ -38,6 +38,8 @@
     // The cards' own kinds, for a toast about them: the same icons the cards carry.
     Mentions: AtSignIcon,
     Replies: ReplyIcon,
+    Interviews: eventIcons.InterviewBooked,
+    Forms: eventIcons.QuestionnaireCompleted,
   };
 
   function focusout(event: FocusEvent) {

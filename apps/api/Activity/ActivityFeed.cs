@@ -130,7 +130,7 @@ internal static class ActivityFeed
             unseen = Math.Min(UnseenCap, newEvents + newChanges);
         }
 
-        return new ActivityPage(entries, next, seenAt, unseen);
+        return new ActivityPage(entries, next, seenAt, unseen, scope);
     }
 
     // My jobs is the jobs whose hiring team holds the reader's membership. Every job the query reads is also behind the

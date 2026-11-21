@@ -10,6 +10,7 @@
   import * as Table from '#lib/components/ui/table/index.js';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { formatDate } from '#lib/dates.js';
+  import { linkedId } from '#lib/linked.svelte.js';
   import { sentenceStart } from '#lib/history.js';
   import { formatRating } from '#lib/scorecards.js';
   import { readable, rosterRows, type RosterRow, type WaitingRow } from '#lib/scorecard-roster.js';
@@ -65,6 +66,15 @@
 
   let openId = $state<string | undefined>();
   const active = $derived(steps.find((row) => row.id === openId));
+  // A link to one submitted scorecard (#scorecard-<id>, from Activity or a toast) opens its sheet once the roster is in, once
+  // per link, so closing the sheet keeps it closed. A scorecard held back from this reader (ADR-0013) has no such link.
+  let linkedHandled: string | undefined;
+  $effect(() => {
+    const id = linkedId('scorecard-');
+    if (!id || id === linkedHandled || !steps.some((row) => row.id === id)) return;
+    linkedHandled = id;
+    openId = id;
+  });
   const askedBy = (row: WaitingRow) => (row.askedByUserId ? personName(row.askedByUserId, members, currentUserId) : undefined);
   const askedText = (row: WaitingRow) => `Asked ${formatDate(row.askedAt)}${askedBy(row) ? ` by ${askedBy(row)}` : ''}`;
   const waitingName = (row: WaitingRow) => sentenceStart(personName(row.assigneeUserId, members, currentUserId));

@@ -16551,7 +16551,8 @@
           "entries",
           "nextBefore",
           "seenAt",
-          "unseenCount"
+          "unseenCount",
+          "scope"
         ],
         "type": "object",
         "properties": {
@@ -16580,16 +16581,19 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ActivityScope"
           }
         },
-        "description": "One page of the workspace's activity, newest first. `nextBefore` is the cursor for the next page, or null after\nthe last. `seenAt` is when the person last opened the feed, null before the first time. `unseenCount` is how\nmany changes in this scope and these kinds came after that, other than the person's own, at most 100; null with no\n`seenAt`."
+        "description": "One page of the workspace's activity, newest first. `nextBefore` is the cursor for the next page, or null after\nthe last. `seenAt` is when the person last opened the feed, null before the first time. `unseenCount` is how\nmany changes in this scope and these kinds came after that, other than the person's own, at most 100; null with no\n`seenAt`. `scope` is the scope the page covers: the one asked for, or the person's own choice."
       },
       "ActivityScope": {
         "enum": [
           "MyJobs",
-          "Everything",
-          null
-        ]
+          "Everything"
+        ],
+        "description": "Whose jobs the feed covers: the jobs whose hiring team the person is on, or every job they can see."
       },
       "AddApplicationNoteRequest": {
         "required": [

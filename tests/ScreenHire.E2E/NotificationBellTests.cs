@@ -35,7 +35,7 @@ public sealed class NotificationBellTests(E2EFixture fixture) : BrowserTest(fixt
         await Expect(bell).ToBeVisibleAsync();
         await bell.ClickAsync();
 
-        var panel = Page.GetByRole(AriaRole.Dialog, new() { Name = "Needs attention" });
+        var panel = Page.GetByRole(AriaRole.Dialog, new() { Name = "Notifications" });
         var setup = panel.GetByRole(AriaRole.Region, new() { Name = "Finish setting up" });
         await Expect(setup).ToBeVisibleAsync();
         await Expect(setup.GetByRole(AriaRole.Link)).ToHaveTextAsync(
@@ -67,7 +67,7 @@ public sealed class NotificationBellTests(E2EFixture fixture) : BrowserTest(fixt
         await other.SetViewportSizeAsync(1440, 900);
         await SignInAsync(other, owner);
         await other.GetByRole(AriaRole.Button, new() { Name = "Notifications, 1 need attention" }).ClickAsync();
-        var otherSetup = other.GetByRole(AriaRole.Dialog, new() { Name = "Needs attention" }).GetByRole(AriaRole.Region, new() { Name = "Finish setting up" });
+        var otherSetup = other.GetByRole(AriaRole.Dialog, new() { Name = "Notifications" }).GetByRole(AriaRole.Region, new() { Name = "Finish setting up" });
         await Expect(otherSetup.GetByRole(AriaRole.Link)).ToHaveTextAsync(["Publish your first job", "Send email from your own domain"]);
 
         // Hiding the checklist there hides it here too, once this page reads it again.
@@ -90,7 +90,7 @@ public sealed class NotificationBellTests(E2EFixture fixture) : BrowserTest(fixt
         await SignInAsync(Page, owner);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Notifications, 3 need attention" }).ClickAsync();
 
-        var panel = Page.GetByRole(AriaRole.Dialog, new() { Name = "Needs attention" });
+        var panel = Page.GetByRole(AriaRole.Dialog, new() { Name = "Notifications" });
         await Expect(panel).ToBeVisibleAsync();
         var box = await panel.BoundingBoxAsync();
         box.Should().NotBeNull();

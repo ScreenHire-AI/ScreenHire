@@ -130,7 +130,8 @@ export class TeammateToasts {
       const members = await this.#sources.members();
       const actorName = members.find((member) => member.userId === first.actorUserId)?.displayName ?? 'A teammate';
       const id = `change:${++this.#count}`;
-      if (changes.length > 1 && first.kind !== 'Tasks' && first.kind !== 'Templates') {
+      // A candidate's own interview or form is one change each, so only teammates' changes group.
+      if (changes.length > 1 && first.kind !== 'Tasks' && first.kind !== 'Templates' && first.kind !== 'Interviews' && first.kind !== 'Forms') {
         const jobTitle = await this.#jobTitle(first.jobId, members);
         if (!this.#disposed) this.#show(groupToastFor(id, first.kind, first.jobId, changes.length, actorName, jobTitle));
         return;
@@ -180,6 +181,7 @@ export class TeammateToasts {
     if (change.kind === 'Templates') return { templateName: await this.#sources.templateName(change.templateType, change.templateId) };
     const application = await this.#sources.application(change.applicationId);
     const facts = { candidateName: application.candidate.fullName, jobTitle: application.jobTitle, stageName: application.stage.name };
+    if (change.kind === 'Forms') return { ...facts, formName: application.followUps.find((form) => form.id === change.requestId)?.name };
     if (change.kind !== 'Tasks') return facts;
     const tasks = await this.#sources.tasks(change.applicationId);
     return { ...facts, taskNote: tasks.find((task) => task.id === change.taskId)?.note };

@@ -8022,7 +8022,7 @@ export const DismissNotificationResponse = zod.void()
 
 
 export const GetActivityQueryParams = zod.object({
-  "scope": zod.union([zod.literal('MyJobs'),zod.literal('Everything'),zod.literal(null)]).optional(),
+  "scope": zod.enum(['MyJobs', 'Everything']).optional(),
   "kinds": zod.array(zod.enum(['Moves', 'Applications', 'Messages', 'Interviews', 'Scorecards', 'Notes', 'Tasks', 'Jobs']).describe('The kinds the workspace\'s Activity feed filters by (docs/architecture/notifications.md, "Activity").')).optional(),
   "before": zod.string().optional(),
   "limit": zod.int().optional()
@@ -8094,8 +8094,9 @@ export const GetActivityResponse = zod.object({
 }).describe('One change somewhere in the workspace that the person may see.')),
   "nextBefore": zod.string().nullable(),
   "seenAt": zod.iso.datetime({"offset":true}).nullable(),
-  "unseenCount": zod.int().nullable()
-}).describe('One page of the workspace\'s activity, newest first. `nextBefore` is the cursor for the next page, or null after\nthe last. `seenAt` is when the person last opened the feed, null before the first time. `unseenCount` is how\nmany changes in this scope and these kinds came after that, other than the person\'s own, at most 100; null with no\n`seenAt`.')
+  "unseenCount": zod.int().nullable(),
+  "scope": zod.enum(['MyJobs', 'Everything']).describe('Whose jobs the feed covers: the jobs whose hiring team the person is on, or every job they can see.')
+}).describe('One page of the workspace\'s activity, newest first. `nextBefore` is the cursor for the next page, or null after\nthe last. `seenAt` is when the person last opened the feed, null before the first time. `unseenCount` is how\nmany changes in this scope and these kinds came after that, other than the person\'s own, at most 100; null with no\n`seenAt`. `scope` is the scope the page covers: the one asked for, or the person\'s own choice.')
 
 
 export const MarkActivitySeenResponse = zod.void()

@@ -39,9 +39,12 @@ export function accountCrumbs(href: string): { label: string; href?: string }[] 
 export const noticeRows: Readonly<Record<NoticeKind, { label: string; hint: string }>> = {
   Mentions: { label: 'Mentions', hint: 'A teammate mentions you in a note' },
   Replies: { label: 'Candidate replies', hint: 'A candidate answers an email you sent' },
-  Interviews: { label: 'Interviews booked or changed', hint: 'An interview you are on is booked, moved or cancelled' },
+  Interviews: {
+    label: 'Interviews booked or changed',
+    hint: 'By email, an interview you are on is booked, moved or cancelled. In the app, a candidate on your jobs books, moves or cancels one',
+  },
   Tasks: { label: 'Tasks assigned to you', hint: 'Someone gives you a task about a candidate' },
-  NewApplications: { label: 'New applications on your jobs', hint: 'A candidate applies' },
+  NewApplications: { label: 'New applications and answered forms', hint: 'A candidate applies, or answers a follow-up form, on your jobs' },
   TeammateChanges: { label: "Teammates' moves and notes", hint: 'A teammate moves a candidate or adds a note' },
   VerificationSuggested: { label: 'Verification suggested', hint: 'An application needs a closer look' },
   AiUseAndBilling: { label: 'AI use and billing', hint: "AI use passes the budget; the trial's reminders come unless this is Off" },

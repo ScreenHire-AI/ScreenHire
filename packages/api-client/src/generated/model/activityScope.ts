@@ -5,7 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type ActivityScope = typeof ActivityScope[keyof typeof ActivityScope] | null;
+/**
+ * Whose jobs the feed covers: the jobs whose hiring team the person is on, or every job they can see.
+ */
+export type ActivityScope = typeof ActivityScope[keyof typeof ActivityScope];
 
 
 export const ActivityScope = {

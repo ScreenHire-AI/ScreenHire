@@ -23,6 +23,14 @@ export function hasModifier(event: KeyboardEvent): boolean {
   return event.ctrlKey || event.metaKey || event.altKey;
 }
 
+/**
+ * Whether the key press is A, which opens the bell at its Activity tab from anywhere: no modifier, not Shift (a capital A
+ * typed somewhere), and not in a text field, menu or dialog.
+ */
+export function opensActivity(event: KeyboardEvent): boolean {
+  return event.key.toLowerCase() === 'a' && !hasModifier(event) && !event.shiftKey && !isTypingTarget(event.target);
+}
+
 /** How long after G the second key of a "go to" shortcut counts. */
 export const chordTimeoutMs = 1500;
 
@@ -86,6 +94,7 @@ export function shortcutGroups(
       shortcuts: [
         { label: 'Open the command palette', keys: apple ? ['⌘', 'K'] : ['Ctrl', 'K'], singleKey: false },
         { label: 'Show keyboard shortcuts', keys: ['?'], singleKey: true },
+        { label: "Open the workspace's activity", keys: ['A'], singleKey: true },
         ...sections.map((section) => ({
           label: `Go to ${section.label}`,
           keys: ['G', section.key.toUpperCase()],

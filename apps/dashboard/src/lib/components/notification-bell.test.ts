@@ -4,6 +4,7 @@ import { expectNoAxeViolations } from '../../test-support/axe.js';
 import { apiStub, jobs, user, userAs } from '../../test-support/fixtures.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import { preferences } from '../preferences.svelte.js';
+import { activityPanel } from '../activity-feed.svelte.js';
 import { setupPanel } from '../setup-panel.svelte.js';
 import NotificationBell from './notification-bell.svelte';
 
@@ -26,6 +27,8 @@ const newOrganization = {
   'GET /v1/organization/branding': () => Response.json({ brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
   'GET /v1/organization/sending-domain': () => Response.json({ available: false, sandbox: false, domain: null }),
   'GET /v1/jobs': () => Response.json(jobs.map((job) => ({ ...job, publishedAt: null }))),
+  // The Activity tab's feed, read while the panel is open: nothing has happened.
+  'GET /v1/activity': () => Response.json({ entries: [], nextBefore: null, seenAt: null, unseenCount: null, scope: 'MyJobs' }),
 };
 
 function stub(items: unknown[], unreadCount: number, extra: Record<string, (init: RequestInit | undefined) => Response> = {}) {
@@ -42,7 +45,7 @@ function renderBell(who: typeof user = user) {
 const bell = () => screen.findByRole('button', { name: /^Notifications/ });
 async function openBell() {
   await fireEvent.click(await bell());
-  return screen.findByRole('dialog', { name: 'Needs attention' });
+  return screen.findByRole('dialog', { name: 'Notifications' });
 }
 const posted = (path: string) => vi.mocked(fetch).mock.calls.some(([url, init]) => String(url) === path && init?.method === 'POST');
 const asked = (path: string) => vi.mocked(fetch).mock.calls.some(([url]) => String(url) === path);
@@ -68,10 +71,10 @@ describe('notification bell', () => {
     renderBell();
     // Once the steps are in, so the panel has its setup section to put focus on.
     await screen.findByRole('button', { name: 'Notifications, 4 need attention' });
-    expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull();
 
     setupPanel.open();
-    const panel = await screen.findByRole('dialog', { name: 'Needs attention' });
+    const panel = await screen.findByRole('dialog', { name: 'Notifications' });
     const setup = await within(panel).findByRole('region', { name: 'Finish setting up' });
     await waitFor(() => expect(setup).toHaveFocus());
   });
@@ -81,7 +84,7 @@ describe('notification bell', () => {
     stub([], 0);
     const { unmount } = renderBell();
 
-    const panel = await screen.findByRole('dialog', { name: 'Needs attention' });
+    const panel = await screen.findByRole('dialog', { name: 'Notifications' });
     const setup = await within(panel).findByRole('region', { name: 'Finish setting up' });
     await waitFor(() => expect(setup).toHaveFocus());
     unmount();
@@ -89,7 +92,7 @@ describe('notification bell', () => {
     renderBell();
     // Once the steps are in, the moment it would open.
     await screen.findByRole('button', { name: 'Notifications, 3 need attention' });
-    expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull();
   });
 
   it('keeps the open after onboarding for a bell that has steps to show, so one with none does not spend it', async () => {
@@ -98,11 +101,11 @@ describe('notification bell', () => {
     // The same person, seen first by a bell that holds no setup steps for them.
     const { unmount } = renderBell(userAs('Recruiter'));
     await screen.findByRole('button', { name: 'Notifications' });
-    expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull();
     unmount();
 
     renderBell();
-    expect(await screen.findByRole('dialog', { name: 'Needs attention' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Notifications' })).toBeInTheDocument();
   });
 
   it('starts focus on the panel again when it is opened by hand after a page opened it at the steps', async () => {
@@ -111,10 +114,10 @@ describe('notification bell', () => {
     await screen.findByRole('button', { name: 'Notifications, 3 need attention' });
 
     setupPanel.open();
-    const panel = await screen.findByRole('dialog', { name: 'Needs attention' });
+    const panel = await screen.findByRole('dialog', { name: 'Notifications' });
     await waitFor(() => expect(within(panel).getByRole('region', { name: 'Finish setting up' })).toHaveFocus());
     await fireEvent.keyDown(panel, { key: 'Escape' });
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull());
 
     const reopened = await openBell();
     await waitFor(() => expect(reopened).toHaveFocus());
@@ -126,7 +129,7 @@ describe('notification bell', () => {
 
     await bell();
     await screen.findByRole('button', { name: 'Notifications, 3 need attention' });
-    expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull();
   });
 
   it('says in its tooltip that it holds setup while steps are left, so a new Owner knows why to open it', async () => {
@@ -396,5 +399,54 @@ describe('notification bell', () => {
     const panel = await openBell();
     await within(panel).findByRole('list', { name: 'Alerts' });
     await expectNoAxeViolations();
+  });
+
+  describe('Activity', () => {
+    const page = {
+      entries: [
+        {
+          id: id(50), kind: 'Jobs', occurredAt: '2026-11-21T09:00:00Z', by: 'ApiKey', actorUserId: null, actorApiKeyName: 'ATS sync',
+          jobId: id(60), jobTitle: 'Senior .NET Engineer', applicationId: null, candidateName: null, event: null,
+          fromStageName: null, toStageName: null, stageName: null, followUpName: null, jobChange: { created: true, line: null, moreLines: 0 },
+        },
+      ],
+      nextBefore: null,
+      seenAt: '2026-11-20T09:00:00Z',
+      unseenCount: 3,
+      scope: 'MyJobs',
+    };
+    const activity = { 'GET /v1/activity': () => Response.json(page), 'POST /v1/activity/seen': () => new Response(null, { status: 204 }) };
+
+    it("is the panel's second tab, with the changes since the person last looked in its count, and records that they looked", async () => {
+      stub([], 0, activity);
+      // A recruiter has no setup steps, so the bell itself has nothing to count.
+      renderBell(userAs('Recruiter'));
+
+      const panel = await openBell();
+      const tab = await within(panel).findByRole('tab', { name: 'Activity 3' });
+      expect(within(panel).getByRole('tab', { name: 'Needs attention' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('button', { name: 'Notifications' })).not.toHaveTextContent('3');
+      expect(posted('/v1/activity/seen')).toBe(false);
+
+      await fireEvent.click(tab);
+
+      expect(await within(panel).findByText(/Since you were last here: 3 changes/)).toBeInTheDocument();
+      expect(within(panel).getByRole('link', { name: 'Senior .NET Engineer' })).toHaveAttribute('href', `/jobs/${id(60)}`);
+      expect(within(panel).getByRole('list', { name: 'Activity' })).toHaveTextContent('Created Senior .NET Engineer by ATS sync, via an API key');
+      await waitFor(() => expect(posted('/v1/activity/seen')).toBe(true));
+      await expectNoAxeViolations();
+    });
+
+    it('opens straight at Activity when the A shortcut asks', async () => {
+      stub([], 0, activity);
+      renderBell();
+      await bell();
+
+      activityPanel.open();
+
+      const panel = await screen.findByRole('dialog', { name: 'Notifications' });
+      expect(await within(panel).findByRole('tab', { name: 'Activity' })).toHaveAttribute('aria-selected', 'true');
+      expect(await within(panel).findByRole('list', { name: 'Activity' })).toBeInTheDocument();
+    });
   });
 });
