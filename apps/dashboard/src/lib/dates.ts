@@ -1,5 +1,7 @@
 // Every date the dashboard shows goes through this module (docs/design/design-system.md section 13). The API sends
-// ISO instants only.
+// ISO instants only. The person's language, time zone and date format from Your account (`#lib/date-settings.svelte.ts`)
+// shape the formatters here; unset, they follow the browser.
+import { dateSettings } from '#lib/date-settings.svelte.js';
 
 /** The browser's languages, then US English. Numbers are formatted in them too. */
 export const locales = [...(globalThis.navigator?.languages ?? []), 'en-US'];
@@ -8,15 +10,69 @@ export const minute = 60_000;
 export const hour = 60 * minute;
 export const day = 24 * hour;
 
-const date = new Intl.DateTimeFormat(locales, { dateStyle: 'medium' });
-const dateTime = new Intl.DateTimeFormat(locales, { dateStyle: 'medium', timeStyle: 'short' });
-const relative = new Intl.RelativeTimeFormat(locales, { numeric: 'auto' });
+interface Formatters {
+  version: number;
+  date: Intl.DateTimeFormat;
+  dateTime: Intl.DateTimeFormat;
+  relative: Intl.RelativeTimeFormat;
+  monthDay: Intl.DateTimeFormat;
+  dayMonth: Intl.DateTimeFormat;
+}
+
+let built: Formatters | undefined;
+
+/** The person's languages: their chosen one first, then the browser's. */
+const personLocales = () => (dateSettings.language ? [dateSettings.language, ...locales] : locales);
+
+/** The locale a fixed date format borrows its order from; the person's own for As your language writes it. */
+function dateLocales(): string[] {
+  switch (dateSettings.dateFormat) {
+    case 'DayMonthYear':
+      return ['en-GB'];
+    case 'MonthDayYear':
+      return ['en-US'];
+    case 'Iso':
+      // Swedish writes dates as year-month-day, which is ISO 8601.
+      return ['sv-SE'];
+    default:
+      return personLocales();
+  }
+}
+
+/** The person's time zone when the browser knows it; otherwise the browser's own. */
+function personZone(): string | undefined {
+  const timeZone = dateSettings.timeZone;
+  if (!timeZone) return undefined;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone });
+    return timeZone;
+  } catch {
+    return undefined;
+  }
+}
+
+// Reading `version` makes every caller in a template depend on it, so dates rewrite themselves after a change.
+function formatters(): Formatters {
+  const version = dateSettings.version;
+  if (built?.version === version) return built;
+  const timeZone = personZone();
+  const iso = dateSettings.dateFormat === 'Iso';
+  built = {
+    version,
+    date: new Intl.DateTimeFormat(dateLocales(), { dateStyle: iso ? 'short' : 'medium', timeZone }),
+    dateTime: new Intl.DateTimeFormat(dateLocales(), { dateStyle: iso ? 'short' : 'medium', timeStyle: 'short', timeZone }),
+    relative: new Intl.RelativeTimeFormat(personLocales(), { numeric: 'auto' }),
+    monthDay: new Intl.DateTimeFormat(dateLocales(), iso ? { month: '2-digit', day: '2-digit', timeZone } : { month: 'short', day: 'numeric', timeZone }),
+    dayMonth: new Intl.DateTimeFormat(dateLocales(), { day: 'numeric', month: 'long', timeZone }),
+  };
+  return built;
+}
 
 /** The date, for tables and old events: `Oct 20, 2026`. */
-export const formatDate = (iso: string) => date.format(new Date(iso));
+export const formatDate = (iso: string) => formatters().date.format(new Date(iso));
 
 /** The exact date and time, for the `title` of a `<time>`: `Oct 20, 2026, 2:30 PM`. */
-export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
+export const formatDateTime = (iso: string) => formatters().dateTime.format(new Date(iso));
 
 /**
  * The date an instant falls on in another IANA zone, not the browser's: `Oct 20, 2026`. For a day someone chose in that
@@ -24,7 +80,7 @@ export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
  */
 export function formatDateIn(iso: string, zone: string): string {
   try {
-    return new Intl.DateTimeFormat(locales, { dateStyle: 'medium', timeZone: zone }).format(new Date(iso));
+    return new Intl.DateTimeFormat(dateLocales(), { dateStyle: 'medium', timeZone: zone }).format(new Date(iso));
   } catch {
     return formatDate(iso);
   }
@@ -62,11 +118,8 @@ export function timeSince(iso: string, now: number): string {
   return new Intl.NumberFormat(locales, { style: 'unit', unit, unitDisplay: 'long' }).format(amount);
 }
 
-const monthDay = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric' });
-const dayMonth = new Intl.DateTimeFormat(locales, { day: 'numeric', month: 'long' });
-
-/** The day and month an instant falls on, in the browser's zone and locale order: `20 October` in en-GB, `October 20` in en-US. */
-export const formatDayMonth = (iso: string) => dayMonth.format(new Date(iso));
+/** The day and month an instant falls on, in the person's zone and locale order: `20 October` in en-GB, `October 20` in en-US. */
+export const formatDayMonth = (iso: string) => formatters().dayMonth.format(new Date(iso));
 
 /** The local day an instant falls on, as a key for grouping: `2026-10-25`. */
 export function dayKey(iso: string): string {
@@ -87,8 +140,8 @@ export function dayLabel(iso: string, now: number): string {
     Math.round((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(at.getFullYear(), at.getMonth(), at.getDate())) / day),
   );
   if (days === 0 || days === 1) {
-    const word = relative.format(-days, 'day');
-    return word.charAt(0).toLocaleUpperCase(locales) + word.slice(1);
+    const word = formatters().relative.format(-days, 'day');
+    return word.charAt(0).toLocaleUpperCase(personLocales()) + word.slice(1);
   }
 
   return shortDate(iso, now);
@@ -97,13 +150,14 @@ export function dayLabel(iso: string, now: number): string {
 /** A date for a tracker's caption: `Oct 31`, with the year only for another year (`Oct 31, 2025`). */
 export function shortDate(iso: string, now: number): string {
   const at = new Date(iso);
-  return at.getFullYear() === new Date(now).getFullYear() ? monthDay.format(at) : date.format(at);
+  return at.getFullYear() === new Date(now).getFullYear() ? formatters().monthDay.format(at) : formatters().date.format(at);
 }
 
 /** Time ago in text: `now`, `5 minutes ago`, `yesterday`; the date once it is more than a week old. */
 export function timeAgo(iso: string, now: number): string {
   const elapsed = Math.max(0, now - Date.parse(iso));
   if (elapsed >= 7 * day) return formatDate(iso);
+  const { relative } = formatters();
   if (elapsed < minute) return relative.format(0, 'second');
   if (elapsed < hour) return relative.format(-Math.floor(elapsed / minute), 'minute');
   if (elapsed < day) return relative.format(-Math.floor(elapsed / hour), 'hour');

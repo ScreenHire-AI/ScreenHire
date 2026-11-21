@@ -1,6 +1,8 @@
 <script lang="ts">
   import { getApplication, listAutomationRuns, listTeamMembers } from '@screenhire/api-client';
   import {
+    createFillTimeZone,
+    createGetAccount,
     createGetBilling,
     createGetCalendar,
     createGetOrganizationSendingDomain,
@@ -8,22 +10,22 @@
     createListJobs,
     createListTasks,
     createListViews,
+    createUpdateAccountPreferences,
+    getGetAccountNotificationsQueryOptions,
     getGetApplicationQueryOptions,
     getGetEmailTemplateQueryOptions,
     getGetHiringTemplateQueryOptions,
-    getGetNotificationSettingsQueryOptions,
     getGetScorecardTemplateQueryOptions,
     getListApplicationTasksQueryOptions,
     getListMemberJobsQueryOptions,
     getListTeamMembersQueryOptions,
   } from '@screenhire/api-client/svelte-query';
   import { setQueryClientContext } from '@tanstack/svelte-query';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
   import { goto } from '$app/navigation';
   import AppSidebar from '#lib/components/app-sidebar.svelte';
   import CommandPalette from '#lib/components/command-palette.svelte';
-  import NotificationSettingsSheet from '#lib/components/notification-settings-sheet.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
   import UndoNotice from '#lib/components/undo-notice.svelte';
   import { setUndo } from '#lib/undo-context.js';
@@ -48,7 +50,8 @@
   import { billingFeature, slackFeature } from '#lib/settings.js';
   import { sectionsFor, setShell } from '#lib/shell.js';
   import { createChordHandler } from '#lib/shortcuts.js';
-  import { defaultNotificationSettings } from '#lib/teammate-changes.js';
+  import { configureDates } from '#lib/date-settings.svelte.js';
+  import { cardShows, defaultNotificationSettings, toastSettingsFrom, type ToastSettings } from '#lib/teammate-changes.js';
   import { TeammateToasts } from '#lib/teammate-toasts.js';
   import { UndoOffer } from '#lib/undo.svelte.js';
   import { createViewActions } from '#lib/views.svelte.js';
@@ -62,12 +65,13 @@
   setQueryClientContext(queryClient);
   const live = startLiveUpdates(queryClient);
 
-  // The person's settings for teammates' changes, kept fresh in the cache so a toast follows a change in the sheet.
+  // The person's toast choices from the notification grid on Your account, kept fresh in the cache: the page invalidates
+  // them when it saves, so the next toast follows the change.
   let closeToasts = true;
   const notifications = new Notifications({ closeToasts: () => closeToasts });
-  async function readSettings() {
+  async function readSettings(): Promise<ToastSettings> {
     try {
-      const settings = (await queryClient.fetchQuery(getGetNotificationSettingsQueryOptions())).data;
+      const settings = toastSettingsFrom((await queryClient.fetchQuery(getGetAccountNotificationsQueryOptions())).data);
       closeToasts = settings.closeToasts;
       return settings;
     } catch {
@@ -124,6 +128,8 @@
 
   async function notifyReply(applicationId: string, inboundEmailId: string, answersYou: boolean) {
     try {
+      // In the app off for Candidate replies (or toasts paused) shows no card; the bell keeps the reply either way.
+      if (!cardShows(await readSettings(), 'Replies')) return;
       const application = await getApplication(applicationId);
       if (application.status !== 200) return;
       notifications.add(replyNotification(inboundEmailId, application.data, answersYou));
@@ -146,6 +152,7 @@
 
   async function notifyMention(applicationId: string, noteId: string, authorUserId: string | null) {
     try {
+      if (!cardShows(await readSettings(), 'Mentions')) return;
       const [application, team] = await Promise.all([getApplication(applicationId), listTeamMembers()]);
       if (application.status !== 200) return;
       const author = team.status === 200 ? team.data.find((member) => member.userId === authorUserId)?.displayName : undefined;
@@ -156,6 +163,7 @@
   }
 
   onDestroy(() => {
+    preferences.saveHabitsWith(undefined);
     stopNotifying();
     stopToasting();
     teammateToasts.dispose();
@@ -166,19 +174,16 @@
 
   let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
-  let notificationsOpen = $state(false);
-  // The Calendar sheet lives in the account menu (AppSidebar); a page that needs a calendar opens it through the shell.
+  // The Calendar sheet is the shell's (AppSidebar mounts it); a page that needs a calendar opens it through the shell, and
+  // Your account > Connected accounts shows the same connection as a section.
   let calendarOpen = $state(false);
-  let announcement = $state('');
   setShell({
     openPalette: () => (paletteOpen = true),
     openShortcuts: () => (shortcutsOpen = true),
-    openNotifications: () => {
-      // Cleared first, so the same sentence after a second save is a change a screen reader announces.
-      announcement = '';
-      notificationsOpen = true;
-    },
+    openNotifications: () => void goto('/account/notifications'),
     openCalendar: () => (calendarOpen = true),
+    hasConnections: () => Boolean((calendar.data?.data.providers.length ?? 0) > 0 || (slack.data?.data.available && slack.data.data.workspace)),
+    refreshAccount: () => void account.refetch(),
     live: () => live.connection.status,
     user: () => data.user,
     // Missing until the answer is in, and for anyone who may not ask: the Settings menu marks the domain once it works or needs fixing.
@@ -246,6 +251,27 @@
   // The person's calendar, for the Calendar item in their menu (docs/architecture/interview-scheduling.md); it changes rarely.
   const calendar = createGetCalendar(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
 
+  // The person's own account here (Your account): their dates, and their two habits kept on the server. A habit never saved
+  // there takes this browser's earlier choice, saved once; a time zone never set takes the browser's, so the daily digest
+  // comes at 08:00 their time (docs/architecture/notifications.md).
+  const account = createGetAccount(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
+  const saveHabits = createUpdateAccountPreferences();
+  const fillTimeZone = createFillTimeZone();
+  preferences.saveHabitsWith((habits) => saveHabits.mutate({ data: habits }));
+  $effect(() => {
+    const details = account.data?.data;
+    if (!details) return;
+    untrack(() => {
+      configureDates({ language: details.language, timeZone: details.timeZone, dateFormat: details.dateFormat });
+      preferences.applyHabits(details);
+      if (details.shortcutsEnabled == null || details.confirmMoves == null) saveHabits.mutate({ data: preferences.habits });
+      if (!details.timeZone) {
+        const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (zone) fillTimeZone.mutate({ data: { timeZone: zone } });
+      }
+    });
+  });
+
   // Tailwind's lg: from there up the sidebar is full; below it, the rail (md) or the phone sheet.
   const laptop = new MediaQuery('min-width: 1024px');
 </script>
@@ -255,7 +281,7 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {views} {viewActions} {teamViews} slack={slack.data?.data} calendar={calendar.data?.data} {openTasks} {trialEndsAt} bind:calendarOpen />
+  <AppSidebar user={data.user} {views} {viewActions} {teamViews} calendar={calendar.data?.data} {openTasks} {trialEndsAt} bind:calendarOpen />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>
@@ -263,14 +289,5 @@
 
 <UndoNotice offer={undo} />
 <NotificationTray items={notifications.items} ondismiss={(id) => notifications.dismiss(id)} onhold={(reason, held) => notifications.hold(reason, held)} />
-<!-- A save re-reads the settings, so Close automatically applies to the toasts already showing, not only the next. -->
-<NotificationSettingsSheet
-  bind:open={notificationsOpen}
-  onsaved={(sentence) => {
-    announcement = sentence;
-    void readSettings();
-  }}
-/>
-<p role="status" class="sr-only">{announcement}</p>
 <CommandPalette bind:open={paletteOpen} />
 <ShortcutsDialog bind:open={shortcutsOpen} user={data.user} />

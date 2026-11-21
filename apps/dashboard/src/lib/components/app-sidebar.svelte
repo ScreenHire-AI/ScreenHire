@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { CalendarStatus, CurrentUser, SavedViewSummary, SlackStatus } from '@screenhire/api-client';
+  import type { CalendarStatus, CurrentUser, SavedViewSummary } from '@screenhire/api-client';
   import CircleMinusIcon from '~icons/lucide/circle-minus';
   import ChevronsUpDownIcon from '~icons/lucide/chevrons-up-down';
   import EllipsisIcon from '~icons/lucide/ellipsis';
@@ -19,7 +19,6 @@
   import LogoMark from '#lib/components/logo-mark.svelte';
   import CalendarAccountSheet from '#lib/components/calendar-account-sheet.svelte';
   import RenameViewDialog from '#lib/components/rename-view-dialog.svelte';
-  import SlackAccountSheet from '#lib/components/slack-account-sheet.svelte';
   import TeamViewsSheet from '#lib/components/team-views-sheet.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -28,12 +27,12 @@
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDayMonth } from '#lib/dates.js';
   import { initials } from '#lib/format.js';
+  import { can } from '#lib/permissions.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import type { SidebarView } from '#lib/sidebar-views.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { settingsHome, visibleSettingsSections } from '#lib/settings.js';
+  import { featureOn, settingsHome, visibleSettingsSections } from '#lib/settings.js';
   import { calendarFailure, isCalendarOutcome } from '#lib/calendar.js';
-  import { slackFailure } from '#lib/slack.js';
   import { getShell, sectionsFor } from '#lib/shell.js';
   import type { ViewActions } from '#lib/views.svelte.js';
 
@@ -44,7 +43,6 @@
     views,
     viewActions,
     teamViews,
-    slack,
     calendar,
     calendarOpen = $bindable(false),
     openTasks,
@@ -63,9 +61,7 @@
      * titles for its filter lines. Without it (or without `viewActions`) the sidebar has no Browse team views button.
      */
     teamViews?: { views: readonly SavedViewSummary[]; seenAt: string; jobTitles: Readonly<Record<string, string>> };
-    /** Slack for this person (`GET /v1/slack`), for the Slack account item in their menu; missing while it loads. */
-    slack?: SlackStatus;
-    /** The person's calendar (`GET /v1/calendar`), for the Calendar item in their menu; missing while it loads. */
+    /** The person's calendar (`GET /v1/calendar`), for the Calendar sheet a page opens through the shell; missing while it loads. */
     calendar?: CalendarStatus;
     /** The Calendar sheet is open. The shell opens it for a page that needs the person's calendar connected. */
     calendarOpen?: boolean;
@@ -106,34 +102,22 @@
   const navSections = $derived(sectionsFor(user).filter((section) => section.sidebar !== false));
   const settingsActive = $derived(page.url.pathname === settingsHome || page.url.pathname.startsWith(`${settingsHome}/`));
 
-  // Each person's own Slack account, in their menu while the organization's workspace is connected (docs/architecture/slack.md).
-  const slackConnected = $derived(Boolean(slack?.available && slack.workspace));
-  let slackOpen = $state(false);
-  let slackOutcome = $state('');
-  // Linking comes back to the page it started on with ?slack-account=: the sheet opens to show how it went, and the
-  // parameter leaves the address so a reload does not repeat it.
-  $effect(() => {
-    const outcome = page.url.searchParams.get('slack-account');
-    if (outcome === null) return;
-    slackOutcome = slackFailure(outcome) ?? '';
-    slackOpen = true;
-    const url = new URL(page.url.href);
-    url.searchParams.delete('slack-account');
-    void goto(url, { replace: true, reset: false });
-  });
+  // Billing in the person's menu, for an Owner where a payment provider is set up (A3).
+  const billingShown = $derived(can(user, 'ManageBilling') && featureOn(shell.features(), 'billing'));
 
-  // Each person's own calendar, in their menu once this ScreenHire has a calendar to connect (docs/architecture/interview-scheduling.md).
+  // Each person's own calendar, once this ScreenHire has a calendar to connect (docs/architecture/interview-scheduling.md). Your
+  // account > Connected accounts shows it; this sheet is for a page that needs it connected (scheduling an interview).
   const calendarAvailable = $derived(Boolean(calendar && calendar.providers.length > 0));
   let calendarOutcome = $state('');
   // An outcome belongs to the visit it came back with, so the sheet opens clean when a page opens it through the shell.
   $effect(() => {
     if (!calendarOpen) calendarOutcome = '';
   });
-  // Connecting comes back to the page it started on with ?calendar=: the sheet opens to show how it went, and the
-  // parameter leaves the address so a reload does not repeat it.
+  // Connecting from the sheet comes back to the page it started on with ?calendar=: the sheet opens to show how it went, and
+  // the parameter leaves the address so a reload does not repeat it. Connected accounts reads its own.
   $effect(() => {
     const outcome = page.url.searchParams.get('calendar');
-    if (!isCalendarOutcome(outcome)) return;
+    if (!isCalendarOutcome(outcome) || page.url.pathname.startsWith('/account/')) return;
     calendarOutcome = calendarFailure(outcome) ?? '';
     calendarOpen = true;
     const url = new URL(page.url.href);
@@ -361,11 +345,15 @@
                   tooltipContent={user.organization ? `${user.displayName}, ${user.organization.roleName}` : user.displayName}
                   tooltipContentProps={{ hidden: !rail && !cut.has('user') && !cut.has('user-organization') }}
                 >
-                  <span
-                    aria-hidden="true"
-                    class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-semibold text-secondary-foreground"
-                    >{initials(user.displayName)}</span
-                  >
+                  {#if user.photoUrl}
+                    <img src={user.photoUrl} alt="" class="size-7 shrink-0 rounded-full object-cover" />
+                  {:else}
+                    <span
+                      aria-hidden="true"
+                      class="grid size-7 shrink-0 place-items-center rounded-full bg-secondary text-caption font-semibold text-secondary-foreground"
+                      >{initials(user.displayName)}</span
+                    >
+                  {/if}
                   <span class="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:sr-only">
                     <span {@attach truncation('user')} class="truncate font-semibold text-sidebar-foreground">{user.displayName}</span>
                     <!-- The role, not the organization: the workspace above already names it (W7). -->
@@ -375,38 +363,27 @@
               {/snippet}
             </DropdownMenu.Trigger>
             <DropdownMenu.Content side={rail ? 'right' : 'top'} align="start" class="w-60">
+              <!-- Who is signed in, then the person's own things: Your account holds the rest (design system section 21). -->
               <DropdownMenu.Label class="flex flex-col gap-0.5">
-                <span class="text-caption text-muted-foreground">Signed in as</span>
-                <span class="font-normal break-all">{user.email}</span>
+                <span class="break-all">{user.displayName}</span>
+                <span class="font-normal break-all text-muted-foreground">{user.email}</span>
               </DropdownMenu.Label>
               <DropdownMenu.Separator />
+              <DropdownMenu.Item>
+                {#snippet child({ props })}<a {...props} href="/account" onclick={closeSheet}>Your account</a>{/snippet}
+              </DropdownMenu.Item>
               <!-- The top bar's keyboard button is not on phones; the sheet holds this menu there. The dialog opens over the
                    sheet, so closing it brings the person back to where they were. -->
               <DropdownMenu.Item onSelect={() => shell.openShortcuts()}>
                 Keyboard shortcuts
                 {#if preferences.shortcutsEnabled}<DropdownMenu.Shortcut><Kbd>?</Kbd></DropdownMenu.Shortcut>{/if}
               </DropdownMenu.Item>
-              <DropdownMenu.Item onSelect={() => shell.openNotifications()}>Teammate changes</DropdownMenu.Item>
-              <DropdownMenu.CheckboxItem
-                checked={preferences.shortcutsEnabled}
-                onCheckedChange={(checked) => preferences.setShortcutsEnabled(checked)}>Single-key shortcuts</DropdownMenu.CheckboxItem
-              >
-              <DropdownMenu.CheckboxItem
-                checked={preferences.confirmMoves}
-                onCheckedChange={(checked) => preferences.setConfirmMoves(checked)}>Confirm moves that send emails or create tasks</DropdownMenu.CheckboxItem
-              >
-              {#if calendarAvailable}
-                <DropdownMenu.Separator />
-                <DropdownMenu.Item onSelect={() => ((calendarOutcome = ''), (calendarOpen = true))}>Calendar</DropdownMenu.Item>
-              {/if}
-              {#if slackConnected}
-                <DropdownMenu.Separator />
-                <DropdownMenu.Item onSelect={() => ((slackOutcome = ''), (slackOpen = true))}>Slack account</DropdownMenu.Item>
+              {#if billingShown}
+                <DropdownMenu.Item>
+                  {#snippet child({ props })}<a {...props} href="/settings/billing" onclick={closeSheet}>Billing</a>{/snippet}
+                </DropdownMenu.Item>
               {/if}
               <DropdownMenu.Separator />
-              <DropdownMenu.Item>
-                {#snippet child({ props })}<a {...props} href="/account/passkeys">Passkeys</a>{/snippet}
-              </DropdownMenu.Item>
               <DropdownMenu.Item onSelect={signOutAndRedirect}>Sign out</DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Root>
@@ -421,9 +398,6 @@
 {/if}
 {#if calendar && calendarAvailable}
   <CalendarAccountSheet bind:open={calendarOpen} status={calendar} outcome={calendarOutcome} />
-{/if}
-{#if slack?.available}
-  <SlackAccountSheet bind:open={slackOpen} status={slack} outcome={slackOutcome} />
 {/if}
 
 <!-- One row of the Views list: the link with its icon and name, and for a person who may change it the menu that shows

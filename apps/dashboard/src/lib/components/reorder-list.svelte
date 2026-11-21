@@ -8,6 +8,7 @@
   import { flip } from 'svelte/animate';
   import { alertToScreenReader, dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME, SOURCES, TRIGGERS, type DndEvent, type Options } from 'svelte-dnd-action';
   import ReorderGrip from '#lib/components/reorder-grip.svelte';
+  import { preferences } from '#lib/preferences.svelte.js';
   import { cn } from '#lib/utils.js';
 
   // A list people reorder (design system A7): each item renders its `grip`, which drags, opens the Move menu on click, and
@@ -44,8 +45,8 @@
   // The zone's own copy, so a drag can rearrange it before the drop.
   let entries = $derived<Entry[]>(items.map((value) => ({ id: key(value), value })));
   const type = $props.id();
-  // Items slide into place, unless the person asked for less motion (section 17).
-  const flipDurationMs = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 150;
+  // Items slide into place, unless the person asked for less motion, in the system or on Your account (section 17).
+  const flipDurationMs = $derived(preferences.reduceMotion || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 150);
   let list = $state<HTMLOListElement | null>(null);
 
   // The drag starts only from a grip. A grip switches it on for the press under way, synchronously, so the same mousedown

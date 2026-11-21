@@ -165,14 +165,15 @@
         Show keyboard shortcuts
         {#if preferences.shortcutsEnabled}<Command.Shortcut><Kbd>?</Kbd></Command.Shortcut>{/if}
       </Command.Item>
-      <Command.Item value="Show teammate change settings" onSelect={() => run(() => shell.openNotifications())}>Show teammate change settings</Command.Item>
+      <Command.Item value="Your account profile name photo time zone" onSelect={() => run(() => goto('/account'))}>Your account</Command.Item>
+      <Command.Item value="Notification settings email digest toasts" onSelect={() => run(() => shell.openNotifications())}>Notification settings</Command.Item>
       <Command.Item
         value="Single-key shortcuts"
         onSelect={() => run(() => preferences.setShortcutsEnabled(!preferences.shortcutsEnabled))}
       >
         Turn single-key shortcuts {preferences.shortcutsEnabled ? 'off' : 'on'}
       </Command.Item>
-      <Command.Item value="Passkeys" onSelect={() => run(() => goto('/account/passkeys'))}>Manage passkeys</Command.Item>
+      <Command.Item value="Passkeys sign out everywhere security" onSelect={() => run(() => goto('/account/security'))}>Sign-in and security</Command.Item>
       <Command.Item value="Sign out" onSelect={() => run(signOutAndRedirect)}>Sign out</Command.Item>
     </Command.Group>
   </Command.List>

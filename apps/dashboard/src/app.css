@@ -6,6 +6,24 @@
 @import "@screenhire/ui/theme.css";
 @import "@screenhire/ui/questions.css";
 
+/* Reduce motion on Your account > Preferences puts .reduce-motion on the page, for someone whose system does not ask for it.
+   The motion variants then follow either (design system section 17), and nothing slides or fades. */
+@custom-variant motion-reduce {
+  @media (prefers-reduced-motion: reduce) {
+    @slot;
+  }
+  &:where(.reduce-motion, .reduce-motion *) {
+    @slot;
+  }
+}
+@custom-variant motion-safe {
+  @media (prefers-reduced-motion: no-preference) {
+    &:not(:where(.reduce-motion, .reduce-motion *)) {
+      @slot;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -20,6 +38,15 @@
 
   body {
     @apply bg-background text-body text-foreground;
+  }
+
+  .reduce-motion *,
+  .reduce-motion *::before,
+  .reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 
   /* Lucide's stroke weight for every icon (design system section 14), set on the svg so a class there reaches the

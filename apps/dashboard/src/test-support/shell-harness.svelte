@@ -8,6 +8,7 @@
   import TopBar from '#lib/components/top-bar.svelte';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+  import type { SettingsFeatures } from '#lib/settings.js';
   import { setShell } from '#lib/shell.js';
   import { sidebarViews } from '#lib/sidebar-views.js';
   import type { ViewActions } from '#lib/views.svelte.js';
@@ -24,6 +25,7 @@
     hiddenBuiltIns = [],
     viewActions,
     teamViews,
+    features = { slack: true },
   }: {
     user: CurrentUser;
     crumbs?: readonly { label: string; href?: string }[];
@@ -38,6 +40,8 @@
     openTasks?: number;
     /** When the trial ends, as the layout works it out for an Owner; missing for everyone else. */
     trialEndsAt?: string | null;
+    /** Which optional features the shell has heard are on. */
+    features?: SettingsFeatures;
   } = $props();
 
   // The top bar's notification bell reads the notifications and the setup answers. No retries, so a request nobody stubbed fails at once.
@@ -46,15 +50,14 @@
   const views = $derived(sidebarViews({ saved, hiddenBuiltIns, sidebarOrder: saved.filter((view) => view.inSidebar && !view.mine).map((view) => view.id), jobTitles: {} }));
 
   let shortcutsOpen = $state(false);
-  let notificationsOpen = $state(false);
   setShell({
     openPalette: () => {},
     openShortcuts: () => (shortcutsOpen = true),
-    openNotifications: () => (notificationsOpen = true),
+    openNotifications: () => {},
     openCalendar: () => {},
     live: () => 'connected',
     user: () => user,
-    features: () => ({ slack: true }),
+    features: () => features,
     sendingDomainMark: () => undefined,
   });
   const laptop = new MediaQuery('min-width: 1024px');
@@ -71,5 +74,4 @@
   </Sidebar.Provider>
   <ShortcutsDialog bind:open={shortcutsOpen} />
   <!-- The sheet itself needs the query cache; the harness shows only that the menu opens it. -->
-  {#if notificationsOpen}<p>Teammate changes sheet open</p>{/if}
 </Tooltip.Provider>
