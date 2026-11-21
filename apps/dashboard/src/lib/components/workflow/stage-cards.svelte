@@ -86,6 +86,28 @@
 
   // The grip orders the open stages; the stages that end a candidacy keep their place after them.
   const reorder = (next: WorkflowStage[]) => (workflow.stages = [...next, ...ends]);
+
+  // The line to the next card runs across the gap, so the last card of a row that wraps would point at nothing. CSS cannot
+  // tell which card ends a row in an auto-fill grid, so the cards are marked from where they sit whenever the row's width
+  // or the stages change: a card whose next card starts further left ends its row. In one column nothing is marked and
+  // the line runs down.
+  let grid = $state<HTMLElement>();
+  function markRowEnds() {
+    const cards = [...(grid?.querySelectorAll<HTMLElement>('[data-stage-card][role="group"]') ?? [])];
+    cards.forEach((card, index) => {
+      const next = cards[index + 1];
+      const ends = next !== undefined && next.getBoundingClientRect().left < card.getBoundingClientRect().left - 1;
+      card.toggleAttribute('data-row-end', ends);
+    });
+  }
+  $effect(() => {
+    void open.map((stage) => stage.id).join();
+    if (!grid || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(markRowEnds);
+    observer.observe(grid);
+    void tick().then(markRowEnds);
+    return () => observer.disconnect();
+  });
 </script>
 
 {#snippet stageMenu(stage: WorkflowStage)}
@@ -128,7 +150,7 @@
   <Panel title="Stages">
     <div class="flex flex-col gap-6">
       <FieldErrors id="stages-errors" messages={errorsAt(errors, 'stages')} />
-      <div class="@container">
+      <div class="@container" bind:this={grid}>
         <ReorderList
           items={open}
           key={(stage) => stage.id}
@@ -146,7 +168,7 @@
             <div data-stage-card aria-label={`Stage ${number}: ${stage.name}`} role="group" class="group relative h-full">
               {#if !last}
                 <!-- The line to the next stage, through the markers: across the gap in a row, down it when the cards stack. -->
-                <span aria-hidden="true" data-stage-line class="absolute top-full left-6.5 h-6 w-px bg-border pointer-coarse:h-12 @md:top-6.5 @md:left-full @md:h-px @md:w-6 @md:pointer-coarse:w-12"></span>
+                <span aria-hidden="true" data-stage-line class="absolute group-data-row-end:hidden top-full left-6.5 h-6 w-px bg-border pointer-coarse:h-12 @md:top-6.5 @md:left-full @md:h-px @md:w-6 @md:pointer-coarse:w-12"></span>
               {/if}
               <div
                 class={[
