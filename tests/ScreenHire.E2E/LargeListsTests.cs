@@ -84,7 +84,7 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
 
     [Theory]
     [MemberData(nameof(Windows))]
-    public async Task Candidates_tasks_team_keys_and_webhooks_show_their_count_and_stay_inside_the_window(int width, int height)
+    public async Task Candidates_tasks_team_keys_and_webhooks_shows_their_count_and_stay_inside_the_window(int width, int height)
     {
         _ = await SignedInAsync(width, height);
 
@@ -114,17 +114,17 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectFitsAsync($"tasks-{width}");
 
         await GoToPageAsync("/settings/team", "Team");
-        await ExpectCountAsync("26 members");
+        await ExpectCountAsync("Members", "26");
         await ExpectFitsAsync($"team-{width}");
         await SearchAsync("member07", "member07", "member08");
 
         await GoToPageAsync("/settings/api-keys", "API keys");
-        await ExpectCountAsync("26 keys");
+        await ExpectCountAsync("Keys", "26");
         await ExpectFitsAsync($"api-keys-{width}");
         await SearchAsync("Integration key 07", "Integration key 07", "Integration key 08");
 
         await GoToPageAsync("/settings/webhooks", "Webhooks");
-        await ExpectCountAsync($"{BusyOrganization.WebhookEndpoints} endpoints");
+        await ExpectCountAsync("Endpoints", BusyOrganization.WebhookEndpoints.ToString());
         await ExpectFitsAsync($"webhooks-{width}");
         await SearchAsync("Receiver 07", "Receiver 07", "Receiver 08");
     }
@@ -161,7 +161,12 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(heading);
     }
 
-    private Task ExpectCountAsync(string text) => Expect(Page.Locator("[data-slot=header-band]").First).ToContainTextAsync(text);
+    // A list with no tabs or pills counts itself in its panel's header, never beside the page title (List template, section 7).
+    private async Task ExpectCountAsync(string panel, string count)
+    {
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = panel, Exact = true }).Locator("header [data-slot='badge']")).ToHaveTextAsync(count);
+        await Expect(Page.Locator("[data-slot=header-band]").First.Locator("[data-slot='badge']")).ToHaveCountAsync(0);
+    }
 
     // The tab's count is the number in its name, "Hiring 29".
     private async Task<int> TabCountAsync(string tab)
