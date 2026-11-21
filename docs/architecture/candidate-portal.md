@@ -183,8 +183,8 @@ now routes them like every other email about an application.
 
 ## Careers pages
 
-Under `apps/careers/src/pages/[organization]/my-applications/`. Each is server rendered with no client JavaScript; the only
-script is Cloudflare's bot check on the first page, and only where the deployment has one. The forms are native and post to the
+Under `apps/careers/src/pages/[organization]/my-applications/`. Each is server rendered. The one island is the reply form's
+`FilesField`, and the only other script is Cloudflare's bot check on the first page, where the deployment has one. The forms are native and post to the
 `requestPortalLink` and `sendPortalReply` Astro Actions, whose logic is in `apps/careers/src/lib/portal.ts`. Every call forwards
 the visitor's address, so the API's rate limit counts the visitor and not the careers server.
 
