@@ -16,7 +16,7 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
-  import { unitLabels } from '#lib/ai-usage.js';
+  import { formatAmount, unitLabels } from '#lib/ai-usage.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError, invalidatePath } from '#lib/query.js';
 
@@ -25,6 +25,11 @@
   let { limits }: { limits: AiUsageLimitsView } = $props();
   // The form starts from the limits as they were when it opened; saving refetches them, and the person's typing is kept.
   const initial = untrack(() => $state.snapshot(limits));
+  // With no limit of its own the organization runs on ScreenHire's default, which the API shows in dollars where the model has a
+  // price. The form starts in that unit and names the figure, so a number typed after reading "$3.20" is dollars too. Once an
+  // Owner sets a limit, their unit stands.
+  const defaultUnit = initial.budget === null && initial.cap === null ? (initial.effectiveBudget ?? initial.effectiveCap)?.unit : undefined;
+  const defaultFigure = (limit: AiUsageLimitsView['effectiveBudget']) => (limit?.isDefault ? `, ${formatAmount(limit.amount, limit.unit)} a month,` : '');
 
   const queryClient = useQueryClient();
   const update = createUpdateAiUsageLimits(() => ({
@@ -46,7 +51,7 @@
   const text = (value: number | null) => (value === null ? '' : value.toString());
   let saved = $state('');
   const { form, errors, enhance, submitting } = superForm(
-    defaults({ unit: initial.unit as UsageUnit, budget: text(initial.budget), cap: text(initial.cap) }, zod4(schema)),
+    defaults({ unit: (defaultUnit ?? initial.unit) as UsageUnit, budget: text(initial.budget), cap: text(initial.cap) }, zod4(schema)),
     {
       SPA: true,
       dataType: 'json',
@@ -94,14 +99,14 @@
   <Field.Field data-invalid={$errors.budget ? true : undefined}>
     <Field.Label for="limit-budget">Monthly budget <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
     <Input id="limit-budget" name="budget" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.budget} aria-invalid={$errors.budget ? 'true' : undefined} />
-    <Field.Description>Empty keeps ScreenHire's default budget for its own key; your own key has none.</Field.Description>
+    <Field.Description>Empty keeps ScreenHire's default budget{defaultFigure(initial.effectiveBudget)} for its own key; your own key has none.</Field.Description>
     <Field.Error errors={message($errors.budget)} />
   </Field.Field>
 
   <Field.Field data-invalid={$errors.cap ? true : undefined}>
     <Field.Label for="limit-cap">Monthly cap <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
     <Input id="limit-cap" name="cap" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.cap} aria-invalid={$errors.cap ? 'true' : undefined} />
-    <Field.Description>Empty keeps ScreenHire's default cap for its own key; your own key has none.</Field.Description>
+    <Field.Description>Empty keeps ScreenHire's default cap{defaultFigure(initial.effectiveCap)} for its own key; your own key has none.</Field.Description>
     <Field.Error errors={message($errors.cap)} />
   </Field.Field>
 

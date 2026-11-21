@@ -53,6 +53,17 @@ public static class AiUsageMix
 
     /// <summary>What <paramref name="tokens"/> cost at <paramref name="blendedPerMillion"/> dollars per million tokens.</summary>
     public static decimal Dollars(decimal tokens, decimal blendedPerMillion) => tokens * blendedPerMillion / PerMillion;
+
+    /// <summary>
+    /// The price a limit is shown in dollars at, or null where it stays as it is: only the deployment's default, which is counted
+    /// in tokens, and only when the model that answers has a price. An organization's own limit keeps the unit it was set in.
+    /// </summary>
+    public static decimal? DollarPriceFor(bool isDefault, UsageUnit unit, decimal? blendedPerMillion)
+        => isDefault && unit == UsageUnit.Tokens && blendedPerMillion is > 0 ? blendedPerMillion : null;
+
+    /// <summary>A default limit of <paramref name="tokens"/> in dollars, to the cent, and never shown as $0.00.</summary>
+    public static decimal DefaultInDollars(decimal tokens, decimal blendedPerMillion)
+        => Math.Max(0.01m, Math.Round(Dollars(tokens, blendedPerMillion), 2, MidpointRounding.AwayFromZero));
 }
 
 /// <summary>The monthly budget, alert and cap rules, as pure functions of what was used (ai-usage.md, "Budget, alerts and the cap").</summary>

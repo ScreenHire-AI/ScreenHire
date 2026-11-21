@@ -65,11 +65,18 @@ internal static class AiUsageHandlers
         var (cap, capUnit) = AiUsageLimits.EffectiveCap(settings, llm.DefaultMonthlyTokenCap);
         var usedByUnit = new Dictionary<UsageUnit, decimal>();
         // The deployment's default is counted in tokens, which means little to a small team: shown in dollars at the configured model's
-        // price and the usual mix, when there is a price. Enforcement stays in tokens, and the percent is the token one.
-        decimal? dollarsPerMillion = null;
-        if (llm.ConfiguredPrice() is { } price && AiUsageMix.BlendedPerMillion(price.Input, price.Output) is var blended and > 0)
+        // price and the usual mix, when there is a price (ai-usage.md, "Defaults in dollars").
+        var blended = llm.ConfiguredPrice() is { } price ? AiUsageMix.BlendedPerMillion(price.Input, price.Output) : (decimal?)null;
+
+        async Task<decimal> UsedAsync(UsageUnit unit)
         {
-            dollarsPerMillion = blended;
+            if (!usedByUnit.TryGetValue(unit, out var used))
+            {
+                used = await db.UsedThisMonthAsync(unit, now, cancellationToken);
+                usedByUnit[unit] = used;
+            }
+
+            return used;
         }
 
         async Task<AiUsageLimitView?> ViewAsync(decimal? amount, UsageUnit unit, decimal? own)
@@ -79,17 +86,13 @@ internal static class AiUsageHandlers
                 return null;
             }
 
-            if (!usedByUnit.TryGetValue(unit, out var used))
-            {
-                used = await db.UsedThisMonthAsync(unit, now, cancellationToken);
-                usedByUnit[unit] = used;
-            }
-
+            var used = await UsedAsync(unit);
             var percent = limit > 0 ? (int)Math.Min(1000m, Math.Floor(used * 100m / limit)) : 0;
-            if (own is null && unit == UsageUnit.Tokens && dollarsPerMillion is { } perMillion)
+            if (AiUsageMix.DollarPriceFor(own is null, unit, blended) is { } perMillion)
             {
-                var dollars = Math.Max(0.01m, Math.Round(AiUsageMix.Dollars(limit, perMillion), 2, MidpointRounding.AwayFromZero));
-                return new AiUsageLimitView(dollars, UsageUnit.Money, true, Math.Round(AiUsageMix.Dollars(used, perMillion), 4, MidpointRounding.AwayFromZero), percent);
+                // The amount is an estimate at the usual mix; what was used is the month's actual cost, the Usage tab's own figure, so
+                // one page never shows two costs for one month. The percent stays the token one: the alerts and the cap count tokens.
+                return new AiUsageLimitView(AiUsageMix.DefaultInDollars(limit, perMillion), UsageUnit.Money, true, await UsedAsync(UsageUnit.Money), percent);
             }
 
             return new AiUsageLimitView(limit, unit, own is null, used, percent);
