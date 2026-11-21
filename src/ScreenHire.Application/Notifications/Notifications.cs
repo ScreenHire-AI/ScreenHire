@@ -143,6 +143,8 @@ public static class PurgeOrganizationExpiredNotificationsHandler
         // A kind that stays true until someone acts (a trial that ended with no plan) is cleared by the code that raised it, not by age.
         var kept = NotificationKinds.KeptUntilCleared;
         var removed = await db.Notifications.Where(n => n.CreatedAt < cutoff && !kept.Contains(n.Kind)).ExecuteDeleteAsync(cancellationToken);
+        // Digest items go with the same retention, sent or not: ids only, and a digest never reaches back a month.
+        await db.DigestItems.Where(i => i.CreatedAt < cutoff).ExecuteDeleteAsync(cancellationToken);
         if (removed > 0)
         {
             outgoing.Add(new NotificationsChanged(message.OrganizationId));

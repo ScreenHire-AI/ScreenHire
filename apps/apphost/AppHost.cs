@@ -55,6 +55,9 @@
 //   SendingDomainRecheck:*      the daily re-check of each organization's sending domain (ScreenHire.Application
 //                               SendingDomainRecheckOptions), forwarded to the API and the worker: ConfirmDelay (1 hour), how long
 //                               after a verified domain fails a daily look the second look comes.
+//   Auth:SecurityStampInterval  how often a signed-in session checks it was not ended by Sign out everywhere (the API's
+//                               AuthOptions; one minute by default, the tests' stacks a second), forwarded to the API
+//                               (docs/architecture/sign-in-and-tenancy.md, "Your account").
 //   Legal:*                     the addresses of ScreenHire's own Terms of Service (TermsUrl), Privacy Policy (PrivacyUrl) and
 //                               Data Processing Agreement (DpaUrl), forwarded to the API (its LegalOptions). The sign-in page's
 //                               agreement line links to each one that is set and names only those; none are set here, so
@@ -320,6 +323,12 @@ if (string.Equals(settings["Email:SendGrid:Enabled"], "true", StringComparison.O
     var sendGridKey = builder.AddParameter("sendgrid-api-key", secret: true);
     api.WithEnvironment("ScreenHire__Email__SendGrid__ApiKey", sendGridKey);
     worker.WithEnvironment("ScreenHire__Email__SendGrid__ApiKey", sendGridKey);
+}
+
+// How soon Sign out everywhere reaches the person's other sessions: a plain setting, read by the API.
+if (settings["Auth:SecurityStampInterval"] is { } stampInterval)
+{
+    api.WithEnvironment("ScreenHire__Auth__SecurityStampInterval", stampInterval);
 }
 
 // Our own legal documents' addresses: plain settings, read by the API for the sign-in page's agreement line.

@@ -211,6 +211,38 @@
         }
       }
     },
+    "/v1/users/{userId}/photo": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "GetUserPhoto",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/automation-issues": {
       "get": {
         "tags": [
@@ -8412,19 +8444,50 @@
         ]
       }
     },
-    "/v1/notification-settings": {
+    "/v1/account": {
       "get": {
         "tags": [
-          "Notifications"
+          "Account"
         ],
-        "operationId": "GetNotificationSettings",
+        "operationId": "GetAccount",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MemberNotificationSettings"
+                  "$ref": "#/components/schemas/AccountDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/account/notifications": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "GetAccountNotifications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountNotifications"
                 }
               }
             }
@@ -8444,14 +8507,14 @@
       },
       "put": {
         "tags": [
-          "Notifications"
+          "Account"
         ],
-        "operationId": "UpdateNotificationSettings",
+        "operationId": "UpdateAccountNotifications",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateNotificationSettingsRequest"
+                "$ref": "#/components/schemas/UpdateAccountNotificationsRequest"
               }
             }
           },
@@ -8463,7 +8526,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MemberNotificationSettings"
+                  "$ref": "#/components/schemas/AccountNotifications"
                 }
               }
             }
@@ -8480,6 +8543,277 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/account/sign-in": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "GetAccountSignIn",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountSignIn"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/account/profile": {
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "UpdateProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/account/time-zone": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "FillTimeZone",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FillTimeZoneRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/account/preferences": {
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "UpdateAccountPreferences",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountPreferencesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/account/photo": {
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "UploadPhoto",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadPhotoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "RemovePhoto",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/account/sign-out-everywhere": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "SignOutEverywhere",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Unauthorized"
@@ -15308,6 +15642,143 @@
   },
   "components": {
     "schemas": {
+      "AccountDetails": {
+        "required": [
+          "email",
+          "name",
+          "displayName",
+          "photoUrl",
+          "timeZone",
+          "language",
+          "dateFormat",
+          "shortcutsEnabled",
+          "confirmMoves"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "photoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dateFormat": {
+            "$ref": "#/components/schemas/DateFormat"
+          },
+          "shortcutsEnabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "confirmMoves": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "The signed-in person's own account in their current organization (docs/architecture/sign-in-and-tenancy.md, \"Your\naccount\"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser's.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser's\nearlier choice and saves it."
+      },
+      "AccountNotifications": {
+        "required": [
+          "scope",
+          "pauseToasts",
+          "closeToasts",
+          "toastsOff",
+          "rows",
+          "slackAvailable",
+          "slackLinked"
+        ],
+        "type": "object",
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/NoticeScope"
+          },
+          "pauseToasts": {
+            "type": "boolean"
+          },
+          "closeToasts": {
+            "type": "boolean"
+          },
+          "toastsOff": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToastKind"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NoticeRowState"
+            }
+          },
+          "slackAvailable": {
+            "type": "boolean"
+          },
+          "slackLinked": {
+            "type": "boolean"
+          }
+        },
+        "description": "The person's notification choices here (docs/architecture/notifications.md, \"Each person's choices\"). `pauseToasts`\nstops every toast; `closeToasts` closes each after a few seconds; `toastsOff` lists the kinds of toast turned\noff (the In the app column). `rows` are the grid's rows this person sees, in order. `slackLinked` says whether\ntheir Slack account is linked, which shows the Slack column; `slackAvailable` whether the workspace is connected."
+      },
+      "AccountSignIn": {
+        "required": [
+          "email",
+          "emailLinks",
+          "providers",
+          "passkeys",
+          "passkeyLimit"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "emailLinks": {
+            "type": "boolean"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkedSignIn"
+            }
+          },
+          "passkeys": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "passkeyLimit": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "How the person signs in: the email link to `email` (when this ScreenHire sends them), the providers they have\nsigned in with, and how many passkeys they have of `passkeyLimit`."
+      },
       "ActionType": {
         "enum": [
           "SendEmail",
@@ -19352,9 +19823,15 @@
                 "$ref": "#/components/schemas/CurrentOrganization"
               }
             ]
+          },
+          "photoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "The signed-in user, and the organization they work in (null until onboarding). `name` is the person's own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none."
+        "description": "The signed-in user, and the organization they work in (null until onboarding). `name` is the person's own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo's address, null while they have none."
       },
       "CustomizedText": {
         "required": [
@@ -19573,6 +20050,15 @@
           "Declined"
         ]
       },
+      "DateFormat": {
+        "enum": [
+          "Browser",
+          "DayMonthYear",
+          "MonthDayYear",
+          "Iso"
+        ],
+        "description": "How the dashboard writes a date: the browser's way for the language, or one fixed order."
+      },
       "DeclineDataRequestRequest": {
         "required": [
           "reason"
@@ -19662,6 +20148,14 @@
           }
         },
         "description": "Replaces a saved candidate's note. Blank clears it. The Activity entry from when they were saved keeps the first note."
+      },
+      "EmailChoice": {
+        "enum": [
+          "Instantly",
+          "Digest",
+          "Off"
+        ],
+        "description": "How a person wants a kind by email: each one as it happens, in the daily digest, or not at all."
       },
       "EmailDirection": {
         "enum": [
@@ -19969,6 +20463,18 @@
         },
         "additionalProperties": false,
         "description": "Counts for one form field. `fieldId` is a question id or one of the form's own fields (`firstName`, ...)."
+      },
+      "FillTimeZoneRequest": {
+        "required": [
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "type": "string"
+          }
+        },
+        "description": "The browser's time zone, saved only while the person has none, so digests arrive at 08:00 their time."
       },
       "FollowUpQuestionnaire": {
         "required": [
@@ -21956,6 +22462,21 @@
         },
         "description": "When a tracked object last changed and who changed it, the last fact in its header."
       },
+      "LinkedSignIn": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "LlmProvenance": {
         "required": [
           "promptVersion",
@@ -22063,29 +22584,6 @@
           }
         },
         "description": "A job whose hiring team a member is on, for their access sheet. Changed through the job's own hiring team."
-      },
-      "MemberNotificationSettings": {
-        "required": [
-          "toasts",
-          "closeToasts",
-          "off"
-        ],
-        "type": "object",
-        "properties": {
-          "toasts": {
-            "type": "boolean"
-          },
-          "closeToasts": {
-            "type": "boolean"
-          },
-          "off": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ToastKind"
-            }
-          }
-        },
-        "description": "The signed-in member's settings for teammates' changes as toasts, in their current organization. `toasts` turns\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\nthe kinds of change that do not toast. Everything starts on."
       },
       "MembershipEventKind": {
         "enum": [
@@ -22376,6 +22874,86 @@
           }
         },
         "description": "One of the signed-in user's organizations, for the organization switcher, with their role there. `roleName` is\nnull for a custom role in an organization other than the one they work in: row-level security keeps its roles from\nthem until they switch."
+      },
+      "NoticeKind": {
+        "enum": [
+          "Mentions",
+          "Replies",
+          "Interviews",
+          "Tasks",
+          "NewApplications",
+          "TeammateChanges",
+          "VerificationSuggested",
+          "AiUseAndBilling"
+        ],
+        "description": "A row of the person's notification choices on Your account (docs/architecture/notifications.md, \"Each person's\nchoices\"): what they can be told about, by toast, email and Slack. Stored and sent as text; new rows are appended."
+      },
+      "NoticeRowChoice": {
+        "required": [
+          "kind",
+          "email",
+          "slack"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/NoticeKind"
+          },
+          "email": {
+            "$ref": "#/components/schemas/EmailChoice"
+          },
+          "slack": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "NoticeRowState": {
+        "required": [
+          "kind",
+          "toasts",
+          "email",
+          "emailDefault",
+          "slack",
+          "scoped"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/NoticeKind"
+          },
+          "toasts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToastKind"
+            }
+          },
+          "email": {
+            "$ref": "#/components/schemas/EmailChoice"
+          },
+          "emailDefault": {
+            "$ref": "#/components/schemas/EmailChoice"
+          },
+          "slack": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "scoped": {
+            "type": "boolean"
+          }
+        },
+        "description": "One row of the grid. `toasts` are the toast kinds its In the app switch covers (none: nothing toasts for it).\n`email` is the person's choice and `emailDefault` where it starts. `slack` is null for a row with no Slack\nmessage. `scoped` rows follow My jobs or Everything I can see."
+      },
+      "NoticeScope": {
+        "enum": [
+          "MyJobs",
+          "Everything"
+        ],
+        "description": "Which jobs the job rows (new applications, teammates' changes, verification suggested) cover: the jobs whose hiring\nteam the person is on, or every job they can see."
       },
       "NotificationItem": {
         "required": [
@@ -27345,9 +27923,11 @@
           "Emails",
           "Scorecards",
           "Tasks",
-          "Templates"
+          "Templates",
+          "Mentions",
+          "Replies"
         ],
-        "description": "A kind of teammate's change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text."
+        "description": "A kind of teammate's change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray's cards for a note that\nmentions them and a candidate's reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off."
       },
       "TriggerType": {
         "enum": [
@@ -27364,6 +27944,56 @@
           "Manual",
           "SlaBreached"
         ]
+      },
+      "UpdateAccountNotificationsRequest": {
+        "required": [
+          "scope",
+          "pauseToasts",
+          "closeToasts",
+          "toastsOff",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/NoticeScope"
+          },
+          "pauseToasts": {
+            "type": "boolean"
+          },
+          "closeToasts": {
+            "type": "boolean"
+          },
+          "toastsOff": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToastKind"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NoticeRowChoice"
+            }
+          }
+        },
+        "description": "Saves the whole grid. A row the person does not see is ignored; `slack` is ignored for a row without one."
+      },
+      "UpdateAccountPreferencesRequest": {
+        "required": [
+          "shortcutsEnabled",
+          "confirmMoves"
+        ],
+        "type": "object",
+        "properties": {
+          "shortcutsEnabled": {
+            "type": "boolean"
+          },
+          "confirmMoves": {
+            "type": "boolean"
+          }
+        },
+        "description": "The person's working habits here: single-key shortcuts, and whether a move that sends emails or creates tasks asks first."
       },
       "UpdateAiUsageLimitsRequest": {
         "required": [
@@ -27621,29 +28251,6 @@
         },
         "description": "Replaces a job's workflow with the recruiter's edit of it: the job's own copy, tailored. `expectedWorkflowVersion`\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\nthan overwriting their change. A stage that still holds applications cannot be removed."
       },
-      "UpdateNotificationSettingsRequest": {
-        "required": [
-          "toasts",
-          "closeToasts",
-          "off"
-        ],
-        "type": "object",
-        "properties": {
-          "toasts": {
-            "type": "boolean"
-          },
-          "closeToasts": {
-            "type": "boolean"
-          },
-          "off": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ToastKind"
-            }
-          }
-        },
-        "description": "Replaces the signed-in member's notification settings; `off` names each kind at most once."
-      },
       "UpdateOrganizationRequest": {
         "required": [
           "name"
@@ -27662,6 +28269,36 @@
           }
         },
         "description": "Renames the organization and, when given, sets its questions per page (1 to 50); null keeps it. Its slug, and so its\ncareers address, stays as it is."
+      },
+      "UpdateProfileRequest": {
+        "required": [
+          "name",
+          "timeZone",
+          "language",
+          "dateFormat"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dateFormat": {
+            "$ref": "#/components/schemas/DateFormat"
+          }
+        },
+        "description": "The person's name (global, the same in every organization), and their time zone, language and date format here."
       },
       "UpdateRetentionRequest": {
         "required": [
@@ -27941,6 +28578,18 @@
           }
         },
         "description": "An upload that was found and checked. Its `uploadId` is the answer to its file question."
+      },
+      "UploadPhotoRequest": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string"
+          }
+        },
+        "description": "A profile photo as base64, at most 512 KB once decoded, PNG, JPEG or WebP (read from the bytes, not the name). The\ndashboard crops and scales it to 256 pixels first, which also drops what the camera wrote into it."
       },
       "UploadRequest": {
         "required": [
@@ -29340,6 +29989,9 @@
     },
     {
       "name": "Public distribution"
+    },
+    {
+      "name": "Account"
     },
     {
       "name": "Automations"

@@ -85,10 +85,10 @@ public static class AiUsageAlertWording
 }
 
 /// <summary>
-/// Tells the people who review verification that an application needs a closer look, by email and by Slack direct
-/// message, as the organization chose. Only to members who hold Review verification and see the job (ADR-0015), never
-/// to a channel, which has no such limits. Nothing is sent when the host has no email sender, no Slack, or the
-/// organization turned both off. Delivery is at least once; the Slack record makes a repeated DM impossible, and a crash
+/// Tells the people who review verification that an application needs a closer look, by email (now or in the daily digest)
+/// and by Slack direct message, as each of them chose, starting from the organization's alert settings. Only to members who
+/// hold Review verification and see the job (ADR-0015), never to a channel, which has no such limits. Nothing is sent when
+/// the host has no email sender or no Slack, or the person turned both off. Delivery is at least once; the Slack record makes a repeated DM impossible, and a crash
 /// between an email and the commit can repeat one email, as with a mention.
 /// </summary>
 public static partial class NotifyVerificationSuggestedHandler
@@ -104,12 +104,6 @@ public static partial class NotifyVerificationSuggestedHandler
         ILogger<NotifyVerificationSuggested> logger,
         CancellationToken cancellationToken)
     {
-        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        if (settings is not { SuggestedAlertEmail: true } and not { SuggestedAlertSlack: true })
-        {
-            return;
-        }
-
         var link = links.Value.Url($"/applications/{message.ApplicationId}");
         var job = await db.Jobs.AsNoTracking().Where(j => j.Id == message.JobId).Select(j => j.Title).SingleOrDefaultAsync(cancellationToken);
         if (link is null || job is null)
@@ -118,22 +112,25 @@ public static partial class NotifyVerificationSuggestedHandler
             return;
         }
 
+        // The organization's alert settings are each person's starting value; their own choice on Your account wins
+        // (docs/architecture/notifications.md, "Each person's choices").
+        var alerts = await OrganizationAlertDefaults.ReadAsync(db, cancellationToken);
         var recipients = await VerificationRecipients.WithPermissionAsync(db, Permission.ReviewVerification, message.OrganizationId, message.JobId, cancellationToken);
-        if (settings.SuggestedAlertEmail && email.IsConfigured)
+        var preferences = await PersonNotices.ForUsersAsync(db, message.OrganizationId, [.. recipients.Select(r => r.UserId)], cancellationToken);
+        var now = time.GetUtcNow();
+        var wording = SlackMessages.VerificationSuggested(job, link);
+        foreach (var recipient in recipients.DistinctBy(r => r.UserId))
         {
-            foreach (var to in recipients.Select(r => r.Email).Distinct(StringComparer.OrdinalIgnoreCase))
-            {
-                await email.SendAsync(VerificationAlertWording.SuggestedEmail(to, job, link), cancellationToken);
-            }
-        }
-
-        if (settings.SuggestedAlertSlack && slack.IsConfigured)
-        {
-            var wording = SlackMessages.VerificationSuggested(job, link);
-            foreach (var recipient in recipients)
+            var mine = preferences.GetValueOrDefault(recipient.UserId);
+            var notice = new Notice(
+                message.OrganizationId, recipient.UserId, NoticeKind.VerificationSuggested, message.AssessmentEventId.ToString("N"), message.ApplicationId, message.JobId);
+            await NoticeDelivery.EmailAsync(
+                db, email, links.Value, notice, PersonNotices.Email(mine, NoticeKind.VerificationSuggested, alerts),
+                () => VerificationAlertWording.SuggestedEmail(recipient.Email, job, link), now, cancellationToken);
+            if (slack.IsConfigured && PersonNotices.Slack(mine, NoticeKind.VerificationSuggested, alerts))
             {
                 await VerificationSlackDirectMessages.SendAsync(
-                    db, slack, tokens, message.OrganizationId, recipient.UserId, $"vs:{message.AssessmentEventId}:{recipient.UserId}", wording, time.GetUtcNow(), cancellationToken);
+                    db, slack, tokens, message.OrganizationId, recipient.UserId, $"vs:{message.AssessmentEventId}:{recipient.UserId}", wording, now, cancellationToken);
             }
         }
 
@@ -189,27 +186,29 @@ public static partial class NotifyAiUsageHandler
         };
         outgoing.Add(new RaiseNotification(message.OrganizationId, Permission.ViewAiUsage, kind, message.Key, payload, "/verification/usage"));
 
-        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
         var link = links.Value.Url("/verification/usage");
         var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == message.OrganizationId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
-        if (settings is not ({ BudgetAlertEmail: true } or { BudgetAlertSlack: true }) || link is null || organization is null)
+        if (link is null || organization is null)
         {
             return outgoing;
         }
 
+        // As for a suggested verification: the organization's settings are the start, each person's own choice wins. Someone
+        // who handles billing starts at Instantly, as for the trial's emails.
+        var alerts = await OrganizationAlertDefaults.ReadAsync(db, cancellationToken);
         var recipients = await VerificationRecipients.WithPermissionAsync(db, Permission.ViewAiUsage, message.OrganizationId, null, cancellationToken);
-        if (settings.BudgetAlertEmail && email.IsConfigured)
+        var billing = (await VerificationRecipients.WithPermissionAsync(db, Permission.ManageBilling, message.OrganizationId, null, cancellationToken))
+            .Select(r => r.UserId).ToHashSet();
+        var preferences = await PersonNotices.ForUsersAsync(db, message.OrganizationId, [.. recipients.Select(r => r.UserId)], cancellationToken);
+        var wording = SlackMessages.AiUsage(AiUsageAlertWording.Subject(message.Kind, message.Percent), link);
+        foreach (var recipient in recipients.DistinctBy(r => r.UserId))
         {
-            foreach (var to in recipients.Select(r => r.Email).Distinct(StringComparer.OrdinalIgnoreCase))
-            {
-                await email.SendAsync(AiUsageAlertWording.Email(to, message.Kind, message.Percent, organization, link), cancellationToken);
-            }
-        }
-
-        if (settings.BudgetAlertSlack && slack.IsConfigured)
-        {
-            var wording = SlackMessages.AiUsage(AiUsageAlertWording.Subject(message.Kind, message.Percent), link);
-            foreach (var recipient in recipients)
+            var mine = preferences.GetValueOrDefault(recipient.UserId);
+            var notice = new Notice(message.OrganizationId, recipient.UserId, NoticeKind.AiUseAndBilling, message.Key, Detail: "AI");
+            await NoticeDelivery.EmailAsync(
+                db, email, links.Value, notice, PersonNotices.Email(mine, NoticeKind.AiUseAndBilling, alerts, billing.Contains(recipient.UserId)),
+                () => AiUsageAlertWording.Email(recipient.Email, message.Kind, message.Percent, organization, link), now, cancellationToken);
+            if (slack.IsConfigured && PersonNotices.Slack(mine, NoticeKind.AiUseAndBilling, alerts))
             {
                 await VerificationSlackDirectMessages.SendAsync(
                     db, slack, tokens, message.OrganizationId, recipient.UserId, $"au:{message.Key}:{recipient.UserId}", wording, now, cancellationToken);
