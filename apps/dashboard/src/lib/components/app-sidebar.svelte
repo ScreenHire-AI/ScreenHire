@@ -11,6 +11,7 @@
   import SettingsIcon from '~icons/lucide/settings';
   import Trash2Icon from '~icons/lucide/trash-2';
   import UsersIcon from '~icons/lucide/users';
+  import UserRoundSearchIcon from '~icons/lucide/user-round-search';
   import type { Attachment } from 'svelte/attachments';
   import { SvelteSet } from 'svelte/reactivity';
   import { goto } from '$app/navigation';
@@ -272,7 +273,7 @@
                  edge fails the 24 px target size (WCAG 2.5.8) at 700 px tall. -->
             <Sidebar.MenuItem>
               <Sidebar.MenuButton onclick={() => (teamViewsOpen = true)} aria-haspopup="dialog" class="text-muted-foreground">
-                <UsersIcon aria-hidden="true" />
+                <UserRoundSearchIcon aria-hidden="true" />
                 <span class="min-w-0 flex-1 truncate">Browse team views</span>
               </Sidebar.MenuButton>
             </Sidebar.MenuItem>
@@ -290,7 +291,7 @@
             {#if railTeamViews}
               <Sidebar.MenuItem>
                 <Sidebar.MenuButton tooltipContent="Browse team views" onclick={() => (teamViewsOpen = true)} aria-haspopup="dialog">
-                  <UsersIcon aria-hidden="true" />
+                  <UserRoundSearchIcon aria-hidden="true" />
                   <span class="group-data-[collapsible=icon]:sr-only">Browse team views</span>
                 </Sidebar.MenuButton>
               </Sidebar.MenuItem>
