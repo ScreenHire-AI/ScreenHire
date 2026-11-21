@@ -13,7 +13,7 @@
   // One finding on the Verification tab (design system section 16): its title, opening (A9) to what was observed in plain
   // words, its evidence as a facts row, any quote or comparison, the counter-evidence as the other side of the argument, and
   // the code, which is there for support and audit (W6). Only the exception is marked: a finding that never counts toward the
-  // level says it is information only, with the sparkles mark for AI help and the grey info mark for context. The one review action is Mark explained; an explanation shows under the row so it reads while the finding is
+  // level is marked by its mark alone, the sparkles for AI help and the grey info mark for context (the words "Information only" are for screen readers here, and said once on screen, in the AI row's tooltip). The one review action is Mark explained; an explanation shows under the row so it reads while the finding is
   // closed, with Undo for its author (it cannot sit inside the summary, which is itself the control, A9).
   let {
     signal,
