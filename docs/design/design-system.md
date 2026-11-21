@@ -1359,8 +1359,9 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
     line) and the columns In the app (a switch), Email (Instantly, Daily digest or Off) and Slack (a switch, a column shown only
     once the person's Slack account is linked; before that one line links to Connected accounts). A cell with nothing to choose
     is a muted dash with words for a screen reader, never a disabled control (A3). Teammates' moves and notes has Choose kinds,
-    an outline button beside its switch, which opens a row per kind of toast inside it. On a phone each kind is a card with
-    the three choices stacked, and Choose kinds opens the same switches inside the card. The Toasts and jobs panel keeps the
+    an outline button beside its switch, which opens a row per kind of toast inside it. When the panel is narrower than the
+    table needs (672px, read from the panel's own width, so beside the account menu on a laptop as well as on a phone), each
+    kind is a card with the three choices stacked, and Choose kinds opens the same switches inside the card. The Toasts and jobs panel keeps the
     form column; the table fills the width (S6). One Save in the table panel's footer.
   - **Connected accounts**, shown where there is a calendar or a Slack workspace to connect: a Calendar panel and a Slack
     panel, the content the account menu's sheets had. Connecting comes back here and says how it went in that panel.

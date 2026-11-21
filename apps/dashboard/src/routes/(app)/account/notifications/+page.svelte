@@ -140,79 +140,82 @@
                 Link your Slack account in <a href="/account/connected">Connected accounts</a> to get Slack messages too.
               </p>
             {/if}
-            <!-- From md, a table: a row per kind, a column per way to hear of it. On a phone each kind is a card (F1, F5). -->
-            <div class="overflow-x-auto max-md:hidden">
-              <Table.Root>
-                <Table.Header>
-                  <Table.Row class="bg-muted hover:bg-muted">
-                    <Table.Head class="px-4.5">Kind</Table.Head>
-                    <Table.Head>In the app</Table.Head>
-                    <Table.Head>Email</Table.Head>
-                    {#if showSlack}<Table.Head class="pr-4.5">Slack</Table.Head>{/if}
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {#each current.rows as row (row.kind)}
-                    {@const words = noticeRows[row.kind]}
-                    <Table.Row class="h-14">
-                      <Table.Cell class="px-4.5">
-                        <span class="flex flex-col">
-                          <span class="font-semibold">{words.label}</span>
-                          <span class="text-caption text-muted-foreground">{words.hint}</span>
-                        </span>
-                      </Table.Cell>
-                      <Table.Cell>{@render inApp(row.kind, row.toasts, 'table')}</Table.Cell>
-                      <Table.Cell>{@render email(row.kind, row.email, 'table')}</Table.Cell>
-                      {#if showSlack}<Table.Cell class="pr-4.5">{@render slack(row.kind, row.slack, 'table')}</Table.Cell>{/if}
+            <!-- A table once the panel is wide enough for every column: a row per kind, a column per way to hear of it. Narrower,
+                 beside the account menu on a laptop or on a phone, each kind is a card (F1, F2, F5). -->
+            <div class="@container/grid">
+              <div class="overflow-x-auto @max-2xl/grid:hidden">
+                <Table.Root>
+                  <Table.Header>
+                    <Table.Row class="bg-muted hover:bg-muted">
+                      <Table.Head class="px-4.5">Kind</Table.Head>
+                      <Table.Head>In the app</Table.Head>
+                      <Table.Head>Email</Table.Head>
+                      {#if showSlack}<Table.Head class="pr-4.5">Slack</Table.Head>{/if}
                     </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    {#each current.rows as row (row.kind)}
+                      {@const words = noticeRows[row.kind]}
+                      <Table.Row class="h-14">
+                        <Table.Cell class="px-4.5 whitespace-normal">
+                          <span class="flex flex-col">
+                            <span class="font-semibold">{words.label}</span>
+                            <span class="text-caption text-muted-foreground">{words.hint}</span>
+                          </span>
+                        </Table.Cell>
+                        <Table.Cell>{@render inApp(row.kind, row.toasts, 'table')}</Table.Cell>
+                        <Table.Cell>{@render email(row.kind, row.email, 'table')}</Table.Cell>
+                        {#if showSlack}<Table.Cell class="pr-4.5">{@render slack(row.kind, row.slack, 'table')}</Table.Cell>{/if}
+                      </Table.Row>
+                      {#if row.kind === 'TeammateChanges' && expanded}
+                        {#each row.toasts as kind (kind)}
+                          <Table.Row class="h-11">
+                            <Table.Cell class="px-4.5 pl-9 text-muted-foreground"><span id={`notice-toast-${kind}`}>{teammateToastLabels[kind]}</span></Table.Cell>
+                            <Table.Cell>
+                              <Switch
+                                aria-labelledby={`notice-toast-${kind}`}
+                                checked={!current.toastsOff.includes(kind)}
+                                onCheckedChange={(on) => (current.toastsOff = setToast(current, kind, on))}
+                              />
+                            </Table.Cell>
+                            <Table.Cell></Table.Cell>
+                            {#if showSlack}<Table.Cell></Table.Cell>{/if}
+                          </Table.Row>
+                        {/each}
+                      {/if}
+                    {/each}
+                  </Table.Body>
+                </Table.Root>
+              </div>
+              <ul class="@2xl/grid:hidden">
+                {#each current.rows as row (row.kind)}
+                  {@const words = noticeRows[row.kind]}
+                  <li class="flex flex-col gap-3 border-b border-border-subtle px-4 py-3 last:border-0">
+                    <span class="flex flex-col">
+                      <span class="font-semibold">{words.label}</span>
+                      <span class="text-caption text-muted-foreground">{words.hint}</span>
+                    </span>
+                    <div class="flex items-center justify-between gap-4"><span>In the app</span>{@render inApp(row.kind, row.toasts, 'phone')}</div>
+                    <div class="flex items-center justify-between gap-4"><span>Email</span>{@render email(row.kind, row.email, 'phone')}</div>
+                    {#if showSlack}<div class="flex items-center justify-between gap-4"><span>Slack</span>{@render slack(row.kind, row.slack, 'phone')}</div>{/if}
                     {#if row.kind === 'TeammateChanges' && expanded}
-                      {#each row.toasts as kind (kind)}
-                        <Table.Row class="h-11">
-                          <Table.Cell class="px-4.5 pl-9 text-muted-foreground"><span id={`notice-toast-${kind}`}>{teammateToastLabels[kind]}</span></Table.Cell>
-                          <Table.Cell>
+                      <ul class="flex flex-col gap-3 border-l border-border-subtle pl-4" aria-label="Kinds of teammates' changes">
+                        {#each row.toasts as kind (kind)}
+                          <li class="flex items-center justify-between gap-4">
+                            <span id={`notice-phone-toast-${kind}`} class="text-muted-foreground">{teammateToastLabels[kind]}</span>
                             <Switch
-                              aria-labelledby={`notice-toast-${kind}`}
+                              aria-labelledby={`notice-phone-toast-${kind}`}
                               checked={!current.toastsOff.includes(kind)}
                               onCheckedChange={(on) => (current.toastsOff = setToast(current, kind, on))}
                             />
-                          </Table.Cell>
-                          <Table.Cell></Table.Cell>
-                          {#if showSlack}<Table.Cell></Table.Cell>{/if}
-                        </Table.Row>
-                      {/each}
+                          </li>
+                        {/each}
+                      </ul>
                     {/if}
-                  {/each}
-                </Table.Body>
-              </Table.Root>
+                  </li>
+                {/each}
+              </ul>
             </div>
-            <ul class="md:hidden">
-              {#each current.rows as row (row.kind)}
-                {@const words = noticeRows[row.kind]}
-                <li class="flex flex-col gap-3 border-b border-border-subtle px-4 py-3 last:border-0">
-                  <span class="flex flex-col">
-                    <span class="font-semibold">{words.label}</span>
-                    <span class="text-caption text-muted-foreground">{words.hint}</span>
-                  </span>
-                  <div class="flex items-center justify-between gap-4"><span>In the app</span>{@render inApp(row.kind, row.toasts, 'phone')}</div>
-                  <div class="flex items-center justify-between gap-4"><span>Email</span>{@render email(row.kind, row.email, 'phone')}</div>
-                  {#if showSlack}<div class="flex items-center justify-between gap-4"><span>Slack</span>{@render slack(row.kind, row.slack, 'phone')}</div>{/if}
-                  {#if row.kind === 'TeammateChanges' && expanded}
-                    <ul class="flex flex-col gap-3 border-l border-border-subtle pl-4" aria-label="Kinds of teammates' changes">
-                      {#each row.toasts as kind (kind)}
-                        <li class="flex items-center justify-between gap-4">
-                          <span id={`notice-phone-toast-${kind}`} class="text-muted-foreground">{teammateToastLabels[kind]}</span>
-                          <Switch
-                            aria-labelledby={`notice-phone-toast-${kind}`}
-                            checked={!current.toastsOff.includes(kind)}
-                            onCheckedChange={(on) => (current.toastsOff = setToast(current, kind, on))}
-                          />
-                        </li>
-                      {/each}
-                    </ul>
-                  {/if}
-                </li>
-              {/each}
-            </ul>
             {#snippet footer()}
               <div class="flex flex-wrap items-center justify-end gap-2">
                 <FailureText message={failure} class="mr-auto" />
