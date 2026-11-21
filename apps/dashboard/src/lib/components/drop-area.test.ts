@@ -261,12 +261,11 @@ describe('drop area taking several files', () => {
 
   function renderMany(props: Record<string, unknown> = {}) {
     const onproblems = vi.fn();
-    const onchange = vi.fn();
     render(DropArea, {
-      props: { id: 'files', name: 'files', multiple: true, accept: ['.pdf', '.png'], maxBytes: 1024 * 1024, maxFiles: 3, maxTotalBytes: 2 * 1024 * 1024, onproblems, onchange, ...props },
+      props: { id: 'files', name: 'files', multiple: true, accept: ['.pdf', '.png'], maxBytes: 1024 * 1024, maxFiles: 3, maxTotalBytes: 2 * 1024 * 1024, onproblems, ...props },
     });
     const input = () => document.getElementById('files') as HTMLInputElement;
-    return { onproblems, onchange, input };
+    return { onproblems, input };
   }
 
   it('is a named file input that takes several files, and keeps its name so the form posts them', () => {
@@ -280,7 +279,7 @@ describe('drop area taking several files', () => {
 
   it('lists every dropped file with its name and size, and puts all of them into the input', async () => {
     const posted = stubDataTransfer();
-    const { input, onchange } = renderMany();
+    const { input } = renderMany();
     const assigned = vi.spyOn(input(), 'files', 'set').mockImplementation(() => {});
 
     await fireEvent.drop(area(), files(pdf('cv.pdf', 184_320), pdf('letter.pdf', 2048)));
@@ -288,7 +287,6 @@ describe('drop area taking several files', () => {
     expect(rows()).toEqual(['cv.pdf 180 KB Remove', 'letter.pdf 2 KB Remove']);
     expect(assigned).toHaveBeenCalledOnce();
     expect(posted.at(-1)!.map((file) => file.name)).toEqual(['cv.pdf', 'letter.pdf']);
-    expect(onchange).toHaveBeenCalledOnce();
     expect(screen.getByText('Add files')).toBeInTheDocument();
   });
 
@@ -306,7 +304,7 @@ describe('drop area taking several files', () => {
 
   it('removes one file and posts the rest', async () => {
     const posted = stubDataTransfer();
-    const { input, onchange } = renderMany();
+    const { input } = renderMany();
     vi.spyOn(input(), 'files', 'set').mockImplementation(() => {});
     await fireEvent.drop(area(), files(pdf('cv.pdf'), pdf('letter.pdf')));
 
@@ -314,8 +312,19 @@ describe('drop area taking several files', () => {
 
     expect(rows()).toEqual(['letter.pdf 2 KB Remove']);
     expect(posted.at(-1)!.map((file) => file.name)).toEqual(['letter.pdf']);
-    expect(onchange).toHaveBeenLastCalledWith([expect.objectContaining({ name: 'letter.pdf' })]);
     expect(input()).toHaveFocus();
+  });
+
+  it('clears the refusals once a Remove makes room', async () => {
+    stubDataTransfer();
+    const { input, onproblems } = renderMany({ maxFiles: 2 });
+    vi.spyOn(input(), 'files', 'set').mockImplementation(() => {});
+    await fireEvent.drop(area(), files(pdf('cv.pdf'), pdf('letter.pdf'), pdf('plan.pdf')));
+    expect(onproblems).toHaveBeenLastCalledWith(['plan.pdf: Attach up to 2 files.']);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove cv.pdf' }));
+
+    expect(onproblems).toHaveBeenLastCalledWith([]);
   });
 
   it('refuses each wrong file in a message of its own that names it, and still takes the rest', async () => {
@@ -375,7 +384,7 @@ describe('drop area taking several files', () => {
 describe('reply files field', () => {
   const props = { name: 'files', label: 'Files', hint: 'Up to 3 files.', accept: ['.pdf'], maxBytes: 1024, maxFiles: 3, maxTotalBytes: 2048 };
 
-  it('names every refused file in the field error, and has no accessibility violations', async () => {
+  it('names every refused file in the field error, the same words twice included, and has no accessibility violations', async () => {
     vi.stubGlobal(
       'DataTransfer',
       class {
@@ -388,10 +397,11 @@ describe('reply files field', () => {
     const input = document.getElementById('field-files') as HTMLInputElement;
     vi.spyOn(input, 'files', 'set').mockImplementation(() => {});
 
-    await fireEvent.drop(document.querySelector('[data-drop-area]')!, files(new File(['x'], 'a.exe'), new File(['x'], 'b.exe')));
+    // Two files of one name from two folders are refused in the same words, one line each.
+    await fireEvent.drop(document.querySelector('[data-drop-area]')!, files(new File(['x'], 'a.exe'), new File(['x'], 'b.exe'), new File(['xy'], 'b.exe')));
 
     expect(screen.getByText('a.exe: Upload a PDF file.')).toBeInTheDocument();
-    expect(screen.getByText('b.exe: Upload a PDF file.')).toBeInTheDocument();
+    expect(screen.getAllByText('b.exe: Upload a PDF file.')).toHaveLength(2);
     expect(input).toHaveAttribute('aria-invalid', 'true');
     await expectNoAxeViolations();
   });

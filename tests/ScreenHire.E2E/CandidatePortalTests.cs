@@ -114,6 +114,7 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
 
         // With JavaScript on, the files field lists each file with Remove. Three are chosen, one is taken off, and the two left are sent.
         await WithJavaScriptAsync();
+        await ApplySteps.RecordBeaconsAsync(Page);
         await Page.GotoAsync(thread);
         await Page.Locator("astro-island:not([ssr])").WaitForAsync();
         await Page.GetByLabel("Your message").FillAsync("Here are the documents.");
@@ -130,6 +131,7 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Send message" }).ClickAsync();
         await Expect(Page.GetByText("Your message was sent.")).ToBeVisibleAsync();
+        (await ApplySteps.TelemetryBeaconsAsync(Page.MainFrame)).Should().BeEmpty("the island only lists files: the page runs no telemetry or device code");
 
         // Both replies are on the dashboard, each with the files that were sent: the second has exactly the two the list kept.
         await SignInToDashboardAsync(owner);
