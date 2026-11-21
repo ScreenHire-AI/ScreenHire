@@ -127,6 +127,11 @@
 
   // A link in the phone sheet closes it, so the page it opens is not hidden behind the sheet.
   const closeSheet = () => sidebar.setOpenMobile(false);
+  // A link in the person's menu keeps the menu's own click (which closes it and lifts its pointer lock) and closes the phone sheet too.
+  function closeMenuAndSheet(props: Record<string, unknown>, event: MouseEvent) {
+    (props.onclick as ((event: MouseEvent) => void) | undefined)?.(event);
+    closeSheet();
+  }
   // Widening past phone size unmounts the sheet; it stays shut when the window narrows again.
   $effect(() => {
     if (!sidebar.isMobile && sidebar.openMobile) closeSheet();
@@ -370,7 +375,7 @@
               </DropdownMenu.Label>
               <DropdownMenu.Separator />
               <DropdownMenu.Item>
-                {#snippet child({ props })}<a {...props} href="/account" onclick={closeSheet}>Your account</a>{/snippet}
+                {#snippet child({ props })}<a {...props} href="/account" onclick={(event) => closeMenuAndSheet(props, event)}>Your account</a>{/snippet}
               </DropdownMenu.Item>
               <!-- The top bar's keyboard button is not on phones; the sheet holds this menu there. The dialog opens over the
                    sheet, so closing it brings the person back to where they were. -->
@@ -380,7 +385,7 @@
               </DropdownMenu.Item>
               {#if billingShown}
                 <DropdownMenu.Item>
-                  {#snippet child({ props })}<a {...props} href="/settings/billing" onclick={closeSheet}>Billing</a>{/snippet}
+                  {#snippet child({ props })}<a {...props} href="/settings/billing" onclick={(event) => closeMenuAndSheet(props, event)}>Billing</a>{/snippet}
                 </DropdownMenu.Item>
               {/if}
               <DropdownMenu.Separator />

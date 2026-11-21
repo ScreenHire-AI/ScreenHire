@@ -69,6 +69,9 @@ sources:
   - resource: apps/api/Email/AttachmentFiles.cs
   - resource: src/ScreenHire.Infrastructure/Email/TransactionalEmail.cs
   - resource: src/ScreenHire.Infrastructure/Email/CandidatePortalFooter.cs
+  - resource: src/ScreenHire.Application/Notifications/NoticeDelivery.cs
+  - resource: src/ScreenHire.Application/Notifications/MemberNotices.cs
+  - resource: src/ScreenHire.Application/Notifications/Digest.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewHandlers.cs
 ---
 # Email to candidates
@@ -239,9 +242,23 @@ the job (ADR-0015) before the worker gets to it gets no email. A note can mentio
 Someone who linked their Slack account also gets the mention as a Slack direct message, its own message beside this
 one, so a failing email never holds it up ([slack.md](slack.md)).
 
+Each person chooses, per kind, whether ScreenHire emails them at once, in a daily digest at 08:00 their time, or not at all
+(Your account > Notifications, [notifications.md](notifications.md#each-persons-choices)). The mention email above, a
+candidate's reply, an interview booked, moved or cancelled, a task given to them, a new application on their jobs and a
+teammate's move or note are all sent through that choice (`NoticeDelivery`), in ScreenHire's own words (`MentionEmail`,
+`ReplyEmail`, `MemberNoticeEmails`): names and titles only, never a note's, a task's or a reply's text. The digest
+(`DigestEmail`) is one email with a line per item, grouped by kind, each linking to its record.
+
+Every email to the team about their work ends with a short rule and "Change what we email you", linking to
+`/account/notifications` (`TeamEmail.WithFooter`): every kind above, the verification and AI usage alerts, the trial's
+reminders, the interviewer's day-before reminder, the email domain alert, the data request alert and the digest. With no
+dashboard address the footer is left out, as the links are. Sign-in links and invitations are not notifications and have
+none. Team email is not candidate email: it gets no candidate-portal footer and no reply address.
+
 ## Verification alerts
 
-Two emails go to teammates when an organization turns them on on the Notifications tab of Verification
+Two emails go to teammates who want them. The Notifications tab of Verification sets where each member starts, and each
+member's own choice on Your account wins, including the daily digest
 (`VerificationAlertWording`, ScreenHire's own wording like the mention email, not a template). "An application needs a closer
 look" goes once, when an application first reaches Verification suggested, to members who hold Review verification and see the
 job (ADR-0015); it names the job, says the application needs a closer look and links to it, and carries no level, candidate name,

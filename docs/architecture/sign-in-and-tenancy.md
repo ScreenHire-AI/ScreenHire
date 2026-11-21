@@ -19,6 +19,13 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Persistence/ScreenHireDbContext.cs
   - resource: apps/dashboard/src/lib/passkeys.ts
   - resource: apps/dashboard/src/routes/(app)/account/passkeys/+page.svelte
+  - resource: apps/api/Endpoints/AccountEndpoints.cs
+  - resource: apps/api/Contracts/AccountContracts.cs
+  - resource: src/ScreenHire.Domain/Organizations/MemberPreferences.cs
+  - resource: src/ScreenHire.Infrastructure/Identity/UserPhoto.cs
+  - resource: apps/dashboard/src/lib/account.ts
+  - resource: apps/dashboard/src/lib/components/account-menu.svelte
+  - resource: apps/dashboard/src/lib/date-settings.svelte.ts
   - resource: apps/dashboard/src/routes/(auth)/sign-in/+page.svelte
   - resource: apps/api/Configuration/AuthOptions.cs
   - resource: apps/api/Auth/EmailVerification.cs
@@ -119,7 +126,7 @@ organization API key in place of the session ("API keys" below).
 | `POST /v1/auth/invitations/lookup` | Names the organization and role an open invitation offers, and whether the invited address `needsName`, for the accept page. It uses nothing up, and answers an unusable token as accepting does. |
 | `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. A custom role is named only in the one they work in: row-level security hides other organizations' roles. |
 | `POST /v1/auth/switch-organization` | Makes another of the user's organizations the one they work in. |
-| `POST /v1/auth/sign-out` | Ends the session. |
+| `POST /v1/auth/sign-out` | Ends the session in this browser. Sign out everywhere is on Your account (below). |
 | `POST /v1/auth/passkeys/sign-in/options` | Anonymous. The WebAuthn request options for a sign-in with no username, as `{ optionsJson }`. The challenge waits in the `sh.passkey` cookie. |
 | `POST /v1/auth/passkeys/sign-in` | Anonymous. Checks the browser's answer and signs in with 204, or answers 401 for any failure. |
 | `GET /v1/auth/passkeys` | The signed-in person's passkeys: id, name, created, last used, and the limit. |
@@ -163,8 +170,8 @@ waits for SMTP; moving the send to a worker message is a later change.
 A passkey (WebAuthn) signs a person in with their device's own unlock and nothing typed, which suits people who sign in once
 a week and would otherwise wait for an email. ADR-0008 chose `SignInManager`'s passkey support with our own endpoints
 (`apps/api/Endpoints/PasskeyEndpoints.cs`), because only the Blazor template wires them. The dashboard side is
-`apps/dashboard/src/lib/passkeys.ts` (the browser's own WebAuthn calls, no library) and the Passkeys page in the person's
-menu (`/account/passkeys`, outside Settings because it is the person's own, not the organization's).
+`apps/dashboard/src/lib/passkeys.ts` (the browser's own WebAuthn calls, no library) and the Passkeys page under Your account >
+Sign-in and security (`/account/passkeys`, outside Settings because it is the person's own, not the organization's).
 
 - **Data.** `user_passkeys` holds Identity's row (credential id, user, a JSON `data` column with the public key, name, created
   time and signature counter) and `last_used_at`, which Identity does not keep. It is global like `users`: no
@@ -204,7 +211,7 @@ menu (`/account/passkeys`, outside Settings because it is the person's own, not 
   Asking for a fresh sign-in before adding one is the next step if the threat grows.
 - **Sessions.** Adding or removing a credential may rotate the security stamp, which would sign the person out of their own
   session within the validator's interval, so the endpoints refresh the sign-in when the stamp changed. Removing a passkey
-  does not end other sessions.
+  does not end other sessions; Sign out everywhere does (Your account, below).
 - **Abuse.** Antiforgery on every POST and DELETE. The two anonymous routes have their own per-IP limit,
   `ScreenHire:Auth:PasskeyPermitsPerMinute` (default 20), which Development does not raise, so each test uses a unique
   `X-Forwarded-For`. The rest use the `auth` limit. A request body over 64 KB is a 413 before it is read, and a
@@ -311,15 +318,57 @@ real endpoints, because tests use random ports, and gives the careers server the
 `CareersHostPattern` (`{tenant}.{CareersDomain}`) for tenant hosts (`docs/architecture/apply-flow.md` section 6). `AppHost` drives OIDC redirect URIs, emailed links, redirects after sign-in and the
 CORS origin. Leave `CookieDomain` empty: a parent-domain cookie would also reach tenant careers pages.
 
+### Your account
+
+What belongs to the person, whatever organization they work in, is under `/account` (design system section 21): Profile,
+Notifications, Connected accounts (only where there is a calendar or a Slack workspace to connect), Sign-in and security, and
+Preferences, with one menu like Settings'. The person's menu in the sidebar holds their name and email, Your account, Keyboard
+shortcuts, Billing (an Owner, where a payment provider is set up) and Sign out.
+
+Where each preference lives:
+
+| Preference | Where | Why |
+|---|---|---|
+| Name, photo | `users.display_name`; `user_photos` (one row per user, the bytes) | The person, the same in every organization. Global like `users`: no row-level security |
+| Time zone, language, date format | `member_preferences`, one row per membership | About the person, kept per organization as the brief chose. The daily digest goes at 08:00 in this time zone |
+| Single-key shortcuts, confirm moves | `member_preferences` (null until saved there) | About the person: a person who turns single-key shortcuts off for speech input needs them off on every device (WCAG 2.1.4). While null the dashboard keeps the browser's earlier choice and saves it once |
+| Email and Slack per kind, scope | `member_preferences.notices`, `scope` | [notifications.md](notifications.md#each-persons-choices) |
+| Toasts | `organization_members.notifications` | [realtime.md](realtime.md#teammates-changes-as-toasts) |
+| Theme (Light, Dark, System), reduce motion | this browser's `localStorage` (`preferences.svelte.ts`) | About the device: a dark room or a slow screen |
+
+`member_preferences` is a tenant table with row-level security, made on the first save; a member with none has every
+default. It goes with the membership, so someone who leaves and rejoins starts again.
+
+| Route | What it does |
+|---|---|
+| `GET /v1/account` | The person's sign-in email (read only), name, photo address, time zone, language, date format and the two habits. |
+| `PUT /v1/account/profile` | Saves the name (as onboarding asks for it), an IANA time zone, a language and a date format; one the server cannot read is a 400. |
+| `POST /v1/account/time-zone` | Fills the time zone from the browser while none is set; the dashboard sends it once. |
+| `PUT /v1/account/preferences` | Saves the two habits. |
+| `PUT /v1/account/photo`, `DELETE /v1/account/photo` | A PNG, JPEG or WebP of at most 512 KB, as base64, read from its bytes. The dashboard crops and scales it to a 256 px square on a canvas first, which drops what the camera wrote into it, so the server needs no image library (ADR-0008). |
+| `GET /v1/users/{userId}/photo` | The photo, to the person and to people who share the current organization with them; anyone else gets a 404. Its address carries its version, so a browser keeps it (`private`). `GET /v1/auth/me` carries `photoUrl`. |
+| `GET /v1/account/sign-in` | How the person signs in: the email link, the providers they have used, how many passkeys. |
+| `POST /v1/account/sign-out-everywhere` | Changes the person's security stamp and signs this session in again, and closes their live connections. |
+| `GET`, `PUT /v1/account/notifications` | [notifications.md](notifications.md#each-persons-choices). |
+
+All are session only (an API key is no person), need no permission and are not in the change history: personal preferences,
+not configuration the team shares.
+
+**Sign out everywhere.** The session is a cookie and ScreenHire keeps no list of sessions (no `ITicketStore`), so the page has
+no list, only the button. A new security stamp ends every other session at its next check: the cookie's validator compares the
+stamp every `ScreenHire:Auth:SecurityStampInterval` (one minute; a second in the test stacks, so a test waits on a condition).
+Connected AI assistants keep their access: their tokens are the assistant's API key's, not the person's cookie, and the
+person disconnects them on the MCP server page.
+
 ## Organizations and roles
 
 `OrganizationMember` joins a user to an organization with a role: Owner, Admin, Recruiter or Viewer. A user can
 belong to several organizations and works in one at a time: the one in `users.active_organization_id` while they are
 still a member of it, otherwise the first one they joined. Joining by invitation and `POST /v1/auth/switch-organization`
 set it. It is per user, not per session, so it follows them to every device, and switching closes their live-update
-connections into the organization they left (`docs/architecture/realtime.md`). A membership also holds the member's own notification
-settings (`organization_members.notifications`), so each organization keeps its own (realtime.md, "Teammates' changes
-as toasts"). Onboarding creates the organization and the
+connections into the organization they left (`docs/architecture/realtime.md`). A membership also holds the member's own toast
+settings (`organization_members.notifications`), and their preferences row (`member_preferences`, Your account, below), so each
+organization keeps its own. Onboarding creates the organization and the
 Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
 a careers subdomain. The slug never changes after onboarding: `PUT /v1/organization` (Edit settings) renames the

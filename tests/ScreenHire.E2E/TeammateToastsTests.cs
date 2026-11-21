@@ -10,7 +10,7 @@ namespace ScreenHire.E2E;
 /// Teammates' changes as toasts (design system section 11, roadmap item 10), in one new organization with an Owner and a
 /// Recruiter on one job's hiring team. The Owner's dashboard is open and live: the Recruiter's move reaches it as a toast
 /// that names the Recruiter, the candidate (a link to their page) and the stage; the Owner's own move makes none; the
-/// Owner turns Moves off in the Teammate changes sheet and the next move is silent; and on a phone the toast sits above the
+/// Owner turns Moves off in their notification grid on Your account and the next move is silent; and on a phone the toast sits above the
 /// page's action bar. A candidate applying through the careers site toasts the members on the job's hiring team only, and
 /// several applications within a minute fold into one toast that links to the job's Not screened candidates.
 /// </summary>
@@ -76,20 +76,25 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(toasts).ToContainTextAsync($"{recruiterName} added a note on {Candidate}", new() { Timeout = 30_000 });
         await Expect(toasts).Not.ToContainTextAsync("to Interview");
 
-        // Moves off in the Teammate changes sheet: the account menu, the Teammate changes item, the Moves switch, Save.
+        // Moves off in the notification grid: the person's menu, Your account, Notifications, Choose on Teammates' moves and
+        // notes, the Moves switch, Save. Then back to the job, whose page shows the toasts.
+        var jobPage = Page.Url;
         await Page.GetByRole(AriaRole.Button, new() { Name = ownerName }).ClickAsync();
-        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Teammate changes" }).ClickAsync();
-        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Teammate changes" });
-        await Expect(sheet).ToBeVisibleAsync();
-        var moves = sheet.GetByRole(AriaRole.Switch, new() { Name = "Moves", Exact = true });
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Your account" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Notifications" }).ClickAsync();
+        var grid = Page.GetByRole(AriaRole.Table);
+        await grid.GetByRole(AriaRole.Button, new() { Name = "Choose" }).ClickAsync();
+        var moves = grid.GetByRole(AriaRole.Switch, new() { Name = "Moves", Exact = true });
         await Expect(moves).ToBeCheckedAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await moves.ClickAsync();
         await Expect(moves).Not.ToBeCheckedAsync();
-        await sheet.GetByRole(AriaRole.Button, new() { Name = "Save", Exact = true }).ClickAsync();
-        await Expect(sheet).ToBeHiddenAsync();
-        var saved = await ReadAsync(await ownerSession.Client.GetAsync("/v1/notification-settings", Ct), HttpStatusCode.OK);
-        saved.GetProperty("off").EnumerateArray().Select(kind => kind.GetString()).Should().Equal("Moves");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save", Exact = true }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved." })).ToBeVisibleAsync();
+        var saved = await ReadAsync(await ownerSession.Client.GetAsync("/v1/account/notifications", Ct), HttpStatusCode.OK);
+        saved.GetProperty("toastsOff").EnumerateArray().Select(kind => kind.GetString()).Should().Equal("Moves");
+        await Page.GotoAsync(jobPage);
+        await Expect(LiveIndicator(Page)).ToContainTextAsync("Live updates: Connected");
 
         // The next move is silent. The Recruiter's tag change after it is the marker, as the note was.
         await MoveAsync(recruiterSession, applicationId, "offer");
@@ -98,7 +103,12 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(toasts).Not.ToContainTextAsync("to Offer");
 
         // Moves back on, and on a phone the toast clears the Jobs page's action bar (the job page has one only for a draft).
-        await ReadAsync(await ownerSession.PutAsync("/v1/notification-settings", new { toasts = true, closeToasts = true, off = Array.Empty<string>() }, Ct), HttpStatusCode.OK);
+        var choices = await ReadAsync(await ownerSession.Client.GetAsync("/v1/account/notifications", Ct), HttpStatusCode.OK);
+        var rows = choices.GetProperty("rows").EnumerateArray()
+            .Select(row => new { kind = row.GetProperty("kind").GetString(), email = row.GetProperty("email").GetString(), slack = (bool?)null })
+            .ToArray();
+        await ReadAsync(await ownerSession.PutAsync(
+            "/v1/account/notifications", new { scope = "MyJobs", pauseToasts = false, closeToasts = true, toastsOff = Array.Empty<string>(), rows }, Ct), HttpStatusCode.OK);
         await Page.SetViewportSizeAsync(360, 740);
         await Page.GotoAsync(DashboardUrl("/"));
         await Expect(LiveIndicator(Page)).ToContainTextAsync("Live updates: Connected");
