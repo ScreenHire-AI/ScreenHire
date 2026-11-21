@@ -24,6 +24,12 @@ sources:
   - resource: src/ScreenHire.Domain/Organizations/MemberPreferences.cs
   - resource: src/ScreenHire.Infrastructure/Identity/UserPhoto.cs
   - resource: apps/dashboard/src/lib/account.ts
+  - resource: apps/dashboard/src/routes/(app)/account/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/account/profile/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/account/connected/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/account/security/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/account/preferences/+page.svelte
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/MemberPreferencesConfiguration.cs
   - resource: apps/dashboard/src/lib/components/account-menu.svelte
   - resource: apps/dashboard/src/lib/date-settings.svelte.ts
   - resource: apps/dashboard/src/routes/(auth)/sign-in/+page.svelte

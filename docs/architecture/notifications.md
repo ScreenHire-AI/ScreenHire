@@ -20,6 +20,7 @@ sources:
   - resource: src/ScreenHire.Application/Notifications/NoticeDelivery.cs
   - resource: src/ScreenHire.Application/Notifications/MemberNotices.cs
   - resource: src/ScreenHire.Application/Notifications/Digest.cs
+  - resource: src/ScreenHire.Application/Applications/ApplicationSubmitted.cs
   - resource: src/ScreenHire.Application/Candidates/CandidateErasure.cs
   - resource: apps/api/Endpoints/AccountEndpoints.cs
   - resource: apps/dashboard/src/routes/(app)/account/notifications/+page.svelte
