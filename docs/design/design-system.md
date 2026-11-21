@@ -252,7 +252,8 @@ Authors check their screens against this list, and the `design-review` agent rep
   and again in a panel, a tab's count and a heading's count. Keep it where people look first and let the other go,
   never repeat it for emphasis. The one exception is a builder's validation message, which shows in "Problems to
   fix" and again on the control or graph node it is about, because the panel says what is wrong and the control
-  says where.
+  says where. The other is the Welcome line (section 11), which names the workspace and role the sidebar shows, once,
+  to confirm what accepting an invitation did.
 - **W8** Never ask people to type a code. Currencies, countries and languages are picked from a list by their names
   (British pound (£), Ireland); the ISO code is only the stored value. Times are entered and shown in the person's own
   time zone, and a label never names one (Closing date, not Closing date, UTC).

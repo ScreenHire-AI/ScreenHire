@@ -103,6 +103,7 @@
     {:else}
       <form onsubmit={accept} novalidate aria-label="Join your team">
         <Panel title="Invitation" footer={confirm}>
+          <div class="flex flex-col gap-4">
           {#if details}
             <p>
               You're joining {details.organizationName} as {details.roleName}. This signs you in on this device with the address the invitation was sent to.
@@ -114,7 +115,7 @@
             <p>This signs you in on this device with the address the invitation was sent to.</p>
           {/if}
           {#if askName}
-            <Field.Field class="mt-4" data-invalid={nameProblem ? true : undefined}>
+            <Field.Field data-invalid={nameProblem ? true : undefined}>
               <Field.Label for="name">Your name</Field.Label>
               <Input
                 id="name"
@@ -128,6 +129,7 @@
               <Field.Error id="name-error" errors={nameProblem ? [{ message: nameProblem }] : undefined} />
             </Field.Field>
           {/if}
+          </div>
         </Panel>
       </form>
     {/if}
