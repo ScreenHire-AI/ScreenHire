@@ -208,8 +208,7 @@
   const graphActions: GraphActions = {
     edit: openAutomation,
     openLane,
-    // A stage's plus, or the Any stage band's (null).
-    add: (lane) => openRecipes(lane, lane === null),
+    add: openRecipes,
     addCondition(automationId) {
       const added = addCondition(workflow, automationId);
       if (added) openChanged(added, automationId);

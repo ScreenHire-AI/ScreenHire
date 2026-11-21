@@ -47,6 +47,8 @@ export function actionShort(action: AutomationAction, workflow: HiringWorkflow, 
     case 'Reject':
       return 'declines';
     default:
+      // Every action type has its words above: a new one fails the type check here rather than reading "does something".
+      action.type satisfies never;
       return 'does something';
   }
 }
