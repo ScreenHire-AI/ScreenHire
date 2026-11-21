@@ -1,5 +1,7 @@
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Verification;
+using ScreenHire.Infrastructure.Verification;
+using ScreenHire.Infrastructure.Verification.Llm;
 
 namespace ScreenHire.UnitTests.Verification;
 
@@ -201,6 +203,34 @@ public sealed class AiUsageRulesTests
         ReportedCostCapture.Parse("""{"usage":{"cost":"free"}}""").Should().BeNull();
         ReportedCostCapture.Parse("""{"usage":{"cost":-1}}""").Should().BeNull();
         ReportedCostCapture.Parse("not json").Should().BeNull();
+    }
+
+    [Fact]
+    public void A_token_default_is_priced_at_the_usual_mix_of_input_and_output()
+    {
+        AiUsageMix.BlendedPerMillion(1m, 4m).Should().Be(1.6m, "80% input at 1.00 and 20% output at 4.00");
+        AiUsageMix.Dollars(2_000_000, 1.6m).Should().Be(3.2m);
+        AiUsageMix.Dollars(0, 1.6m).Should().Be(0m);
+    }
+
+    [Fact]
+    public void The_default_is_priced_at_the_model_that_answers_and_stays_in_tokens_where_it_has_no_price()
+    {
+        var prices = new Dictionary<string, ModelPrice>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["comparison-model"] = new() { Input = 5m, Output = 25m },
+            ["half-priced-model"] = new() { Input = 5m },
+            [FakeConsistencyChatClient.ModelId] = new() { Input = 1m, Output = 4m },
+        };
+
+        new LlmOptions { Provider = LlmProvider.Anthropic, ConsistencyModel = "comparison-model", ExtractionModel = "other", Prices = prices }
+            .ConfiguredPrice().Should().Be((5m, 25m), "the comparison model answers on ScreenHire's key");
+        new LlmOptions { Provider = LlmProvider.Fake, Prices = prices }.ConfiguredPrice().Should().Be((1m, 4m), "the fake model answers as itself");
+        new LlmOptions { Provider = LlmProvider.Anthropic, ConsistencyModel = "unpriced-model", Prices = prices }.ConfiguredPrice().Should().BeNull();
+        new LlmOptions { Provider = LlmProvider.Anthropic, ConsistencyModel = "half-priced-model", Prices = prices }.ConfiguredPrice().Should().BeNull("a side with no price is not guessed");
+        new LlmOptions { Provider = LlmProvider.Anthropic, Prices = prices }.ConfiguredPrice().Should().BeNull("no model is configured");
+        new LlmOptions { Provider = LlmProvider.None, Prices = prices }.ConfiguredPrice().Should().BeNull("no model answers");
+        new LlmOptions { Provider = LlmProvider.Fake }.ConfiguredPrice().Should().BeNull("nothing prices the fake model");
     }
 
     [Fact]

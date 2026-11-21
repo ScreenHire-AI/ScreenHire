@@ -69,13 +69,13 @@ who accepts an invitation (S), and the small readability fixes in Reports and Jo
 
 #### Real people
 
-1. **Budgets in dollars by default.** The AI budget shows tokens until someone opens the Usage tab, and a token count
-   means little to a small team. Default the budget and cap to a dollar figure priced from the deployment's
-   `DefaultMonthlyTokenBudget`. Size S. (#147)
-2. **Say "Information only" once on the Verification tab.** It appears in the map tile and again in the finding row;
-   the redesign says once, in the tooltip. Size S. (#148)
-3. **Make the audit line the page's last line.** "No automated decision has been made..." sits inside the Form use
-   panel and reads as its footer; design system W10 wants it last on the page. Size S. (#148)
+1. **Budgets in dollars by default.** Built: an organization with no limit of its own sees the deployment's default budget
+   and cap as dollars, priced at the answering model and the usual input/output mix, and in tokens where there is no price
+   ([AI usage](architecture/ai-usage.md#budget-alerts-and-the-cap)). Kept here so the numbers hold. (#147)
+2. **Say "Information only" once on the Verification tab.** Built: the tile says "1 note" and the finding row carries its
+   mark alone; the words are in the AI row's tooltip. Kept here so the numbers hold. (#148)
+3. **Make the audit line the page's last line.** Built: the decision line and the audit line sit under every panel and in
+   none of them ([design system](design/design-system.md), W10). Kept here so the numbers hold. (#148)
 
 #### Never guessing
 

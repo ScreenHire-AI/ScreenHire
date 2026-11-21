@@ -35,6 +35,26 @@ public static class AiUsageCost
     }
 }
 
+/// <summary>
+/// The usual split of a check's tokens between input and output, which turns a token count into a dollar figure when the
+/// deployment's default budget and cap are shown in dollars (ai-usage.md, "Defaults"). The consistency check reads long sources
+/// and answers briefly, so most of its tokens are input. An estimate for display: enforcement stays in tokens.
+/// </summary>
+public static class AiUsageMix
+{
+    /// <summary>The share of a check's tokens that is input; the rest is output.</summary>
+    public const decimal InputShare = 0.8m;
+
+    private const decimal PerMillion = 1_000_000m;
+
+    /// <summary>One price per million tokens for the usual mix, from a model's input and output prices.</summary>
+    public static decimal BlendedPerMillion(decimal inputPerMillion, decimal outputPerMillion)
+        => (inputPerMillion * InputShare) + (outputPerMillion * (1m - InputShare));
+
+    /// <summary>What <paramref name="tokens"/> cost at <paramref name="blendedPerMillion"/> dollars per million tokens.</summary>
+    public static decimal Dollars(decimal tokens, decimal blendedPerMillion) => tokens * blendedPerMillion / PerMillion;
+}
+
 /// <summary>The monthly budget, alert and cap rules, as pure functions of what was used (ai-usage.md, "Budget, alerts and the cap").</summary>
 public static class AiUsageLimits
 {

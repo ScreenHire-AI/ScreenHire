@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import { apiStub, user } from '../../../../test-support/fixtures.js';
-import { limits } from '../../../../test-support/verification-settings.js';
+import { dollarLimits, limits } from '../../../../test-support/verification-settings.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 

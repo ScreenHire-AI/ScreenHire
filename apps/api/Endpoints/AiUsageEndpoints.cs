@@ -64,6 +64,14 @@ internal static class AiUsageHandlers
         var (budget, budgetUnit) = AiUsageLimits.EffectiveBudget(settings, llm.DefaultMonthlyTokenBudget);
         var (cap, capUnit) = AiUsageLimits.EffectiveCap(settings, llm.DefaultMonthlyTokenCap);
         var usedByUnit = new Dictionary<UsageUnit, decimal>();
+        // The deployment's default is counted in tokens, which means little to a small team: shown in dollars at the configured model's
+        // price and the usual mix, when there is a price. Enforcement stays in tokens, and the percent is the token one.
+        decimal? dollarsPerMillion = null;
+        if (llm.ConfiguredPrice() is { } price && AiUsageMix.BlendedPerMillion(price.Input, price.Output) is var blended and > 0)
+        {
+            dollarsPerMillion = blended;
+        }
+
         async Task<AiUsageLimitView?> ViewAsync(decimal? amount, UsageUnit unit, decimal? own)
         {
             if (amount is not { } limit)
@@ -78,6 +86,12 @@ internal static class AiUsageHandlers
             }
 
             var percent = limit > 0 ? (int)Math.Min(1000m, Math.Floor(used * 100m / limit)) : 0;
+            if (own is null && unit == UsageUnit.Tokens && dollarsPerMillion is { } perMillion)
+            {
+                var dollars = Math.Max(0.01m, Math.Round(AiUsageMix.Dollars(limit, perMillion), 2, MidpointRounding.AwayFromZero));
+                return new AiUsageLimitView(dollars, UsageUnit.Money, true, Math.Round(AiUsageMix.Dollars(used, perMillion), 4, MidpointRounding.AwayFromZero), percent);
+            }
+
             return new AiUsageLimitView(limit, unit, own is null, used, percent);
         }
 

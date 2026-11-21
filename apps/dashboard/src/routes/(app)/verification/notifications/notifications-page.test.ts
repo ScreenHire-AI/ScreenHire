@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import { user, userAs } from '../../../../test-support/fixtures.js';
-import { limits, settingsWith, stubSettings } from '../../../../test-support/verification-settings.js';
+import { dollarLimits, limits, settingsWith, stubSettings } from '../../../../test-support/verification-settings.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -70,5 +70,13 @@ describe('the Notifications tab', () => {
     expect(screen.queryByRole('form', { name: 'Monthly AI limits' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Monthly budget/)).not.toBeInTheDocument();
     await expectNoAxeViolations();
+  });
+
+  it('shows an Admin the default budget and cap in dollars where the deployment prices its model', async () => {
+    renderPage(settingsWith({ limits: dollarLimits }), {}, userAs('Admin'));
+
+    expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
+    expect(screen.getAllByText('$0.0007 of $3.20')).toHaveLength(2);
+    expect(screen.queryByText(/tokens of/)).not.toBeInTheDocument();
   });
 });

@@ -39,6 +39,9 @@ public sealed class AiUsageTests(AppHostFixture fixture)
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    // The fake model's prices in the API's Development settings (1.00 in, 4.00 out per million tokens) at the usual mix.
+    private static readonly decimal FakeBlendedPerMillion = AiUsageMix.BlendedPerMillion(1.00m, 4.00m);
+
     [Fact]
     public async Task Every_call_of_a_check_is_one_row_with_the_providers_id_tokens_cost_and_key_and_the_rows_add_up_to_the_check()
     {
@@ -89,7 +92,10 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         summary.Text("byModel.0.keySource").Should().Be("BuiltIn");
         summary.Text("byKeySource.0.keySource").Should().Be("BuiltIn");
         summary.At("byDay").GetArrayLength().Should().BeGreaterThanOrEqualTo(1);
-        summary.At("limits.effectiveBudget.used").GetDecimal().Should().Be(rows.Sum(r => r.InputTokens!.Value + r.OutputTokens!.Value));
+        // The default budget is in dollars, so what was used is too: the tokens at the fake model's price and the usual mix.
+        summary.Text("limits.effectiveBudget.unit").Should().Be("Money");
+        summary.At("limits.effectiveBudget.used").GetDecimal().Should().Be(
+            decimal.Round(AiUsageMix.Dollars(rows.Sum(r => r.InputTokens!.Value + r.OutputTokens!.Value), FakeBlendedPerMillion), 4, MidpointRounding.AwayFromZero));
 
         var first = (await tenant.GetAsync($"{Usage}/calls?limit=1")).Expect(HttpStatusCode.OK);
         first.Count("calls").Should().Be(1);
@@ -140,6 +146,38 @@ public sealed class AiUsageTests(AppHostFixture fixture)
 
         (await tenant.GetAsync($"{Usage}/summary?{olderOnly}")).Expect(HttpStatusCode.OK).At("totals.calls").GetInt32().Should().Be(1);
         (await tenant.GetAsync($"{Usage}/summary?{empty}")).Expect(HttpStatusCode.OK).At("totals.calls").GetInt32().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task The_default_budget_and_cap_are_dollars_at_the_models_price_and_the_organizations_own_unit_stands_once_it_sets_one()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        // The deployment's default is 2,000,000 tokens each. The fake model costs 1.00 in and 4.00 out per million tokens, so at the
+        // usual 80/20 mix a million tokens cost 1.60 dollars.
+        FakeBlendedPerMillion.Should().Be(1.6m);
+        await SeedAsync(tenant.OrganizationId, DateTimeOffset.UtcNow, 1_000_000);
+
+        foreach (var path in new[] { $"{Usage}/summary", Settings })
+        {
+            var limits = (await tenant.GetAsync(path)).Expect(HttpStatusCode.OK).At("limits");
+            foreach (var name in new[] { "effectiveBudget", "effectiveCap" })
+            {
+                var limit = limits.GetProperty(name);
+                limit.GetProperty("unit").GetString().Should().Be("Money", $"{path} {name}");
+                limit.GetProperty("isDefault").GetBoolean().Should().BeTrue();
+                limit.GetProperty("amount").GetDecimal().Should().Be(3.2m, "2,000,000 tokens at 1.60 dollars per million");
+                limit.GetProperty("used").GetDecimal().Should().Be(1.6m);
+                limit.GetProperty("percent").GetInt32().Should().Be(50, "the cap is still counted in tokens, so the share is the token one");
+            }
+        }
+
+        // Once an Owner sets a budget, their unit stands; the cap they left alone is still the default, in dollars.
+        var saved = (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 4_000_000 })).Expect(HttpStatusCode.OK);
+        saved.Text("effectiveBudget.unit").Should().Be("Tokens");
+        saved.At("effectiveBudget.amount").GetDecimal().Should().Be(4_000_000m);
+        saved.At("effectiveBudget.isDefault").GetBoolean().Should().BeFalse();
+        saved.Text("effectiveCap.unit").Should().Be("Money");
+        saved.At("effectiveCap.isDefault").GetBoolean().Should().BeTrue();
     }
 
     [Fact]

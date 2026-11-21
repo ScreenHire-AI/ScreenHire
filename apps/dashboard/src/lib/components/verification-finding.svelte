@@ -53,9 +53,10 @@
     <summary class="flex min-h-11 list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 hover:bg-secondary/60 [&::-webkit-details-marker]:hidden">
       <span class="min-w-0 flex-1 font-semibold">{signal.title}</span>
       {#if informationOnly}
-        <!-- The exception is marked, not the rule: AI help and context never change the level. The sparkles mean AI help only. -->
-        <span data-information-only={ai ? 'ai' : 'context'} class={['inline-flex items-center gap-1 text-caption', ai ? 'text-status-ai-mark' : 'text-muted-foreground']}>
-          {#if ai}<SparklesIcon aria-hidden="true" class="size-3.5" />{:else}<InfoIcon aria-hidden="true" class="size-3.5" />{/if}Information only
+        <!-- The exception is marked, not the rule: AI help and context never change the level. The sparkles mean AI help only. Only the
+             mark shows: the words "Information only" are said once, in the AI row's tooltip, and here for screen readers. -->
+        <span data-information-only={ai ? 'ai' : 'context'} class={['inline-flex items-center', ai ? 'text-status-ai-mark' : 'text-muted-foreground']}>
+          {#if ai}<SparklesIcon aria-hidden="true" class="size-4" />{:else}<InfoIcon aria-hidden="true" class="size-4" />{/if}<span class="sr-only">Information only</span>
         </span>
       {/if}
       <!-- A state of the finding, so a badge on its row (W6); calm, so quiet (T3). -->

@@ -24,6 +24,13 @@ export const limits: NonNullable<OrganizationVerificationSettings['limits']> = {
   effectiveCap: { amount: 2_000_000, unit: 'Tokens', isDefault: true, used: 420, percent: 0 },
 };
 
+/** The same defaults where the deployment prices its model: dollars, at the usual mix (2,000,000 tokens at 1.60 a million is 3.20). */
+export const dollarLimits: NonNullable<OrganizationVerificationSettings['limits']> = {
+  ...limits,
+  effectiveBudget: { amount: 3.2, unit: 'Money', isDefault: true, used: 0.0007, percent: 0 },
+  effectiveCap: { amount: 3.2, unit: 'Money', isDefault: true, used: 0.0007, percent: 0 },
+};
+
 export const defaults: OrganizationVerificationSettings = {
   llmConsistencyCheck: false,
   lastUpdated,

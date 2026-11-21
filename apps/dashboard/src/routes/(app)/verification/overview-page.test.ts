@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub, user, userAs } from '../../../test-support/fixtures.js';
-import { limits, settingsWith } from '../../../test-support/verification-settings.js';
+import { dollarLimits, limits, settingsWith } from '../../../test-support/verification-settings.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -23,13 +23,13 @@ const overview: VerificationOverviewView = {
   lastCheckedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
 };
 
-function renderPage(result: VerificationOverviewView | Response, signedIn = user, withLimits = true) {
+function renderPage(result: VerificationOverviewView | Response, signedIn = user, withLimits = true, shown = limits) {
   vi.stubGlobal(
     'fetch',
     vi.fn(
       apiStub({
         'GET /v1/verification/overview': () => (result instanceof Response ? result : Response.json(result)),
-        'GET /v1/organization/verification-settings': () => Response.json(settingsWith({ limits: withLimits ? limits : null })),
+        'GET /v1/organization/verification-settings': () => Response.json(settingsWith({ limits: withLimits ? shown : null })),
       }),
     ),
   );
@@ -119,6 +119,14 @@ describe('the Overview tab', () => {
     expect(await screen.findByRole('heading', { name: 'AI budget this month' })).toBeInTheDocument();
     expect(screen.getAllByText('420 tokens of 2,000,000 tokens').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'See usage' })).toHaveAttribute('href', '/verification/usage');
+  });
+
+  it('shows the default budget in dollars where the deployment prices its model, and in tokens where it does not', async () => {
+    renderPage(overview, user, true, dollarLimits);
+
+    expect(await screen.findByRole('heading', { name: 'AI budget this month' })).toBeInTheDocument();
+    expect((await screen.findAllByText('$0.0007 of $3.20')).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/tokens/)).not.toBeInTheDocument();
   });
 
   describe.each(['Recruiter', 'Viewer'] as const)('for a %s', (role) => {

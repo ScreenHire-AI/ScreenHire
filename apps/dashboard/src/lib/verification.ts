@@ -92,7 +92,7 @@ export function groupStateText(group: CheckGroupView): string {
     case 'Found':
       return `${group.found} found`;
     case 'InformationOnly':
-      return `${group.notes} ${group.notes === 1 ? 'note' : 'notes'}, information only`;
+      return `${group.notes} ${group.notes === 1 ? 'note' : 'notes'}`;
     case 'NothingFound':
       return 'Nothing found';
     case 'NotChecked':
