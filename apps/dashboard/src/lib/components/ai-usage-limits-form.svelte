@@ -11,6 +11,7 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
+  import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
@@ -78,6 +79,15 @@
   );
 
   const message = (list: string[] | undefined) => list?.map((item) => ({ message: item }));
+
+  // With no price a limit cannot be set, but one set before still applies, so it can still be removed (the API always takes removing both).
+  const hasOwnLimit = initial.budget !== null || initial.cap !== null;
+  let removeOpen = $state(false);
+  let removed = $state(false);
+  async function removeLimits() {
+    await update.mutateAsync({ data: { budget: null, cap: null } });
+    removed = true;
+  }
 </script>
 
 {#if !initial.priced}
@@ -85,6 +95,22 @@
   <p class="max-w-measure text-muted-foreground" data-unpriced>
     Limits count dollars, and the AI model in use has no price yet. With your own key, enter its prices in the AI model settings.
   </p>
+  {#if hasOwnLimit && !removed}
+    <div class="mt-4">
+      <Button variant="outline" size="lg" onclick={() => (removeOpen = true)}>Remove limits</Button>
+    </div>
+    <ConfirmDialog
+      bind:open={removeOpen}
+      title="Remove your budget and cap?"
+      description="ScreenHire's default applies to its own key again, and your own key has none. You can set them again once the model has a price."
+      cancelLabel="Keep them"
+      confirmLabel="Remove limits"
+      failure="Could not remove the limits"
+      onconfirm={removeLimits}
+    />
+  {:else if removed}
+    <p role="status" class="mt-4 text-body">Removed.</p>
+  {/if}
 {:else}
 <form method="POST" use:enhance novalidate aria-label="Monthly AI limits" class="flex max-w-form flex-col gap-5">
   <p class="max-w-measure text-muted-foreground">

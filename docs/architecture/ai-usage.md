@@ -115,7 +115,8 @@ above zero that would round to $0.00 reads "Under $0.01".
 An Owner sets a monthly budget and an optional cap, in US dollars to the cent, with `PUT /v1/organization/ai-usage/limits`. Both count
 billed dollars, the amount above (owner decision, 2026-11-21), so a cap of $50 stops at $50 billed. A limit needs a price for the key in
 use: an own key's two prices, or the deployment's price for its model; with none the route refuses one, on the field it is about, and the
-form says why instead of showing its fields. Removing both always works. That route needs Manage billing, an Owner-only permission, so an Admin who may edit the
+form says why instead of showing its fields. Removing both always works, and the form offers Remove limits (after a confirmation)
+to an Owner who set one before the key lost its price. That route needs Manage billing, an Owner-only permission, so an Admin who may edit the
 rest of Verification cannot change spend controls. The month is the UTC calendar month and its use is the sum of the ledger.
 
 - **Budget.** Warns, stops nothing. A notification in the bell, and an email or Slack message when the organization chose them

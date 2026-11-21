@@ -108,12 +108,29 @@ describe('the Notifications tab', () => {
     await waitFor(() => expect(sent).toEqual([{ budget: 25.5, cap: null }]));
   });
 
+  it('lets an Owner remove a limit set before the model lost its price, after asking', async () => {
+    const sent: unknown[] = [];
+    renderPage(settingsWith({ limits: { ...limits, cap: 5, effectiveCap: { amount: 5, unit: 'Money', isDefault: false, used: 0, percent: 0 } } }), {
+      'PUT /v1/organization/ai-usage/limits': (init) => {
+        sent.push(JSON.parse(String(init?.body)));
+        return Response.json(limits);
+      },
+    });
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Remove limits' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Remove your budget and cap?' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove limits' }));
+
+    await waitFor(() => expect(sent).toEqual([{ budget: null, cap: null }]));
+  });
+
   it('offers no form where the AI model has no price, and says why', async () => {
     renderPage(settingsWith({ limits }));
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
     expect(screen.queryByRole('form', { name: 'Monthly AI limits' })).not.toBeInTheDocument();
     expect(screen.getByText(/Limits count dollars, and the AI model in use has no price yet\./)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remove limits' })).not.toBeInTheDocument();
   });
 
   it('shows an Admin the default budget and cap in dollars where the deployment prices its model', async () => {
