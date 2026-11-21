@@ -1188,7 +1188,8 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   New job asks Who's hiring? as a fieldset after the template: a Team select (No team, then each team with how many
   people), which starts on the team the last job from the same template or department used, with a hint naming its
   people and that it was used on the last job like this one, until the person picks (no hint for No team); then the people
-  added one by one, each with a remove button, and Add a person. With nobody but the creator in the organization the
+  added one by one, each with a remove button, and Add a person, which leaves out the chosen team's people. A list that
+  fails to load shows its error and Try again in the fieldset. With nobody but the creator in the organization the
   fieldset is not shown, and the job starts with them alone.
 - **Jobs, Edit details and Workflow (page audit):** the Jobs list opens on Open, the jobs a team is hiring for (All for a team with nothing open yet, decided once as the list arrives so the filter never changes under someone; `?status=` holds a choice, `all` included); after the title come Candidates, the people in play on the job by the Current list's own rule (a closed job, or one with nobody, is blank, L1; a phone's item says "3 candidates"), and Last applied, the date the latest application arrived (blank for a job nobody applied to; a phone's item says "Applied" and the date), so a recruiter sees which job needs them and which has gone quiet without opening each; Published is left to the job's header, and the row
   menu, for someone who may edit jobs (A3), opens Edit details (a link, A5) before Publish to every board or Close and remove everywhere; with a filter on,
