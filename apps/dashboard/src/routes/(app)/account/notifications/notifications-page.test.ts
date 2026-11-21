@@ -118,9 +118,21 @@ describe('Your account > Notifications', () => {
     renderPage({ 'GET /v1/account/notifications': () => Response.json(grid()) });
 
     const grid_ = await table();
-    await fireEvent.click(within(grid_).getByRole('button', { name: 'Choose' }));
+    await fireEvent.click(within(grid_).getByRole('button', { name: 'Choose kinds' }));
     expect(within(grid_).getByRole('switch', { name: 'Notes' })).toHaveAttribute('aria-checked', 'false');
     expect(within(grid_).getByRole('switch', { name: 'Moves' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('opens the same kinds on a phone, where each kind is a card', async () => {
+    renderPage({ 'GET /v1/account/notifications': () => Response.json(grid()) });
+
+    await table();
+    const choose = screen.getAllByRole('button', { name: 'Choose kinds' }).find((button) => button.dataset.where === 'phone');
+    expect(choose).toBeDefined();
+    await fireEvent.click(choose!);
+    const kinds = screen.getByRole('list', { name: "Kinds of teammates' changes" });
+    expect(within(kinds).getByRole('switch', { name: 'Notes' })).toHaveAttribute('aria-checked', 'false');
+    expect(within(kinds).getByRole('switch', { name: 'Moves' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('has no accessibility violations', async () => {

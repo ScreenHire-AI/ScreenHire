@@ -207,7 +207,7 @@ describe('Schedule interview sheet', () => {
     await fireEvent.click(within(sheet()).getByRole('button', { name: 'Send invitation' }));
 
     const interviewers = within(sheet()).getByRole('group', { name: 'Interviewers' });
-    expect(await within(interviewers).findByText('Robin Ashby and Avery Quinn have no working calendar connected. Ask them to connect one from the account menu.')).toBeInTheDocument();
+    expect(await within(interviewers).findByText('Robin Ashby and Avery Quinn have no working calendar connected. Ask them to connect one in Your account, Connected accounts.')).toBeInTheDocument();
     expect(sheet()).toBeInTheDocument();
   });
 

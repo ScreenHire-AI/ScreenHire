@@ -76,14 +76,14 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         await Expect(toasts).ToContainTextAsync($"{recruiterName} added a note on {Candidate}", new() { Timeout = 30_000 });
         await Expect(toasts).Not.ToContainTextAsync("to Interview");
 
-        // Moves off in the notification grid: the person's menu, Your account, Notifications, Choose on Teammates' moves and
+        // Moves off in the notification grid: the person's menu, Your account, Notifications, Choose kinds on Teammates' moves and
         // notes, the Moves switch, Save. Then back to the job, whose page shows the toasts.
         var jobPage = Page.Url;
         await Page.GetByRole(AriaRole.Button, new() { Name = ownerName }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Your account" }).ClickAsync();
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Notifications" }).ClickAsync();
         var grid = Page.GetByRole(AriaRole.Table);
-        await grid.GetByRole(AriaRole.Button, new() { Name = "Choose" }).ClickAsync();
+        await grid.GetByRole(AriaRole.Button, new() { Name = "Choose kinds" }).ClickAsync();
         var moves = grid.GetByRole(AriaRole.Switch, new() { Name = "Moves", Exact = true });
         await Expect(moves).ToBeCheckedAsync();
         await ExpectNoAccessibilityViolationsAsync();

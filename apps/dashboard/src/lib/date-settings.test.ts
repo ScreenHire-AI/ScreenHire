@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { configureDates, dateSettings } from './date-settings.svelte.js';
-import { formatDate, formatDayMonth } from './dates.js';
+import { dayKey, dayLabel, formatDate, formatDayMonth } from './dates.js';
 
 describe("the person's date settings", () => {
   afterEach(() => configureDates({}));
@@ -21,6 +21,17 @@ describe("the person's date settings", () => {
   it('writes the day and month in the chosen language', () => {
     configureDates({ language: 'en-GB', timeZone: 'UTC' });
     expect(formatDayMonth('2026-11-21T12:00:00Z')).toBe('21 November');
+  });
+
+  it("groups by the person's day, so a heading agrees with the dates under it", () => {
+    // 23:30 UTC on the 21st is already the 22nd in Tokyo, where it is then 08:30 on the 22nd.
+    configureDates({ timeZone: 'Asia/Tokyo' });
+    expect(dayKey('2026-11-21T23:30:00Z')).toBe('2026-11-22');
+    expect(dayLabel('2026-11-21T23:30:00Z', Date.parse('2026-11-21T23:45:00Z'))).toBe('Today');
+    expect(dayLabel('2026-11-21T12:00:00Z', Date.parse('2026-11-21T23:45:00Z'))).toBe('Yesterday');
+
+    configureDates({ timeZone: 'UTC' });
+    expect(dayKey('2026-11-21T23:30:00Z')).toBe('2026-11-21');
   });
 
   it('changes nothing when the settings are the same', () => {

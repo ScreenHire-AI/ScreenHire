@@ -89,6 +89,28 @@ public sealed class DigestEmailTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task A_row_turned_off_after_its_items_waited_leaves_them_out_of_the_digest()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var robinEmail = ApiSession.NewEmail("robin");
+        using var robin = await fixture.InviteAndJoinAsync(owner, "Recruiter", robinEmail);
+        await ChooseAsync(robin, "UTC", new() { ["Mentions"] = "Digest" });
+        var application = await ApplicationAsync(owner, "Taylor Brook");
+        (await owner.PostAsync($"/v1/applications/{application}/notes", new JsonObject { ["note"] = $"@[{robin.UserId}] a look?" }))
+            .Expect(HttpStatusCode.Created);
+        (await owner.PostAsync($"/v1/applications/{application}/tasks", new JsonObject { ["note"] = "Call the referee.", ["assigneeUserId"] = robin.UserId }))
+            .Expect(HttpStatusCode.Created);
+        await WaitForDigestItemsAsync(owner.OrganizationId, robin.UserId, 2);
+
+        // Before the morning, Robin wants no email about mentions: the digest reads the choice when it is sent.
+        await ChooseAsync(robin, "UTC", new() { ["Mentions"] = "Off" });
+
+        await ReleaseAsync(owner.OrganizationId, Tomorrow(8, 5));
+        var digest = await WaitForDigestAsync(robinEmail, 1);
+        digest.Text.Should().Contain("gave you a task on Taylor Brook").And.NotContain("mentioned you");
+    }
+
+    [Fact]
     public async Task Instantly_emails_a_mention_now_and_off_sends_nothing_while_the_bell_keeps_it()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

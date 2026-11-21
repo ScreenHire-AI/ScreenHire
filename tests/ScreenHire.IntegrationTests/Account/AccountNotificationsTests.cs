@@ -36,9 +36,8 @@ public sealed class AccountNotificationsTests(AppHostFixture fixture)
             ["TeammateChanges"] = "Off",
             // The organization sends no verification alert by email yet, so its people start at Off.
             ["VerificationSuggested"] = "Off",
-            // The AI use row follows the organization's AI usage email, which a new organization has off. The trial's reminders
-            // still reach an Owner who never chose (NoticeChoicesTests).
-            ["AiUseAndBilling"] = "Off",
+            // An Owner handles billing, and the trial's reminders reach them at Instantly until they choose otherwise.
+            ["AiUseAndBilling"] = "Instantly",
         });
 
         // The organization turns the verification email on: everyone who never chose follows it.
@@ -62,6 +61,20 @@ public sealed class AccountNotificationsTests(AppHostFixture fixture)
         var read = (await owner.GetAsync(Path)).Expect(HttpStatusCode.OK);
         Emails(read)["VerificationSuggested"].Should().Be("Off", "the person chose it");
         Emails(read)["Tasks"].Should().Be("Instantly");
+    }
+
+    [Fact]
+    public async Task An_owner_can_turn_off_the_trial_and_AI_emails_while_the_organizations_AI_email_is_off()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var grid = (await owner.GetAsync(Path)).Expect(HttpStatusCode.OK);
+
+        // Off differs from where the row starts for someone who handles billing, so it is kept, and the trial's reminders
+        // (EmailTrialEnding) read the same choice.
+        var saved = (await owner.PutAsync(Path, Save(grid, rows: new() { ["AiUseAndBilling"] = "Off" }))).Expect(HttpStatusCode.OK);
+
+        Emails(saved)["AiUseAndBilling"].Should().Be("Off");
+        Emails((await owner.GetAsync(Path)).Expect(HttpStatusCode.OK))["AiUseAndBilling"].Should().Be("Off");
     }
 
     [Fact]
@@ -131,6 +144,24 @@ public sealed class AccountNotificationsTests(AppHostFixture fixture)
         var rows = Save(grid, rows: []);
         rows["rows"]!.AsArray().Add(new JsonObject { ["kind"] = "Mentions", ["email"] = "Off", ["slack"] = null });
         (await owner.PutAsync(Path, rows)).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("rows");
+
+        Emails((await owner.GetAsync(Path)).Expect(HttpStatusCode.OK))["Mentions"].Should().Be("Instantly");
+    }
+
+    [Fact]
+    public async Task An_email_choice_or_a_scope_outside_the_lists_is_refused()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var grid = (await owner.GetAsync(Path)).Expect(HttpStatusCode.OK);
+
+        // The string enum converter reads numbers too; 99 names no choice.
+        var email = Save(grid, rows: []);
+        email["rows"]![0]!["email"] = 99;
+        (await owner.PutAsync(Path, email)).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("rows");
+
+        var scope = Save(grid, rows: []);
+        scope["scope"] = 99;
+        (await owner.PutAsync(Path, scope)).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("scope");
 
         Emails((await owner.GetAsync(Path)).Expect(HttpStatusCode.OK))["Mentions"].Should().Be("Instantly");
     }
