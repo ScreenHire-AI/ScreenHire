@@ -167,6 +167,9 @@
         const scopes: ApiKeyScope[] = submitted.data.access === 'Write' ? ['Read', 'Write'] : ['Read'];
         if (submitted.data.verification && mayGrantVerification) scopes.push('VerificationRead');
         const response = await create.mutateAsync({ data: { name: submitted.data.name.trim(), scopes } });
+        // Closed while the key was being made: closing already forgot it, so the token is not kept. The key is in the
+        // list, to revoke.
+        if (!creating) return;
         token = response.data.token;
         shown = true;
       } catch (error) {

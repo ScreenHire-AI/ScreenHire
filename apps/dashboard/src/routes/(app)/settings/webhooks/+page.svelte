@@ -89,13 +89,15 @@
 
   // Add endpoint is a sheet over this list (design system A16). The API answers with the endpoint's signing secret, shown
   // once before the endpoint's page opens. The old address, /settings/webhooks/new, lands here with ?add: the sheet opens
-  // and the parameter leaves the address, so a reload does not open it again.
+  // and the parameter leaves the address, so a reload does not open it again. The effect opens it too, for an arrival
+  // while this list is already showing, where the page is not mounted again.
   const queryClient = useQueryClient();
   // gcTime 0: the response holds the signing secret, so the mutation cache drops it as soon as the secret is shown.
   const create = createCreateWebhookEndpoint(() => ({ mutation: { gcTime: 0, onSettled: () => invalidatePath(queryClient, '/v1/webhooks') } }));
   let adding = $state(page.url.searchParams.has('add'));
   $effect(() => {
     if (!page.url.searchParams.has('add')) return;
+    adding = true;
     const url = new URL(page.url.href);
     url.searchParams.delete('add');
     void goto(url, { replace: true, reset: false });
