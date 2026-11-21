@@ -62,7 +62,9 @@
           aria-haspopup="dialog"
           onclick={onhistory}
           class={[
-            'min-w-0 rounded-sm text-left underline decoration-dotted underline-offset-4 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden pointer-coarse:min-h-11',
+            // relative: the screen-reader words after the visible ones are absolutely placed, and without a positioned
+            // button they sat past the cut text and widened the page at 390px.
+            'relative min-w-0 rounded-sm text-left underline decoration-dotted underline-offset-4 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden pointer-coarse:min-h-11',
             titleRow && 'truncate',
           ]}>{@render fact(true)}<span class="sr-only">. History</span></button
         >

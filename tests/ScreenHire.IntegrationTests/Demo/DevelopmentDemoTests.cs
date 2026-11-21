@@ -96,8 +96,8 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         var template = (await GetAsync(owner, "/v1/templates")).EnumerateArray().Single(t => t.GetProperty("name").GetString() == TemplateName);
         var templateHistory = await HistoryAsync(owner, $"/v1/templates/{template.GetProperty("id").GetString()}/history");
         templateHistory.Should().Contain(e => e.By == jordan && e.Lines.Contains("started version 2")
-            && e.Lines.Contains("added What is your notice period?") && e.Lines.Any(l => l.StartsWith("changed the time limit of Interview", StringComparison.Ordinal)));
-        templateHistory.Should().Contain(e => e.By == jordan && e.Lines.Contains("made What is your notice period? required"));
+            && e.Lines.Contains("added When could you start?") && e.Lines.Any(l => l.StartsWith("changed the time limit of Interview", StringComparison.Ordinal)));
+        templateHistory.Should().Contain(e => e.By == jordan && e.Lines.Contains("made When could you start? required"));
         templateHistory.Should().Contain(e => e.By == avery && e.Lines.Contains("created the template from Software engineer"));
 
         var draft = await FindJobAsync(owner, DraftJobSlug);
