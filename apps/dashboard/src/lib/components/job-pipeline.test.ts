@@ -399,6 +399,16 @@ describe('job pipeline views', () => {
     expect(within(filters()).getByRole('button', { name: 'Save view' })).toBeDisabled();
   });
 
+  it('says a view is gone on a job nobody has applied to, which draws no filters', async () => {
+    appPage.url = new URL('http://dashboard.test/jobs/job-1?tab=candidates&view=01a157d4-0000-7000-8000-0000000003ff');
+    stubViews([view]);
+    renderPipeline({ applications: [] });
+
+    expect(await screen.findByText('That view is no longer there, so this shows every candidate.')).toBeInTheDocument();
+    expect(screen.getByText('No candidates yet')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save view' })).toBeNull();
+  });
+
   describe('rating column', () => {
     const table = () => screen.getByRole('table', { name: 'Candidates for Senior .NET Engineer' });
 
