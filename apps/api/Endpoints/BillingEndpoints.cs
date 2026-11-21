@@ -138,6 +138,8 @@ internal static class BillingEndpoints
     /// This month so far, added up: the plan's line (its price while subscribed, nothing on the trial, no line once ended), AI use on
     /// ScreenHire's key where it is billed, less what the trial's allowance covers, and the next invoice while a subscription runs.
     /// The month is the calendar month and the invoice follows the billing period, so the next invoice is an estimate ("about").
+    /// The page shows each line to the cent, so the total and the next invoice are the sum of the lines as rounded, and always add up
+    /// on screen. The lines themselves keep every digit, so the page can say "Under $0.01" for use that rounds to nothing.
     /// </summary>
     internal static BillingThisMonth ThisMonth(BillingStatus status, BillingAiUsage ai, decimal trialCredit, string month)
     {
@@ -151,18 +153,21 @@ internal static class BillingEndpoints
         var planName = planAmount is null ? null : status.Plan?.Name;
         decimal? aiAmount = ai.Metered ? ai.Charge : null;
         var credit = aiAmount is { } billed ? Math.Min(billed, trialCredit) : 0m;
-        var aiNet = (aiAmount ?? 0m) - credit;
-        var total = (planAmount ?? 0m) + aiNet;
+        var aiNet = Cents(aiAmount ?? 0m) - Cents(credit);
+        var total = Cents(planAmount ?? 0m) + aiNet;
         decimal? next = null;
         if (renewing && status.CurrentPeriodEnd is not null)
         {
-            var amount = (status.CancelsAtPeriodEnd ? 0m : status.Plan?.MonthlyPrice ?? 0m) + aiNet;
+            var amount = Cents(status.CancelsAtPeriodEnd ? 0m : status.Plan?.MonthlyPrice ?? 0m) + aiNet;
             next = amount > 0m || !status.CancelsAtPeriodEnd ? amount : null;
         }
 
         return new BillingThisMonth(
             month, status.Plan?.Currency ?? "USD", planName, planAmount, ai.BuiltInCalls, aiAmount, credit, total, next,
             next is null ? null : status.CurrentPeriodEnd);
+
+        // As the page shows money (Intl's default rounds half away from zero too).
+        static decimal Cents(decimal amount) => Math.Round(amount, 2, MidpointRounding.AwayFromZero);
     }
 
     private static async Task<Results<Ok<BillingInvoiceList>, NotFound, ProblemHttpResult>> ListBillingInvoices(

@@ -529,7 +529,9 @@ in order:
   organization's own key and calls with no known price are each counted in a sentence of their own and are not charged. The footer says
   bringing your own key removes the charge, with a link to Verification to set it and one to the Activity log for the call-by-call list.
 
-Money always has two decimals ($79.00, $0.05). The page refetches when `BillingChanged` arrives (which invalidates the invoices and the card
+Money always has two decimals ($79.00, $0.05). This month so far shows each line to the cent and its total and next invoice are the sum
+of the lines as rounded, so the panel always adds up; AI use under a cent reads "Under $0.01" there and in the AI usage panel alike, and a
+credit that rounds to nothing has no line. The page refetches when `BillingChanged` arrives (which invalidates the invoices and the card
 too, by path) and when the browser returns from Checkout.
 
 A refused publish reaches a person at the three places a draft is opened (the jobs list, a job's page and its distribution

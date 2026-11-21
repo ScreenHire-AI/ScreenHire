@@ -54,7 +54,8 @@ public sealed record BillingAiUsage(
 /// This UTC month so far, added up (docs/architecture/billing.md, "The Billing page"), in <c>currency</c>. <c>planName</c> and
 /// <c>planAmount</c> are the plan's line: its monthly price while subscribed, 0 on the free trial, and null with no plan (ended).
 /// <c>aiCalls</c> and <c>aiAmount</c> are AI use on ScreenHire's key, null where it is not billed here. <c>trialCredit</c> is what the
-/// trial's allowance covers of that use, 0 or more. <c>total</c> is the plan, plus AI use, less the credit. <c>nextInvoiceAmount</c>
+/// trial's allowance covers of that use, 0 or more. <c>total</c> is the plan, plus AI use, less the credit, each to the cent first, so
+/// the lines shown add up to it. <c>nextInvoiceAmount</c>
 /// and <c>nextInvoiceAt</c> estimate the next invoice while a subscription runs: the next plan payment (none when it is set to end)
 /// plus this month's AI use, so the page says "about"; null when no invoice is coming.
 /// </summary>

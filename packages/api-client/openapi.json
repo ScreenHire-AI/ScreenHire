@@ -16021,7 +16021,7 @@
             "format": "int32"
           }
         },
-        "description": "Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost. Every cost here is the\none amount a customer sees for AI use: on ScreenHire's key what it is billed, on an own key the provider's price, an estimate."
+        "description": "Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost. Each call counts at the\none amount a customer sees for it: on ScreenHire's key what it is billed, on an own key the provider's price, an estimate. So\n`cost` here sums both keys; `byKeySource` keeps them apart, which is how the Usage tab shows them."
       },
       "AiUseDeclaration": {
         "enum": [
@@ -18193,7 +18193,7 @@
             "format": "date-time"
           }
         },
-        "description": "This UTC month so far, added up (docs/architecture/billing.md, \"The Billing page\"), in `currency`. `planName` and\n`planAmount` are the plan's line: its monthly price while subscribed, 0 on the free trial, and null with no plan (ended).\n`aiCalls` and `aiAmount` are AI use on ScreenHire's key, null where it is not billed here. `trialCredit` is what the\ntrial's allowance covers of that use, 0 or more. `total` is the plan, plus AI use, less the credit. `nextInvoiceAmount`\nand `nextInvoiceAt` estimate the next invoice while a subscription runs: the next plan payment (none when it is set to end)\nplus this month's AI use, so the page says \"about\"; null when no invoice is coming."
+        "description": "This UTC month so far, added up (docs/architecture/billing.md, \"The Billing page\"), in `currency`. `planName` and\n`planAmount` are the plan's line: its monthly price while subscribed, 0 on the free trial, and null with no plan (ended).\n`aiCalls` and `aiAmount` are AI use on ScreenHire's key, null where it is not billed here. `trialCredit` is what the\ntrial's allowance covers of that use, 0 or more. `total` is the plan, plus AI use, less the credit, each to the cent first, so\nthe lines shown add up to it. `nextInvoiceAmount`\nand `nextInvoiceAt` estimate the next invoice while a subscription runs: the next plan payment (none when it is set to end)\nplus this month's AI use, so the page says \"about\"; null when no invoice is coming."
       },
       "BoardMode": {
         "enum": [

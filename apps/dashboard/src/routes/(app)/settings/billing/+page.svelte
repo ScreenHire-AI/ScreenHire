@@ -27,6 +27,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import { formatCost } from '#lib/ai-usage.js';
   import { aiCallsText, aiMonthText, aiUsageNotes, billingStatus, formatMoney, mayChoosePlan, openJobsText, paymentMethodText, planLimitText, priceLine } from '#lib/billing.js';
   import { describeError } from '#lib/query.js';
 
@@ -181,10 +182,11 @@
                         >{aiCallsText(month.aiCalls)}</a
                       >
                     </span>
-                    <span class="tabular-nums">{formatMoney(month.aiAmount, month.currency)}</span>
+                    <!-- As the AI usage panel shows it, so a month of use under a cent reads "Under $0.01" in both. -->
+                    <span class="tabular-nums">{formatCost(month.aiAmount)}</span>
                   </li>
                 {/if}
-                {#if month.trialCredit > 0}
+                {#if Math.round(month.trialCredit * 100) > 0}
                   <li class="flex items-baseline justify-between gap-4 py-1.5">
                     <span>Included in your trial</span>
                     <span class="tabular-nums">{formatMoney(-month.trialCredit, month.currency)}</span>

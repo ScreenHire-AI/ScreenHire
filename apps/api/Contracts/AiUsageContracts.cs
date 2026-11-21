@@ -43,8 +43,9 @@ public sealed record AiUsageSummary(
     DateTimeOffset? LastCallAt);
 
 /// <summary>
-/// Calls, tokens and cost over a range. <c>cost</c> is in US dollars and counts only calls with a known cost. Every cost here is the
-/// one amount a customer sees for AI use: on ScreenHire's key what it is billed, on an own key the provider's price, an estimate.
+/// Calls, tokens and cost over a range. <c>cost</c> is in US dollars and counts only calls with a known cost. Each call counts at the
+/// one amount a customer sees for it: on ScreenHire's key what it is billed, on an own key the provider's price, an estimate. So
+/// <c>cost</c> here sums both keys; <c>byKeySource</c> keeps them apart, which is how the Usage tab shows them.
 /// </summary>
 public sealed record AiUsageTotals(int Calls, long InputTokens, long OutputTokens, decimal Cost, int CallsWithUnknownCost, int FailedCalls);
 

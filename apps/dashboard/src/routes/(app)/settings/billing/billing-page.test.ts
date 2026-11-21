@@ -341,6 +341,14 @@ describe('billing page', () => {
       expect(within(panel()).getByText(/Next invoice about/)).toHaveTextContent('Next invoice about $52.74 plus tax where it applies on Dec 5, 2026.');
     });
 
+    it('shows use under a cent as the AI panel does, and no credit line that rounds to nothing', async () => {
+      renderPage({ ...trial, aiUsage: { ...aiUsage, charge: 0.0042 }, thisMonth: { ...trialMonth, aiAmount: 0.0042, trialCredit: 0.0042, total: 0 } });
+
+      await screen.findByText('Free trial');
+      expect(charges()).toEqual(['Growth, free trial $0.00', 'AI use, 41 AI calls Under $0.01', 'Total so far $0.00']);
+      expect(screen.getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('41 AI calls, Under $0.01');
+    });
+
     it('leaves out a line for AI use that is not billed here and a plan that ended', async () => {
       renderPage({ ...trial, state: 'Ended', currentPlan: null, trialEndsAt: null, thisMonth: { ...trialMonth, planName: null, planAmount: null, aiAmount: null, trialCredit: 0 } });
 

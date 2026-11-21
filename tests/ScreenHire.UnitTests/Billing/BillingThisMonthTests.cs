@@ -48,6 +48,17 @@ public sealed class BillingThisMonthTests
     }
 
     [Fact]
+    public void The_total_and_the_next_invoice_are_the_lines_to_the_cent_so_the_page_adds_up()
+    {
+        // $149.00 + $6.00 - $5.00 on screen: the total is $150.00, never the $150.008 the unrounded lines make.
+        var month = BillingEndpoints.ThisMonth(Status(BillingState.Active), Ai(6.004m), 4.996m, "2026-11");
+
+        month.Total.Should().Be(150.00m);
+        month.NextInvoiceAmount.Should().Be(150.00m);
+        month.AiAmount.Should().Be(6.004m, "the line keeps its digits, so use under a cent can read as such");
+    }
+
+    [Fact]
     public void The_credit_never_takes_off_more_than_the_ai_use()
     {
         BillingEndpoints.ThisMonth(Status(BillingState.Trialing), Ai(1m), 5m, "2026-11").TrialCredit.Should().Be(1m);
