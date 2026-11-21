@@ -55,6 +55,14 @@ internal static class BillingEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status502BadGateway)
             .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/invoices", ListBillingInvoices).WithName("ListBillingInvoices")
+            .RequirePermission(Permission.ManageBilling)
+            .ProducesProblem(StatusCodes.Status502BadGateway)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/payment-method", GetBillingPaymentMethod).WithName("GetBillingPaymentMethod")
+            .RequirePermission(Permission.ManageBilling)
+            .ProducesProblem(StatusCodes.Status502BadGateway)
+            .Produces(StatusCodes.Status401Unauthorized);
 
         // The sandbox's own "Checkout" and "portal": mapped only when it is on, so the API's description never lists them.
         // Anonymous because the browser arrives by a plain navigation; the state in the address is signed and expires.
@@ -62,6 +70,10 @@ internal static class BillingEndpoints
         {
             app.MapGet(SandboxBillingProvider.CheckoutPath, CompleteSandboxCheckout).AllowAnonymous().ExcludeFromDescription();
             app.MapGet(SandboxBillingProvider.PortalPath, CompleteSandboxPortal).AllowAnonymous().ExcludeFromDescription();
+            // A sample invoice's PDF: for the Owner who may see the invoices, as the provider's own link is.
+            app.MapGet($"{SandboxBillingProvider.InvoicePdfPath}/{{id}}", SandboxInvoicePdf).ExcludeFromDescription()
+                .RequireAuthorization()
+                .RequirePermission(Permission.ManageBilling);
         }
 
         return app;
@@ -79,26 +91,31 @@ internal static class BillingEndpoints
     {
         if (!access.IsConfigured || await billing.StatusAsync(tenant.OrganizationId!.Value, cancellationToken) is not { } status)
         {
-            return TypedResults.Ok(new BillingOverview(false, false, null, null, null, null, null, false, 0, null, false, false, [], null));
+            return TypedResults.Ok(new BillingOverview(false, false, null, null, null, null, null, false, 0, null, false, false, [], null, null));
         }
 
         var now = time.GetUtcNow();
         var ai = options.Value.Ai;
-        var usage = await AiUsageBillingQueries.ThisMonthAsync(db, now, ai.Margin, cancellationToken);
+        var margin = options.Value.AiMarginInForce;
+        var usage = await AiUsageBillingQueries.ThisMonthAsync(db, now, margin, cancellationToken);
+        var metered = access.Mode == BillingMode.Sandbox || !string.IsNullOrWhiteSpace(ai.StripePriceId);
         var aiUsage = new BillingAiUsage(
             AiUsageQueries.Month(now),
             usage.BuiltInCalls,
-            usage.Tokens,
-            usage.ProviderCost,
             AiCharge.Dollars(usage.ChargeMicros),
-            ai.Margin * 100m,
             usage.CallsWithUnknownCost,
             usage.OwnKeyCalls,
             ai.TrialAllowance,
             AiCharge.Dollars(usage.TrialAllowanceUsedMicros),
-            access.Mode == BillingMode.Sandbox || !string.IsNullOrWhiteSpace(ai.StripePriceId));
+            metered);
 
         var renewing = status.State is BillingState.Active or BillingState.PastDue;
+        var account = (await billing.AccountAsync(tenant.OrganizationId!.Value, cancellationToken))!;
+        var trialCredit = metered
+            ? AiCharge.Dollars(await AiUsageBillingQueries.TrialCreditThisMonthAsync(
+                db, now, margin, account.TrialEndsAt, AiCharge.ToMicros(ai.TrialAllowance), usage.TrialAllowanceUsedMicros, cancellationToken))
+            : 0m;
+        var thisMonth = ThisMonth(status, aiUsage, trialCredit, AiUsageQueries.Month(now));
         return TypedResults.Ok(new BillingOverview(
             true,
             access.Mode == BillingMode.Sandbox,
@@ -113,7 +130,89 @@ internal static class BillingEndpoints
             status.HasCustomer && access.Mode == BillingMode.Stripe || renewing && access.Mode == BillingMode.Sandbox,
             options.Value.Stripe.Tax.Enabled,
             [.. catalogue.Plans.Select(p => ToContract(p, access.Mode))],
-            aiUsage));
+            aiUsage,
+            thisMonth));
+    }
+
+    /// <summary>
+    /// This month so far, added up: the plan's line (its price while subscribed, nothing on the trial, no line once ended), AI use on
+    /// ScreenHire's key where it is billed, less what the trial's allowance covers, and the next invoice while a subscription runs.
+    /// The month is the calendar month and the invoice follows the billing period, so the next invoice is an estimate ("about").
+    /// </summary>
+    internal static BillingThisMonth ThisMonth(BillingStatus status, BillingAiUsage ai, decimal trialCredit, string month)
+    {
+        var renewing = status.State is BillingState.Active or BillingState.PastDue;
+        decimal? planAmount = status.State switch
+        {
+            BillingState.Trialing => 0m,
+            BillingState.Active or BillingState.PastDue => status.Plan?.MonthlyPrice ?? 0m,
+            _ => null,
+        };
+        var planName = planAmount is null ? null : status.Plan?.Name;
+        decimal? aiAmount = ai.Metered ? ai.Charge : null;
+        var credit = aiAmount is { } billed ? Math.Min(billed, trialCredit) : 0m;
+        var aiNet = (aiAmount ?? 0m) - credit;
+        var total = (planAmount ?? 0m) + aiNet;
+        decimal? next = null;
+        if (renewing && status.CurrentPeriodEnd is not null)
+        {
+            var amount = (status.CancelsAtPeriodEnd ? 0m : status.Plan?.MonthlyPrice ?? 0m) + aiNet;
+            next = amount > 0m || !status.CancelsAtPeriodEnd ? amount : null;
+        }
+
+        return new BillingThisMonth(
+            month, status.Plan?.Currency ?? "USD", planName, planAmount, ai.BuiltInCalls, aiAmount, credit, total, next,
+            next is null ? null : status.CurrentPeriodEnd);
+    }
+
+    private static async Task<Results<Ok<BillingInvoiceList>, NotFound, ProblemHttpResult>> ListBillingInvoices(
+        BillingService billing, BillingAccess access, PlanCatalogue catalogue, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (!access.IsConfigured)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var account = (await billing.AccountAsync(tenant.OrganizationId!.Value, cancellationToken))!;
+        try
+        {
+            var invoices = await access.Provider.ListInvoicesAsync(
+                new InvoiceListRequest(account.OrganizationId, account.ProviderCustomerId, catalogue.Find(account.PlanKey), account.Status, account.CurrentPeriodEnd, time.GetUtcNow()),
+                cancellationToken);
+            return TypedResults.Ok(new BillingInvoiceList([
+                .. invoices.Select(i => new BillingInvoice(i.Id, i.CreatedAt, i.Amount, i.Currency, i.Status, i.PdfUrl?.OriginalString)),
+            ]));
+        }
+        catch (BillingProviderException)
+        {
+            return ProviderDidNotAnswer();
+        }
+    }
+
+    private static async Task<Results<Ok<BillingPaymentMethodView>, NotFound, ProblemHttpResult>> GetBillingPaymentMethod(
+        BillingService billing, BillingAccess access, ITenantContext tenant, CancellationToken cancellationToken)
+    {
+        if (!access.IsConfigured)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var account = (await billing.AccountAsync(tenant.OrganizationId!.Value, cancellationToken))!;
+        if (account.ProviderCustomerId is null)
+        {
+            return TypedResults.Ok(new BillingPaymentMethodView(null));
+        }
+
+        try
+        {
+            var method = await access.Provider.GetPaymentMethodAsync(
+                new PaymentMethodRequest(account.OrganizationId, account.ProviderCustomerId, account.ProviderSubscriptionId), cancellationToken);
+            return TypedResults.Ok(new BillingPaymentMethodView(method is null ? null : new BillingPaymentMethod(method.Type, method.Brand, method.Last4)));
+        }
+        catch (BillingProviderException)
+        {
+            return ProviderDidNotAnswer();
+        }
     }
 
     private static async Task<Results<Ok<BillingRedirect>, NotFound, ValidationProblem, ProblemHttpResult>> StartBillingCheckout(
@@ -307,8 +406,10 @@ internal static class BillingEndpoints
         return TypedResults.NoContent();
     }
 
+    // `intent` names the control that opened the portal (Change card, Cancel plan); the payment provider opens the same portal for each.
     private static async Task<Results<Ok<BillingRedirect>, NotFound, ProblemHttpResult>> OpenBillingPortal(
-        BillingService billing, BillingAccess access, ITenantContext tenant, IOptions<DomainOptions> domains, CancellationToken cancellationToken)
+        BillingService billing, BillingAccess access, ITenantContext tenant, IOptions<DomainOptions> domains, CancellationToken cancellationToken,
+        BillingPortalIntent intent = BillingPortalIntent.Manage)
     {
         if (!access.IsConfigured)
         {
@@ -324,7 +425,7 @@ internal static class BillingEndpoints
         try
         {
             var url = await access.Provider.CreatePortalAsync(
-                new PortalRequest(account.OrganizationId, account.ProviderCustomerId, domains.Value.AppUrl(SettingsPath)), cancellationToken);
+                new PortalRequest(account.OrganizationId, account.ProviderCustomerId, domains.Value.AppUrl(SettingsPath), intent), cancellationToken);
             return TypedResults.Ok(new BillingRedirect(url.OriginalString));
         }
         catch (BillingProviderException)
@@ -390,6 +491,12 @@ internal static class BillingEndpoints
             return TypedResults.BadRequest();
         }
 
+        // Changing the card changes nothing the sandbox keeps: it goes back to the Billing page as it was.
+        if (data.Intent == BillingPortalIntent.ChangeCard)
+        {
+            return TypedResults.Redirect(data.ReturnUrl);
+        }
+
         await BillingEventApplier.ApplyAsync(
             outbox, tenant, billing,
             new BillingProviderEvent(
@@ -397,6 +504,12 @@ internal static class BillingEndpoints
             cancellationToken);
         return TypedResults.Redirect(data.ReturnUrl);
     }
+
+    // A sample invoice's PDF in the sandbox. Only ids the sandbox makes are served, and they name no organization.
+    private static Results<FileContentHttpResult, NotFound> SandboxInvoicePdf(string id, BillingAccess access) =>
+        access.Mode == BillingMode.Sandbox && SandboxBillingProvider.SampleInvoicePdf(id) is { } pdf
+            ? TypedResults.File(pdf, "application/pdf", $"{id}.pdf")
+            : TypedResults.NotFound();
 
     private static BillingPlan ToContract(Plan plan, BillingMode mode) => new(
         plan.Key, plan.Name, plan.MonthlyPrice, plan.Currency, plan.ActiveJobs, plan.Unlimited,

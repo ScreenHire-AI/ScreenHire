@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using ScreenHire.Domain.Billing;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Persistence;
 
@@ -42,11 +44,25 @@ public static class AiUsageQueries
     }
 
     /// <summary>
-    /// What the organization's calls have used this month, in <paramref name="unit"/>. A call with an unknown cost counts
-    /// nothing toward dollars; the Usage tab says how many there are.
+    /// What a call comes to in the one amount a customer sees (<see cref="AiCharge.Billed"/>), as an expression Postgres runs inside a
+    /// sum: ScreenHire's key at its cost times (1 + <paramref name="margin"/>) rounded to a micro-dollar (Postgres rounds numeric half
+    /// away from zero, as the meter's pricing does), an own key at its cost. An unknown cost counts nothing.
+    /// </summary>
+    public static Expression<Func<AiUsageCall, decimal>> BilledAmount(decimal margin)
+    {
+        var factor = 1m + margin;
+        return c => c.KeySource == AiKeySource.BuiltIn
+            ? Math.Round((c.Cost ?? 0m) * factor * AiCharge.MicrosPerDollar) / AiCharge.MicrosPerDollar
+            : c.Cost ?? 0m;
+    }
+
+    /// <summary>
+    /// What the organization's calls have used this month, in <paramref name="unit"/>: tokens, or billed dollars at
+    /// <paramref name="margin"/> (<see cref="BilledAmount"/>). A call with an unknown cost counts nothing toward dollars; the Usage tab
+    /// says how many there are.
     /// </summary>
     public static async Task<decimal> UsedThisMonthAsync(
-        this ScreenHireDbContext db, UsageUnit unit, DateTimeOffset now, CancellationToken cancellationToken)
+        this ScreenHireDbContext db, UsageUnit unit, decimal margin, DateTimeOffset now, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
         if (unit == UsageUnit.Tokens)
@@ -57,7 +73,7 @@ public static class AiUsageQueries
         var monthStart = MonthStart(now);
         return await db.AiUsageCalls.AsNoTracking()
             .Where(c => c.OccurredAt >= monthStart)
-            .SumAsync(c => c.Cost ?? 0m, cancellationToken);
+            .SumAsync(BilledAmount(margin), cancellationToken);
     }
 
     /// <summary>Tokens used on each UTC day in [<paramref name="from"/>, <paramref name="to"/>), by day start. Days with no use are absent.</summary>

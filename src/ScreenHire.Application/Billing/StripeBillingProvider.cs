@@ -132,6 +132,95 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
     }
 
     /// <summary>
+    /// The customer's invoices (https://docs.stripe.com/api/invoices/list), the newest 24, newest first as Stripe lists them. A draft
+    /// is not an invoice the customer has seen, so it is left out. <c>paid</c> is Paid, <c>open</c> and <c>uncollectible</c> are Due
+    /// (an uncollectible invoice is still owed; Stripe has only stopped retrying it) and <c>void</c> is Void. The amount is the
+    /// invoice's <c>total</c>, tax included, and the link is Stripe's own <c>invoice_pdf</c>.
+    /// </summary>
+    public async Task<IReadOnlyList<ProviderInvoice>> ListInvoicesAsync(InvoiceListRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrEmpty(request.CustomerId))
+        {
+            return [];
+        }
+
+        var list = await SendAsync(HttpMethod.Get, $"invoices?customer={Uri.EscapeDataString(request.CustomerId)}&limit=24", null, null, cancellationToken);
+        var invoices = new List<ProviderInvoice>();
+        if (!list.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+        {
+            return invoices;
+        }
+
+        foreach (var invoice in data.EnumerateArray())
+        {
+            BillingInvoiceStatus? status = Text(invoice, "status") switch
+            {
+                "paid" => BillingInvoiceStatus.Paid,
+                "open" or "uncollectible" => BillingInvoiceStatus.Due,
+                "void" => BillingInvoiceStatus.Void,
+                _ => null,
+            };
+            if (status is not { } known || Text(invoice, "id") is not { } id || Text(invoice, "currency") is not { } currency
+                || !invoice.TryGetProperty("created", out var created) || !invoice.TryGetProperty("total", out var total))
+            {
+                continue;
+            }
+
+            invoices.Add(new ProviderInvoice(
+                id,
+                DateTimeOffset.FromUnixTimeSeconds(created.GetInt64()),
+                MajorUnits(total.GetInt64(), currency),
+                currency.ToUpperInvariant(),
+                known,
+                Uri.TryCreate(Text(invoice, "invoice_pdf"), UriKind.Absolute, out var pdf) && pdf.Scheme == Uri.UriSchemeHttps ? pdf : null));
+        }
+
+        return invoices;
+    }
+
+    /// <summary>
+    /// The payment method the subscription is charged to. Stripe charges the subscription's <c>default_payment_method</c> first and
+    /// the customer's <c>invoice_settings.default_payment_method</c> when it has none
+    /// (https://docs.stripe.com/api/subscriptions/update#update_subscription-default_payment_method), so both are read, expanded, in
+    /// one call. A card gives its network and last four digits; any other method gives only its type.
+    /// </summary>
+    public async Task<ProviderPaymentMethod?> GetPaymentMethodAsync(PaymentMethodRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        JsonElement? method = null;
+        if (!string.IsNullOrEmpty(request.SubscriptionId))
+        {
+            var subscription = await SendAsync(
+                HttpMethod.Get,
+                $"subscriptions/{Uri.EscapeDataString(request.SubscriptionId)}?expand[]=default_payment_method&expand[]=customer.invoice_settings.default_payment_method",
+                null, null, cancellationToken);
+            method = ObjectAt(subscription, "default_payment_method")
+                ?? (ObjectAt(subscription, "customer") is { } customer && ObjectAt(customer, "invoice_settings") is { } settings
+                    ? ObjectAt(settings, "default_payment_method")
+                    : null);
+        }
+        else if (!string.IsNullOrEmpty(request.CustomerId))
+        {
+            var customer = await SendAsync(
+                HttpMethod.Get, $"customers/{Uri.EscapeDataString(request.CustomerId)}?expand[]=invoice_settings.default_payment_method", null, null, cancellationToken);
+            method = ObjectAt(customer, "invoice_settings") is { } settings ? ObjectAt(settings, "default_payment_method") : null;
+        }
+
+        if (method is not { } found || Text(found, "type") is not { } type)
+        {
+            return null;
+        }
+
+        var card = type == "card" ? ObjectAt(found, "card") : null;
+        return new ProviderPaymentMethod(type, card is { } c ? Text(c, "brand") : null, card is { } d ? Text(d, "last4") : null);
+    }
+
+    // An expanded object at `name`, or null when it is missing, null or still an id.
+    private static JsonElement? ObjectAt(JsonElement element, string name) =>
+        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Object ? value : null;
+
+    /// <summary>
     /// One meter event per call (https://docs.stripe.com/api/billing/meter-event/create), sent one after the other: Stripe answers 409
     /// when two events for one customer and meter arrive at once. The ledger call's id is the event's <c>identifier</c>, which Stripe
     /// deduplicates for 24 hours (a repeat is a 400 <c>duplicate_meter_event</c>, and counts as taken: it was). The value is the charge

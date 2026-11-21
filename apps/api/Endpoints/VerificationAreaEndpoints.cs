@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Verification;
+using ScreenHire.Domain.Billing;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Persistence;
@@ -92,7 +95,7 @@ internal static class VerificationAreaHandlers
     }
 
     public static async Task<Results<Ok<VerificationActivityPage>, ValidationProblem>> Activity(
-        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken,
+        ScreenHireDbContext db, ITenantContext tenant, IOptions<BillingOptions> billing, CancellationToken cancellationToken,
         DateTimeOffset? from = null, DateTimeOffset? to = null, CheckGroup? group = null, AiKeySource? keySource = null,
         VerificationActivityOutcome? outcome = null, string? before = null, int? limit = null)
     {
@@ -125,13 +128,13 @@ internal static class VerificationAreaHandlers
         var runs = await RunsAsync(db, from, to, group, keySource, outcome, cursor, take + 1, cancellationToken);
         var calls = await CallsAsync(db, usageVisible, from, to, group, keySource, outcome, cursor, take + 1, cancellationToken);
         var (page, more) = VerificationActivity.MergePage(runs, calls, take, e => e.At, e => e.Id);
-        var entries = await ToEntriesAsync(db, page, usageVisible, cancellationToken);
+        var entries = await ToEntriesAsync(db, page, usageVisible, billing.Value.AiMarginInForce, cancellationToken);
         var next = more && page.Count > 0 ? new VerificationActivity.Cursor(page[^1].At, page[^1].Id).Encode() : null;
         return TypedResults.Ok(new VerificationActivityPage(entries, next, usageVisible));
     }
 
     public static async Task<Results<FileContentHttpResult, ValidationProblem>> Export(
-        ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken,
+        ScreenHireDbContext db, ITenantContext tenant, IOptions<BillingOptions> billing, TimeProvider time, CancellationToken cancellationToken,
         DateTimeOffset? from = null, DateTimeOffset? to = null, CheckGroup? group = null, AiKeySource? keySource = null,
         VerificationActivityOutcome? outcome = null)
     {
@@ -145,7 +148,7 @@ internal static class VerificationAreaHandlers
         var runs = await RunsAsync(db, from, to, group, keySource, outcome, null, MaxExportRows + 1, cancellationToken);
         var calls = await CallsAsync(db, usageVisible, from, to, group, keySource, outcome, null, MaxExportRows + 1, cancellationToken);
         var (page, more) = VerificationActivity.MergePage(runs, calls, MaxExportRows, e => e.At, e => e.Id);
-        var entries = await ToEntriesAsync(db, page, usageVisible, cancellationToken);
+        var entries = await ToEntriesAsync(db, page, usageVisible, billing.Value.AiMarginInForce, cancellationToken);
 
         var csv = new AiUsageCsv();
         csv.Row(
@@ -284,7 +287,7 @@ internal static class VerificationAreaHandlers
     }
 
     private static async Task<List<VerificationActivityEntry>> ToEntriesAsync(
-        ScreenHireDbContext db, IReadOnlyList<Row> rows, bool usageVisible, CancellationToken cancellationToken)
+        ScreenHireDbContext db, IReadOnlyList<Row> rows, bool usageVisible, decimal margin, CancellationToken cancellationToken)
     {
         var ids = rows.Where(r => r.ApplicationId is not null).Select(r => r.ApplicationId!.Value).Distinct().ToList();
         var titles = ids.Count == 0
@@ -298,7 +301,8 @@ internal static class VerificationAreaHandlers
                 r.Id, r.Kind, r.At, r.Group, r.Check, r.Outcome, r.Note, r.ApplicationId,
                 r.ApplicationId is { } id && titles.TryGetValue(id, out var title) ? title : null,
                 usageVisible && r.Call is { } c
-                    ? new VerificationActivityCall(c.KeySource, c.Provider, c.Model, c.ProviderRequestId, c.InputTokens, c.OutputTokens, c.Cost, c.DurationMs, c.ErrorKind)
+                    ? new VerificationActivityCall(c.KeySource, c.Provider, c.Model, c.ProviderRequestId, c.InputTokens, c.OutputTokens,
+                        AiCharge.Billed(c.Cost, c.KeySource, margin), c.DurationMs, c.ErrorKind)
                     : null)),
         ];
     }

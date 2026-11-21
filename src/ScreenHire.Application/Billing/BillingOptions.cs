@@ -54,6 +54,13 @@ public sealed class BillingOptions
         !string.IsNullOrWhiteSpace(SecretKey) && !string.IsNullOrWhiteSpace(WebhookSecret) ? BillingMode.Stripe
         : Sandbox.Enabled ? BillingMode.Sandbox
         : BillingMode.Off;
+
+    /// <summary>
+    /// The margin on AI use that a customer pays: <see cref="BillingAiOptions.Margin"/> while billing is on, and 0 while it is off,
+    /// because then nobody is billed and the amount shown is the provider's price. Every figure for AI use goes through it, so the
+    /// Usage tab, the budget and cap, and the Billing page show the one amount the meter is sent (docs/architecture/ai-usage.md).
+    /// </summary>
+    public decimal AiMarginInForce => Mode == BillingMode.Off ? 0m : Ai.Margin;
 }
 
 /// <summary>

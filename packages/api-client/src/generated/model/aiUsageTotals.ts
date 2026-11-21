@@ -6,7 +6,8 @@
  */
 
 /**
- * Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost.
+ * Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost. Every cost here is the
+ * one amount a customer sees for AI use: on ScreenHire's key what it is billed, on an own key the provider's price, an estimate.
  */
 export interface AiUsageTotals {
   calls: number;

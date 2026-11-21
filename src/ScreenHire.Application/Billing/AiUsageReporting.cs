@@ -215,6 +215,39 @@ public static class AiUsageBillingQueries
         return new AiUsageBillingSummary(
             builtIn?.Calls ?? 0, builtIn?.Tokens ?? 0, builtIn?.Cost ?? 0m, (long)(builtIn?.Micros ?? 0m), builtIn?.Unknown ?? 0, ownKey, waived);
     }
+
+    /// <summary>
+    /// What the free trial's allowance covers of this UTC month's use, in micro-dollars: the calls already settled as waived, and the
+    /// trial calls still waiting, planned as the report will settle them (<see cref="AiChargePlanner"/>, oldest first within the report's
+    /// window, after what earlier reports waived). So the Billing page's total leaves out what the first invoice will.
+    /// </summary>
+    public static async Task<long> TrialCreditThisMonthAsync(
+        ScreenHireDbContext db, DateTimeOffset now, decimal margin, DateTimeOffset trialEndsAt, long allowanceMicros, long alreadyWaivedMicros,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(db);
+        var monthStart = AiUsageQueries.MonthStart(now);
+        var settled = await db.AiUsageCharges.AsNoTracking()
+            .Where(x => x.State == AiChargeState.Waived)
+            .Join(db.AiUsageCalls, x => x.Id, c => c.Id, (x, c) => new { x.Micros, c.OccurredAt })
+            .Where(x => x.OccurredAt >= monthStart)
+            .SumAsync(x => x.Micros, cancellationToken);
+        if (allowanceMicros <= 0)
+        {
+            return settled;
+        }
+
+        var floor = now - ReportOrganizationAiUsageHandler.ReportWindow;
+        var pending = await db.AiUsageCalls.AsNoTracking()
+            .Where(c => c.KeySource == AiKeySource.BuiltIn && c.Cost != null && c.OccurredAt >= floor && c.OccurredAt < trialEndsAt
+                && !db.AiUsageCharges.Any(x => x.Id == c.Id))
+            .Select(c => new { c.Id, c.OccurredAt, c.Cost })
+            .ToListAsync(cancellationToken);
+        var occurred = pending.ToDictionary(c => c.Id, c => c.OccurredAt);
+        var planned = AiChargePlanner.Plan(
+            pending.Select(c => new PendingAiCall(c.Id, c.OccurredAt, AiCharge.Micros(c.Cost, margin))), trialEndsAt, allowanceMicros, alreadyWaivedMicros);
+        return settled + planned.Where(d => d.State == AiChargeState.Waived && occurred[d.Id] >= monthStart).Sum(d => d.Micros);
+    }
 }
 
 public static class AiUsageBillingRegistration
