@@ -40,11 +40,14 @@ const workflow: HiringWorkflow = {
         { type: 'MoveToStage', stageId: 'interview' },
       ],
     },
-    { id: 'hello', name: 'Hello', trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'New' }], enabled: false },
+    { id: 'hello', name: 'Hello', trigger: { type: 'Manual' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'New' }], enabled: false },
   ],
 };
 
-/** A workflow of any size: every third automation has a condition, every other one moves the application on. */
+/**
+ * A workflow of any size: every third automation has a condition, every other one moves the application on, and some run
+ * by hand, so they hang in the Any stage band below the stages and their moves rise past the stages' columns.
+ */
 function large(stageCount: number, automationCount: number): HiringWorkflow {
   const stages = Array.from({ length: stageCount }, (_, i) => ({ id: `s${i}`, name: `Stage ${i}`, kind: 'Custom' as const }));
   const automations = Array.from({ length: automationCount }, (_, i): Automation => {
@@ -52,7 +55,7 @@ function large(stageCount: number, automationCount: number): HiringWorkflow {
     return {
       id: `a${i}`,
       name: `Automation ${i}`,
-      trigger: stage ? { type: 'StageEntered', stageId: stage } : { type: 'ApplicationSubmitted' },
+      trigger: stage ? { type: 'StageEntered', stageId: stage } : { type: 'Manual' },
       conditions: i % 3 === 0 ? { match: 'All', rules: [{ fact: 'application.tags', operator: 'Contains', value: 'x' }] } : null,
       actions: [{ type: 'AddTag', tag: `t${i}` }, ...(i % 2 === 0 ? [{ type: 'MoveToStage' as const, stageId: `s${(i * 7 + 3) % stageCount}` }] : [])],
     };
@@ -109,21 +112,77 @@ function expectGeometry(graph: Graph) {
 }
 
 describe('toGraph layout', () => {
-  it('lays the whole-workflow lane and then the stages out left to right on one row', () => {
+  it('lays the stages out left to right on one row', () => {
     const { nodes } = toGraph(workflow);
 
-    const headers = nodes.filter((candidate) => candidate.data.kind === 'lane' || candidate.data.kind === 'stage');
-    expect(headers.map((candidate) => candidate.data.title)).toEqual(['Whole workflow', 'Applied', 'Screening', 'Interview']);
+    const headers = nodes.filter((candidate) => candidate.data.kind === 'stage');
+    expect(headers.map((candidate) => candidate.data.title)).toEqual(['Applied', 'Screening', 'Interview']);
     expect(new Set(headers.map((candidate) => candidate.position.y)).size).toBe(1);
     // A stage is its name: the kind it was made from (Screening, Assessment) is the engine's word, not the team's.
-    expect(headers.map((candidate) => candidate.data.detail)).toEqual(['', '', '', '']);
+    expect(headers.map((candidate) => candidate.data.detail)).toEqual(['', '', '']);
     expect(new Set(headers.map((candidate) => candidate.height)).size).toBe(1);
     const xs = headers.map((candidate) => candidate.position.x);
     expect(xs).toEqual([...xs].sort((a, b) => a - b));
     expect(new Set(xs).size).toBe(xs.length);
   });
 
-  it('links the stages in pipeline order with a line to the right, and the lane to no stage', () => {
+  describe('where an automation hangs', () => {
+    const placed: HiringWorkflow = {
+      ...workflow,
+      automations: [
+        { id: 'thanks', name: 'Thanks', trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'New' }] },
+        { id: 'checked', name: 'Checked', trigger: { type: 'VerificationAssessed' }, conditions: null, actions: [{ type: 'AddTag', tag: 'checked' }] },
+        { id: 'late', name: 'Late', trigger: { type: 'SlaBreached', stageId: 'screening' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'Late' }] },
+        { id: 'by-hand', name: 'By hand', trigger: { type: 'Manual' }, conditions: null, actions: [{ type: 'MoveToStage', stageId: 'interview' }] },
+        { id: 'any-late', name: 'Any late', trigger: { type: 'SlaBreached' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'Late' }] },
+        { id: 'gone', name: 'Gone', trigger: { type: 'StageEntered', stageId: 'deleted' }, conditions: null, actions: [{ type: 'AddTag', tag: 'x' }] },
+      ],
+    };
+
+    it('puts an arriving application and the checks under Applied, and a time limit under its stage', () => {
+      const graph = toGraph(placed);
+
+      expect(links(graph)).toEqual(expect.arrayContaining(['stage:applied>thanks:trigger', 'stage:applied>checked:trigger', 'stage:screening>late:trigger']));
+    });
+
+    it("hangs a manual run, any stage's time limit and one whose stage is gone in the Any stage band, below every stage chain", () => {
+      const graph = toGraph(placed, { editable: true });
+      const band = node(graph, LANE_NODE);
+
+      expect(band.data).toMatchObject({ kind: 'lane', title: 'Any stage', lane: null });
+      expect(links(graph)).toEqual(expect.arrayContaining([`${LANE_NODE}>by-hand:trigger`, `${LANE_NODE}>any-late:trigger`, `${LANE_NODE}>gone:trigger`]));
+      const stageChains = graph.nodes.filter((candidate) => candidate.data.band !== 'lane');
+      const deepest = Math.max(...stageChains.map((candidate) => candidate.position.y + candidate.height!));
+      expect(band.position.y).toBeGreaterThan(deepest);
+      expect(band.position.x).toBe(node(graph, 'stage:applied').position.x);
+      expectGeometry(graph);
+    });
+
+    it("joins the band to no stage, and stands its columns on the stages' columns", () => {
+      const graph = toGraph(placed);
+      const stageXs = new Set(graph.nodes.filter((candidate) => candidate.data.kind === 'stage' || candidate.data.band !== 'lane').map((candidate) => candidate.position.x));
+
+      expect(graph.edges.some((edge) => edge.data!.kind === 'order' && (edge.source === LANE_NODE || edge.target === LANE_NODE))).toBe(false);
+      for (const id of ['by-hand:trigger', 'any-late:trigger', 'gone:trigger']) expect(stageXs.has(node(graph, id).position.x), id).toBe(true);
+    });
+
+    it('routes a move out of the band up past the stages and down into its stage, through no node', () => {
+      const graph = toGraph(placed, { editable: true });
+      const points = graph.edges.find((edge) => edge.id === 'by-hand:action:0:moves')!.data!.points;
+
+      expect(points.at(-1)!.y).toBe(node(graph, 'stage:interview').position.y);
+      expect(points[0]!.y).toBeGreaterThan(node(graph, LANE_NODE).position.y);
+      expectGeometry(graph);
+    });
+
+    it('leaves the band out while nothing is in it', () => {
+      const graph = toGraph({ ...placed, automations: placed.automations.slice(0, 3) }, { editable: true });
+
+      expect(graph.nodes.some((candidate) => candidate.data.band === 'lane')).toBe(false);
+    });
+  });
+
+  it('links the stages in pipeline order with a line to the right, and the Any stage band to no stage', () => {
     const graph = toGraph(workflow);
 
     const order = graph.edges.filter((edge) => edge.data!.kind === 'order');
@@ -375,7 +434,7 @@ describe('the plus buttons', () => {
     expect(node(graph, 'add:screening').data.lane).toBe('screening');
     expect(node(graph, 'hello:add-condition').data.label).toBe('Add a condition to Hello');
     expect(node(graph, 'advance:add-action').data.label).toBe('Add an action to Advance');
-    expect(node(graph, 'add:lane').data.label).toBe('Add an automation to the whole workflow');
+    expect(node(graph, 'add:lane').data.label).toBe('Add an automation to any stage');
   });
 
   it('sit on the line they add to, between the trigger and the first action', () => {
@@ -490,11 +549,11 @@ describe('graph edits', () => {
     expect(links(toGraph(added))).toContain(`stage:interview>${id}:trigger`);
   });
 
-  it('adds an automation to the whole workflow, on an arriving application', () => {
+  it('adds an automation with no stage on an arriving application, which hangs under Applied', () => {
     const { workflow: added, id } = addAutomation(workflow, null);
 
     expect(added.automations.at(-1)!.trigger).toEqual({ type: 'ApplicationSubmitted' });
-    expect(links(toGraph(added))).toContain(`${LANE_NODE}>${id}:trigger`);
+    expect(links(toGraph(added))).toContain(`stage:applied>${id}:trigger`);
   });
 
   it("adds a condition the way the form's Add condition does, and the projection then draws an If", () => {
@@ -581,17 +640,20 @@ describe('moving between nodes by key', () => {
   });
 
   it('goes across to the nearest column, level with where it was, with Right and Left', () => {
-    expect(from(LANE_NODE, 'ArrowRight')).toBe('stage:applied');
     expect(from('stage:applied', 'ArrowRight')).toBe('stage:screening');
-    expect(from('hello:action:0', 'ArrowRight')).toBe('add:applied');
     expect(from('stage:screening', 'ArrowLeft')).toBe('stage:applied');
-    expect(from(LANE_NODE, 'ArrowLeft')).toBeNull();
-    expect(from('stage:interview', 'ArrowRight')).toBeNull();
+    expect(from('stage:applied', 'ArrowLeft')).toBeNull();
+    // The Any stage band's columns come after the stages', so Right from the last stage reaches it, and Up and Down
+    // never leave a stage's column for it.
+    expect(from('stage:interview', 'ArrowRight')).toBe(LANE_NODE);
+    expect(from(LANE_NODE, 'ArrowLeft')).toBe('stage:interview');
+    expect(from(LANE_NODE, 'ArrowRight')).toBeNull();
+    expect(from('add:applied', 'ArrowDown')).toBeNull();
   });
 
   it('goes to the first and last node with Home and End, and ignores other keys', () => {
-    expect(from('advance:action:0', 'Home')).toBe(LANE_NODE);
-    expect(from(LANE_NODE, 'End')).toBe(nodes.at(-1)!.id);
+    expect(from(LANE_NODE, 'Home')).toBe('stage:applied');
+    expect(from('stage:applied', 'End')).toBe(nodes.at(-1)!.id);
     expect(from(LANE_NODE, 'Enter')).toBeNull();
     expect(from('missing', 'ArrowRight')).toBeNull();
   });
@@ -599,8 +661,9 @@ describe('moving between nodes by key', () => {
   it('lists the nodes in reading order, a band at a time, which is also the order Tab visits them', () => {
     const ids = nodes.map((candidate) => candidate.id);
 
-    expect(ids.indexOf(LANE_NODE)).toBe(0);
-    expect(ids.indexOf('hello:trigger')).toBeLessThan(ids.indexOf('stage:applied'));
+    expect(ids.indexOf('stage:applied')).toBe(0);
+    expect(ids.indexOf('stage:interview')).toBeLessThan(ids.indexOf(LANE_NODE));
+    expect(ids.indexOf(LANE_NODE)).toBeLessThan(ids.indexOf('hello:trigger'));
     expect(ids.indexOf('stage:screening')).toBeLessThan(ids.indexOf('advance:trigger'));
     expect(ids.indexOf('advance:action:1')).toBeLessThan(ids.indexOf('stage:interview'));
   });

@@ -20,5 +20,5 @@
 <Panel position="top-left" data-graph-controls class="flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-surface">
   <IconButton label="Zoom in" onclick={() => flow.zoomIn()}><ZoomInIcon /></IconButton>
   <IconButton label="Zoom out" onclick={() => flow.zoomOut()}><ZoomOutIcon /></IconButton>
-  <IconButton label="Fit the whole workflow" onclick={fit}><MaximizeIcon /></IconButton>
+  <IconButton label="Fit the whole pipeline" onclick={fit}><MaximizeIcon /></IconButton>
 </Panel>

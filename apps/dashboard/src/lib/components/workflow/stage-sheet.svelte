@@ -3,14 +3,13 @@
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import ChevronDownIcon from '~icons/lucide/chevron-down';
   import Trash2Icon from '~icons/lucide/trash-2';
-  import ZapIcon from '~icons/lucide/zap';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
-  import { automationsAt } from '#lib/journey-text.js';
+  import { stageFacts, whenOverdue } from '#lib/stage-facts.js';
   import {
     canRemindIn,
     defaultMeetingName,
@@ -25,17 +24,17 @@
     stageKinds,
     syncReminder,
     timeLimitChoices,
-    timeLimitLabel,
   } from '#lib/workflow.js';
   import { labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
   import ScorecardName from './scorecard-name.svelte';
+  import StageFactList from './stage-fact-list.svelte';
 
-  // One stage's sheet (design system section 11, Stage sheet): its name, time limit, scorecard and the automations that
-  // run there, with the stage's kind under More options. It opens in place from a stage card or an Overview column and
-  // saves with the workflow, so Done is the only primary (A1) and there is no subtitle. A stage's kind follows its name
-  // until someone sets it by hand. The time limit is plain choices; setting one gives the stage a reminder for the team
-  // (`syncReminder`), which is what the sentence under the choices says.
+  // One stage's sheet (design system section 11, Stage sheet): its name, how soon the team should respond, scorecard and
+  // the automations that run there, with the stage's kind under More options. It opens in place from a stage card and
+  // saves with the pipeline, so Done is the only primary (A1) and there is no subtitle. A stage's kind follows its name
+  // until someone sets it by hand. Respond within is plain choices; setting one gives the stage a reminder for the team
+  // (`syncReminder`), and "When overdue" under it says what runs once the time passes, or offers to add a reminder.
   let {
     workflow = $bindable(),
     stageId = $bindable(),
@@ -44,6 +43,9 @@
     onautomations,
     onremove,
     automationsHref,
+    automationHref,
+    onreminder,
+    onshow,
   }: {
     workflow: HiringWorkflow;
     /** The stage the sheet shows, or null while it is closed. */
@@ -57,6 +59,12 @@
     onremove: (index: number) => void;
     /** The Automations tab, where every automation of the workflow is listed. */
     automationsHref: string;
+    /** Where one automation's line links to: it on the Automations tab. */
+    automationHref?: (automationId: string) => string;
+    /** Adds a reminder for when the stage's time limit passes, and opens it on the Automations tab. */
+    onreminder?: (stageId: string) => void;
+    /** Opens an automation on the Automations tab instead of following its link. */
+    onshow?: (automationId: string) => void;
   } = $props();
 
   const index = $derived(workflow.stages.findIndex((stage) => stage.id === stageId));
@@ -72,8 +80,10 @@
 
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
-  // The reminder the sheet keeps for the time limit is the sentence under the choices, so it is not listed again (W7).
-  const here = $derived(stageId ? automationsAt(workflow, stageId, templateNames, false) : []);
+  // What runs here, as the card says it: each email and each automation's short label. The reminder the sheet keeps for
+  // the time limit is under "When overdue", so it is not listed again (W7).
+  const here = $derived(stage ? stageFacts(workflow, stage, templateNames).filter((fact) => fact.kind === 'email' || fact.kind === 'automation') : []);
+  const overdue = $derived(stage ? whenOverdue(workflow, stage.id, templateNames) : []);
 
   let otherChosen = $state(false);
   let more = $state(false);
@@ -129,9 +139,9 @@
     syncReminders();
   }
 
-  const reminderSaid = $derived(
-    stage && stage.slaDays && !isTerminal(stage.kind) && canRemindIn(workflow, stage.id) ? `The team gets a reminder after ${timeLimitLabel(stage.slaDays)}.` : null,
-  );
+  // Once a time limit is set: what runs when it passes, or, where a reminder may run, the offer to add one. A stage a check
+  // moves candidates into may not hold one (the guardrail), so it says neither.
+  const remindable = $derived(Boolean(stage && stage.slaDays && !isTerminal(stage.kind) && canRemindIn(workflow, stage.id)));
   // The meeting's name is optional: an empty box removes it, and the meeting is called "interview" again.
   function setMeetingName(raw: string) {
     if (!stage) return;
@@ -162,7 +172,7 @@
 
         {#if !isTerminal(stage.kind)}
           <div class="flex flex-col gap-2">
-            <span id="stage-limit-label" class="text-body font-semibold text-secondary-foreground">Time limit</span>
+            <span id="stage-limit-label" class="text-body font-semibold text-secondary-foreground">Respond within</span>
             <ToggleGroup.Root
               type="single"
               variant="outline"
@@ -171,6 +181,7 @@
               value={choice}
               onValueChange={chooseLimit}
               aria-labelledby="stage-limit-label"
+              aria-describedby="stage-limit-help"
               class="flex max-w-full flex-wrap"
             >
               {#each timeLimitChoices as option (option.label)}
@@ -184,7 +195,20 @@
                 <Input type="number" min={1} max={365} value={stage.slaDays ?? ''} onchange={(event) => setOther(event.currentTarget.value)} />
               </label>
             {/if}
-            {#if reminderSaid}<p class="text-muted-foreground">{reminderSaid}</p>{/if}
+            <p id="stage-limit-help" class="text-muted-foreground">
+              How long a candidate should wait here before your team moves them on. After that they show as Overdue. Nothing happens to the candidate.
+            </p>
+            {#if stage.slaDays && overdue.length > 0}
+              <div data-when-overdue class="flex flex-col gap-1">
+                <span class="font-semibold">When overdue</span>
+                <StageFactList facts={overdue} {automationHref} {onshow} />
+              </div>
+            {:else if remindable}
+              <p data-when-overdue class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span><span class="font-semibold">When overdue:</span> Nothing yet.</span>
+                {#if onreminder}<Button variant="outline" onclick={() => stageId && onreminder(stageId)}>Add a reminder</Button>{/if}
+              </p>
+            {/if}
           </div>
 
           <div class="flex flex-col gap-2">
@@ -217,13 +241,7 @@
 
         <div class="flex flex-col gap-2">
           <span class="text-body font-semibold text-secondary-foreground">Automations</span>
-          {#if here.length > 0}
-            <ul class="flex flex-col gap-1.5">
-              {#each here as line (line.index)}
-                <li class="flex items-start gap-1.5 break-words"><ZapIcon aria-hidden="true" class="mt-0.5 shrink-0 text-primary" /><span class="min-w-0">{line.text}</span></li>
-              {/each}
-            </ul>
-          {/if}
+          <StageFactList facts={here} {automationHref} {onshow} />
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Button variant="outline" onclick={() => stageId && onautomations(stageId)}>Add an automation</Button>
             <a href={automationsHref} class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center" onclick={() => (stageId = null)}>Open in Automations</a>

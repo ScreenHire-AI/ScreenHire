@@ -56,7 +56,7 @@ const email = (id: string, name: string, overrides: Partial<EmailTemplateEntry> 
 });
 
 const hiringTemplates = [
-  hiring('t-own', 'Brightwater engineering', { description: 'How we hire engineers', draftVersion: 2 }),
+  hiring('t-own', 'Brightwater engineering', { description: 'How we hire engineers', latestPublishedVersion: 2, draftVersion: 3 }),
   hiring('t-system', 'Hourly role', { isSystem: true, lastUpdated: { at: '2026-09-20T09:00:00Z', by: 'ScreenHire' } }),
   hiring('t-old', 'Summer interns 2025'),
   hiring('t-gone', 'Winter interns', { archived: true }),
@@ -74,7 +74,15 @@ const emailList: EmailTemplateList = {
 
 const usage: TemplateUsageList = {
   hiring: [
-    { templateId: 't-own', usedBy: [{ kind: 'Job', id: 'j-1', name: 'Senior .NET Engineer' }, { kind: 'Job', id: 'j-2', name: 'Platform Engineer' }], lastUsedAt: '2026-10-20T09:00:00Z', notUsedRecently: false },
+    {
+      templateId: 't-own',
+      usedBy: [
+        { kind: 'Job', id: 'j-1', name: 'Senior .NET Engineer', templateVersion: 2, workflowVersion: 1 },
+        { kind: 'Job', id: 'j-2', name: 'Platform Engineer', templateVersion: 1, workflowVersion: 3 },
+      ],
+      lastUsedAt: '2026-10-20T09:00:00Z',
+      notUsedRecently: false,
+    },
     { templateId: 't-system', usedBy: [{ kind: 'Job', id: 'j-3', name: 'Barista' }], lastUsedAt: '2026-10-10T09:00:00Z', notUsedRecently: false },
     { templateId: 't-old', usedBy: [], lastUsedAt: '2025-06-02T09:00:00Z', notUsedRecently: true },
     { templateId: 't-gone', usedBy: [], lastUsedAt: null, notUsedRecently: false },
@@ -114,14 +122,17 @@ afterEach(() => {
 });
 
 describe('templates page', () => {
-  it('lists the hiring templates with Built in, Used by, the draft and who updated each, and counts each tab without the archived', async () => {
+  it('lists the hiring templates with Built in, Status, Used by and who updated each, and counts each tab without the archived', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: 'Hiring templates' });
     const own = await within(table).findByRole('row', { name: /Brightwater engineering/ });
 
-    await waitFor(() => expect(own).toHaveTextContent('2 jobs'));
-    // The draft has its own column, not a badge beside the version.
-    expect(own).toHaveTextContent('Version 2');
+    // Used by counts the jobs left on an older version; Status says the state in words, never a version number (W7).
+    await waitFor(() => expect(own).toHaveTextContent('2 jobs, 1 on an older version'));
+    expect(within(table).getByRole('columnheader', { name: /Status/ })).toBeInTheDocument();
+    expect(within(table).queryByRole('columnheader', { name: /Version|Draft/ })).toBeNull();
+    expect(own).toHaveTextContent('Published, draft open');
+    expect(within(table).getByRole('row', { name: /Summer interns 2025/ })).toHaveTextContent('Published');
     expect(own).toHaveTextContent('by you');
     expect(within(table).getByRole('row', { name: /Hourly role/ })).toHaveTextContent('Built in');
     expect(within(table).getByRole('row', { name: /Hourly role/ })).toHaveTextContent('by ScreenHire');
@@ -133,12 +144,19 @@ describe('templates page', () => {
     await expectNoAxeViolations();
   });
 
-  it('filters by In use and Archived, each with its count, and searches', async () => {
+  it('filters by In use, Drafts and Archived, each with its count, and searches', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: 'Hiring templates' });
     const filters = screen.getByRole('group', { name: 'Show' });
     await waitFor(() => expect(within(filters).getByRole('button', { name: /In use/ })).toHaveTextContent('2'));
     expect(within(filters).getByRole('button', { name: /Archived/ })).toHaveTextContent('1');
+    expect(within(filters).getByRole('button', { name: /Drafts/ })).toHaveTextContent('1');
+
+    await fireEvent.click(within(filters).getByRole('button', { name: /Drafts/ }));
+    const drafts = screen.getByRole('table', { name: 'Hiring templates' });
+    expect(within(drafts).getByText('Brightwater engineering')).toBeInTheDocument();
+    expect(within(drafts).queryByText('Summer interns 2025')).toBeNull();
+    await fireEvent.click(within(filters).getByRole('button', { name: /All/ }));
     // No "Not used in 6 months" pill: sorting Last used finds stale templates (the owner's walk-through, 2026-11-21).
     expect(within(filters).queryByRole('button', { name: /Not used/ })).not.toBeInTheDocument();
     expect(within(table).getByText('Summer interns 2025')).toBeInTheDocument();
@@ -186,6 +204,9 @@ describe('templates page', () => {
     const table = await screen.findByRole('table', { name: 'Email templates' });
     const rejected = await within(table).findByRole('row', { name: /Not progressing/ });
     expect(rejected).toHaveTextContent('Your application for job title');
+    // Only hiring templates have versions, so only their tab has Drafts and Status.
+    expect(within(screen.getByRole('group', { name: 'Show' })).queryByRole('button', { name: /Drafts/ })).toBeNull();
+    expect(within(table).queryByRole('columnheader', { name: /Status/ })).toBeNull();
     await waitFor(() => expect(within(table).getByRole('row', { name: /Interview invitation/ })).toHaveTextContent('1 automation'));
 
     await fireEvent.click(within(rejected).getByRole('button', { name: 'Actions for Not progressing' }));
@@ -231,7 +252,7 @@ describe('templates page', () => {
   });
 
   // L1: nothing uses the template, so the cell is blank and only a screen reader hears it. W9: the panel has no sentence about its tab.
-  it('leaves Used by and Version blank where there is nothing to say, and puts no sentence under the panel title', async () => {
+  it('leaves Used by blank where there is nothing to say, and puts no sentence under the panel title', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: 'Hiring templates' });
     const old = await within(table).findByRole('row', { name: /Summer interns 2025/ });

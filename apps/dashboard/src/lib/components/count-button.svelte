@@ -15,7 +15,9 @@
 
   // A count in a header (design system T4, section 11), such as "2 hiring templates": an outline button that opens a
   // sheet listing each item as a link, with search once there are more than 10. Design for the count, not the example
-  // (principle 11). With nothing to list it is plain text, because there is nothing to open.
+  // (principle 11). With nothing to list it is plain text, because there is nothing to open. `link` draws it as underlined
+  // text instead, for a fact whose words say more than the count (a hiring template's "3 jobs, 1 on an older version"):
+  // it is still a button, because it opens a sheet (A5).
   let {
     items,
     one,
@@ -23,6 +25,8 @@
     title,
     description,
     empty,
+    text,
+    link = false,
   }: {
     items: readonly CountItem[];
     /** The noun for one item ("hiring template"). */
@@ -35,6 +39,10 @@
     description: string;
     /** What it says with nothing to list ("None"), because a header fact is never blank; the count ("0 jobs") by default. */
     empty?: string;
+    /** The button's words in place of the count, which the sheet's list keeps as its name. */
+    text?: string;
+    /** Underlined text rather than an outline button. */
+    link?: boolean;
   } = $props();
 
   /** Past this many items the sheet offers a search. */
@@ -50,7 +58,16 @@
 {#if items.length === 0}
   <span>{empty ?? label}</span>
 {:else}
-  <Button variant="outline" class="tabular-nums" onclick={() => (open = true)}>{label}</Button>
+  {#if link}
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      class="rounded-sm text-left tabular-nums underline underline-offset-2 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11"
+      onclick={() => (open = true)}>{text ?? label}</button
+    >
+  {:else}
+    <Button variant="outline" class="tabular-nums" onclick={() => (open = true)}>{text ?? label}</Button>
+  {/if}
   <Sheet.Root bind:open onOpenChange={(next) => next || (query = '')}>
     <Sheet.Content side="right" class="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-md">
       <Sheet.Header class="border-b border-border-subtle">

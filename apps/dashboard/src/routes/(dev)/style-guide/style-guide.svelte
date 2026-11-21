@@ -49,6 +49,7 @@
   import FileRow from '#lib/components/file-row.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
+  import VersionsSheet, { type VersionsTab } from '#lib/components/versions-sheet.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import InterviewDetails from '#lib/components/candidate/interview-details.svelte';
   import MetaItem from '#lib/components/meta-item.svelte';
@@ -542,6 +543,13 @@
   ]);
   let sheetOpen = $state(false);
   let historyOpen = $state(false);
+  let versionsOpen = $state(false);
+  let versionsTab = $state<VersionsTab>('versions');
+  const sampleVersions = [
+    { id: 'sv-1', version: 1, status: 'Published' as const, publishedAt: '2026-09-02T10:00:00Z' },
+    { id: 'sv-2', version: 2, status: 'Published' as const, publishedAt: '2026-10-14T10:00:00Z' },
+    { id: 'sv-3', version: 3, status: 'Draft' as const, publishedAt: null },
+  ];
   const part = (text: string, strong = false) => ({ text, strong });
   const sampleHistory: HistoryEntry[] = [
     {
@@ -963,15 +971,15 @@
         <div class="flex flex-col gap-5">
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">At the width of the panel: side by side where every stage fits</figcaption>
-            <StageFlow stages={flowStages} automations={flowAutomations} />
+            <StageFlow workflow={{ stages: flowStages, automations: flowAutomations, questionnaire: { questions: [] } }} />
           </figure>
           <figure class="flex max-w-80 flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Where they do not fit, the same stages stack</figcaption>
-            <StageFlow stages={flowStages} automations={flowAutomations} label="Stages in order, stacked" />
+            <StageFlow workflow={{ stages: flowStages, automations: flowAutomations, questionnaire: { questions: [] } }} label="Stages in order, stacked" />
           </figure>
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Twenty stages stack in the same way, and the page never scrolls sideways</figcaption>
-            <StageFlow stages={manyStages} automations={[]} label="Twenty stages in order" />
+            <StageFlow workflow={{ stages: manyStages, automations: [], questionnaire: { questions: [] } }} label="Twenty stages in order" />
           </figure>
         </div>
       </Panel>
@@ -1314,6 +1322,44 @@
           <HistorySheet
             bind:open={historyOpen}
             name="Technical interview"
+            entries={sampleHistory}
+            members={sampleTeam}
+            currentUserId="u1"
+            note="Jobs keep the copy they started with; a change here reaches jobs created after it."
+          />
+        </Panel>
+        <Panel title="Versions sheet" class="flex-[1_1_320px]">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">A hiring template's versions and its history in one sheet: Versions opens the first tab, History the second</figcaption>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                aria-haspopup="dialog"
+                onclick={() => {
+                  versionsTab = 'versions';
+                  versionsOpen = true;
+                }}>Versions</Button
+              >
+              <Button
+                variant="outline"
+                size="lg"
+                aria-haspopup="dialog"
+                onclick={() => {
+                  versionsTab = 'changes';
+                  versionsOpen = true;
+                }}>All changes</Button
+              >
+            </div>
+          </figure>
+          <VersionsSheet
+            bind:open={versionsOpen}
+            bind:tab={versionsTab}
+            name="Brightwater engineering"
+            versions={sampleVersions}
+            shown={3}
+            live={2}
+            hrefOf={(version) => `#version-${version}`}
             entries={sampleHistory}
             members={sampleTeam}
             currentUserId="u1"

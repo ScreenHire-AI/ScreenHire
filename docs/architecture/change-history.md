@@ -29,6 +29,8 @@ sources:
   - resource: apps/api/Endpoints/ChangeHistoryRoutes.cs
   - resource: apps/api/Endpoints/RetentionEndpoints.cs
   - resource: apps/dashboard/src/lib/components/history-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/history-entries.svelte
+  - resource: apps/dashboard/src/lib/components/versions-sheet.svelte
   - resource: apps/dashboard/src/lib/components/last-updated.svelte
   - resource: apps/dashboard/src/lib/history.ts
   - resource: apps/dashboard/src/lib/history-pages.svelte.ts
@@ -214,7 +216,9 @@ page keeps Secret rotated beside it), and the jobs, hiring templates and email t
 column with the date (section 13); `HistorySheet` groups the entries by day and shows each line, with the values before
 and after behind Show the change. Pages read the pages with `createHistoryPages` (`#lib/history-pages.svelte.ts`) over
 the generated query options, only while the sheet is open; a save that invalidates the object's path refreshes them.
-`#lib/history.ts` names the actor the way the rest of the dashboard names people (`personName`: "you", the current name,
+A hiring template's page puts its history in the Versions sheet (`versions-sheet.svelte`), as All changes beside its
+Versions tab, so Versions and History are one sheet; both sheets draw the list with `HistoryEntries`
+(`history-entries.svelte`). `#lib/history.ts` names the actor the way the rest of the dashboard names people (`personName`: "you", the current name,
 "a former teammate"). `lastUpdateWords` words the fact: its label is Created while `created` holds, else Last updated,
 and on a settings page's title row, where no label shows, `LastUpdated` with `lead` starts with its verb ("Created 2
 hours ago by Avery Quinn", "Updated yesterday").

@@ -30,6 +30,8 @@
   onopen={(id) => onopen?.(id)}
   onscorecard={(index) => onscorecard?.(index)}
   onautomations={(id) => onautomations?.(id)}
+  automationHref={(id) => `?tab=automations&show=${id}`}
+  questionsHref="?tab=questions"
 />
 <p data-testid="stage-ids">{edited.stages.map((stage) => stage.id).join(',')}</p>
 <p data-testid="automation-ids">{edited.automations.map((automation) => automation.id).join(',')}</p>

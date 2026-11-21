@@ -54,7 +54,7 @@ describe('a pop-out preview with its editor', () => {
   const scorecard = { questions: [{ id: 'q1', type: 'Rating5', label: 'Problem solving', required: true }] };
   const values = [
     ['scorecard', ScorecardPreviewPage, scorecard, 'Problem solving'],
-    ['form', FormPreviewPage, { form: 'apply', questions: [{ id: 'q1', type: 'ShortText', label: 'Your notice period' }], sections: null, questionsPerPage: 5 }, 'Your notice period'],
+    ['form', FormPreviewPage, { form: 'follow-up', questions: [{ id: 'q1', type: 'ShortText', label: 'Your notice period' }], sections: null, questionsPerPage: 5 }, 'Your notice period'],
     ['email', EmailPreviewPage, { preview: { subject: 'About your application', html: '<p>Hello</p>', text: 'Hello' } }, 'About your application'],
     [
       'branding',

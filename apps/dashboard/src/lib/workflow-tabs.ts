@@ -2,7 +2,6 @@
 // the tab strip and the panes, so a tab is named once. The tab is in the address (`?tab=`), so a link reaches it.
 
 export const workflowTabs = [
-  { value: 'overview', label: 'Overview' },
   { value: 'pipeline', label: 'Pipeline' },
   { value: 'questions', label: 'Questions' },
   { value: 'automations', label: 'Automations' },
@@ -11,10 +10,10 @@ export const workflowTabs = [
 
 export type WorkflowTab = (typeof workflowTabs)[number]['value'];
 
-export const defaultWorkflowTab: WorkflowTab = 'overview';
+export const defaultWorkflowTab: WorkflowTab = 'pipeline';
 
-/** The tabs' old names, so an address saved before the rename still opens the right one. */
-const renamed: Record<string, WorkflowTab> = { graph: 'automations', questionnaire: 'questions', simulate: 'test' };
+/** The tabs' old names, so an address saved before the rename still opens the right one. Overview merged into Pipeline. */
+const renamed: Record<string, WorkflowTab> = { overview: 'pipeline', graph: 'automations', questionnaire: 'questions', simulate: 'test' };
 
 /** The tab an address names, or the first for anything else. */
 export function tabFrom(value: string | null | undefined): WorkflowTab {

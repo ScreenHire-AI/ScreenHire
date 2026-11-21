@@ -106,7 +106,10 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         var bookingLink = await InterviewLinkAsync(OtherEmail) + "?tz=Europe%2FLondon";
 
         // Where the phone pictures stop: between elements, never through the middle of one.
-        static ILocator Stage4(IPage page) => page.GetByRole(AriaRole.List, new() { Name = "Stages in order" }).Locator("> li").Nth(3);
+        // The fourth stage on a Pipeline tab: its card where the pipeline can be edited, its column where it only reads.
+        static ILocator Stage4(IPage page) =>
+            page.GetByRole(AriaRole.Group, new() { NameRegex = new Regex("^Stage 4: ") })
+                .Or(page.GetByRole(AriaRole.List, new() { Name = "Stages in order" }).Locator("> li").Nth(3));
         static ILocator Book(IPage page) => page.GetByRole(AriaRole.Button, new() { Name = "Book your interview" });
         static ILocator Entry(IPage page, string text) => page.Locator("main ol[aria-label] > li").Filter(new() { HasText = text });
 
@@ -132,15 +135,14 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
             // 5. The candidate's own page, from the link in the email they ask for.
             new("candidate-portal", portalLink, "Your applications", PreparePortalAsync, Public: true),
 
-            // 6. A workflow's stages and automations, in the Overview (the candidate journey). It is the product designer job's, given automations
-            // from a thank-you email to a reminder when Screening runs late (WorkflowShowcaseAsync); the engineer job's queues an
-            // answer for rejection review, which a page that says nothing is rejected on a check must not show.
-            // The wide picture ends below the journey's panel, which is short. On a phone, the stages down to the fourth, with
-            // their automations.
-            new("workflow", DashboardUrl($"/jobs/{showcaseJobId}/workflow"), "workflow",
-                page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Candidate journey" })).ToBeVisibleAsync(), Height: 1480,
-                WideTo: page => PanelTitled(page, "Candidate journey"), WideMargin: 4,
-                Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Candidate journey"), To: Stage4)),
+            // 6. A pipeline's stages and automations, in its Pipeline tab: each stage as short facts. It is the product designer job's,
+            // given automations from a thank-you email to a reminder when Screening runs late (WorkflowShowcaseAsync); the engineer
+            // job's queues an answer for rejection review, which a page that says nothing is rejected on a check must not show.
+            // The wide picture ends below the Stages panel. On a phone, the cards down to the fourth.
+            new("workflow", DashboardUrl($"/jobs/{showcaseJobId}/workflow"), "pipeline",
+                page => Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Stages" })).ToBeVisibleAsync(), Height: 1480,
+                WideTo: page => PanelTitled(page, "Stages"), WideMargin: 4,
+                Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Stages"), To: Stage4)),
 
             // 7. The candidate's interview booking page, before they pick a time: the first day open, the other days one line each.
             // Both pictures end at the Book button.

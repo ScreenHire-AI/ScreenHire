@@ -146,6 +146,29 @@ public sealed class TemplateLibraryTests(AppHostFixture fixture)
         theirs.Body.GetProperty("emails").EnumerateArray().Should().OnlyContain(e => e.GetProperty("lastUsedAt").ValueKind == JsonValueKind.Null);
     }
 
+    [Fact]
+    public async Task Usage_gives_each_job_the_template_version_it_is_on_and_its_pipeline_version()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var (templateId, version1) = await owner.CreatePublishedTemplateAsync("Warehouse shifts");
+        var stays = (await JobFromVersionAsync(owner, "Picker", version1)).Id();
+        var updated = (await JobFromVersionAsync(owner, "Packer", version1)).Id();
+        var next = Samples.DefinitionWithRenamedStage(await Samples.DefinitionOfAsync(owner, templateId, 1), "screening", "Phone screen");
+        (await owner.PostAsync($"/v1/templates/{templateId}/versions", new JsonObject { ["definition"] = next })).Expect(HttpStatusCode.Created);
+        var version2 = (await owner.PostAsync($"/v1/templates/{templateId}/versions/2/publish")).Expect(HttpStatusCode.OK).Id();
+        (await owner.PostAsync($"/v1/jobs/{updated}/workflow/apply-template-update", new JsonObject
+        {
+            ["templateVersionId"] = version2,
+            ["expectedWorkflowVersion"] = 1,
+        })).Expect(HttpStatusCode.OK);
+
+        var usage = (await owner.GetAsync("/v1/template-usage")).Expect(HttpStatusCode.OK);
+
+        var jobs = Entry(usage, "hiring", templateId.ToString("D")).GetProperty("usedBy").EnumerateArray()
+            .Select(i => (i.GetProperty("id").GetGuid(), i.GetProperty("templateVersion").GetInt32(), i.GetProperty("workflowVersion").GetInt32()));
+        jobs.Should().BeEquivalentTo([(stays, 1, 1), (updated, 2, 2)], "the job left on version 1 is the one with an update to review");
+    }
+
     private static bool IsSystemUse(JsonElement entry) =>
         entry.GetProperty("usedBy").EnumerateArray().All(i => i.GetProperty("kind").GetString() == "HiringTemplate");
 

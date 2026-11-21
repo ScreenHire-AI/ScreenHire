@@ -1,6 +1,6 @@
 // The graph view's projection of a workflow (workflow-engine.md §4). The stages run left to right as the backbone,
-// after a "Whole workflow" lane, and each lane or stage's automations hang beneath it, one column each, read down as
-// When, If, Then. It is derived from the workflow on every change and never stored: the workflow stays the one
+// each stage's automations hang beneath it, one column each, read down as When, If, Then, and the automations no stage
+// holds hang in an "Any stage" band below them all. It is derived from the workflow on every change and never stored: the workflow stays the one
 // format, and the layout is computed here, so nothing is dragged and no position is saved. Every size is fixed, so
 // every position and every line below is exact and a line can be checked against the nodes it must not cross.
 // Edits made in the graph are the functions at the end of this file, each a change to the workflow that the next
@@ -8,7 +8,7 @@
 import type { Edge, Node } from '@xyflow/svelte';
 import type { DefinitionError, EvaluationOutcome, HiringWorkflow } from '@screenhire/api-client';
 import { ruleTitle, triggerTitle } from './automation-sentence.js';
-import { describeAction, emailTemplateNames, errorsUnder, factsFor, isTerminal, laneOf, newAction, newAutomation, newRule } from './workflow.js';
+import { describeAction, emailTemplateNames, errorsUnder, factsFor, isTerminal, newAction, newAutomation, newRule, placeOf } from './workflow.js';
 
 export type StepKind = 'lane' | 'stage' | 'trigger' | 'conditions' | 'action' | 'add-automation' | 'add-condition' | 'add-action';
 
@@ -26,7 +26,7 @@ interface StepFields {
   automationName: string;
   /** The node's place in the definition (`automations[0].actions[1]`): the form part it opens, and its errors. */
   path: string;
-  /** The stage a lane or stage node (or its plus) adds automations to, or null for the whole workflow. */
+  /** The stage a lane or stage node (or its plus) adds automations to, or null for any stage. */
   lane: string | null;
   /** The lane or stage this node hangs under: `LANE_BAND` or a stage id. */
   band: string;
@@ -95,8 +95,10 @@ export const NODE_WIDTH = 160;
 /** The room between two automations' columns: a move's line rises through it. */
 const CHANNEL = 28;
 const BAND_GAP = 28;
-/** More room after the lane and before the end stages, which are not steps of the pipeline. */
+/** More room before the end stages, which are not steps of the pipeline. */
 const GROUP_GAP = 20;
+/** The room between the deepest stage chain and the Any stage band below. */
+const ANY_GAP = 48;
 const CHAIN_GAP = 36;
 /** A plus button's size at full size, where the first view shows it: a target for a finger too. */
 export const PLUS = 48;
@@ -109,9 +111,9 @@ const BUS_MARGIN = 16;
 const LINE_SPACING = 8;
 const LANDING_SPACING = 12;
 
-/** The whole-workflow lane's node id; a stage's is `stage:{id}`. */
+/** The Any stage band's node id; a stage's is `stage:{id}`. */
 export const LANE_NODE = 'lane:workflow';
-/** The band the lane's automations hang under. */
+/** The band the automations that no stage holds hang under (`placeOf` says 'any'). */
 export const LANE_BAND = 'lane';
 export const stageNode = (stageId: string) => `stage:${stageId}`;
 export const triggerNode = (automationId: string) => `${automationId}:trigger`;
@@ -174,6 +176,8 @@ interface Band {
   header: Item;
   chains: Chain[];
   x: number;
+  /** Where its header stands: on the stages' row, or below every stage chain for the Any stage band. */
+  y: number;
   width: number;
   firstColumn: number;
 }
@@ -189,7 +193,6 @@ const none = { automation: null, automationId: null, automationName: '', path: '
 export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): Graph {
   const { templateNames = emailTemplateNames(undefined), errors = [], editable = false } = options;
   const addable = editable && workflow.automations.length > 0;
-  const stageIds = new Set(workflow.stages.map((stage) => stage.id));
 
   const item = (id: string, spec: Spec, ariaLabel: string): Item => {
     const problems = nodeErrors(errors, spec.kind, spec.path);
@@ -197,11 +200,12 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
     return { id, spec, ariaLabel: label, problems, height: nodeHeight({ problems }), y: 0 };
   };
 
-  // Each automation hangs under the lane or stage it fires on. One whose stage is gone stays in the lane's band, where
-  // the validator's message about it shows.
+  // Each automation hangs under the stage it belongs to (`placeOf`): its own, or Applied for an arriving application
+  // and the checks. The rest, and one whose stage is gone (where the validator's message about it shows), hang in the
+  // Any stage band.
   const bandOf = (automationIndex: number) => {
-    const lane = laneOf(workflow.automations[automationIndex]!);
-    return lane && stageIds.has(lane) ? lane : LANE_BAND;
+    const place = placeOf(workflow, workflow.automations[automationIndex]!);
+    return place === 'any' ? LANE_BAND : place;
   };
 
   const chainOf = (index: number): Chain => {
@@ -269,17 +273,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
   // The open stages run in order, and the end stages stand after them as a group: an application can finish at any of
   // them from any stage, so they are outcomes and not the next steps of the pipeline.
   const stages = workflow.stages.map((stage, index) => ({ stage, index, end: isTerminal(stage.kind) }));
-  const bands: Band[] = [
-    {
-      key: LANE_BAND,
-      end: false,
-      header: item(LANE_NODE, { ...none, kind: 'lane', title: 'Whole workflow', detail: '', band: LANE_BAND }, 'Whole workflow'),
-      chains: chains.filter((chain) => bandOf(chain.index) === LANE_BAND),
-      x: 0,
-      width: 0,
-      firstColumn: 0,
-    },
-    ...[...stages.filter(({ end }) => !end), ...stages.filter(({ end }) => end)].map(({ stage, index, end }): Band => ({
+  const stageBands: Band[] = [...stages.filter(({ end }) => !end), ...stages.filter(({ end }) => end)].map(({ stage, index, end }): Band => ({
       key: stage.id,
       end,
       header: item(
@@ -289,15 +283,31 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
       ),
       chains: chains.filter((chain) => bandOf(chain.index) === stage.id),
       x: 0,
+      y: 0,
       width: 0,
       firstColumn: 0,
-    })),
-  ];
+    }));
+  // The Any stage band shows only while some automation is in it: an empty one would be a heading over nothing.
+  const anyChains = chains.filter((chain) => bandOf(chain.index) === LANE_BAND);
+  const anyBand: Band | null =
+    anyChains.length > 0
+      ? {
+          key: LANE_BAND,
+          end: false,
+          header: item(LANE_NODE, { ...none, kind: 'lane', title: 'Any stage', detail: '', band: LANE_BAND }, 'Any stage'),
+          chains: anyChains,
+          x: 0,
+          y: 0,
+          width: 0,
+          firstColumn: 0,
+        }
+      : null;
+  const bands: Band[] = anyBand ? [...stageBands, anyBand] : stageBands;
 
-  // Across: a band is as wide as its automations' columns, with a channel between them.
+  // Across: a stage's band is as wide as its automations' columns, with a channel between them.
   let x = 0;
   let column = 0;
-  bands.forEach((band, bandIndex) => {
+  stageBands.forEach((band, bandIndex) => {
     const columns = Math.max(1, band.chains.length);
     band.x = x;
     band.firstColumn = column;
@@ -306,11 +316,25 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
       chain.x = band.x + i * (NODE_WIDTH + CHANNEL);
       chain.column = column + i;
     });
-    const groupEnds = band.key === LANE_BAND || (!band.end && bands[bandIndex + 1]?.end === true);
+    const groupEnds = !band.end && stageBands[bandIndex + 1]?.end === true;
     x += band.width + BAND_GAP + (groupEnds ? GROUP_GAP : 0);
     column += columns;
   });
-  const totalWidth = x - BAND_GAP - (bands.length === 1 ? GROUP_GAP : 0);
+  // The Any stage band's columns stand on the stages' columns, left to right, then carry on past the last one. Its moves
+  // then rise through channels the stages' columns already keep clear, never through a node above.
+  const pitch = NODE_WIDTH + CHANNEL;
+  const slots = stageBands.flatMap((band) => Array.from({ length: Math.max(1, band.chains.length) }, (_, i) => band.x + i * pitch));
+  const slotX = (i: number) => slots[i] ?? (slots.at(-1) ?? -pitch) + (i - slots.length + 1) * pitch;
+  if (anyBand) {
+    anyBand.x = slotX(0);
+    anyBand.firstColumn = column;
+    anyBand.chains.forEach((chain, i) => {
+      chain.x = slotX(i);
+      chain.column = column + i;
+    });
+    anyBand.width = slotX(anyBand.chains.length - 1) + NODE_WIDTH - anyBand.x;
+  }
+  const totalWidth = Math.max(stageBands.length > 0 ? x - BAND_GAP : 0, anyBand ? anyBand.x + anyBand.width : 0);
 
   // The headers share a row and a height, so the backbone's lines are straight.
   const rowHeight = Math.max(...bands.map((band) => band.header.height));
@@ -321,24 +345,29 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
   const headerCentre = (band: Band) => centre(band.x);
 
   // Down: each chain stacks from under its header. A trigger with no conditions and an action has room for a plus
-  // between them.
+  // between them. The Any stage band stands below the deepest stage chain.
   const conditionGap = PLUS + 2 * PLUS_PAD;
   const actionTailGap = 20;
-  let bottom = rowHeight;
-  const chainsTop = rowHeight + headerGap;
-  for (const band of bands) {
+  const stack = (band: Band): number => {
+    let deepest = band.y + rowHeight;
     for (const chain of band.chains) {
-      let y = chainsTop;
+      let y = band.y + rowHeight + headerGap;
       chain.items.forEach((entry, i) => {
         entry.y = y;
         const gap = i === 0 && chain.addCondition && addable ? conditionGap : CHAIN_GAP;
         y += entry.height + gap;
       });
       const last = chain.items.at(-1)!;
-      bottom = Math.max(bottom, last.y + last.height + (addable ? actionTailGap + PLUS : 0));
+      deepest = Math.max(deepest, last.y + last.height + (addable ? actionTailGap + PLUS : 0));
     }
+    if (addable || band.chains.length === 0) deepest = Math.max(deepest, band.y + rowHeight + PLUS_PAD + PLUS);
+    return deepest;
+  };
+  let bottom = stageBands.length > 0 ? Math.max(...stageBands.map(stack)) : 0;
+  if (anyBand) {
+    anyBand.y = stageBands.length > 0 ? bottom + ANY_GAP : 0;
+    bottom = stack(anyBand);
   }
-  if (addable || bands.some((band) => band.chains.length === 0)) bottom = Math.max(bottom, rowHeight + PLUS_PAD + PLUS);
 
   // Moves: a move leaves its action's right side, rises through the channel beside its column to a lane above the
   // stages, runs along it and drops into the target stage's top. Lanes are shared by moves that do not overlap. The
@@ -376,7 +405,8 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
   }
   const spread = (count: number, index: number, spacing: number, limit: number) =>
     Math.max(-limit, Math.min(limit, (index - (count - 1) / 2) * spacing));
-  for (const group of groupBy(moves, (move) => move.chain.column)) {
+  // Grouped by the channel, which a stage's column and the Any stage column under it share.
+  for (const group of groupBy(moves, (move) => move.chain.x)) {
     group.sort((a, b) => a.action.y - b.action.y);
     group.forEach((move, i) => (move.channelX = move.chain.x + NODE_WIDTH + CHANNEL / 2 + spread(group.length, i, LINE_SPACING, CHANNEL / 2 - 6)));
   }
@@ -446,11 +476,12 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
 
   bands.forEach((band, bandIndex) => {
     const hx = headerCentre(band);
-    place(band.header, band.x, top, band.firstColumn, 0);
+    const headTop = top + band.y;
+    place(band.header, band.x, headTop, band.firstColumn, 0);
     const empty = band.chains.length === 0;
-    const plusTop = top + rowHeight + PLUS_PAD;
+    const plusTop = headTop + rowHeight + PLUS_PAD;
     if (addable) {
-      const title = band.key === LANE_BAND ? 'the whole workflow' : band.header.spec.title;
+      const title = band.key === LANE_BAND ? 'any stage' : band.header.spec.title;
       plusNode(
         `add:${band.key}`,
         hx - PLUS / 2,
@@ -460,16 +491,16 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
         band.firstColumn,
         0.5,
       );
-      if (empty) route(`stub:${band.key}`, 'stub', band.header.id, `add:${band.key}`, ['bottom', 'top'], [{ x: hx, y: top + rowHeight }, { x: hx, y: plusTop }], { automationId: null, band: band.key });
+      if (empty) route(`stub:${band.key}`, 'stub', band.header.id, `add:${band.key}`, ['bottom', 'top'], [{ x: hx, y: headTop + rowHeight }, { x: hx, y: plusTop }], { automationId: null, band: band.key });
     }
 
     const next = bands[bandIndex + 1];
-    if (next && band.key !== LANE_BAND && !band.end && !next.end) {
+    if (next && band.key !== LANE_BAND && next.key !== LANE_BAND && !band.end && !next.end) {
       const y = top + rowHeight / 2;
       route(`order:${band.key}`, 'order', band.header.id, next.header.id, ['right', 'left'], [{ x: band.x + NODE_WIDTH, y }, { x: next.x, y }], { automationId: null, band: band.key });
     }
 
-    const trunk = top + rowHeight + headerGap - TRUNK_CLEARANCE / 2;
+    const trunk = headTop + rowHeight + headerGap - TRUNK_CLEARANCE / 2;
     for (const chain of band.chains) {
       const cx = centre(chain.x);
       const owner = { automationId: chain.id, band: band.key };
@@ -477,7 +508,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
         const upper = top + entry.y;
         place(entry, chain.x, upper, chain.column, i + 1);
         if (i === 0) {
-          const start = { x: hx, y: top + rowHeight };
+          const start = { x: hx, y: headTop + rowHeight };
           const points = cx === hx ? [start, { x: cx, y: upper }] : [start, { x: hx, y: trunk }, { x: cx, y: trunk }, { x: cx, y: upper }];
           route(`${chain.id}:fires-on`, 'fires', band.header.id, entry.id, ['bottom', 'top'], points, owner);
           return;
@@ -660,8 +691,8 @@ export const VIEW_INSET = { left: 72, top: 24, right: 24, bottom: 24 } as const;
 
 /**
  * Where the graph starts: always at full size, because node text is 12px there and 12px is the floor (design system W1).
- * A workflow narrower than the pane is centred across it. A wider one starts at the top left, where the lane and the
- * first stage are and reading starts; the rest is a pan away, and the toolbar's Fit shows the whole of it as an overview.
+ * A workflow narrower than the pane is centred across it. A wider one starts at the top left, where the first stage is
+ * and reading starts; the rest is a pan away, and the toolbar's Fit shows the whole of it as an overview.
  */
 export function firstView(bounds: { width: number }, pane: { width: number }): { x: number; y: number; zoom: number } {
   const spare = pane.width - VIEW_INSET.left - VIEW_INSET.right - bounds.width;
@@ -701,9 +732,12 @@ export function focusGraphNode(root: ParentNode, id: string): boolean {
   return Boolean(control);
 }
 
-/** Adds a new automation to a stage's lane, or the whole workflow's (null), as the Pipeline view's drawer does. */
-export function addAutomation(workflow: HiringWorkflow, stageId: string | null): { workflow: HiringWorkflow; id: string } {
-  const automation = newAutomation(workflow, stageId);
+/**
+ * Adds a new automation to a stage's band, or with no stage to Applied (an arriving application) or, `anyStage`, to the
+ * Any stage band (a run by hand), as the automations sheet's Write your own does.
+ */
+export function addAutomation(workflow: HiringWorkflow, stageId: string | null, anyStage = false): { workflow: HiringWorkflow; id: string } {
+  const automation = newAutomation(workflow, stageId, anyStage);
   return { workflow: { ...workflow, automations: [...workflow.automations, automation] }, id: automation.id };
 }
 

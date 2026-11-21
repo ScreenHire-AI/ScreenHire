@@ -119,7 +119,7 @@
         <Empty.Header>
           <Empty.Media variant="icon"><FlaskConicalIcon /></Empty.Media>
           <Empty.Title>Nothing to test yet</Empty.Title>
-          <Empty.Description>This workflow has no automations on.</Empty.Description>
+          <Empty.Description>This pipeline has no automations on.</Empty.Description>
         </Empty.Header>
         {#if onadd}<Empty.Content><Button variant="outline" size="lg" onclick={onadd}>Add an automation</Button></Empty.Content>{/if}
       </Empty.Root>

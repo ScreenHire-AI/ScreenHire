@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { AiUsePolicy, DefinitionError, EvaluationOutcome, HiringWorkflow, WorkflowSimulationResult } from '@screenhire/api-client';
-  import { tick, untrack } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import { laneOf, removeAt, withoutStage } from '#lib/workflow.js';
+  import { placeOf, removeAt, withoutStage } from '#lib/workflow.js';
   import type { WorkflowTab } from '#lib/workflow-tabs.js';
   import { LANE_NODE, addAction, addAutomation, addCondition, connect, definitionStamp, focusGraphNode, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
@@ -12,7 +12,6 @@
   import AutomationRecipes from './automation-recipes.svelte';
   import AutomationSentence from './automation-sentence.svelte';
   import AutomationsPanel from './automations-panel.svelte';
-  import JourneyOverview from './journey-overview.svelte';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnaireBuilder from './questionnaire-builder.svelte';
   import ScorecardPicker from './scorecard-picker.svelte';
@@ -21,7 +20,7 @@
   import type { GraphActions } from './step-node.svelte';
   import TestDrive from './test-drive.svelte';
 
-  // The workflow builder (workflow-engine.md §4) for a template's draft or a job's own copy: overview, pipeline,
+  // The pipeline builder (workflow-engine.md §4) for a template's draft or a job's own copy: the pipeline's stages,
   // questions, automations (the map or the list) and the test drive over one workflow, as the panes of the page's
   // `Tabs.Root` (`WorkflowTabs` sits on the header band). The page owns loading and saving, and shows the validation
   // result beside its title; `errors` are the API validator's, with paths relative to the workflow. A version that cannot
@@ -89,10 +88,12 @@
   // list behind the sheet keeps the same one.
   let view = $state<'lane' | 'recipes' | 'edit'>('lane');
   let drawerLane = $state<string | null>(null);
+  // Opened from the Any stage band (its header or its plus), not from Add automation: Write your own then stays in the band.
+  let drawerAny = $state(false);
   let editId = $state<string | null>(null);
   let asRules = $state(false);
   const editIndex = $derived(workflow.automations.findIndex((automation) => automation.id === editId));
-  const laneName = $derived(drawerLane === null ? 'Whole workflow' : (workflow.stages.find((stage) => stage.id === drawerLane)?.name ?? drawerLane));
+  const laneName = $derived(drawerLane === null ? 'Any stage' : (workflow.stages.find((stage) => stage.id === drawerLane)?.name ?? drawerLane));
   const sheetTitle = $derived(
     view === 'lane' ? `Automations: ${laneName}` : view === 'recipes' ? 'Add an automation' : workflow.automations[editIndex]?.name || 'Untitled automation',
   );
@@ -115,7 +116,9 @@
   function openAutomation(index: number, path: string) {
     const automation = workflow.automations[index];
     if (!automation) return;
-    drawerLane = laneOf(automation);
+    const place = placeOf(workflow, automation);
+    drawerLane = place === 'any' ? null : place;
+    drawerAny = place === 'any';
     editId = automation.id;
     asRules = false;
     const wasOpen = drawerOpen;
@@ -126,11 +129,12 @@
     if (wasOpen) void settle();
   }
 
-  // The recipes for a stage's lane, or the whole workflow's (null): what every Add an automation opens.
-  function openRecipes(lane: string | null) {
+  // The recipes for a stage, or every recipe (null): what every Add an automation opens.
+  function openRecipes(lane: string | null, anyStage = false) {
     const wasOpen = drawerOpen;
     focusPath = null;
     drawerLane = lane;
+    drawerAny = lane === null && anyStage;
     view = 'recipes';
     returnTo = { node: lane ? stageNode(lane) : LANE_NODE, opener: wasOpen ? (returnTo?.opener ?? null) : document.activeElement };
     drawerOpen = true;
@@ -140,6 +144,7 @@
   function openLane(lane: string | null) {
     focusPath = null;
     drawerLane = lane;
+    drawerAny = lane === null;
     view = 'lane';
     returnTo = { node: lane ? stageNode(lane) : LANE_NODE, opener: document.activeElement };
     drawerOpen = true;
@@ -147,7 +152,7 @@
 
   // Write your own: an empty automation in the lane, opened as a sentence at its name. Closing it goes to its trigger.
   function writeOwn() {
-    const added = addAutomation(workflow, drawerLane);
+    const added = addAutomation(workflow, drawerLane, drawerAny);
     workflow.automations = added.workflow.automations;
     const index = workflow.automations.findIndex((automation) => automation.id === added.id);
     openAutomation(index, `automations[${index}]`);
@@ -159,6 +164,44 @@
     if (index < 0) return;
     openAutomation(index, `automations[${index}]`);
     returnTo = { node: triggerNode(id), opener: null };
+  }
+
+  // A stage card's or the stage sheet's line names one automation: it opens on the Automations tab, as a sentence. The
+  // link's own address (`?tab=automations&show=<id>`) does the same when it is opened in a new tab or loaded.
+  function automationHref(id: string): string {
+    const [path, query = ''] = hrefOf('automations').split('?');
+    const params = new URLSearchParams(query);
+    params.set('show', id);
+    return `${path}?${params}`;
+  }
+
+  function showAutomation(id: string) {
+    tab = 'automations';
+    editById(id);
+  }
+
+  onMount(() => {
+    const shown = new URLSearchParams(location.search).get('show');
+    if (tab === 'automations' && shown && workflow.automations.some((automation) => automation.id === shown)) editById(shown);
+  });
+
+  // The stage sheet's "Add a reminder": an automation for when the stage's time limit passes, which tells the team (the
+  // first of the steps a passed time limit may take), opened on the Automations tab to say more.
+  function addReminder(stage: string) {
+    const added = addAutomation(workflow, stage);
+    const name = workflow.stages.find((candidate) => candidate.id === stage)?.name ?? 'this stage';
+    workflow.automations = added.workflow.automations.map((automation) =>
+      automation.id === added.id
+        ? {
+            ...automation,
+            name: `Remind the team when ${name} is overdue`,
+            trigger: { type: 'SlaBreached' as const, stageId: stage },
+            conditions: null,
+            actions: [{ type: 'NotifyTeam' as const, note: `Someone has waited in ${name} longer than the time limit.` }],
+          }
+        : automation,
+    );
+    showAutomation(added.id);
   }
 
   // The map's edits: each one a change to the workflow from #lib/workflow-graph.ts, or the automation's own sentence.
@@ -247,11 +290,17 @@
 <!-- The Test tab shows its own notice with the fix inline, so the list is left out there (W7). -->
 {#if tab !== 'test'}<ProblemsPanel title="Problems to fix" {workflow} {errors} onfix={fix} />{/if}
 
-<Tabs.Content value="overview">
-  <JourneyOverview {workflow} onopen={openStage} questionsHref={hrefOf('questions')} />
-</Tabs.Content>
 <Tabs.Content value="pipeline">
-  <StageCards bind:workflow {errors} onopen={openStage} onscorecard={openScorecard} onautomations={openRecipes} />
+  <StageCards
+    bind:workflow
+    {errors}
+    onopen={openStage}
+    onscorecard={openScorecard}
+    onautomations={openRecipes}
+    {automationHref}
+    questionsHref={hrefOf('questions')}
+    onshow={showAutomation}
+  />
 </Tabs.Content>
 <Tabs.Content value="automations">
   <!-- Mounted only while shown: the tab panels stay in the page when hidden, and the map measures its nodes when it
@@ -289,6 +338,15 @@
     openRecipes(id);
   }}
   onremove={removeStage}
+  onreminder={(id) => {
+    stageId = null;
+    addReminder(id);
+  }}
+  {automationHref}
+  onshow={(id) => {
+    stageId = null;
+    showAutomation(id);
+  }}
 />
 
 <Sheet.Root bind:open={drawerOpen}>
@@ -305,7 +363,7 @@
     <div class="@container flex flex-col gap-6 px-4 pb-4">
       {#if view === 'lane'}
         <AutomationList {workflow} lane={drawerLane} onopen={(index) => openAutomation(index, `automations[${index}]`)} />
-        <div><Button variant="outline" size="lg" onclick={() => openRecipes(drawerLane)}>Add automation</Button></div>
+        <div><Button variant="outline" size="lg" onclick={() => openRecipes(drawerLane, drawerAny)}>Add automation</Button></div>
       {:else if view === 'recipes'}
         <AutomationRecipes bind:workflow lane={drawerLane} onwrite={writeOwn} onedit={editById} />
       {:else if editIndex >= 0}

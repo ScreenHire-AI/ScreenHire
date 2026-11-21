@@ -32,7 +32,7 @@
     onclear?: () => void;
     /** Opens the automation at this index; absent where the workflow only reads. */
     onopen?: (index: number) => void;
-    /** Opens the recipes for the whole workflow; absent where the workflow only reads. */
+    /** Opens every recipe; absent where the pipeline only reads. */
     onadd?: () => void;
   } = $props();
 

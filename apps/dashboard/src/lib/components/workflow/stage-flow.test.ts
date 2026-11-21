@@ -1,5 +1,5 @@
-// A workflow's stages as the read-only view draws them (design system section 11, Stage flow). jsdom has no layout, so
-// what these check is the markup both layouts share: the order, the facts and what a stage with nothing attached says.
+// A pipeline's open stages as the read-only view draws them (design system section 11, Stage flow). jsdom has no layout,
+// so what these check is the markup both layouts share: the order, the facts and what a stage with nothing attached says.
 import type { HiringWorkflow, WorkflowStage } from '@screenhire/api-client';
 import { render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -19,15 +19,15 @@ const automations: HiringWorkflow['automations'] = [
   { id: 'a', name: 'Tag screened', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'AddTag', tag: 'screened' }] },
   { id: 'b', name: 'Tell the team', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'Screened' }] },
   { id: 'c', name: 'Tag interviewed', trigger: { type: 'StageEntered', stageId: 'interview' }, conditions: null, actions: [{ type: 'AddTag', tag: 'interviewed' }] },
-  // Fires on no one stage, so no stage counts it.
+  // An arriving application belongs to the first stage.
   { id: 'd', name: 'Welcome', trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [{ type: 'AddTag', tag: 'new' }] },
-  // Off, so they fire on nothing and their stages do not count them.
+  // Off, so they fire on nothing and their stages do not list them.
   { id: 'e', name: 'Paused', enabled: false, trigger: { type: 'StageEntered', stageId: 'interview' }, conditions: null, actions: [{ type: 'AddTag', tag: 'paused' }] },
   { id: 'f', name: 'Paused too', enabled: false, trigger: { type: 'StageEntered', stageId: 'offer' }, conditions: null, actions: [{ type: 'AddTag', tag: 'paused' }] },
 ];
 
 const renderFlow = (list: WorkflowStage[] = stages) =>
-  render(WithQueryClient, { props: { component: StageFlow, props: { stages: list, automations } } });
+  render(WithQueryClient, { props: { component: StageFlow, props: { workflow: { stages: list, automations, questionnaire: { questions: [] } } } } });
 
 const text = (element: Element) => element.textContent?.replace(/\s+/g, ' ').trim();
 
@@ -46,26 +46,28 @@ describe('stage flow', () => {
   it('shows a stage with nothing attached as its name alone', () => {
     renderFlow();
 
-    const applied = screen.getByRole('list', { name: 'Stages in order' }).children[0]!;
-    expect(text(applied)).toBe('1 Applied');
-    expect(within(applied as HTMLElement).queryByRole('list')).toBeNull();
+    const offer = screen.getByRole('list', { name: 'Stages in order' }).children[3]!;
+    expect(text(offer)).toBe('4 Offer');
+    expect(within(offer as HTMLElement).queryByRole('list')).toBeNull();
   });
 
-  it('shows what is attached as one short fact each, in one order: scorecard, time limit, automations', () => {
+  it('says what is attached as the stage cards do, one short fact a line, as text', () => {
     renderFlow();
 
-    const [, phone, interview] = Array.from(screen.getByRole('list', { name: 'Stages in order' }).children) as HTMLElement[];
+    const [applied, phone, interview] = Array.from(screen.getByRole('list', { name: 'Stages in order' }).children) as HTMLElement[];
     const facts = (stage: HTMLElement) => within(within(stage).getByRole('list')).getAllByRole('listitem').map(text);
 
-    expect(facts(phone!)).toEqual(['Scorecard: Phone screen scorecard', '3-day limit', '2 automations']);
-    expect(facts(interview!)).toEqual(['5-day limit', '1 automation']);
+    expect(facts(applied!)).toEqual(['Tag new']);
+    expect(facts(phone!)).toEqual(['Respond within 3 days', 'Tag screened', 'Tell the team', 'Scorecard: Phone screen scorecard']);
+    expect(facts(interview!)).toEqual(['Respond within 5 days', 'Tag interviewed']);
+    expect(within(phone!).queryByRole('link')).toBeNull();
   });
 
-  it('does not count an automation that is off, and a stage whose only automation is off shows its name alone', () => {
+  it('leaves out an automation that is off, and a stage whose only automation is off shows its name alone', () => {
     renderFlow();
 
     const list = screen.getByRole('list', { name: 'Stages in order' });
-    expect(text(list.children[2]!)).toBe('3 Interview 5-day limit 1 automation');
+    expect(text(list.children[2]!)).toBe('3 Interview Respond within 5 days Tag interviewed');
     expect(text(list.children[3]!)).toBe('4 Offer');
   });
 

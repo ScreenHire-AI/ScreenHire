@@ -646,6 +646,20 @@ export function ruleTitle(rule: AutomationCondition, workflow: HiringWorkflow, t
   return `${option ? factLabel(option, workflow) : rule.fact} ${relation}${value ? ` ${value}` : ''}`;
 }
 
+/**
+ * A condition at its shortest, for a stage card's line: "Right to work: No", "Verification: Review or Verify". Only an
+ * "is" (one value or one of several) reads as a colon; anything else ("Tags includes referral") is `ruleTitle`.
+ */
+export function ruleShort(rule: AutomationCondition, workflow: HiringWorkflow, trigger: TriggerType): string {
+  const option = factsFor(workflow, trigger).find((candidate) => candidate.fact === rule.fact);
+  const [operator, negated] = relationId(option, rule).split('|') as [ConditionOperator, string];
+  const plainIs = (operator === 'EqualTo' || operator === 'In') && negated !== '1' && option !== undefined;
+  if (!plainIs) return ruleTitle(rule, workflow, trigger);
+  const value = hasValues(option) ? valueText(rule, option) : rule.operator === 'In' ? (rule.values ?? []).join(', ') : (rule.value ?? '');
+  // A question's own mark goes before the colon: "Right to work?: No" reads "Right to work: No".
+  return `${factLabel(option, workflow).replace(/[?.:]+$/, '')}: ${value}`;
+}
+
 const lowerFirst = (text: string): string => text.charAt(0).toLowerCase() + text.slice(1);
 
 /**

@@ -1,14 +1,10 @@
 <script lang="ts">
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
-  import RefreshCwIcon from '~icons/lucide/refresh-cw';
   import RotateCcwIcon from '~icons/lucide/rotate-ccw';
   import SaveIcon from '~icons/lucide/save';
-  import type { WorkflowChangeKind } from '@screenhire/api-client';
   import {
     ApiError,
-    createApplyJobTemplateUpdate,
     createGetJob,
-    createGetJobTemplateDiff,
     createListTeamMembers,
     createUpdateJobWorkflow,
     getGetJobHistoryQueryOptions,
@@ -27,6 +23,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
+  import TemplateUpdateDialog from '#lib/components/template-update-dialog.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Dialog from '#lib/components/ui/dialog/index.js';
@@ -50,22 +47,17 @@
   import { lastUpdateWords } from '#lib/history.js';
   import type { PageProps } from './$types';
 
-  // A job's own copy of its hiring workflow (workflow-engine.md §1), tailored for this job. A newer published version of
-  // the template it came from shows as an update, with the differences, and applies only when someone asks. A closed
-  // job's workflow can no longer change, so it reads as content.
+  // A job's own copy of its hiring pipeline (workflow-engine.md §1), tailored for this job. A newer published version of
+  // the template it came from shows as an update, with the differences, and applies only when someone asks; the job
+  // header's "See what changes" and the template's Review updates link here with `?review=update`, which opens them. A
+  // closed job's pipeline can no longer change, so it reads as content.
   let { params }: PageProps = $props();
 
   const queryClient = useQueryClient();
   const refresh = () => invalidatePath(queryClient, jobsPath);
   const job = createGetJob(() => params.jobId);
   const detail = $derived(job.data?.data);
-  const diff = createGetJobTemplateDiff(
-    () => params.jobId,
-    () => ({ query: { enabled: !!detail?.template?.updateAvailable } }),
-  );
-  const update = $derived(diff.data?.data);
   const save = createUpdateJobWorkflow(() => ({ mutation: { onSettled: refresh } }));
-  const apply = createApplyJobTemplateUpdate(() => ({ mutation: { onSettled: refresh } }));
 
   const draft = createWorkflowDraft();
   $effect(() => {
@@ -96,10 +88,16 @@
   let notice = $state('');
   let failure = $state('');
   let reviewing = $state(false);
+  // A link that asks to review the update opens it once, when the job has one to review.
+  let reviewAsked = false;
+  $effect(() => {
+    if (reviewAsked || page.url.searchParams.get('review') !== 'update' || !detail) return;
+    reviewAsked = true;
+    if (detail.template?.updateAvailable && !readonly) reviewing = true;
+  });
   // "Discard mine" waits for its confirmation, which opens once the menu has closed.
   let discardChosen = false;
   let confirmDiscard = $state(false);
-  let applyFailure = $state('');
 
 
   async function saveWorkflow() {
@@ -116,50 +114,27 @@
         data: { workflow: draft.workflow, expectedWorkflowVersion: baseVersion },
       });
       draft.saved(response.data.workflow, `${response.data.id}:${response.data.workflowVersion}`);
-      notice = `Saved. The job's workflow is now version ${response.data.workflowVersion}.`;
+      notice = `Saved. The job's pipeline is now version ${response.data.workflowVersion}.`;
     } catch (error) {
-      failure = draft.failed(error, 'Could not save the workflow');
+      failure = draft.failed(error, 'Could not save the pipeline');
     }
   }
-
-  async function applyUpdate() {
-    if (!detail || !update) return;
-    applyFailure = '';
-    try {
-      const response = await apply.mutateAsync({
-        jobId: params.jobId,
-        data: { templateVersionId: update.latestVersionId, expectedWorkflowVersion: detail.workflowVersion },
-      });
-      draft.replace(response.data.workflow, `${response.data.id}:${response.data.workflowVersion}`);
-      reviewing = false;
-      notice = `Applied version ${update.latestVersion} of ${detail.template?.templateName}.`;
-    } catch (error) {
-      applyFailure =
-        error instanceof ApiError && error.status === 400
-          ? Object.values((error.body as { errors?: Record<string, string[]> } | undefined)?.errors ?? {})
-              .flat()
-              .join(' ') || describeError(error, 'Could not apply the update')
-          : describeError(error, 'Could not apply the update');
-    }
-  }
-
-  const changeWords: Record<WorkflowChangeKind, string> = { Added: 'Added', Removed: 'Removed', Changed: 'Changed' };
   const notFound = $derived(job.error instanceof ApiError && job.error.status === 404);
   const workArea = 'flex w-full flex-col gap-5 px-4 py-6 md:px-6';
 </script>
 
 <svelte:head>
-  <title>{detail?.title ?? 'Job'} workflow · ScreenHire</title>
+  <title>{detail?.title ?? 'Job'} pipeline · ScreenHire</title>
 </svelte:head>
 
 <TopBar
-  crumbs={[{ label: 'Jobs', href: '/' }, { label: detail?.title ?? 'Job', href: `/jobs/${params.jobId}` }, { label: 'Workflow' }]}
+  crumbs={[{ label: 'Jobs', href: '/' }, { label: detail?.title ?? 'Job', href: `/jobs/${params.jobId}` }, { label: 'Pipeline' }]}
   back
 />
 
 <main class={[sidebar.isMobile && !readonly && detail && draft.workflow && 'pb-28']}>
   {#if job.isError}
-    <HeaderBand title={notFound ? 'Job not found' : 'Workflow'} />
+    <HeaderBand title={notFound ? 'Job not found' : 'Pipeline'} />
     <div class={workArea}>
       {#if notFound}
         <Panel title="Details">
@@ -171,7 +146,7 @@
           </Empty.Root>
         </Panel>
       {:else}
-        <Panel label="Workflow"><QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} inset /></Panel>
+        <Panel label="Pipeline"><QueryError message={describeError(job.error, 'Could not load this job')} onretry={() => job.refetch()} inset /></Panel>
       {/if}
     </div>
   {:else if !detail || !draft.workflow}
@@ -197,12 +172,12 @@
         </div>
       </div>
     </div>
-    <p class="sr-only" role="status">Loading the workflow…</p>
+    <p class="sr-only" role="status">Loading the pipeline…</p>
   {:else}
     <Tabs.Root bind:value={workflowTab.value}>
-      <!-- The job's name and its status first, then the check on the workflow (S2, T2). What saving did goes in the band's
+      <!-- The job's name and its status first, then the check on the pipeline (S2, T2). What saving did goes in the band's
            line under the title, so a long message never pushes the actions onto a second row (S8). -->
-      <HeaderBand title={`${detail.title} workflow`} details={notice || failure ? outcome : undefined}>
+      <HeaderBand title={`${detail.title} pipeline`} details={notice || failure ? outcome : undefined}>
         {#snippet status()}
           <StatusBadge {...jobStatus[detail.status]} />
           <ValidationBadge errors={draft.errors} checking={draft.checking} editable={!readonly} fix={workflowTab.value !== 'test'} />
@@ -237,7 +212,7 @@
       <div class={workArea}>
         {#if draft.outdated}
           <!-- A problem is a notice (E2); Discard mine and load theirs is in the header's More menu. -->
-          <Notice>Someone else saved this workflow: it is now version {detail.workflowVersion}. Your changes here are not saved, and saving them would be refused.</Notice>
+          <Notice>Someone else saved this pipeline: it is now version {detail.workflowVersion}. Your changes here are not saved, and saving them would be refused.</Notice>
         {/if}
         {#if detail.template?.updateAvailable && !readonly}
           <Panel title="Template update available">
@@ -290,46 +265,28 @@
 {/snippet}
 
 {#snippet saveButton()}
-  <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}><SaveIcon aria-hidden="true" />Save workflow</Button>
+  <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}><SaveIcon aria-hidden="true" />Save pipeline</Button>
 {/snippet}
 
-<Dialog.Root bind:open={reviewing}>
-  <Dialog.Content class="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-    <Dialog.Header>
-      <Dialog.Title>Apply version {update?.latestVersion ?? ''} of {detail?.template?.templateName ?? 'the template'}?</Dialog.Title>
-      <Dialog.Description>This replaces the job's workflow with the template's, including changes made to this job alone.</Dialog.Description>
-    </Dialog.Header>
-    {#if diff.isPending}
-      <Skeleton class="h-24 w-full" />
-    {:else if diff.isError}
-      <QueryError message={describeError(diff.error, 'Could not load the differences')} onretry={() => diff.refetch()} inset />
-    {:else if update}
-      <ul aria-label="Differences" class="flex flex-col divide-y divide-border rounded-lg bg-secondary text-body">
-        {#each update.changes as change, index (index)}
-          <li class="flex flex-col gap-0.5 px-3 py-2">
-            <span><span class="font-semibold">{changeWords[change.kind]}</span> <code class="font-mono text-code">{change.path}</code></span>
-            {#if change.before !== null}<span class="break-all text-muted-foreground">Before: <code class="font-mono text-code">{change.before}</code></span>{/if}
-            {#if change.after !== null}<span class="break-all">After: <code class="font-mono text-code">{change.after}</code></span>{/if}
-          </li>
-        {:else}
-          <li class="px-3 py-2 text-muted-foreground">No differences in the workflow.</li>
-        {/each}
-      </ul>
-    {/if}
-    {#if draft.dirty}<p class="text-body font-semibold">Your unsaved changes on this page are discarded too.</p>{/if}
-    <FailureText message={applyFailure} />
-    <Dialog.Footer>
-      <Dialog.Close class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Keep this workflow</Dialog.Close>
-      <Button size="lg" onclick={applyUpdate} disabled={apply.isPending || !update}><RefreshCwIcon aria-hidden="true" />Apply update</Button>
-    </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
+{#if detail?.template?.updateAvailable && !readonly}
+  <TemplateUpdateDialog
+    bind:open={reviewing}
+    jobId={detail.id}
+    templateName={detail.template.templateName}
+    expectedWorkflowVersion={detail.workflowVersion}
+    discardsUnsaved={draft.dirty}
+    onapplied={(job, version) => {
+      draft.replace(job.workflow, `${job.id}:${job.workflowVersion}`);
+      notice = `Applied version ${version} of ${job.template?.templateName ?? 'the template'}.`;
+    }}
+  />
+{/if}
 
 <Dialog.Root bind:open={confirmDiscard}>
   <Dialog.Content class="sm:max-w-md">
     <Dialog.Header>
       <Dialog.Title>Discard your changes and load version {detail?.workflowVersion ?? ''}?</Dialog.Title>
-      <Dialog.Description>Your unsaved changes to this workflow are lost.</Dialog.Description>
+      <Dialog.Description>Your unsaved changes to this pipeline are lost.</Dialog.Description>
     </Dialog.Header>
     <Dialog.Footer>
       <Dialog.Close class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Keep my changes</Dialog.Close>
@@ -345,4 +302,4 @@
   </Dialog.Content>
 </Dialog.Root>
 
-<LeaveDialog unsaved={draft.dirty && !readonly} title="Leave without saving this job's workflow?" />
+<LeaveDialog unsaved={draft.dirty && !readonly} title="Leave without saving this job's pipeline?" />
