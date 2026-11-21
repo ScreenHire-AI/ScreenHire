@@ -446,6 +446,13 @@
 
   // Tags change in place here; nothing is saved.
   let sampleTags = $state(['Referral', 'Relocating to Leeds']);
+  // The organization's tags the field suggests (GET /v1/tags), most used first.
+  const sampleKnownTags = [
+    { name: 'Senior', applications: 12 },
+    { name: 'Referral', applications: 9 },
+    { name: 'Senior engineer', applications: 4 },
+    { name: 'Needs visa', applications: 2 },
+  ];
   let jobsChoice = $state<'All' | 'HiringTeamOnly'>('All');
   let countriesChoice = $state(['GB', 'IE']);
   const sampleTeam = [
@@ -1232,6 +1239,7 @@
         <Panel title="Tag list" class="flex-[1_1_320px]">
           <TagList
             tags={sampleTags}
+            suggestions={sampleKnownTags}
             onadd={async (tag) => ((sampleTags = [...sampleTags, tag]), true)}
             onremove={(tag) => (sampleTags = sampleTags.filter((other) => other !== tag))}
           />

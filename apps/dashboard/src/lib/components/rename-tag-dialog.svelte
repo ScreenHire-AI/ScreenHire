@@ -7,6 +7,7 @@
   import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
+  import { maxTagLength } from '#lib/tags.js';
   import { cn } from '#lib/utils.js';
 
   // Renames a tag everywhere, from Settings, Tags: one field. `onrename` returns a sentence when the API refused it (the
@@ -22,8 +23,9 @@
     onclose: () => void;
   } = $props();
 
-  // As the API allows a tag (JobApplication.MaxTagLength).
-  const schema = z.object({ name: z.string().trim().min(1, 'Name the tag.').max(50, 'Use at most 50 characters.') });
+  const schema = z.object({
+    name: z.string().trim().min(1, 'Name the tag.').max(maxTagLength, `Use at most ${maxTagLength} characters.`),
+  });
   const { form, errors, enhance, submitting, reset } = superForm(defaults({ name: '' }, zod4(schema)), {
     SPA: true,
     validators: zod4(schema),
@@ -59,7 +61,7 @@
         <Input
           id="rename-tag-name"
           name="name"
-          maxlength={50}
+          maxlength={maxTagLength}
           required
           autocomplete="off"
           bind:value={$form.name}

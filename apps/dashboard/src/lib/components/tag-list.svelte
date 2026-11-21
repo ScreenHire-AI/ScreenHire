@@ -1,8 +1,3 @@
-<script lang="ts" module>
-  /** As the API allows it (JobApplication.MaxTagLength). */
-  const maxTagLength = 50;
-</script>
-
 <script lang="ts">
   import PlusIcon from '~icons/lucide/plus';
   import XIcon from '~icons/lucide/x';
@@ -12,7 +7,7 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { suggestTags, type KnownTag } from '#lib/tags.js';
+  import { maxTagLength, suggestTags, type KnownTag } from '#lib/tags.js';
 
   // A record's tags (design system section 11): each a fact pill, with its own Remove button beside it, never inside it
   // (A5), and a field to add one. Removing is not destructive: adding the tag again undoes it (section 10). Without
@@ -82,6 +77,9 @@
     ...(choices.create ? [{ name: choices.create, create: true }] : []),
   ]);
   const open = $derived(suggestions !== undefined && listing && options.length > 0);
+  // The list can shrink under the highlight while it is open (a live update refetches the tags), so Enter and
+  // aria-activedescendant read the highlight clamped to what is there.
+  const current = $derived(Math.min(active, options.length - 1));
   const optionId = (index: number) => `${listId}-${index}`;
 
   async function add(text: string) {
@@ -97,7 +95,7 @@
 
   async function onsubmit(event: SubmitEvent) {
     event.preventDefault();
-    await add(open ? options[active]!.name : draft);
+    await add(open ? options[current]!.name : draft);
   }
 
   function onfieldkeydown(event: KeyboardEvent) {
@@ -109,7 +107,7 @@
     }
     if (open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
       event.preventDefault();
-      active = (active + (event.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length;
+      active = (current + (event.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length;
       return;
     }
     if (event.key === 'Escape' && open) {
@@ -136,7 +134,7 @@
           'aria-autocomplete': 'list' as const,
           'aria-expanded': open,
           'aria-controls': open ? listId : undefined,
-          'aria-activedescendant': open ? optionId(active) : undefined,
+          'aria-activedescendant': open ? optionId(current) : undefined,
         }
       : {},
   );
@@ -144,14 +142,15 @@
 
 {#snippet suggestionList()}
   {#if open}
-    <ul id={listId} role="listbox" aria-label="Tags" class="absolute top-full left-0 z-50 mt-1 flex w-full min-w-48 flex-col rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-overlay">
+    <ul id={listId} role="listbox" aria-label="Suggested tags"class="absolute top-full left-0 z-50 mt-1 flex w-full min-w-48 flex-col rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-overlay">
       {#each options as option, index (option.create ? `create:${option.name}` : option.name)}
         <!-- Picked on mousedown, before the field loses focus; the keyboard picks with Enter in the field. -->
         <li
           id={optionId(index)}
           role="option"
-          aria-selected={index === active}
+          aria-selected={index === current}
           class="flex min-h-9 min-w-0 items-center gap-2 rounded-md px-2.5 py-1 aria-selected:bg-accent pointer-coarse:min-h-11"
+          onmouseenter={() => (active = index)}
           onmousedown={(event) => {
             event.preventDefault();
             void add(option.name);

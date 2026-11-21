@@ -87,7 +87,7 @@ describe('tag list, suggesting the tags the organization has', () => {
     show({ compact: true, tags: ['Remote'], onadd, suggestions });
 
     const field = await typeIn('sen');
-    const options = within(screen.getByRole('listbox', { name: 'Tags' })).getAllByRole('option');
+    const options = within(screen.getByRole('listbox', { name: 'Suggested tags' })).getAllByRole('option');
     expect(options.map((option) => option.textContent?.trim())).toEqual(['Senior engineer', 'Senior', 'Create "sen"']);
     expect(field).toHaveAttribute('aria-expanded', 'true');
     expect(field).toHaveAttribute('aria-activedescendant', options[0]!.id);
@@ -119,7 +119,7 @@ describe('tag list, suggesting the tags the organization has', () => {
     const field = screen.getByRole('combobox', { name: 'New tag' });
     expect(screen.queryByRole('listbox')).toBeNull();
     await fireEvent.keyDown(field, { key: 'ArrowDown' });
-    expect(within(screen.getByRole('listbox', { name: 'Tags' })).getAllByRole('option').map((option) => option.textContent?.trim())).toEqual([
+    expect(within(screen.getByRole('listbox', { name: 'Suggested tags' })).getAllByRole('option').map((option) => option.textContent?.trim())).toEqual([
       'Senior engineer',
       'Remote',
       'Senior',
@@ -141,5 +141,22 @@ describe('tag list, suggesting the tags the organization has', () => {
     await fireEvent.input(field, { target: { value: 're' } });
     await fireEvent.mouseDown(screen.getByRole('option', { name: 'Remote' }));
     expect(onadd).toHaveBeenCalledWith('Remote');
+  });
+
+  it('picks the last option still listed when a live update shrinks the list under the highlight', async () => {
+    const onadd = vi.fn(async () => true);
+    // Rendered without the tooltip harness, so `rerender` reaches the list's own props; with no tags there is no tooltip.
+    const { rerender } = render(TagList, { props: { compact: true, tags: [], onadd, suggestions } });
+
+    const field = await typeIn('sen');
+    await fireEvent.keyDown(field, { key: 'ArrowUp' });
+    expect(screen.getByRole('option', { name: 'Create "sen"' })).toHaveAttribute('aria-selected', 'true');
+
+    // Another member renames both Senior tags away; the refetched list has only Create left.
+    await rerender({ suggestions: [{ name: 'Remote', applications: 7 }] });
+    expect(screen.getAllByRole('option').map((option) => option.textContent?.trim())).toEqual(['Create "sen"']);
+    expect(field).toHaveAttribute('aria-activedescendant', screen.getByRole('option').id);
+    await fireEvent.submit(field.closest('form')!);
+    expect(onadd).toHaveBeenCalledWith('sen');
   });
 });

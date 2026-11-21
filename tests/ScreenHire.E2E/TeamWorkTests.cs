@@ -71,7 +71,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         // picks the top match, spelled as the team spells it.
         await addTag.ClickAsync();
         await newTag.FillAsync("night");
-        await Expect(header.GetByRole(AriaRole.Listbox, new() { Name = "Tags" }).GetByRole(AriaRole.Option))
+        await Expect(header.GetByRole(AriaRole.Listbox, new() { Name = "Suggested tags" }).GetByRole(AriaRole.Option))
             .ToHaveTextAsync(["Night shift", "Create \"night\""]);
         await Page.Keyboard.PressAsync("Enter");
         await Expect(tags).ToContainTextAsync("Night shift");

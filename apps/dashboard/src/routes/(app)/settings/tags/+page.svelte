@@ -72,7 +72,6 @@
   });
   const sorted = $derived(table.getRowModel().rows.map((row) => row.original));
 
-
   // Rename, Merge and Delete open their dialog once the row's menu has closed, so focus can go back to the menu.
   let chosen = $state<{ tag: TagSummary; action: 'rename' | 'merge' | 'delete' } | null>(null);
   let renaming = $state<string | null>(null);

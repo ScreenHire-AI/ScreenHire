@@ -2,6 +2,9 @@ import type { ApplicationSummary } from '@screenhire/api-client';
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
+/** The longest tag the API takes (JobApplication.MaxTagLength). */
+export const maxTagLength = 50;
+
 /** Every tag on these applications, each once (tags compare ignoring case, as the API does), in alphabetical order. */
 export function tagsOf(applications: readonly Pick<ApplicationSummary, 'tags'>[]): string[] {
   const tags: string[] = [];
