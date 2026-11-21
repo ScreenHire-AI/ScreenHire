@@ -142,9 +142,9 @@ The rows are one list on each side, `NoticeRows` in `NoticePreferences.cs` and `
 | Interviews booked or changed | none yet: the event carries no actor, so it cannot toast | Instantly | none | everyone |
 | Tasks assigned to you | `Tasks` | Daily digest | on (the Slack link's Tasks) | everyone |
 | New applications on your jobs | `NewCandidates` | Daily digest | none | everyone |
-| Teammates' moves and notes | `Moves`, `Notes`, `Tags`, `Emails`, `Scorecards`, `Templates` (one switch; Choose opens each) | Off | none | everyone |
+| Teammates' moves and notes | `Moves`, `Notes`, `Tags`, `Emails`, `Scorecards`, `Templates` (one switch; Choose kinds opens each) | Off | none | everyone |
 | Verification suggested | none: never a toast (ADR-0004) | the organization's verification email alert | the organization's verification Slack alert | holders of Review verification |
-| AI use and billing | none: the bell keeps them | the organization's AI usage email alert; the trial's reminders start at Instantly (the row shows that default to someone who only handles billing) | the organization's AI usage Slack alert | holders of View AI usage or Manage billing |
+| AI use and billing | none: the bell keeps them | the organization's AI usage email alert; Instantly for whoever handles billing, whose trial reminders start there. Off or Daily digest, once chosen, covers both, while someone who handles billing and never chose gets the AI alerts only when the organization's switch is on | the organization's AI usage Slack alert | holders of View AI usage or Manage billing |
 
 - **In the app** switches the toast or card in the tray; the bell keeps what is addressed to the person either way. It is the
   `Off` list of `NotificationSettings` on the membership, the same column the Teammate changes sheet saved, so nobody's
@@ -201,7 +201,8 @@ browser once), only when there is something in it.
   `LastDigestOn` is before their local date, and who have an item from before that day's 08:00 (`DigestSchedule.Due`). It sends
   `SendDigest`, deduplicated on the organization, the person and the local date.
 - `SendDigest` reads the person's unsent items from before the cutoff, leaves out what they no longer see and what is gone (an
-  erased candidate), marks every item it read sent, and sends one email grouped by row, each line a link to its record. With
+  erased candidate), and what belongs to a row they no longer see or have since turned Off (their permissions and choices as
+  they are at send time, not when the item was queued), marks every item it read sent, and sends one email grouped by row, each line a link to its record. With
   nothing left it sends nothing. Something that arrives at 10:00 waits for the next morning, so a day that starts empty never gets
   a "daily" email in the afternoon.
 - `digest_items` holds ids and a word for what happened (`Moved`, `Booked`), never a name or text: the lines are written when the
