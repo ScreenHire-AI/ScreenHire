@@ -66,7 +66,9 @@
   import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import AlertGrid from '#lib/components/alert-grid.svelte';
   import ExpandableRow from '#lib/components/expandable-row.svelte';
+  import InfoButton from '#lib/components/info-button.svelte';
   import JoinedNotice from '#lib/components/joined-notice.svelte';
   import Notice from '#lib/components/notice.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
@@ -182,6 +184,7 @@
   let publishCheckOpen = $state(false);
   let typedConfirmOpen = $state(false);
   let emailOpen = $state(true);
+  let alertChoices = $state({ budgetEmail: false, budgetSlack: true });
   let secretOpen = $state(false);
   const demoStages: WorkflowStage[] = [
     { id: 'applied', name: 'Applied', kind: 'Applied' },
@@ -1421,6 +1424,31 @@
             </ExpandableRow>
           </li>
         </ol>
+      </Panel>
+
+      <Panel title="Info button">
+        <p class="flex items-center gap-1">
+          Monthly budget
+          <InfoButton label="About the monthly budget" text="Warns you at 50%, 80% and 100% of what you're billed for the checks. It stops nothing." />
+        </p>
+      </Panel>
+
+      <Panel title="Alert grid" flush>
+        <AlertGrid
+          rows={[
+            {
+              label: 'AI usage',
+              about: 'Tells people who can see AI usage when the monthly budget passes 50%, 80% and 100%.',
+              inApp: 'The bell tells everyone who can see AI usage.',
+              email: 'budgetEmail',
+              slack: 'budgetSlack',
+            },
+          ]}
+          bind:values={alertChoices}
+          emailAvailable
+          slackConnected
+          label="Alerts"
+        />
       </Panel>
 
       <Panel title="Notice">

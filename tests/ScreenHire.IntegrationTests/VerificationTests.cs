@@ -404,7 +404,7 @@ public sealed class VerificationTests(AppHostFixture fixture)
         var plain = await AssessedAsync(tenant, await ApplyAsync(slug, jobId, SyntheticApplicants.GenuineHuman));
         var withSwitch = await AssessedAsync(tenant, await ApplyAsync(slug, jobId, SyntheticApplicants.HonestAiAssisted, accommodation: true));
 
-        // Nothing marks the switch: no group is Not checked or Turned off for it, so a reader cannot tell it was used.
+        // Nothing marks the switch: no group is Did not run or Off for it, so a reader cannot tell it was used.
         foreach (var verification in new[] { plain, withSwitch })
         {
             var groups = verification.At("checkGroups").EnumerateArray().ToList();
