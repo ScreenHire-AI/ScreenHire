@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../../test-support/axe.js';
 import { apiStub, user } from '../../../../../test-support/fixtures.js';
+import { stubViewport } from '../../../../../test-support/viewport.js';
 import WithQueryClient from '../../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -357,6 +358,19 @@ describe('edit endpoint sheet', () => {
 
     expect(within(sheet).getByText('This endpoint is off. Saving does not turn it on.')).toBeInTheDocument();
     expect(within(sheet).queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('opens from Edit in the More menu on a phone, where the band has no Edit button', async () => {
+    stubViewport(360);
+    renderPage(endpoint(), eventTypes);
+
+    const menu = await openMoreActions();
+    const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
+    expect(within(band).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Edit' }));
+
+    const sheet = await screen.findByRole('dialog', { name: 'Edit endpoint' });
+    expect(within(sheet).getByLabelText('URL')).toHaveValue('https://hooks.example.com/applicants');
   });
 
   it('saves with a PUT that leaves the endpoint on or off as it is, then closes', async () => {

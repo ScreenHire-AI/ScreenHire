@@ -190,6 +190,8 @@ describe('add endpoint sheet', () => {
     expect(within(dialog).getByDisplayValue(signingSecret)).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add endpoint' })).not.toBeInTheDocument());
     expect(navigation.goto).not.toHaveBeenCalled();
+    // The sheet closing does not take focus back to Add endpoint behind the dialog: it stays in the dialog (WCAG 2.4.3).
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
 
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
 
