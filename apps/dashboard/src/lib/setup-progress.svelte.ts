@@ -50,9 +50,9 @@ export function createSetupProgress(user: () => CurrentUser | null | undefined) 
     get steps() {
       return visible ? steps : undefined;
     },
-    /** The steps still to do. */
+    /** The steps still to do that count: an optional step left undone never adds to the bell or "steps left". */
     get remaining() {
-      return visible && steps ? steps.filter((step) => !step.done) : [];
+      return visible && steps ? steps.filter((step) => !step.done && !step.optional) : [];
     },
     /** How many steps are done. */
     get doneCount() {

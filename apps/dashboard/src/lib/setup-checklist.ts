@@ -8,6 +8,12 @@ export interface SetupStep {
   href: string;
   /** Whether the organization's own data says it is done. */
   done: boolean;
+  /**
+   * A step a team may rightly never do (sending from its own domain needs a domain and DNS access). It says Optional and
+   * never counts toward the bell or "steps left", so a team without a domain is not left with a badge it cannot clear
+   * (the owner's walk-through, 2026-11-21).
+   */
+  optional?: boolean;
 }
 
 /** The answers the steps read. A missing one (still loading) is `undefined`, and the panel waits for all of them. */
@@ -45,7 +51,7 @@ export function setupSteps(inputs: SetupInputs): SetupStep[] | undefined {
   ];
   // Last, because it is DNS work outside ScreenHire and the team can start without it.
   if (sendingDomain.available) {
-    steps.push({ id: 'email', label: 'Send email from your own domain', href: '/settings/sending-domain', done: sendingDomain.domain?.status === 'Verified' });
+    steps.push({ id: 'email', label: 'Send email from your own domain', href: '/settings/sending-domain', done: sendingDomain.domain?.status === 'Verified', optional: true });
   }
   return steps;
 }

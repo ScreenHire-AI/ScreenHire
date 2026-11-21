@@ -136,6 +136,24 @@ describe('notification bell', () => {
     expect(await screen.findAllByText('Setup and notifications')).not.toHaveLength(0);
   });
 
+  it("lists the optional email-domain step as Optional and never counts it, so a team without a domain has no badge (the owner's walk-through, 2026-11-21)", async () => {
+    // Everything else is done: a teammate invited, branding set, a job published.
+    stub([], 0, {
+      'GET /v1/organization/members': () => Response.json([{ id: 'avery' }, { id: 'jordan' }]),
+      'GET /v1/organization/branding': () => Response.json({ brandColor: '#1f4e5a', secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
+      'GET /v1/organization/sending-domain': () => Response.json({ available: true, sandbox: false, domain: null }),
+      'GET /v1/jobs': () => Response.json(jobs),
+    });
+    renderBell();
+
+    const button = await screen.findByRole('button', { name: /^Notifications/ });
+    await waitFor(() => expect(button).toHaveAccessibleName('Notifications'));
+    expect(button.querySelector('[data-bell-count]')).toBeNull();
+    const panel = await openBell();
+    const step = await within(panel).findByRole('link', { name: 'Send email from your own domain' });
+    expect(step.parentElement).toHaveTextContent('Optional');
+  });
+
   it('shows no count when nothing needs attention, and says so when opened', async () => {
     stub([], 0);
     renderBell(userAs('Recruiter'));
