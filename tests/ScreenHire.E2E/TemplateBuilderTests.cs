@@ -251,7 +251,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.SetViewportSizeAsync(1440, 1040);
         await SignInAsync(email);
 
-        // Start from: three cards, each its name, one example line and its stages as text.
+        // Start from: four cards, each its name, one example line and its stages as text.
         await Page.GotoAsync(DashboardUrl("/templates/new"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("New hiring template");
         var cards = Page.GetByRole(AriaRole.Group, new() { Name = "Starting point" });
