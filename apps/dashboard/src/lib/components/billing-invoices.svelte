@@ -1,5 +1,4 @@
 <script lang="ts">
-  import FileTextIcon from '~icons/lucide/file-text';
   import type { BillingInvoice } from '@screenhire/api-client';
   import { createListBillingInvoices } from '@screenhire/api-client/svelte-query';
   import { createSortedRowModel, createTable, rowSortingFeature, sortFn_alphanumeric, sortFn_basic, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
@@ -75,9 +74,9 @@
                     href={invoice.pdfUrl}
                     target="_blank"
                     rel="noreferrer"
-                    class="inline-flex min-h-6 items-center gap-1.5 text-foreground underline underline-offset-2 pointer-coarse:min-h-11"
+                    class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11"
                   >
-                    <FileTextIcon aria-hidden="true" class="shrink-0" />PDF<span class="sr-only">, invoice of {formatDate(invoice.date)} (opens in a new tab)</span>
+                    PDF<span class="sr-only">, invoice of {formatDate(invoice.date)} (opens in a new tab)</span>
                   </a>
                 {:else}
                   <span class="sr-only">No PDF</span>

@@ -17,9 +17,6 @@ namespace ScreenHire.Domain.Verification;
 /// </remarks>
 public sealed class VerificationSettings : ITenantOwned
 {
-    /// <summary>The highest monthly budget or cap an organization may set, in tokens.</summary>
-    public const long MaxMonthlyTokens = 1_000_000_000;
-
     /// <summary>The highest monthly budget or cap an organization may set, in US dollars.</summary>
     public const decimal MaxMonthlyMoney = 1_000_000m;
 

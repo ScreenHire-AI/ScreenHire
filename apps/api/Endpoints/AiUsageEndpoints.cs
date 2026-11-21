@@ -255,9 +255,11 @@ internal static class AiUsageHandlers
         }
 
         // Limits are set in dollars only. A limit stored in tokens before that is shown converted, and the form sends it back in
-        // dollars, so saving moves both limits to dollars (ai-usage.md, "Budget, alerts and the cap").
-        var capChanged = settings.MonthlyCap != request.Cap || settings.BudgetUnit != UsageUnit.Money;
-        var budgetChanged = settings.MonthlyBudget != request.Budget || settings.BudgetUnit != UsageUnit.Money;
+        // dollars, so saving moves both limits to dollars (ai-usage.md, "Budget, alerts and the cap"). Only a limit that was set in
+        // tokens changes with the unit: a row left on the column's default unit with no limits keeps the month's alerts when saved.
+        var inTokens = settings.BudgetUnit != UsageUnit.Money;
+        var capChanged = settings.MonthlyCap != request.Cap || inTokens && settings.MonthlyCap is not null;
+        var budgetChanged = settings.MonthlyBudget != request.Budget || inTokens && settings.MonthlyBudget is not null;
         settings.BudgetUnit = UsageUnit.Money;
         settings.MonthlyBudget = request.Budget;
         settings.MonthlyCap = request.Cap;

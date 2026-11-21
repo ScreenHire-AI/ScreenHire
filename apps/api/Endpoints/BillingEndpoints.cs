@@ -98,7 +98,7 @@ internal static class BillingEndpoints
         var ai = options.Value.Ai;
         var margin = options.Value.AiMarginInForce;
         var usage = await AiUsageBillingQueries.ThisMonthAsync(db, now, margin, cancellationToken);
-        var metered = access.Mode == BillingMode.Sandbox || !string.IsNullOrWhiteSpace(ai.StripePriceId);
+        var metered = options.Value.AiMetered;
         var aiUsage = new BillingAiUsage(
             AiUsageQueries.Month(now),
             usage.BuiltInCalls,

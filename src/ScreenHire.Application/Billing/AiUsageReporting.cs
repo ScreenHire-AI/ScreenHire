@@ -178,8 +178,6 @@ public static partial class ReportOrganizationAiUsageHandler
 /// <summary>What the Billing page says about this month's use of ScreenHire's key (docs/architecture/billing.md, "AI usage").</summary>
 public sealed record AiUsageBillingSummary(
     int BuiltInCalls,
-    long Tokens,
-    decimal ProviderCost,
     long ChargeMicros,
     int CallsWithUnknownCost,
     int OwnKeyCalls,
@@ -204,8 +202,7 @@ public static class AiUsageBillingQueries
             .Select(g => new
             {
                 Calls = g.Count(),
-                Tokens = g.Sum(c => (c.InputTokens ?? 0) + (c.OutputTokens ?? 0)),
-                Cost = g.Sum(c => c.Cost ?? 0m),
+                // AiCharge.Micros per call, as the meter is sent it (AiUsageQueries.BilledAmount is the same rule in dollars).
                 Micros = g.Sum(c => c.Cost == null ? 0m : Math.Round(c.Cost.Value * factor * 1000000m)),
                 Unknown = g.Count(c => c.Cost == null),
             })
@@ -213,7 +210,7 @@ public static class AiUsageBillingQueries
         var ownKey = await db.AiUsageCalls.AsNoTracking().CountAsync(c => c.KeySource == AiKeySource.OwnKey && c.OccurredAt >= monthStart, cancellationToken);
         var waived = await db.AiUsageCharges.AsNoTracking().Where(c => c.State == AiChargeState.Waived).SumAsync(c => c.Micros, cancellationToken);
         return new AiUsageBillingSummary(
-            builtIn?.Calls ?? 0, builtIn?.Tokens ?? 0, builtIn?.Cost ?? 0m, (long)(builtIn?.Micros ?? 0m), builtIn?.Unknown ?? 0, ownKey, waived);
+            builtIn?.Calls ?? 0, (long)(builtIn?.Micros ?? 0m), builtIn?.Unknown ?? 0, ownKey, waived);
     }
 
     /// <summary>

@@ -112,29 +112,29 @@
     <p role="status" class="mt-4 text-body">Removed.</p>
   {/if}
 {:else}
-<form method="POST" use:enhance novalidate aria-label="Monthly AI limits" class="flex max-w-form flex-col gap-5">
-  <p class="max-w-measure text-muted-foreground">
-    In US dollars. The budget warns you at 50%, 80% and 100%. The cap pauses the AI checks, never the others, and never marks a candidate.
-  </p>
+  <form method="POST" use:enhance novalidate aria-label="Monthly AI limits" class="flex max-w-form flex-col gap-5">
+    <p class="max-w-measure text-muted-foreground">
+      In US dollars. The budget warns you at 50%, 80% and 100%. The cap pauses the AI checks, never the others, and never marks a candidate.
+    </p>
 
-  <Field.Field data-invalid={$errors.budget ? true : undefined}>
-    <Field.Label for="limit-budget">Monthly budget <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
-    <Input id="limit-budget" name="budget" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.budget} aria-invalid={$errors.budget ? 'true' : undefined} />
-    <Field.Description>Empty keeps ScreenHire's default budget{defaultFigure(initial.effectiveBudget)} for its own key; your own key has none.</Field.Description>
-    <Field.Error errors={message($errors.budget)} />
-  </Field.Field>
+    <Field.Field data-invalid={$errors.budget ? true : undefined}>
+      <Field.Label for="limit-budget">Monthly budget <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
+      <Input id="limit-budget" name="budget" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.budget} aria-invalid={$errors.budget ? 'true' : undefined} />
+      <Field.Description>Empty keeps ScreenHire's default budget{defaultFigure(initial.effectiveBudget)} for its own key; your own key has none.</Field.Description>
+      <Field.Error errors={message($errors.budget)} />
+    </Field.Field>
 
-  <Field.Field data-invalid={$errors.cap ? true : undefined}>
-    <Field.Label for="limit-cap">Monthly cap <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
-    <Input id="limit-cap" name="cap" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.cap} aria-invalid={$errors.cap ? 'true' : undefined} />
-    <Field.Description>Empty keeps ScreenHire's default cap{defaultFigure(initial.effectiveCap)} for its own key; your own key has none.</Field.Description>
-    <Field.Error errors={message($errors.cap)} />
-  </Field.Field>
+    <Field.Field data-invalid={$errors.cap ? true : undefined}>
+      <Field.Label for="limit-cap">Monthly cap <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
+      <Input id="limit-cap" name="cap" inputmode="decimal" autocomplete="off" class="tabular-nums" bind:value={$form.cap} aria-invalid={$errors.cap ? 'true' : undefined} />
+      <Field.Description>Empty keeps ScreenHire's default cap{defaultFigure(initial.effectiveCap)} for its own key; your own key has none.</Field.Description>
+      <Field.Error errors={message($errors.cap)} />
+    </Field.Field>
 
-  <div class="flex flex-wrap items-center gap-3">
-    <Button type="submit" variant="outline" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save limits</Button>
-    <p role="status" class="text-body empty:hidden">{saved}</p>
-    <FailureText message={$errors._errors?.[0] ?? ''} />
-  </div>
-</form>
+    <div class="flex flex-wrap items-center gap-3">
+      <Button type="submit" variant="outline" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save limits</Button>
+      <p role="status" class="text-body empty:hidden">{saved}</p>
+      <FailureText message={$errors._errors?.[0] ?? ''} />
+    </div>
+  </form>
 {/if}

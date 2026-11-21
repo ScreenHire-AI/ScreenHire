@@ -212,16 +212,20 @@
         {#if hasCustomer}
           <Panel title="Payment method">
             <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
-              <p class="flex min-w-0 flex-[1_1_12rem] items-center gap-2">
-                <CreditCardIcon aria-hidden="true" class="shrink-0 text-muted-foreground" />
-                {#if paymentMethod.data}
-                  <span data-payment-method>{paymentMethod.data.data.method ? paymentMethodText(paymentMethod.data.data.method) : 'No payment method on file'}</span>
-                {:else if paymentMethod.isError}
-                  <span class="text-muted-foreground">{describeError(paymentMethod.error, 'Could not load the payment method')}</span>
-                {:else}
-                  <Skeleton class="h-5 w-40" /><span class="sr-only" role="status">Loading the payment method…</span>
-                {/if}
-              </p>
+              {#if paymentMethod.isError && !paymentMethod.data}
+                <div class="min-w-0 flex-[1_1_12rem]">
+                  <QueryError message={describeError(paymentMethod.error, 'Could not load the payment method')} onretry={() => paymentMethod.refetch()} inset />
+                </div>
+              {:else}
+                <div class="flex min-w-0 flex-[1_1_12rem] items-center gap-2">
+                  <CreditCardIcon aria-hidden="true" class="shrink-0 text-muted-foreground" />
+                  {#if paymentMethod.data}
+                    <span data-payment-method>{paymentMethod.data.data.method ? paymentMethodText(paymentMethod.data.data.method) : 'No payment method on file'}</span>
+                  {:else}
+                    <Skeleton class="h-5 w-40" /><span class="sr-only" role="status">Loading the payment method…</span>
+                  {/if}
+                </div>
+              {/if}
               <div class="flex flex-wrap gap-3">
                 <Button variant="outline" size="lg" disabled={leaving !== null} onclick={() => openPortal('ChangeCard')}>Change card</Button>
                 {#if subscribed && !overview.cancelsAtPeriodEnd}

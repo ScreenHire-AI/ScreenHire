@@ -162,15 +162,16 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
                 _ => null,
             };
             if (status is not { } known || Text(invoice, "id") is not { } id || Text(invoice, "currency") is not { } currency
-                || !invoice.TryGetProperty("created", out var created) || !invoice.TryGetProperty("total", out var total))
+                || !invoice.TryGetProperty("created", out var created) || created.ValueKind != JsonValueKind.Number || !created.TryGetInt64(out var createdAt)
+                || !invoice.TryGetProperty("total", out var total) || total.ValueKind != JsonValueKind.Number || !total.TryGetInt64(out var totalMinor))
             {
                 continue;
             }
 
             invoices.Add(new ProviderInvoice(
                 id,
-                DateTimeOffset.FromUnixTimeSeconds(created.GetInt64()),
-                MajorUnits(total.GetInt64(), currency),
+                DateTimeOffset.FromUnixTimeSeconds(createdAt),
+                MajorUnits(totalMinor, currency),
                 currency.ToUpperInvariant(),
                 known,
                 Uri.TryCreate(Text(invoice, "invoice_pdf"), UriKind.Absolute, out var pdf) && pdf.Scheme == Uri.UriSchemeHttps ? pdf : null));
