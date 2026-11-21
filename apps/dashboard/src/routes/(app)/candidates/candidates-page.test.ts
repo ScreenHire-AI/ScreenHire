@@ -245,6 +245,45 @@ describe('candidates page', () => {
     expect(screen.queryByRole('button', { name: /^Email/ })).toBeNull();
   });
 
+  it("shows the view's level in the filter row on To review and To verify, and leaves the view when another level is chosen", async () => {
+    appPage.data = { user };
+    const level = (authenticity: 'ReviewSuggested' | 'VerificationRecommended') => ({
+      authenticity,
+      authenticityReasons: ['RESUME_TEMPLATE_MATCH'],
+      authenticityDismissed: false,
+      aiAssistance: 'NotIndicated' as const,
+      aiAssistanceReasons: [],
+      aiAssistanceDismissed: false,
+    });
+    const [casey, jordan] = applications;
+    const rows = [
+      { ...casey!, verification: level('ReviewSuggested') },
+      { ...jordan!, verification: level('VerificationRecommended') },
+    ];
+
+    appPage.url = new URL('http://dashboard.test/candidates?view=needs-review');
+    const { unmount } = render_(rows);
+    // To review holds Review only, and its filter says so rather than "All".
+    expect(await screen.findByRole('link', { name: casey!.candidateName })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: jordan!.candidateName })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Verification: Review$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save view' })).toBeDisabled();
+    unmount();
+
+    appPage.url = new URL('http://dashboard.test/candidates?view=verification-recommended');
+    render_(rows);
+    expect(await screen.findByRole('link', { name: jordan!.candidateName })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: casey!.candidateName })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Verification: Verify$/ })).toBeInTheDocument();
+
+    vi.mocked(goto).mockClear();
+    await fireEvent.pointerDown(screen.getByRole('button', { name: /^Verification: Verify$/ }));
+    await fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Any state' }));
+    await waitFor(() => expect(goto).toHaveBeenCalled());
+    const [url] = vi.mocked(goto).mock.calls.at(-1)!;
+    expect(new URL(String(url)).searchParams.has('view')).toBe(false);
+  });
+
   it('shows only the applications a report row counted, from its link, and clears that with the chip', async () => {
     const [casey, jordan] = applications;
     const from = '2026-10-01T00:00:00.000Z';

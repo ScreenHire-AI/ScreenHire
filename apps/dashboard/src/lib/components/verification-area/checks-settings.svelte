@@ -153,6 +153,11 @@
             void trustedDomains;
             void trustedNetworks;
             applyValidationProblem(submitted, { ...problem, errors: rest });
+            // A refusal that names no field still says why, under Save.
+            if (!domainServerError && !networkServerError && Object.keys(rest).length === 0) {
+              submitted.valid = false;
+              submitted.errors._errors = [describeError(error, 'Could not save the settings')];
+            }
           } else {
             submitted.valid = false;
             submitted.errors._errors = [describeError(error, 'Could not save the settings')];

@@ -57,7 +57,7 @@
   <Table.Body>
     {#each page.runs as run (run.id)}
       {@const expanded = open[run.id] ?? false}
-      <Table.Row data-run={run.id} class="cursor-pointer hover:bg-secondary/60" onclick={(event) => {
+      <Table.Row data-run={run.id} data-row-opens class="hover:bg-secondary/60" onclick={(event) => {
         // The whole row opens it; the button inside is the control for keyboards and screen readers.
         if (!(event.target as HTMLElement).closest('button, a')) open = { ...open, [run.id]: !expanded };
       }}>

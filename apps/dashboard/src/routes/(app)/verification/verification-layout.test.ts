@@ -26,8 +26,8 @@ const renderAs = (signedIn: CurrentUser) =>
   render(WithQueryClient, { props: { component: Layout, props: { data: { user: signedIn }, children: content } } });
 const tabNames = () => within(screen.getByRole('tablist', { name: 'Verification pages' })).getAllByRole('tab').map((tab) => tab.textContent?.trim());
 
-const everyTab = ['Overview', 'Activity log', 'Usage', 'Checks', 'Policy', 'AI model', 'Notifications'];
-const readOnlyTabs = ['Overview', 'Activity log', 'Checks', 'Policy'];
+const everyTab = ['Overview', 'Activity log', 'Checks', 'AI use'];
+const readOnlyTabs = ['Overview', 'Activity log', 'Checks'];
 
 const asDictionary = (user: CurrentUser, permissions: NonNullable<CurrentUser['organization']>['permissions'], seesAllJobs = true): CurrentUser => ({
   ...user,
@@ -46,7 +46,7 @@ afterEach(() => {
 
 // Everyone who can see verification has the area. A tab a role cannot use is left out of the strip, never shown disabled (A3).
 describe('the Verification area frame', () => {
-  it.each<Exclude<OrganizationRole, 'Custom'>>(['Owner', 'Admin'])('gives an %s all seven tabs, in order', (role) => {
+  it.each<Exclude<OrganizationRole, 'Custom'>>(['Owner', 'Admin'])('gives an %s all four tabs, in order', (role) => {
     renderAs(userAs(role));
 
     expect(tabNames()).toEqual(everyTab);
@@ -54,7 +54,7 @@ describe('the Verification area frame', () => {
     expect(screen.getByText('Tab content')).toBeInTheDocument();
   });
 
-  it.each<Exclude<OrganizationRole, 'Custom'>>(['Recruiter', 'Viewer'])('gives a %s the four read-only tabs and no disabled one', async (role) => {
+  it.each<Exclude<OrganizationRole, 'Custom'>>(['Recruiter', 'Viewer'])('gives a %s the three tabs it may use and no disabled one', async (role) => {
     renderAs(userAs(role));
 
     expect(tabNames()).toEqual(readOnlyTabs);
@@ -63,35 +63,34 @@ describe('the Verification area frame', () => {
     await expectNoAxeViolations();
   });
 
-  it('gives a custom role without Edit settings or AI usage the four read-only tabs', () => {
+  it('gives a custom role without Edit settings or AI usage the three tabs it may use', () => {
     renderAs(interviewer);
 
     expect(tabNames()).toEqual(readOnlyTabs);
   });
 
-  it('gives a custom role with AI usage the Usage tab but not the settings tabs', () => {
+  it('gives the AI use tab to a custom role with AI usage, and to one with Edit settings, each on its own', () => {
     renderAs(asDictionary(interviewer, ['ViewHiring', 'ViewAiUsage']));
-
-    expect(tabNames()).toEqual(['Overview', 'Activity log', 'Usage', 'Checks', 'Policy']);
+    expect(tabNames()).toEqual(everyTab);
   });
 
-  it('gives a custom role with Edit settings but no AI usage the model and notifications tabs but not Usage', () => {
+  it('gives the AI use tab to a custom role with Edit settings but no AI usage', () => {
     renderAs(asDictionary(interviewer, ['ViewHiring', 'EditSettings']));
 
-    expect(tabNames()).toEqual(['Overview', 'Activity log', 'Checks', 'Policy', 'AI model', 'Notifications']);
+    expect(tabNames()).toEqual(everyTab);
   });
 
-  it('leaves Usage out for an Admin who sees only the jobs they are on, as the API refuses it', () => {
+  it('keeps the AI use tab for an Admin who sees only the jobs they are on, for the key and the alert', () => {
     renderAs(asDictionary(userAs('Admin'), userAs('Admin').organization!.permissions, false));
 
-    expect(tabNames()).toEqual(['Overview', 'Activity log', 'Checks', 'Policy', 'AI model', 'Notifications']);
+    expect(tabNames()).toEqual(everyTab);
   });
 
   it('selects the tab the address belongs to', () => {
-    location.path = '/verification/ai-model';
+    location.path = '/verification/ai-use';
     renderAs(userAs('Owner'));
 
-    expect(screen.getByRole('tab', { name: 'AI model' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'AI use' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'false');
   });
 
@@ -104,16 +103,16 @@ describe('the Verification area frame', () => {
   it('goes to the tab that is chosen', async () => {
     renderAs(userAs('Owner'));
 
-    await fireEvent.click(screen.getByRole('tab', { name: 'Usage' }));
+    await fireEvent.click(screen.getByRole('tab', { name: 'AI use' }));
 
-    await waitFor(() => expect(goto).toHaveBeenCalledWith('/verification/usage'));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/verification/ai-use'));
   });
 
   it('shows Last updated and History on the settings tabs only, so the band keeps one height', async () => {
     renderAs(userAs('Owner'));
     expect(document.querySelector('[data-last-updated]')).toBeNull();
 
-    location.path = '/verification/policy';
+    location.path = '/verification/checks';
     const { unmount } = renderAs(userAs('Owner'));
     await waitFor(() => expect(document.querySelector('[data-last-updated]')).not.toBeNull());
     unmount();

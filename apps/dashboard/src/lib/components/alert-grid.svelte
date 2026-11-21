@@ -33,9 +33,13 @@
     slackConnected: boolean;
     label?: string;
   } = $props();
+
+  // A new object each time, so a form store bound to `values` sees the change (a nested write would not reach it).
+  const choose = (key: Key, checked: boolean) => (values = { ...values, [key]: checked });
 </script>
 
-<Table.Root {label} data-alert-grid>
+<!-- The grid holds controls, so it needs no scrolling region of its own: the table itself carries the name. -->
+<Table.Root aria-label={label} data-alert-grid>
   <Table.Header>
     <Table.Row>
       <Table.Head>Alert</Table.Head>
@@ -61,12 +65,18 @@
         </Table.Cell>
         {#if emailAvailable}
           <Table.Cell class="text-center">
-            <input type="checkbox" bind:checked={values[row.email]} aria-label={`${row.label} by email`} class={checkboxClass} />
+            <input type="checkbox" checked={values[row.email]} onchange={(event) => choose(row.email, event.currentTarget.checked)} aria-label={`${row.label} by email`} class={checkboxClass} />
           </Table.Cell>
         {/if}
         {#if slackConnected}
           <Table.Cell class="text-center">
-            <input type="checkbox" bind:checked={values[row.slack]} aria-label={`${row.label} on Slack, as a direct message`} class={checkboxClass} />
+            <input
+              type="checkbox"
+              checked={values[row.slack]}
+              onchange={(event) => choose(row.slack, event.currentTarget.checked)}
+              aria-label={`${row.label} on Slack, as a direct message`}
+              class={checkboxClass}
+            />
           </Table.Cell>
         {/if}
       </Table.Row>
