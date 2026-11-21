@@ -1264,7 +1264,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   team they are on. An invitation carries no job ids, so they are added to each team after they join. Someone who sees
   only their own jobs gets no switch, only a line saying so (A3).
 - **Saved candidates:** the Saved tab on the Candidates page, under its title (G then S goes to `/candidates?list=saved`;
-  `/saved` and `/talent-pool` redirect there), on the list template, in a panel titled Saved candidates, counting only when a search or filter narrows the list (W7): the people the team saved, with search, Saved from and Tag filters, and columns Candidate, Rating, Note,
+  `/saved` and `/talent-pool` redirect there), on the list template, in a panel titled Saved candidates, never counting its list, because the Saved tab has the count (W7), with Add candidate in the header as on the other two tabs: the people the team saved, with search, Saved from and Tag filters, and columns Candidate, Rating, Note,
   Tags, Saved from, Saved and Last contacted, sorted by name. They have no end date, so there is no column for one.
   Rating is the same read as the candidate page, with the reviewer gate ("After yours"). Last contacted is a date, or Never. The note is the
   team's, and pressing it opens the Edit note sheet, which has a History button; a person with no note has a blank cell.

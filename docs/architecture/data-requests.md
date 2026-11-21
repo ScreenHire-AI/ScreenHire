@@ -232,7 +232,7 @@ palette all read `settingsSections` and need Erase candidates and a person who s
 "Not in your role" or "Needs all jobs" and no entry.
 
 - **Requests.** A sortable table on the list template, from `GET /v1/data-requests`. It opens on what needs the team: open requests
-  by due date, the earliest first, then answered ones, the latest first. The header band counts the open requests. Each row has
+  by due date, the earliest first, then answered ones, the latest first. The header band says "N open" in words, only while a request is open (a queue's status, never a count badge). Each row has
   the status first (nothing for an open request within its due date, the Overdue badge once the due date has passed, "Preparing
   copy" after Send a copy until the list says Completed, Completed and Declined quiet), the candidate (a link to their profile,
   or "Erased candidate" once they are gone), the kind (Copy of data or Erasure), the received and due dates (an answered request
