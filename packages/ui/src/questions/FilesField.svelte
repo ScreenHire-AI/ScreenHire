@@ -3,7 +3,8 @@
   // Server-rendered, and without JavaScript, it is one named file input that takes several files and posts with the form.
   // Hydrated, each file is a row with its name, size and Remove, and the area keeps the named input holding exactly those
   // files, so the form posts what is shown. A file the area refuses is named in the field's error, one line per file. The
-  // careers server checks the count and the bytes again when the form arrives (apps/careers/src/lib/portal.ts).
+  // careers server checks the count and the bytes again when the form arrives (apps/careers/src/lib/portal.ts). It is its
+  // own component, not FileField, because it shares only the label and error markup: FileField uploads one file itself.
   import { untrack } from 'svelte';
   import DropArea from './DropArea.svelte';
   import { fieldId } from './model';
@@ -37,7 +38,7 @@
   <p id={hintId} class="text-candidate-hint text-candidate-muted-foreground">{hint}</p>
   {#if problems.length > 0}
     <ul id={errorId} class="flex flex-col gap-1 text-candidate-body font-semibold text-destructive">
-      {#each problems as problem (problem)}
+      {#each problems as problem, index (index)}
         <li>{problem}</li>
       {/each}
     </ul>

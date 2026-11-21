@@ -62,10 +62,8 @@
     onproblem?: (message: string) => void;
     /** Remove was pressed, or the picker was closed with its selection cleared. */
     onremove?: () => void;
-    /** With `multiple`: why each file of an add was refused, one message per file, called once per add (empty when none was). */
+    /** With `multiple`: why each file of an add was refused, one message per file, called once per add (empty when none was) and with none after a Remove. */
     onproblems?: (messages: string[]) => void;
-    /** With `multiple`: the files now chosen, after an add or a Remove. */
-    onchange?: (files: File[]) => void;
   }
 
   let {
@@ -91,7 +89,6 @@
     onfile,
     onproblem,
     onremove,
-    onchange,
     onproblems,
   }: Props = $props();
 
@@ -108,31 +105,20 @@
     mounted = true;
     // A file chosen before the page hydrated fired its change event too early: take it now.
     const early = input?.files;
-    if (early?.length) untrack(() => (multiple ? takeMany([...early], false) : take(early[0], false)));
+    if (early?.length) untrack(() => (multiple ? takeMany([...early]) : take(early[0], false)));
   });
 
   function clear() {
     if (input) input.value = '';
   }
 
-  // Puts a dropped file into the input, so a field that posts with its form posts it too. A single-file input never
-  // gets the whole dropped list, only the first file. False in a browser without the DataTransfer constructor.
-  function put(dropped: File): boolean {
+  // Puts files into the input, so a field that posts with its form posts them too: a dropped file for a single-file
+  // input (never the whole dropped list), or the rows for `multiple`, so the form posts exactly what is shown. False in a
+  // browser without the DataTransfer constructor.
+  function put(files: File[]): boolean {
     try {
       const transfer = new DataTransfer();
-      transfer.items.add(dropped);
-      input!.files = transfer.files;
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  // Puts the chosen list into the input, so the form posts exactly the rows shown. False in a browser that cannot.
-  function sync(): boolean {
-    try {
-      const transfer = new DataTransfer();
-      for (const each of held) transfer.items.add(each);
+      for (const each of files) transfer.items.add(each);
       input!.files = transfer.files;
       return true;
     } catch {
@@ -141,7 +127,7 @@
   }
 
   // Adds each file that passes, and refuses each that does not in a message of its own that names it.
-  function takeMany(added: File[], dropped: boolean) {
+  function takeMany(added: File[]) {
     if (added.length === 0 || disabled) return;
     const next = [...held];
     const refused: string[] = [];
@@ -161,21 +147,20 @@
     }
 
     // A pick has replaced the input's files with its own, and a refused file is in them: put the list in its place.
-    const before = held.length;
     held = next;
-    if (!sync()) {
+    if (!put(held)) {
       held = [];
       clear();
       refused.push('This browser cannot attach more than one file this way. Choose them again, all at once.');
     }
     onproblems?.(refused);
-    if (held.length !== before) onchange?.(held);
   }
 
+  // A Remove also clears the last add's refusals: "Attach up to 3 files." is no longer true once there is room.
   function removeAt(index: number) {
     held = held.filter((_, position) => position !== index);
-    if (!sync()) clear();
-    onchange?.(held);
+    if (!put(held)) clear();
+    onproblems?.([]);
   }
 
   // The same checks and the same hand-off for a picked file and a dropped one.
@@ -194,7 +179,7 @@
     }
 
     // Told it was taken with nothing in its input, a field that posts with its form would post no file.
-    if (keep && dropped && !put(chosen)) {
+    if (keep && dropped && !put([chosen])) {
       onproblem?.('This browser cannot take a dropped file. Choose it instead.');
       return;
     }
@@ -229,7 +214,7 @@
     depth = 0;
     over = false;
     if (disabled) return;
-    if (multiple) takeMany([...(event.dataTransfer?.files ?? [])], true);
+    if (multiple) takeMany([...(event.dataTransfer?.files ?? [])]);
     else take(event.dataTransfer?.files[0], true);
   }
 
@@ -286,8 +271,8 @@
       if (multiple) {
         // A pick adds to the list. Closing the picker with nothing chosen empties the input in some browsers: put the list back.
         const picked = [...(input?.files ?? [])];
-        if (picked.length > 0) takeMany(picked, false);
-        else sync();
+        if (picked.length > 0) takeMany(picked);
+        else put(held);
         return;
       }
       const first = input?.files?.[0];
@@ -302,7 +287,7 @@
       {#if preview}{@render preview()}{/if}
       {#if multiple}
         <ul class="drop-area-files" aria-live="polite" hidden={held.length === 0}>
-          {#each held as each, index (index)}
+          {#each held as each, index (each)}
             <li class="drop-area-file">
               <span class="min-w-0 flex-1 truncate font-semibold" title={each.name}>{each.name}</span>
               <span class="drop-area-quiet">{describeSize(each.size)}</span>
