@@ -80,9 +80,8 @@
 <main class={['flex flex-col', sidebar.isMobile && mayEdit && 'pb-28']}>
   <HeaderBand title="New hiring template" details={mayEdit ? undefined : readOnlyReason} actions={sidebar.isMobile || !mayEdit ? undefined : actions} />
   <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
-    {#if !mayEdit}
-      <!-- The header band says why there is nothing to fill in (E3). -->
-    {:else}
+    <!-- Without the right to edit, the header band says why there is nothing to fill in (E3). -->
+    {#if mayEdit}
       <Panel label="Name" class="max-w-form">
         <label class="flex flex-col gap-1 text-body font-semibold text-secondary-foreground">
           Template name

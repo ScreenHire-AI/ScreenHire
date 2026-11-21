@@ -9,8 +9,8 @@ three of them searched with a different placeholder. The count now sits in the l
 a row, `HeaderBand` has no `count` to give, and the three searches read "Search" and take the phone layout of the main
 lists. Four sibling Settings pages showed Back on a phone and now show the menu button, Team remembers a sort by Last updated,
 the Saved tab keeps Add candidate in the header, a closed job says Closed once, the Activity log's grey outcomes are quiet,
-and the monthly budget panel is Monthly limits on all three tabs that draw it. Data requests keeps "N open" as words beside its title, because that page is a queue with due dates and not a list
-of records. The rest (one rule for when a list searches, Team as tabs, one date range control, where the primary sits in
+and the monthly budget panel is Monthly limits on all three tabs that draw it. Data requests keeps "N open" as words
+beside its title while one is open, because that page is a queue with due dates and not a list of records. The rest (one rule for when a list searches, Team as tabs, one date range control, where the primary sits in
 an action group, one verb for creating) is ranked in the [roadmap](roadmap.md#the-consistency-review-of-the-dashboard)
 for the owner to pick.
 

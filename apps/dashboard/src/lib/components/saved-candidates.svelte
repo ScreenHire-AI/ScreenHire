@@ -19,7 +19,7 @@
   import { mergeProps } from 'bits-ui';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
-  import AddCandidateSheet from '#lib/components/add-candidate-sheet.svelte';
+  import AddCandidateSheet, { type AddedCandidate } from '#lib/components/add-candidate-sheet.svelte';
   import AddToJobSheet from '#lib/components/add-to-job-sheet.svelte';
   import { candidateListHref, closedJobIds, listCounts, type CandidateList } from '#lib/candidate-lists.js';
   import CandidatesListTabs from '#lib/components/candidates-list-tabs.svelte';
@@ -189,6 +189,7 @@
   let candidateAsked = $state(false);
   let announcement = $state('');
   let addingCandidate = $state(false);
+  let added = $state<AddedCandidate | null>(null);
   function onMenuClosed() {
     if (chosen) open(chosen.action, [chosen.person]);
     chosen = null;
@@ -397,6 +398,10 @@
           </Table.Root>
         </div>
       {/if}
+      <!-- As on the Current tab: the new candidate joins a job, not this list, so the line says where they went. -->
+      <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4" data-added>
+        {#if added}Added <a href={`/applications/${added.applicationId}`} class="text-foreground underline underline-offset-2">{added.name}</a> to {added.jobTitle}.{/if}
+      </p>
     </Panel>
   </Tabs.Content>
   </Tabs.Root>
@@ -412,9 +417,8 @@
 {/snippet}
 
 {#if mayAdd}
-  <AddCandidateSheet bind:open={addingCandidate} onadded={(candidate) => (announcement = `Added ${candidate.name} to ${candidate.jobTitle}.`)} />
+  <AddCandidateSheet bind:open={addingCandidate} onadded={(candidate) => (added = candidate)} />
 {/if}
-
 
 {#snippet personMenu(person: TalentPoolMember)}
   <MoreMenu label={`Actions for ${person.candidateName}`} size="icon" quiet onclosed={onMenuClosed}>

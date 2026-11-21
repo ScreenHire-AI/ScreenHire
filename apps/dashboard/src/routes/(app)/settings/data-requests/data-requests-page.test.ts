@@ -176,7 +176,8 @@ describe('Data requests page: the list', () => {
 
     expect(await screen.findByText('No data requests yet')).toBeInTheDocument();
     expect(screen.getByText(/appears here with a due date/)).toBeInTheDocument();
-    expect(document.querySelector('[data-slot="header-band"]')).toHaveTextContent(/Data requests\s*0\s*open/);
+    // Nothing waits, and the empty list says so, so the band does not add "0 open" (W7).
+    expect(document.querySelector('[data-slot="header-band"]')).not.toHaveTextContent(/open/);
   });
 
   it('says it could not load the requests, with a retry', async () => {
