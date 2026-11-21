@@ -1,7 +1,7 @@
 <script lang="ts">
   import SaveIcon from '~icons/lucide/save';
   import { untrack } from 'svelte';
-  import type { AiUsageLimitsView, HttpValidationProblemDetails, UsageUnit } from '@screenhire/api-client';
+  import type { AiUsageLimitsView, AiUsageLimitView, HttpValidationProblemDetails } from '@screenhire/api-client';
   import {
     ApiError,
     createUpdateAiUsageLimits,
@@ -15,21 +15,20 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { selectClass } from '#lib/components/workflow/controls.js';
-  import { formatAmount, unitLabels } from '#lib/ai-usage.js';
+  import { formatAmount } from '#lib/ai-usage.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError, invalidatePath } from '#lib/query.js';
 
   // The Owner's monthly budget and cap (docs/architecture/ai-usage.md). The budget only warns, at 50%, 80% and 100%; the cap
-  // pauses the AI-based checks, never the rule-based ones. Both are counted in one unit, tokens or dollars.
+  // pauses the AI-based checks, never the rule-based ones. Both count the dollars billed for AI use, the one amount the Usage tab
+  // shows, and are entered in dollars.
   let { limits }: { limits: AiUsageLimitsView } = $props();
   // The form starts from the limits as they were when it opened; saving refetches them, and the person's typing is kept.
   const initial = untrack(() => $state.snapshot(limits));
-  // With no limit of its own the organization runs on ScreenHire's default, which the API shows in dollars where the model has a
-  // price. The form starts in that unit and names the figure, so a number typed after reading "$3.20" is dollars too. Once an
-  // Owner sets a limit, their unit stands.
-  const defaultUnit = initial.budget === null && initial.cap === null ? (initial.effectiveBudget ?? initial.effectiveCap)?.unit : undefined;
-  const defaultFigure = (limit: AiUsageLimitsView['effectiveBudget']) => (limit?.isDefault ? `, ${formatAmount(limit.amount, limit.unit)} a month,` : '');
+  // An Owner's own limit starts the field. One stored in tokens before limits were in dollars shows converted (the API does it at
+  // the key's price), so saving keeps it, now in dollars. The deployment's default leaves the field empty and is named below it.
+  const own = (limit: AiUsageLimitView | null) => (limit && !limit.isDefault && limit.unit === 'Money' ? limit.amount.toFixed(2) : '');
+  const defaultFigure = (limit: AiUsageLimitView | null) => (limit?.isDefault ? `, ${formatAmount(limit.amount, limit.unit)} a month,` : '');
 
   const queryClient = useQueryClient();
   const update = createUpdateAiUsageLimits(() => ({
@@ -46,12 +45,11 @@
     .string()
     .trim()
     .regex(/^\d*(\.\d{1,2})?$/, 'Enter a number, or leave it empty.');
-  const schema = z.object({ unit: z.enum(['Tokens', 'Money']), budget: amount, cap: amount });
+  const schema = z.object({ budget: amount, cap: amount });
 
-  const text = (value: number | null) => (value === null ? '' : value.toString());
   let saved = $state('');
   const { form, errors, enhance, submitting } = superForm(
-    defaults({ unit: (defaultUnit ?? initial.unit) as UsageUnit, budget: text(initial.budget), cap: text(initial.cap) }, zod4(schema)),
+    defaults({ budget: own(initial.effectiveBudget), cap: own(initial.effectiveCap) }, zod4(schema)),
     {
       SPA: true,
       dataType: 'json',
@@ -63,9 +61,9 @@
       async onUpdate({ form: submitted }) {
         saved = '';
         if (!submitted.valid) return;
-        const { unit, budget, cap } = submitted.data;
+        const { budget, cap } = submitted.data;
         try {
-          await update.mutateAsync({ data: { unit, budget: budget.trim() ? Number(budget) : null, cap: cap.trim() ? Number(cap) : null } });
+          await update.mutateAsync({ data: { budget: budget.trim() ? Number(budget) : null, cap: cap.trim() ? Number(cap) : null } });
           saved = 'Saved. The cap applies from the next check.';
         } catch (error) {
           if (error instanceof ApiError && error.status === 400) {
@@ -82,19 +80,16 @@
   const message = (list: string[] | undefined) => list?.map((item) => ({ message: item }));
 </script>
 
+{#if !initial.priced}
+  <!-- A limit counts dollars, and a key with no price has nothing to count them at (an own key needs its two prices). -->
+  <p class="max-w-measure text-muted-foreground" data-unpriced>
+    Limits count dollars, and the AI model in use has no price yet. With your own key, enter its prices in the AI model settings.
+  </p>
+{:else}
 <form method="POST" use:enhance novalidate aria-label="Monthly AI limits" class="flex max-w-form flex-col gap-5">
   <p class="max-w-measure text-muted-foreground">
-    The budget warns you at 50%, 80% and 100%. The cap pauses the AI checks, never the others, and never marks a candidate.
+    In US dollars. The budget warns you at 50%, 80% and 100%. The cap pauses the AI checks, never the others, and never marks a candidate.
   </p>
-
-  <Field.Field data-invalid={$errors.unit ? true : undefined}>
-    <Field.Label for="limit-unit">Count in</Field.Label>
-    <select id="limit-unit" name="unit" class={selectClass} bind:value={$form.unit}>
-      <option value="Tokens">{unitLabels.Tokens}</option>
-      <option value="Money">{unitLabels.Money} (US$)</option>
-    </select>
-    <Field.Error errors={message($errors.unit)} />
-  </Field.Field>
 
   <Field.Field data-invalid={$errors.budget ? true : undefined}>
     <Field.Label for="limit-budget">Monthly budget <span class="font-normal text-muted-foreground">(optional)</span></Field.Label>
@@ -116,3 +111,4 @@
     <FailureText message={$errors._errors?.[0] ?? ''} />
   </div>
 </form>
+{/if}

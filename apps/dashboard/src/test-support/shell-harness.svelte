@@ -20,6 +20,7 @@
     back,
     openTasks,
     trialEndsAt,
+    billing = false,
     saved = [],
     hiddenBuiltIns = [],
     viewActions,
@@ -38,6 +39,8 @@
     openTasks?: number;
     /** When the trial ends, as the layout works it out for an Owner; missing for everyone else. */
     trialEndsAt?: string | null;
+    /** Billing is set up and the person may see it, as the layout works it out. */
+    billing?: boolean;
   } = $props();
 
   // The top bar's notification bell reads the notifications and the setup answers. No retries, so a request nobody stubbed fails at once.
@@ -63,7 +66,7 @@
 <!-- The root layout's tooltip provider. -->
 <Tooltip.Provider>
   <Sidebar.Provider open={laptop.current}>
-    <AppSidebar {user} {views} {viewActions} {teamViews} {openTasks} {trialEndsAt} />
+    <AppSidebar {user} {views} {viewActions} {teamViews} {openTasks} {trialEndsAt} {billing} />
     <Sidebar.Inset>
       <TopBar {crumbs} {back} />
       <main><h1>Page</h1></main>

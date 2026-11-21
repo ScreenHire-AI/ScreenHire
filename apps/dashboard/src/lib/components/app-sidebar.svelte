@@ -49,6 +49,7 @@
     calendarOpen = $bindable(false),
     openTasks,
     trialEndsAt,
+    billing = false,
   }: {
     user: CurrentUser | null;
     /**
@@ -76,6 +77,8 @@
      * Missing for everyone else, and once a plan is paid or billing is off (docs/architecture/billing.md).
      */
     trialEndsAt?: string | null;
+    /** Billing is set up and the person may see it (Manage billing): the account menu then links to it, as Settings does. */
+    billing?: boolean;
   } = $props();
 
   let teamViewsOpen = $state(false);
@@ -404,6 +407,12 @@
                 <DropdownMenu.Item onSelect={() => ((slackOutcome = ''), (slackOpen = true))}>Slack account</DropdownMenu.Item>
               {/if}
               <DropdownMenu.Separator />
+              {#if billing}
+                <!-- What the organization pays, one click from the person's block for whoever may see it (the owner's walk-through, 2026-11-21). -->
+                <DropdownMenu.Item>
+                  {#snippet child({ props })}<a {...props} href="/settings/billing" onclick={closeSheet}>Billing</a>{/snippet}
+                </DropdownMenu.Item>
+              {/if}
               <DropdownMenu.Item>
                 {#snippet child({ props })}<a {...props} href="/account/passkeys">Passkeys</a>{/snippet}
               </DropdownMenu.Item>

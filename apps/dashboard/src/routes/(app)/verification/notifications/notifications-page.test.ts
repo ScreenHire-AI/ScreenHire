@@ -54,7 +54,7 @@ describe('the Notifications tab', () => {
   });
 
   it('gives an Owner the form for the budget and cap, with the thresholds as text', async () => {
-    renderPage(settingsWith({ limits }));
+    renderPage(settingsWith({ limits: dollarLimits }));
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
     expect(screen.getByRole('form', { name: 'Monthly AI limits' })).toBeInTheDocument();
@@ -73,31 +73,55 @@ describe('the Notifications tab', () => {
     await expectNoAxeViolations();
   });
 
-  it('starts an Owner with no limits of their own in dollars when the default is shown in dollars, and names the default', async () => {
+  it('asks for limits in dollars only, starts empty on the default and names it', async () => {
     renderPage(settingsWith({ limits: dollarLimits }));
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
-    // A number typed after reading "$3.20" on the Overview is dollars, not tokens.
-    expect(screen.getByLabelText('Count in')).toHaveValue('Money');
-    expect(screen.getByText(/default budget, \$3\.20 a month, for its own key/)).toBeInTheDocument();
-    expect(screen.getByText(/default cap, \$3\.20 a month, for its own key/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Count in')).not.toBeInTheDocument();
+    expect(screen.getByText(/In US dollars\./)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Monthly budget/)).toHaveValue('');
+    expect(screen.getByText(/default budget, \$3\.84 a month, for its own key/)).toBeInTheDocument();
+    expect(screen.getByText(/default cap, \$3\.84 a month, for its own key/)).toBeInTheDocument();
   });
 
-  it('keeps the unit an Owner chose once they have set a limit, though the default beside it shows in dollars', async () => {
-    // Their own cap in tokens; the budget they left alone is the default, in dollars, and comes first.
-    renderPage(settingsWith({ limits: { ...dollarLimits, cap: 4_000_000, effectiveCap: { amount: 4_000_000, unit: 'Tokens', isDefault: false, used: 420, percent: 0 } } }));
+  it('starts from an Owner\'s own limit in dollars, one stored in tokens shown as the API converted it, so saving keeps it', async () => {
+    // The cap was set in tokens before limits were in dollars; the API converts it at the key's price.
+    renderPage(settingsWith({ limits: { ...dollarLimits, unit: 'Tokens', cap: 4_000_000, effectiveCap: { amount: 7.68, unit: 'Money', isDefault: false, used: 0.0683, percent: 0 } } }));
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Count in')).toHaveValue('Tokens');
-    expect(screen.getByLabelText(/Monthly cap/)).toHaveValue('4000000');
+    expect(screen.getByLabelText(/Monthly cap/)).toHaveValue('7.68');
+    expect(screen.getByLabelText(/Monthly budget/)).toHaveValue('');
+  });
+
+  it('sends the limits in dollars with no unit', async () => {
+    const sent: unknown[] = [];
+    renderPage(settingsWith({ limits: dollarLimits }), {
+      'PUT /v1/organization/ai-usage/limits': (init) => {
+        sent.push(JSON.parse(String(init?.body)));
+        return Response.json(dollarLimits);
+      },
+    });
+
+    await fireEvent.input(await screen.findByLabelText(/Monthly budget/), { target: { value: '25.50' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Save limits' }));
+
+    await waitFor(() => expect(sent).toEqual([{ budget: 25.5, cap: null }]));
+  });
+
+  it('offers no form where the AI model has no price, and says why', async () => {
+    renderPage(settingsWith({ limits }));
+
+    expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Monthly AI limits' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Limits count dollars, and the AI model in use has no price yet\./)).toBeInTheDocument();
   });
 
   it('shows an Admin the default budget and cap in dollars where the deployment prices its model', async () => {
     renderPage(settingsWith({ limits: dollarLimits }), {}, userAs('Admin'));
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
-    expect(screen.getAllByText('$0.06 of $3.20')).toHaveLength(2);
-    expect(screen.getByText(/In dollars it is an estimate/)).toBeInTheDocument();
+    expect(screen.getAllByText('$0.07 of $3.84')).toHaveLength(2);
+    expect(screen.queryByText(/estimate/)).not.toBeInTheDocument();
     expect(screen.queryByText(/tokens of/)).not.toBeInTheDocument();
   });
 });

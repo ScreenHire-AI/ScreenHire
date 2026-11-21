@@ -1,10 +1,16 @@
 <script lang="ts">
   import ArrowRightIcon from '~icons/lucide/arrow-right';
   import CreditCardIcon from '~icons/lucide/credit-card';
-  import type { BillingPlan } from '@screenhire/api-client';
-  import { createGetBilling, createOpenBillingPortal, createStartBillingCheckout } from '@screenhire/api-client/svelte-query';
+  import type { BillingPlan, BillingPortalIntent } from '@screenhire/api-client';
+  import {
+    createGetBilling,
+    createGetBillingPaymentMethod,
+    createOpenBillingPortal,
+    createStartBillingCheckout,
+  } from '@screenhire/api-client/svelte-query';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import BillingInvoices from '#lib/components/billing-invoices.svelte';
   import ChangePlanDialog from '#lib/components/change-plan-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -21,15 +27,14 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { formatCost } from '#lib/ai-usage.js';
-  import { aiCallsText, aiUsageNotes, billingStatus, formatMoney, marginText, mayChoosePlan, openJobsText, planLimitText, priceLine } from '#lib/billing.js';
+  import { aiCallsText, aiMonthText, aiUsageNotes, billingStatus, formatMoney, mayChoosePlan, openJobsText, paymentMethodText, planLimitText, priceLine } from '#lib/billing.js';
   import { describeError } from '#lib/query.js';
 
-  // The plan, the trial or the next payment, and the open jobs against the plan's limit, for an owner (ManageBilling,
-  // docs/architecture/billing.md). The form template (section 7). Payment details and cancelling happen on the payment
-  // provider's own pages (Manage billing opens its portal) and a first plan is chosen through Checkout; the browser comes back
-  // from Checkout to `?checkout=success` or `?checkout=cancelled`. Switching plans on a live subscription is done here, after
-  // the dialog has shown what it costs.
+  // Everything an owner pays, in one place (ManageBilling, docs/architecture/billing.md): the plan and open jobs, this month so far
+  // added up with the next invoice, the payment method, the invoices, the plans and AI use. The form template (section 7). The
+  // card and cancelling happen on the payment provider's own pages (Change card and Cancel plan open its portal) and a first plan
+  // is chosen through Checkout; the browser comes back from Checkout to `?checkout=success` or `?checkout=cancelled`. Switching
+  // plans on a live subscription is done here, after the dialog has shown what it costs. The provider is never named.
   const billing = createGetBilling(() => ({ query: { refetchOnMount: 'always' } }));
   const overview = $derived(billing.data?.data);
   const checkout = createStartBillingCheckout();
@@ -55,10 +60,24 @@
     failure = '';
     leaving = target;
     try {
-      const response = target === 'portal' ? await portal.mutateAsync() : await checkout.mutateAsync({ data: { plan: target } });
+      const response = await checkout.mutateAsync({ data: { plan: target } });
       window.location.assign(response.data.url);
     } catch (error) {
-      failure = describeError(error, target === 'portal' ? 'Could not open the payment portal' : 'Could not start checkout');
+      failure = describeError(error, 'Could not start checkout');
+      leaving = null;
+    }
+  }
+
+  // Change card and Cancel plan both open the payment provider's portal; the intent says which, so the local sandbox's portal,
+  // which acts at once, cancels only for Cancel plan.
+  async function openPortal(intent: BillingPortalIntent) {
+    failure = '';
+    leaving = intent;
+    try {
+      const response = await portal.mutateAsync({ params: { intent } });
+      window.location.assign(response.data.url);
+    } catch (error) {
+      failure = describeError(error, 'Could not open the payment page');
       leaving = null;
     }
   }
@@ -72,8 +91,12 @@
   const standing = $derived(overview?.state ?? null);
   const subscribed = $derived(standing === 'Active' || standing === 'PastDue');
   const choosable = $derived(mayChoosePlan(standing));
-  // A subscription set to end is renewed with Manage billing first; the API refuses to switch it.
+  // A subscription set to end is renewed on the payment page first; the API refuses to switch it.
   const switchable = $derived(standing === 'Active' && Boolean(overview?.canManage) && !overview?.cancelsAtPeriodEnd);
+  // The card and the invoices exist once the provider has a customer: the portal can open.
+  const hasCustomer = $derived(Boolean(overview?.available && overview.canManage));
+  const paymentMethod = createGetBillingPaymentMethod(() => ({ query: { enabled: hasCustomer, refetchOnMount: 'always' } }));
+  const month = $derived(overview?.thisMonth ?? null);
 </script>
 
 <svelte:head>
@@ -86,12 +109,6 @@
   <HeaderBand title="Billing" oneRow>
     {#snippet status()}
       {#if overview?.available && standing}<StatusBadge {...billingStatus[standing]} />{/if}
-    {/snippet}
-    {#snippet actions()}
-      <!-- The one primary action, only while there is a subscription to manage. Before one, the plans below are equal choices (A1). -->
-      {#if overview?.available && overview.canManage && subscribed}
-        <Button size="lg" disabled={leaving !== null} onclick={() => leave('portal')}><CreditCardIcon aria-hidden="true" />Manage billing</Button>
-      {/if}
     {/snippet}
   </HeaderBand>
 
@@ -136,23 +153,88 @@
             {#if standing === 'Trialing' && overview.trialEndsAt}
               <SummaryItem label="Trial ends"><DateText at={overview.trialEndsAt} /></SummaryItem>
             {/if}
+            <!-- The next payment is This month so far's next invoice, said once there (W7). -->
             {#if overview.cancelsAtPeriodEnd && overview.nextPaymentAt}
               <SummaryItem label="Ends on"><DateText at={overview.nextPaymentAt} /></SummaryItem>
-            {:else if overview.nextPaymentAt}
-              <SummaryItem label="Next payment">
-                {#if overview.nextPaymentAmount !== null && overview.currentPlan}
-                  {formatMoney(overview.nextPaymentAmount, overview.currentPlan.currency)} on
-                {/if}
-                <DateText at={overview.nextPaymentAt} />
-              </SummaryItem>
             {/if}
             <SummaryItem label="Open jobs">{openJobsText(overview)}</SummaryItem>
           </SummaryList>
         </Panel>
 
+        <!-- What the organization pays this month, each charge on its line and added up, then the next invoice (docs/architecture/billing.md,
+             "The Billing page"). The AI line is the one amount the Usage tab shows too, and links to it. -->
+        {#if month}
+          <Panel title="This month so far">
+            <div class="flex max-w-form flex-col gap-3">
+              <ul class="flex flex-col" aria-label="Charges this month">
+                {#if month.planAmount !== null}
+                  <li class="flex items-baseline justify-between gap-4 py-1.5">
+                    <span>{month.planName ?? 'Plan'}{standing === 'Trialing' ? ', free trial' : ''}</span>
+                    <span class="tabular-nums">{formatMoney(month.planAmount, month.currency)}</span>
+                  </li>
+                {/if}
+                {#if month.aiAmount !== null}
+                  <li class="flex items-baseline justify-between gap-4 py-1.5">
+                    <span>
+                      AI use,
+                      <a href="/verification/usage" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11"
+                        >{aiCallsText(month.aiCalls)}</a
+                      >
+                    </span>
+                    <span class="tabular-nums">{formatMoney(month.aiAmount, month.currency)}</span>
+                  </li>
+                {/if}
+                {#if month.trialCredit > 0}
+                  <li class="flex items-baseline justify-between gap-4 py-1.5">
+                    <span>Included in your trial</span>
+                    <span class="tabular-nums">{formatMoney(-month.trialCredit, month.currency)}</span>
+                  </li>
+                {/if}
+                <li class="mt-1 flex items-baseline justify-between gap-4 border-t border-border-subtle pt-2.5 font-semibold">
+                  <span>Total so far</span>
+                  <span class="tabular-nums" data-total>{formatMoney(month.total, month.currency)}</span>
+                </li>
+              </ul>
+              {#if month.nextInvoiceAmount !== null && month.nextInvoiceAt}
+                <p class="text-muted-foreground" data-next-invoice>
+                  Next invoice about {formatMoney(month.nextInvoiceAmount, month.currency)}{overview.taxAtCheckout ? ' plus tax where it applies' : ''} on
+                  <DateText at={month.nextInvoiceAt} />.
+                </p>
+              {:else if standing === 'Trialing'}
+                <p class="text-muted-foreground">Nothing is charged until you choose a plan.</p>
+              {/if}
+            </div>
+          </Panel>
+        {/if}
+
+        {#if hasCustomer}
+          <Panel title="Payment method">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+              <p class="flex min-w-0 flex-[1_1_12rem] items-center gap-2">
+                <CreditCardIcon aria-hidden="true" class="shrink-0 text-muted-foreground" />
+                {#if paymentMethod.data}
+                  <span data-payment-method>{paymentMethod.data.data.method ? paymentMethodText(paymentMethod.data.data.method) : 'No payment method on file'}</span>
+                {:else if paymentMethod.isError}
+                  <span class="text-muted-foreground">{describeError(paymentMethod.error, 'Could not load the payment method')}</span>
+                {:else}
+                  <Skeleton class="h-5 w-40" /><span class="sr-only" role="status">Loading the payment method…</span>
+                {/if}
+              </p>
+              <div class="flex flex-wrap gap-3">
+                <Button variant="outline" size="lg" disabled={leaving !== null} onclick={() => openPortal('ChangeCard')}>Change card</Button>
+                {#if subscribed && !overview.cancelsAtPeriodEnd}
+                  <Button variant="outline" size="lg" disabled={leaving !== null} onclick={() => openPortal('Cancel')}>Cancel plan</Button>
+                {/if}
+              </div>
+            </div>
+          </Panel>
+
+          <BillingInvoices />
+        {/if}
+
         <Panel
           title="Plans"
-          footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : subscribed && overview.canManage ? changeFooter : standing === 'Trialing' ? trialFooter : undefined}>
+          footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : standing === 'Trialing' ? trialFooter : undefined}>
           <ul class="-my-3">
             {#each overview.plans as plan (plan.key)}
               <li class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border-subtle py-3 last:border-0">
@@ -190,11 +272,8 @@
           {@const usage = overview.aiUsage}
           <Panel title="AI usage" footer={aiFooter}>
             <div class="flex flex-col gap-4">
-              <p class="max-w-measure text-muted-foreground">AI checks on ScreenHire's key are billed at the provider's price plus {marginText(usage.marginPercent)}.</p>
               <SummaryList>
-                <SummaryItem label="This month">{aiCallsText(usage.builtInCalls)}</SummaryItem>
-                <SummaryItem label="Provider's price"><span class="tabular-nums">{formatCost(usage.providerCost)}</span></SummaryItem>
-                <SummaryItem label="Cost so far"><span class="tabular-nums">{formatCost(usage.charge)}</span></SummaryItem>
+                <SummaryItem label="This month"><span class="tabular-nums">{aiMonthText(usage)}</span></SummaryItem>
               </SummaryList>
               {#each aiUsageNotes(usage, standing) as note (note)}
                 <p class="max-w-measure text-muted-foreground">{note}</p>
@@ -226,19 +305,6 @@
 {#snippet trialFooter()}
   <!-- The trial is a stored date with no card (docs/architecture/billing.md, "The trial"). What AI use above its allowance costs is the AI usage panel's to say. -->
   <p class="text-muted-foreground">The trial needs no card. When it ends, open jobs stay open and a new job needs a plan.</p>
-{/snippet}
-
-{#snippet changeFooter()}
-  <!-- The words that name Manage billing are the control too, so nobody has to look for the header's button (the owner's
-       walk-through, 2026-11-21): it opens the same payment portal. -->
-  <p class="text-muted-foreground">
-    To change your card or cancel, open <button
-      type="button"
-      class="inline font-semibold text-foreground underline underline-offset-2 disabled:opacity-50"
-      disabled={leaving !== null}
-      onclick={() => leave('portal')}>Manage billing</button
-    >.
-  </p>
 {/snippet}
 
 {#snippet switchedFooter()}
