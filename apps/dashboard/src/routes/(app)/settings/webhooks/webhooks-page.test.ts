@@ -95,6 +95,8 @@ describe('webhooks page', () => {
     renderPage([]);
 
     expect(await screen.findByText('No webhooks yet')).toBeInTheDocument();
+    // Nothing to search over an empty list (design system section 7).
+    expect(screen.queryByLabelText(/^Search (keys|endpoints)$/)).toBeNull();
     // The empty state offers the one action too, beside the header band's (E1).
     expect(within(screen.getByRole('region', { name: 'Endpoints' })).getByRole('link', { name: 'Add endpoint' })).toHaveAttribute(
       'href',

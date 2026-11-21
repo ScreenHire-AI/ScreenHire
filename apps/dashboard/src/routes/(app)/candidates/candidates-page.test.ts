@@ -56,6 +56,28 @@ describe('candidates page', () => {
     expect(within(panel.querySelector('header')!).queryByText(`${applications.length}`, { selector: '[data-slot="badge"]' })).toBeNull();
   });
 
+  it('draws no search, filters or Save view over an empty list (design system section 7)', async () => {
+    render_([]);
+
+    expect(await screen.findByText('No candidates yet')).toBeInTheDocument();
+    const panel = screen.getByRole('region', { name: 'Current candidates' });
+    expect(panel).toBeInTheDocument();
+    expect(screen.queryByLabelText('Search candidates')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save view' })).toBeNull();
+    expect(panel.querySelector('[data-filters]')).toBeNull();
+  });
+
+  it('keeps the search and filters when a search hides every candidate', async () => {
+    render_();
+    await screen.findByText(applications[0]!.candidateName);
+
+    await fireEvent.input(screen.getByLabelText('Search candidates'), { target: { value: 'nobody by this name' } });
+
+    expect(await screen.findByText('No candidates match this view.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Search candidates')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Current candidates' }).querySelector('[data-filters]')).not.toBeNull();
+  });
+
   it('leaves saved people, ended applications and closed jobs out of Current and shows them under All', async () => {
     const saved = { ...applications[0]!, id: 'saved-1', candidateName: 'Grace Adeyemi', keptInMindAt: '2026-10-21T09:00:00Z' };
     const hired = { ...applications[1]!, id: 'hired-1', candidateName: 'Ruth Mwangi', stage: { ...applications[1]!.stage, kind: 'Hired' as const, name: 'Hired' } };

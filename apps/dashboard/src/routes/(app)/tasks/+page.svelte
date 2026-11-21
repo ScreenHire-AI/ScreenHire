@@ -68,6 +68,9 @@
     status === 'Open' ? everyone.filter((task) => inScope(task, which)).length : done[which].data?.data.length;
   // The list page (design system section 11): whose tasks are the tabs under the title, with their counts, and the
   // panel is named after what it shows, Open or Done, the pills under its header.
+  // Nothing to list in this state: no search over nothing (design system section 7). Open and Done stay, because Done is
+  // only asked for when it is chosen, so an empty Open list cannot say whether Done has anything.
+  const bare = $derived(tasks.isSuccess && listed.length === 0);
   const listLabel = $derived(status === 'Open' ? 'Open tasks' : 'Done tasks');
   const scopeTabs = $derived(scopes.map((option) => ({ value: option.value, label: option.label, count: tasks.isSuccess ? countOf(option.value) : undefined })));
 
@@ -142,7 +145,7 @@
     <div class="flex w-full flex-col px-4 py-6 md:px-6">
       <Panel title={listLabel} flush>
         {#snippet tools()}
-          <SearchField bind:value={search} label="Search tasks" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
+          {#if !bare}<SearchField bind:value={search} label="Search tasks" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
         {/snippet}
         <!-- Open or Done in one row under the header, as every list page's state filters are (section 11). Done is each
              scope's newest 200, so it carries no count that would read as a total. On a phone the Sort chip ends the row. -->

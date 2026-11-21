@@ -306,6 +306,20 @@ describe('candidate table', () => {
     expect(header('Job')).not.toHaveClass('sticky');
   });
 
+  it('draws no Sort chip row on a phone for a table with no rows and no filters to show, and keeps it for a filtered one', () => {
+    stubViewport(390);
+    const bare = render(WithTooltips, { props: { component: ApplicationTable, props: { applications: [], emptyTitle: 'No candidates yet' } } });
+
+    expect(screen.getByText('No candidates yet')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Sort/ })).toBeNull();
+    bare.unmount();
+
+    const filters = createRawSnippet(() => ({ render: () => '<button type="button">Job</button>' }));
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: [], filters } } });
+    expect(screen.getByRole('button', { name: 'Job' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Sort/ })).toBeInTheDocument();
+  });
+
   it('turns rows into two-line list items on a phone, status first and facts as pills (section 8)', () => {
     stubViewport(390);
     const rows = [

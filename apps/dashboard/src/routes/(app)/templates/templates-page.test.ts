@@ -255,6 +255,23 @@ describe('templates page', () => {
     expect(screen.getByRole('menuitem', { name: 'Archive' })).toBeInTheDocument();
   });
 
+  it('draws no search or filters over an empty list (design system section 7)', async () => {
+    renderPage('/templates?tab=emails', { 'GET /v1/email-templates': () => Response.json({ ...emailList, templates: [] }) });
+
+    await screen.findByRole('link', { name: 'New template' });
+    expect(screen.getByRole('region', { name: 'Email templates' })).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Show' })).toBeNull();
+  });
+
+  it('keeps the search and filters when only archived templates are left, so Archived can be opened', async () => {
+    renderPage('/templates', { 'GET /v1/templates': () => Response.json([hiring('t-gone', 'Winter interns', { archived: true })]) });
+
+    expect(await screen.findByText('No templates yet')).toBeInTheDocument();
+    expect(screen.getByRole('searchbox')).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Show' })).getByRole('button', { name: /Archived/ })).toHaveTextContent('1');
+  });
+
   it('offers an empty Emails tab a link to the new email template page (A5)', async () => {
     renderPage('/templates?tab=emails', { 'GET /v1/email-templates': () => Response.json({ ...emailList, templates: [] }) });
 

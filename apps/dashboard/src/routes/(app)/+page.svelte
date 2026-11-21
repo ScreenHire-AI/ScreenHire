@@ -134,6 +134,9 @@
     );
   });
   const filtering = $derived(Boolean(statusFilter || search.trim()));
+  // No jobs at all, as the overview above also tests: the panel shows its title and the empty state, with no search or
+  // status pills over nothing (design system section 7). One job brings them back.
+  const bare = $derived(jobs.isSuccess && all.length === 0);
   const panelTitle = $derived(statusFilter ? `${jobStatus[statusFilter].label} jobs` : 'All jobs');
 
   // Every column sorts (L2), and the list opens on Last updated, newest first, as things people edit do. The person's
@@ -285,11 +288,12 @@
     {#if refused}<PlanProblemNotice problem={refused} />{/if}
     <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
       {#snippet tools()}
-        <SearchField bind:value={search} label="Search jobs" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
+        {#if !bare}<SearchField bind:value={search} label="Search jobs" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
       {/snippet}
 
       <!-- The status filter: one line that scrolls inside the panel rather than wrapping (F5). On a phone the Sort chip
            stays in view beside it, since list items have no headers (L2). -->
+      {#if !bare}
       <div class="flex items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
         <div class="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]">
           <div role="group" aria-label="Status" class="flex w-max gap-1">
@@ -308,6 +312,7 @@
         </div>
         {#if sidebar.isMobile && jobs.isSuccess}<SortMenu {table} class="shrink-0" />{/if}
       </div>
+      {/if}
 
       {#if jobs.isError}
         <div class="p-4">

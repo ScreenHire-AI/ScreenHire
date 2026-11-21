@@ -131,6 +131,10 @@
     reached !== null || isVerificationFiltered(verificationFilter) || tagFilter !== null || jobFilter.length > 0 || stagesPicked.length > 0 || Boolean(search.trim()),
   );
   const filtering = $derived(Boolean(view) || narrowed);
+  // No candidates in this list at all, and nothing narrowing it (a view or a report's link is a filter, so its toolbar stays):
+  // the panel shows its title and the empty state, with no search, filters or Save view over nothing (design system
+  // section 7). The first candidate brings them back.
+  const bare = $derived(!filtering && applications.isSuccess && !viewLoading && pool.length === 0);
 
   // The table's sort belongs to the page, so a saved view can set it. A view sets it without changing the sort the person
   // remembers for this table; choosing a column afterwards does remember it.
@@ -225,7 +229,7 @@
     <div class={['flex w-full flex-col px-4 py-6 md:px-6', !phone.current && 'min-h-0 flex-1']}>
       <Panel title={scope === 'all' ? 'All candidates' : 'Current candidates'} flush fill={!phone.current} class={phone.current ? undefined : 'min-h-0 flex-1'}>
         {#snippet tools()}
-          <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
+          {#if !bare}<SearchField bind:value={search} label="Search candidates" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
           {#if selectedCount > 0}<span data-selected-count class="flex shrink-0 items-center gap-1.5 text-muted-foreground">Selected <Badge variant="count">{selectedCount}</Badge></span>{/if}
           {#if canEmail && selectedCount > 0 && !phone.current}
             <EmailSelectionButton count={selectedCount} onclick={() => (emailOpen = true)} />
@@ -234,7 +238,7 @@
         <!-- The filters: one row under the header, outside the table, that scrolls inside the panel rather than wrapping
              (F5), as on a job's pipeline. Save view stays in view at the end. On a phone the table draws them in its own
              row, with the Sort chip at the end, so the filters and Sort share one row. -->
-        {#if !phone.current}
+        {#if !phone.current && !bare}
           <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 py-2">
             <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1 [scrollbar-width:none]">{@render filterMenus()}</div>
             {@render saveView()}
@@ -261,8 +265,8 @@
             sortId="candidates"
             {sort}
             extraColumns={verificationColumns}
-            filters={filterMenus}
-            filterAction={saveView}
+            filters={bare ? undefined : filterMenus}
+            filterAction={bare ? undefined : saveView}
             bind:activeId
             bind:selectedIds
             emptyTitle={filtering ? undefined : 'No candidates yet'}

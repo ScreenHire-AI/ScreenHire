@@ -387,13 +387,16 @@
   <!-- List items have no headers, so the Sort chip offers the headers' choices, beside the page's filters (L2). The row
        stays while a filter leaves nothing to list, so the filter can still change. The filters scroll rather than wrap
        (F5), with no scrollbar drawn under the chips (a chip cut at the edge says there are more), and the Sort chip stays in
-       view at the end. -->
+       view at the end. A page with no filters to draw and no rows has nothing to sort or filter, so it draws no row (design
+       system section 7). -->
+  {#if filters || rows.length > 0}
   <div class="flex items-center gap-2 border-b border-border-subtle px-4 py-2">
     <!-- The filters keep their size and the row scrolls: shrunk to fit, a filter's label is cut to one letter (F5). -->
     <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] *:shrink-0">{@render filters?.()}</div>
     {@render filterAction?.()}
     <SortMenu {table} class="shrink-0" />
   </div>
+  {/if}
   {#if rows.length === 0}
     {@render empty()}
   {:else}
