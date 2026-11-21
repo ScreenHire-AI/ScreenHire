@@ -485,6 +485,20 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["budget"] = 50 })).Expect(HttpStatusCode.OK);
         (await AlertKeysAsync()).Should().BeEquivalentTo([cap], "a new budget is measured afresh, and the unchanged cap keeps its alert");
 
+        // A row left on the column's default unit (tokens) with no limits of its own, saved with none, changes no limit: the month's
+        // alerts stay sent, so they do not go out a second time.
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId))
+        {
+            var settings = await db.VerificationSettings.SingleAsync(Ct);
+            settings.BudgetUnit = UsageUnit.Tokens;
+            settings.MonthlyBudget = null;
+            db.AiUsageAlerts.Add(new AiUsageAlert { OrganizationId = tenant.OrganizationId, Key = sent, RaisedAt = TimeProvider.System.GetUtcNow() });
+            await db.SaveChangesAsync(Ct);
+        }
+
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject())).Expect(HttpStatusCode.OK);
+        (await AlertKeysAsync()).Should().BeEquivalentTo([sent, cap], "only a limit set in tokens changes with the unit");
+
         async Task<List<string>> AlertKeysAsync()
         {
             await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);

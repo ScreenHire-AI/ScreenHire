@@ -338,6 +338,22 @@ public sealed class StripeBillingProviderTests : IDisposable
     }
 
     [Fact]
+    public async Task An_invoice_without_a_whole_number_total_or_date_is_left_out_and_the_rest_still_list()
+    {
+        stripe.Answer("""
+            {"data":[
+              {"id":"in_3","status":"paid","created":1772500000,"total":null,"currency":"usd","invoice_pdf":null},
+              {"id":"in_2","status":"paid","created":"1772400000","total":2900,"currency":"usd","invoice_pdf":null},
+              {"id":"in_1","status":"paid","created":1772300000,"total":2900,"currency":"usd","invoice_pdf":null}
+            ]}
+            """);
+
+        var invoices = await Provider().ListInvoicesAsync(Invoices(), TestContext.Current.CancellationToken);
+
+        invoices.Select(i => i.Id).Should().Equal("in_1");
+    }
+
+    [Fact]
     public async Task No_customer_lists_no_invoices_without_asking_stripe()
     {
         (await Provider().ListInvoicesAsync(Invoices(customerId: null), TestContext.Current.CancellationToken)).Should().BeEmpty();
