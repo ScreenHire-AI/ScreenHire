@@ -536,7 +536,7 @@ describe('application page', () => {
       parts.slice(1).forEach((part, index) => expect(parts[index]!.compareDocumentPosition(part) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy());
     });
 
-    it('has no mini cards, no link to the candidate profile and no Details rail', async () => {
+    it("has no mini cards and no Details rail, and links the candidate profile with the header's actions", async () => {
       renderPage();
       const band = await header();
       await within(band).findByRole('list', { name: 'Pipeline' });
@@ -544,7 +544,8 @@ describe('application page', () => {
 
       expect(band.querySelector('[data-header-cards]')).toBeNull();
       for (const name of ['Contact', 'Application', 'Also applied to', 'Rating', 'Interview']) expect(within(band).queryByRole('group', { name })).toBeNull();
-      expect(within(band).queryByRole('link', { name: 'Candidate profile' })).toBeNull();
+      // One click from every tab, beside Email (the owner's walk-through, 2026-11-21).
+      expect(within(band).getByRole('link', { name: 'Candidate profile' })).toHaveAttribute('href', `/candidates/${candidateId}`);
       expect(screen.queryByRole('complementary', { name: 'Details' })).toBeNull();
     });
   });
@@ -638,14 +639,13 @@ describe('application page', () => {
       expect(panelNames()).toEqual(['Needs you']);
     });
 
-    it('has no note box, no Run control and no link to the candidate profile: those are on other tabs', async () => {
+    it('has no note box and no Run control: those are on other tabs', async () => {
       renderPage();
       await within(await needsYou()).findByText('Call the references.');
       await settled();
 
       expect(screen.queryByLabelText('Note for the hiring team')).toBeNull();
       expect(screen.queryByRole('button', { name: /^Run,/ })).toBeNull();
-      expect(screen.queryByRole('link', { name: 'Candidate profile' })).toBeNull();
     });
 
     it('lists a task by its title only, with no kind or assignee pill', async () => {
@@ -1797,7 +1797,8 @@ describe('application page', () => {
         expect(panel).toHaveTextContent('Saved');
         expect(panel).not.toHaveTextContent('Screening');
         expect(within(panel).queryByRole('link', { name: 'Support Engineer' })).toBeNull();
-        expect(within(panel).getByRole('link', { name: 'Candidate profile' })).toHaveAttribute('href', `/candidates/${candidateId}`);
+        // The profile link is in the header now, not repeated in the panel.
+        expect(within(panel).queryByRole('link', { name: 'Candidate profile' })).toBeNull();
       });
 
       it('comes after the answers and the follow-ups', async () => {
@@ -1808,13 +1809,13 @@ describe('application page', () => {
         await waitFor(() => expect(panelNames()).toEqual(['Answers', 'Follow-up: Availability', 'Follow-up: References', 'Other applications']));
       });
 
-      it('has no panel, only the link to the candidate profile, when the candidate has only this application', async () => {
+      it('has no panel and no footer link when the candidate has only this application: the header links the profile', async () => {
         stubApi({ [`GET /v1/candidates/${candidateId}`]: () => Response.json(candidate([thisOne])) });
         renderPage('application');
-        const link = await screen.findByRole('link', { name: 'Candidate profile' });
+        await within(await header()).findByRole('link', { name: 'Candidate profile' });
         await settled();
 
-        expect(link).toHaveAttribute('href', `/candidates/${candidateId}`);
+        expect(screen.getAllByRole('link', { name: 'Candidate profile' })).toHaveLength(1);
         expect(screen.queryByRole('region', { name: 'Other applications' })).toBeNull();
       });
     });
@@ -2394,7 +2395,7 @@ describe('application page', () => {
 
       await fireEvent.pointerDown(await within(band).findByRole('button', { name: 'More actions' }), { button: 0, pointerType: 'mouse' });
       const menu = await screen.findByRole('menu');
-      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Email', 'Schedule interview']);
+      expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Candidate profile', 'Email', 'Schedule interview']);
       await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Schedule interview' }));
       expect(await screen.findByRole('dialog', { name: 'Schedule interview' })).toBeInTheDocument();
     });

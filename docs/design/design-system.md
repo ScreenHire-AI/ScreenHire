@@ -1179,10 +1179,11 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   newest first, each line saying which job once the candidate has more than one application. When the candidate used the
   stop link in an invitation from Saved candidates, a notice says so and names Erase candidate, which sits in the More
   menu as a destructive item and shows only to people with Erase candidates who see every job (A2, A3). Once it is done the Candidates list says who was erased. An application's
-  Application tab links here.
+  header links here on every tab, as a Candidate profile button beside Email (in More on a phone).
 - **Candidate:** the same seven tabs in the same order for everyone: Overview, Application (the answers, and the
-  candidate's other applications with the link to their profile), Files, Messages (every email with the candidate, both
-  ways, and the reply box under them), Scorecards, Verification, Activity. Activity lists everything newest first, saying who and
+  candidate's other applications), Files, Messages (every email with the candidate, both
+  ways, and the reply box under them), Scorecards, Verification, Activity. The header's actions start with Candidate
+  profile, so the profile is one click from every tab (the owner's walk-through, 2026-11-21). Activity lists everything newest first, saying who and
   how long ago, and filters by kind, and holds the note box and the manual automations. Only a note's author edits it; the
   author, or a role with Delete anyone's notes (Owners and Admins), deletes it, after a confirm. The header holds who they
   are and where they stand, in this order: the name and the verification state (Clear, Review, Verify, Pending or
