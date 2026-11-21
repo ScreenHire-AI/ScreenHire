@@ -297,8 +297,8 @@ organization's Owner or Admin also finds **Finish setting up** in the bell at th
   press **Connect Sandbox calendar** and the browser comes straight back connected. Open a candidate who is still in the
   hiring process, such as Robin Ashby, and press **Schedule interview** beside Email: Avery is ticked as the interviewer
   (Jordan and Robin show "No calendar connected" until they connect theirs, which the same menu does when you sign in as
-  them), choose a length and the days, and **Send invitation**. Mailpit and the candidate's Messages tab hold "Pick a time to talk with Brightwater Studio
-  about ..." with a link to http://localhost:4322/brightwater/interviews/... Open it in a private window: the page needs no script,
+  them), choose a length and the days, and **Send invitation**. Mailpit and the candidate's Messages tab hold "Pick a time for your interview with Brightwater
+  Studio about ..." with a link to http://localhost:4322/brightwater/interviews/... Open it in a private window: the page needs no script,
   lists the free times by day in a time zone you can change, and books one with a radio and a button. Back in the
   dashboard the header has an Interview card, the Overview's Interview panel lists the interviewer and the meeting link on
   `meet.example.org`, and Mailpit holds "Your interview with Brightwater Studio is set", whose link moves or cancels the time. To have a workflow offer the interview, add a **Schedule an interview** action on a stage

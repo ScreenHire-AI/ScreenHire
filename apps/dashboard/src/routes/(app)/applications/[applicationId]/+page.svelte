@@ -76,7 +76,7 @@
   import { endedStatus, trackerFor } from '#lib/pipeline-tracker.js';
   import { canKeepInMind } from '#lib/talent-pool.js';
   import { membersWhoSee } from '#lib/hiring-team.js';
-  import { isTerminal } from '#lib/workflow.js';
+  import { isTerminal, meetingNameOf } from '#lib/workflow.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath, tasksPath } from '#lib/realtime.js';
@@ -207,7 +207,7 @@
   const manualAutomations = $derived((workflow?.automations ?? []).filter((automation) => automation.enabled && automation.trigger.type === 'Manual'));
   const stages = $derived(workflow?.stages ?? []);
   // What the candidate's stage calls the meeting ("trial shift"); "interview" when it names none.
-  const meetingName = $derived(stages.find((stage) => stage.id === detail?.stage.id)?.meetingName?.trim() || 'interview');
+  const meetingName = $derived(meetingNameOf(stages.find((stage) => stage.id === detail?.stage.id)));
   const stageName = (id: string | null | undefined) => (id ? (stages.find((stage) => stage.id === id)?.name ?? id) : '');
   const questions = $derived(new Map((workflow?.questionnaire.questions ?? []).map((question) => [question.id, question])));
   const followUpName = (requestId: string | null | undefined) =>

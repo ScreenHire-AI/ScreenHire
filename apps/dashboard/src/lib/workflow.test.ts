@@ -9,6 +9,7 @@ import {
   describePath,
   errorsUnder,
   offersMeetings,
+  meetingNameOf,
   factsFor,
   canRemindIn,
   hasReminder,
@@ -582,5 +583,17 @@ describe('offersMeetings', () => {
 
   it('keeps asking on a stage that already has a name, so the name can be changed or cleared', () => {
     expect(offersMeetings({ id: 'offer', name: 'Offer', kind: 'Offer', meetingName: 'start day' })).toBe(true);
+  });
+});
+
+describe('meetingNameOf', () => {
+  it("uses the stage's own name for its meeting, trimmed", () => {
+    expect(meetingNameOf({ id: 'trial', name: 'Trial shift', kind: 'Assessment', meetingName: ' trial shift ' })).toBe('trial shift');
+  });
+
+  it('calls the meeting an interview when the stage names none, names only spaces, or is not found', () => {
+    expect(meetingNameOf({ id: 'talk', name: 'Interview', kind: 'Interview' })).toBe('interview');
+    expect(meetingNameOf({ id: 'talk', name: 'Interview', kind: 'Interview', meetingName: '  ' })).toBe('interview');
+    expect(meetingNameOf(undefined)).toBe('interview');
   });
 });

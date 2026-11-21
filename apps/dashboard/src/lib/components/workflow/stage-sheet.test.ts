@@ -385,11 +385,15 @@ describe('the meeting name', () => {
     expect(meetingBox(dialog)).toHaveValue('start day');
   });
 
-  it('shows the API refusal under the stage', async () => {
+  it('shows the API refusal under the meeting field and marks that field, not the stage name', async () => {
     renderSheet({ errors: [{ path: 'stages[1].meetingName', message: 'The meeting name of "Interview" is too long. Keep it to 40 characters or fewer.' }] });
     const dialog = await sheet();
 
-    expect(within(dialog).getByText(/meeting name of "Interview" is too long/)).toBeInTheDocument();
+    expect(meetingBox(dialog)).toHaveAttribute('aria-invalid', 'true');
+    expect(meetingBox(dialog)).toHaveAccessibleDescription(expect.stringContaining('is too long'));
+    expect(within(dialog).getByRole('textbox', { name: 'Name' })).not.toHaveAttribute('aria-invalid');
+    expect(dialog.querySelector('#stage-meeting-name-errors')).toHaveTextContent(/meeting name of "Interview" is too long/);
+    expect(dialog.querySelector('#stage-sheet-errors')).toBeNull();
   });
 });
 

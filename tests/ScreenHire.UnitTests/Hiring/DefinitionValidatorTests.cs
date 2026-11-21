@@ -50,6 +50,9 @@ public sealed class DefinitionValidatorTests
     [InlineData("   ", "only spaces")]
     [InlineData("trial <b>shift</b>", "markup")]
     [InlineData("trial\nshift", "a line break")]
+    [InlineData("trial\u2028shift", "a Unicode line separator")]
+    [InlineData("trial\u202Eshift", "a right-to-left override")]
+    [InlineData("trial\u200Bshift", "a zero-width space")]
     public void A_meeting_name_must_be_plain_words(string name, string because)
     {
         var errors = DefinitionValidator.Validate(WorkflowWithMeetingName(name));

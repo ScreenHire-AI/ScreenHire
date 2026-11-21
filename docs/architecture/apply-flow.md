@@ -345,8 +345,9 @@ whole life. The page asks the API for the interview (`GET .../interviews/{token}
 - **Open.** The heading names the job and the length, then a time zone `<select>` in a plain GET form (the interview's own
   zone first, then a short list of common ones and the zone being shown; "Show times in this zone" reloads with `?tz=`),
   then the offered times. The careers server writes every time with `Intl.DateTimeFormat` in that zone, so no script is
-  needed: a `details` per local day (the first open) holding a fieldset, a radio per start time ("10:00 AM"), and "Book this time", posted to the
-  `interviewBook` action. One screen shows at most five days that have times; "Show later times" and "Back to the first
+  needed: a `details` per local day (the first open) holding a fieldset, a radio per start time ("10:00 AM"), and "Book your interview", posted to the
+  `interviewBook` action. The button uses the stage's meeting name ("Book your trial shift") and says "Move to this time"
+  when changing a booking. One screen shows at most five days that have times; "Show later times" and "Back to the first
   times" are plain links (`?from=` a local day), so a 90-day window never becomes a thousand radios. No times, or a
   calendar that cannot be read, gets a calm notice that says to try again later or reply to the email.
 - **Booked.** The time with its day, year, range and the zone's name, and "The video link is in your calendar invitation"

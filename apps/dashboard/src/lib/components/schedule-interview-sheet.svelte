@@ -35,6 +35,7 @@
   } from '#lib/schedule-interview.js';
   import { getShell } from '#lib/shell.js';
   import { cn } from '#lib/utils.js';
+  import { defaultMeetingName } from '#lib/workflow.js';
 
   // Schedule interview (docs/architecture/interview-scheduling.md), in a sheet (design system section 9): who interviews,
   // how long, which days the candidate may choose from and the working hours inside them. It emails the candidate a link to
@@ -46,7 +47,7 @@
     applicationId,
     jobId,
     candidateName,
-    meetingName = 'interview',
+    meetingName = defaultMeetingName,
     currentUserId,
     ondone,
   }: {
