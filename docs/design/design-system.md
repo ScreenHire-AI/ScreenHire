@@ -21,6 +21,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/rich-text-toolbar.svelte
   - resource: apps/dashboard/src/lib/rich-text.ts
   - resource: apps/dashboard/src/lib/table-sort.svelte.ts
+  - resource: apps/dashboard/src/lib/components/sort-header.svelte
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/components/edit-preview-layout.svelte
   - resource: apps/dashboard/src/lib/components/edit-preview-switch.svelte
