@@ -159,6 +159,10 @@
       </Panel>
     {/if}
 
+    <!-- Once anything is connected, the list of who can read your candidates matters more than how to connect, so it comes
+         first (the owner's walk-through, 2026-11-21). -->
+    {#if connections.isSuccess && list.length > 0}{@render connectedPanel()}{/if}
+
     <Panel title="Connect a client">
       <!-- The key it signs in with is made on API keys, so that page's own action is the one in this header (A5). -->
       {#snippet actions()}
@@ -193,80 +197,87 @@
       </div>
     </Panel>
 
-    <Panel title="Connected assistants" count={connections.isSuccess ? list.length : undefined} flush={!connections.isError}>
-      {#if connections.isError}
-        <QueryError message={describeError(connections.error, 'Could not load the connected assistants')} onretry={() => connections.refetch()} inset />
-      {:else if connections.isPending}
-        <div aria-hidden="true" class="flex flex-col">
-          {#each [0, 1] as row (row)}
-            <div class="flex h-12 items-center gap-4 border-b border-border-subtle px-4.5 last:border-0 max-md:px-4">
-              <Skeleton class="h-4 w-20" />
-              <Skeleton class="h-4 min-w-0 flex-1" />
-              <Skeleton class="h-4 w-24" />
-            </div>
-          {/each}
-        </div>
-        <p class="sr-only" role="status">Loading the connected assistants…</p>
-      {:else if list.length === 0}
-        <Empty.Root>
-          <Empty.Header>
-            <Empty.Media variant="icon"><PlugIcon /></Empty.Media>
-            <Empty.Title>No assistants connected</Empty.Title>
-            <Empty.Description>Nothing has signed in yet.</Empty.Description>
-          </Empty.Header>
-        </Empty.Root>
-      {:else}
-        <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
-        <ul class="md:hidden">
-          {#each sorted as connection (connection.id)}
-            <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
-              <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-                <span class="flex min-w-0 flex-wrap items-center gap-2">
-                  {@render status(connection)}
-                  <span class="min-w-0 font-semibold break-words">{connection.clientName}</span>
-                </span>
-                <span class="flex flex-wrap gap-1.5">
-                  <Badge variant="muted">{access(connection.scopes)}</Badge>
-                </span>
-                <span class="text-caption text-muted-foreground">
-                  {connection.connectedByName ?? 'Unknown'}, {#if connection.lastUsedAt}last used <DateText at={connection.lastUsedAt} />{:else}never used{/if}
-                </span>
-              </div>
-              {#if !connection.revokedAt}{@render connectionMenu(connection)}{/if}
-            </li>
-          {/each}
-        </ul>
-        <div class="overflow-x-auto max-md:hidden">
-          <Table.Root>
-            <Table.Header>
-              {#each table.getHeaderGroups() as group (group.id)}
-                <Table.Row class="bg-muted hover:bg-muted">
-                  {#each group.headers as header (header.id)}
-                    <SortHeader {header} class={header.id === 'status' ? 'px-4.5' : undefined} />
-                  {/each}
-                  <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
-                </Table.Row>
-              {/each}
-            </Table.Header>
-            <Table.Body>
-              {#each sorted as connection (connection.id)}
-                <Table.Row class="h-12">
-                  <Table.Cell class="px-4.5">{@render status(connection)}</Table.Cell>
-                  <Table.Cell class="w-full max-w-0"><TruncatedText text={connection.clientName} class="font-semibold" /></Table.Cell>
-                  <Table.Cell><TruncatedText text={access(connection.scopes)} /></Table.Cell>
-                  <Table.Cell class="text-muted-foreground"><TruncatedText text={connection.connectedByName ?? 'Unknown'} /></Table.Cell>
-                  <Table.Cell class="text-muted-foreground">{#if connection.lastUsedAt}<DateText at={connection.lastUsedAt} />{:else}Never{/if}</Table.Cell>
-                  <Table.Cell class="text-muted-foreground"><DateText at={connection.createdAt} /></Table.Cell>
-                  <Table.Cell class="pr-4.5 text-right">{#if !connection.revokedAt}{@render connectionMenu(connection)}{/if}</Table.Cell>
-                </Table.Row>
-              {/each}
-            </Table.Body>
-          </Table.Root>
-        </div>
-      {/if}
-    </Panel>
+    {#if !(connections.isSuccess && list.length > 0)}{@render connectedPanel()}{/if}
   </SettingsMenu>
 </main>
+
+{#snippet connectedPanel()}
+  <Panel title="Connected assistants" count={connections.isSuccess ? list.length : undefined} flush={!connections.isError}>
+    {#if connections.isError}
+      <QueryError message={describeError(connections.error, 'Could not load the connected assistants')} onretry={() => connections.refetch()} inset />
+    {:else if connections.isPending}
+      <div aria-hidden="true" class="flex flex-col">
+        {#each [0, 1] as row (row)}
+          <div class="flex h-12 items-center gap-4 border-b border-border-subtle px-4.5 last:border-0 max-md:px-4">
+            <Skeleton class="h-4 w-20" />
+            <Skeleton class="h-4 min-w-0 flex-1" />
+            <Skeleton class="h-4 w-24" />
+          </div>
+        {/each}
+      </div>
+      <p class="sr-only" role="status">Loading the connected assistants…</p>
+    {:else if list.length === 0}
+      <Empty.Root>
+        <Empty.Header>
+          <Empty.Media variant="icon"><PlugIcon /></Empty.Media>
+          <Empty.Title>No assistants connected</Empty.Title>
+          <Empty.Description>An assistant that signs in through the steps above shows here, and you can disconnect it at any time.</Empty.Description>
+        </Empty.Header>
+      </Empty.Root>
+    {:else}
+      <p class="border-b border-border-subtle px-4.5 py-3 text-muted-foreground max-md:px-4">
+        The AI assistants that signed in to work with your jobs and candidates. Disconnect one to end its access at once.
+      </p>
+      <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
+      <ul class="md:hidden">
+        {#each sorted as connection (connection.id)}
+          <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
+            <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+              <span class="flex min-w-0 flex-wrap items-center gap-2">
+                {@render status(connection)}
+                <span class="min-w-0 font-semibold break-words">{connection.clientName}</span>
+              </span>
+              <span class="flex flex-wrap gap-1.5">
+                <Badge variant="muted">{access(connection.scopes)}</Badge>
+              </span>
+              <span class="text-caption text-muted-foreground">
+                {connection.connectedByName ?? 'Unknown'}, {#if connection.lastUsedAt}last used <DateText at={connection.lastUsedAt} />{:else}never used{/if}
+              </span>
+            </div>
+            {#if !connection.revokedAt}{@render connectionMenu(connection)}{/if}
+          </li>
+        {/each}
+      </ul>
+      <div class="overflow-x-auto max-md:hidden">
+        <Table.Root>
+          <Table.Header>
+            {#each table.getHeaderGroups() as group (group.id)}
+              <Table.Row class="bg-muted hover:bg-muted">
+                {#each group.headers as header (header.id)}
+                  <SortHeader {header} class={header.id === 'status' ? 'px-4.5' : undefined} />
+                {/each}
+                <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
+              </Table.Row>
+            {/each}
+          </Table.Header>
+          <Table.Body>
+            {#each sorted as connection (connection.id)}
+              <Table.Row class="h-12">
+                <Table.Cell class="px-4.5">{@render status(connection)}</Table.Cell>
+                <Table.Cell class="w-full max-w-0"><TruncatedText text={connection.clientName} class="font-semibold" /></Table.Cell>
+                <Table.Cell><TruncatedText text={access(connection.scopes)} /></Table.Cell>
+                <Table.Cell class="text-muted-foreground"><TruncatedText text={connection.connectedByName ?? 'Unknown'} /></Table.Cell>
+                <Table.Cell class="text-muted-foreground">{#if connection.lastUsedAt}<DateText at={connection.lastUsedAt} />{:else}Never{/if}</Table.Cell>
+                <Table.Cell class="text-muted-foreground"><DateText at={connection.createdAt} /></Table.Cell>
+                <Table.Cell class="pr-4.5 text-right">{#if !connection.revokedAt}{@render connectionMenu(connection)}{/if}</Table.Cell>
+              </Table.Row>
+            {/each}
+          </Table.Body>
+        </Table.Root>
+      </div>
+    {/if}
+  </Panel>
+{/snippet}
 
 {#snippet status(connection: OAuthConnectionSummary)}
   {#if connection.revokedAt}<StatusBadge status="notInEffect" label="Revoked" quiet />{:else}<StatusBadge status="done" label="Active" quiet />{/if}

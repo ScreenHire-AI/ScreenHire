@@ -95,9 +95,13 @@ describe('MCP server page', () => {
   describe('connected assistants', () => {
     it('lists each assistant with its access, who connected it and its status, and passes axe', async () => {
       renderPage([acme, old]);
-      const panel = await screen.findByRole('region', { name: 'Connected assistants' });
+      expect((await screen.findAllByText('Acme Assistant')).length).toBeGreaterThan(0);
+      const panel = screen.getByRole('region', { name: 'Connected assistants' });
+      // Once anything is connected the list comes first, before how to connect, and says what it is.
+      const connect = screen.getByRole('region', { name: 'Connect a client' });
+      expect(panel.compareDocumentPosition(connect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(panel).toHaveTextContent('Disconnect one to end its access at once.');
 
-      expect((await within(panel).findAllByText('Acme Assistant')).length).toBeGreaterThan(0);
       expect(within(panel).getAllByText('Read and write, with Verification read').length).toBeGreaterThan(0);
       expect(within(panel).getAllByText('Read only').length).toBeGreaterThan(0);
       expect(within(panel).getAllByText('Avery Quinn').length).toBeGreaterThan(0);
