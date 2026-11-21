@@ -40,7 +40,7 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await OpenTabAsync("Usage", "/verification/usage");
         await Expect(Page.GetByText("Model calls", new() { Exact = true })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Use by day, this month" })).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "This month against the limits" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Monthly limits" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
         // Checks: turn Documents off, save, and find it off after a reload.

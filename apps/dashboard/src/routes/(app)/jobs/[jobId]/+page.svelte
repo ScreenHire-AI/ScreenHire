@@ -205,6 +205,10 @@
   const openedLast = $derived(
     !!detail?.publishedAt && !!detail.lastUpdated.at && Math.abs(Date.parse(detail.lastUpdated.at) - Date.parse(detail.publishedAt)) < 60_000,
   );
+  // Closing is the last change until someone edits the job, and Last updated says so beside the Closed badge: said once (W7).
+  const closedLast = $derived(
+    !!detail?.closedAt && !!detail.lastUpdated.at && Math.abs(Date.parse(detail.lastUpdated.at) - Date.parse(detail.closedAt)) < 60_000,
+  );
   const notFound = $derived(job.error instanceof ApiError && job.error.status === 404);
 </script>
 
@@ -322,7 +326,7 @@
             <!-- Opening the job is the last change until someone edits it, and Last updated says so: said once (W7). -->
             {#if !openedLast}<Fact label="Opened"><RelativeTime at={detail.publishedAt} /></Fact>{/if}
           {:else if detail.status === 'Closed' && detail.closedAt}
-            <Fact label="Closed"><RelativeTime at={detail.closedAt} /></Fact>
+            {#if !closedLast}<Fact label="Closed"><RelativeTime at={detail.closedAt} /></Fact>{/if}
           {:else if !detail.lastUpdated.created}
             <!-- A job nothing has changed since says Created in its last fact, so it is said once (W7). -->
             <Fact label="Created"><RelativeTime at={detail.createdAt} /></Fact>

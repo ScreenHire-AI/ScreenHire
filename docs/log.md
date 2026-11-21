@@ -2,12 +2,14 @@
 
 ## 2026-11-21
 
-**Every dashboard page was held to the List template and the checklist.** The walk covered all 40 routes at 1440 and
-390 px, and the List pages in the dark theme too. The four main lists already matched. The drift was in the settings
+**Every dashboard page was held to the List template and the checklist.** The walk covered every route at 1440 px and 390 px (light), and the
+list pages in the dark theme too. The four main lists already matched. The drift was in the settings
 lists: Team, Roles, API keys, Webhooks and Passkeys put a count beside the page title, which the List row forbids, and
 three of them searched with a different placeholder. The count now sits in the list panel's header, only once the list has
 a row, `HeaderBand` has no `count` to give, and the three searches read "Search" and take the phone layout of the main
-lists. Data requests keeps "N open" as words beside its title, because that page is a queue with due dates and not a list
+lists. Four sibling Settings pages showed Back on a phone and now show the menu button, Team remembers a sort by Last updated,
+the Saved tab keeps Add candidate in the header, a closed job says Closed once, the Activity log's grey outcomes are quiet,
+and the monthly budget panel is Monthly limits on all three tabs that draw it. Data requests keeps "N open" as words beside its title, because that page is a queue with due dates and not a list
 of records. The rest (one rule for when a list searches, Team as tabs, one date range control, where the primary sits in
 an action group, one verb for creating) is ranked in the [roadmap](roadmap.md#the-consistency-review-of-the-dashboard)
 for the owner to pick.

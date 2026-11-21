@@ -104,7 +104,7 @@
     />
   </div>
 
-  <Panel title="This month against the limits">
+  <Panel title="Monthly limits">
     <LimitsSummary limits={data.limits} />
   </Panel>
 

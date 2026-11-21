@@ -111,7 +111,7 @@
     </ChartPanel>
 
     {#if limits}
-      <Panel title="AI budget this month">
+      <Panel title="Monthly limits">
         <div class="flex flex-col gap-4">
           <LimitsSummary {limits} cap={false} />
           <p><a href="/verification/usage" class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">See usage</a></p>

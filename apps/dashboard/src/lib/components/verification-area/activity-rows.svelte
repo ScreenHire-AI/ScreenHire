@@ -5,6 +5,7 @@
   import QueryError from '#lib/components/query-error.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { needsAttention } from '#lib/status.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
@@ -52,7 +53,7 @@
             {#if entry.outcome === 'Completed'}
               <span class="sr-only">{activityOutcomeLabels.Completed}</span>
             {:else}
-              <StatusBadge status={activityOutcomeStatuses[entry.outcome]} label={activityOutcomeLabels[entry.outcome]} />
+              <StatusBadge status={activityOutcomeStatuses[entry.outcome]} label={activityOutcomeLabels[entry.outcome]} quiet={!needsAttention(activityOutcomeStatuses[entry.outcome])} />
             {/if}
             {#if entry.note}<TruncatedText text={entry.note} class="max-w-56 text-muted-foreground" />{/if}
           </span>
