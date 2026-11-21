@@ -477,7 +477,8 @@ when that email is already a candidate only on jobs they cannot see.
 
 The dashboard: Team has a Jobs column ("All jobs" or "2 jobs"), and Edit access in a member's menu opens one sheet for
 their role and job access, which lists their jobs read only (`member-access-sheet.svelte`). The invite sheet asks for job
-access. The job page has a Hiring team button with its count (`hiring-team-sheet.svelte`), with Add a person and Copy
+access with one Only some jobs switch, off at the start; it sends no job ids, so the person joins hiring teams after
+they accept. The job page has a Hiring team button with its count (`hiring-team-sheet.svelte`), with Add a person and Copy
 from another job, and a hiring template its Default hiring team. The Role page shows each person's jobs. Settings leaves
 out API keys and Webhooks for someone on Only jobs they're on.
 
