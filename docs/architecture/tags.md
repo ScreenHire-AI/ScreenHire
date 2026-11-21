@@ -66,7 +66,7 @@ action writes the name the automation holds, which a rename keeps in step.
   "Senior engineer";
 - Create for the text itself, last, only when no tag has that name in any case.
 
-With nothing typed it offers the most used. The arrow keys move, Enter picks, Esc closes the list only. The candidate's
+The list opens as someone types, or with the down arrow in an empty field, which offers the most used; an empty field opens nothing, so Esc closes the header's field as before. The arrow keys move, Enter picks, Esc closes the list only. The candidate's
 header passes the list; the careers site's embed sites list does not, so it stays a plain field.
 
 ## Settings, Tags

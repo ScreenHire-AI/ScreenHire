@@ -112,6 +112,23 @@ describe('tag list, suggesting the tags the organization has', () => {
     expect(onadd).toHaveBeenLastCalledWith('Night shift');
   });
 
+  it('opens nothing on an empty field, so Escape closes it, and the down arrow there shows the most used', async () => {
+    show({ compact: true, tags: [], onadd: async () => true, suggestions });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Add tag' }));
+    const field = screen.getByRole('combobox', { name: 'New tag' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    await fireEvent.keyDown(field, { key: 'ArrowDown' });
+    expect(within(screen.getByRole('listbox', { name: 'Tags' })).getAllByRole('option').map((option) => option.textContent?.trim())).toEqual([
+      'Senior engineer',
+      'Remote',
+      'Senior',
+    ]);
+    await fireEvent.keyDown(field, { key: 'Escape' });
+    await fireEvent.keyDown(field, { key: 'Escape' });
+    expect(screen.queryByRole('combobox')).toBeNull();
+  });
+
   it('closes the list on Escape and keeps the field open, and a pick by pointer adds it', async () => {
     const onadd = vi.fn(async () => true);
     show({ compact: true, tags: [], onadd, suggestions });

@@ -19,7 +19,8 @@
   // `onadd` and `onremove` (a Viewer, A3) it shows the pills only. The same list holds the sites that may embed the
   // careers page (Settings, Careers site, Careers page), with its own words and field. With `suggestions` (the
   // organization's tags) the field is a combobox: it lists the tags that match, most used first, with Create for a new
-  // name last; the arrow keys move, Enter picks, Esc closes the list only.
+  // name last. It opens as someone types, or with the down arrow in an empty field (the most used); the arrow keys move,
+  // Enter picks, Esc closes the list only. An empty field opens nothing, so Esc there closes a compact header's field.
   let {
     tags,
     onadd,
@@ -71,7 +72,7 @@
   let adding = $state(false);
   const focusOnMount = (node: HTMLElement) => node.focus();
 
-  // The suggestions: tags to pick, then Create for a new name. Open while the field has focus and there is something to offer.
+  // The suggestions: tags to pick, then Create for a new name. Open from the first keystroke until the field loses focus.
   const listId = `${inputId}-suggestions`;
   let listing = $state(false);
   let active = $state(0);
@@ -100,6 +101,12 @@
   }
 
   function onfieldkeydown(event: KeyboardEvent) {
+    if (suggestions && !open && event.key === 'ArrowDown') {
+      event.preventDefault();
+      listing = true;
+      active = 0;
+      return;
+    }
     if (open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
       event.preventDefault();
       active = (active + (event.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length;
@@ -198,7 +205,6 @@
             {...combobox}
             {oninput}
             onkeydown={onfieldkeydown}
-            onfocus={() => (listing = true)}
             onblur={() => (listing = false)}
             {@attach focusOnMount}
           />
@@ -243,7 +249,6 @@
         {...combobox}
         {oninput}
         onkeydown={onfieldkeydown}
-        onfocus={() => (listing = true)}
         onblur={() => (listing = false)}
       />
       <Button type="submit" variant="outline" class="shrink-0" disabled={busy}><PlusIcon aria-hidden="true" />Add {noun}</Button>
