@@ -161,8 +161,8 @@ describe('check groups', () => {
 
   it('words each state in a few words that say nothing about the person', () => {
     expect(groupStateText(group({ state: 'Found', found: 2 }))).toBe('2 found');
-    expect(groupStateText(group({ state: 'InformationOnly', notes: 1 }))).toBe('1 note, information only');
-    expect(groupStateText(group({ state: 'InformationOnly', notes: 3 }))).toBe('3 notes, information only');
+    expect(groupStateText(group({ state: 'InformationOnly', notes: 1 }))).toBe('1 note');
+    expect(groupStateText(group({ state: 'InformationOnly', notes: 3 }))).toBe('3 notes');
     expect(groupStateText(group({ state: 'NothingFound' }))).toBe('Nothing found');
     expect(groupStateText(group({ state: 'NotChecked' }))).toBe('Not checked');
     expect(groupStateText(group({ state: 'TurnedOff' }))).toBe('Turned off');

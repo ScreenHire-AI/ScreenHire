@@ -92,10 +92,9 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         summary.Text("byModel.0.keySource").Should().Be("BuiltIn");
         summary.Text("byKeySource.0.keySource").Should().Be("BuiltIn");
         summary.At("byDay").GetArrayLength().Should().BeGreaterThanOrEqualTo(1);
-        // The default budget is in dollars, so what was used is too: the tokens at the fake model's price and the usual mix.
+        // The default budget is in dollars, and what was used against it is the month's cost, the same figure as the total above.
         summary.Text("limits.effectiveBudget.unit").Should().Be("Money");
-        summary.At("limits.effectiveBudget.used").GetDecimal().Should().Be(
-            decimal.Round(AiUsageMix.Dollars(rows.Sum(r => r.InputTokens!.Value + r.OutputTokens!.Value), FakeBlendedPerMillion), 4, MidpointRounding.AwayFromZero));
+        summary.At("limits.effectiveBudget.used").GetDecimal().Should().Be(summary.At("totals.cost").GetDecimal());
 
         var first = (await tenant.GetAsync($"{Usage}/calls?limit=1")).Expect(HttpStatusCode.OK);
         first.Count("calls").Should().Be(1);
@@ -155,7 +154,8 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         // The deployment's default is 2,000,000 tokens each. The fake model costs 1.00 in and 4.00 out per million tokens, so at the
         // usual 80/20 mix a million tokens cost 1.60 dollars.
         FakeBlendedPerMillion.Should().Be(1.6m);
-        await SeedAsync(tenant.OrganizationId, DateTimeOffset.UtcNow, 1_000_000);
+        // A million tokens that cost 1.25: what was used is the cost, not the tokens at the mix, so it agrees with the Usage tab.
+        await SeedAsync(tenant.OrganizationId, DateTimeOffset.UtcNow, 1_000_000, cost: 1.25m);
 
         foreach (var path in new[] { $"{Usage}/summary", Settings })
         {
@@ -166,7 +166,7 @@ public sealed class AiUsageTests(AppHostFixture fixture)
                 limit.GetProperty("unit").GetString().Should().Be("Money", $"{path} {name}");
                 limit.GetProperty("isDefault").GetBoolean().Should().BeTrue();
                 limit.GetProperty("amount").GetDecimal().Should().Be(3.2m, "2,000,000 tokens at 1.60 dollars per million");
-                limit.GetProperty("used").GetDecimal().Should().Be(1.6m);
+                limit.GetProperty("used").GetDecimal().Should().Be(1.25m, "the month's actual cost");
                 limit.GetProperty("percent").GetInt32().Should().Be(50, "the cap is still counted in tokens, so the share is the token one");
             }
         }
@@ -572,14 +572,14 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         return [.. (await db.AiUsageCalls.AsNoTracking().Select(c => c.OccurredAt).ToListAsync(Ct)).Select(at => at.Month).Order()];
     }
 
-    private async Task SeedAsync(Guid organizationId, DateTimeOffset at, long tokens)
+    private async Task SeedAsync(Guid organizationId, DateTimeOffset at, long tokens, decimal? cost = null)
     {
         await using var db = await VerificationSupport.TenantDbAsync(fixture, organizationId);
-        db.AiUsageCalls.Add(Row(organizationId, at, tokens));
+        db.AiUsageCalls.Add(Row(organizationId, at, tokens, cost));
         await db.SaveChangesAsync(Ct);
     }
 
-    private static AiUsageCall Row(Guid organizationId, DateTimeOffset at, long tokens) => new()
+    private static AiUsageCall Row(Guid organizationId, DateTimeOffset at, long tokens, decimal? cost = null) => new()
     {
         OrganizationId = organizationId,
         OccurredAt = at,
@@ -590,7 +590,8 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         ProviderRequestId = $"seed-{Guid.NewGuid():N}",
         InputTokens = tokens,
         OutputTokens = 0,
-        CostBasis = AiCostBasis.Unknown,
+        CostBasis = cost is null ? AiCostBasis.Unknown : AiCostBasis.Priced,
+        Cost = cost,
         Outcome = AiCallOutcome.Ok,
     };
 }

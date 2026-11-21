@@ -72,6 +72,24 @@ describe('the Notifications tab', () => {
     await expectNoAxeViolations();
   });
 
+  it('starts an Owner with no limits of their own in dollars when the default is shown in dollars, and names the default', async () => {
+    renderPage(settingsWith({ limits: dollarLimits }));
+
+    expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
+    // A number typed after reading "$3.20" on the Overview is dollars, not tokens.
+    expect(screen.getByLabelText('Count in')).toHaveValue('Money');
+    expect(screen.getByText(/default budget, \$3\.20 a month, for its own key/)).toBeInTheDocument();
+    expect(screen.getByText(/default cap, \$3\.20 a month, for its own key/)).toBeInTheDocument();
+  });
+
+  it('keeps the unit an Owner chose once they have set a limit', async () => {
+    renderPage(settingsWith({ limits: { ...dollarLimits, budget: 4_000_000, effectiveBudget: { amount: 4_000_000, unit: 'Tokens', isDefault: false, used: 420, percent: 0 } } }));
+
+    expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Count in')).toHaveValue('Tokens');
+    expect(screen.getByLabelText(/Monthly budget/)).toHaveValue('4000000');
+  });
+
   it('shows an Admin the default budget and cap in dollars where the deployment prices its model', async () => {
     renderPage(settingsWith({ limits: dollarLimits }), {}, userAs('Admin'));
 

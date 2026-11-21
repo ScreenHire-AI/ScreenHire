@@ -87,6 +87,18 @@ describe('the Usage tab', () => {
     expect(within(panel).getAllByText('420 tokens of 2,000,000 tokens')).toHaveLength(2);
   });
 
+  it('shows the default in dollars where the deployment prices its model, with the month\'s cost as what was used', async () => {
+    // The API reports the month's actual cost as what was used, so the limits and the Cost tile give one figure.
+    const used = { used: summary.totals.cost };
+    renderPage({ ...summary, limits: { ...dollarLimits, effectiveBudget: { ...dollarLimits.effectiveBudget!, ...used }, effectiveCap: { ...dollarLimits.effectiveCap!, ...used } } });
+
+    const panel = (await screen.findByRole('heading', { name: 'This month against the limits' })).closest('section') as HTMLElement;
+    expect(within(panel).getAllByText('$0.42 of $3.20')).toHaveLength(2);
+    expect(within(panel).queryByText(/tokens/)).not.toBeInTheDocument();
+    const cost = screen.getAllByText('Cost').map((node) => node.closest('[data-slot="report-stat"]')).find(Boolean) as HTMLElement;
+    expect(within(cost).getByText('$0.42')).toBeInTheDocument();
+  });
+
   it('charts tokens by day on ScreenHire\'s key and on the own key, with the same numbers as a table', async () => {
     renderPage(summary);
 

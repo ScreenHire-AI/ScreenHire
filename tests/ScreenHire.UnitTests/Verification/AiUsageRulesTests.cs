@@ -211,6 +211,18 @@ public sealed class AiUsageRulesTests
         AiUsageMix.BlendedPerMillion(1m, 4m).Should().Be(1.6m, "80% input at 1.00 and 20% output at 4.00");
         AiUsageMix.Dollars(2_000_000, 1.6m).Should().Be(3.2m);
         AiUsageMix.Dollars(0, 1.6m).Should().Be(0m);
+        AiUsageMix.DefaultInDollars(2_000_000, 1.6m).Should().Be(3.2m);
+        AiUsageMix.DefaultInDollars(1, 1.6m).Should().Be(0.01m, "a default that is not zero never reads as $0.00");
+    }
+
+    [Fact]
+    public void Only_the_deployments_default_is_shown_in_dollars_and_only_where_its_model_has_a_price()
+    {
+        AiUsageMix.DollarPriceFor(isDefault: true, UsageUnit.Tokens, 1.6m).Should().Be(1.6m);
+        AiUsageMix.DollarPriceFor(isDefault: true, UsageUnit.Tokens, null).Should().BeNull("with no price the default stays in tokens");
+        AiUsageMix.DollarPriceFor(isDefault: true, UsageUnit.Tokens, 0m).Should().BeNull("a free model gives no dollar figure to show");
+        AiUsageMix.DollarPriceFor(isDefault: false, UsageUnit.Tokens, 1.6m).Should().BeNull("an Owner's limit in tokens keeps its unit");
+        AiUsageMix.DollarPriceFor(isDefault: false, UsageUnit.Money, 1.6m).Should().BeNull("an Owner's limit in dollars is not converted again");
     }
 
     [Fact]
