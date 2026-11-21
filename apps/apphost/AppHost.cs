@@ -23,14 +23,16 @@
 //                               GoogleIndexing:Mode is Off unless set (Local is the fake); in Google mode the key comes
 //                               from the secret parameter google-indexing-service-account-key, never from these keys.
 //   Verification:Llm:*             the consistency check's model (ScreenHire.Infrastructure LlmOptions), forwarded to the
-//                               worker. The worker's and the API's Development settings use the deterministic fake model
+//                               worker and the API. The worker's and the API's Development settings use the deterministic fake model
 //                               (the API tests an organization's own key with it); Provider None turns the check into
 //                               "unavailable"; in Anthropic mode the key comes from the secret parameter
 //                               anthropic-api-key, never from these keys. Prices:<modelId>:Input and :Output are what the
 //                               model costs, in US dollars per million tokens (for the usage ledger's costs; a model with no
 //                               entry has an unknown cost). DefaultMonthlyTokenBudget (2,000,000) and DefaultMonthlyTokenCap
 //                               (2,000,000, 0 turns it off) are the budget and cap ScreenHire's key falls back to when an
-//                               organization sets none; an own key has neither (docs/architecture/ai-usage.md).
+//                               organization sets none; an own key has neither. The API shows both in dollars, at the answering
+//                               model's Prices and the usual input/output mix, and in tokens where the model has no price
+//                               (docs/architecture/ai-usage.md).
 //   AiUsage:*                   the daily AI usage sweeps (ScreenHire.Application AiUsageOptions, docs/architecture/ai-usage.md),
 //                               forwarded to the API and the worker: Spike:Factor (3), Spike:LookbackDays (14), Spike:MinimumTokens
 //                               (100,000) and Spike:MinimumActiveDays (3) are the spike rule; ResumeBatchSize (200) is how many
@@ -435,7 +437,10 @@ foreach (var (key, value) in settings.GetSection("Verification:Llm").AsEnumerabl
     // The API key is a secret: it goes through the parameter below, never as plain configuration.
     if (value is not null && !key.StartsWith("Anthropic", StringComparison.OrdinalIgnoreCase))
     {
-        worker.WithEnvironment($"ScreenHire__Verification__Llm__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+        // Both hosts read the prices and the default budget and cap: the API shows the default in dollars.
+        var name = $"ScreenHire__Verification__Llm__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        worker.WithEnvironment(name, value);
+        api.WithEnvironment(name, value);
     }
 }
 

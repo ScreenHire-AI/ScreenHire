@@ -95,7 +95,9 @@ public sealed record UploadedFile(Guid UploadId, string FileName, string Content
 /// is one of the organization's <c>embedOrigins</c>, and dropped otherwise, never a reason to refuse. <c>source</c> is the id of
 /// the job board whose link the candidate followed (the <c>src</c> parameter of the link a feed carries); it is kept as the
 /// application's <c>sourceBoard</c> only when it is a board that tags its links, and dropped otherwise, never a reason to
-/// refuse.
+/// refuse. <c>language</c> is the first language tag of the candidate's <c>Accept-Language</c>; it is kept as the application's
+/// <c>language</c> when it has the shape of a language tag, and dropped otherwise, never a reason to refuse. Their emails write
+/// dates in it.
 /// </remarks>
 public sealed record PublicApplicationRequest(
     PublicCandidateInput Candidate,
@@ -115,7 +117,8 @@ public sealed record PublicApplicationRequest(
     TelemetrySnapshotInput? Telemetry = null,
     bool KeepForFutureRoles = false,
     string? EmbedOrigin = null,
-    string? Source = null);
+    string? Source = null,
+    string? Language = null);
 
 /// <summary>The active seconds on one page of the apply form (<c>details</c>, <c>page-2</c>, <c>review</c>).</summary>
 public sealed record PageTimeInput(string Page, int Seconds);
@@ -203,6 +206,7 @@ internal sealed class PublicApplicationRequestValidator : AbstractValidator<Publ
         RuleFor(r => r.DeviceFingerprint).MaximumLength(256);
         RuleFor(r => r.TelemetrySessionToken).MaximumLength(1024);
         RuleFor(r => r.EmbedOrigin).MaximumLength(1024);
+        RuleFor(r => r.Language).MaximumLength(100);
     }
 }
 
@@ -217,7 +221,8 @@ public sealed record PublicApplicationDraftRequest(
     bool AccommodationRequested = false,
     AiUseDeclaration AiUseDeclaration = AiUseDeclaration.NotProvided,
     string? AiUseDetails = null,
-    string? BotCheckToken = null);
+    string? BotCheckToken = null,
+    string? Language = null);
 
 /// <summary>A saved draft: the token in its link, which the careers page keeps to save it again, and when it is deleted.</summary>
 public sealed record PublicApplicationDraftReceipt(string Token, DateTimeOffset ExpiresAt);
@@ -260,6 +265,7 @@ internal sealed class PublicApplicationDraftRequestValidator : AbstractValidator
         RuleFor(r => r.AiUseDeclaration).IsInEnum();
         RuleFor(r => r.AiUseDetails).MaximumLength(2000);
         RuleFor(r => r.BotCheckToken).MaximumLength(4096);
+        RuleFor(r => r.Language).MaximumLength(100);
     }
 }
 

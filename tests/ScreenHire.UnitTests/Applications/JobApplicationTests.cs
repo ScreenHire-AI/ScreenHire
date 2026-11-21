@@ -78,6 +78,32 @@ public sealed class JobApplicationTests
     }
 
     [Fact]
+    public void An_application_keeps_the_language_of_the_browser_it_came_from_and_a_recruiters_has_none()
+    {
+        var (job, candidate) = JobAndCandidate();
+
+        var (careers, _) = JobApplication.Submit(
+            job, candidate, false, AiUseDeclaration.DidNotUse, null, Monday, null,
+            new ApplicationIntake(ApplicationSource.CareersSite, [], PrivacyNoticeVersion: "2026-10-31.2", Language: "de-DE"));
+        var (recruiter, _) = JobApplication.Submit(job, candidate, false, AiUseDeclaration.DidNotUse, null, Monday, null);
+
+        careers.Language.Should().Be("de-DE");
+        recruiter.Language.Should().BeNull("a recruiter adds it, so no browser named a language");
+    }
+
+    [Fact]
+    public void A_language_that_is_not_a_language_tag_is_dropped_and_never_refuses_the_application()
+    {
+        var (job, candidate) = JobAndCandidate();
+
+        var (application, _) = JobApplication.Submit(
+            job, candidate, false, AiUseDeclaration.DidNotUse, null, Monday, null,
+            new ApplicationIntake(ApplicationSource.CareersSite, [], Language: "<script>alert(1)</script>"));
+
+        application.Language.Should().BeNull();
+    }
+
+    [Fact]
     public void A_recruiter_added_application_has_no_answers_or_checks()
     {
         var (job, candidate) = JobAndCandidate();

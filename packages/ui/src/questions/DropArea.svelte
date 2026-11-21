@@ -11,6 +11,11 @@
   // and what to do with its bytes (`onfile`); a field that posts with its form leaves the input as it is, and a dropped
   // file is put into the input first so it posts too. The area sets no cursor and no inline style: the theme gives
   // [data-drop-area] the hand (A10) and careers pages forbid inline styles.
+  //
+  // `multiple` is the candidate's reply, which posts several files at once. The area then keeps the list itself: the input
+  // is the carrier that posts with the form, and every add or Remove rebuilds its files from the list, so what is shown is
+  // what is sent. Each file is a row with its name, size and Remove. A file the field refuses (wrong type, too large, over
+  // the count or the total) gets its own message naming it, all handed to `onproblems` together, and the others are still taken.
   import { untrack, type Snippet } from 'svelte';
   import { describeSize, fileProblem } from './files';
 
@@ -46,12 +51,19 @@
      * the bytes itself says false, and the input is cleared once `onfile` has the file, so picking it again still fires.
      */
     keep?: boolean;
-    /** A file that passed the checks, whether it was picked or dropped. */
-    onfile: (file: File) => void;
+    /** Several files, as a reply takes: each is a row with Remove, and the named input posts them all. */
+    multiple?: boolean;
+    /** With `multiple`: the most files, and the most bytes in all. Unset takes any. */
+    maxFiles?: number;
+    maxTotalBytes?: number;
+    /** A file that passed the checks, whether it was picked or dropped. Not used with `multiple`. */
+    onfile?: (file: File) => void;
     /** Why a file was refused, in words for the person. */
     onproblem?: (message: string) => void;
     /** Remove was pressed, or the picker was closed with its selection cleared. */
     onremove?: () => void;
+    /** With `multiple`: why each file of an add was refused, one message per file, called once per add (empty when none was) and with none after a Remove. */
+    onproblems?: (messages: string[]) => void;
   }
 
   let {
@@ -71,9 +83,13 @@
     removeLabel = 'Remove',
     preview,
     keep = true,
+    multiple = false,
+    maxFiles = Infinity,
+    maxTotalBytes = Infinity,
     onfile,
     onproblem,
     onremove,
+    onproblems,
   }: Props = $props();
 
   // Before the page's JavaScript runs the input is shown as the browser draws it, inside the same frame.
@@ -82,29 +98,69 @@
   let over = $state(false);
   // dragenter and dragleave fire again for every child the pointer crosses, so the area counts them.
   let depth = 0;
+  // With `multiple`, the files the input holds and the rows show.
+  let held = $state<File[]>([]);
 
   $effect(() => {
     mounted = true;
     // A file chosen before the page hydrated fired its change event too early: take it now.
-    const early = input?.files?.[0];
-    if (early) untrack(() => take(early, false));
+    const early = input?.files;
+    if (early?.length) untrack(() => (multiple ? takeMany([...early]) : take(early[0], false)));
   });
 
   function clear() {
     if (input) input.value = '';
   }
 
-  // Puts a dropped file into the input, so a field that posts with its form posts it too. A single-file input never
-  // gets the whole dropped list, only the first file. False in a browser without the DataTransfer constructor.
-  function put(dropped: File): boolean {
+  // Puts files into the input, so a field that posts with its form posts them too: a dropped file for a single-file
+  // input (never the whole dropped list), or the rows for `multiple`, so the form posts exactly what is shown. False in a
+  // browser without the DataTransfer constructor.
+  function put(files: File[]): boolean {
     try {
       const transfer = new DataTransfer();
-      transfer.items.add(dropped);
+      for (const each of files) transfer.items.add(each);
       input!.files = transfer.files;
       return true;
     } catch {
       return false;
     }
+  }
+
+  // Adds each file that passes, and refuses each that does not in a message of its own that names it.
+  function takeMany(added: File[]) {
+    if (added.length === 0 || disabled) return;
+    const next = [...held];
+    const refused: string[] = [];
+    let total = next.reduce((sum, each) => sum + each.size, 0);
+    for (const each of added) {
+      const problem =
+        fileProblem(each, accept, maxBytes) ??
+        (next.some((kept) => kept.name === each.name && kept.size === each.size && kept.lastModified === each.lastModified) ? 'This file is already attached.' : null) ??
+        (next.length >= maxFiles ? `Attach up to ${maxFiles} files.` : null) ??
+        (total + each.size > maxTotalBytes ? `Your files add up to more than ${describeSize(maxTotalBytes)}.` : null);
+      if (problem) {
+        refused.push(`${each.name}: ${problem}`);
+      } else {
+        next.push(each);
+        total += each.size;
+      }
+    }
+
+    // A pick has replaced the input's files with its own, and a refused file is in them: put the list in its place.
+    held = next;
+    if (!put(held)) {
+      held = [];
+      clear();
+      refused.push('This browser cannot attach more than one file this way. Choose them again, all at once.');
+    }
+    onproblems?.(refused);
+  }
+
+  // A Remove also clears the last add's refusals: "Attach up to 3 files." is no longer true once there is room.
+  function removeAt(index: number) {
+    held = held.filter((_, position) => position !== index);
+    if (!put(held)) clear();
+    onproblems?.([]);
   }
 
   // The same checks and the same hand-off for a picked file and a dropped one.
@@ -123,12 +179,12 @@
     }
 
     // Told it was taken with nothing in its input, a field that posts with its form would post no file.
-    if (keep && dropped && !put(chosen)) {
+    if (keep && dropped && !put([chosen])) {
       onproblem?.('This browser cannot take a dropped file. Choose it instead.');
       return;
     }
 
-    onfile(chosen);
+    onfile?.(chosen);
     if (!keep) clear();
   }
 
@@ -158,7 +214,8 @@
     depth = 0;
     over = false;
     if (disabled) return;
-    take(event.dataTransfer?.files[0], true);
+    if (multiple) takeMany([...(event.dataTransfer?.files ?? [])]);
+    else take(event.dataTransfer?.files[0], true);
   }
 
   // The whole area opens the picker, and Remove is handled here too. This is one capture listener because Svelte's
@@ -169,6 +226,13 @@
     if (disabled || target === input) return;
     if (!target.closest('button')) {
       input?.click();
+      return;
+    }
+
+    const row = target.closest('button')!.getAttribute('data-remove');
+    if (row !== null) {
+      removeAt(Number(row));
+      input?.focus();
       return;
     }
 
@@ -199,13 +263,21 @@
     accept={accept.join(',') || undefined}
     {required}
     {disabled}
-    data-uploaded={file ? '' : undefined}
+    {multiple}
+    data-uploaded={file || held.length ? '' : undefined}
     aria-invalid={invalid ? 'true' : undefined}
     aria-describedby={describedby}
     onchange={() => {
-      const chosen = input?.files?.[0];
+      if (multiple) {
+        // A pick adds to the list. Closing the picker with nothing chosen empties the input in some browsers: put the list back.
+        const picked = [...(input?.files ?? [])];
+        if (picked.length > 0) takeMany(picked);
+        else put(held);
+        return;
+      }
+      const first = input?.files?.[0];
       // Closing the picker with nothing chosen clears the input in some browsers: the field must not keep showing a file.
-      if (chosen) take(chosen, false);
+      if (first) take(first, false);
       else if (file) onremove?.();
     }}
     class="file-input"
@@ -213,11 +285,24 @@
   {#if mounted}
     <div class="drop-area-body">
       {#if preview}{@render preview()}{/if}
+      {#if multiple}
+        <ul class="drop-area-files" aria-live="polite" hidden={held.length === 0}>
+          {#each held as each, index (each)}
+            <li class="drop-area-file">
+              <span class="min-w-0 flex-1 truncate font-semibold" title={each.name}>{each.name}</span>
+              <span class="drop-area-quiet">{describeSize(each.size)}</span>
+              <button type="button" class="drop-area-button" data-remove={index} aria-label={`${removeLabel} ${each.name}`}>{removeLabel}</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
       <!-- Stacked in a narrow area and in a row in a wide one, so the buttons never wrap (F2, F5). -->
       <div class="drop-area-row">
         <div aria-live="polite" class="flex max-w-full min-w-0 flex-col items-center text-center">
           {#if status}
             <span class="font-semibold">{status}</span>
+          {:else if multiple}
+            <span>{held.length > 0 ? 'Drop more files here or' : 'Drop files here or'}</span>
           {:else if file}
             <span class="max-w-full truncate font-semibold" title={file.name}>{file.name}</span>
             <span class="drop-area-quiet">{describeSize(file.size)}</span>
@@ -228,8 +313,8 @@
         {#if !status}
           <div class="drop-area-actions">
             <!-- Looks like a button and is not one: the input above is the control, so assistive technology finds one picker. -->
-            <span aria-hidden="true" class="drop-area-button">{file ? replaceLabel : chooseLabel}</span>
-            {#if file}
+            <span aria-hidden="true" class="drop-area-button">{multiple ? (held.length > 0 ? 'Add files' : 'Choose files') : file ? replaceLabel : chooseLabel}</span>
+            {#if file && !multiple}
               <button type="button" class="drop-area-button">{removeLabel}</button>
             {/if}
           </div>

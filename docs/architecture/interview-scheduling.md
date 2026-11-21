@@ -423,7 +423,9 @@ A worker that was down at the due time sends the reminder when it returns, unles
 
 The invitation and confirmation emails link to `/interviews/{token}` on the careers site ([apply flow](apply-flow.md), §8.1),
 which calls the public routes above. It is plain HTML with no script: the candidate picks a time zone with a GET form and
-a time with a radio, and the careers server writes every time with `Intl.DateTimeFormat` in the chosen zone. The API
+a time with a radio, and the careers server writes every time with `Intl.DateTimeFormat` in the chosen zone and in the
+language of the browser's `Accept-Language` (12 or 24 hour clock, day and month in the reader's order; the zone's name and
+the word "to" stay English). The emails write the time the same way in the language recorded with the application. The API
 offers instants and the zone; it never sends formatted text. Booking, moving and cancelling are Astro actions that
 redirect back to the same address with an outcome word (`booked`, `rescheduled`, `cancelled`, `slot-taken`, `too-late`).
 A conflict maps to its notice by the problem's `type`. When the team has offered new times the page says so, keeps the booked time in view and leads with Pick a new time, which

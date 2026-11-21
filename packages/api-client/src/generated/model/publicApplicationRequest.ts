@@ -43,4 +43,6 @@ export interface PublicApplicationRequest {
   embedOrigin?: string | null;
   /** @nullable */
   source?: string | null;
+  /** @nullable */
+  language?: string | null;
 }

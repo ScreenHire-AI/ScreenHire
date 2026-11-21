@@ -278,14 +278,14 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   is the page header's mark, shown once. Each finding of an authenticity result above its lowest level and not dismissed that
   counts toward the level can be *Marked explained*, with a reason (Confirmed with the candidate, Expected for this
   role, A known false positive, or Other with a note) and an optional note; it then shows closed, as Explained, with who,
-  when and why under it, and *Undo* for its author only. Findings that never count (AI help, and context with nothing beside it) say "Information only" and have no action. Explaining
+  when and why under it, and *Undo* for its author only. Findings that never count (AI help, and context with nothing beside it) carry the sparkles or the grey info mark and have no action: "Information only" is said once on screen, in the AI row's tooltip, and by the mark for screen readers, never as a line on a tile or a finding. Explaining
   decides nothing: the level, the status badge, the chips, the filters, "To review", the workflow engine's facts,
   webhooks and the MCP server never read it. Once every finding that counts is explained, Dismiss reads *Dismiss all* and
   opens the same dismiss dialog with the explained findings and their notes listed; it is still one dismissal with its
   own reason. After a dismissal the explanations are read only. There is no review log panel and no *Add review note* in the
   dashboard: every dismissal, explanation, undo, note, re-check's evidence change and read through an API key is a line in
   the candidate's Activity, under its Verification filter (`reviewLog` in the API is that audit trail; a run of reads by one
-  key is one line). *Request verification* is hidden until phase 2 builds it. The footer reads "No automated decision has
+  key is one line). *Request verification* is hidden until phase 2 builds it. The page's last line, under every panel and in none of them, reads "No automated decision has
   been made. Every action is logged." `VerificationAssessed` refetches the chips, overview and tab live. AI chips take the
   AI colour and the sparkles icon at every level, and stay quiet in lists, so they read as information. While a
   verification filter is set, the job page's bulk move offers no Rejected or Withdrawn stage, and a new filter clears the
@@ -573,7 +573,7 @@ employer's record period.
 | `Llm:Provider` | the consistency check's model for organizations on ScreenHire's included model: `None`, `Fake` (Development only; a host refuses to start with it elsewhere) or `Anthropic`. With `Fake`, an organization's own key is served by the fake too, so no test needs a real key (§10.11) | `None`; the worker's Development settings use `Fake` |
 | `Llm:ExtractionModel`, `Llm:ConsistencyModel` | model ids for the two steps of the check (§10.10) | `claude-haiku-5-5`, `claude-opus-5-5` (worker `appsettings.json`) |
 | `Llm:Anthropic:ApiKey` | Anthropic's API key, from the AppHost's secret parameter `anthropic-api-key` | unset: the provider is hidden and checks are unavailable |
-| `Llm:DefaultMonthlyTokenBudget`, `Llm:DefaultMonthlyTokenCap` | the budget and the cap ScreenHire's key falls back to for an organization with none of its own (0 turns the cap off); an own key has neither | 2,000,000 tokens each |
+| `Llm:DefaultMonthlyTokenBudget`, `Llm:DefaultMonthlyTokenCap` | the budget and the cap ScreenHire's key falls back to for an organization with none of its own (0 turns the cap off); an own key has neither. Shown in dollars where the answering model has a price ([ai-usage](ai-usage.md)) | 2,000,000 tokens each |
 | `Llm:Prices:<modelId>:Input`, `:Output` | what ScreenHire's key costs per million tokens, for the usage ledger's costs; a model with no entry has an unknown cost | none |
 | `Llm:Timeout`, `Llm:MaxOutputTokens` | per-call limits | 120 s, 8,000 tokens |
 

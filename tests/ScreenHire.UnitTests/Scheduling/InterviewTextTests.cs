@@ -17,14 +17,37 @@ public sealed class InterviewTextTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 20, 9, 0, 0, TimeSpan.Zero);
 
+    private static readonly CultureInfo UnitedStates = CultureInfo.GetCultureInfo("en-US");
+
     [Fact]
     public void The_time_reads_as_a_day_a_range_and_the_zone_it_is_written_in()
     {
         // 15:00 UTC on Tuesday 3 November 2026 is 15:00 in London (GMT again since 25 October) and 10:00 in New York (EST since 1 November).
         var start = new DateTimeOffset(2026, 11, 3, 15, 0, 0, TimeSpan.Zero);
 
-        InterviewText.Time(start, start.AddMinutes(30), "Europe/London").Should().Be("Tuesday, November 3, 2026, 3:00 PM to 3:30 PM (Europe/London)");
-        InterviewText.Time(start, start.AddMinutes(30), "America/New_York").Should().Be("Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (America/New_York)");
+        InterviewText.Time(start, start.AddMinutes(30), "Europe/London", UnitedStates).Should().Be("Tuesday, November 3, 2026, 3:00 PM to 3:30 PM (Europe/London)");
+        InterviewText.Time(start, start.AddMinutes(30), "America/New_York", UnitedStates).Should().Be("Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (America/New_York)");
+    }
+
+    [Fact]
+    public void The_time_is_written_in_the_candidates_language_with_the_zone_and_the_word_to_unchanged()
+    {
+        var start = new DateTimeOffset(2026, 11, 3, 15, 0, 0, TimeSpan.Zero);
+
+        var british = InterviewText.Time(start, start.AddMinutes(30), "Europe/London", CandidateLanguage.Culture("en-GB"));
+        british.Should().MatchRegex(@"^Tuesday,? 3 November 2026, 15:00 to 15:30 \(Europe/London\)$");
+
+        var german = InterviewText.Time(start, start.AddMinutes(30), "Europe/Berlin", CandidateLanguage.Culture("de-DE"));
+        german.Should().Be("Dienstag, 3. November 2026, 16:00 to 16:30 (Europe/Berlin)");
+    }
+
+    [Fact]
+    public void A_time_that_ends_on_another_day_names_that_day_in_the_candidates_language()
+    {
+        var start = new DateTimeOffset(2026, 11, 3, 23, 30, 0, TimeSpan.Zero);
+
+        InterviewText.Time(start, start.AddHours(1), "UTC", UnitedStates).Should().Be("Tuesday, November 3, 2026, 11:30 PM to Wednesday, November 4, 12:30 AM (UTC)");
+        InterviewText.Time(start, start.AddHours(1), "UTC", CandidateLanguage.Culture("de")).Should().Be("Dienstag, 3. November 2026, 23:30 to Mittwoch, 4. November, 00:30 (UTC)");
     }
 
     [Fact]
@@ -32,11 +55,11 @@ public sealed class InterviewTextTests
     {
         var summer = new DateTimeOffset(2026, 7, 14, 13, 0, 0, TimeSpan.Zero);
 
-        InterviewText.Time(summer, summer.AddHours(1), "Europe/London").Should().Be("Tuesday, July 14, 2026, 2:00 PM to 3:00 PM (Europe/London)", "BST is one hour ahead");
+        InterviewText.Time(summer, summer.AddHours(1), "Europe/London", UnitedStates).Should().Be("Tuesday, July 14, 2026, 2:00 PM to 3:00 PM (Europe/London)", "BST is one hour ahead");
     }
 
     [Fact]
-    public void The_day_names_are_english_whatever_the_hosts_culture()
+    public void The_time_follows_the_culture_it_is_given_and_not_the_hosts()
     {
         var previous = CultureInfo.CurrentCulture;
         try
@@ -44,7 +67,7 @@ public sealed class InterviewTextTests
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
             var start = new DateTimeOffset(2026, 11, 3, 10, 0, 0, TimeSpan.Zero);
 
-            InterviewText.Time(start, start.AddMinutes(30), "UTC").Should().StartWith("Tuesday, November 3, 2026");
+            InterviewText.Time(start, start.AddMinutes(30), "UTC", UnitedStates).Should().StartWith("Tuesday, November 3, 2026");
         }
         finally
         {
@@ -57,7 +80,7 @@ public sealed class InterviewTextTests
     {
         var start = new DateTimeOffset(2026, 11, 3, 10, 0, 0, TimeSpan.Zero);
 
-        InterviewText.Time(start, start.AddMinutes(30), "Not/AZone").Should().Be("Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (UTC)");
+        InterviewText.Time(start, start.AddMinutes(30), "Not/AZone", UnitedStates).Should().Be("Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (UTC)");
     }
 
     [Theory]

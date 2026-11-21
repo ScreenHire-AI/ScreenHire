@@ -37,7 +37,7 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         // beside its value on the value's own line, and drops under it only when the tile is too narrow for both.
         var headline = Page.GetByRole(AriaRole.Group, new() { Name = "Headline numbers" });
         await Expect(headline).ToContainTextAsync("Applications");
-        await Expect(headline).ToContainTextAsync("2 more than before");
+        await Expect(headline).ToContainTextAsync("2 more than the previous period");
         var pills = await headline.Locator("[data-report-change]").EvaluateAllAsync<double[][]>(
             """
             pills => pills.map(pill => {
@@ -57,9 +57,9 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(compare).ToBeCheckedAsync();
         await compare.ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex("compare=off"));
-        await Expect(headline).Not.ToContainTextAsync("more than before");
+        await Expect(headline).Not.ToContainTextAsync("more than the previous period");
         await compare.ClickAsync();
-        await Expect(headline).ToContainTextAsync("2 more than before");
+        await Expect(headline).ToContainTextAsync("2 more than the previous period");
 
         // Export CSV saves every panel's table.
         var download = await Page.RunAndWaitForDownloadAsync(() => Page.GetByRole(AriaRole.Button, new() { Name = "Export CSV" }).ClickAsync());
