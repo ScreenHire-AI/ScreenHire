@@ -6,6 +6,7 @@ using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Tags;
 using ScreenHire.Application.Templates;
+using ScreenHire.Application.Views;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
@@ -183,6 +184,8 @@ internal static class TagEndpoints
         {
             if (view.RenameTag(from, to))
             {
+                // The sidebars that list it refetch, so a teammate's open view filters on the new name.
+                await outbox.PublishAsync(new ViewsChanged(organizationId, view.Id, now, tenant.UserId));
                 views++;
             }
         }

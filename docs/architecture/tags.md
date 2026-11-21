@@ -84,7 +84,7 @@ A rename or a merge changes, in one save and through the change tracker:
 
 - the automations of every job that is not closed (`Job.ReviseWorkflow`, a new workflow version, `JobWorkflowChanged`);
 - the automations of every template draft that is not archived (`HiringTemplateVersion.Revise`, `TemplateChanged`);
-- the saved views that filter on the tag (`SavedFilterView.RenameTag`).
+- the saved views that filter on the tag (`SavedFilterView.RenameTag`, `ViewsChanged`).
 
 `ChangeHistoryInterceptor` records the jobs' and templates' changes in their history. A published version never
 changes, so the response's `stillNamedBy` names the templates whose newest published version still names the old tag,
