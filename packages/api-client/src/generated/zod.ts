@@ -8851,6 +8851,69 @@ export const ReopenTaskResponse = zod.object({
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
+export const ListTagsResponse = zod.object({
+  "tags": zod.array(zod.object({
+  "name": zod.string(),
+  "applications": zod.int(),
+  "templates": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('One tag, as it is spelled where it is used most. `applications` counts the applications that have it (on the jobs\nthe reader sees); a tag only an automation names has none. `templates` lists the hiring templates whose newest\npublished version names it: a published version never changes, so they keep naming it after a rename until a new\nversion is published.'))
+}).describe('The organization\'s tags (`GET /v1/tags`), most used first: every tag on an application the reader can see, and\nevery tag an automation names in a job that is not closed or in a hiring template\'s draft or newest published version.')
+
+
+export const DeleteTagQueryParams = zod.object({
+  "tag": zod.string().optional()
+})
+
+export const DeleteTagResponse = zod.object({
+  "jobs": zod.int(),
+  "drafts": zod.int(),
+  "views": zod.int(),
+  "stillNamedBy": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates\'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag.')
+
+
+export const RenameTagBody = zod.object({
+  "tag": zod.string(),
+  "newName": zod.string()
+}).describe('Renames a tag everywhere. `newName` must not be another tag already: merge into that one instead.')
+
+export const RenameTagResponse = zod.object({
+  "jobs": zod.int(),
+  "drafts": zod.int(),
+  "views": zod.int(),
+  "stillNamedBy": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates\'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag.')
+
+
+export const MergeTagBody = zod.object({
+  "tag": zod.string(),
+  "into": zod.string()
+}).describe('Merges a tag into another existing tag: every application with `tag` gets `into` instead.')
+
+export const MergeTagResponse = zod.object({
+  "jobs": zod.int(),
+  "drafts": zod.int(),
+  "views": zod.int(),
+  "stillNamedBy": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates\'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag.')
+
+
 export const getHiringReportQueryTimeZoneDefault = `UTC`;
 
 export const GetHiringReportQueryParams = zod.object({

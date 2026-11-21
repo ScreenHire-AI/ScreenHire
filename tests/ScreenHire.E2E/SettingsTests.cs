@@ -78,6 +78,7 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
             ("/settings/roles/compare", "Compare roles"),
             ("/settings/roles/viewer", "Viewer"),
             ($"/settings/roles/{roleId}", "Interviewer"),
+            ("/settings/tags", "Tags"),
             ("/settings/branding", "Branding"),
             ("/settings/sending-domain", "Email domain"),
             ("/verification", "Verification"),
@@ -126,7 +127,7 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
         // that list, not the one before the answer, is what keeps this from depending on which comes first. Email domain may
         // carry its mark after its name, so each entry is matched by its start.
         await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(
-            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex("^Email domain"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
+            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex(@"^Tags\s*$"), new Regex("^Email domain"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
         await Expect(organization.GetByRole(AriaRole.Link, new() { Name = "Branding" })).ToHaveCountAsync(0);
         var team = await FrameAsync();
 
@@ -178,7 +179,7 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
         await Expect(menu.GetByRole(AriaRole.List, new() { Name = "Careers site", Exact = true }).GetByRole(AriaRole.Link)).ToHaveTextAsync(["Careers page", "Branding"]);
         var organization = menu.GetByRole(AriaRole.List, new() { Name = "Organization", Exact = true });
         await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(
-            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex(@"^Email domain\s*$"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
+            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex(@"^Tags\s*$"), new Regex(@"^Email domain\s*$"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
         await Expect(menu.Locator("[data-setting-mark]")).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
 

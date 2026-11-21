@@ -115,6 +115,8 @@ public class AppHostFixture : IAsyncLifetime
                 $"--ScreenHire:Webhooks:Timeout={WebhookTimeout}",
                 // Embedding: the end-to-end tests' host pages are on http://*.localhost.
                 "--ScreenHire:CareersEmbedding:AllowLoopback=true",
+                // Settings, Tags: two applications a batch, so a rename of three shows the next batch following the first.
+                "--ScreenHire:Tags:BatchSize=2",
                 // Legal: two of the three documents, so the sign-in page's agreement line names only the ones configured
                 // (the Data Processing Agreement is left out on purpose). Reserved example.com addresses.
                 "--ScreenHire:Legal:TermsUrl=https://example.com/terms",

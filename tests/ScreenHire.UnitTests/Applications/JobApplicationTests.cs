@@ -181,6 +181,39 @@ public sealed class JobApplicationTests
     }
 
     [Fact]
+    public void Renaming_a_tag_records_it_as_removed_and_added_so_automations_read_the_new_name()
+    {
+        var (application, _) = Submitted();
+        var tagged = application.AddTag("Sr", Monday, Recruiter)!;
+
+        var events = application.RenameTag("sr", "Senior", Monday.AddHours(1), Recruiter);
+
+        application.Tags.Should().Equal("Senior");
+        events.Select(e => (e.Type, e.Data.Tag)).Should().Equal((ApplicationEventType.TagRemoved, "Sr"), (ApplicationEventType.TagAdded, "Senior"));
+        events.Should().AllSatisfy(e => e.ActorUserId.Should().Be(Recruiter));
+        var facts = AutomationFacts.FromTimeline([tagged, .. events], events[^1].Id, TriggerType.Manual, Monday.AddHours(1));
+        facts.Tags.Should().Equal(["Senior"], "automations replay the timeline, not the column");
+    }
+
+    [Fact]
+    public void Renaming_into_a_tag_the_application_has_merges_and_a_case_only_rename_works()
+    {
+        var (application, _) = Submitted();
+        application.AddTag("Sr", Monday, Recruiter);
+        application.AddTag("Senior", Monday, Recruiter);
+
+        var merged = application.RenameTag("Sr", "senior", Monday.AddHours(1), Recruiter);
+
+        merged.Select(e => e.Type).Should().Equal(ApplicationEventType.TagRemoved);
+        application.Tags.Should().Equal("Senior");
+        var recased = application.RenameTag("senior", "SENIOR", Monday.AddHours(2), Recruiter);
+        application.Tags.Should().Equal("SENIOR");
+        recased[1].OccurredAt.Should().BeAfter(
+            recased[0].OccurredAt, "the timeline sorts by time, then by ids that can tie either way, and must replay the removal first");
+        application.RenameTag("Lead", "Principal", Monday.AddHours(3), Recruiter).Should().BeEmpty("a tag it does not have changes nothing");
+    }
+
+    [Fact]
     public void A_note_is_trimmed_and_kept_with_its_author_without_changing_the_application()
     {
         var (application, _) = Submitted();

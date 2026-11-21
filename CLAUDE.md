@@ -106,7 +106,9 @@ subsystem.
   parameter, `Sandbox:Enabled` is the local sandbox calendar, on in `pnpm dev` and the test stacks) goes to the API and worker alike; see
   [`docs/architecture/interview-scheduling.md`](docs/architecture/interview-scheduling.md). `ScreenHire:DataRequests:*` (due days, link and copy lifetimes,
   the rate limit, the copies' container) and `ScreenHire:Retention:*` (`BatchSize`) go to the API and worker alike; see
-  [`docs/architecture/data-requests.md`](docs/architecture/data-requests.md). `ScreenHire:Portal:*` (the candidate's own page:
+  [`docs/architecture/data-requests.md`](docs/architecture/data-requests.md). `ScreenHire:Tags:*` (`BatchSize`, the applications one
+  rename, merge or delete in Settings, Tags changes at a time; 2 in the test stack) goes to the API and worker alike; see
+  [`docs/architecture/tags.md`](docs/architecture/tags.md). `ScreenHire:Portal:*` (the candidate's own page:
   `LinkLifetime`, `LinkCooldown`, `PermitsPerMinute`, `ReplyBodyMax`, `RepliesPerDay`) goes to the API and worker alike; see
   [`docs/architecture/candidate-portal.md`](docs/architecture/candidate-portal.md). `ScreenHire:Notifications:*` (`RetentionDays`, how long the bell keeps
   notifications) and `ScreenHire:SendingDomainRecheck:*` (`ConfirmDelay`, the wait before a failing sending domain is looked at again) go to the

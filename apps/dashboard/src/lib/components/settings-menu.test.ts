@@ -36,7 +36,7 @@ describe('settings menu', () => {
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true, billing: true } } });
 
     expect(groupNames()).toEqual(['Organization', 'Careers site', 'Integrations']);
-    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Email domain', 'Data requests', 'Billing']);
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Tags', 'Email domain', 'Data requests', 'Billing']);
     expect(linksOf('Careers site')).toEqual(['Careers page', 'Branding']);
     expect(linksOf('Integrations')).toEqual(['Slack', 'MCP server', 'Webhooks', 'API keys']);
     expect(within(menu()).getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
@@ -59,7 +59,7 @@ describe('settings menu', () => {
     state.user = userAs('Admin');
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: false, billing: true, sendingDomain: false } } });
 
-    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Data requests']);
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Tags', 'Data requests']);
     expect(linksOf('Integrations')).toEqual(['MCP server', 'Webhooks', 'API keys']);
   });
 
@@ -67,8 +67,8 @@ describe('settings menu', () => {
     state.user = { ...userAs('Admin'), organization: { ...userAs('Admin').organization!, permissions: ['EditSettings'] } };
     render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/organization' }, features: { slack: true } } });
 
-    // Edit settings opens General, the email domain and the careers site; the rest needs more.
-    expect(linksOf('Organization')).toEqual(['General', 'Email domain']);
+    // Edit settings opens General, Tags, the email domain and the careers site; the rest needs more.
+    expect(linksOf('Organization')).toEqual(['General', 'Tags', 'Email domain']);
     expect(groupNames()).not.toContain('Integrations');
   });
 
@@ -149,8 +149,8 @@ describe('settings menu', () => {
     try {
       render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/data-requests' }, features: { slack: true } } });
 
-      // Data requests is the fifth entry, at 400px: the row scrolls to 350 so it sits in the middle.
-      expect(scrolledTo).toEqual([350]);
+      // Data requests is the sixth entry, at 500px: the row scrolls to 450 so it sits in the middle.
+      expect(scrolledTo).toEqual([450]);
     } finally {
       Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetLeft);
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth);

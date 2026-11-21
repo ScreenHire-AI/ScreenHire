@@ -7,8 +7,8 @@ using System.Text.RegularExpressions;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// A hiring team organizing candidates in the dashboard: a note in Activity's box, a tag in the candidate's header, the
-/// candidates list filtered by that tag, a manual automation run from Activity with the team notified, and completing the
+/// A hiring team organizing candidates in the dashboard: a note in Activity's box, a tag in the candidate's header and
+/// another picked from the organization's tags as a suggestion, the candidates list filtered by that tag, a manual automation run from Activity with the team notified, and completing the
 /// task it made, in Overview's Needs you, from My tasks. Signs in as a new person with a new organization, whose job has a
 /// Manual automation that creates a to-do and notifies the team.
 /// </summary>
@@ -66,6 +66,16 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(activity.GetByRole(AriaRole.Button, new() { Name = "Save note", Exact = true })).ToBeEnabledAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-team-work-application");
+
+        // A tag the organization already has is suggested while typing, with Create for the new text last, and Enter
+        // picks the top match, spelled as the team spells it.
+        await addTag.ClickAsync();
+        await newTag.FillAsync("night");
+        await Expect(header.GetByRole(AriaRole.Listbox, new() { Name = "Suggested tags" }).GetByRole(AriaRole.Option))
+            .ToHaveTextAsync(["Night shift", "Create \"night\""]);
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(tags).ToContainTextAsync("Night shift");
+        await Expect(activity).ToContainTextAsync("Tagged \"Night shift\" by you");
 
         // The candidates list, filtered by the tag, shows only the tagged candidate.
         await Page.GotoAsync(DashboardUrl("/candidates"));
@@ -130,7 +140,8 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
 
     // A new person and organization, a published job whose workflow gains a Manual automation that makes a to-do and
-    // notifies the team, and two applications a recruiter added.
+    // notifies the team, and two applications a recruiter added. The second has the tag Night shift, so the organization
+    // has a tag to suggest, and it is not tagged Referral.
     private async Task<(string Email, Guid ApplicationId)> ArrangeAsync()
     {
         var email = ApiSession.NewEmail("e2e-team-work");
@@ -165,8 +176,10 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
 
         var tagged = await ReadAsync(await session.PostAsync(
             $"/v1/jobs/{jobId}/applications", new { candidate = new { fullName = Tagged, email = ApiSession.NewEmail("ellis") } }, Ct), HttpStatusCode.Created);
-        await ReadAsync(await session.PostAsync(
+        var other = await ReadAsync(await session.PostAsync(
             $"/v1/jobs/{jobId}/applications", new { candidate = new { fullName = Untagged, email = ApiSession.NewEmail("robin") } }, Ct), HttpStatusCode.Created);
+        await ReadAsync(
+            await session.PostAsync($"/v1/applications/{other.GetProperty("id").GetGuid()}/tags", new { tag = "Night shift" }, Ct), HttpStatusCode.OK);
         return (email, tagged.GetProperty("id").GetGuid());
     }
 
