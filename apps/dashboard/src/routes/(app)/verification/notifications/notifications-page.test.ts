@@ -35,13 +35,14 @@ describe('the Notifications tab', () => {
     expect(await screen.findByText('Saved. It applies from the next application.')).toBeInTheDocument();
   });
 
-  it('hides email it cannot send and Slack until it is connected, and links to Slack', async () => {
+  it('hides email it cannot send and Slack until it is connected, with no nudge to connect it', async () => {
     renderPage(settingsWith({ emailAvailable: false, slackConnected: false }));
 
     const suggested = within(await screen.findByRole('group', { name: 'Verification suggested' }));
     expect(suggested.queryByRole('checkbox', { name: 'By email' })).not.toBeInTheDocument();
     expect(suggested.queryByRole('checkbox', { name: 'On Slack, as a direct message' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Connect it in Settings/ })).toHaveAttribute('href', '/settings/slack');
+    expect(screen.queryByText(/Slack is not connected/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Connect it in Settings/ })).not.toBeInTheDocument();
     await expectNoAxeViolations();
   });
 
@@ -95,7 +96,7 @@ describe('the Notifications tab', () => {
     renderPage(settingsWith({ limits: dollarLimits }), {}, userAs('Admin'));
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
-    expect(screen.getAllByText('$0.0569 of $3.20')).toHaveLength(2);
+    expect(screen.getAllByText('$0.06 of $3.20')).toHaveLength(2);
     expect(screen.getByText(/In dollars it is an estimate/)).toBeInTheDocument();
     expect(screen.queryByText(/tokens of/)).not.toBeInTheDocument();
   });

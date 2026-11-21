@@ -131,6 +131,7 @@
             <li class="flex min-w-0 items-center gap-3 py-1.5">
               <StepMarker state="upcoming">{number}</StepMarker>
               <a href={step.href} onclick={() => (open = false)} class="block min-w-0 truncate py-0.5 font-semibold text-foreground underline underline-offset-2 pointer-coarse:py-3">{step.label}</a>
+              {#if step.optional}<span class="shrink-0 text-caption text-muted-foreground">Optional</span>{/if}
             </li>
           {/each}
         </ol>

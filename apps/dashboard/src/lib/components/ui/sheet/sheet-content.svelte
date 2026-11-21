@@ -20,6 +20,7 @@
 		showCloseButton = true,
 		portalProps,
 		children,
+		onOpenAutoFocus,
 		...restProps
 	}: WithoutChildrenOrChild<SheetPrimitive.ContentProps> & {
 		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof SheetPortal>>;
@@ -27,6 +28,22 @@
 		showCloseButton?: boolean;
 		children: Snippet;
 	} = $props();
+
+	// Our change: focus starts on the sheet's first control, or on the sheet itself, never on its Close button. Focused
+	// first, Close opened its tooltip, and the tooltip took the first click outside, so closing a sheet with nothing else
+	// to focus (a scorecard to read) took two clicks. A sheet that passes its own handler and prevents the default keeps it.
+	const focusable = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+	function openAutoFocus(event: Event) {
+		onOpenAutoFocus?.(event);
+		if (event.defaultPrevented || !ref) return;
+		event.preventDefault();
+		const first = [...ref.querySelectorAll<HTMLElement>(focusable)].find((element) => !element.closest('[data-slot="sheet-close"]'));
+		if (first) first.focus();
+		else {
+			if (!ref.hasAttribute('tabindex')) ref.setAttribute('tabindex', '-1');
+			ref.focus();
+		}
+	}
 </script>
 
 <SheetPortal {...portalProps}>
@@ -40,6 +57,7 @@
 			className
 		)}
 		{...restProps}
+		onOpenAutoFocus={openAutoFocus}
 	>
 		{@render children?.()}
 		{#if showCloseButton}

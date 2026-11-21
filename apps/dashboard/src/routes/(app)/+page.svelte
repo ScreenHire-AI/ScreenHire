@@ -439,7 +439,7 @@
                         // The title takes the room the other columns leave, and never less than 12rem: below that the
                         // table scrolls in the panel. A long one is cut, whole in its tooltip (F5).
                         cell.column.id === 'title' && 'w-full max-w-0 min-w-48',
-                        cell.column.id === 'location' && 'max-w-32 text-muted-foreground @4xl/jobs:max-w-60',
+                        cell.column.id === 'location' && 'max-w-40 text-muted-foreground @4xl/jobs:max-w-60',
                         (cell.column.id === 'type' || cell.column.id === 'updatedAt') && 'text-muted-foreground',
                         (cell.column.id === 'candidates' || cell.column.id === 'lastApplied' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
                         // The row menu sticks at the right edge as Status does at the left, so a tablet that scrolls the table
@@ -485,7 +485,8 @@
   {#if count > 0}<span class="relative text-foreground">{count}</span>{:else if candidateCounts}<span class="sr-only">No candidates</span>{/if}
 {/snippet}
 
-{#snippet locationCell(job: JobSummary)}<span class="relative block min-w-0"><TruncatedText text={job.location} /></span>{/snippet}
+<!-- Two lines before it is cut, so "Remote (United Kingdom, Ireland)" reads whole on a tablet (the owner's walk-through, 2026-11-21). -->
+{#snippet locationCell(job: JobSummary)}<span class="relative block min-w-0"><TruncatedText text={job.location} lines={2} /></span>{/snippet}
 
 <!-- A draft was never published, so its cell is blank, its words for screen readers only (L1). -->
 {#snippet lastAppliedCell(job: JobSummary)}

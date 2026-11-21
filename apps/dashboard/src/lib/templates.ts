@@ -1,7 +1,9 @@
 import type { TemplateUse, UsageItem } from '@screenhire/api-client';
 
 // The Templates page (design system section 21): one tab per kind of template, each listing its templates with where
-// they are used, filtered by All, In use, Not used in 6 months and Archived.
+// they are used, filtered by All, In use and Archived. Stale templates are found by sorting Last used: a "Not used in 6
+// months" pill counted 0 beside rows that said Never (a template younger than that never counted), so it went (the owner's
+// walk-through, 2026-11-21).
 
 export type TemplateKind = 'hiring' | 'scorecards' | 'emails';
 
@@ -36,12 +38,11 @@ export function copyName(name: string, max: number): string {
   return `${name.length > room ? name.slice(0, room).trimEnd() : name}${suffix}`;
 }
 
-export type TemplateFilter = 'all' | 'in-use' | 'not-used' | 'archived';
+export type TemplateFilter = 'all' | 'in-use' | 'archived';
 
 export const templateFilters: readonly { value: TemplateFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'in-use', label: 'In use' },
-  { value: 'not-used', label: 'Not used in 6 months' },
   { value: 'archived', label: 'Archived' },
 ];
 
@@ -52,15 +53,13 @@ export interface FilterableTemplate {
 }
 
 /**
- * Whether a template shows under a filter. All, In use and Not used in 6 months leave archived templates out; Archived
- * shows only them. In use: something uses it now. Not used in 6 months: nothing used it in 180 days (the API decides,
- * and a template younger than that never counts), so the two can overlap.
+ * Whether a template shows under a filter. All and In use leave archived templates out; Archived shows only them. In use:
+ * something uses it now.
  */
 export function matchesFilter(template: FilterableTemplate, filter: TemplateFilter): boolean {
   if (filter === 'archived') return template.archived;
   if (template.archived) return false;
   if (filter === 'in-use') return (template.usage?.usedBy.length ?? 0) > 0;
-  if (filter === 'not-used') return template.usage?.notUsedRecently ?? false;
   return true;
 }
 

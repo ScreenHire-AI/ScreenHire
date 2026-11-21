@@ -125,7 +125,7 @@ describe('the Overview tab', () => {
     renderPage(overview, user, true, dollarLimits);
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
-    expect((await screen.findAllByText('$0.0569 of $3.20')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('$0.06 of $3.20')).length).toBeGreaterThan(0);
     expect(screen.getByText(/In dollars it is an estimate/)).toBeInTheDocument();
     expect(screen.queryByText(/tokens of/)).not.toBeInTheDocument();
   });

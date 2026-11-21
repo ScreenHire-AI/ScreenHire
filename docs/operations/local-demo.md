@@ -89,7 +89,7 @@ details are in [Processes on the dev machine](../process/board-pipeline.md#proce
 | What | URL |
 |---|---|
 | Recruiter dashboard | http://localhost:4323 |
-| Careers pages (Brightwater) | http://localhost:4322/brightwater, or on its own host: http://brightwater.localhost:4322/ |
+| Careers pages (Brightwater) | http://localhost:4322/brightwater (the preview keeps the organization in the path, so no browser has to resolve `*.localhost`; the test stacks use tenant hosts) |
 | Marketing site | http://localhost:4321 |
 | API reference (Scalar) | http://localhost:5080/scalar |
 | Mailpit (every email the stack sends) | http://localhost:8025 |

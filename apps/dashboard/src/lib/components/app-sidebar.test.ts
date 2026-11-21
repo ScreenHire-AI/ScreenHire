@@ -35,6 +35,11 @@ const open = async (name: string) => {
   await fireEvent.pointerDown(menuFor(name), { button: 0, pointerType: 'mouse' });
   return screen.findByRole('menu');
 };
+// The Views heading's own menu: Browse team views and the hidden built-ins.
+const openViewsMenu = async () => {
+  await fireEvent.pointerDown(within(main()).getByRole('button', { name: 'Views options' }), { button: 0, pointerType: 'mouse' });
+  return screen.findByRole('menu');
+};
 
 describe('the trial line in the sidebar footer', () => {
   const ends = '2026-12-05T09:00:00Z';
@@ -239,28 +244,32 @@ describe('the Views list in the sidebar', () => {
     render(ShellHarness, { props: { user, saved: [offered], viewActions: actions(), teamViews } });
 
     expect(within(main()).queryByRole('link', { name: /^Team queue/ })).toBeNull();
-    await fireEvent.click(within(main()).getByRole('button', { name: 'Browse team views' }));
+    const menu = await openViewsMenu();
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Browse team views' }));
 
     const sheet = await screen.findByRole('dialog', { name: 'Team views' });
     expect(within(sheet).getByRole('heading', { name: 'Team queue' })).toBeInTheDocument();
   });
 
-  it('has no Browse team views button without the views to browse', () => {
+  it('has no Views menu without views to browse or hidden built-ins', () => {
     stubViewport(1280);
     render(ShellHarness, { props: { user, viewActions: actions() } });
 
+    expect(within(main()).queryByRole('button', { name: 'Views options' })).toBeNull();
     expect(within(main()).queryByRole('button', { name: 'Browse team views' })).toBeNull();
   });
 
-  it('ends the Views list with Browse team views in the full sidebar, and has one button, not two', () => {
+  it("puts Browse team views in the Views heading's menu in the full sidebar, so the list holds only views (the owner's walk-through, 2026-11-21)", async () => {
     stubViewport(1280);
     render(ShellHarness, {
       props: { user, viewActions: actions(), teamViews: { views: [], seenAt: '2026-10-01T00:00:00Z', jobTitles: {} } },
     });
 
-    const button = within(main()).getByRole('button', { name: 'Browse team views' });
-    expect(within(main()).getAllByRole('button', { name: 'Browse team views' })).toHaveLength(1);
-    expect(button.closest('[data-sidebar="group"]')).toContainElement(within(main()).getByRole('heading', { name: 'Views' }));
+    expect(within(main()).queryByRole('button', { name: 'Browse team views' })).toBeNull();
+    const trigger = within(main()).getByRole('button', { name: 'Views options' });
+    expect(trigger.closest('[data-sidebar="group"]')).toContainElement(within(main()).getByRole('heading', { name: 'Views' }));
+    const menu = await openViewsMenu();
+    expect(within(menu).getByRole('menuitem', { name: 'Browse team views' })).toBeInTheDocument();
   });
 
   it("puts Browse team views in the icon rail's fixed group above Settings, outside the Views list that scrolls", async () => {
@@ -296,30 +305,31 @@ describe('the Views list in the sidebar', () => {
     expect(await screen.findByRole('button', { name: 'Collapse sidebar' })).toBeInTheDocument();
   });
 
-  it('hides a built-in view from its menu, and lists the hidden ones behind "Show hidden views"', async () => {
+  it('says a built-in view is built in and offers Hide, and shows the hidden ones from the Views menu', async () => {
     stubViewport(1280);
     const viewActions = actions();
     const { unmount } = render(ShellHarness, { props: { user, viewActions } });
 
-    expect(within(main()).queryByRole('button', { name: /Show hidden views/ })).toBeNull();
+    expect(within(main()).queryByRole('button', { name: 'Views options' })).toBeNull();
     const menu = await open('Overdue');
-    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Hide from sidebar']);
-    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Hide from sidebar' }));
+    // Built in, so it can be hidden but not deleted: the label says why (the owner's walk-through, 2026-11-21).
+    expect(menu).toHaveTextContent('Built-in view');
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Hide']);
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Hide' }));
     expect(viewActions.setHidden).toHaveBeenCalledWith('overdue', true);
     unmount();
 
     render(ShellHarness, { props: { user, viewActions, hiddenBuiltIns: ['overdue'] } });
     expect(within(main()).queryByRole('link', { name: /^Overdue/ })).toBeNull();
-    const toggle = within(main()).getByRole('button', { name: /Show hidden views/ });
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(toggle.querySelector('[data-slot="badge"]')).toBeNull();
+    const views = await openViewsMenu();
+    const toggle = within(views).getByRole('menuitemcheckbox', { name: 'Show hidden views (1)' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
 
     await fireEvent.click(toggle);
 
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(within(main()).getByRole('link', { name: /^Overdue/ })).toBeInTheDocument();
+    expect(await within(main()).findByRole('link', { name: /^Overdue/ })).toBeInTheDocument();
     const shown = await open('Overdue');
-    await fireEvent.click(within(shown).getByRole('menuitem', { name: 'Show in sidebar' }));
+    await fireEvent.click(within(shown).getByRole('menuitem', { name: 'Show' }));
     expect(viewActions.setHidden).toHaveBeenLastCalledWith('overdue', false);
   });
 

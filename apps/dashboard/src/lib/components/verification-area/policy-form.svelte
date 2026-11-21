@@ -156,7 +156,8 @@
               <Field.Field>
                 <Field.Label for="default-ai-use">AI use while applying</Field.Label>
                 <select id="default-ai-use" name="defaultAiUse" class={selectClass} bind:value={$form.defaultAiUse} aria-describedby="default-ai-use-hint">
-                  {#each aiUses as policy (policy)}<option value={policy}>{aiUseName(policy)}</option>{/each}
+                  <!-- The fallback when neither the organization nor a job sets one (HiringWorkflow AiUsePolicies.Fallback) says so, as Device check's default does. -->
+                  {#each aiUses as policy (policy)}<option value={policy}>{aiUseName(policy)}{policy === 'AllowedWithDisclosure' ? ' (default)' : ''}</option>{/each}
                 </select>
                 <Field.Description id="default-ai-use-hint">
                   {aiUseHint($form.defaultAiUse)} Asked on every application. A job can set its own.

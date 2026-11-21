@@ -337,6 +337,17 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
                 .ToBeVisibleAsync();
             (await PageOverflowAsync(Page)).Should().Be(0, $"the job page never scrolls sideways at {width}px (F1)");
 
+            if (width == 1024)
+            {
+                // When the stages do not fit, a column with candidates keeps 264px and an empty one 188px, so the empty ones
+                // give way first (the owner's walk-through, 2026-11-21). JobPageTests checks the equal shares at 1920.
+                await Page.GetByRole(AriaRole.Button, new() { Name = "Board", Exact = true }).ClickAsync();
+                await Expect(Page.Locator("[data-card-id]").First).ToBeVisibleAsync();
+                foreach (var column in await StageColumnsAsync(Page))
+                    column[0].Should().BeGreaterThanOrEqualTo(column[1] > 0 ? 263.5 : 187.5, "a column keeps its least width");
+                await Page.GetByRole(AriaRole.Button, new() { Name = "Table", Exact = true }).ClickAsync();
+            }
+
             if (width == 1440)
             {
                 // The pipeline at its fullest: a stage chosen, two rows ticked and an authenticity chip pressed. Controls
@@ -356,6 +367,14 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
             }
         }
     }
+
+    // Each stage column of the board (not Closed): its width and how many cards it holds.
+    private static Task<double[][]> StageColumnsAsync(IPage page) =>
+        page.EvaluateAsync<double[][]>(
+            """
+            () => [...document.querySelectorAll('[data-stage-column]:not([data-stage-column="closed"])')]
+              .map((column) => [column.getBoundingClientRect().width, column.querySelectorAll('[data-card-id]').length])
+            """);
 
     // How far the panel header's controls reach past its right edge, in pixels.
     private static Task<int> HeaderOverflowAsync(ILocator panel) =>

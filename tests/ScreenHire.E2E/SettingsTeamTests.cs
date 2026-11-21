@@ -49,7 +49,14 @@ public sealed class SettingsTeamTests(E2EFixture fixture) : SettingsArea(fixture
         var invite = Page.GetByRole(AriaRole.Dialog, new() { Name = "Invite a colleague" });
         // The sheet starts at Viewer, the least access, and says what each role is for.
         await Expect(invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Viewer") })).ToBeCheckedAsync();
-        await Expect(invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Recruiter") })).ToHaveAccessibleNameAsync(new Regex("Works the jobs"));
+        await Expect(invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Recruiter") })).ToHaveAccessibleNameAsync(new Regex("Moves candidates and edits jobs"));
+        // Each built-in role the sheet offers has a line that fits beside its name, not cut with an ellipsis (the owner's
+        // walk-through, 2026-11-21).
+        var lines = invite.GetByRole(AriaRole.Radiogroup).Locator("label span.text-muted-foreground");
+        await Expect(lines.First).ToBeVisibleAsync();
+        (await lines.CountAsync()).Should().BeGreaterThanOrEqualTo(3, "Admin, Recruiter and Viewer at least");
+        (await lines.EvaluateAllAsync<bool[]>("elements => elements.map((element) => element.scrollWidth <= element.clientWidth)"))
+            .Should().AllBeEquivalentTo(true, "every built-in role's line fits");
         await invite.GetByLabel("Email", new() { Exact = true }).FillAsync(colleague);
         await invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Recruiter") }).CheckAsync();
         await ExpectNoAccessibilityViolationsAsync();

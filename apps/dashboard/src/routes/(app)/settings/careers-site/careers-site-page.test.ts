@@ -51,7 +51,7 @@ describe('careers site settings page', () => {
 
     await screen.findByLabelText('Questions per page');
     expect(document.querySelector('[data-last-updated]')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^History/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /History$/ })).toBeInTheDocument();
   });
 
   it('links to the careers address the API gives', async () => {

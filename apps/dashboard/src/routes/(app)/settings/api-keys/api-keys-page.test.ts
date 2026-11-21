@@ -315,7 +315,7 @@ describe('API keys page', () => {
     expect(updated).toHaveTextContent(/^Last updated:\s*Updated yesterday by you/);
     expect(updated.closest('[data-slot="header-band"]')?.querySelector('dl')).toBeNull();
 
-    await fireEvent.click(screen.getByRole('button', { name: /^History/ }));
+    await fireEvent.click(screen.getByRole('button', { name: /History$/ }));
     const sheet = await screen.findByRole('dialog', { name: 'History' });
     expect(await within(sheet).findByText('Old reporting job')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/v1/organization/api-keys/history', expect.anything());

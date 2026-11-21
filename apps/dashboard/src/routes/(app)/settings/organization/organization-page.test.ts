@@ -68,7 +68,7 @@ describe('general settings page', () => {
     const updated = document.querySelector('[data-last-updated]')!;
     expect(updated).toHaveTextContent(/^Last updated:\s*Updated /);
     expect(updated.closest('[data-slot="header-band"]')?.querySelector('dl')).toBeNull();
-    expect(screen.getByRole('button', { name: /^History/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /History$/ })).toBeInTheDocument();
     await expectNoAxeViolations();
   });
 

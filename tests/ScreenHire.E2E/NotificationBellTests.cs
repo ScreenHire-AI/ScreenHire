@@ -28,8 +28,9 @@ public sealed class NotificationBellTests(E2EFixture fixture) : BrowserTest(fixt
         await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Overview" })).ToHaveCountAsync(0);
         await Expect(Page.GetByText("Start from a template, then publish it to your careers page and the job boards.")).ToBeVisibleAsync();
 
-        // Four steps open, one badge on the bell. The team is only the Owner, nothing is set, and no job is published.
-        var bell = Page.GetByRole(AriaRole.Button, new() { Name = "Notifications, 4 need attention" });
+        // Four steps open, three counted on the bell: sending from the team's own domain is Optional and never counts, so a
+        // team without a domain is not left with a badge it cannot clear (the owner's walk-through, 2026-11-21).
+        var bell = Page.GetByRole(AriaRole.Button, new() { Name = "Notifications, 3 need attention" });
         await Expect(bell).ToBeVisibleAsync();
         await bell.ClickAsync();
 
@@ -39,6 +40,7 @@ public sealed class NotificationBellTests(E2EFixture fixture) : BrowserTest(fixt
         await Expect(setup.GetByRole(AriaRole.Link)).ToHaveTextAsync(
             ["Set your branding", "Publish your first job", "Invite your team", "Send email from your own domain"]);
         await Expect(setup.GetByRole(AriaRole.Link, new() { Name = "Set your branding" })).ToHaveAttributeAsync("href", "/settings/branding");
+        await Expect(setup.GetByRole(AriaRole.Listitem).Filter(new() { HasText = "Send email from your own domain" })).ToContainTextAsync("Optional");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-notification-bell");
 
@@ -49,7 +51,7 @@ public sealed class NotificationBellTests(E2EFixture fixture) : BrowserTest(fixt
         }
 
         await Page.ReloadAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Notifications, 3 need attention" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Notifications, 2 need attention" }).ClickAsync();
         await Expect(setup.GetByRole(AriaRole.Link, new() { Name = "Invite your team" })).ToHaveCountAsync(0);
         await Expect(setup).ToContainTextAsync("1 step done");
 
@@ -72,7 +74,7 @@ public sealed class NotificationBellTests(E2EFixture fixture) : BrowserTest(fixt
 
         await Page.SetViewportSizeAsync(390, 844);
         await SignInAsync(owner);
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Notifications, 4 need attention" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Notifications, 3 need attention" }).ClickAsync();
 
         var panel = Page.GetByRole(AriaRole.Dialog, new() { Name = "Needs attention" });
         await Expect(panel).ToBeVisibleAsync();

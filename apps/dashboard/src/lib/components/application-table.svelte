@@ -367,7 +367,9 @@
 {/snippet}
 
 {#snippet empty()}
-  <Empty.Root class="gap-3 p-6">
+  <!-- Near the top, under the header row, not centred in a panel that fills the window, where it floated far from the
+       controls that change it (the owner's walk-through, 2026-11-21). -->
+  <Empty.Root class="flex-none gap-3 p-6 pt-12">
     {#if emptyTitle}
       <Empty.Header>
         <Empty.Media variant="icon"><UsersIcon /></Empty.Media>

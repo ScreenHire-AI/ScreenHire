@@ -92,7 +92,7 @@ public sealed class TemplatesPageTests(E2EFixture fixture) : BrowserTest(fixture
         await Page.Keyboard.PressAsync("Escape");
         await row.GetByRole(AriaRole.Link, new() { Name = "Moved to the next step" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Textbox, new() { Name = "Subject" })).Not.ToContainTextAsync(marker);
-        await HeaderBand.GetByRole(AriaRole.Button, new() { Name = "History" }).ClickAsync();
+        await HeaderBand.GetByRole(AriaRole.Button, new() { NameRegex = new("History$") }).ClickAsync();
         var history = Page.GetByRole(AriaRole.Dialog, new() { Name = "History" });
         await Expect(history.GetByRole(AriaRole.Listitem).First).ToContainTextAsync("You restored the original wording");
     }
@@ -132,7 +132,7 @@ public sealed class TemplatesPageTests(E2EFixture fixture) : BrowserTest(fixture
         await SaveScreenshotAsync(Page, "dashboard-scorecard-template-preview");
 
         // History lists the edit.
-        await HeaderBand.GetByRole(AriaRole.Button, new() { Name = "History" }).ClickAsync();
+        await HeaderBand.GetByRole(AriaRole.Button, new() { NameRegex = new("History$") }).ClickAsync();
         var history = Page.GetByRole(AriaRole.Dialog, new() { Name = "History" });
         await Expect(history.GetByRole(AriaRole.Listitem).First).ToContainTextAsync("You changed the questions");
         await Page.Keyboard.PressAsync("Escape");

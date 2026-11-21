@@ -92,7 +92,7 @@ describe('the Usage tab', () => {
     renderPage({ ...summary, limits: dollarLimits });
 
     const panel = (await screen.findByRole('heading', { name: 'Monthly limits' })).closest('section') as HTMLElement;
-    expect(within(panel).getAllByText('$0.0569 of $3.20')).toHaveLength(2);
+    expect(within(panel).getAllByText('$0.06 of $3.20')).toHaveLength(2);
     // Beside the Cost tile's actual $0.42, a different dollar figure needs its reason: one line for both limits.
     expect(within(panel).getAllByText(/In dollars it is an estimate at the usual mix of input and output/)).toHaveLength(1);
   });

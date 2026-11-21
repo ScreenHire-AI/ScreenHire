@@ -66,7 +66,10 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(read).ToContainTextAsync("Testing");
         await Expect(read).ToContainTextAsync("Clear walk-through of the cache design.");
         await SaveScreenshotAsync(Page, "dashboard-scorecard-read-sheet");
-        await read.GetByRole(AriaRole.Button, new() { Name = "Close" }).ClickAsync();
+        // A sheet with nothing to fill starts focus on itself, not on Close: a focused Close opened its tooltip, and the
+        // tooltip took the first click outside, so closing took two clicks (the owner's walk-through, 2026-11-21).
+        await Expect(read.GetByRole(AriaRole.Button, new() { Name = "Close" })).Not.ToBeFocusedAsync();
+        await Page.Mouse.ClickAsync(8, 400);
         await Expect(read).ToBeHiddenAsync();
         // The header's rating is a link to the Scorecards tab, named by what it says: the number and how many scorecards.
         var rating = Page.GetByRole(AriaRole.Link, new() { Name = "Rated 4.7 out of 5 from 1 scorecard" });

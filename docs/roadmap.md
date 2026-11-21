@@ -269,6 +269,43 @@ were judged from the code, so touch-target sizes (F4) and the dark theme of the 
 dark walk in `DashboardThemeTests` covers contrast). At 800 px the tablet rail keeps Browse team views in its fixed group
 above Settings.
 
+### The owner's fourth walk-through (2026-11-21)
+
+The owner annotated about 50 screens of the preview. The contained fixes are in the walk-through PR (branch
+`fix/fourth-walk-through`); the rest is two overnight workflows, paused until the owner starts them, and each task waits
+for that PR on `main`.
+
+**Night 1:** one amount for AI use and a Billing page with the month's total, invoices and payment method; Verification
+in four tabs (Overview, Activity log, Checks with each group's settings inside it, AI use), a reassuring clear result and
+an activity log you can scan; Your account (profile, a notification grid by email and in the app, connected accounts,
+sign-in); live activity, a workspace feed from any page with time ago and a link to each change, with toasts for
+interviews and returned forms; the template editor (one Pipeline tab, short stage facts, closable questions, automations
+under their stage, publishing that says what it does); named teams; shared tags with suggestions; a setup checklist you
+can skip a step of for the whole organization; a Messages tab you can scan; short create forms in sheets; and a table row
+that opens its record, everywhere.
+
+**Night 2:** forms (several a hiring process, sent at the stage you choose, from a library); Try it, a click-through of
+your own pipeline one stage at a time; scheduling three ways (pick from our times, tell us when you're free, we suggest a
+time); post it yourself, with tracked links and manual postings in the postings list; an apply form that feels short;
+the developer platform (full MCP tools with confirmation, more webhook events, a readable API reference, developer docs);
+the whole Google Fonts catalogue, hosted by us; a distinct icon for every view in the rail; switching a job to another
+template; and a marketing site refresh, last.
+
+**Decided 2026-11-21:** Verification has four tabs and its budgets count billed dollars; named teams replace a template's
+default hiring team; Clear, Review and Verify stay, and To review holds Review only; a table row click opens the record;
+"Form use" becomes "Form activity".
+
+**Still the owner's:**
+
+1. **The pricing page's AI wording.** It publishes "the provider's price plus 20%" (`apps/marketing/src/lib/features.ts`);
+   the app no longer shows the margin. Keep it public, or describe AI checks as billed by use.
+2. **The built-in Software engineer template tags every Review or Verify candidate "verification-review"**, which repeats
+   the level chip on every card. Proposal: a new version of the template without the tag step (a migration, like the
+   rename that added it).
+3. **The quiet Connected pill:** show nothing while connected and only "Reconnecting" when not.
+4. **Legal reads:** equality-monitoring forms kept off the candidate page and reported in totals only; a shorter, layered
+   notice on the apply form; and "A person looks at anything the checks flag", which is the same promise as the footer.
+
 ## Later
 
 - **Job boards:** Indeed and ZipRecruiter (phase 2, with paying customers), LinkedIn, then European boards

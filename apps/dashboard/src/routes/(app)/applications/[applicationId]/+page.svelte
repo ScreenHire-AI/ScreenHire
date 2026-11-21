@@ -49,6 +49,7 @@
   import MoveConfirmDialog from '#lib/components/move-confirm-dialog.svelte';
   import MoveNoteSheet from '#lib/components/move-note-sheet.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
+  import UserRoundIcon from '~icons/lucide/user-round';
   import Notice from '#lib/components/notice.svelte';
   import ScheduleInterviewSheet from '#lib/components/schedule-interview-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -410,6 +411,11 @@
 
 {#snippet bandActions()}
   <FailureText message={moves.failure ? moves.announcement : ''} />
+  <!-- The candidate's profile is one click from every tab, with the page's other actions (the owner's walk-through,
+       2026-11-21): it was a link at the foot of the Application tab. On a phone it joins More when there is one. -->
+  {#if detail && !(canEmail && sidebar.isMobile)}
+    <Button href={`/candidates/${detail.candidate.id}`} variant="outline" size="lg"><UserRoundIcon aria-hidden="true" />Candidate profile</Button>
+  {/if}
   {#if canEmail && sidebar.isMobile}
     <!-- A phone keeps the bottom bar for the primary action; the rest fold into More (design system section 8). -->
     <MoreMenu
@@ -419,6 +425,11 @@
         else if (scheduleChosen) ((scheduleChosen = false), (scheduleOpen = true));
       }}
     >
+      {#if detail}
+        <DropdownMenu.Item>
+          {#snippet child({ props })}<a {...props} href={`/candidates/${detail.candidate.id}`}><UserRoundIcon aria-hidden="true" />Candidate profile</a>{/snippet}
+        </DropdownMenu.Item>
+      {/if}
       <DropdownMenu.Item onSelect={() => (emailChosen = true)}><MailIcon aria-hidden="true" />{saved ? 'Message' : 'Email'}</DropdownMenu.Item>
       {#if canSchedule}
         <DropdownMenu.Item onSelect={() => (scheduleChosen = true)}><CalendarPlusIcon aria-hidden="true" />Schedule {meetingName}</DropdownMenu.Item>
