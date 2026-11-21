@@ -64,6 +64,8 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         ("integrations", _ => "/settings/billing"),
         ("integrations", _ => "/settings/api-keys"),
         ("integrations", _ => "/settings/webhooks"),
+        // The old Add endpoint and Edit addresses open their sheets over the list and the endpoint (design system A16), so
+        // these rows walk the sheets.
         ("integrations", _ => "/settings/webhooks/new"),
         ("integrations", scene => $"/settings/webhooks/{scene.EndpointId}"),
         ("integrations", scene => $"/settings/webhooks/{scene.EndpointId}/edit"),

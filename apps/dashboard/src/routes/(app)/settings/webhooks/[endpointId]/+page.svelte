@@ -51,6 +51,7 @@
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import WebhookEndpointSheet from '#lib/components/webhook-endpoint-sheet.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
@@ -141,7 +142,22 @@
   });
   const sorted = $derived(table.getRowModel().rows.map((row) => row.original));
   const title = $derived(detail ? (detail.description ?? detail.url) : 'Endpoint');
-  const editHref = $derived(`/settings/webhooks/${params.endpointId}/edit`);
+
+  // Edit is a sheet over this page (design system A16). The old address, /settings/webhooks/{id}/edit, lands here with
+  // ?edit: once the endpoint has loaded the sheet opens on it, and the parameter leaves the address either way, so a
+  // reload does not open it again and an endpoint that is gone opens nothing.
+  let editing = $state(false);
+  $effect(() => {
+    if (!page.url.searchParams.has('edit') || endpoint.isPending) return;
+    if (detail) editing = true;
+    const url = new URL(page.url.href);
+    url.searchParams.delete('edit');
+    void goto(url, { replace: true, reset: false });
+  });
+  async function save(value: { url: string; description: string | null; events: string[] }) {
+    await update.mutateAsync({ endpointId: params.endpointId, data: value });
+    announcement = 'The endpoint was saved.';
+  }
 
   let actionFailure = $state('');
   let announcement = $state('');
@@ -170,12 +186,13 @@
     }
   }
 
-  // Rotate and delete confirm in a dialog that the More menu opens once it has closed.
+  // Edit's sheet, and the dialogs that confirm rotate and delete, open once the More menu has closed.
   let rotateOpen = $state(false);
   let deleteOpen = $state(false);
-  let chosen: 'rotate' | 'delete' | null = null;
+  let chosen: 'edit' | 'rotate' | 'delete' | null = null;
   const onMenuClosed = () => {
-    if (chosen === 'rotate') rotateOpen = true;
+    if (chosen === 'edit') editing = true;
+    else if (chosen === 'rotate') rotateOpen = true;
     else if (chosen === 'delete') deleteOpen = true;
     chosen = null;
   };
@@ -241,14 +258,11 @@
         <!-- Turning it on is the page's one primary action, while it is off; a phone has it in the action bar. -->
         {#if !detail.enabled && !sidebar.isMobile}{@render turnOnButton(detail)}{/if}
         {#if !sidebar.isMobile}
-          <Button href={editHref} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit</Button>
+          <Button variant="outline" size="lg" onclick={() => (editing = true)}><PencilIcon aria-hidden="true" />Edit</Button>
         {/if}
         <MoreMenu label="More actions" onclosed={onMenuClosed}>
           {#if sidebar.isMobile}
-            <!-- Edit goes to a page, so the item is a link (A5). -->
-            <DropdownMenu.Item>
-              {#snippet child({ props })}<a {...props} href={editHref}><PencilIcon aria-hidden="true" />Edit</a>{/snippet}
-            </DropdownMenu.Item>
+            <DropdownMenu.Item onSelect={() => (chosen = 'edit')}><PencilIcon aria-hidden="true" />Edit</DropdownMenu.Item>
           {/if}
           {#if detail.enabled}
             <DropdownMenu.Item onSelect={() => setEnabled(detail, false)}><PowerOffIcon aria-hidden="true" />Turn off</DropdownMenu.Item>
@@ -445,5 +459,7 @@
 >
   {#snippet icon()}<Trash2Icon aria-hidden="true" />{/snippet}
 </ConfirmDialog>
+
+{#if detail}<WebhookEndpointSheet bind:open={editing} endpoint={detail} onsave={save} />{/if}
 
 <SecretDialog bind:open={secretOpen} title="Your new signing secret" label="Signing secret" value={secret} onclose={() => ((secret = ''), rotate.reset())} />

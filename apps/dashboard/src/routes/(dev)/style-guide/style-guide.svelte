@@ -644,7 +644,7 @@
 {/snippet}
 
 <ShortcutsDialog bind:open={shortcutsOpen} />
-<SecretDialog bind:open={secretOpen} title="Your new API key" label="API key" value="shk_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
+<SecretDialog bind:open={secretOpen} title="Your signing secret" label="Signing secret" value="whsec_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
 
 <PublishCheckDialog
   bind:open={publishCheckOpen}
@@ -1070,7 +1070,7 @@
           <Button variant="outline" onclick={() => (publishCheckOpen = true)}>Publish a draft</Button>
         </Panel>
         <Panel title="Secret dialog" class="flex-[1_1_320px]">
-          <Button variant="outline" onclick={() => (secretOpen = true)}>Show a new key</Button>
+          <Button variant="outline" onclick={() => (secretOpen = true)}>Show a signing secret</Button>
         </Panel>
         <Panel title="Email composer" class="flex-[1_1_320px]">
           <EmailComposerDemo />

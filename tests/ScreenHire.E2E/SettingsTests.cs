@@ -67,6 +67,8 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
             (box!.Y + box.Height).Should().BeLessThanOrEqualTo(height, "the rail's Settings item is on screen");
         }
 
+        // A short create form is a sheet over its page (design system A16): the old Add endpoint and Edit addresses open the
+        // list, or the endpoint, with the sheet open, and the sheet is what the row checks.
         (string Path, string Title)[] pages =
         [
             ("/settings/organization", "General"),
@@ -86,12 +88,21 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
             ("/settings/slack", "Slack"),
             ("/settings/webhooks/new", "Add endpoint"),
             ($"/settings/webhooks/{endpointId}", "Applicant sync"),
-            ($"/settings/webhooks/{endpointId}/edit", "Applicant sync"),
+            ($"/settings/webhooks/{endpointId}/edit", "Edit endpoint"),
         ];
         foreach (var (path, title) in pages)
         {
             await GoToAsync("dashboard", path);
-            await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(title);
+            if (path.EndsWith("/new", StringComparison.Ordinal) || path.EndsWith("/edit", StringComparison.Ordinal))
+            {
+                var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = title });
+                await Expect(sheet).ToBeVisibleAsync();
+                await Expect(sheet.GetByRole(AriaRole.Checkbox).First).ToBeVisibleAsync();
+            }
+            else
+            {
+                await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(title);
+            }
             // Skeletons gone: every page's panels have loaded.
             await Expect(Page.Locator("main [data-slot=skeleton]")).ToHaveCountAsync(0);
             (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))

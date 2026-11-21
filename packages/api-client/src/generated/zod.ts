@@ -7164,6 +7164,34 @@ export const UpdateCareersEmbeddingResponse = zod.object({
 }).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\nto the name, the questions per page or the sites, or when the organization was made; its history is\n`/v1/organization/history`.')
 
 
+export const GetOrganizationSetupResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
+export const SkipSetupStepBody = zod.object({
+  "step": zod.union([zod.null(),zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')])
+}).describe('Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing. Nullable\nonly so a body without it is refused rather than read as the first step.')
+
+export const SkipSetupStepResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
+export const HideSetupResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
+export const ShowSetupAgainResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
 export const getOrganizationBrandingResponseLastUpdatedCreatedDefault = false;
 
 export const GetOrganizationBrandingResponse = zod.object({

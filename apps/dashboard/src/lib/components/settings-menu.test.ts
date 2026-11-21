@@ -46,7 +46,7 @@ describe('settings menu', () => {
   });
 
   it('is the same whole menu on a Careers site page and on an integration, marking that page', () => {
-    for (const current of ['/settings/branding', '/settings/webhooks', '/settings/webhooks/new']) {
+    for (const current of ['/settings/branding', '/settings/webhooks', '/settings/webhooks/e1']) {
       const { unmount } = render(WithShell, { props: { component: SettingsMenu, props: { children: content, current }, features: { slack: true } } });
 
       expect(groupNames()).toEqual(['Organization', 'Careers site', 'Integrations']);

@@ -1,7 +1,7 @@
 /**
  * Per-browser preferences: the colour theme, whether single-key shortcuts are on, whether a move asks first, each table's
- * sort, whether the setup checklist was dismissed for an organization and whether the bell has opened itself after
- * onboarding. They live in
+ * sort and whether the bell has opened itself after onboarding. (Skipping a setup step or hiding the checklist is the
+ * organization's, saved on the server.) They live in
  * localStorage, which can be missing or refuse writes (private windows, blocked site data), so every read and write
  * falls back quietly. Being per browser, a sort does not follow a person to another browser.
  */
@@ -18,7 +18,6 @@ const themeKey = 'screenhire:theme';
 const shortcutsKey = 'screenhire:shortcuts';
 const confirmMovesKey = 'screenhire:confirm-moves';
 const sortKey = (table: string) => `screenhire:sort:${table}`;
-const setupKey = (organizationId: string) => `screenhire:setup-dismissed:${organizationId}`;
 const setupTourKey = (userId: string) => `screenhire:setup-tour:${userId}`;
 const pipelineViewKey = 'screenhire:pipeline-view';
 
@@ -116,18 +115,6 @@ class Preferences {
   setPipelineView(view: PipelineView): void {
     this.pipelineView = view;
     write(pipelineViewKey, view);
-  }
-
-  #setupDismissed = $state<Record<string, boolean>>({});
-
-  /** Whether this browser dismissed the Set up your organization panel for an organization (it does not follow the person). */
-  isSetupDismissed(organizationId: string): boolean {
-    return this.#setupDismissed[organizationId] ?? read(setupKey(organizationId)) === 'on';
-  }
-
-  dismissSetup(organizationId: string): void {
-    this.#setupDismissed[organizationId] = true;
-    write(setupKey(organizationId), 'on');
   }
 
   /**
