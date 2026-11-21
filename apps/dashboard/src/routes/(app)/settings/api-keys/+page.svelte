@@ -145,6 +145,8 @@
   let token = $state('');
   let shown = $state(false);
   let creating = $state(false);
+  // Counts the sheet's openings, so a request knows whether the sheet that sent it is still the one showing.
+  let openings = 0;
   function forgetToken() {
     token = '';
     create.reset();
@@ -166,10 +168,11 @@
       try {
         const scopes: ApiKeyScope[] = submitted.data.access === 'Write' ? ['Read', 'Write'] : ['Read'];
         if (submitted.data.verification && mayGrantVerification) scopes.push('VerificationRead');
+        const opening = openings;
         const response = await create.mutateAsync({ data: { name: submitted.data.name.trim(), scopes } });
-        // Closed while the key was being made: closing already forgot it, so the token is not kept. The key is in the
-        // list, to revoke.
-        if (!creating) return;
+        // Closed while the key was being made (and maybe opened again): closing already forgot it, so the token is not
+        // kept. The key is in the list, to revoke.
+        if (!creating || opening !== openings) return;
         token = response.data.token;
         shown = true;
       } catch (error) {
@@ -185,6 +188,7 @@
 
   $effect(() => {
     if (!creating) return;
+    openings += 1;
     shown = false;
     reset({ data: { name: '', access: 'Read', verification: false } });
   });

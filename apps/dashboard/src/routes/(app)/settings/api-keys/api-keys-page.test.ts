@@ -1,5 +1,6 @@
 import type { ApiKeyScope, ApiKeySummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import { expectCountInPanelNotBand } from '../../../../test-support/list-template.js';
@@ -260,6 +261,30 @@ describe('API keys page', () => {
     const again = await screen.findByRole('dialog', { name: 'Create an API key' });
     expect(within(again).getByLabelText('Name')).toHaveValue('');
     expect(within(again).queryByDisplayValue(token)).not.toBeInTheDocument();
+  });
+
+  it('shows no token from a request whose sheet was closed, after the sheet is opened again', async () => {
+    let answer: (response: Response) => void = () => {};
+    const fetchMock = renderPage([], {
+      'POST /v1/organization/api-keys': () => new Promise<Response>((resolve) => (answer = resolve)),
+    });
+    const sheet = await createKey('Dashboard export', 'Read only');
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === 'POST')).toBe(true));
+    await fireEvent.keyDown(sheet, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    // The list has loaded by now, so the empty state's Create key sits beside the band's; either opens the sheet.
+    await fireEvent.click((await screen.findAllByRole('button', { name: 'Create key' }))[0]!);
+    const again = await screen.findByRole('dialog', { name: 'Create an API key' });
+    const listReads = () => fetchMock.mock.calls.filter(([url, init]) => String(url).endsWith('/v1/organization/api-keys') && (init as RequestInit | undefined)?.method !== 'POST').length;
+    const before = listReads();
+
+    answer(Response.json({ key: key('k9', 'Dashboard export'), token }, { status: 201 }));
+
+    // The request settles (the list is read again, where the key is to revoke); the sheet open now stays on its form.
+    await waitFor(() => expect(listReads()).toBeGreaterThan(before));
+    await tick();
+    expect(again).toHaveAccessibleName('Create an API key');
+    expect(document.body.textContent).not.toContain(token);
   });
 
   it('asks for a name before sending anything', async () => {
