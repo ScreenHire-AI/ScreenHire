@@ -1,4 +1,4 @@
-// The new hiring template screen: three starting points ScreenHire ships as cards, a name that follows the chosen card until
+// The new hiring template screen: four starting points ScreenHire ships as cards, a name that follows the chosen card until
 // the person types their own, "Use this starting point" and "Start from nothing".
 import type { CurrentUser, HiringTemplateSummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
@@ -16,7 +16,7 @@ const { pageState, goto } = vi.hoisted(() => ({
 vi.mock('$app/state', () => ({ page: pageState, navigating: { to: null } }));
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto }));
 
-const [office, trade, volume] = startingPoints;
+const [office, trade, hospitality, volume] = startingPoints;
 
 const card = (point: (typeof startingPoints)[number], name: string, description: string): HiringTemplateSummary => ({
   id: point.templateId,
@@ -35,8 +35,9 @@ const card = (point: (typeof startingPoints)[number], name: string, description:
 const templates = [
   card(office!, 'Office role', 'Accountant, designer, analyst'),
   card(trade!, 'Trade role with a trial shift', 'Plumber, electrician, driver'),
+  card(hospitality!, 'Hospitality', 'Barista, line cook, server'),
   card(volume!, 'High volume', 'Shop assistant, warehouse picker'),
-  // Not a starting point: the screen lists only the three it ships.
+  // Not a starting point: the screen lists only the four it ships.
   { ...card(office!, 'Brightwater engineering', 'Ours'), id: 't-own', isSystem: false },
 ];
 
@@ -55,6 +56,7 @@ function renderPage(who: CurrentUser = user, routes: Parameters<typeof apiStub>[
       'GET /v1/templates': () => Response.json(templates),
       [`GET /v1/templates/${office!.templateId}/versions/1`]: () => Response.json(stagesOf(['Applied', 'Phone screen', 'Interview'])),
       [`GET /v1/templates/${trade!.templateId}/versions/1`]: () => Response.json(stagesOf(['Applied', 'Trial shift'])),
+      [`GET /v1/templates/${hospitality!.templateId}/versions/1`]: () => Response.json(stagesOf(['Applied', 'Screening', 'Trial shift'])),
       [`GET /v1/templates/${volume!.templateId}/versions/1`]: () => Response.json(stagesOf(['Applied', 'Quick call'])),
       'POST /v1/templates': () => Response.json({ id: 't-new' }, { status: 201 }),
       ...routes,
@@ -80,21 +82,24 @@ afterEach(() => {
 });
 
 describe('start from page', () => {
-  it('shows the three starting points as cards: name, an example line and the stages as plain text', async () => {
+  it('shows the four starting points as cards: name, an example line and the stages as plain text', async () => {
     const { view } = renderPage();
 
     await waitFor(() => expect(nameField()).toHaveValue('Office role'));
     const group = screen.getByRole('group', { name: 'Starting point' });
-    expect(radios()).toHaveLength(3);
+    expect(radios()).toHaveLength(4);
     const cards = radios().map((radio) => radio.closest('label')!);
-    await waitFor(() => expect(cards[2]).toHaveTextContent('Applied, Quick call'));
+    await waitFor(() => expect(cards[3]).toHaveTextContent('Applied, Quick call'));
 
     expect(cards[0]).toHaveTextContent('Office role');
     expect(cards[0]).toHaveTextContent('Accountant, designer, analyst');
     expect(cards[0]).toHaveTextContent('Applied, Phone screen, Interview');
     expect(cards[1]).toHaveTextContent('Trade role with a trial shift');
     expect(cards[1]).toHaveTextContent('Applied, Trial shift');
-    expect(cards[2]).toHaveTextContent('High volume');
+    expect(cards[2]).toHaveTextContent('Hospitality');
+    expect(cards[2]).toHaveTextContent('Barista, line cook, server');
+    expect(cards[2]).toHaveTextContent('Applied, Screening, Trial shift');
+    expect(cards[3]).toHaveTextContent('High volume');
     // The end stages are the same everywhere, so a card leaves them out, and a template that is not a starting point is not a card.
     expect(group).not.toHaveTextContent('Hired');
     expect(group).not.toHaveTextContent('Brightwater engineering');
@@ -105,7 +110,7 @@ describe('start from page', () => {
     renderPage();
     await waitFor(() => expect(nameField()).toHaveValue('Office role'));
 
-    expect(radios().map((radio) => (radio as HTMLInputElement).checked)).toEqual([true, false, false]);
+    expect(radios().map((radio) => (radio as HTMLInputElement).checked)).toEqual([true, false, false, false]);
     const filled = screen.getAllByRole('button').filter((button) => button.className.split(' ').includes('bg-primary'));
     expect(filled.map((button) => button.textContent?.trim())).toEqual(['Use this starting point']);
     expect(screen.getByRole('button', { name: 'Start from nothing' }).className).not.toContain('bg-primary');
@@ -118,8 +123,10 @@ describe('start from page', () => {
     await fireEvent.click(radios()[1]!);
     await waitFor(() => expect(nameField()).toHaveValue('Trade role with a trial shift'));
     await fireEvent.click(radios()[2]!);
+    await waitFor(() => expect(nameField()).toHaveValue('Hospitality'));
+    await fireEvent.click(radios()[3]!);
     await waitFor(() => expect(nameField()).toHaveValue('High volume'));
-    expect((radios()[2] as HTMLInputElement).checked).toBe(true);
+    expect((radios()[3] as HTMLInputElement).checked).toBe(true);
   });
 
   it('keeps the name the person typed when another card is chosen', async () => {
@@ -209,7 +216,7 @@ describe('start from page', () => {
     renderPage();
     await waitFor(() => expect(nameField()).toHaveValue('Office role'));
 
-    expect(within(screen.getByRole('region', { name: 'Start from' })).getAllByRole('radio')).toHaveLength(3);
+    expect(within(screen.getByRole('region', { name: 'Start from' })).getAllByRole('radio')).toHaveLength(4);
     expect(screen.getByRole('region', { name: 'Name' })).toContainElement(nameField());
     // The panel is named for screen readers only: its heading is visually hidden.
     expect(screen.getByRole('heading', { name: 'Name' })).toHaveClass('sr-only');

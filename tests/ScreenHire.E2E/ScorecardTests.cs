@@ -113,6 +113,37 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         await SaveScreenshotAsync(Page, "dashboard-scorecards-phone");
     }
 
+    // Design system F4: a touch screen gets 44 px targets. The 1 to 5 buttons are the ones a reviewer taps most, so they are
+    // measured as laid out at 390 px under a coarse pointer, and the row must still fit. (1 to 10 cannot be 44 px wide in 390
+    // px, so it is not measured here.)
+    [Fact]
+    public async Task The_one_to_five_rating_buttons_are_44_px_on_a_phone()
+    {
+        var (email, _, applicationId) = await ArrangeAsync();
+        await UseTouchScreenAsync();
+        await Page.SetViewportSizeAsync(390, 844);
+        await SignInAsync(email);
+
+        await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}?tab=scorecards"));
+        await Region("Scorecards").GetByRole(AriaRole.Button, new() { Name = "Fill in" }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Give your scorecard" });
+        var buttons = Question(sheet, "Problem solving").GetByRole(AriaRole.Radio);
+        await Expect(buttons).ToHaveCountAsync(5);
+
+        (await Page.EvaluateAsync<bool>("() => matchMedia('(pointer: coarse)').matches")).Should().BeTrue("the page is measured as a phone");
+        foreach (var button in await buttons.AllAsync())
+        {
+            await button.ScrollIntoViewIfNeededAsync();
+            var box = await button.BoundingBoxAsync();
+            box.Should().NotBeNull();
+            box!.Width.Should().BeGreaterThanOrEqualTo(43.5f, "a rating button is 44 px wide to touch");
+            box.Height.Should().BeGreaterThanOrEqualTo(43.5f, "a rating button is 44 px high to touch");
+        }
+
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
+            .Should().BeTrue("the row of 44 px buttons still fits at 390 px (F1)");
+    }
+
     // A question's group: a rating's row of buttons or a choice's options, named by the question.
     private static ILocator Question(ILocator sheet, string label) =>
         sheet.GetByRole(AriaRole.Group, new() { NameRegex = new($"^{System.Text.RegularExpressions.Regex.Escape(label)}") });
