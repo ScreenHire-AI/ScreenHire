@@ -118,8 +118,8 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
    a team that keeps the defaults can only dismiss the whole checklist. Drop the step or merge it into Branding; the
    count goes from five to four, and the tests and docs that say five change with it. Size S. (#149)
 8. **Check the scorecard's 1 to 5 buttons on a phone.** Built: `ScorecardTests` measures each 1 to 5 button at 390 px
-   under a coarse pointer (design system F4 wants 44 px). The 1 to 10 scale cannot be 44 px wide at that width and is not
-   measured. Kept here so the numbers hold. (#171)
+   under a coarse pointer (design system F4 wants 44 px). The 1 to 10 scale cannot be 44 px wide at that width; the test holds it
+   to 24 px wide and 44 px high. Kept here so the numbers hold. (#171)
 9. **Ask for a name at onboarding.** A member with no name shows as a truncated email address in Team, and the Email
    column repeats it. Ask on the onboarding form, prefilled from the identity provider when it has one. Size S to M. (#149)
 10. **Quieter empty states.** An empty Candidates panel shows the whole toolbar (Stage filter, three zero chips, a Save

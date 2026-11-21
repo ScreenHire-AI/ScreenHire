@@ -114,10 +114,10 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
     }
 
     // Design system F4: a touch screen gets 44 px targets. The 1 to 5 buttons are the ones a reviewer taps most, so they are
-    // measured as laid out at 390 px under a coarse pointer, and the row must still fit. (1 to 10 cannot be 44 px wide in 390
-    // px, so it is not measured here.)
+    // measured as laid out at 390 px under a coarse pointer, and the row must still fit. A 1 to 10 scale shares the row's width
+    // and cannot be 44 px wide in 390 px (design system, Rating answer), so its floor is WCAG 2.5.8's 24 px wide, still 44 high.
     [Fact]
-    public async Task The_one_to_five_rating_buttons_are_44_px_on_a_phone()
+    public async Task The_one_to_five_rating_buttons_are_44_px_on_a_phone_and_the_one_to_ten_ones_at_least_24_wide()
     {
         var (email, _, applicationId) = await ArrangeAsync();
         await UseTouchScreenAsync();
@@ -140,8 +140,18 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
             box.Height.Should().BeGreaterThanOrEqualTo(43.5f, "a rating button is 44 px high to touch");
         }
 
+        var tenButtons = Question(sheet, ".NET and C#").GetByRole(AriaRole.Radio);
+        await Expect(tenButtons).ToHaveCountAsync(10);
+        foreach (var button in await tenButtons.AllAsync())
+        {
+            var box = await button.BoundingBoxAsync();
+            box.Should().NotBeNull();
+            box!.Width.Should().BeGreaterThanOrEqualTo(24f, "a 1 to 10 button is at least 24 px wide (WCAG 2.5.8)");
+            box.Height.Should().BeGreaterThanOrEqualTo(43.5f, "a 1 to 10 button is still 44 px high to touch");
+        }
+
         (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
-            .Should().BeTrue("the row of 44 px buttons still fits at 390 px (F1)");
+            .Should().BeTrue("the rows of buttons still fit at 390 px (F1)");
     }
 
     // A question's group: a rating's row of buttons or a choice's options, named by the question.
