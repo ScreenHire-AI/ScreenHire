@@ -358,7 +358,8 @@
 <TopBar crumbs={settingsCrumbs('/settings/team')} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
-  <Tabs.Root value={tab} onValueChange={selectTab}>
+  <!-- No gap of its own: the band and the Settings menu sit where they do on every settings page (S8). -->
+  <Tabs.Root value={tab} onValueChange={selectTab} class="gap-0">
     <HeaderBand title="Team" actions={bandActions} oneRow />
 
     <SettingsMenu>
