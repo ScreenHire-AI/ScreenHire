@@ -12,11 +12,14 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
+  import { suggestTags, type KnownTag } from '#lib/tags.js';
 
   // A record's tags (design system section 11): each a fact pill, with its own Remove button beside it, never inside it
   // (A5), and a field to add one. Removing is not destructive: adding the tag again undoes it (section 10). Without
   // `onadd` and `onremove` (a Viewer, A3) it shows the pills only. The same list holds the sites that may embed the
-  // careers page (Settings, Careers site, Careers page), with its own words and field.
+  // careers page (Settings, Careers site, Careers page), with its own words and field. With `suggestions` (the
+  // organization's tags) the field is a combobox: it lists the tags that match, most used first, with Create for a new
+  // name last; the arrow keys move, Enter picks, Esc closes the list only.
   let {
     tags,
     onadd,
@@ -31,6 +34,7 @@
     missing: missingMessage = 'Name the tag first.',
     empty = 'No tags yet.',
     compact = false,
+    suggestions,
   }: {
     tags: readonly string[];
     /** Adds a tag; true when it worked, which clears the field. */
@@ -56,6 +60,8 @@
      * screen has no hover), and Add tag a text button that opens its field in place. Nothing says "No tags yet".
      */
     compact?: boolean;
+    /** The organization's tags (`GET /v1/tags`) to suggest while typing; without it the field is a plain text field. */
+    suggestions?: readonly KnownTag[];
   } = $props();
 
   const inputId = $props.id();
@@ -65,17 +71,96 @@
   let adding = $state(false);
   const focusOnMount = (node: HTMLElement) => node.focus();
 
-  async function onsubmit(event: SubmitEvent) {
-    event.preventDefault();
-    const tag = draft.trim();
+  // The suggestions: tags to pick, then Create for a new name. Open while the field has focus and there is something to offer.
+  const listId = `${inputId}-suggestions`;
+  let listing = $state(false);
+  let active = $state(0);
+  const choices = $derived(suggestions ? suggestTags(suggestions, draft, tags) : { matches: [], create: null });
+  const options = $derived([
+    ...choices.matches.map((name) => ({ name, create: false })),
+    ...(choices.create ? [{ name: choices.create, create: true }] : []),
+  ]);
+  const open = $derived(suggestions !== undefined && listing && options.length > 0);
+  const optionId = (index: number) => `${listId}-${index}`;
+
+  async function add(text: string) {
+    const tag = text.trim();
     missing = !tag;
     if (!tag || !onadd) return;
     if (await onadd(tag)) {
       draft = '';
       adding = false;
+      active = 0;
     }
   }
+
+  async function onsubmit(event: SubmitEvent) {
+    event.preventDefault();
+    await add(open ? options[active]!.name : draft);
+  }
+
+  function onfieldkeydown(event: KeyboardEvent) {
+    if (open && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+      event.preventDefault();
+      active = (active + (event.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length;
+      return;
+    }
+    if (event.key === 'Escape' && open) {
+      // Closes the list only: the field, and a compact header's open field, stay.
+      event.preventDefault();
+      event.stopPropagation();
+      listing = false;
+      return;
+    }
+    if (event.key === 'Escape' && compact) ((adding = false), (draft = ''), (missing = false));
+  }
+
+  function oninput() {
+    missing = false;
+    listing = true;
+    active = 0;
+  }
+
+  // The field's combobox attributes, only when it suggests (an input may take the combobox role).
+  const combobox = $derived(
+    suggestions
+      ? {
+          role: 'combobox',
+          'aria-autocomplete': 'list' as const,
+          'aria-expanded': open,
+          'aria-controls': open ? listId : undefined,
+          'aria-activedescendant': open ? optionId(active) : undefined,
+        }
+      : {},
+  );
 </script>
+
+{#snippet suggestionList()}
+  {#if open}
+    <ul id={listId} role="listbox" aria-label="Tags" class="absolute top-full left-0 z-50 mt-1 flex w-full max-w-xs min-w-48 flex-col rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-overlay">
+      {#each options as option, index (option.create ? `create:${option.name}` : option.name)}
+        <!-- Picked on mousedown, before the field loses focus; the keyboard picks with Enter in the field. -->
+        <li
+          id={optionId(index)}
+          role="option"
+          aria-selected={index === active}
+          class="flex min-h-9 min-w-0 items-center gap-2 rounded-md px-2.5 py-1 aria-selected:bg-accent pointer-coarse:min-h-11"
+          onmousedown={(event) => {
+            event.preventDefault();
+            void add(option.name);
+          }}
+        >
+          {#if option.create}
+            <PlusIcon aria-hidden="true" class="size-4 shrink-0 text-muted-foreground" />
+            <span class="min-w-0 truncate">Create "{option.name}"</span>
+          {:else}
+            <span class="min-w-0 truncate">{option.name}</span>
+          {/if}
+        </li>
+      {/each}
+    </ul>
+  {/if}
+{/snippet}
 
 {#if compact}
   <div class="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1.5">
@@ -100,7 +185,7 @@
     {/if}
     {#if onadd}
       {#if adding}
-        <form class="flex min-w-0 items-center gap-2" novalidate {onsubmit}>
+        <form class="relative flex min-w-0 items-center gap-2" novalidate {onsubmit}>
           <label for={inputId} class="sr-only">New {noun}</label>
           <Input
             id={inputId}
@@ -110,13 +195,15 @@
             autocomplete="off"
             class="h-7 w-40 min-w-0"
             aria-invalid={message ? 'true' : undefined}
-            oninput={() => (missing = false)}
-            onkeydown={(event) => {
-              if (event.key === 'Escape') ((adding = false), (draft = ''), (missing = false));
-            }}
+            {...combobox}
+            {oninput}
+            onkeydown={onfieldkeydown}
+            onfocus={() => (listing = true)}
+            onblur={() => (listing = false)}
             {@attach focusOnMount}
           />
           <Button type="submit" variant="outline" size="sm" class="shrink-0" disabled={busy}>Add {noun}</Button>
+          {@render suggestionList()}
         </form>
       {:else}
         <Button variant="outline" size="xs" disabled={busy} onclick={() => (adding = true)}><PlusIcon aria-hidden="true" />Add {noun}</Button>
@@ -141,7 +228,7 @@
     </ul>
   {/if}
   {#if onadd}
-    <form class="flex min-w-0 gap-2" novalidate {onsubmit}>
+    <form class="relative flex min-w-0 gap-2" novalidate {onsubmit}>
       <label for={inputId} class="sr-only">New {noun}</label>
       <Input
         id={inputId}
@@ -153,9 +240,14 @@
         autocomplete="off"
         class="min-w-0 flex-1"
         aria-invalid={message ? 'true' : undefined}
-        oninput={() => (missing = false)}
+        {...combobox}
+        {oninput}
+        onkeydown={onfieldkeydown}
+        onfocus={() => (listing = true)}
+        onblur={() => (listing = false)}
       />
       <Button type="submit" variant="outline" class="shrink-0" disabled={busy}><PlusIcon aria-hidden="true" />Add {noun}</Button>
+      {@render suggestionList()}
     </form>
   {/if}
   <FailureText {message} />
