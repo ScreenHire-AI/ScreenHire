@@ -36,7 +36,7 @@
   >
     {#snippet header()}
       {#if received}
-        <p class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [overflow-wrap:anywhere]">
+        <p class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 break-words">
           <span class="text-muted-foreground">From</span>
           <span class="font-semibold">{received.fromName ? `${received.fromName} <${received.fromAddress}>` : received.fromAddress}</span>
           {#if received.autoReply}<Badge variant="muted">Automatic reply</Badge>{/if}
