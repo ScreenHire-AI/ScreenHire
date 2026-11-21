@@ -204,20 +204,23 @@ public sealed class ActivityFeedTests(AppHostFixture fixture)
         before.At("seenAt").ValueKind.Should().Be(JsonValueKind.Null, "they have never opened it");
         before.At("unseenCount").ValueKind.Should().Be(JsonValueKind.Null);
 
+        // The count follows the kinds asked for. Moves only, because the worker also writes a "checks finished" entry for each
+        // new application a moment later, which on a slow runner lands after the person last looked and is news too.
+        const string moves = "/v1/activity?kinds=Moves";
         (await owner.PostAsync("/v1/activity/seen")).Expect(HttpStatusCode.NoContent);
-        var seen = (await owner.GetAsync("/v1/activity")).Expect(HttpStatusCode.OK);
+        var seen = (await owner.GetAsync(moves)).Expect(HttpStatusCode.OK);
         var seenAt = seen.At("seenAt").GetDateTimeOffset();
         seen.At("unseenCount").GetInt32().Should().Be(0);
 
         (await recruiter.PostAsync($"/v1/applications/{first}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
         (await owner.PostAsync($"/v1/applications/{second}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
 
-        var after = (await owner.GetAsync("/v1/activity")).Expect(HttpStatusCode.OK);
+        var after = (await owner.GetAsync(moves)).Expect(HttpStatusCode.OK);
         after.At("unseenCount").GetInt32().Should().Be(1, "the recruiter's move is news; the owner's own is not");
         after.At("seenAt").GetDateTimeOffset().Should().Be(seenAt);
 
         (await owner.PostAsync("/v1/activity/seen")).Expect(HttpStatusCode.NoContent);
-        var again = (await owner.GetAsync("/v1/activity")).Expect(HttpStatusCode.OK);
+        var again = (await owner.GetAsync(moves)).Expect(HttpStatusCode.OK);
         again.At("unseenCount").GetInt32().Should().Be(0);
         again.At("seenAt").GetDateTimeOffset().Should().BeOnOrAfter(seenAt);
         (await recruiter.GetAsync("/v1/activity")).Expect(HttpStatusCode.OK).At("seenAt").ValueKind

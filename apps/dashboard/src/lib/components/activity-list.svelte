@@ -70,7 +70,8 @@
           <div class="flex items-start gap-2">
             <p class="min-w-0 flex-1 break-words">
               {#if item.href}
-                <a href={item.href} class="font-semibold text-foreground underline underline-offset-2">{item.event}</a>
+                <!-- The whole event is the link, so on a touch screen it is a 44px target (F4) with the rows' spacing kept by the negative margin. -->
+                <a href={item.href} class="font-semibold text-foreground underline underline-offset-2 pointer-coarse:-my-3.5 pointer-coarse:inline-block pointer-coarse:py-3.5">{item.event}</a>
               {:else}
                 <span class="font-semibold">{item.event}</span>
               {/if}
