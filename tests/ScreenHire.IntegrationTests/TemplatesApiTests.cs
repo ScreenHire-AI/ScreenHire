@@ -21,13 +21,13 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         byName["Hourly role"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.HourlyRole);
         byName["Hourly role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HourlyRoleVersion3);
         byName["Office role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.OfficeRoleVersion1);
-        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.TradeRoleVersion2);
+        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.TradeRoleVersion3);
         byName["High volume"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HighVolumeVersion1);
-        byName["Hospitality"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HospitalityVersion1);
+        byName["Hospitality"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HospitalityVersion2);
         byName.Values.Should().OnlyContain(t => t.GetProperty("isSystem").GetBoolean());
         byName["Software engineer"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(5);
         byName["Hourly role"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(3);
-        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(2);
+        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(3);
         byName["Trade role with a trial shift"].GetProperty("description").GetString().Should().Be("Plumber, electrician, driver");
         byName["Hospitality"].GetProperty("description").GetString().Should().Be("Barista, line cook, server");
     }

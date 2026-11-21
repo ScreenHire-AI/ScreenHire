@@ -137,11 +137,29 @@ public sealed record HiringTemplateDefinition(HiringWorkflow Workflow, PostingDe
 /// <c>scorecardTemplateId</c> instead.
 /// <c>scorecardTemplateId</c>: Optional: the library scorecard reviewers fill in this stage, a built-in's id or one of the
 /// organization's own. Not on a terminal stage.
+/// <c>meetingName</c>: Optional: what the meeting held in this stage is called, in plain words and lower case, such as
+/// "trial shift" or "phone screen" (at most 40 characters). The invitation and reminder emails, the candidate's booking
+/// page, the candidate's page and the calendar event use it. Without one the meeting is called "interview".
 /// </remarks>
 public sealed record WorkflowStage(
-    string Id, string Name, StageKind Kind, int? SlaDays = null, Scorecard? Scorecard = null, string? ScorecardTemplateId = null)
+    string Id,
+    string Name,
+    StageKind Kind,
+    int? SlaDays = null,
+    Scorecard? Scorecard = null,
+    string? ScorecardTemplateId = null,
+    string? MeetingName = null)
 {
+    /// <summary>What a meeting is called when its stage names none.</summary>
+    public const string DefaultMeetingName = "interview";
+
+    /// <summary>The longest a meeting name can be.</summary>
+    public const int MaxMeetingNameLength = 40;
+
     // Methods, not properties: a property would join the serialized definition and its JSON Schema.
+
+    /// <summary>What the stage's meeting is called: <see cref="MeetingName"/>, or "interview" when it names none.</summary>
+    public string MeetingNameOrDefault() => string.IsNullOrWhiteSpace(MeetingName) ? DefaultMeetingName : MeetingName.Trim();
 
     /// <summary>Whether reviewers fill a scorecard in this stage: it names a library scorecard or holds a copy.</summary>
     public bool HasScorecard() => Scorecard is not null || ScorecardTemplateId is not null;

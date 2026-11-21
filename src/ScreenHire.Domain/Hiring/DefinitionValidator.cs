@@ -160,6 +160,7 @@ public static partial class DefinitionValidator
                 errors.Add(new(Join(stagePath, "slaDays"), $"The time limit for {stageName} must be between 1 and 365 days. Change it, or clear it."));
             }
 
+            ValidateMeetingName(stage, stagePath, stageName, errors);
             ValidateStageScorecard(stage, stagePath, template, errors);
         }
 
@@ -1335,6 +1336,24 @@ public static partial class DefinitionValidator
             errors.Add(new(path, $"{what} is too long. Keep it to {maxLength.ToString(CultureInfo.InvariantCulture)} characters or fewer."));
         }
     }
+
+    // The meeting's name goes into candidate emails, a page's title and calendar events, so it is plain words: no markup, no
+    // line breaks, and no invisible format characters, such as a right-to-left override that would show the words reversed.
+    private static void ValidateMeetingName(WorkflowStage stage, string stagePath, string stageName, List<DefinitionError> errors)
+    {
+        var path = Join(stagePath, "meetingName");
+        var before = errors.Count;
+        ValidateText(stage.MeetingName, path, WorkflowStage.MaxMeetingNameLength, required: false, $"The meeting name of {stageName}", errors);
+        if (errors.Count == before && stage.MeetingName is { } name && name.Any(IsNotPlain))
+        {
+            errors.Add(new(path, $"The meeting name of {stageName} can use plain words only. Remove the symbols and line breaks."));
+        }
+    }
+
+    private static bool IsNotPlain(char c) =>
+        c is '<' or '>' ||
+        char.IsControl(c) ||
+        char.GetUnicodeCategory(c) is UnicodeCategory.Format or UnicodeCategory.LineSeparator or UnicodeCategory.ParagraphSeparator;
 
     private static string Join(string path, string member) => path.Length == 0 ? member : $"{path}.{member}";
 

@@ -11,9 +11,11 @@ import {
   instantFrom,
   interviewPath,
   isToken,
+  meetingNameOf,
   noticeFor,
   outcomeOf,
   screenOf,
+  sentenceCase,
   shownOutcome,
   timeRange,
   validZone,
@@ -257,6 +259,18 @@ describe('what the page says', () => {
     expect(shownOutcome('<b>hi</b>')).toBeNull();
     expect(shownOutcome('closed')).toBeNull();
     expect(shownOutcome(null)).toBeNull();
+  });
+
+  it('names the meeting the stage gives it, and an interview when it gives none', () => {
+    expect(meetingNameOf('trial shift')).toBe('trial shift');
+    expect(meetingNameOf('  phone screen ')).toBe('phone screen');
+    expect(meetingNameOf('')).toBe('interview');
+    expect(meetingNameOf(null)).toBe('interview');
+    expect(meetingNameOf(undefined)).toBe('interview');
+    expect(sentenceCase('trial shift')).toBe('Trial shift');
+    expect(sentenceCase('')).toBe('');
+    expect(noticeFor('too-late')!.message).toBe('The interview is too close to change here. Reply to the email to reach the hiring team.');
+    expect(noticeFor('too-late', 'trial shift')!.message).toBe('The trial shift is too close to change here. Reply to the email to reach the hiring team.');
   });
 
   it('has plain words for each, and calm ones when nothing is wrong', () => {

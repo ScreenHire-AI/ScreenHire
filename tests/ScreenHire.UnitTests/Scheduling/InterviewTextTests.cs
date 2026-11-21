@@ -98,6 +98,21 @@ public sealed class InterviewTextTests
         InterviewText.EventTitle("Grace Adeyemi", "Support engineer").Should().Be("Interview: Grace Adeyemi - Support engineer");
     }
 
+    [Theory]
+    [InlineData("trial shift", "Trial shift")]
+    [InlineData("interview", "Interview")]
+    [InlineData("phone screen", "Phone screen")]
+    public void A_meeting_name_starting_a_sentence_has_a_capital(string name, string expected) =>
+        InterviewText.Sentence(name).Should().Be(expected);
+
+    [Theory]
+    [InlineData(null, "Interview: Grace Adeyemi - Support engineer")]
+    [InlineData("interview", "Interview: Grace Adeyemi - Support engineer")]
+    [InlineData("trial shift", "Trial shift: Grace Adeyemi - Support engineer")]
+    [InlineData("trial <shift>", "Trial shift: Grace Adeyemi - Support engineer")]
+    public void An_events_title_is_led_by_the_meeting_name_and_stays_plain(string? meetingName, string expected) =>
+        InterviewText.EventTitle("Grace Adeyemi", "Support engineer", meetingName).Should().Be(expected);
+
     [Fact]
     public void A_name_or_title_cannot_put_markup_or_a_new_line_in_an_event()
     {
@@ -271,6 +286,91 @@ public sealed class InterviewTextTests
 
         var bare = InterviewReminderEmail.Compose("robin@example.com", "Casey Morgan", "Platform Engineer", "Brightwater", "10:00 AM", null, null);
         bare.TextBody.Should().NotContain("Meeting link").And.NotContain("Open the application");
+    }
+
+    [Fact]
+    public void The_interviewers_reminder_calls_the_meeting_what_the_stage_calls_it()
+    {
+        var named = InterviewReminderEmail.Compose(
+            "robin@example.com", "Casey Morgan", "Line Cook", "Brightwater", "10:00 AM", null, null, "trial shift");
+        var plain = InterviewReminderEmail.Compose("robin@example.com", "Casey Morgan", "Line Cook", "Brightwater", "10:00 AM", null, null);
+
+        named.Subject.Should().Be("Trial shift in a day: Casey Morgan");
+        named.TextBody.Should().Contain("Your trial shift with a candidate is in about a day: Casey Morgan, Line Cook, at Brightwater.");
+        named.HtmlBody.Should().Contain("<p>Your trial shift with a candidate is in about a day:");
+        plain.Subject.Should().Be("Interview in a day: Casey Morgan");
+        plain.TextBody.Should().Contain("Your interview with a candidate is in about a day");
+    }
+
+    public static TheoryData<string> InterviewEmailIds => new()
+    {
+        EmailTemplateIds.InterviewInvitation, EmailTemplateIds.InterviewConfirmation, EmailTemplateIds.InterviewCancelled,
+        EmailTemplateIds.InterviewNewTimes, EmailTemplateIds.InterviewReminder,
+    };
+
+    [Theory]
+    [MemberData(nameof(InterviewEmailIds))]
+    public void The_meeting_name_is_a_variable_of_each_interview_email(string id)
+    {
+        var templates = new EmailTemplates();
+        var content = templates.Default(id);
+
+        templates.Validate(id, content with { Body = content.Body + "<p>{{ meeting.name }}</p>" }).Should().BeEmpty();
+        EmailTemplates.VariablesFor(id).Should().Contain(v => v.Name == "meeting.name");
+    }
+
+    [Theory]
+    [InlineData(EmailTemplateIds.ApplicationReceived)]
+    [InlineData(EmailTemplateIds.StageChange)]
+    [InlineData(EmailTemplateIds.QuestionnaireRequest)]
+    [InlineData(EmailTemplateIds.ApplicationRejected)]
+    [InlineData(EmailTemplateIds.TalentPoolInvitation)]
+    [InlineData(null)]
+    public void The_meeting_name_is_unknown_to_every_other_template(string? id)
+    {
+        new EmailTemplates().Validate(id, new("Hi", "<p>{{ meeting.name }}</p>")).Should().ContainSingle(p => p.Message.Contains("no variable \"meeting.name\""));
+    }
+
+    [Theory]
+    [InlineData("{{ candidateName.size }}")]
+    [InlineData("{{ meeting.name.size }}")]
+    [InlineData("{{ meeting.title }}")]
+    [InlineData("{{ meeting }}")]
+    public void A_dotted_name_is_a_variable_only_when_it_is_in_the_list(string output)
+    {
+        var templates = new EmailTemplates();
+        var content = templates.Default(EmailTemplateIds.InterviewReminder);
+
+        templates.Validate(EmailTemplateIds.InterviewReminder, content with { Body = content.Body + $"<p>{output}</p>" }).Should().NotBeEmpty();
+    }
+
+    [Theory]
+    [MemberData(nameof(InterviewEmailIds))]
+    public void The_built_in_interview_subjects_name_the_meeting_and_say_interview_when_there_is_no_name(string id)
+    {
+        var templates = new EmailTemplates();
+        var sample = EmailTemplateModel.Sample("Brightwater");
+
+        var named = templates.Render(id, "grace@example.com", sample with { MeetingName = "trial shift" });
+        var unnamed = templates.Render(id, "grace@example.com", sample with { MeetingName = null });
+
+        named.Subject.Should().Contain("trial shift").And.NotContain("interview");
+        named.TextBody.Should().Contain("trial shift");
+        unnamed.Subject.Should().Contain("interview");
+        unnamed.TextBody.Should().Contain("interview");
+    }
+
+    [Theory]
+    [InlineData(EmailTemplateIds.InterviewInvitation, "Pick a time for your trial shift with Brightwater about Product designer")]
+    [InlineData(EmailTemplateIds.InterviewConfirmation, "Your trial shift with Brightwater is set")]
+    [InlineData(EmailTemplateIds.InterviewCancelled, "Your trial shift with Brightwater is cancelled")]
+    [InlineData(EmailTemplateIds.InterviewNewTimes, "New times for your trial shift with Brightwater about Product designer")]
+    [InlineData(EmailTemplateIds.InterviewReminder, "Reminder: your trial shift with Brightwater")]
+    public void Each_built_in_subject_reads_as_the_wording_the_team_agreed(string id, string expected)
+    {
+        var message = new EmailTemplates().Render(id, "grace@example.com", EmailTemplateModel.Sample("Brightwater") with { MeetingName = "trial shift" });
+
+        message.Subject.Should().Be(expected);
     }
 
     [Fact]

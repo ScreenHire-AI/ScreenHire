@@ -17,8 +17,8 @@ public sealed class StartingPointsTests
 
         pairs.Should().Equal(
             (SystemTemplates.OfficeRole, SystemTemplates.OfficeRoleVersion1),
-            (SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion2),
-            (SystemTemplates.Hospitality, SystemTemplates.HospitalityVersion1),
+            (SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion3),
+            (SystemTemplates.Hospitality, SystemTemplates.HospitalityVersion2),
             (SystemTemplates.HighVolume, SystemTemplates.HighVolumeVersion1));
     }
 }

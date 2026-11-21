@@ -43,6 +43,7 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
         var invitation = await world.WaitForEmailAsync(world.CandidateEmail, "Pick a time");
         var token = InterviewWorld.TokenIn(invitation.Text);
         invitation.Text.Should().Contain(world.Slug).And.Contain("30 minutes");
+        invitation.Subject.Should().StartWith("Pick a time for your interview with ", "a stage with no meeting name calls it an interview");
         // Like every email about an application it carries a reply address, so an emailed answer lands in Messages, and the
         // candidate's link to their own page, which the team's copy never holds.
         invitation.ReplyTo.Should().NotBeNull("an interview email can be answered by email");

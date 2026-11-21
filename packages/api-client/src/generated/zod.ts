@@ -929,8 +929,9 @@ export const GetPublicInterviewResponse = zod.object({
   "slotsUnavailable": zod.boolean(),
   "canChange": zod.boolean(),
   "minNoticeHours": zod.int(),
-  "newTimesOffered": zod.boolean()
-}).describe('The interview as the candidate\'s page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team\'s calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. `newTimesOffered` is true while the team\'s offer of new times waits for the candidate: the\nbooked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.\nNothing about the interviewers, and nothing from verification.')
+  "newTimesOffered": zod.boolean(),
+  "meetingName": zod.string()
+}).describe('The interview as the candidate\'s page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team\'s calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. `newTimesOffered` is true while the team\'s offer of new times waits for the candidate: the\nbooked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.\n`meetingName` is what the team calls the meeting (the stage\'s meeting name), in lower case, such as "trial shift"\nor "interview"; the page uses it for its title, headings and buttons.\nNothing about the interviewers, and nothing from verification.')
 
 
 export const BookPublicInterviewParams = zod.object({
@@ -1123,8 +1124,9 @@ export const GetPublicPortalResponse = zod.object({
 }).describe('Where an application stands on the four fixed steps every job shares. `current` is an index into `steps`, or\nnull once the application ended, and then `ended` says how. Nothing about the employer\'s own stages is in it.'),
   "waiting": zod.array(zod.object({
   "kind": zod.enum(['Questionnaire', 'Interview']).describe('What something is waiting on the candidate for.'),
-  "token": zod.string()
-}).describe('Something the candidate can act on, with the token of the existing careers page for it\n(`/questionnaires/{token}` or `/interviews/{token}`). The name of a questionnaire is the team\'s wording for it\nand is not sent.')),
+  "token": zod.string(),
+  "meetingName": zod.string().nullish()
+}).describe('Something the candidate can act on, with the token of the existing careers page for it\n(`/questionnaires/{token}` or `/interviews/{token}`). The name of a questionnaire is the team\'s wording for it\nand is not sent. `meetingName` is on an interview only: what the team calls the meeting, such as "trial shift".')),
   "hasMessages": zod.boolean(),
   "canReply": zod.boolean()
 }).describe('One of the candidate\'s applications to this organization.')),
@@ -1278,7 +1280,8 @@ export const CreateJobResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1487,7 +1490,8 @@ export const GetJobResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1719,7 +1723,8 @@ export const UpdateJobResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1980,7 +1985,8 @@ export const SetJobAiUseResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2193,7 +2199,8 @@ export const PublishJobResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2402,7 +2409,8 @@ export const CloseJobResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2653,7 +2661,8 @@ export const UpdateJobWorkflowBody = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2804,7 +2813,8 @@ export const UpdateJobWorkflowResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3018,7 +3028,8 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3225,7 +3236,8 @@ export const CreateHiringTemplateBody = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3497,7 +3509,8 @@ export const CreateHiringTemplateVersionBody = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3637,7 +3650,8 @@ export const CreateHiringTemplateVersionResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3790,7 +3804,8 @@ export const GetHiringTemplateVersionResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3939,7 +3954,8 @@ export const UpdateHiringTemplateVersionBody = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -4079,7 +4095,8 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -4232,7 +4249,8 @@ export const PublishHiringTemplateVersionResponse = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -8368,7 +8386,8 @@ export const ValidateWorkflowBody = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -8503,7 +8522,8 @@ export const SimulateWorkflowBody = zod.object({
 })).nullish()
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
-  "scorecardTemplateId": zod.string().nullish()
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({

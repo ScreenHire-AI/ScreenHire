@@ -107,7 +107,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
 
         // Where the phone pictures stop: between elements, never through the middle of one.
         static ILocator Stage4(IPage page) => page.GetByRole(AriaRole.List, new() { Name = "Stages in order" }).Locator("> li").Nth(3);
-        static ILocator Book(IPage page) => page.GetByRole(AriaRole.Button, new() { Name = "Book this time" });
+        static ILocator Book(IPage page) => page.GetByRole(AriaRole.Button, new() { Name = "Book your interview" });
         static ILocator Entry(IPage page, string text) => page.Locator("main ol[aria-label] > li").Filter(new() { HasText = text });
 
         var screens = new List<Screen>
@@ -616,7 +616,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         var booking = await candidate.NewPageAsync();
         await booking.GotoAsync(link + "?tz=Europe%2FLondon");
         await booking.GetByRole(AriaRole.Radio).Nth(2).CheckAsync();
-        await booking.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+        await booking.GetByRole(AriaRole.Button, new() { Name = "Book your interview" }).ClickAsync();
         await Expect(booking.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
         await booking.CloseAsync();
 

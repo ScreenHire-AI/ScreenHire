@@ -23975,7 +23975,8 @@
           "slotsUnavailable",
           "canChange",
           "minNoticeHours",
-          "newTimesOffered"
+          "newTimesOffered",
+          "meetingName"
         ],
         "type": "object",
         "properties": {
@@ -24031,9 +24032,12 @@
           },
           "newTimesOffered": {
             "type": "boolean"
+          },
+          "meetingName": {
+            "type": "string"
           }
         },
-        "description": "The interview as the candidate's page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team's calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. `newTimesOffered` is true while the team's offer of new times waits for the candidate: the\nbooked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.\nNothing about the interviewers, and nothing from verification."
+        "description": "The interview as the candidate's page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team's calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. `newTimesOffered` is true while the team's offer of new times waits for the candidate: the\nbooked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.\n`meetingName` is what the team calls the meeting (the stage's meeting name), in lower case, such as \"trial shift\"\nor \"interview\"; the page uses it for its title, headings and buttons.\nNothing about the interviewers, and nothing from verification."
       },
       "PublicInterviewChoice": {
         "required": [
@@ -24557,9 +24561,15 @@
           },
           "token": {
             "type": "string"
+          },
+          "meetingName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "Something the candidate can act on, with the token of the existing careers page for it\n(`/questionnaires/{token}` or `/interviews/{token}`). The name of a questionnaire is the team's wording for it\nand is not sent."
+        "description": "Something the candidate can act on, with the token of the existing careers page for it\n(`/questionnaires/{token}` or `/interviews/{token}`). The name of a questionnaire is the team's wording for it\nand is not sent. `meetingName` is on an interview only: what the team calls the meeting, such as \"trial shift\"."
       },
       "PublicPortalWaitingKind": {
         "enum": [
@@ -29242,6 +29252,12 @@
             ]
           },
           "scorecardTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "meetingName": {
             "type": [
               "null",
               "string"
