@@ -216,7 +216,9 @@
     {/if}
   </Sidebar.Header>
 
-  <Sidebar.Content>
+  <!-- A thin scrollbar: in the icon rail the full one, with its arrows, was wider than the icons it scrolled (the owner's
+       walk-through, 2026-11-21). -->
+  <Sidebar.Content class="[scrollbar-width:thin]">
     <nav aria-label="Main" class="flex shrink-0 grow flex-col">
       <Sidebar.Group>
         <Sidebar.Menu>

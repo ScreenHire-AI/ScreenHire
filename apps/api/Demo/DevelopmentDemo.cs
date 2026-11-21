@@ -606,8 +606,12 @@ internal sealed partial class DevelopmentDemo(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>The question Jordan Ellis adds to version 2 of Brightwater's template, so its History has a story to tell.</summary>
-    public static Question NoticePeriodQuestion { get; } = new("demo_notice_period", QuestionType.ShortText, "What is your notice period?");
+    /// <summary>
+    /// The question Jordan Ellis adds to version 2 of Brightwater's template, so its History has a story to tell. Not the
+    /// notice period: the Software engineer template already asks that, and the draft showed it twice (the owner's
+    /// walk-through, 2026-11-21).
+    /// </summary>
+    public static Question NoticePeriodQuestion { get; } = new("demo_start_date", QuestionType.ShortText, "When could you start?");
 
     /// <summary>The email template of Brightwater's own that Avery Quinn adds and then edits.</summary>
     public const string InterviewEmailName = "Interview invitation";

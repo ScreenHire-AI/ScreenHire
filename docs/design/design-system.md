@@ -230,6 +230,22 @@ Authors check their screens against this list, and the `design-review` agent rep
   Remove, and a wrong type or a file too large is refused in the field's error, in words, before it is sent. A field that
   takes several files (a candidate's reply on their own page) uses the Drop area's `multiple` mode: one row per file with
   its name, size and its own Remove, and one refusal line per refused file in the field's error.
+- **A13** Anything that answers a click looks like it will before it is hovered: a button or link style, or an icon that
+  says what it does beside the words. A heading, a plain line of text or a chevron far from its label never hides a control
+  ("What was checked" with its chevron 1,700px away; a stage name that opened a menu: the owner's walk-through,
+  2026-11-21).
+- **A14** Words that name a control are that control, or sit beside it. Copy never sends people looking for a button
+  elsewhere on the page ("To change your card or cancel, use Manage billing" while Manage billing was in the header): the
+  named words open it.
+- **A15** Integrations stay provider-neutral. An integration shows in the product only once someone connects it (Slack's
+  "By Slack message" beside "By email"); until then nothing mentions it outside Settings, Integrations. Where a task cannot
+  work without one of a kind, the prompt names the kind ("Connect a calendar"), never one provider.
+- **A16** A short create form (a handful of fields, no live preview) opens in a Sheet over its list, and the new row
+  appears behind it on save. A long editor with a live preview (a job, a hiring template, an email template) has its own
+  page. A dialog only confirms.
+- **A17** What changes in place moves a little: a row opening or closing, a sheet, a tab's content. 150 to 200ms,
+  ease-in-out, on named properties (M8), and none with reduced motion. Snapping read as abrupt (the owner's walk-through,
+  2026-11-21).
 
 **Words and type**
 
@@ -270,6 +286,11 @@ Authors check their screens against this list, and the `design-review` agent rep
   the whole page, such as the Verification tab's "No automated decision has been made" and its ruleset, it is the page's
   last line instead, under every panel and in none of them (section 16). A calm result is shorter than a concern: one
   quiet line, not the full layout.
+- **W12** One decision per screen. A screen shows the few things its next decision needs, and everything else is one
+  click away (a row that opens, a sheet, a tooltip). A screen that makes people read paragraphs before they can act fails,
+  whoever it is for: a plumber setting up a first job reads no more than a recruiter does.
+- **W13** One word for one thing. A job's hiring process is its pipeline, made of stages: never a journey or a workflow
+  in what people read ("workflow" is the engine's word in the code).
 - **T1** Status is a badge: its icon, colour and label, always all three (section 3.2). The icon alone tells statuses
   apart. Status colours mean status only.
 - **T2** Status comes first in its group: beside the title, or first in the row.
