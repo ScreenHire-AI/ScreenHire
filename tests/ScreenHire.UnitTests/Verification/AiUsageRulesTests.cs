@@ -213,6 +213,9 @@ public sealed class AiUsageRulesTests
         AiUsageMix.Dollars(0, 1.6m).Should().Be(0m);
         AiUsageMix.DefaultInDollars(2_000_000, 1.6m).Should().Be(3.2m);
         AiUsageMix.DefaultInDollars(1, 1.6m).Should().Be(0.01m, "a default that is not zero never reads as $0.00");
+        AiUsageMix.EstimateInDollars(35_535, 1.6m).Should().Be(0.0569m, "what was used is an estimate to four places, like a call's cost");
+        AiUsageMix.EstimateInDollars(400, 1.6m).Should().Be(0.0006m, "one small check never reads as $0.00");
+        AiUsageMix.EstimateInDollars(0, 1.6m).Should().Be(0m);
     }
 
     [Fact]

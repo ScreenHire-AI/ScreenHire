@@ -112,11 +112,12 @@ rest of Verification cannot change spend controls. The month is the UTC calendar
   dollars: the Overview's AI budget panel, the Usage tab and the Notifications tab all read the same figure. The API prices it at the
   model that answers on ScreenHire's key (`LlmOptions.ConfiguredPrice`: the comparison model for Anthropic, the fake model for Fake)
   and a fixed mix of 80% input and 20% output tokens (`AiUsageMix.InputShare`: the consistency check reads long sources and answers
-  briefly). At 1.00 in and 4.00 out per million tokens that is 1.60 dollars per million, so 2,000,000 tokens show as $3.20. What was
-  used against it is the month's actual cost, the same figure as the Usage tab's Cost, so one page never shows two costs for one
-  month. The dollar default is an estimate: it is still enforced in tokens, and the share (`percent`, the alerts at 50%, 80% and
-  100%, the cap) is the token one, so near a threshold the dollars and the share can disagree by the gap between the usual mix and
-  the month's real one. Where the model has no input and output price in `Llm:Prices`, the default stays in tokens. Each limit counts
+  briefly). At 1.00 in and 4.00 out per million tokens that is 1.60 dollars per million, so 2,000,000 tokens show as $3.20, and what
+  was used is the month's tokens at the same price. Both are an estimate: the default is still enforced in tokens, so
+  "used of amount" is exactly the share (`percent`) the status, the alerts at 50%, 80% and 100% and the cap count. It can differ from
+  the Usage tab's Cost, which is what the calls actually cost at their own mix, so the limits panel says once, in a caption, that the
+  default counts tokens and its dollars are an estimate. Where the model has no input and output price in `Llm:Prices`, the default
+  stays in tokens. Each limit counts
   in its own unit: once an Owner sets a budget, that budget keeps the unit they chose, and a cap they left alone is still the default
   in dollars. With no limit of its own, the Owner's limits form starts in the default's unit and names its figure ("$3.20 a month"),
   so a number typed after reading the Overview is dollars too. The API reads `Llm:Prices`, the model ids and the defaults, which the

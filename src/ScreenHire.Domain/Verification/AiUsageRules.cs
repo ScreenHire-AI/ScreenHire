@@ -61,6 +61,13 @@ public static class AiUsageMix
     public static decimal? DollarPriceFor(bool isDefault, UsageUnit unit, decimal? blendedPerMillion)
         => isDefault && unit == UsageUnit.Tokens && blendedPerMillion is > 0 ? blendedPerMillion : null;
 
+    /// <summary>
+    /// What <paramref name="tokens"/> used against a default shown in dollars come to, to four places like a call's cost, so one
+    /// check's use never reads as $0.00.
+    /// </summary>
+    public static decimal EstimateInDollars(decimal tokens, decimal blendedPerMillion)
+        => Math.Round(Dollars(tokens, blendedPerMillion), 4, MidpointRounding.AwayFromZero);
+
     /// <summary>A default limit of <paramref name="tokens"/> in dollars, to the cent, and never shown as $0.00.</summary>
     public static decimal DefaultInDollars(decimal tokens, decimal blendedPerMillion)
         => Math.Max(0.01m, Math.Round(Dollars(tokens, blendedPerMillion), 2, MidpointRounding.AwayFromZero));

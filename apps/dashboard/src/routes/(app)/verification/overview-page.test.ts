@@ -121,12 +121,13 @@ describe('the Overview tab', () => {
     expect(screen.getByRole('link', { name: 'See usage' })).toHaveAttribute('href', '/verification/usage');
   });
 
-  it('shows the default budget in dollars where the deployment prices its model, and in tokens where it does not', async () => {
+  it('shows the default budget in dollars where the deployment prices its model, and says the dollars are an estimate', async () => {
     renderPage(overview, user, true, dollarLimits);
 
     expect(await screen.findByRole('heading', { name: 'AI budget this month' })).toBeInTheDocument();
-    expect((await screen.findAllByText('$0.0007 of $3.20')).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/tokens/)).not.toBeInTheDocument();
+    expect((await screen.findAllByText('$0.0569 of $3.20')).length).toBeGreaterThan(0);
+    expect(screen.getByText(/In dollars it is an estimate/)).toBeInTheDocument();
+    expect(screen.queryByText(/tokens of/)).not.toBeInTheDocument();
   });
 
   describe.each(['Recruiter', 'Viewer'] as const)('for a %s', (role) => {

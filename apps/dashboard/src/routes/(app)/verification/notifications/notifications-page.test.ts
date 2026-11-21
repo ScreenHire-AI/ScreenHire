@@ -82,19 +82,21 @@ describe('the Notifications tab', () => {
     expect(screen.getByText(/default cap, \$3\.20 a month, for its own key/)).toBeInTheDocument();
   });
 
-  it('keeps the unit an Owner chose once they have set a limit', async () => {
-    renderPage(settingsWith({ limits: { ...dollarLimits, budget: 4_000_000, effectiveBudget: { amount: 4_000_000, unit: 'Tokens', isDefault: false, used: 420, percent: 0 } } }));
+  it('keeps the unit an Owner chose once they have set a limit, though the default beside it shows in dollars', async () => {
+    // Their own cap in tokens; the budget they left alone is the default, in dollars, and comes first.
+    renderPage(settingsWith({ limits: { ...dollarLimits, cap: 4_000_000, effectiveCap: { amount: 4_000_000, unit: 'Tokens', isDefault: false, used: 420, percent: 0 } } }));
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
     expect(screen.getByLabelText('Count in')).toHaveValue('Tokens');
-    expect(screen.getByLabelText(/Monthly budget/)).toHaveValue('4000000');
+    expect(screen.getByLabelText(/Monthly cap/)).toHaveValue('4000000');
   });
 
   it('shows an Admin the default budget and cap in dollars where the deployment prices its model', async () => {
     renderPage(settingsWith({ limits: dollarLimits }), {}, userAs('Admin'));
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
-    expect(screen.getAllByText('$0.0007 of $3.20')).toHaveLength(2);
+    expect(screen.getAllByText('$0.0569 of $3.20')).toHaveLength(2);
+    expect(screen.getByText(/In dollars it is an estimate/)).toBeInTheDocument();
     expect(screen.queryByText(/tokens of/)).not.toBeInTheDocument();
   });
 });

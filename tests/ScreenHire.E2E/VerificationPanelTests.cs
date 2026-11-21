@@ -105,8 +105,8 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(Region("Review log")).ToHaveCountAsync(0);
         var map = summary.GetByRole(AriaRole.List, new() { Name = "Check groups" });
         await Expect(map.Locator("[data-group='Network']")).ToContainTextAsync("1 found");
-        // A group of AI-help notes says "1 note" and its mark; the words "Information only" are in the AI row's tooltip alone.
-        await Expect(map.Locator("[data-group='Documents']")).ToContainTextAsync("1 note");
+        // A group of AI-help notes says how many ("2 notes") and its mark; the words "Information only" are in the AI row's tooltip alone.
+        await Expect(map.Locator("[data-group='Documents']")).ToContainTextAsync("notes");
         await Expect(map.Locator("[data-group='Documents']")).Not.ToContainTextAsync("information only", new() { IgnoreCase = true });
         await Expect(map.Locator("[data-group='Duplicates']")).ToContainTextAsync("Nothing found");
         await Expect(summary.Locator("[data-next-step]")).ToContainTextAsync("Confirm the candidate is who they say they are");

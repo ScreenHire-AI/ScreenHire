@@ -90,9 +90,10 @@ internal static class AiUsageHandlers
             var percent = limit > 0 ? (int)Math.Min(1000m, Math.Floor(used * 100m / limit)) : 0;
             if (AiUsageMix.DollarPriceFor(own is null, unit, blended) is { } perMillion)
             {
-                // The amount is an estimate at the usual mix; what was used is the month's actual cost, the Usage tab's own figure, so
-                // one page never shows two costs for one month. The percent stays the token one: the alerts and the cap count tokens.
-                return new AiUsageLimitView(AiUsageMix.DefaultInDollars(limit, perMillion), UsageUnit.Money, true, await UsedAsync(UsageUnit.Money), percent);
+                // Both figures are the month's tokens at the usual mix, so "used of amount" is the share the alerts and the
+                // cap count. The dashboard says it is an estimate, beside the Usage tab's actual cost.
+                return new AiUsageLimitView(
+                    AiUsageMix.DefaultInDollars(limit, perMillion), UsageUnit.Money, true, AiUsageMix.EstimateInDollars(used, perMillion), percent);
             }
 
             return new AiUsageLimitView(limit, unit, own is null, used, percent);
