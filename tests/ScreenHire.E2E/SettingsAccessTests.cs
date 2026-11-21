@@ -153,7 +153,7 @@ public sealed class SettingsAccessTests(E2EFixture fixture) : SettingsArea(fixtu
         var row = Page.GetByRole(AriaRole.Row).Filter(new() { HasText = clientName });
         await Expect(row).ToContainTextAsync("Active");
         await Expect(row).ToContainTextAsync("Read and write");
-        await Expect(row).ToContainTextAsync(email);
+        await Expect(row).ToContainTextAsync(ApiSession.OwnerName);
 
         // Disconnecting is destructive: it is in the row's menu and confirmed in a dialog.
         await row.GetByRole(AriaRole.Button, new() { Name = $"Actions for {clientName}" }).ClickAsync();

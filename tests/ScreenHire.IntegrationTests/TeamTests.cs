@@ -125,10 +125,64 @@ public sealed class TeamTests(AppHostFixture fixture)
         await first.AcceptInvitationAsync(token, Ct);
 
         using var second = new ApiSession(fixture);
-        using var reused = await second.PostAsync("/v1/auth/invitations/accept", new { token }, Ct);
+        using var reused = await second.PostAsync("/v1/auth/invitations/accept", new { token, name = "Jordan Lee" }, Ct);
 
         await ExpectRefusedAsync(reused);
         (await second.CurrentUserAsync(Ct)).Should().BeNull("a refused invitation signs nobody in");
+    }
+
+    [Fact]
+    public async Task Accepting_asks_an_address_with_no_name_for_one_and_a_refusal_leaves_the_invitation_usable()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var email = ApiSession.NewEmail("nameless");
+        (await owner.PostAsync("/v1/organization/invitations", Invite(email, "Recruiter"))).Expect(HttpStatusCode.Created);
+        var token = await fixture.Mailpit.WaitForInvitationTokenAsync(email, Ct);
+        using var invitee = new ApiSession(fixture);
+
+        using (var lookup = await invitee.PostAsync("/v1/auth/invitations/lookup", new { token }, Ct))
+        {
+            (await lookup.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("needsName").GetBoolean().Should().BeTrue();
+        }
+
+        foreach (var posted in new[] { null, "   " })
+        {
+            using var refused = await invitee.PostAsync("/v1/auth/invitations/accept", new { token, name = posted }, Ct);
+            refused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            var problem = await refused.Content.ReadFromJsonAsync<JsonElement>(Ct);
+            problem.GetProperty("errors").GetProperty("name")[0].GetString().Should().Be("Enter your name.");
+        }
+
+        (await invitee.CurrentUserAsync(Ct)).Should().BeNull("a refused invitation signs nobody in");
+        (await owner.GetAsync("/v1/organization/invitations")).Count().Should().Be(1, "it was not used up");
+
+        using var accepted = await invitee.PostAsync("/v1/auth/invitations/accept", new { token, name = "  Jordan Lee  " }, Ct);
+        accepted.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await accepted.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("name").GetString().Should().Be("Jordan Lee");
+        var members = await invitee.Client.GetFromJsonAsync<JsonElement>("/v1/organization/members", Ct);
+        members.EnumerateArray().Select(m => m.GetProperty("displayName").GetString()).Should().Contain("Jordan Lee");
+    }
+
+    [Fact]
+    public async Task Accepting_keeps_the_name_an_account_already_has_and_does_not_ask_for_another()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var email = ApiSession.NewEmail("named");
+        using var invitee = new ApiSession(fixture);
+        await invitee.SignInWithMagicLinkAsync(email, Ct);
+        await invitee.OnboardAsync(Ct); // their own organization first, which asks their name ("Riley Harper")
+        (await owner.PostAsync("/v1/organization/invitations", Invite(email, "Viewer"))).Expect(HttpStatusCode.Created);
+        var token = await fixture.Mailpit.WaitForInvitationTokenAsync(email, Ct);
+
+        using (var lookup = await invitee.PostAsync("/v1/auth/invitations/lookup", new { token }, Ct))
+        {
+            (await lookup.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("needsName").GetBoolean().Should().BeFalse();
+        }
+
+        // No name needed, and a posted one does not rename the account.
+        using var accepted = await invitee.PostAsync("/v1/auth/invitations/accept", new { token, name = "Someone Else" }, Ct);
+        accepted.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await accepted.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("name").GetString().Should().Be("Riley Harper");
     }
 
     [Fact]
@@ -142,8 +196,8 @@ public sealed class TeamTests(AppHostFixture fixture)
         using var second = new ApiSession(fixture);
 
         var responses = await Task.WhenAll(
-            first.PostAsync("/v1/auth/invitations/accept", new { token }, Ct),
-            second.PostAsync("/v1/auth/invitations/accept", new { token }, Ct));
+            first.PostAsync("/v1/auth/invitations/accept", new { token, name = "Jordan Lee" }, Ct),
+            second.PostAsync("/v1/auth/invitations/accept", new { token, name = "Jordan Lee" }, Ct));
 
         try
         {
@@ -179,7 +233,7 @@ public sealed class TeamTests(AppHostFixture fixture)
 
         using var invitee = new ApiSession(fixture);
         await ExpectRefusedAsync(await invitee.PostAsync("/v1/auth/invitations/lookup", new { token }, Ct));
-        using var response = await invitee.PostAsync("/v1/auth/invitations/accept", new { token }, Ct);
+        using var response = await invitee.PostAsync("/v1/auth/invitations/accept", new { token, name = "Jordan Lee" }, Ct);
 
         await ExpectRefusedAsync(response);
         (await owner.GetAsync("/v1/organization/invitations")).Count().Should().Be(0, "an expired invitation is not pending");

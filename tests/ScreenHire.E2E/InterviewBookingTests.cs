@@ -366,7 +366,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
         try
         {
             await owner.SignInWithDevSsoAsync(ownerEmail, Ct);
-            await ReadAsync(await owner.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
+            await ReadAsync(await owner.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
             await owner.ConnectSandboxCalendarAsync(Ct);
 
             using (var invited = await owner.PostAsync("/v1/organization/invitations", new { email = recruiterEmail, role = "Recruiter" }, Ct))
@@ -376,7 +376,7 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
 
             recruiter = new ApiSession(Fixture);
             var token = await Fixture.Mailpit.WaitForInvitationTokenAsync(recruiterEmail, Ct);
-            using (var accepted = await recruiter.PostAsync("/v1/auth/invitations/accept", new { token }, Ct))
+            using (var accepted = await recruiter.PostAsync("/v1/auth/invitations/accept", new { token, name = ApiSession.NewName("Jordan") }, Ct))
             {
                 accepted.StatusCode.Should().Be(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync(Ct));
             }

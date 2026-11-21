@@ -23,7 +23,7 @@ public sealed class ViewSharingTests(E2EFixture fixture) : BrowserTest(fixture)
     {
         using var ownerSession = new ApiSession(Fixture);
         await ownerSession.SignInWithDevSsoAsync(ApiSession.NewEmail("owner"), Ct);
-        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
         var recruiterEmail = ApiSession.NewEmail("recruiter");
         using var recruiterSession = await InviteAsync(ownerSession, recruiterEmail, "Recruiter");
 
@@ -104,7 +104,7 @@ public sealed class ViewSharingTests(E2EFixture fixture) : BrowserTest(fixture)
         var session = new ApiSession(Fixture);
         try
         {
-            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token }, Ct);
+            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = ApiSession.NewName("Jordan") }, Ct);
             accepted.StatusCode.Should().Be(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync(Ct));
             return session;
         }

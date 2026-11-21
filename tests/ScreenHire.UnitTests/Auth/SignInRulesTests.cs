@@ -174,5 +174,23 @@ public sealed class SignInRulesTests
         domains.AppUrl("/sign-in?error=provider").Should().Be(new Uri("https://app.example.com/sign-in?error=provider"));
     }
 
+    // The provider's name claim is kept only when it is a name the users table can hold: blank, the address itself or one
+    // longer than display_name's 200 characters counts as none, so the form asks instead of the sign-in failing on save.
+    [Theory]
+    [InlineData("  Casey Morgan ", "Casey Morgan")]
+    [InlineData("", null)]
+    [InlineData("   ", null)]
+    [InlineData(null, null)]
+    [InlineData("Casey@Example.com", null)]
+    public void A_name_is_kept_trimmed_unless_it_is_blank_or_the_address(string? name, string? kept) =>
+        ScreenHire.Api.Endpoints.AuthEndpoints.UsableName(name, "casey@example.com").Should().Be(kept);
+
+    [Fact]
+    public void A_name_longer_than_the_column_counts_as_none()
+    {
+        ScreenHire.Api.Endpoints.AuthEndpoints.UsableName(new string('a', 200), "casey@example.com").Should().HaveLength(200);
+        ScreenHire.Api.Endpoints.AuthEndpoints.UsableName(new string('a', 201), "casey@example.com").Should().BeNull();
+    }
+
     private static ClaimsPrincipal Principal(IEnumerable<Claim> claims) => new(new ClaimsIdentity(claims, "test"));
 }

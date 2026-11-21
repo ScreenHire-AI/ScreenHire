@@ -1,4 +1,3 @@
-import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
@@ -19,12 +18,11 @@ const unreadItem = {
 };
 const readItem = { ...unreadItem, id: id(2), payload: { domain: 'example.org' }, readAt: '2026-10-20T11:00:00Z' };
 
-// A new organization: the signed-in Owner alone, nothing set, no job published. Four steps are open (no email provider here).
+// A new organization: the signed-in Owner alone, nothing set, no job published. Three steps are open (no email provider here).
 const newOrganization = {
   'GET /v1/organization/members': () => Response.json([{ id: 'avery' }]),
   'GET /v1/organization/invitations': () => Response.json([]),
   'GET /v1/organization/branding': () => Response.json({ brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
-  'GET /v1/organization': () => Response.json({ embedOrigins: [], questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE, lastUpdated: { at: null, by: null, created: true } }),
   'GET /v1/organization/sending-domain': () => Response.json({ available: false, sandbox: false, domain: null }),
   'GET /v1/jobs': () => Response.json(jobs.map((job) => ({ ...job, publishedAt: null }))),
 };
@@ -57,9 +55,9 @@ describe('notification bell', () => {
     stub([unreadItem, readItem], 1);
     renderBell();
 
-    // Four steps open, one alert unread. The read one is still listed but does not count.
-    const button = await screen.findByRole('button', { name: 'Notifications, 5 need attention' });
-    expect(button.querySelector('[data-bell-count]')).toHaveTextContent('5');
+    // Three steps open, one alert unread. The read one is still listed but does not count.
+    const button = await screen.findByRole('button', { name: 'Notifications, 4 need attention' });
+    expect(button.querySelector('[data-bell-count]')).toHaveTextContent('4');
   });
 
   it('opens at its setup steps when a page asks, and not for an ask made before it mounted', async () => {
@@ -67,7 +65,7 @@ describe('notification bell', () => {
     stub([unreadItem], 1);
     renderBell();
     // Once the steps are in, so the panel has its setup section to put focus on.
-    await screen.findByRole('button', { name: 'Notifications, 5 need attention' });
+    await screen.findByRole('button', { name: 'Notifications, 4 need attention' });
     expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull();
 
     setupPanel.open();
@@ -88,7 +86,7 @@ describe('notification bell', () => {
 
     renderBell();
     // Once the steps are in, the moment it would open.
-    await screen.findByRole('button', { name: 'Notifications, 4 need attention' });
+    await screen.findByRole('button', { name: 'Notifications, 3 need attention' });
     expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull();
   });
 
@@ -108,7 +106,7 @@ describe('notification bell', () => {
   it('starts focus on the panel again when it is opened by hand after a page opened it at the steps', async () => {
     stub([], 0);
     renderBell();
-    await screen.findByRole('button', { name: 'Notifications, 4 need attention' });
+    await screen.findByRole('button', { name: 'Notifications, 3 need attention' });
 
     setupPanel.open();
     const panel = await screen.findByRole('dialog', { name: 'Needs attention' });
@@ -125,7 +123,7 @@ describe('notification bell', () => {
     renderBell();
 
     await bell();
-    await screen.findByRole('button', { name: 'Notifications, 4 need attention' });
+    await screen.findByRole('button', { name: 'Notifications, 3 need attention' });
     expect(screen.queryByRole('dialog', { name: 'Needs attention' })).toBeNull();
   });
 
@@ -133,7 +131,7 @@ describe('notification bell', () => {
     stub([], 0);
     renderBell();
 
-    await fireEvent.focus(await screen.findByRole('button', { name: 'Notifications, 4 need attention' }));
+    await fireEvent.focus(await screen.findByRole('button', { name: 'Notifications, 3 need attention' }));
 
     expect(await screen.findAllByText('Setup and notifications')).not.toHaveLength(0);
   });
@@ -157,7 +155,7 @@ describe('notification bell', () => {
 
     const setup = await within(panel).findByRole('region', { name: 'Finish setting up' });
     const links = within(setup).getAllByRole('link');
-    expect(links.map((link) => link.textContent?.trim())).toEqual(['Set your branding', 'Publish your first job', 'Invite your team', 'Set up your careers page']);
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['Set your branding', 'Publish your first job', 'Invite your team']);
     expect(links[0]).toHaveAttribute('href', '/settings/branding');
     // The setup comes before the alerts.
     const alerts = within(panel).getByRole('list', { name: 'Alerts' });
@@ -171,7 +169,7 @@ describe('notification bell', () => {
 
     expect(await within(panel).findByText('1 step done')).toBeInTheDocument();
     expect(within(panel).queryByRole('link', { name: 'Invite your team' })).toBeNull();
-    expect(within(panel).getAllByRole('link')).toHaveLength(3);
+    expect(within(panel).getAllByRole('link')).toHaveLength(2);
   });
 
   it('shows an alert as one plain line that links to the fix, bold and announced while unread', async () => {

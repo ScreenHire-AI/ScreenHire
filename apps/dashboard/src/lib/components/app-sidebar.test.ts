@@ -36,6 +36,38 @@ const open = async (name: string) => {
   return screen.findByRole('menu');
 };
 
+describe('the trial line in the sidebar footer', () => {
+  const ends = '2026-12-05T09:00:00Z';
+
+  it('is one muted link to Billing above the person block, with the day the trial ends', () => {
+    stubViewport(1280);
+    render(ShellHarness, { props: { user, trialEndsAt: ends } });
+
+    const link = screen.getByRole('link', { name: 'Trial ends December 5' });
+    expect(link).toHaveAttribute('href', '/settings/billing');
+    expect(link.querySelector('time')).toHaveAttribute('datetime', ends);
+    expect(link).toHaveClass('text-muted-foreground');
+    const person = screen.getByRole('button', { name: /^Avery Quinn/ });
+    expect(link.compareDocumentPosition(person) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(link.closest('[data-sidebar="footer"]')).toBe(person.closest('[data-sidebar="footer"]'));
+  });
+
+  it('is not there without an end date: another role, a paid plan, billing off or a trial that is over', () => {
+    stubViewport(1280);
+    render(ShellHarness, { props: { user } });
+
+    expect(screen.queryByText(/Trial ends/)).not.toBeInTheDocument();
+  });
+
+  it('leaves the icon rail alone, where there is no room for a line of words', () => {
+    stubViewport(800);
+    render(ShellHarness, { props: { user, trialEndsAt: ends } });
+
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Trial ends December 5' })).toHaveClass('group-data-[collapsible=icon]:hidden');
+  });
+});
+
 describe("the person's block at the foot of the sidebar", () => {
   // The hairline between the last navigation item and the person's block: where to go, then who you are (section 11).
   const expectDivider = (scope: HTMLElement) => {

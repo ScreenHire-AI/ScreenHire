@@ -16022,7 +16022,8 @@
           "version",
           "environment",
           "apiOrigin",
-          "careersUrlPattern"
+          "careersUrlPattern",
+          "trialDays"
         ],
         "type": "object",
         "properties": {
@@ -16040,9 +16041,13 @@
           },
           "careersUrlPattern": {
             "type": "string"
+          },
+          "trialDays": {
+            "type": "integer",
+            "format": "int32"
           }
         },
-        "description": "What is serving this API: the product name, the build version, the hosting environment, and the API's public origin\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.\n`careersUrlPattern` is a tenant's careers address with `{tenant}` where its slug goes, such as\n`https://{tenant}.careers.example.com` (`ScreenHire:Domains:CareersHostPattern`), so the dashboard can show the\naddress a name will get."
+        "description": "What is serving this API: the product name, the build version, the hosting environment, and the API's public origin\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.\n`careersUrlPattern` is a tenant's careers address with `{tenant}` where its slug goes, such as\n`https://{tenant}.careers.example.com` (`ScreenHire:Domains:CareersHostPattern`), so the dashboard can show the\naddress a name will get. `trialDays` is how long a new organization's free trial lasts, 0 while billing is off, so the\nonboarding form can say so before there is an organization to ask."
       },
       "ApplicationAnswer": {
         "required": [
@@ -19317,6 +19322,7 @@
           "id",
           "email",
           "displayName",
+          "name",
           "organization"
         ],
         "type": "object",
@@ -19331,6 +19337,12 @@
           "displayName": {
             "type": "string"
           },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "organization": {
             "oneOf": [
               {
@@ -19342,7 +19354,7 @@
             ]
           }
         },
-        "description": "The signed-in user, and the organization they work in (null until onboarding)."
+        "description": "The signed-in user, and the organization they work in (null until onboarding). `name` is the person's own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none."
       },
       "CustomizedText": {
         "required": [
@@ -20752,14 +20764,21 @@
         "properties": {
           "token": {
             "type": "string"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "Accepts the invitation whose token an emailed link carries, signing in as the invited address."
+        "description": "Accepts the invitation whose token an emailed link carries, signing in as the invited address. `name` is required\nwhen the invited address has no account with a name yet (`needsName` on the lookup), and ignored otherwise."
       },
       "InvitationDetails": {
         "required": [
           "organizationName",
-          "roleName"
+          "roleName",
+          "needsName"
         ],
         "type": "object",
         "properties": {
@@ -20768,9 +20787,12 @@
           },
           "roleName": {
             "type": "string"
+          },
+          "needsName": {
+            "type": "boolean"
           }
         },
-        "description": "What an open invitation offers: the organization's name and the role's, such as \"Recruiter\" or a custom role as typed."
+        "description": "What an open invitation offers: the organization's name and the role's, such as \"Recruiter\" or a custom role as typed, and\nwhether the invited address still needs to give a name to accept."
       },
       "InvitationLookup": {
         "required": [
@@ -22623,7 +22645,8 @@
       "OnboardingRequest": {
         "required": [
           "organizationName",
-          "slug"
+          "slug",
+          "name"
         ],
         "type": "object",
         "properties": {
@@ -22632,9 +22655,12 @@
           },
           "slug": {
             "type": "string"
+          },
+          "name": {
+            "type": "string"
           }
         },
-        "description": "Creates the signed-in user's organization, with them as its Owner."
+        "description": "Creates the signed-in user's organization, with them as its Owner. `name` is the person's own name, asked for here\nbecause the team's lists and every \"by\" line show it; it replaces the one the identity provider gave, if any."
       },
       "OrganizationBranding": {
         "required": [

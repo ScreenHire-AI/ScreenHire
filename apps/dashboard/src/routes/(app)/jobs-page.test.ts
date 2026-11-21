@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { goto } from '$app/navigation';
 import { page } from '$app/state';
-import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
 import { setupPanel } from '#lib/setup-panel.svelte.js';
 import { apiStub, applications, jobs, now, user, userAs } from '../../test-support/fixtures.js';
 import { stubViewport } from '../../test-support/viewport.js';
@@ -42,6 +42,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.mocked(goto).mockClear();
   vi.unstubAllGlobals();
   // The table remembers its sort in the browser.
   localStorage.clear();
@@ -214,14 +215,64 @@ describe('jobs page', () => {
     expect(screen.queryByRole('group', { name: 'Overview' })).toBeNull();
   });
 
+  describe('the welcome after accepting an invitation', () => {
+    const joinedLine = () => document.querySelector<HTMLElement>('[data-slot="joined-notice"]');
+    const arrive = (query: string) => {
+      page.url = new URL(`http://dashboard.test/${query}`);
+      vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
+      renderPage();
+    };
+
+    it('says once which team the person joined and as what, as a status line', async () => {
+      arrive('?joined=1');
+
+      expect(await screen.findByText('You joined Brightwater Studio as Owner.')).toBeInTheDocument();
+      // Inside the page's live region, which is there before the line arrives so it is announced.
+      expect(joinedLine()!.closest('[role="status"]')).not.toBeNull();
+      expect(joinedLine()).not.toHaveTextContent('You see the jobs you are on.');
+    });
+
+    it('adds that the person sees the jobs they are on when their access is only those', async () => {
+      page.data = { user: { ...userAs('Recruiter'), organization: { ...userAs('Recruiter').organization!, seesAllJobs: false } } };
+      arrive('?joined=1');
+
+      expect(await screen.findByText('You joined Brightwater Studio as Recruiter. You see the jobs you are on.')).toBeInTheDocument();
+    });
+
+    it('takes the parameter out of the address, keeping the status choice, so a reload does not say it again', async () => {
+      arrive('?status=all&joined=1');
+
+      await waitFor(() => expect(goto).toHaveBeenCalled());
+      const [url, options] = vi.mocked(goto).mock.calls.at(-1)!;
+      expect(String(url)).toBe('http://dashboard.test/?status=all');
+      expect(options).toEqual({ replace: true, reset: false });
+    });
+
+    it('is not there without the parameter, and the address is left alone', async () => {
+      arrive('?status=all');
+      await dataRows();
+      expect(joinedLine()).toBeNull();
+      expect(goto).not.toHaveBeenCalled();
+    });
+
+    it('goes when dismissed', async () => {
+      arrive('?joined=1');
+
+      await fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
+
+      expect(joinedLine()).toBeNull();
+      // The button left with the line, so focus goes to the page title.
+      await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Jobs' })).toHaveFocus());
+    });
+  });
+
   describe('a new team', () => {
-    // The signed-in Owner alone, nothing set, no job: four setup steps are open (no email provider here).
+    // The signed-in Owner alone, nothing set, no job: three setup steps are open (no email provider here).
     const newTeam = {
       'GET /v1/jobs': () => Response.json([]),
       'GET /v1/organization/members': () => Response.json([{ id: 'avery' }]),
       'GET /v1/organization/invitations': () => Response.json([]),
       'GET /v1/organization/branding': () => Response.json({ brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
-      'GET /v1/organization': () => Response.json({ embedOrigins: [], questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE, lastUpdated: { at: null, by: null, created: true } }),
       'GET /v1/organization/sending-domain': () => Response.json({ available: false, sandbox: false, domain: null }),
     };
 
@@ -229,7 +280,7 @@ describe('jobs page', () => {
       vi.stubGlobal('fetch', vi.fn(apiStub(newTeam)));
       renderPage();
 
-      expect(await screen.findByText('4 steps left to set up your organization.')).toBeInTheDocument();
+      expect(await screen.findByText('3 steps left to set up your organization.')).toBeInTheDocument();
       const before = setupPanel.requests;
       await fireEvent.click(screen.getByRole('button', { name: 'Open the setup checklist' }));
       expect(setupPanel.requests).toBe(before + 1);
@@ -239,7 +290,7 @@ describe('jobs page', () => {
       vi.stubGlobal('fetch', vi.fn(apiStub({ ...newTeam, 'GET /v1/organization/members': () => Response.json([{ id: 'avery' }, { id: 'sam' }]) })));
       renderPage();
 
-      expect(await screen.findByText('3 steps left to set up your organization.')).toBeInTheDocument();
+      expect(await screen.findByText('2 steps left to set up your organization.')).toBeInTheDocument();
     });
 
     it('says nothing of setup to someone who cannot do the steps', async () => {

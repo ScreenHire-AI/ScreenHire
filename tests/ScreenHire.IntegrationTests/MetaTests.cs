@@ -23,5 +23,7 @@ public sealed class MetaTests(AppHostFixture fixture)
         var careers = meta.GetProperty("careersUrlPattern").GetString()!;
         careers.Should().Contain("{tenant}", "the dashboard puts an organization's slug at that placeholder");
         new Uri(careers.Replace("{tenant}", "acme", StringComparison.Ordinal)).Host.Should().StartWith("acme.", "the development pattern puts the slug first");
+        // Onboarding says how long the trial lasts before there is an organization to ask; the AppHost runs billing on its sandbox.
+        meta.GetProperty("trialDays").GetInt32().Should().Be(14, "the shipped trial is 14 days and billing is on here");
     }
 }

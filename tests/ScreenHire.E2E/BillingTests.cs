@@ -33,6 +33,11 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.SetViewportSizeAsync(1440, 1000);
         await SignInAsync(Page, owner);
 
+        // While the trial runs, the Owner's sidebar says when it ends, in one quiet line above their own block, and links to Billing.
+        var trialEnds = Page.GetByRole(AriaRole.Link, new() { NameRegex = new("^Trial ends ") });
+        await Expect(trialEnds).ToBeVisibleAsync();
+        await Expect(trialEnds).ToHaveAttributeAsync("href", "/settings/billing");
+
         // Billing is in the Settings menu under Organization, for an owner.
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true }).ClickAsync();
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Settings", Exact = true }).GetByRole(AriaRole.List, new() { Name = "Organization", Exact = true })
@@ -71,6 +76,8 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(plan).ToContainTextAsync("Next payment");
         await Expect(plan).ToContainTextAsync($"0 of {ShippedPlans.Starter.RequiredLimit}");
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(0);
+        // Nothing is left to say once a plan is paid for.
+        await Expect(trialEnds).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-1440");
     }
@@ -147,7 +154,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         var token = await Fixture.Mailpit.WaitForInvitationTokenAsync(recruiter, Ct);
         using (var session = new ApiSession(Fixture))
         {
-            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token }, Ct);
+            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = ApiSession.NewName("Jordan") }, Ct);
             accepted.StatusCode.Should().Be(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync(Ct));
         }
 

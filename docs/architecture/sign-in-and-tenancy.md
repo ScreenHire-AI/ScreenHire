@@ -5,6 +5,11 @@ description: "Identity providers, email links and passkeys, abuse controls, API 
 tags: [auth, tenancy, rls, team]
 sources:
   - resource: apps/api/Auth/Antiforgery.cs
+  - resource: apps/api/Contracts/AuthContracts.cs
+  - resource: apps/dashboard/src/lib/components/joined-notice.svelte
+  - resource: apps/dashboard/src/routes/(app)/+page.svelte
+  - resource: apps/dashboard/src/routes/(auth)/invitations/accept/+page.svelte
+  - resource: apps/dashboard/src/routes/(auth)/onboarding/+page.svelte
   - resource: apps/api/Auth/ApiKeyAuthentication.cs
   - resource: apps/api/Auth/ApiKeyTokens.cs
   - resource: apps/api/Auth/AuthenticationSetup.cs
@@ -109,9 +114,9 @@ organization API key in place of the session ("API keys" below).
 | `GET /v1/auth/callback?returnUrl=` | Links or creates the user, signs them in, redirects to the dashboard. |
 | `POST /v1/auth/magic-link` | Emails a sign-in link. Always 202, known address or not. An optional `returnUrl` (a local path, sanitized as above) rides in the link's fragment beside the token, so the verify page opens it after sign-in; the OAuth consent page relies on it. |
 | `POST /v1/auth/magic-link/verify` | Redeems a link's token and signs in. |
-| `POST /v1/auth/onboarding` | Creates the user's organization (name and slug) with them as Owner. With billing on, the same transaction makes its trial account and publishes `TrialStarted` through the outbox ([billing](billing.md#trial-reminders)). |
-| `POST /v1/auth/invitations/accept` | Redeems an emailed invitation: signs in as the invited address and joins its organization. |
-| `POST /v1/auth/invitations/lookup` | Names the organization and role an open invitation offers, for the accept page. It uses nothing up, and answers an unusable token as accepting does. |
+| `POST /v1/auth/onboarding` | Creates the user's organization (name and slug) with them as Owner, and stores the person's own name (required, replacing any the provider gave). With billing on, the same transaction makes its trial account and publishes `TrialStarted` through the outbox ([billing](billing.md#trial-reminders)). |
+| `POST /v1/auth/invitations/accept` | Redeems an emailed invitation: signs in as the invited address and joins its organization. An address with no name yet must send one (400 on `name` before the invitation is used up); an account that has one keeps it. The page then opens the Jobs list at `/?joined=1`. |
+| `POST /v1/auth/invitations/lookup` | Names the organization and role an open invitation offers, and whether the invited address `needsName`, for the accept page. It uses nothing up, and answers an unusable token as accepting does. |
 | `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. A custom role is named only in the one they work in: row-level security hides other organizations' roles. |
 | `POST /v1/auth/switch-organization` | Makes another of the user's organizations the one they work in. |
 | `POST /v1/auth/sign-out` | Ends the session. |
@@ -291,7 +296,9 @@ API keys (Owners and Admins) manages keys in a session, on the dashboard's Integ
   environment, at the same paths: they document the public API and hold no data. `GET /v1/meta` reports the API's
   public origin (`ScreenHire:Domains:ApiHost`), and the dashboard's API keys and Webhooks pages build their base URL and
   reference links from it. It also reports `careersUrlPattern`, a tenant's careers address with `{tenant}` where the slug goes
-  (`DomainOptions.CareersUrlPattern`), which onboarding fills in to show the address a name will get. The public page calls no third party: Scalar's telemetry, its CDN fonts, its AI chat and its MCP
+  (`DomainOptions.CareersUrlPattern`), which onboarding fills in to show the address a name will get, and `trialDays`, how long a new
+  organization's free trial lasts (0 while billing is off), which onboarding says under its button
+  ([billing](billing.md#the-trial)). The public page calls no third party: Scalar's telemetry, its CDN fonts, its AI chat and its MCP
   server are off (`apps/api/Program.cs`). `ApiReferenceTests` reaches both with the API in Production and checks the
   first two.
 
@@ -433,6 +440,17 @@ in as, and creates that user if needed, because following the link proves the ad
 and the active organization are written in one transaction. The email goes out inside the request after the commit,
 like a sign-in link, so the token never sits in the outbox's message table. Inviting counts against the per-IP auth
 rate limit.
+
+**A name.** Every account that works in an organization has the person's own name, so the Team list and every "by" line show it
+and not an address. Onboarding asks for it ("Your name", required), prefilled from the identity provider's `name` claim when
+there is one; accepting an invitation asks for it when the address has none (`needsName` on the lookup). `GET /v1/auth/me` has
+`name` (null while there is none) beside `displayName`, which is the name, or the address for an account that predates this.
+A provider that puts the email address in the name claim (the Dev SSO "any email" login does) gives no name. A name from a
+provider is also kept when its identity is first linked to an existing account that has none.
+
+**Landing after accepting.** The accept page opens `/?joined=1`. The Jobs list reads the parameter once, removes it from the
+address and shows one dismissible status line at the top, "You joined Harbour Lane Studio as Recruiter.", plus "You see the jobs
+you are on." for a member on Only jobs they're on. Nothing is stored: a reload does not show it again.
 
 **The membership log** (`membership_events`) records every invitation, revocation, join by invitation, role change and
 removal with who did it, who it was about and the roles before and after, a custom role by its id and its name at the

@@ -75,7 +75,7 @@ public sealed class BusyOrganization
         using var owner = new ApiSession(fixture);
         await owner.SignInWithDevSsoAsync(email, cancellationToken);
         var slug = $"test-{Guid.NewGuid():N}";
-        using (var onboarded = await owner.PostAsync("/v1/auth/onboarding", new { organizationName = "Larkspur Foods", slug }, cancellationToken))
+        using (var onboarded = await owner.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Larkspur Foods", slug }, cancellationToken))
         {
             onboarded.StatusCode.Should().Be(HttpStatusCode.OK, await onboarded.Content.ReadAsStringAsync(cancellationToken));
         }
@@ -160,7 +160,7 @@ public sealed class BusyOrganization
         await Expect201Async(owner, "/v1/organization/invitations", new { email = address, role = "Recruiter" }, cancellationToken);
         var token = await fixture.Mailpit.WaitForInvitationTokenAsync(address, cancellationToken);
         using var session = new ApiSession(fixture);
-        using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token }, cancellationToken);
+        using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = ApiSession.NewName("Jordan") }, cancellationToken);
         accepted.StatusCode.Should().Be(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync(cancellationToken));
         return index;
     }

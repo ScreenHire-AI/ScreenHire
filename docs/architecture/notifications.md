@@ -32,9 +32,8 @@ sources:
 
 A bell in the top bar holds what needs one person's attention. It has two parts:
 
-- **Setup**, for whoever can do the steps (Owners and Admins): the five steps a new organization takes, each linking to the
-  page where it is done, in the order a team does them: branding, the first published job, inviting the team, the careers
-  page's own settings, then sending email from the company's own domain (last, because it is DNS work outside ScreenHire and
+- **Setup**, for whoever can do the steps (Owners and Admins): the four steps a new organization takes, each linking to the
+  page where it is done, in the order a team does them: branding, the first published job, inviting the team, then sending email from the company's own domain (last, because it is DNS work outside ScreenHire and
   the team can start without it). It is not stored. The dashboard works it out from the organization's own data, as it always did, and
   shows only the steps left, with the done ones folded into one line ("2 steps done"). It goes by itself once the last step is
   done, and Hiding setup (an icon button in the panel) hides it in this browser for the organization.

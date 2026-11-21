@@ -64,6 +64,7 @@ public sealed class SettingsTeamTests(E2EFixture fixture) : SettingsArea(fixture
         {
             var page = await theirs.NewPageAsync();
             await page.GotoAsync(link.ToString());
+            await page.GetByLabel("Your name").FillAsync("Jordan Lee");
             await page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
             await Expect(page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
             // A Recruiter has no Settings in the sidebar, but has Verification (read-only).
@@ -147,6 +148,7 @@ public sealed class SettingsTeamTests(E2EFixture fixture) : SettingsArea(fixture
         await using var theirs = await Fixture.Browser.NewContextAsync(new() { Locale = "en-US" });
         var theirPage = await theirs.NewPageAsync();
         await theirPage.GotoAsync((await Fixture.Mailpit.WaitForInvitationLinkAsync(colleague, Ct)).ToString());
+        await theirPage.GetByLabel("Your name").FillAsync("Jordan Lee");
         await theirPage.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
         await Expect(theirPage.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
 
@@ -203,6 +205,8 @@ public sealed class SettingsTeamTests(E2EFixture fixture) : SettingsArea(fixture
         await GoToAsync("dashboard", "/settings/team");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Not in your role" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Members" })).ToHaveCountAsync(0);
+        // Only an Owner is told when a trial ends: nothing about billing reaches the sidebar of anyone else.
+        await Expect(Page.GetByRole(AriaRole.Link, new() { NameRegex = new("^Trial ends ") })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
     }
 }

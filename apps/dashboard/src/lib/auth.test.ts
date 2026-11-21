@@ -6,6 +6,7 @@ const signedIn = (organization: CurrentUser['organization']): CurrentUser => ({
   id: '01a157d4-0000-7000-8000-000000000001',
   email: 'avery@brightwater.example.com',
   displayName: 'Avery Quinn',
+  name: 'Avery Quinn',
   organization,
 });
 const member = signedIn({

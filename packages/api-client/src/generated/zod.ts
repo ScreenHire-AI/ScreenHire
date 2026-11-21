@@ -140,8 +140,9 @@ export const GetMetaResponse = zod.object({
   "version": zod.string(),
   "environment": zod.string(),
   "apiOrigin": zod.string(),
-  "careersUrlPattern": zod.string()
-}).describe('What is serving this API: the product name, the build version, the hosting environment, and the API\'s public origin\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.\n`careersUrlPattern` is a tenant\'s careers address with `{tenant}` where its slug goes, such as\n`https://{tenant}.careers.example.com` (`ScreenHire:Domains:CareersHostPattern`), so the dashboard can show the\naddress a name will get.')
+  "careersUrlPattern": zod.string(),
+  "trialDays": zod.int()
+}).describe('What is serving this API: the product name, the build version, the hosting environment, and the API\'s public origin\n(`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.\n`careersUrlPattern` is a tenant\'s careers address with `{tenant}` where its slug goes, such as\n`https://{tenant}.careers.example.com` (`ScreenHire:Domains:CareersHostPattern`), so the dashboard can show the\naddress a name will get. `trialDays` is how long a new organization\'s free trial lasts, 0 while billing is off, so the\nonboarding form can say so before there is an organization to ask.')
 
 
 export const GetSignInMethodsResponse = zod.object({
@@ -162,6 +163,7 @@ export const GetCurrentUserResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
   "displayName": zod.string(),
+  "name": zod.string().nullable(),
   "organization": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
@@ -172,7 +174,7 @@ export const GetCurrentUserResponse = zod.object({
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding).')
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
 
 
 export const ListMyOrganizationsResponseItem = zod.object({
@@ -213,13 +215,15 @@ export const VerifyMagicLinkResponse = zod.void()
 
 export const CompleteOnboardingBody = zod.object({
   "organizationName": zod.string(),
-  "slug": zod.string()
-}).describe('Creates the signed-in user\'s organization, with them as its Owner.')
+  "slug": zod.string(),
+  "name": zod.string()
+}).describe('Creates the signed-in user\'s organization, with them as its Owner. `name` is the person\'s own name, asked for here\nbecause the team\'s lists and every "by" line show it; it replaces the one the identity provider gave, if any.')
 
 export const CompleteOnboardingResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
   "displayName": zod.string(),
+  "name": zod.string().nullable(),
   "organization": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
@@ -230,7 +234,7 @@ export const CompleteOnboardingResponse = zod.object({
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding).')
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
 
 
 export const LookUpInvitationBody = zod.object({
@@ -239,18 +243,21 @@ export const LookUpInvitationBody = zod.object({
 
 export const LookUpInvitationResponse = zod.object({
   "organizationName": zod.string(),
-  "roleName": zod.string()
-}).describe('What an open invitation offers: the organization\'s name and the role\'s, such as "Recruiter" or a custom role as typed.')
+  "roleName": zod.string(),
+  "needsName": zod.boolean()
+}).describe('What an open invitation offers: the organization\'s name and the role\'s, such as "Recruiter" or a custom role as typed, and\nwhether the invited address still needs to give a name to accept.')
 
 
 export const AcceptInvitationBody = zod.object({
-  "token": zod.string()
-}).describe('Accepts the invitation whose token an emailed link carries, signing in as the invited address.')
+  "token": zod.string(),
+  "name": zod.string().nullish()
+}).describe('Accepts the invitation whose token an emailed link carries, signing in as the invited address. `name` is required\nwhen the invited address has no account with a name yet (`needsName` on the lookup), and ignored otherwise.')
 
 export const AcceptInvitationResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
   "displayName": zod.string(),
+  "name": zod.string().nullable(),
   "organization": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
@@ -261,7 +268,7 @@ export const AcceptInvitationResponse = zod.object({
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding).')
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
 
 
 export const SwitchOrganizationBody = zod.object({
@@ -272,6 +279,7 @@ export const SwitchOrganizationResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
   "displayName": zod.string(),
+  "name": zod.string().nullable(),
   "organization": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
@@ -282,7 +290,7 @@ export const SwitchOrganizationResponse = zod.object({
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
 }).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding).')
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
 
 
 export const SignOutResponse = zod.void()

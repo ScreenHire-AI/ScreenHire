@@ -20,6 +20,7 @@ public sealed class LiveUpdatesTests(E2EFixture fixture) : BrowserTest(fixture)
         // The first session creates the organization and gets a draft job.
         await SignInWithDevSsoAsync(Page, email);
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/onboarding"));
+        await Page.GetByLabel("Your name").FillAsync("Riley Harper");
         await Page.GetByLabel("Organization name").FillAsync($"Live {Guid.NewGuid().ToString("N")[..8]}");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Create organization" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/"));

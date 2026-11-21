@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayKey, dayLabel, formatDate, formatDateTime, shortDate, timeAgo, timeUntil } from './dates.js';
+import { dayKey, dayLabel, formatDate, formatDateTime, formatDayMonth, shortDate, timeAgo, timeUntil } from './dates.js';
 
 // jsdom's browser languages are US English, and vitest.config.ts pins the timezone to UTC.
 const now = Date.parse('2026-10-20T12:00:00Z');
@@ -20,6 +20,13 @@ describe('timeAgo', () => {
 
   it('treats an instant ahead of the clock as now', () => {
     expect(timeAgo(new Date(now + 5_000).toISOString(), now)).toBe('now');
+  });
+});
+
+describe('formatDayMonth', () => {
+  it('names the day and the month in full, with no year, in the browser locale (US English here)', () => {
+    expect(formatDayMonth('2026-12-05T09:00:00Z')).toBe('December 5');
+    expect(formatDayMonth('2027-01-11T23:30:00Z')).toBe('January 11');
   });
 });
 

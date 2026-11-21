@@ -25,7 +25,7 @@ public sealed class JobAccessTests(E2EFixture fixture) : BrowserTest(fixture)
         using var ownerSession = new ApiSession(Fixture);
         var ownerEmail = ApiSession.NewEmail("owner");
         await ownerSession.SignInWithDevSsoAsync(ownerEmail, Ct);
-        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { organizationName = Organization, slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = Organization, slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
         var theirs = (await ReadAsync(await ownerSession.PostAsync("/v1/jobs", new { title = TheirJob }, Ct), HttpStatusCode.Created)).GetProperty("id").GetGuid();
         var other = (await ReadAsync(await ownerSession.PostAsync("/v1/jobs", new { title = OtherJob }, Ct), HttpStatusCode.Created)).GetProperty("id").GetGuid();
         var memberEmail = ApiSession.NewEmail("viewer");
@@ -99,7 +99,7 @@ public sealed class JobAccessTests(E2EFixture fixture) : BrowserTest(fixture)
         var session = new ApiSession(Fixture);
         try
         {
-            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token }, Ct);
+            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = ApiSession.NewName("Jordan") }, Ct);
             accepted.StatusCode.Should().Be(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync(Ct));
             return session;
         }

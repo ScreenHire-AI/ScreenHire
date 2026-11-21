@@ -5,6 +5,7 @@
   import type { JobStatus, JobSummary, PublishCheckItem } from '@screenhire/api-client';
   import { createListApplications, createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
+  import { tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import {
@@ -26,6 +27,7 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import PlanProblemNotice from '#lib/components/plan-problem-notice.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import JoinedNotice from '#lib/components/joined-notice.svelte';
   import JobsOverview from '#lib/components/jobs-overview.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -122,6 +124,23 @@
     const url = new URL(page.url.href);
     url.searchParams.set('status', status ?? 'all');
     void goto(url, { replace: true, reset: false });
+  }
+  // Accepting an invitation lands here with ?joined=1 (docs/architecture/sign-in-and-tenancy.md): the welcome line says which
+  // team this person is on, once. It is read once and the parameter leaves the address, so a reload or a status choice
+  // (which copies the address) does not bring it back.
+  let joined = $state(page.url.searchParams.get('joined') === '1');
+  $effect(() => {
+    if (!page.url.searchParams.has('joined')) return;
+    const url = new URL(page.url.href);
+    url.searchParams.delete('joined');
+    void goto(url, { replace: true, reset: false });
+  });
+  let heading = $state<HTMLHeadingElement>();
+  // The Dismiss button leaves with the line, so focus goes to the page's title (WCAG 2.4.3).
+  async function dismissJoined() {
+    joined = false;
+    await tick();
+    heading?.focus();
   }
   let search = $state('');
   const countOf = (status: JobStatus) => all.filter((job) => job.status === status).length;
@@ -276,11 +295,18 @@
   <!-- The page's primary action; a phone has it in the action bar (section 8). -->
   <HeaderBand
     title="Jobs"
+    bind:heading
     actions={sidebar.isMobile ? undefined : newJob}
   />
 
   <!-- The content container (S6): the list template's one table panel. -->
   <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
+    <!-- A live region that is always there, so the line is announced when it arrives; it takes no room while empty. -->
+    <div role="status" class="empty:hidden">
+      {#if joined && page.data.user?.organization}
+        <JoinedNotice organization={page.data.user.organization} ondismiss={dismissJoined} />
+      {/if}
+    </div>
     <!-- Four zeros say nothing to a new team: the overview starts with the first job, and the empty state below says what to do. -->
     {#if !(jobs.isSuccess && all.length === 0)}
       <JobsOverview jobs={jobs.isError ? null : jobs.data?.data} user={page.data.user} />

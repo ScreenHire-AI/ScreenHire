@@ -217,7 +217,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         var slug = $"test-{Guid.NewGuid():N}";
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(email, Ct);
-        var user = await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane", slug }, Ct), HttpStatusCode.OK);
+        var user = await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane", slug }, Ct), HttpStatusCode.OK);
         var job = await ReadAsync(await session.PostAsync(
             "/v1/jobs",
             new

@@ -6,9 +6,11 @@
  */
 
 /**
- * Creates the signed-in user's organization, with them as its Owner.
+ * Creates the signed-in user's organization, with them as its Owner. `name` is the person's own name, asked for here
+ * because the team's lists and every "by" line show it; it replaces the one the identity provider gave, if any.
  */
 export interface OnboardingRequest {
   organizationName: string;
   slug: string;
+  name: string;
 }

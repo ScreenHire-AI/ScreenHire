@@ -101,6 +101,7 @@ const panels: Record<string, string[]> = {
   'Verification chip and panel': ['Verification chip and evidence'],
   Tabs: ['Tabs'],
   Notice: ['Notice'],
+  'Welcome line': ['Welcome line'],
   'Expandable row': ['Expandable row'],
   'Summary card': ['Summary card'],
   'Metric card': ['Metric card'],

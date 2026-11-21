@@ -15,7 +15,7 @@ public sealed class OnboardingTests(AppHostFixture fixture)
         var slug = $"acme-{Guid.NewGuid():N}"[..30];
 
         using var response = await session.PostAsync(
-            "/v1/auth/onboarding", new { organizationName = "  Acme Hiring  ", slug }, cancellationToken);
+            "/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "  Acme Hiring  ", slug }, cancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var organization = (await session.CurrentUserAsync(cancellationToken))!.Value.GetProperty("organization");
@@ -28,6 +28,45 @@ public sealed class OnboardingTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Onboarding_keeps_the_name_the_person_typed_and_every_list_shows_it()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var email = ApiSession.NewEmail();
+        using var session = new ApiSession(fixture);
+        await session.SignInWithMagicLinkAsync(email, cancellationToken);
+
+        // An emailed link gives no name: the form has none to prefill, and the address stands in where one is shown.
+        var before = (await session.CurrentUserAsync(cancellationToken))!.Value;
+        before.GetProperty("name").ValueKind.Should().Be(JsonValueKind.Null);
+        before.GetProperty("displayName").GetString().Should().Be(email);
+
+        using var response = await session.PostAsync(
+            "/v1/auth/onboarding", new { name = "  Casey Morgan  ", organizationName = "Acme Hiring", slug = $"acme-{Guid.NewGuid():N}"[..30] }, cancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var reply = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        reply.GetProperty("name").GetString().Should().Be("Casey Morgan");
+        var after = (await session.CurrentUserAsync(cancellationToken))!.Value;
+        after.GetProperty("name").GetString().Should().Be("Casey Morgan");
+        after.GetProperty("displayName").GetString().Should().Be("Casey Morgan");
+        var team = await session.Client.GetFromJsonAsync<JsonElement>("/v1/organization/members", cancellationToken);
+        team.EnumerateArray().Select(m => m.GetProperty("displayName").GetString()).Should().Equal("Casey Morgan");
+    }
+
+    [Fact]
+    public async Task A_provider_that_gives_the_address_as_the_name_leaves_the_name_to_the_form()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var email = ApiSession.NewEmail();
+        using var session = new ApiSession(fixture);
+        await session.SignInWithDevSsoAsync(email, cancellationToken);
+
+        var user = (await session.CurrentUserAsync(cancellationToken))!.Value;
+        user.GetProperty("name").ValueKind.Should().Be(JsonValueKind.Null);
+        user.GetProperty("displayName").GetString().Should().Be(email);
+    }
+
+    [Fact]
     public async Task A_user_onboards_only_once()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -36,7 +75,7 @@ public sealed class OnboardingTests(AppHostFixture fixture)
         await session.OnboardAsync(cancellationToken);
 
         using var again = await session.PostAsync(
-            "/v1/auth/onboarding", new { organizationName = "Second", slug = $"second-{Guid.NewGuid():N}"[..30] }, cancellationToken);
+            "/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Second", slug = $"second-{Guid.NewGuid():N}"[..30] }, cancellationToken);
 
         again.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
@@ -51,7 +90,7 @@ public sealed class OnboardingTests(AppHostFixture fixture)
         await session.CurrentUserAsync(cancellationToken); // the antiforgery token both requests share
 
         var attempts = await Task.WhenAll(Enumerable.Range(0, 2).Select(i => session.PostAsync(
-            "/v1/auth/onboarding", new { organizationName = $"Twice {i}", slug = $"twice-{i}-{Guid.NewGuid():N}" }, cancellationToken)));
+            "/v1/auth/onboarding", new { name = "Riley Harper", organizationName = $"Twice {i}", slug = $"twice-{i}-{Guid.NewGuid():N}" }, cancellationToken)));
 
         attempts.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Conflict]);
         await using var connection = new Npgsql.NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(cancellationToken));
@@ -75,7 +114,7 @@ public sealed class OnboardingTests(AppHostFixture fixture)
         await session.SignInWithMagicLinkAsync(ApiSession.NewEmail(), cancellationToken);
 
         using var response = await session.PostAsync(
-            "/v1/auth/onboarding", new { organizationName = "Impostor", slug = theirs.Slug }, cancellationToken);
+            "/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Impostor", slug = theirs.Slug }, cancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
@@ -95,7 +134,7 @@ public sealed class OnboardingTests(AppHostFixture fixture)
         using var session = new ApiSession(fixture);
         await session.SignInWithMagicLinkAsync(ApiSession.NewEmail(), cancellationToken);
 
-        using var response = await session.PostAsync("/v1/auth/onboarding", new { organizationName, slug }, cancellationToken);
+        using var response = await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName, slug }, cancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);

@@ -1,5 +1,4 @@
-import type { OrganizationBranding, OrganizationProfile, OrganizationSendingDomain } from '@screenhire/api-client';
-import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
+import type { OrganizationBranding, OrganizationSendingDomain } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
 import { jobs } from '../test-support/fixtures.js';
 import { setupSteps, showSetup, type SetupInputs } from './setup-checklist.js';
@@ -13,16 +12,6 @@ const noBranding = {
   sharingImage: null,
   lastUpdated: { at: null, by: 'ScreenHire' },
 } as unknown as OrganizationBranding;
-const newOrganization = {
-  id: '01a157d4-0000-7000-8000-0000000000bb',
-  name: 'Brightwater Studio',
-  slug: 'brightwater',
-  careersUrl: 'https://careers.example.com/brightwater',
-  createdAt: '2026-11-01T09:00:00Z',
-  lastUpdated: { at: '2026-11-01T09:00:00Z', by: null, created: true },
-  questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE,
-  embedOrigins: [],
-} as unknown as OrganizationProfile;
 const noDomain = { available: true, sandbox: false, domain: null } as OrganizationSendingDomain;
 const withDomain = (status: 'Pending' | 'Verified') => ({ available: true, sandbox: false, domain: { status } }) as OrganizationSendingDomain;
 const published = { ...jobs[0]!, publishedAt: '2026-11-03T09:00:00Z' };
@@ -31,7 +20,6 @@ const fresh: SetupInputs = {
   members: [{ id: 'a' }] as unknown as SetupInputs['members'],
   invitations: [],
   branding: noBranding,
-  organization: newOrganization,
   sendingDomain: noDomain,
   jobs: jobs.map((job) => ({ ...job, publishedAt: null })),
 };
@@ -39,15 +27,15 @@ const fresh: SetupInputs = {
 const done = (inputs: SetupInputs) => Object.fromEntries((setupSteps(inputs) ?? []).map((step) => [step.id, step.done]));
 
 describe('the setup checklist', () => {
-  it('lists the five steps in the order a team does them, each linking to its page, all open for a new organization', () => {
+  it('lists the four steps in the order a team does them, each linking to its page, all open for a new organization', () => {
     const steps = setupSteps(fresh)!;
 
-    // What candidates see, the first job, the team, then the settings that can wait. The DNS step is last.
+    // What candidates see, the first job, the team, then the settings that can wait. The DNS step is last. No step is for
+    // the careers page: a team that keeps its defaults could never finish the list.
     expect(steps.map((step) => [step.label, step.href, step.done])).toEqual([
       ['Set your branding', '/settings/branding', false],
       ['Publish your first job', '/jobs/new', false],
       ['Invite your team', '/settings/team', false],
-      ['Set up your careers page', '/settings/careers-site', false],
       ['Send email from your own domain', '/settings/sending-domain', false],
     ]);
   });
@@ -70,22 +58,10 @@ describe('the setup checklist', () => {
     }
   });
 
-  it('ticks the careers step for its own settings: a site that may embed it, or questions per page away from the default', () => {
-    expect(done({ ...fresh, organization: { ...newOrganization, questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE + 1 } }).careers).toBe(true);
-    expect(done({ ...fresh, organization: { ...newOrganization, embedOrigins: ['https://www.example.com'] } }).careers).toBe(true);
-    expect(done(fresh).careers).toBe(false);
-  });
-
-  it('leaves the careers step open when only the name changed, which moves the same Last updated', () => {
-    const renamed = { ...newOrganization, name: 'Brightwater', lastUpdated: { at: '2026-11-02T09:00:00Z', by: 'User', created: false } } as unknown as OrganizationProfile;
-
-    expect(done({ ...fresh, organization: renamed }).careers).toBe(false);
-  });
-
   it('ticks the email step only for a verified domain, and leaves the step out where this installation cannot send (A3)', () => {
     expect(done({ ...fresh, sendingDomain: withDomain('Pending') }).email).toBe(false);
     expect(done({ ...fresh, sendingDomain: withDomain('Verified') }).email).toBe(true);
-    expect(setupSteps({ ...fresh, sendingDomain: { ...noDomain, available: false } })!.map((step) => step.id)).toEqual(['branding', 'job', 'team', 'careers']);
+    expect(setupSteps({ ...fresh, sendingDomain: { ...noDomain, available: false } })!.map((step) => step.id)).toEqual(['branding', 'job', 'team']);
   });
 
   it('ticks the job step for a job that was published, not for a draft', () => {
@@ -94,7 +70,7 @@ describe('the setup checklist', () => {
   });
 
   it('waits for every answer, so a finished step never flashes open', () => {
-    for (const missing of ['members', 'invitations', 'branding', 'organization', 'sendingDomain', 'jobs'] as const) {
+    for (const missing of ['members', 'invitations', 'branding', 'sendingDomain', 'jobs'] as const) {
       expect(setupSteps({ ...fresh, [missing]: undefined })).toBeUndefined();
     }
   });
@@ -105,7 +81,6 @@ describe('the setup checklist', () => {
       members: [{ id: 'a' }, { id: 'b' }] as unknown as SetupInputs['members'],
       invitations: [],
       branding: { ...noBranding, brandColor: 'teal' } as unknown as OrganizationBranding,
-      organization: { ...newOrganization, embedOrigins: ['https://www.example.com'] },
       sendingDomain: withDomain('Verified'),
       jobs: [published],
     });

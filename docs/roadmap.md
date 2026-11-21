@@ -133,8 +133,8 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 12. **A guided first job.** The first job spans New job, Edit details and the job page, with a different hint at each.
     One flow from "pick a starting point" through the role's real details to Publish, on the first job only. It would
     absorb number 2. Size L. (#149)
-13. **A calmer Jobs empty state for a new team.** It shows New job, "5 steps left to set up your organization" and Open
-    the setup checklist, while the bell already carries the count 5 (W7). Keep the heading, one line and the one action
+13. **A calmer Jobs empty state for a new team.** It shows New job, "4 steps left to set up your organization" and Open
+    the setup checklist, while the bell already carries the count 4 (W7). Keep the heading, one line and the one action
     (New job), and leave the checklist to the bell it opens from. The alternative is to keep the pointer and drop only the
     count sentence. The pointer was the point of the checklist item above, so this is the owner's call. It sits beside
     number 10, which quiets the other empty states. Size S. (second walk-through)

@@ -157,15 +157,24 @@ public sealed class ApiSession : IDisposable
         return await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
     }
 
+    /// <summary>The name <see cref="OnboardAsync"/> gives the person: what the sidebar, the Team list and every "by" fact show for them.</summary>
+    public const string OwnerName = "Riley Harper";
+
     /// <summary>Onboards the signed-in user into a new organization with a unique slug and returns its id.</summary>
     public async Task<Guid> OnboardAsync(CancellationToken cancellationToken)
     {
         var slug = $"test-{Guid.NewGuid():N}";
-        using var response = await PostAsync("/v1/auth/onboarding", new { organizationName = $"Org {slug}", slug }, cancellationToken);
+        using var response = await PostAsync("/v1/auth/onboarding", new { name = OwnerName, organizationName = $"Org {slug}", slug }, cancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var user = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
         return user.GetProperty("organization").GetProperty("id").GetGuid();
     }
+
+    /// <summary>
+    /// A person's own name that no other call returns, for an accepted invitation, which asks for one. Tests that put two
+    /// people in one organization need them told apart by name, as a team does.
+    /// </summary>
+    public static string NewName(string first = "Riley") => $"{first} {Guid.NewGuid().ToString("N")[..6]}";
 
     /// <summary>A unique address at a reserved example domain, so tests never share an inbox or an account.</summary>
     public static string NewEmail(string label = "user") => $"{label}-{Guid.NewGuid():N}@example.com";

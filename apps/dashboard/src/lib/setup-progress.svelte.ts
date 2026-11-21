@@ -1,6 +1,5 @@
 import type { CurrentUser } from '@screenhire/api-client';
 import {
-  createGetOrganization,
   createGetOrganizationBranding,
   createGetOrganizationSendingDomain,
   createListInvitations,
@@ -30,7 +29,6 @@ export function createSetupProgress(user: () => CurrentUser | null | undefined) 
   const members = createListTeamMembers(options);
   const invitations = createListInvitations(options);
   const branding = createGetOrganizationBranding(options);
-  const organization = createGetOrganization(options);
   const sendingDomain = createGetOrganizationSendingDomain(options);
   const jobs = createListJobs(options);
 
@@ -40,7 +38,6 @@ export function createSetupProgress(user: () => CurrentUser | null | undefined) 
           members: members.data?.data,
           invitations: invitations.data?.data,
           branding: branding.data?.data,
-          organization: organization.data?.data,
           sendingDomain: sendingDomain.data?.data,
           jobs: jobs.data?.data,
         })

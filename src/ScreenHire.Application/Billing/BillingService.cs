@@ -48,6 +48,9 @@ public sealed class BillingService(
     /// <summary>Whether billing is on here. Off: no account, no trial, no limits.</summary>
     public bool IsOn => access.IsConfigured;
 
+    /// <summary>How many days a new organization's free trial lasts: 0 while billing is off, when there is no trial.</summary>
+    public int TrialDays => IsOn ? Math.Max(0, options.Value.Trial.Days) : 0;
+
     /// <summary>A trial account for a new organization, not yet saved. Null while billing is off.</summary>
     public BillingAccount? NewTrial(Guid organizationId) =>
         IsOn ? BillingAccount.StartTrial(organizationId, time.GetUtcNow(), options.Value.Trial.Days) : null;

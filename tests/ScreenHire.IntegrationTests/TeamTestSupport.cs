@@ -8,11 +8,11 @@ internal static class TeamTestSupport
 {
     /// <summary>
     /// Has <paramref name="inviter"/> invite a new address with <paramref name="role"/> (and <paramref name="jobAccess"/>,
-    /// All when null), reads the invitation from Mailpit and accepts it in a fresh session, as the invited person would.
-    /// Dispose the result.
+    /// All when null), reads the invitation from Mailpit and accepts it in a fresh session, as the invited person would,
+    /// giving <paramref name="name"/> (a new one when null). Dispose the result.
     /// </summary>
     public static async Task<Tenant> InviteAndJoinAsync(
-        this AppHostFixture fixture, Tenant inviter, string role, string? email = null, string? jobAccess = null)
+        this AppHostFixture fixture, Tenant inviter, string role, string? email = null, string? jobAccess = null, string? name = null)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         email ??= ApiSession.NewEmail(role.ToLowerInvariant());
@@ -28,7 +28,7 @@ internal static class TeamTestSupport
         var session = new ApiSession(fixture);
         try
         {
-            var user = await session.AcceptInvitationAsync(token, cancellationToken);
+            var user = await session.AcceptInvitationAsync(token, cancellationToken, name);
             user.GetProperty("organization").GetProperty("id").GetGuid().Should().Be(inviter.OrganizationId);
             return new Tenant(session, inviter.OrganizationId, user.GetProperty("id").GetGuid());
         }
@@ -40,9 +40,9 @@ internal static class TeamTestSupport
     }
 
     /// <summary>Accepts an invitation and expects 200 with the signed-in user.</summary>
-    public static async Task<JsonElement> AcceptInvitationAsync(this ApiSession session, string token, CancellationToken cancellationToken)
+    public static async Task<JsonElement> AcceptInvitationAsync(this ApiSession session, string token, CancellationToken cancellationToken, string? name = null)
     {
-        using var response = await session.PostAsync("/v1/auth/invitations/accept", new { token }, cancellationToken);
+        using var response = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = name ?? ApiSession.NewName("Jordan") }, cancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(cancellationToken));
         return await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
     }

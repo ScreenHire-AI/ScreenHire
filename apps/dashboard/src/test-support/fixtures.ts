@@ -38,6 +38,7 @@ export const user: CurrentUser = {
   id: '01a157d4-0000-7000-8000-0000000000aa',
   email: 'avery@brightwater.example.com',
   displayName: 'Avery Quinn',
+  name: 'Avery Quinn',
   organization: {
     id: '01a157d4-0000-7000-8000-0000000000bb',
     name: 'Brightwater Studio',

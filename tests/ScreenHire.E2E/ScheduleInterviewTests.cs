@@ -27,7 +27,7 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         var candidate = ApiSession.NewEmail("candidate");
         using var owner = new ApiSession(Fixture);
         await owner.SignInWithDevSsoAsync(ownerEmail, Ct);
-        await ReadAsync(await owner.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await owner.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
 
         // A second member who has connected their calendar, and a third who has not.
         using var teammate = await InviteAsync(owner, teammateEmail);
@@ -190,7 +190,7 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         var ownerEmail = ApiSession.NewEmail("e2e-schedule-empty");
         using var owner = new ApiSession(Fixture);
         await owner.SignInWithDevSsoAsync(ownerEmail, Ct);
-        await ReadAsync(await owner.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await owner.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
         var job = await ReadAsync(await owner.PostAsync(
             "/v1/jobs",
             new
@@ -287,7 +287,7 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         var session = new ApiSession(Fixture);
         try
         {
-            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token }, Ct);
+            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = ApiSession.NewName("Jordan") }, Ct);
             accepted.StatusCode.Should().Be(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync(Ct));
             return session;
         }

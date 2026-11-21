@@ -24,7 +24,7 @@ public sealed class PasskeyTests(E2EFixture fixture) : BrowserTest(fixture)
         await SignInWithDevSsoAsync(email);
 
         // Add one: the person's menu, the Passkeys page, a name for this device.
-        await OpenPasskeysPageAsync(email);
+        await OpenPasskeysPageAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Passkeys");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Add a passkey" }).First.ClickAsync();
         var dialog = Page.GetByRole(AriaRole.Dialog);
@@ -34,14 +34,14 @@ public sealed class PasskeyTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
 
         // Sign out, then sign in with the passkey alone: no provider, no email.
-        await Page.GetByRole(AriaRole.Button, new() { Name = email }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = ApiSession.OwnerName }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Sign out" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/sign-in"));
         await Page.GetByRole(AriaRole.Button, new() { Name = "Sign in with a passkey" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
 
         // It now says when it was last used, and removing it leaves the page empty.
-        await OpenPasskeysPageAsync(email);
+        await OpenPasskeysPageAsync();
         var row = Page.GetByRole(AriaRole.Row, new() { Name = "Test laptop" });
         await Expect(row).ToBeVisibleAsync();
         await Expect(row).Not.ToContainTextAsync("Never used");
@@ -80,9 +80,9 @@ public sealed class PasskeyTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
     }
 
-    private async Task OpenPasskeysPageAsync(string email)
+    private async Task OpenPasskeysPageAsync()
     {
-        await Page.GetByRole(AriaRole.Button, new() { Name = email }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = ApiSession.OwnerName }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Passkeys" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/account/passkeys"));
     }
