@@ -80,7 +80,9 @@ public sealed record ApplicationEmailDraft(Guid ApplicationId, string Subject, s
 /// a received email has no template, actor or automation run, its <c>sentAt</c> is when it arrived, and it is always kept.
 /// <c>templateId</c>: the template it started from; null for a blank email. <c>actorUserId</c>: the person who sent it.
 /// <c>automationRunId</c>: the automation run that sent it. <c>fromAddress</c>: who a received email came from.
-/// <c>attachmentCount</c>: the files kept with a received email.
+/// <c>attachmentCount</c>: the files kept with a received email. <c>snippet</c>: the first line of its text part, without the
+/// quoted email under a reply; null when only the subject was kept or the text has no line of its own. <c>inReplyTo</c>:
+/// for a received email, the <c>id</c> of the sent email it answers.
 /// </remarks>
 public sealed record CandidateEmailEntry(
     Guid Id,
@@ -94,7 +96,9 @@ public sealed record CandidateEmailEntry(
     bool Kept,
     EmailDirection Direction = EmailDirection.Sent,
     string? FromAddress = null,
-    int AttachmentCount = 0);
+    int AttachmentCount = 0,
+    string? Snippet = null,
+    Guid? InReplyTo = null);
 
 /// <summary>Which way an email in Messages went.</summary>
 public enum EmailDirection

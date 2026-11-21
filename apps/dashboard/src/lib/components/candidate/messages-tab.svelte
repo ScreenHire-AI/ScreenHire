@@ -3,6 +3,7 @@
   import ReplyIcon from '~icons/lucide/reply';
   import SendIcon from '~icons/lucide/send';
   import type { CandidateEmailEntry, TeamMember } from '@screenhire/api-client';
+  import { SvelteSet } from 'svelte/reactivity';
   import ReceivedEmail from '#lib/components/candidate/received-email.svelte';
   import SentEmail from '#lib/components/candidate/sent-email.svelte';
   import EmailComposer from '#lib/components/email-composer.svelte';
@@ -11,15 +12,19 @@
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { actorText } from '#lib/activity.js';
+  import { emailThreads, threadIds } from '#lib/email-history.js';
   import { describeError } from '#lib/query.js';
 
-  // Every email to the candidate and every reply from them, about any of their applications, newest first (design system
-  // section 21), with the email composer in its own panel under them for people who can send, so what was sent is the first thing the tab
-  // shows. Each row opens to the email exactly as it went or arrived. Emails sent before ScreenHire kept each one have only
-  // their subject. A reply has the arrow and who it is from; a file that came with it shows as a count.
+  // Every email to the candidate and every reply from them, about any of their applications, as a history to scan (design
+  // system section 21): one compact row each, with the direction's icon, the subject, who sent it, the first line and
+  // when. A reply sits under the email it answers when that one is listed; rows are newest first by their latest message.
+  // A click opens a row in place to the email exactly as it went or arrived, and Expand all and Collapse all in the
+  // header open or close every one. The email composer is in its own panel under them for people who can send, so what
+  // was sent is the first thing the tab shows. Emails sent before ScreenHire kept each one have only their subject.
   let {
     emails,
     error,
@@ -40,14 +45,60 @@
     onsent?: (message: string) => void;
   } = $props();
 
-  let open = $state<string | undefined>();
+  const open = new SvelteSet<string>();
   let sent = $state('');
+  const threads = $derived(emailThreads(emails ?? []));
+  const ids = $derived(threadIds(threads));
   // The job of each email, only when the candidate has more than one application to tell apart.
   const manyJobs = $derived(new Set(emails?.map((email) => email.applicationId)).size > 1);
+
+  function who(email: CandidateEmailEntry): string {
+    if (email.direction === 'Received') return `From ${email.fromAddress ?? 'the candidate'}`;
+    const by = actorText(email, members, currentUserId);
+    return by ? `Sent ${by}` : 'Sent';
+  }
 </script>
+
+{#snippet row(email: CandidateEmailEntry)}
+  <ExpandableRow id={`email-${email.id}`} bind:expanded={() => open.has(email.id), (next) => (next ? open.add(email.id) : open.delete(email.id))}>
+    {#snippet icon()}{#if email.direction === 'Received'}<ReplyIcon />{:else}<SendIcon />{/if}{/snippet}
+    {#snippet summary()}
+      <span class="font-semibold break-words">{email.subject}</span>
+      <!-- Who and the first line share a line where there is room; the first line is cut to it, since the row opens to all of it. -->
+      <span class="flex min-w-0 flex-col text-caption @md:flex-row @md:gap-x-2">
+        <span class="shrink-0 break-words">{who(email)}</span>
+        {#if email.snippet}<span data-email-snippet class="min-w-0 truncate text-muted-foreground">{email.snippet}</span>{/if}
+      </span>
+    {/snippet}
+    {#snippet trailing()}
+      {@const files = email.attachmentCount ?? 0}
+      {#if files > 0}
+        <span class="inline-flex shrink-0 items-center gap-1 text-caption text-muted-foreground" role="img" aria-label={`${files} ${files === 1 ? 'file' : 'files'}`}>
+          <PaperclipIcon aria-hidden="true" />{files}
+        </span>
+      {/if}
+      {#if manyJobs}<Badge variant="muted" class="hidden shrink-0 @md:inline-flex">{email.jobTitle}</Badge>{/if}
+      <RelativeTime at={email.sentAt} class="shrink-0 text-caption whitespace-nowrap text-muted-foreground" />
+    {/snippet}
+    {#if manyJobs}<p class="text-muted-foreground @md:hidden">{email.jobTitle}</p>{/if}
+    {#if email.direction === 'Received'}
+      <ReceivedEmail replyId={email.id} />
+    {:else if email.kept}
+      <SentEmail emailId={email.id} />
+    {:else}
+      <p class="text-muted-foreground">Only the subject was kept: this email went out before ScreenHire kept a copy of each one.</p>
+    {/if}
+  </ExpandableRow>
+{/snippet}
 
 <!-- The tab says how many there are; the panel does not repeat it (W4). -->
 <Panel title="Messages">
+  {#snippet actions()}
+    {#if ids.length > 1}
+      <Button variant="outline" disabled={open.size === ids.length} onclick={() => ids.forEach((id) => open.add(id))}>Expand all</Button>
+      <Button variant="outline" disabled={open.size === 0} onclick={() => open.clear()}>Collapse all</Button>
+    {/if}
+  {/snippet}
   <div class="flex flex-col gap-5">
     {#if error}
       <QueryError message={describeError(error, 'Could not load the messages')} {onretry} inset />
@@ -64,36 +115,17 @@
       </Empty.Root>
     {:else}
       <ol aria-label="Emails" class="@container flex flex-col divide-y divide-border-subtle">
-        {#each emails as email (email.id)}
-          <li class="flex flex-col gap-3 py-2 first:pt-0 last:pb-0">
-            <!-- One email open at a time. -->
-            <ExpandableRow id={`email-${email.id}`} bind:expanded={() => open === email.id, (next) => (open = next ? email.id : undefined)}>
-              {#snippet icon()}{#if email.direction === 'Received'}<ReplyIcon />{:else}<SendIcon />{/if}{/snippet}
-              {#snippet summary()}
-                <span class="font-semibold break-words">{email.subject}</span>
-                <span class="flex min-w-0 flex-wrap items-center gap-x-2 text-caption text-muted-foreground">
-                  <span>{email.direction === 'Received' ? `Reply from ${email.fromAddress ?? 'the candidate'}` : (actorText(email, members, currentUserId) ?? 'Sent')}</span>
-                  <RelativeTime at={email.sentAt} />
-                </span>
-              {/snippet}
-              {#snippet trailing()}
-                {@const files = email.attachmentCount ?? 0}
-                {#if files > 0}
-                  <span class="inline-flex shrink-0 items-center gap-1 text-caption text-muted-foreground" role="img" aria-label={`${files} ${files === 1 ? 'file' : 'files'}`}>
-                    <PaperclipIcon aria-hidden="true" />{files}
-                  </span>
-                {/if}
-                {#if manyJobs}<Badge variant="muted" class="hidden shrink-0 @md:inline-flex">{email.jobTitle}</Badge>{/if}
-              {/snippet}
-              {#if manyJobs}<p class="text-muted-foreground @md:hidden">{email.jobTitle}</p>{/if}
-              {#if email.direction === 'Received'}
-                <ReceivedEmail replyId={email.id} />
-              {:else if email.kept}
-                <SentEmail emailId={email.id} />
-              {:else}
-                <p class="text-muted-foreground">Only the subject was kept: this email went out before ScreenHire kept a copy of each one.</p>
-              {/if}
-            </ExpandableRow>
+        {#each threads as thread (thread.email.id)}
+          <li class="flex flex-col py-2 first:pt-0 last:pb-0">
+            {@render row(thread.email)}
+            {#if thread.replies.length > 0}
+              <!-- Replies hang under the email they answer, on a rule from its icon. -->
+              <ol aria-label={`Replies to ${thread.email.subject}`} class="mt-1 ml-3.5 flex flex-col border-l border-border-subtle pl-5">
+                {#each thread.replies as reply (reply.id)}
+                  <li class="flex flex-col py-1">{@render row(reply)}</li>
+                {/each}
+              </ol>
+            {/if}
           </li>
         {/each}
       </ol>

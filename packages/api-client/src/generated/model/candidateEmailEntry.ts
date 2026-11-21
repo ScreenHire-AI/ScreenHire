@@ -27,4 +27,8 @@ export interface CandidateEmailEntry {
   /** @nullable */
   fromAddress?: string | null;
   attachmentCount?: number;
+  /** @nullable */
+  snippet?: string | null;
+  /** @nullable */
+  inReplyTo?: string | null;
 }

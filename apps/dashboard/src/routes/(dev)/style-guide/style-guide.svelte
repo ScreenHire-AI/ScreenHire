@@ -1346,7 +1346,7 @@
 
       <Panel title="Expandable row">
         <ol aria-label="Emails" class="flex flex-col divide-y divide-border-subtle">
-          <li class="flex flex-col gap-3 py-2 first:pt-0 last:pb-0">
+          <li class="flex flex-col py-2 first:pt-0 last:pb-0">
             <ExpandableRow id="style-guide-email-1" bind:expanded={emailOpen}>
               {#snippet icon()}<SendIcon />{/snippet}
               {#snippet summary()}
@@ -1356,7 +1356,7 @@
               <p>Hi Priya, thank you for your time on Thursday. We would like to invite you to a second interview.</p>
             </ExpandableRow>
           </li>
-          <li class="flex flex-col gap-3 py-2 first:pt-0 last:pb-0">
+          <li class="flex flex-col py-2 first:pt-0 last:pb-0">
             <ExpandableRow id="style-guide-email-2">
               {#snippet icon()}<SendIcon />{/snippet}
               {#snippet summary()}

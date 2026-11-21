@@ -35,6 +35,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/email-composer.svelte
   - resource: apps/dashboard/src/lib/components/email-composer-sheet.svelte
   - resource: apps/dashboard/src/lib/components/candidate/messages-tab.svelte
+  - resource: apps/dashboard/src/lib/email-history.ts
+  - resource: apps/api/Email/EmailSnippet.cs
   - resource: src/ScreenHire.Application/Applications/ApplicationNotes.cs
   - resource: apps/api/Applications/ApplicationDrafts.cs
   - resource: src/ScreenHire.Domain/Applications/CandidateLanguage.cs
@@ -195,7 +197,10 @@ the reason.
 ## Messages
 
 `GET /v1/candidates/{candidateId}/emails` lists every email to the candidate, about any of their applications, newest
-first: the subject, who or which automation sent it, when, the job, and `kept`. `GET /v1/emails/{emailId}` returns one
+first: the subject, who or which automation sent it, when, the job, `kept`, and `snippet`, the first line of the text
+part with words in it (the quoted email under a reply left out, cut at a word to 140 characters; `EmailSnippet`, which
+reads only the first 400 characters from the database). A reply also has `inReplyTo`, the id of the sent email it answers
+(the send its reply address named), so the tab shows it under that email. `GET /v1/emails/{emailId}` returns one
 email as it went: the address, the subject, the HTML part and the plain-text part. Emails sent before copies were kept
 have only their subject (`kept` is false), and Messages says so. A copy is never changed: the application role cannot
 update `application_emails`, and a copy goes with its application. Every member reads them, viewers included.

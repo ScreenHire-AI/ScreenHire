@@ -50,8 +50,10 @@ public sealed class CandidateRepliesTests(E2EFixture fixture) : BrowserTest(fixt
         // Messages lists the reply with the email sent, and opens to the message.
         var list = messages.GetByRole(AriaRole.List, new() { Name = "Emails" });
         var reply = list.GetByRole(AriaRole.Button).Filter(new() { HasText = "Re: Next steps" });
-        await Expect(reply).ToContainTextAsync($"Reply from {scene.CandidateEmail}");
-        await Expect(list.GetByRole(AriaRole.Button).Filter(new() { HasText = "Next steps" })).ToHaveCountAsync(2);
+        await Expect(reply).ToContainTextAsync($"From {scene.CandidateEmail}");
+        await Expect(reply.Locator("[data-email-snippet]")).ToHaveTextAsync("Thursday works for me.");
+        // The reply hangs under the email it answers.
+        await Expect(list.GetByRole(AriaRole.List, new() { Name = "Replies to Next steps" }).GetByRole(AriaRole.Button)).ToHaveCountAsync(1);
         await reply.ClickAsync();
         await Expect(messages.GetByText($"Casey Morgan <{scene.CandidateEmail}>")).ToBeVisibleAsync();
         await Expect(messages.FrameLocator("iframe[title='Email preview']").Locator("body")).ToContainTextAsync("Thursday works for me.");

@@ -36,3 +36,12 @@ document.elementFromPoint ??= () => null;
 Element.prototype.scrollIntoView ??= () => {};
 window.scrollBy = () => {};
 window.scrollTo = () => {};
+
+// jsdom has no Web Animations. Svelte's transitions (a row sliding open, design system A17) run on `element.animate` and
+// finish on the animation's `onfinish`: give every element an animation that finishes on the next microtask, so what
+// opens appears and what closes leaves the DOM as it would after the motion.
+Element.prototype.animate ??= function () {
+  const animation = { onfinish: null as null | (() => void), cancel() {}, currentTime: 0, playState: 'finished', effect: null };
+  queueMicrotask(() => animation.onfinish?.());
+  return animation as unknown as Animation;
+};
