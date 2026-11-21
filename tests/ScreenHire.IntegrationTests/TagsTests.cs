@@ -106,14 +106,27 @@ public sealed class TagsTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Only_someone_with_edit_settings_changes_a_tag_and_never_another_organizations()
+    public async Task Only_someone_with_edit_settings_who_sees_every_job_changes_a_tag_and_never_another_organizations()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         var application = await ApplicationAsync(owner, await JobAsync(owner));
         await TagAsync(owner, application, "Referral");
         using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter");
         using var other = await fixture.SignedInWithOrganizationAsync();
+        // Edit settings on only the jobs they're on: a change would reach only the applications they can see, so it is refused.
+        var roleId = (await owner.PostAsync("/v1/organization/roles", new JsonObject { ["name"] = "Settings editor", ["copyFrom"] = "Viewer" }))
+            .Expect(HttpStatusCode.Created).Id();
+        (await owner.PutAsync($"/v1/organization/roles/{roleId}", new JsonObject
+        {
+            ["name"] = "Settings editor",
+            ["permissions"] = new JsonArray("ViewHiring", "EditSettings"),
+        })).Expect(HttpStatusCode.OK);
+        using var narrow = await fixture.InviteAndJoinAsync(owner, "Viewer", jobAccess: "HiringTeamOnly");
+        await owner.GiveRoleAsync(narrow, roleId);
 
+        (await narrow.PostAsync("/v1/tags/rename", new JsonObject { ["tag"] = "Referral", ["newName"] = "Referred" }))
+            .Expect(HttpStatusCode.Forbidden).Text("title").Should().Be("Needs all jobs");
+        (await narrow.DeleteAsync("/v1/tags?tag=Referral")).Expect(HttpStatusCode.Forbidden);
         (await recruiter.GetAsync("/v1/tags")).Expect(HttpStatusCode.OK).Count("tags").Should().Be(1, "every member reads the tags to pick one");
         (await recruiter.PostAsync("/v1/tags/rename", new JsonObject { ["tag"] = "Referral", ["newName"] = "Referred" })).Expect(HttpStatusCode.Forbidden);
         (await recruiter.DeleteAsync("/v1/tags?tag=Referral")).Expect(HttpStatusCode.Forbidden);

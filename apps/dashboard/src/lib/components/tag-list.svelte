@@ -144,7 +144,7 @@
 
 {#snippet suggestionList()}
   {#if open}
-    <ul id={listId} role="listbox" aria-label="Tags" class="absolute top-full left-0 z-50 mt-1 flex w-full max-w-xs min-w-48 flex-col rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-overlay">
+    <ul id={listId} role="listbox" aria-label="Tags" class="absolute top-full left-0 z-50 mt-1 flex w-full min-w-48 flex-col rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-overlay">
       {#each options as option, index (option.create ? `create:${option.name}` : option.name)}
         <!-- Picked on mousedown, before the field loses focus; the keyboard picks with Enter in the field. -->
         <li
