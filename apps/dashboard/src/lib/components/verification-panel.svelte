@@ -1,6 +1,6 @@
 <script lang="ts">
   import ArrowRightIcon from '~icons/lucide/arrow-right';
-  import ChevronDownIcon from '~icons/lucide/chevron-down';
+  import CircleCheckIcon from '~icons/lucide/circle-check';
   import { undoVerificationReasonExplanation, type CheckGroup } from '@screenhire/api-client';
   import { createGetApplicationVerification } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -25,8 +25,6 @@
     everyReasonExplained,
     findingsByGroup,
     groupAnchor,
-    groupDidNotRun,
-    groupStateText,
     refetchAfterReview,
     reviewerName,
     type ExplainedReasonItem,
@@ -38,8 +36,10 @@
 
   // A candidate's Verification tab (ADR-0004, design system section 16, docs/architecture/verification-engine.md section 7).
   // The level is the header's mark, shown once; here are its suggested next step, AI help as information, a map of the six
-  // groups of checks with what each found, and a panel for each group that found something, each finding opening to its
-  // evidence and counter-evidence. It decides nothing. Marking a finding explained and dismissing are a person's, and
+  // groups of checks with what each found (the same tiles whether anything was found or not, so a clear result shows what was
+  // looked at), and a panel for each group that found something, each finding opening to its evidence and counter-evidence.
+  // When it was checked sits in the panel's header, the ruleset in that fact's tooltip, and the panel closes on the line that
+  // no automated decision has been made (W10). It decides nothing. Marking a finding explained and dismissing are a person's, and
   // every one is an entry in the candidate's Activity; explaining every finding changes no level, and only a dismissal sets
   // the result aside. Nothing here rejects anyone or shows a score.
   let { applicationId }: { applicationId: string } = $props();
@@ -69,12 +69,9 @@
   const groups = $derived(detail?.checkGroups ?? []);
   // A group with findings gets a panel, in the groups' order. Nothing else does.
   const panels = $derived(groups.filter((group) => findings[group.group].length > 0));
-  // Calm: no finding in any group. It is one line, the groups that did not run, and what was checked.
+  // Clear: no finding in any group. It says so with a check, never "Verified" or "Genuine": the checks found nothing unusual,
+  // which says nothing more about the person. The tiles say which groups found nothing, were off or did not run.
   const calm = $derived(panels.length === 0);
-  // Said outright: a group that did not run, or whose signal a trusted domain or network stopped, so a quiet result is never
-  // read as a clean one.
-  const noted = $derived(groups.filter((group) => groupDidNotRun(group) || (group.note && group.found + group.notes === 0)));
-  const ran = $derived(groups.filter((group) => !groupDidNotRun(group)));
   // The next step's edge takes its level's colour, as the level's badge does.
   const edges: Record<StatusTone, string> = {
     clear: 'border-status-clear-mark',
@@ -158,6 +155,18 @@
   {/if}
 {/snippet}
 
+<!-- When the checks last assessed the application, with the ruleset one hover or focus away (W10). -->
+{#snippet checked()}
+  {#if audited}
+    <p class="flex items-center gap-1 text-caption text-muted-foreground" data-audit>
+      <Hint content={`Ruleset ${audited.rulesetVersion}`}>
+        {#snippet children({ props })}<span {...props} class="rounded-sm underline decoration-dotted underline-offset-2">Checked</span>{/snippet}
+      </Hint>
+      <RelativeTime at={audited.assessedAt} class="inline" />
+    </p>
+  {/if}
+{/snippet}
+
 <div class="flex min-w-0 flex-col gap-5" data-verification>
   <!-- A failed background refetch keeps the evidence on screen, under the error. -->
   {#if verification.isError}
@@ -183,9 +192,10 @@
         <StatusBadge status="working" label="Checks pending" />
         <p>Checks are still running. This tab updates on its own when they finish.</p>
       </div>
+      <p class="mt-4 text-caption text-muted-foreground" data-decisions>No automated decision has been made. Every action is logged.</p>
     </Panel>
   {:else}
-    <Panel title="Verification" data-verification-summary>
+    <Panel title="Verification" data-verification-summary actions={audited ? checked : undefined}>
       <div class="flex flex-col gap-5">
         <!-- The suggested next step every result carries (CLAUDE.md non-negotiable 1). It leads, in a callout in the level's colour,
              when the level needs a look; otherwise it is one quiet line, the summary then its next step (W10). -->
@@ -196,6 +206,14 @@
               <div class="flex min-w-0 flex-col gap-1">
                 <p class="max-w-measure font-semibold" data-next-step>{authenticity.nextStep}</p>
                 <p class="max-w-measure text-muted-foreground">{authenticity.summary}</p>
+              </div>
+            </div>
+          {:else if calm && !authenticity.dismissal}
+            <div data-summary data-clear class="flex items-start gap-2.5">
+              <CircleCheckIcon aria-hidden="true" class="mt-0.5 size-5 shrink-0 text-status-clear-mark" />
+              <div class="flex min-w-0 flex-col gap-0.5">
+                <p class="font-semibold">Nothing unusual found</p>
+                <p class="max-w-measure text-muted-foreground" data-next-step>{authenticity.nextStep}</p>
               </div>
             </div>
           {:else}
@@ -219,37 +237,10 @@
 
         {@render aiRow()}
 
-        {#if calm}
-          {#if noted.length > 0}
-            <ul class="flex flex-col gap-3" data-not-run>
-              {#each noted as group (group.group)}
-                <li class="flex flex-col gap-1" data-group={group.group}>
-                  <div class="flex flex-wrap items-center gap-2">
-                    <h3 class="min-w-0 font-semibold">{group.label}</h3>
-                    <StatusBadge status="notInEffect" label={groupDidNotRun(group) || group.state === 'Paused' ? groupStateText(group) : 'Not counted'} quiet />
-                  </div>
-                  {#if group.note}<p class="max-w-measure text-muted-foreground">{group.note}</p>{/if}
-                </li>
-              {/each}
-            </ul>
-          {/if}
-          <details class="group" data-checked>
-            <summary class="flex min-h-11 list-none items-center justify-between gap-2 font-semibold [&::-webkit-details-marker]:hidden">
-              What was checked
-              <ChevronDownIcon aria-hidden="true" class="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-            </summary>
-            <ul class="flex flex-col gap-1.5 pt-1 pb-2">
-              {#each ran as group (group.group)}
-                <li class="max-w-measure text-muted-foreground">
-                  <span class="font-semibold text-foreground">{group.label}:</span> {group.checked}
-                </li>
-              {/each}
-            </ul>
-          </details>
-        {:else}
-          <VerificationGroupMap {groups} {findings} />
-        {/if}
+        <VerificationGroupMap {groups} {findings} />
         <p role="status" class="text-muted-foreground empty:hidden">{announcement}</p>
+        <!-- The panel's closing line (W10): what was decided, which is nothing. -->
+        <p class="text-caption text-muted-foreground" data-decisions>No automated decision has been made. Every action is logged.</p>
       </div>
     </Panel>
 
@@ -295,19 +286,7 @@
     {/each}
   {/if}
 
-  <!-- The page's last line (W10), under every panel and part of none: what was decided, and when it was assessed and under which
-       rules. Audit details come last. Two facts with their own gap (W3). -->
-  {#if detail}
-    <div class="flex flex-col gap-1 px-1" data-decisions>
-      <p class="text-caption text-muted-foreground">No automated decision has been made. Every action is logged.</p>
-      {#if audited}
-        <p class="flex flex-wrap gap-x-4 text-caption text-muted-foreground" data-audit>
-          <span>Assessed <RelativeTime at={audited.assessedAt} class="inline" /></span><span>Ruleset {audited.rulesetVersion}</span>
-        </p>
-      {/if}
-    </div>
-  {/if}
 </div>
 
-<VerificationDismissDialog bind:open={dismissOpen} {applicationId} assessment={authenticity ? { id: authenticity.id, kind: 'authenticity' } : null} explained={dismissExplained} ondone={done} />
+<VerificationDismissDialog bind:open={dismissOpen} {applicationId} assessment={authenticity ? { id: authenticity.id, kind: 'authenticity', level: authenticity.level } : null} explained={dismissExplained} ondone={done} />
 <VerificationExplainDialog bind:open={explainOpen} {applicationId} reason={explaining} ondone={explained} />

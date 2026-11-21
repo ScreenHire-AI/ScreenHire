@@ -44,7 +44,7 @@
   import { stageLabel } from '#lib/talent-pool.js';
   import { candidateListHref, closedJobIds, isCurrentApplication, listCounts, type CandidateList } from '#lib/candidate-lists.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import { defaultSorts, differsFromView, filtersOf, sortOf, verificationOf } from '#lib/view-filters.js';
+  import { defaultSorts, differsFromView, filtersOf, sortOf, verificationOf, viewVerification } from '#lib/view-filters.js';
 
   // Every application in the organization, newest first; new ones, stage moves and verification levels arrive live
   // (#lib/realtime.ts).
@@ -162,6 +162,30 @@
     }
     applied = id;
   });
+  // A built-in verification view is its level, so the filter row says what the view filters by: "Verification: Review" on To
+  // review, "Verification: Verify" on To verify (the owner's walk-through, note 23). Leaving the view takes its level off again,
+  // unless the person chose another level, which is how they left it (`chooseVerification`).
+  let appliedBuiltIn = $state<string | null>(null);
+  $effect(() => {
+    const id = builtIn?.id ?? null;
+    if (id === appliedBuiltIn) return;
+    const level = viewVerification(id);
+    const before = viewVerification(appliedBuiltIn);
+    if (level) verificationFilter = { ...verificationFilter, authenticity: level };
+    else if (before && verificationFilter.authenticity === before) verificationFilter = { ...noVerificationFilter };
+    appliedBuiltIn = id;
+  });
+  // Another level, or Any state, on To review or To verify leaves the view for the Candidates page with that filter: the view's
+  // own rule (not dismissed) and a different level together would show nothing.
+  function chooseVerification(next: VerificationFilter) {
+    verificationFilter = next;
+    const level = viewVerification(builtIn?.id);
+    if (level && next.authenticity !== level) {
+      const url = new URL(page.url.href);
+      url.searchParams.delete('view');
+      void goto(url, { reset: false });
+    }
+  }
   const filtersNow = $derived(
     filtersOf({
       baseView: base?.id ?? null,
@@ -300,7 +324,7 @@
   {/if}
   <MultiFilterMenu label="Job" options={jobs} bind:values={jobFilter} />
   <MultiFilterMenu label="Stage" options={stages} bind:values={stageFilter} />
-  <VerificationFilterMenu bind:filter={verificationFilter} />
+  <VerificationFilterMenu bind:filter={() => verificationFilter, chooseVerification} />
   <TagFilterMenu bind:tag={tagFilter} {tags} />
 {/snippet}
 

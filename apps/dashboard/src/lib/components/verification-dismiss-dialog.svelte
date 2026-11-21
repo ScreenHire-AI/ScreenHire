@@ -25,7 +25,8 @@
   }: {
     open?: boolean;
     applicationId: string;
-    assessment: { id: string; kind: AssessmentKind } | null;
+    /** `level` names the queue the candidate leaves: To verify at Verify, To review at Review. */
+    assessment: { id: string; kind: AssessmentKind; level?: string } | null;
     /**
      * With Dismiss all: each reason people marked explained, listed so the dismisser reads them first. They inform the
      * decision and preselect nothing; the dismissal keeps its own reason and note.
@@ -84,7 +85,9 @@
     <Dialog.Header>
       <Dialog.Title>Dismiss this verification result?</Dialog.Title>
       <Dialog.Description>
-        The evidence stays on record and your reason goes in Activity{assessment?.kind === 'authenticity' ? '; the candidate leaves "To review".' : '.'}
+        The evidence stays on record and your reason goes in Activity{assessment?.kind === 'authenticity'
+          ? `; the candidate leaves "${assessment.level === 'VerificationRecommended' ? 'To verify' : 'To review'}".`
+          : '.'}
       </Dialog.Description>
     </Dialog.Header>
     {#if explained.length > 0}

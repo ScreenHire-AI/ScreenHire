@@ -104,6 +104,8 @@ const panels: Record<string, string[]> = {
   Notice: ['Notice'],
   'Welcome line': ['Welcome line'],
   'Expandable row': ['Expandable row'],
+  'Info button': ['Info button'],
+  'Alert grid': ['Alert grid'],
   'Summary card': ['Summary card'],
   'Metric card': ['Metric card'],
   'Bar chart': ['Bar chart'],

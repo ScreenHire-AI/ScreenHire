@@ -380,7 +380,8 @@ internal static class VerificationReads
                 // A paused AI check is named for what paused, not for the group of checks its analyzer belongs to.
                 r.Kind == CheckNotRunKind.Paused ? RunNotes.AiChecksLabel : CheckGroups.Label(CheckGroups.Of(r.Run.Analyzer)!.Value),
                 r.Kind!.Value,
-                r.Run.Note!))
+                // Stored notes keep the words they were written in; people read them in today's (RunNotes.Describe).
+                RunNotes.Describe(r.Run.Analyzer, r.Run.Note!)))
             .DistinctBy(n => (n.Group, n.Note)) // two analyzers of one group (answers, consistency) say the same thing once
             .ToList();
 
@@ -389,7 +390,7 @@ internal static class VerificationReads
                 ? new VerificationDismissal(action.Id, action.DismissReason!.Value, action.Note, action.ActorUserId!.Value, NameOf(action.ActorUserId), action.OccurredAt)
                 : null;
 
-        static string TitleOf(VerificationSignal signal) => SignalCatalogue.All.TryGetValue(signal.Code, out var definition) ? definition.Title : signal.Code;
+        static string TitleOf(VerificationSignal signal) => SignalCatalogue.TitleOf(signal.Code);
 
         VerificationReasonExplanation? ExplanationOf(VerificationAssessment assessment, Guid signalId) =>
             explanations.TryGetValue((assessment.Id, signalId), out var action)

@@ -6,7 +6,7 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Application.Notifications;
 
 /// <summary>
-/// The organization's alert settings from Verification's Notifications tab, read as every member's starting value for the
+/// The organization's alert settings (Verification suggested on the Checks tab, AI usage on the AI use tab), read as every member's starting value for the
 /// verification and AI use rows (docs/architecture/notifications.md, "Each person's choices"). A person's own choice wins.
 /// </summary>
 public sealed record OrganizationAlertDefaults(bool SuggestedEmail, bool SuggestedSlack, bool BudgetEmail, bool BudgetSlack)

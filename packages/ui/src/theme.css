@@ -181,7 +181,9 @@
     [role='option'],
     [role='menuitem'],
     [role='menuitemcheckbox'],
-    [role='menuitemradio']
+    [role='menuitemradio'],
+    /* A table row that opens in place (A9): the whole row answers a click, and its button is the control for keyboards. */
+    [data-row-opens]
   ) {
     cursor: pointer;
 

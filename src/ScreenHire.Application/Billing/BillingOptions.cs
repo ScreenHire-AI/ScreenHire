@@ -64,7 +64,7 @@ public sealed class BillingOptions
     /// <summary>
     /// The margin on AI use that a customer pays: <see cref="BillingAiOptions.Margin"/> while AI use is billed (<see cref="AiMetered"/>),
     /// and 0 otherwise, because then nobody is billed for it and the amount shown is the provider's price. Every figure for AI use goes
-    /// through it, so the Usage tab, the budget and cap, and the Billing page show the one amount the meter is sent
+    /// through it, so the AI use tab, the budget and cap, and the Billing page show the one amount the meter is sent
     /// (docs/architecture/ai-usage.md).
     /// </summary>
     public decimal AiMarginInForce => AiMetered ? Ai.Margin : 0m;

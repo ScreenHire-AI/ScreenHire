@@ -164,7 +164,7 @@ export const settingsSections: readonly SettingsSection[] = [
 /**
  * A page people look for in Settings because it is a setting to them, but that lives in an area of its own: the hiring
  * template's stages and questions, the scorecards, the AI model and its budget. Settings search finds each one by the
- * everyday words kept here and says which area it is in, so a search for "ai key" lands on the AI model tab instead of
+ * everyday words kept here and says which area it is in, so a search for "ai key" lands on the AI use tab instead of
  * a dead end. Only what the person's role may open is offered (A3).
  */
 export interface SettingsElsewhere {
@@ -208,11 +208,39 @@ export const settingsElsewhere: readonly SettingsElsewhere[] = [
     keywords: ['email', 'emails', 'wording', 'rejection email', 'reminder email', 'message'],
     allowed: everyone,
   },
-  verificationPage('ai-model', "ScreenHire's model or your own key", ['ai', 'ai key', 'key', 'openai', 'anthropic', 'claude', 'provider', 'own key']),
-  verificationPage('usage', 'What the AI checks used and cost', ['ai', 'budget', 'cost', 'tokens', 'cap', 'spend', 'bill']),
-  verificationPage('notifications', 'Who hears about AI budget and check alerts', ['alerts', 'budget', 'warn']),
-  verificationPage('checks', 'Which checks run on an applicant', ['ai checks', 'turn off', 'consistency', 'duplicates', 'network']),
-  verificationPage('policy', 'AI use while applying, trusted domains and networks', ['ai use', 'device check', 'trusted', 'network', 'privacy', 'consent']),
+  verificationPage('checks', 'Which checks run, AI use while applying, trusted domains and networks', [
+    'ai checks',
+    'turn off',
+    'consistency',
+    'duplicates',
+    'network',
+    'ai use',
+    'device check',
+    'trusted',
+    'privacy',
+    'consent',
+    'alerts',
+    'policy',
+  ]),
+  verificationPage('ai-use', 'What the AI checks used and cost, the budget, and whose key runs them', [
+    'ai',
+    'ai key',
+    'key',
+    'openai',
+    'anthropic',
+    'claude',
+    'provider',
+    'own key',
+    'budget',
+    'cost',
+    'tokens',
+    'cap',
+    'spend',
+    'bill',
+    'usage',
+    'alerts',
+    'warn',
+  ]),
 ];
 
 /** The pages outside Settings that a search for `query` finds, for what this person may open. An empty search finds none. */

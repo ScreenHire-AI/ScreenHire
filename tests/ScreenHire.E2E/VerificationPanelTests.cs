@@ -100,7 +100,7 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
 
         await Expect(Region("Network").Locator("[data-signal='NET_DATACENTER_IP']")).ToBeVisibleAsync();
         await Expect(Region("Contact details").Locator("[data-signal='ID_PHONE_INVALID']")).ToBeVisibleAsync();
-        await Expect(Region("Form use").Locator("[data-signal='AUTO_WEBDRIVER']")).ToBeVisibleAsync();
+        await Expect(Region("Form activity").Locator("[data-signal='AUTO_WEBDRIVER']")).ToBeVisibleAsync();
         await Expect(Region("Authenticity")).ToHaveCountAsync(0);
         await Expect(Region("Review log")).ToHaveCountAsync(0);
         var map = summary.GetByRole(AriaRole.List, new() { Name = "Check groups" });
@@ -122,7 +122,7 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         // AI help is marked as information only on its own findings (the resume's) and nowhere else.
         await Expect(Region("Documents").Locator("[data-information-only]")).Not.ToHaveCountAsync(0);
         await Expect(Region("Network").Locator("[data-information-only]")).ToHaveCountAsync(0);
-        await Expect(Region("Form use").Locator("[data-information-only]")).ToHaveCountAsync(0);
+        await Expect(Region("Form activity").Locator("[data-information-only]")).ToHaveCountAsync(0);
         (await tab.TextContentAsync()).Should().NotContain("Declared AI use", "the declaration is on the Application tab, not repeated here");
         // A feature that does not exist yet is hidden, not shown disabled (design system A3).
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("Request verification", RegexOptions.IgnoreCase) })).ToHaveCountAsync(0);
@@ -206,10 +206,12 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await SaveScreenshotAsync(Page, "dashboard-verification-panel-dark");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to light theme" }).ClickAsync();
 
-        // "To review" now holds both farm members, which carry the duplicate; the dismissed bot and the genuine
-        // applicant are not in it.
-        await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^To review") }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("To review");
+        // "To verify" now holds both farm members, which carry the duplicate at Verify; the dismissed bot and the genuine
+        // applicant are not in it. To review holds Review only, so they are not there either, and the filter row says what the
+        // view filters by.
+        await Page.GetByRole(AriaRole.Link, new() { NameRegex = new Regex("^To verify") }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("To verify");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Verification: Verify" })).ToBeVisibleAsync();
         var queue = Page.GetByRole(AriaRole.Table, new() { Name = "Candidates" });
         await Expect(CandidateLinks(queue)).ToHaveCountAsync(2);
         await Expect(queue.GetByRole(AriaRole.Link, new() { Name = farmFirst.FullName })).ToBeVisibleAsync();
@@ -232,10 +234,15 @@ public sealed class VerificationPanelTests(E2EFixture fixture) : BrowserTest(fix
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Verification") }).ClickAsync();
         var genuineTab = Page.GetByRole(AriaRole.Tabpanel);
         await Expect(Region("Verification").Locator("[data-next-step]")).ToHaveTextAsync("No action needed.", new() { Timeout = 60_000 });
-        // A calm result is one line and a collapsed list of what was checked, with no map and no panel for any group.
-        await Expect(genuineTab).ToContainTextAsync("Nothing unusual in the checks that ran.");
-        await Expect(genuineTab.Locator("[data-checked]")).ToContainTextAsync("What was checked");
-        await Expect(genuineTab.GetByRole(AriaRole.List, new() { Name = "Check groups" })).ToHaveCountAsync(0);
+        // A clear result says so with a check and shows the six groups as tiles, each saying what it found; never "Verified".
+        await Expect(genuineTab.Locator("[data-clear]")).ToContainTextAsync("Nothing unusual found");
+        var tiles = genuineTab.GetByRole(AriaRole.List, new() { Name = "Check groups" }).GetByRole(AriaRole.Listitem);
+        await Expect(tiles).ToHaveCountAsync(6);
+        await Expect(tiles.Filter(new() { HasText = "Form activity" })).ToContainTextAsync("Nothing found");
+        await Expect(genuineTab.GetByText("What was checked")).ToHaveCountAsync(0);
+        await Expect(genuineTab).Not.ToContainTextAsync(new Regex("Verified|Genuine"));
+        await Expect(Region("Verification").Locator("[data-audit]")).ToContainTextAsync("Checked");
+        await Expect(Region("Verification").Locator("[data-decisions]")).ToHaveTextAsync("No automated decision has been made. Every action is logged.");
         await Expect(genuineTab.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Dismiss") })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
     }

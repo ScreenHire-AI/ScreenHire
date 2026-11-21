@@ -11,7 +11,7 @@
   let { limits, cap = true }: { limits: AiUsageLimitsView; cap?: boolean } = $props();
 
   const line = (limit: AiUsageLimitView) => `${formatAmount(limit.used, limit.unit)} of ${formatAmount(limit.amount, limit.unit)}`;
-  // Limits count billed dollars, the amount the Usage tab shows. One stored in tokens stays in tokens only where the AI model has
+  // Limits count billed dollars, the amount the AI use tab shows. One stored in tokens stays in tokens only where the AI model has
   // no price to convert it at, and says so once, under the limits (ai-usage.md, "Budget, alerts and the cap").
   const inTokens = $derived([limits.effectiveBudget, cap ? limits.effectiveCap : null].some((limit) => limit?.unit === 'Tokens'));
 </script>

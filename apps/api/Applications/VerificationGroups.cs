@@ -13,7 +13,7 @@ internal static class VerificationGroups
 {
     /// <summary>
     /// The groups that read the careers form: a candidate a recruiter added by hand had no network address, session or form
-    /// telemetry, so Network and Form use had nothing to look at. A careers applicant is never marked this way, so an
+    /// telemetry, so Network and Form activity had nothing to look at. A careers applicant is never marked this way, so an
     /// assistive-technology opt-out is not told apart (CLAUDE.md non-negotiable 4).
     /// </summary>
     private const string AddedByHand = "Added by hand, so there was no careers form for these checks to read.";
@@ -33,9 +33,9 @@ internal static class VerificationGroups
             var found = authenticity.Count(s => s.Group == group && s.CountsTowardLevel);
             var notes = authenticity.Count(s => s.Group == group && !s.CountsTowardLevel) + aiAssistance.Count(s => s.Group == group);
             var groupNotes = notRun.Where(n => n.Group == group).ToList();
-            // Off means the group did not run. A partial note (Duplicates did not compare the device because Form use is off, or a
+            // Off means the group did not run. A partial note (Duplicates did not compare the device because Form activity is off, or a
             // trusted domain stopped a signal) leaves the group's own checks running, so it is only a note.
-            var turnedOff = groupNotes.FirstOrDefault(n => n.Note == CheckGroups.TurnedOffNote(group));
+            var turnedOff = groupNotes.FirstOrDefault(n => n.Note == CheckGroups.TurnedOffSentence(group));
             // The AI check paused at the organization's cap: with nothing else found, "nothing found" would read as clean.
             var paused = groupNotes.FirstOrDefault(n => n.Kind == CheckNotRunKind.Paused);
             var state = found > 0 ? CheckGroupState.Found

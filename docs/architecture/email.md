@@ -264,8 +264,8 @@ none. Team email is not candidate email: it gets no candidate-portal footer and 
 
 ## Verification alerts
 
-Two emails go to teammates who want them. The Notifications tab of Verification sets where each member starts, and each
-member's own choice on Your account wins, including the daily digest
+Two emails go to teammates who want them. Verification sets where each member starts (Verification suggested on the Checks
+tab, AI usage on the AI use tab), and each member's own choice on Your account wins, including the daily digest
 (`VerificationAlertWording`, ScreenHire's own wording like the mention email, not a template). "An application needs a closer
 look" goes once, when an application first reaches Verification suggested, to members who hold Review verification and see the
 job (ADR-0015); it names the job, says the application needs a closer look and links to it, and carries no level, candidate name,

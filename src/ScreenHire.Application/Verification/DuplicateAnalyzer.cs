@@ -36,7 +36,7 @@ public sealed class DuplicateAnalyzer(IApplicantDirectory directory) : IVerifica
         var matches = found
             .Where(m => !(skippedEmail && m.Kind == SharedIdentifier.Email) && !(skippedDevice && m.Kind == SharedIdentifier.Device))
             .ToList();
-        // With form use checks off the apply page sends no device code, so this application has no device to compare.
+        // With form activity checks off the apply page sends no device code, so this application has no device to compare.
         var noDevice = !context.Config.FormUse && context.Observation?.DeviceHash is null;
         var note = (skippedEmail, skippedDevice, noDevice) switch
         {

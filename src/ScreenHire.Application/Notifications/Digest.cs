@@ -258,7 +258,7 @@ public static class DigestEmail
         {
             NoticeKind.Mentions when Guid.TryParse(item.SourceId, out var noteId) && item.ApplicationId is { } appId => MentionEmail.NotePath(appId, noteId),
             NoticeKind.Replies when item.ApplicationId is { } appId => ReplyEmail.MessagesPath(appId),
-            NoticeKind.AiUseAndBilling => item.Detail == "Trial" ? "/settings/billing" : "/verification/usage",
+            NoticeKind.AiUseAndBilling => item.Detail == "Trial" ? "/settings/billing" : "/verification/ai-use",
             _ => application,
         };
     }

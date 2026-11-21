@@ -39,7 +39,7 @@ public sealed class VerificationTests(AppHostFixture fixture)
         authenticity.GetProperty("level").GetString().Should().Be("VerificationRecommended");
         authenticity.GetProperty("reasonCodes").EnumerateArray().Select(c => c.GetString()).Should().Contain(
             [SignalCatalogue.Honeypot, SignalCatalogue.Webdriver, SignalCatalogue.DatacenterIp, SignalCatalogue.DisposableEmail, SignalCatalogue.SubmitVelocity]);
-        authenticity.GetProperty("summary").GetString().Should().StartWith("6 observations from network, contact details and form use checks");
+        authenticity.GetProperty("summary").GetString().Should().StartWith("6 observations from network, contact details and form activity checks");
         authenticity.GetProperty("nextStep").GetString().Should().Contain("not a reason to reject");
         authenticity.GetProperty("rulesetVersion").GetString().Should().Be(VerificationRuleset.Version);
         var datacenter = authenticity.GetProperty("signals").EnumerateArray().Single(s => s.GetProperty("code").GetString() == SignalCatalogue.DatacenterIp);
@@ -239,7 +239,7 @@ public sealed class VerificationTests(AppHostFixture fixture)
         last.At("authenticity.dismissal").ValueKind.Should().Be(JsonValueKind.Null);
         var after = await ListedAsync(owner, jobId, bot);
         after.GetProperty("verification").GetRawText().Should().Be(before.GetProperty("verification").GetRawText());
-        after.GetProperty("verification").GetProperty("authenticityDismissed").GetBoolean().Should().BeFalse("only a dismissal takes a candidate out of To review");
+        after.GetProperty("verification").GetProperty("authenticityDismissed").GetBoolean().Should().BeFalse("only a dismissal takes a candidate out of To review or To verify");
         after.GetProperty("stage").GetRawText().Should().Be(before.GetProperty("stage").GetRawText());
 
         // Once dismissed, the explanations are part of the record: nothing more to explain or undo.
@@ -404,7 +404,7 @@ public sealed class VerificationTests(AppHostFixture fixture)
         var plain = await AssessedAsync(tenant, await ApplyAsync(slug, jobId, SyntheticApplicants.GenuineHuman));
         var withSwitch = await AssessedAsync(tenant, await ApplyAsync(slug, jobId, SyntheticApplicants.HonestAiAssisted, accommodation: true));
 
-        // Nothing marks the switch: no group is Not checked or Turned off for it, so a reader cannot tell it was used.
+        // Nothing marks the switch: no group is Did not run or Off for it, so a reader cannot tell it was used.
         foreach (var verification in new[] { plain, withSwitch })
         {
             var groups = verification.At("checkGroups").EnumerateArray().ToList();

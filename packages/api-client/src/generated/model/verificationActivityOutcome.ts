@@ -6,7 +6,9 @@
  */
 
 /**
- * How an entry of the activity log ended. A word for what happened, never a verdict on a person.
+ * How an entry of the activity log ended. A word for what happened, never a verdict on a person. A run (one pass of the checks
+ * over one application) ended VerificationActivityOutcome.Found when a check in it wrote signals, VerificationActivityOutcome.NotRun when none of its checks
+ * looked, and VerificationActivityOutcome.Completed ("Nothing found") otherwise.
  */
 export type VerificationActivityOutcome = typeof VerificationActivityOutcome[keyof typeof VerificationActivityOutcome];
 

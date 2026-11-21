@@ -3,9 +3,10 @@ import { can, seesAllJobs } from '#lib/permissions.js';
 
 // The Verification area's tabs (design system section 7, Area; docs/architecture/verification-engine.md 10.11). One list
 // serves the tab strip, each tab's address check and the tests, so a tab someone cannot use is left out everywhere the same
-// way (A3) and its address sends them to the Overview.
+// way (A3) and its address sends them to the Overview. Four tabs, by what a setting affects: Checks holds every switch that decides
+// what runs and the settings that tune each group, and AI use holds who pays and how much (the owner's walk-through, 2026-11-21).
 
-export type VerificationTabValue = 'overview' | 'activity' | 'usage' | 'checks' | 'policy' | 'ai-model' | 'notifications';
+export type VerificationTabValue = 'overview' | 'activity' | 'checks' | 'ai-use';
 
 export interface VerificationTab {
   value: VerificationTabValue;
@@ -23,18 +24,32 @@ export interface VerificationTab {
  */
 export const canSeeUsage = (user: CurrentUser | null | undefined) => can(user, 'ViewAiUsage') && seesAllJobs(user);
 
-/** Edit settings changes Checks, Policy and the model, and opens the AI model and Notifications tabs. */
+/** Edit settings changes the Checks tab and the model, and the alerts on both tabs. */
 export const canEditVerification = (user: CurrentUser | null | undefined) => can(user, 'EditSettings');
+
+/**
+ * The AI use tab is for who can see what the checks used or choose whose key runs them. Each part of it checks its own
+ * permission: usage needs `canSeeUsage`, the key and the alert need Edit settings, and the limits are set by an Owner.
+ */
+export const canOpenAiUse = (user: CurrentUser | null | undefined) => canSeeUsage(user) || canEditVerification(user);
 
 export const verificationTabs: readonly VerificationTab[] = [
   { value: 'overview', label: 'Overview', href: '/verification', allowed: () => true, settings: false },
   { value: 'activity', label: 'Activity log', href: '/verification/activity', allowed: () => true, settings: false },
-  { value: 'usage', label: 'Usage', href: '/verification/usage', allowed: canSeeUsage, settings: false },
   { value: 'checks', label: 'Checks', href: '/verification/checks', allowed: () => true, settings: true },
-  { value: 'policy', label: 'Policy', href: '/verification/policy', allowed: () => true, settings: true },
-  { value: 'ai-model', label: 'AI model', href: '/verification/ai-model', allowed: canEditVerification, settings: true },
-  { value: 'notifications', label: 'Notifications', href: '/verification/notifications', allowed: canEditVerification, settings: true },
+  { value: 'ai-use', label: 'AI use', href: '/verification/ai-use', allowed: canOpenAiUse, settings: true },
 ];
+
+/**
+ * Where the addresses of the tabs that merged now lead. Bell notifications, alert emails and Slack messages sent before the
+ * change still link to them. Notifications goes to Checks, which holds its first alert and which everyone can open.
+ */
+export const movedTabs = {
+  '/verification/policy': '/verification/checks',
+  '/verification/notifications': '/verification/checks',
+  '/verification/usage': '/verification/ai-use',
+  '/verification/ai-model': '/verification/ai-use',
+} as const;
 
 /** The tabs this person sees, in order. */
 export const tabsFor = (user: CurrentUser | null | undefined) => verificationTabs.filter((tab) => tab.allowed(user));

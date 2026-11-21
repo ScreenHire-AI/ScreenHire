@@ -13,7 +13,11 @@ public enum VerificationActivityKind
     ModelCall,
 }
 
-/// <summary>How an entry of the activity log ended. A word for what happened, never a verdict on a person.</summary>
+/// <summary>
+/// How an entry of the activity log ended. A word for what happened, never a verdict on a person. A run (one pass of the checks
+/// over one application) ended <see cref="Found"/> when a check in it wrote signals, <see cref="NotRun"/> when none of its checks
+/// looked, and <see cref="Completed"/> ("Nothing found") otherwise.
+/// </summary>
 public enum VerificationActivityOutcome
 {
     /// <summary>The check ran and raised nothing, or the model answered.</summary>
@@ -72,6 +76,56 @@ public static class VerificationActivity
     /// <summary>Orders two ids as Postgres orders uuids (byte by byte, as the lower-case text reads), so a page break agrees with the database.</summary>
     public static int CompareIds(Guid left, Guid right) =>
         string.CompareOrdinal(left.ToString("D", CultureInfo.InvariantCulture), right.ToString("D", CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// How a run of the checks ended, from how many of its checks found something and how many looked: something found wins,
+    /// then a run in which no check looked did not run, and otherwise nothing was found.
+    /// </summary>
+    public static VerificationActivityOutcome OutcomeOfPass(int found, int looked) =>
+        found > 0 ? VerificationActivityOutcome.Found
+        : looked > 0 ? VerificationActivityOutcome.Completed
+        : VerificationActivityOutcome.NotRun;
+
+    /// <summary>
+    /// The run a model call belongs to: the first pass of the checks over its application at or after the call, because the
+    /// consistency check's calls are made before the pass that reads their answers (verification-engine.md §5). Null when the
+    /// application has no pass after the call yet, so the call stands alone. <paramref name="passes"/> are that application's
+    /// pass times, in any order.
+    /// </summary>
+    public static DateTimeOffset? PassOfCall(IEnumerable<DateTimeOffset> passes, DateTimeOffset occurredAt)
+    {
+        ArgumentNullException.ThrowIfNull(passes);
+        DateTimeOffset? next = null;
+        foreach (var pass in passes)
+        {
+            if (pass >= occurredAt && (next is null || pass < next))
+            {
+                next = pass;
+            }
+        }
+
+        return next;
+    }
+
+    /// <summary>
+    /// The ruleset that spoke for an application at a run: the version of its newest authenticity assessment at or before the
+    /// run's time, or null before the first.
+    /// </summary>
+    public static string? RulesetAt(IEnumerable<(DateTimeOffset AssessedAt, string RulesetVersion)> assessments, DateTimeOffset at)
+    {
+        ArgumentNullException.ThrowIfNull(assessments);
+        return assessments.Where(a => a.AssessedAt <= at).OrderByDescending(a => a.AssessedAt).Select(a => a.RulesetVersion).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// A run's id in the log and the export: one pass over one application is its time and the application, and a model call
+    /// that belongs to no pass is the call. Stable across pages and requests, so a row that opened stays open.
+    /// </summary>
+    public static string RunId(DateTimeOffset at, Guid applicationId) =>
+        string.Create(CultureInfo.InvariantCulture, $"{at.UtcTicks}.{applicationId:N}");
+
+    /// <inheritdoc cref="RunId(DateTimeOffset, Guid)"/>
+    public static string CallRunId(Guid callId) => string.Create(CultureInfo.InvariantCulture, $"call.{callId:N}");
 
     /// <summary>A position in the feed: the time and id of the last entry of the page before.</summary>
     public readonly record struct Cursor(DateTimeOffset At, Guid Id)

@@ -77,7 +77,7 @@ internal sealed class TelemetrySessions(IDataProtectionProvider dataProtection)
     /// <summary>
     /// What the apply flow may collect for <paramref name="job"/>: the device-check basis (the more protective of where the
     /// job is and what the organization asked for; off when duplicates are not checked, since the fingerprint feeds only
-    /// that, and off when form use checks are off, since the page module that makes the fingerprint then does not run and
+    /// that, and off when form activity checks are off, since the page module that makes the fingerprint then does not run and
     /// a consent box would promise nothing) and whether form telemetry is collected at all. The tenant is already set by
     /// the caller.
     /// </summary>

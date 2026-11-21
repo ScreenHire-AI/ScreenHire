@@ -119,6 +119,12 @@ public static class SignalCatalogue
     /// <summary>The check group of <paramref name="code"/>, or null for a code the catalogue does not know.</summary>
     public static CheckGroup? GroupOf(string code) => All.TryGetValue(code, out var definition) ? CheckGroups.Of(definition.Analyzer) : null;
 
+    /// <summary>
+    /// What a signal is called where people read it: the candidate's Verification tab and the Verification area's activity log
+    /// use this one wording. A retired code no definition knows shows as its code.
+    /// </summary>
+    public static string TitleOf(string code) => All.TryGetValue(code, out var definition) ? definition.Title : code;
+
     /// <summary>The definition of <paramref name="code"/>; an unknown code is a programming error.</summary>
     public static SignalDefinition Get(string code) =>
         All.TryGetValue(code, out var definition) ? definition : throw new ArgumentException($"Unknown signal code '{code}'.", nameof(code));

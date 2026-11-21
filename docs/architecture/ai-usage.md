@@ -21,7 +21,8 @@ sources:
   - resource: src/ScreenHire.Application/Verification/Content/RecheckApplicationConsistency.cs
   - resource: apps/api/Endpoints/AiUsageEndpoints.cs
   - resource: apps/api/Contracts/AiUsageContracts.cs
-  - resource: apps/dashboard/src/routes/(app)/verification/usage/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/ai-use/+page.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/usage-figures.svelte
   - resource: apps/dashboard/src/lib/components/verification-area/activity-rows.svelte
   - resource: apps/dashboard/src/lib/components/verification-area/limits-summary.svelte
   - resource: apps/dashboard/src/lib/components/ai-usage-limits-form.svelte
@@ -87,7 +88,7 @@ A call's cost, in US dollars, is found in this order (`AiUsageCost`):
    and `:Output`; for an own key from the two prices the organization entered. There is no price table in code, because it would
    go stale. A side that used no tokens needs no price.
 3. Otherwise the cost is unknown (`CostBasis` `Unknown`, a null cost), never a made-up zero. A money budget or cap counts an unknown
-   cost as nothing, and the Usage tab says how many calls there are.
+   cost as nothing, and the AI use tab says how many calls there are.
 
 The margin is `ScreenHire:Billing:Ai:Margin` (default 0.20 from `packages/plans/ai.json`, 0 to 10). A built-in call is charged its cost times
 (1 + margin) in whole micro-dollars, once, and `ai_usage_charges` records which ledger calls are settled, because this table is
@@ -105,7 +106,7 @@ the provider's price; what the app shows is `AiCharge.Billed`:
 
 The margin is `BillingOptions.AiMarginInForce`: `Ai:Margin` while AI use is billed (the sandbox, or Stripe with `Ai:StripePriceId` set), 0 otherwise, because nobody is billed for it then. The
 summary (totals, by day, by model, by key), the call list, its CSV's `cost_usd`, the Activity log and its CSV, the budget and the cap, and
-the Billing page all use it (`AiUsageQueries.BilledAmount` where Postgres sums it). On the Usage tab the Cost tile is ScreenHire's key, and
+the Billing page all use it (`AiUsageQueries.BilledAmount` where Postgres sums it). On the AI use tab the Cost tile is ScreenHire's key, and
 an own key's amount is its own line under it ("$0.12 more charged by your provider (estimate)"), its own column in the by-day table and
 "estimate" after its cost in the by-model table: no screen adds the two into one figure. The API's `totals.cost` and each day's `cost` do
 sum both keys, and `byKeySource` and the per-key day fields keep them apart. Money shows with two decimals, and an amount
@@ -150,9 +151,9 @@ rest of Verification cannot change spend controls. The month is the UTC calendar
 
 | Notification kind | Key | Link | Audience |
 |---|---|---|---|
-| `ai-usage-budget` | `yyyy-MM:budget-N` | `/verification/usage` | who holds View AI usage |
-| `ai-usage-cap` | `yyyy-MM:cap` | `/verification/usage` | who holds View AI usage |
-| `ai-usage-spike` | `yyyy-MM-dd:spike` | `/verification/usage` | who holds View AI usage |
+| `ai-usage-budget` | `yyyy-MM:budget-N` | `/verification/ai-use` | who holds View AI usage |
+| `ai-usage-cap` | `yyyy-MM:cap` | `/verification/ai-use` | who holds View AI usage |
+| `ai-usage-spike` | `yyyy-MM-dd:spike` | `/verification/ai-use` | who holds View AI usage |
 
 ## Who sees it
 
@@ -171,13 +172,18 @@ without it. Usage is never about a candidate and never shows a score.
 The call list is newest first by design (it pages by a server cursor), and the by-model table is ordered by cost, so neither has
 sortable headers.
 
-In the dashboard this is the Verification area ([verification-engine.md](verification-engine.md) section 10.11). The Usage tab shows the
-summary: calls, tokens and the amount for AI use for a range (ScreenHire's key as Cost, an own key apart as its provider's estimate), tokens by day for ScreenHire's key against the own key with its table, the month against
-the budget and cap, and use by model and key. The Model calls tile ends with "Last call 5 minutes ago" (`lastCallAt`, the newest call
+In the dashboard this is the Verification area's AI use tab ([verification-engine.md](verification-engine.md) section 10.11), which holds
+who pays and how much. For who can see AI usage it shows the summary: calls, tokens and the amount for AI use for a range (ScreenHire's
+key as Cost, an own key apart as its provider's estimate), tokens by day for ScreenHire's key against the own key with its table, and use
+by model and key. Under them are the monthly budget and cap, the AI usage alert as a row of an alert grid (In the app, Email, and Slack
+once it is connected), and whose key runs the AI check, each choice with one short line ("You're billed for what the checks use."
+for ScreenHire's key) and the longer explanations in info buttons. The Model calls tile ends with "Last call 5 minutes ago" (`lastCallAt`, the newest call
 whatever the range, left out before the first; design system T7). The calls themselves, with the provider's request id on each, are in the Activity log
 beside the rule-based check runs (section 10.12), where the CSV is `GET /v1/verification/activity/export`; `GET .../ai-usage/calls`
-and its export stay for API use. The Notifications tab holds the budget and cap (an Owner's form, an Admin's read-only facts) and the
-two alerts.
+and its export stay for API use. The budget and cap are an Owner's form and an Admin's read-only facts. They apply whichever key runs
+the checks: an Owner's own limit counts either key's use, and with none set ScreenHire's default stands in only while ScreenHire's key
+runs them (`AiUsageLimits.EffectiveBudget` and `EffectiveCap`). The form says the first in words and the second in its info button.
+The old Usage, AI model and Notifications addresses redirect to the AI use tab or, for Notifications, to Checks.
 
 ## Retention
 

@@ -161,9 +161,9 @@
       onclick={() => toggleClosed(key)}
     >
       {#if status}<StatusIcon {status} />{/if}
-      <span class="min-w-0 flex-1 break-words">{name}</span>
-      <span class="tabular-nums">{cards.length}</span>
+      <span class="min-w-0 break-words">{name}</span>
       <ChevronDownIcon aria-hidden="true" class={['size-4 shrink-0 transition-transform', open && 'rotate-180']} />
+      <span class="ml-auto tabular-nums">{cards.length}</span>
     </button>
     {#if open}
       <ul id={`closed-${key}`} aria-label={`${name} candidates`} class="flex flex-col gap-2 pt-1 pb-1">

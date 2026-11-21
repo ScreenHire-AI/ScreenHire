@@ -90,6 +90,18 @@ describe('what a saved view holds', () => {
     expect(differsFromView(saved.filters, 'Candidates', { filters: saved.filters })).toBe(false);
     expect(differsFromView({ ...saved.filters, stages: [] }, 'Candidates', { filters: saved.filters })).toBe(true);
   });
+
+  it('reads To review as Review and To verify as Verify, so the filter row shows the level the view filters by', () => {
+    const none = unfiltered('Candidates');
+    expect(verificationOf({ ...none, baseView: 'needs-review' })).toEqual({ authenticity: 'ReviewSuggested' });
+    expect(verificationOf({ ...none, baseView: 'verification-recommended' })).toEqual({ authenticity: 'VerificationRecommended' });
+    expect(verificationOf({ ...none, baseView: 'overdue' })).toEqual({ authenticity: null });
+
+    // The page on To review shows its level in the filter, and that is no change to save.
+    const onView = filtersOf({ baseView: 'needs-review', verification: { authenticity: 'ReviewSuggested' }, sort: defaultSorts.Candidates });
+    expect(differsFromView(onView, 'Candidates', { baseView: 'needs-review' })).toBe(false);
+    expect(sameFilters(onView, unfiltered('Candidates', 'needs-review'), 'Candidates')).toBe(true);
+  });
 });
 
 describe('the rows a saved view picks', () => {
@@ -139,7 +151,13 @@ describe("a view's filters in one line", () => {
       { jobTitles: { 'job-1': 'Platform Engineer' }, stageNames: { screening: 'Screening' } },
     );
 
-    expect(line).toBe('To review, Platform Engineer, stage Screening, Review suggested, tagged Referral');
+    expect(line).toBe('To review, Platform Engineer, stage Screening, tagged Referral');
+  });
+
+  it('names a level only where it is not the one the built-in view already is', () => {
+    expect(describeFilters({ ...base, baseView: 'needs-review', authenticity: 'ReviewSuggested' })).toBe('To review');
+    expect(describeFilters({ ...base, baseView: 'needs-review', authenticity: null })).toBe('To review');
+    expect(describeFilters({ ...base, baseView: 'overdue', authenticity: 'ReviewSuggested' })).toBe('Overdue, Review suggested');
   });
 
   it('says so when a view filters nothing, and words checks that have not run', () => {

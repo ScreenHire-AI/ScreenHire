@@ -11,17 +11,51 @@ export const checkGroupLabels: Record<CheckGroup, string> = {
   Documents: 'Documents',
   Answers: 'Answers',
   Duplicates: 'Duplicates',
-  FormUse: 'Form use',
+  FormUse: 'Form activity',
 };
 
-/** What each group looks at, one line under its switch. */
-export const checkGroupHints: Record<CheckGroup, string> = {
-  Network: 'Hosting providers, proxies and a country that differs from the phone number.',
-  Contact: 'Whether the email address and phone number can be real.',
-  Documents: 'Hidden text and signs of a resume generator in uploaded files.',
-  Answers: 'Repeated or templated answers, and the consistency check when it is on.',
-  Duplicates: 'The same email, phone number, device or resume file on another candidate.',
-  FormUse: 'Counts of automation and pasting, never a level alone. Off also stops device matches.',
+/**
+ * What each group of checks is, in the Checks tab's words (the owner's walk-through, 2026-11-21): what it looks at, one example of
+ * what it catches, and what turning it off costs. Built from what the analyzers do (`CheckGroups.Checked` and the signal catalogue
+ * in src/ScreenHire.Domain/Verification), never from a threshold, a weight or a rule.
+ */
+export interface CheckGroupCopy {
+  looksAt: string;
+  example: string;
+  offCost: string;
+}
+
+export const checkGroupCopy: Record<CheckGroup, CheckGroupCopy> = {
+  Network: {
+    looksAt: "The address an application was sent from: hosting providers, VPN, proxy and Tor, and a country that differs from the candidate's details.",
+    example: 'An application sent from a cloud server rather than a home or office connection.',
+    offCost: 'Where an application came from is not looked at, so one sent through a proxy reads like any other.',
+  },
+  Contact: {
+    looksAt: 'Whether the email address and phone number can be real: a throwaway email service, a domain that takes no mail, and an invalid or internet phone number.',
+    example: 'An email address from a throwaway mail service.',
+    offCost: 'A made-up email address or phone number goes unnoticed until someone tries to reach the candidate.',
+  },
+  Documents: {
+    looksAt: 'Uploaded files: hidden instructions written for an AI screener, and signs that a resume generator made the file.',
+    example: 'White text in a resume telling an AI screener to rank it first.',
+    offCost: 'Hidden text in uploaded files is not looked for.',
+  },
+  Answers: {
+    looksAt: 'Written answers: copied and template text, and with the consistency check on, details that contradict each other across the resume and the answers.',
+    example: 'The resume and an answer give different dates for the same job.',
+    offCost: 'Answers are not compared and the consistency check does not run, so a contradiction waits for a person to spot it.',
+  },
+  Duplicates: {
+    looksAt: 'The same email address, phone number, device or resume file on another of your applicants.',
+    example: 'Three applications under different names sent from the same device.',
+    offCost: 'One person applying under several names is not noticed, and the device check does not run.',
+  },
+  FormUse: {
+    looksAt: 'How the form was filled in, as counts only: automation, speed, a hidden field, the bot challenge, pasting and switching away. Never a level on its own.',
+    example: 'A form filled in and sent by browser automation.',
+    offCost: 'A bot filling in the form goes unnoticed, and the device is not read, so Duplicates cannot compare it.',
+  },
 };
 
 /** The device check basis. `ByRegion` is no organization choice: where the job is decides. */
