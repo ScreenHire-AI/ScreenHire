@@ -107,7 +107,8 @@ The margin is `BillingOptions.AiMarginInForce`: `Ai:Margin` while AI use is bill
 summary (totals, by day, by model, by key), the call list, its CSV's `cost_usd`, the Activity log and its CSV, the budget and the cap, and
 the Billing page all use it (`AiUsageQueries.BilledAmount` where Postgres sums it). On the Usage tab the Cost tile is ScreenHire's key, and
 an own key's amount is its own line under it ("$0.12 more charged by your provider (estimate)"), its own column in the by-day table and
-"estimate" after its cost in the by-model table: the two are never added into one figure. Money shows with two decimals, and an amount
+"estimate" after its cost in the by-model table: no screen adds the two into one figure. The API's `totals.cost` and each day's `cost` do
+sum both keys, and `byKeySource` and the per-key day fields keep them apart. Money shows with two decimals, and an amount
 above zero that would round to $0.00 reads "Under $0.01".
 
 ## Budget, alerts and the cap
