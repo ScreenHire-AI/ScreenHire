@@ -5,7 +5,7 @@ namespace ScreenHire.Application.Templates;
 /// <summary>The three kinds of template an organization edits on the Templates page.</summary>
 public enum TemplateKind
 {
-    /// <summary>A hiring template: its name, a draft version, an archive, its default hiring team.</summary>
+    /// <summary>A hiring template: its name, a draft version, an archive.</summary>
     HiringTemplate,
 
     /// <summary>An email template, including a built-in one the organization changed or reset.</summary>

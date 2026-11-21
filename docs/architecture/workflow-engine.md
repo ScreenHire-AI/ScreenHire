@@ -153,6 +153,7 @@ Organization
  │    ├─ PostingDefaults                target boards, duration, sponsorship defaults
  │    └─ JobContentDefaults             description blocks, benefits, EEO/legal boilerplate
  └─ Job
+      ├─ HiringTeam   (who works on it: chosen when the job is made, never from the template)
       ├─ JobWorkflow  (instantiated from a template version, then customisable per job)
       ├─ Applications ──▶ ApplicationState (current stage, history, assessments)
       └─ Postings (per board; see job-distribution.md)
@@ -163,6 +164,11 @@ Organization
 - **Job instantiation** copies the template version into a `JobWorkflow` with a `sourceTemplateVersionId`. Per-job edits
   fork the copy. When a template gets a new version, jobs show "update available" and the recruiter can diff and apply —
   live jobs are never mutated silently.
+- **Templates carry no people.** Who works on a job is its hiring team, chosen when the job is made (Who's hiring: a named
+  team from Settings, Team, Teams and anyone else) and changed from the job's Hiring team
+  ([sign-in-and-tenancy.md](sign-in-and-tenancy.md#job-access)). The default hiring team templates once had went stale as
+  people came and went; `AddNamedTeams` turned each one into a named team. The new job's Team select starts on the team the
+  last job from the same template, or with its department, used.
 - **System templates** ship with the product (SMB quick-start), customers clone and edit them.
   Four of them are the starting points of the new hiring template screen (`/templates/new`): "Office role", "Trade role with a
   trial shift", "Hospitality" and "High volume" (`AddStartingPointTemplates` and `AddHospitalityTemplate`, ids in `SystemTemplates.cs`,

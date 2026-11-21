@@ -57,7 +57,8 @@ namespace ScreenHire.Api.Demo;
 /// scorecards, and gives it to Robin Hale, whom the seeder adds as a Viewer, so Roles, the role's History and the
 /// membership log show a custom role.</item>
 /// <item>Hiring teams (<see cref="SeedHiringTeamsAsync"/>): Jordan Ellis is on every job's hiring team, and Robin Hale sees
-/// only the jobs he is on, which is "Senior .NET Engineer" alone, so signing in as Robin shows job access at work.</item>
+/// only the jobs he is on, which is "Senior .NET Engineer" alone, so signing in as Robin shows job access at work. The
+/// named team "Engineering" holds both, so Team's Teams tab and a new job's Who's hiring have one to offer.</item>
 /// <item>The synthetic applicants (<see cref="SyntheticApplicants"/>) apply to "Senior .NET Engineer" through the same
 /// submission path as the careers form, with their network and session details, so the worker's assessments show every
 /// verification level.</item>
@@ -849,7 +850,7 @@ internal sealed partial class DevelopmentDemo(
     public const string InterviewerJobSlug = DemoCandidates.SeniorDotnetEngineer;
 
     // As Avery would set it up: Jordan on every job's hiring team, Robin on the .NET job's, then Robin moved to Only jobs
-    // they're on, each change in the membership log. Done once: an organization whose jobs have a team, or whose Robin
+    // they're on, each change in the membership log, and the two of them as the named team Engineering. Done once: an organization whose jobs have a team, or whose Robin
     // is on Only jobs they're on already, is left as it is.
     private async Task SeedHiringTeamsAsync(CancellationToken cancellationToken)
     {
@@ -901,6 +902,11 @@ internal sealed partial class DevelopmentDemo(
             JobAccess = JobAccess.HiringTeamOnly,
             OccurredAt = step.Now,
         });
+        if (!await db.NamedTeams.AnyAsync(cancellationToken))
+        {
+            db.NamedTeams.Add(NamedTeam.Create(step.OrganizationId, "Engineering", [recruiter.Id, interviewer.Id], step.Now));
+        }
+
         await db.SaveChangesAsync(cancellationToken);
     }
 

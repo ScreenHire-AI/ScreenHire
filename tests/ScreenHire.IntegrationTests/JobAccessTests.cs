@@ -122,7 +122,7 @@ public sealed class JobAccessTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Copy_from_another_job_and_a_templates_default_team_both_give_access()
+    public async Task Copy_from_another_job_and_a_named_team_on_a_new_job_both_give_access()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter", jobAccess: "HiringTeamOnly");
@@ -131,16 +131,18 @@ public sealed class JobAccessTests(AppHostFixture fixture)
         var viewerMember = await owner.MemberIdAsync(viewer.UserId);
         var ownerMember = await owner.MemberIdAsync(owner.UserId);
 
-        var (templateId, versionId) = await owner.CreatePublishedTemplateAsync(".NET roles");
-        (await owner.PutAsync($"/v1/templates/{templateId}/hiring-team", new JsonObject
+        var teamId = (await owner.PostAsync("/v1/organization/teams", new JsonObject
         {
+            ["name"] = ".NET",
             ["memberIds"] = new JsonArray(JsonValue.Create(viewerMember)),
-        })).Expect(HttpStatusCode.OK);
-        var fromTemplate = await owner.CreateJobAsync(new JsonObject { ["title"] = "Senior .NET Engineer", ["templateVersionId"] = versionId });
+        })).Expect(HttpStatusCode.Created).Id();
+        var fromTeam = Samples.RemoteJob("Senior .NET Engineer");
+        fromTeam["teamId"] = teamId;
+        var fromTemplate = await owner.CreateJobAsync(fromTeam);
 
         var team = (await owner.GetAsync($"/v1/jobs/{fromTemplate.Id()}/hiring-team")).Expect(HttpStatusCode.OK);
         team.Body.EnumerateArray().Select(m => m.GetProperty("memberId").GetGuid())
-            .Should().BeEquivalentTo([viewerMember, ownerMember], "the template's people and the creator");
+            .Should().BeEquivalentTo([viewerMember, ownerMember], "the team's people and the creator");
         (await viewer.GetAsync($"/v1/jobs/{fromTemplate.Id()}")).Expect(HttpStatusCode.OK);
 
         var target = await owner.CreateJobAsync(Samples.RemoteJob("Junior .NET Engineer"));
@@ -165,10 +167,6 @@ public sealed class JobAccessTests(AppHostFixture fixture)
         {
             ["memberIds"] = new JsonArray(JsonValue.Create(Guid.NewGuid())),
         })).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("memberIds");
-        (await owner.PutAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}/hiring-team", new JsonObject
-        {
-            ["memberIds"] = new JsonArray(JsonValue.Create(viewerMember)),
-        })).Expect(HttpStatusCode.Conflict);
 
         // A member who sees only their jobs cannot take themselves off one.
         (await recruiter.PutAsync($"/v1/jobs/{target.Id()}/hiring-team", new JsonObject
@@ -397,24 +395,24 @@ public sealed class JobAccessTests(AppHostFixture fixture)
         ownerLog.Should().OnlyContain(e => e.GetProperty("jobId").GetGuid() == hidden.Id(), "the owner sees every job, and these are the newest 200");
     }
 
-    // A key has no member, so no creator joins the team: the job starts with the template's default team only, and the
-    // log names the key as the actor (ADR-0015).
+    // A key has no member, so no creator joins the team, and it does not choose who works on a job (ADR-0011): its job starts
+    // with nobody on the team, and a team or people in its request are refused rather than ignored.
     [Fact]
-    public async Task A_job_an_api_key_creates_from_a_template_gets_the_default_team_and_the_log_names_the_key()
+    public async Task A_job_an_api_key_creates_starts_with_nobody_on_its_team_and_the_key_cannot_choose_one()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer", jobAccess: "HiringTeamOnly");
         var viewerMember = await owner.MemberIdAsync(viewer.UserId);
-        var (templateId, versionId) = await owner.CreatePublishedTemplateAsync("Keyed roles");
-        (await owner.PutAsync($"/v1/templates/{templateId}/hiring-team", new JsonObject
+        var teamId = (await owner.PostAsync("/v1/organization/teams", new JsonObject
         {
+            ["name"] = "Keyed",
             ["memberIds"] = new JsonArray(JsonValue.Create(viewerMember)),
-        })).Expect(HttpStatusCode.OK);
+        })).Expect(HttpStatusCode.Created).Id();
+        var (_, versionId) = await owner.CreatePublishedTemplateAsync("Keyed roles");
         var created = (await owner.PostAsync("/v1/organization/api-keys", new JsonObject
         {
             ["name"] = "Sync", ["scopes"] = new JsonArray("Read", "Write"),
         })).Expect(HttpStatusCode.Created);
-        var keyId = created.Id("key.id");
         using var client = new HttpClient { BaseAddress = fixture.GetEndpoint("api") };
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", created.Text("token"));
 
@@ -422,16 +420,17 @@ public sealed class JobAccessTests(AppHostFixture fixture)
         response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
         var jobId = (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("id").GetGuid();
 
-        var team = (await owner.GetAsync($"/v1/jobs/{jobId}/hiring-team")).Expect(HttpStatusCode.OK);
-        team.Body.EnumerateArray().Select(m => m.GetProperty("memberId").GetGuid()).Should().Equal([viewerMember], "no creator joins when a key makes the job");
-        (await viewer.GetAsync($"/v1/jobs/{jobId}")).Expect(HttpStatusCode.OK);
+        (await owner.GetAsync($"/v1/jobs/{jobId}/hiring-team")).Expect(HttpStatusCode.OK).Count().Should().Be(0);
+        (await viewer.GetAsync($"/v1/jobs/{jobId}")).Expect(HttpStatusCode.NotFound);
 
-        var entry = (await owner.GetAsync("/v1/organization/membership-log")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
-            .Single(e => e.GetProperty("kind").GetString() == "AddedToHiringTeam"
-                && e.GetProperty("jobId").ValueKind == JsonValueKind.String && e.GetProperty("jobId").GetGuid() == jobId);
-        entry.GetProperty("memberUserId").GetGuid().Should().Be(viewer.UserId);
-        entry.GetProperty("actorApiKeyId").GetString().Should().Be(keyId.ToString());
-        entry.GetProperty("actorUserId").ValueKind.Should().Be(JsonValueKind.Null);
+        foreach (var choice in new[] { new JsonObject { ["teamId"] = teamId }, new JsonObject { ["memberIds"] = new JsonArray(JsonValue.Create(viewerMember)) } })
+        {
+            choice["title"] = "Another Keyed Engineer";
+            choice["templateVersionId"] = versionId;
+            using var refused = await client.PostAsJsonAsync("/v1/jobs", choice, Ct);
+            refused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            (await refused.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("errors").EnumerateObject().Select(e => e.Name).Should().Equal("teamId");
+        }
     }
 
     private async Task<IReadOnlyList<MailpitMessage>> MentionEmailsAsync(string address) =>

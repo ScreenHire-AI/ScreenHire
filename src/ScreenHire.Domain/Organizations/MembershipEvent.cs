@@ -15,8 +15,8 @@ public sealed class MembershipEvent : ITenantOwned
 
     /// <summary>
     /// Who made the change. For <see cref="MembershipEventKind.Joined"/>, the person who accepted. Null when an
-    /// organization API key made it (<see cref="ActorApiKeyId"/>): a job a key creates starts with its template's
-    /// default hiring team. Null with no key too when nobody on the team acted: a candidate's own data request
+    /// organization API key made it (<see cref="ActorApiKeyId"/>), as older hiring-team entries record: a job a key created
+    /// once started with its template's default hiring team. Null with no key too when nobody on the team acted: a candidate's own data request
     /// (<see cref="MembershipEventKind.DataRequestReceived"/>), the retention schedule
     /// (<see cref="MembershipEventKind.RetentionApplied"/>) and an erasure it caused.
     /// </summary>
@@ -64,7 +64,10 @@ public sealed class MembershipEvent : ITenantOwned
     /// <summary>The job whose hiring team changed, for the hiring-team kinds. Its title is read through the job, under the reader's job access.</summary>
     public Guid? JobId { get; init; }
 
-    /// <summary>The hiring template whose default hiring team changed, for the hiring-team kinds.</summary>
+    /// <summary>
+    /// The hiring template whose default hiring team changed, for hiring-team entries from before templates lost it
+    /// (<c>AddNamedTeams</c>). No new entry sets it.
+    /// </summary>
     public Guid? HiringTemplateId { get; init; }
 
     /// <summary>

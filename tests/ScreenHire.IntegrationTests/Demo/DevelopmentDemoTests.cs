@@ -144,6 +144,11 @@ public sealed class DevelopmentDemoTests(DevelopmentDemoFixture fixture) : IClas
         robin.GetProperty("jobAccess").GetString().Should().Be("HiringTeamOnly");
         robin.GetProperty("jobCount").GetInt32().Should().Be(1);
         (await GetAsync(owner, "/v1/jobs")).GetArrayLength().Should().BeGreaterThan(1, "Avery, an Owner, sees every job");
+        // Team's Teams tab and a new job's Who's hiring have a team to offer.
+        var engineering = (await GetAsync(owner, "/v1/organization/teams")).EnumerateArray().Single();
+        engineering.GetProperty("name").GetString().Should().Be("Engineering");
+        engineering.GetProperty("members").EnumerateArray().Select(m => m.GetProperty("displayName").GetString())
+            .Should().BeEquivalentTo(["Jordan Ellis", "Robin Hale"]);
 
         using var session = new ApiSession(fixture);
         await session.SignInWithDevSsoAsync("brightwater-interviewer", Ct);
