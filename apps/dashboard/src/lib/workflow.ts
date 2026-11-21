@@ -573,7 +573,7 @@ export const answerIsRead = (workflow: HiringWorkflow, questionId: string): bool
     (automation) => automation.enabled !== false && automation.conditions?.rules.some((rule) => rule.fact === `answers.${questionId}`),
   );
 
-/** A new automation for a lane: a stage's entry trigger, or "an application arrives" for the whole workflow. */
+/** A new automation for a stage: its entry trigger, or "an application arrives" (under Applied) for none. */
 export function newAutomation(workflow: HiringWorkflow, stageId: string | null): Automation {
   const id = idFrom('automation', workflow.automations.map((automation) => automation.id), 'automation');
   return {
@@ -590,9 +590,22 @@ export function newAutomation(workflow: HiringWorkflow, stageId: string | null):
   };
 }
 
-/** The stage an automation belongs to in the pipeline view, or null for the whole workflow. */
+/** The stage an automation's trigger names, or null for one that names none (`placeOf` says where it belongs). */
 export const laneOf = (automation: Automation): string | null =>
   triggerNeedsStage(automation.trigger.type) || triggerMayHaveStage(automation.trigger.type) ? (automation.trigger.stageId ?? null) : null;
+
+/** The triggers that happen as an application arrives, so their automations belong to the first stage, Applied. */
+const arrivalTriggers: ReadonlySet<string> = new Set(['ApplicationSubmitted', 'VerificationAssessed', 'VerificationCompleted']);
+
+/**
+ * Where an automation belongs on the Pipeline and Automations tabs: a stage's id, or 'any' for one no stage holds. An
+ * arriving application and the checks finishing belong to the first stage; a trigger that names a stage belongs to it;
+ * a manual run, any stage's time limit and the rest are 'any', as is one whose stage is gone (the validator names it).
+ */
+export function placeOf(workflow: HiringWorkflow, automation: Automation): string | 'any' {
+  const stage = arrivalTriggers.has(automation.trigger.type) ? workflow.stages[0]?.id : laneOf(automation);
+  return stage && workflow.stages.some((candidate) => candidate.id === stage) ? stage : 'any';
+}
 
 /** `list` with `item` at `index`. */
 export const replaceAt = <T>(list: readonly T[], index: number, item: T): T[] => list.map((existing, i) => (i === index ? item : existing));
@@ -654,7 +667,7 @@ export function describePath(workflow: HiringWorkflow, path: string): string {
   if (stage) return `The stage "${workflow.stages[Number(stage[1])]?.name ?? Number(stage[1]) + 1}"`;
   if (path.startsWith('stages')) return 'The stages';
   if (path.startsWith('questionnaire')) return 'The questions';
-  return 'The workflow';
+  return 'The pipeline';
 }
 
 /** A team member as an AssignReviewer action names them. */

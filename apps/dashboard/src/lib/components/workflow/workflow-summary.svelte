@@ -13,13 +13,14 @@
   import type { Question } from '@screenhire/api-client';
   import { emailTemplateNames, followUpsOf, isTerminal, questionTypeLabels, summarize } from '#lib/workflow.js';
   import type { WorkflowTab } from '#lib/workflow-tabs.js';
+  import { anyStageFacts, stageFacts } from '#lib/stage-facts.js';
   import AiUseRow from './ai-use-row.svelte';
   import { rowClass } from './controls.js';
-  import JourneyOverview from './journey-overview.svelte';
   import ProblemsPanel from './problems-panel.svelte';
   import QuestionnairePreview from './questionnaire-preview.svelte';
   import ScorecardName from './scorecard-name.svelte';
   import TestDrive from './test-drive.svelte';
+  import StageFactList from './stage-fact-list.svelte';
   import StageFlow from './stage-flow.svelte';
   import AutomationsPanel from './automations-panel.svelte';
 
@@ -47,7 +48,7 @@
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
 
-  const steps = $derived(workflow.stages.filter((stage) => !isTerminal(stage.kind)));
+  const anyStage = $derived(anyStageFacts(workflow, templateNames));
   const ends = $derived(workflow.stages.filter((stage) => isTerminal(stage.kind)));
   const questions = $derived(workflow.questionnaire.questions);
   // The preview pages the questions as the candidate meets them: the sections, or the organization's page size.
@@ -62,21 +63,31 @@
 <ProblemsPanel title="Problems" {workflow} {errors} />
 
 {#snippet endStages()}
-  <div class="flex flex-wrap items-center gap-1.5">
-    <span class="mr-1 text-caption text-muted-foreground">End stages</span>
-    {#each ends as stage (stage.id)}<Badge variant="muted">{stage.name}</Badge>{/each}
+  <div class="flex flex-col gap-4">
+    {#if anyStage.length > 0}
+      <section aria-labelledby="summary-any-stage" class="flex flex-col gap-1.5 @md:flex-row @md:items-baseline @md:gap-6">
+        <h3 id="summary-any-stage" class="shrink-0 text-heading">Any stage</h3>
+        <StageFactList facts={anyStage} />
+      </section>
+    {/if}
+    {#if ends.length > 0}
+      <section aria-labelledby="summary-ends" class="flex flex-col gap-2">
+        <h3 id="summary-ends" class="text-heading">Ends</h3>
+        <ul class="flex flex-wrap gap-x-8 gap-y-3">
+          {#each ends as stage (stage.id)}
+            <li class="flex min-w-0 flex-col gap-1"><span class="font-semibold break-words">{stage.name}</span><StageFactList facts={stageFacts(workflow, stage, templateNames)} {stage} /></li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
   </div>
 {/snippet}
-
-<Tabs.Content value="overview">
-  <JourneyOverview {workflow} questionsHref={hrefOf('questions')} />
-</Tabs.Content>
 
 <Tabs.Content value="pipeline">
   <div class="flex flex-wrap items-start gap-5">
     <!-- A row of its own, so the stages have the page's width to sit side by side in. -->
-    <Panel title="Stages" footer={ends.length > 0 ? endStages : undefined} class="flex-[1_1_100%]">
-      <StageFlow stages={steps} automations={workflow.automations} />
+    <Panel title="Stages" footer={ends.length > 0 || anyStage.length > 0 ? endStages : undefined} class="@container flex-[1_1_100%]">
+      <StageFlow {workflow} {templateNames} />
     </Panel>
 
     <Panel title="Automations" count={workflow.automations.length} class="flex-[999_1_520px]">

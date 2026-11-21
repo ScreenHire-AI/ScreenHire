@@ -129,6 +129,20 @@ describe('job page', () => {
     expect(within(band).getAllByRole('term').map((term) => term.textContent)).toEqual(['Location', 'Type', 'Salary', 'Opened', 'Last updated']);
   });
 
+  it('says the template version the job is on, and a newer one as its own fact with a link to what it changes', async () => {
+    stub({
+      ...job,
+      template: { templateId: 't-1', templateName: 'Retail assistant', versionId: 'v-1', version: 5, latestPublishedVersion: 6, updateAvailable: true },
+    } as JobDetail);
+
+    await screen.findByRole('heading', { level: 1 });
+    const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
+    const facts = within(band).getAllByRole('definition').map((value) => value.textContent?.replace(/\s+/g, ' ').trim());
+    expect(facts).toContain('Retail assistant v5');
+    expect(facts).toContain('Retail assistant v6, See what changes');
+    expect(within(band).getByRole('link', { name: 'See what changes' })).toHaveAttribute('href', `/jobs/${jobId}/workflow?review=update`);
+  });
+
   it('heads the page with the title, its status beside it and a labelled facts row', async () => {
     stub(job);
 
@@ -139,7 +153,7 @@ describe('job page', () => {
     // This fixture's last change is its opening, which Last updated says, so Opened is left out (W7).
     expect(facts).toEqual(['Location', 'Type', 'Salary', 'Last updated']);
     expect(within(band).getByRole('link', { name: 'Edit details' })).toHaveAttribute('href', `/jobs/${jobId}/edit`);
-    expect(within(band).getByRole('link', { name: 'Edit workflow' })).toHaveAttribute('href', `/jobs/${jobId}/workflow`);
+    expect(within(band).getByRole('link', { name: 'Edit pipeline' })).toHaveAttribute('href', `/jobs/${jobId}/workflow`);
     expect(within(band).queryByRole('button', { name: /^Publish/ })).not.toBeInTheDocument();
     // The work area first, with no side column beside it (S7).
     expect(await screen.findByRole('region', { name: 'Candidates' })).toBeInTheDocument();
@@ -470,7 +484,7 @@ describe('job page', () => {
     const menu = await openMoreActions();
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual([
       'Edit details',
-      'Edit workflow',
+      'Edit pipeline',
       'Add candidate',
       'Edit hiring team',
       'Close & remove everywhere',

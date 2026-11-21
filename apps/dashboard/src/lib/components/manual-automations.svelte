@@ -36,7 +36,7 @@
         const problems = response.status === 400 ? Object.values(response.data.errors ?? {}).flat() : [];
         failure =
           response.status === 404
-            ? `"${automation.name}" is no longer in the job's workflow. Reload the page.`
+            ? `"${automation.name}" is no longer in the job's pipeline. Reload the page.`
             : problems.length > 0
               ? `Could not run "${automation.name}": ${problems.join(' ')}`
               : `Could not run "${automation.name}" (HTTP ${response.status}).`;

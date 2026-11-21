@@ -2,13 +2,14 @@
   import type { HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates, createListTeamMembers } from '@screenhire/api-client/svelte-query';
   import { automationLine } from '#lib/automation-sentence.js';
-  import { isTerminal, laneOf, emailTemplateNames } from '#lib/workflow.js';
+  import { isTerminal, placeOf, emailTemplateNames } from '#lib/workflow.js';
   import { cn } from '#lib/utils.js';
 
-  // The automations as rows, grouped by the stage they fire on (design system section 11, Automation list): the Automations
-  // tab's List view, which is the whole tab on a phone, and the lane sheet's contents. A row is the automation's name and
-  // its sentence; where the page can edit, the whole row is the button that opens the automation as a sentence. An
-  // automation that is off says so after its name. `lane` narrows the list to one stage's (null is the whole workflow's).
+  // The automations as rows, grouped by the stage they belong to (design system section 11, Automation list): the
+  // Automations tab's List view, which is the whole tab on a phone, and the lane sheet's contents. A row is the
+  // automation's name and its sentence; where the page can edit, the whole row is the button that opens the automation as
+  // a sentence. An automation that is off says so after its name. `lane` narrows the list to one stage's (null is Any
+  // stage's).
   let {
     workflow,
     lane,
@@ -27,17 +28,16 @@
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
   const members = $derived(team.data?.data);
 
-  // The whole workflow's lane first, then the open stages in order, then the stages that end a candidacy. An automation
-  // whose stage is gone stays in the whole workflow's lane, as the graph puts it.
-  const stageIds = $derived(new Set(workflow.stages.map((stage) => stage.id)));
+  // The open stages in order, then the stages that end a candidacy, then Any stage, as the map puts them (`placeOf`): an
+  // arriving application and the checks under Applied, and an automation whose stage is gone under Any stage.
   const groups = $derived.by(() => {
     const keyOf = (index: number) => {
-      const stageId = laneOf(workflow.automations[index]!);
-      return stageId && stageIds.has(stageId) ? stageId : null;
+      const place = placeOf(workflow, workflow.automations[index]!);
+      return place === 'any' ? null : place;
     };
     const all = [
-      { key: null as string | null, name: 'Whole workflow' },
       ...[...workflow.stages.filter((stage) => !isTerminal(stage.kind)), ...workflow.stages.filter((stage) => isTerminal(stage.kind))].map((stage) => ({ key: stage.id as string | null, name: stage.name })),
+      { key: null as string | null, name: 'Any stage' },
     ];
     return all
       .filter((entry) => lane === undefined || entry.key === lane)
@@ -50,7 +50,7 @@
   <p class="text-muted-foreground">No automations here yet.</p>
 {:else}
   <div class={cn('flex flex-col gap-5', className)}>
-    {#each groups as group (group.key ?? 'workflow')}
+    {#each groups as group (group.key ?? 'any')}
       <section class="flex flex-col gap-1" aria-label={group.name}>
         <h3 class="text-caption text-muted-foreground">{group.name}</h3>
         <ul class="flex flex-col divide-y divide-border-subtle rounded-lg border border-border-subtle">

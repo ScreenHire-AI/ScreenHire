@@ -5,7 +5,7 @@
 // when they apply" is never offered twice.
 import type { Automation, AutomationAction, AutomationCondition, HiringWorkflow } from '@screenhire/api-client';
 import { breaksWorkflow } from './automation-sentence.js';
-import { builtInEmailTemplates, isTerminal, laneOf } from './workflow.js';
+import { builtInEmailTemplates, isTerminal, placeOf } from './workflow.js';
 
 export const recipeGroups = ['Keep candidates in the loop', 'Get the team to act', 'Check the must-haves', 'Look closer when the checks suggest it'] as const;
 export type RecipeGroup = (typeof recipeGroups)[number];
@@ -17,7 +17,10 @@ export interface Recipe {
   title: string;
   /** What it does, in one sentence. */
   line: string;
-  /** The stage whose lane it hangs under, or null for the whole workflow. */
+  /**
+   * The stage it belongs to (`placeOf`): its own, Applied for an arriving application or the checks, or null for one
+   * that belongs to any stage.
+   */
   lane: string | null;
   automation: Automation;
 }
@@ -99,7 +102,7 @@ function make(
   automation: Omit<Automation, 'id' | 'name' | 'enabled' | 'allowAutoReject'>,
 ): Recipe {
   const built: Automation = { id: recipeId(key), name: title, ...automation, enabled: true, allowAutoReject: false };
-  return { key, group, title, line, lane: laneOf(built), automation: built };
+  return { key, group, title, line, lane: null, automation: built };
 }
 
 /** Every recipe this template's questions and stages allow, added or not. */
@@ -199,7 +202,10 @@ export function allRecipes(workflow: HiringWorkflow): Recipe[] {
       },
     ),
   );
-  return recipes;
+  return recipes.map((recipe) => {
+    const place = placeOf(workflow, recipe.automation);
+    return { ...recipe, lane: place === 'any' ? null : place };
+  });
 }
 
 /** The workflow with the recipe's automation added at the end. */
@@ -211,7 +217,8 @@ export const withRecipe = (workflow: HiringWorkflow, recipe: Recipe): HiringWork
 /**
  * The recipes still on offer: the ones the workflow does not have, and that add no refused step anywhere (a tag a check
  * adds can tangle another automation that reads tags, and the guardrail says so before the validator does). With a
- * `lane`, only the recipes that hang under that stage.
+ * `lane`, only the recipes that belong to that stage, so Applied's include those for an arriving application and the
+ * checks; with none (null), all of them.
  */
 export function recipesFor(workflow: HiringWorkflow, lane?: string | null): Recipe[] {
   return allRecipes(workflow).filter(

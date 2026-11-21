@@ -90,6 +90,16 @@ export const followUpKinds: readonly AnswerKindGroup<QuestionType>[] = [
 export const kindIn = <K extends string>(groups: readonly AnswerKindGroup<K>[], value: K): AnswerKind<K> | undefined =>
   groups.flatMap((group) => group.kinds).find((candidate) => candidate.value === value);
 
+/**
+ * A closed choice question's options on one line: "4 choices: Less than 3, 3 to 5, 6 to 10, More than 10". The row cuts
+ * it to its width with an ellipsis, so the count always shows first.
+ */
+export function choicesSummary(options: readonly AnswerOption[]): string {
+  if (options.length === 0) return 'No choices yet';
+  const labels = options.map((option) => option.label.trim() || 'Untitled option').join(', ');
+  return `${options.length} ${options.length === 1 ? 'choice' : 'choices'}: ${labels}`;
+}
+
 /** `list` with `item` at `index`. */
 export const insertAt = <T>(list: readonly T[], index: number, item: T): T[] => [...list.slice(0, index), item, ...list.slice(index)];
 

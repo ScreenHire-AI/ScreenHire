@@ -4,47 +4,47 @@ import { describe, expect, it } from 'vitest';
 import { defaultWorkflowTab, tabFrom, tabHref, workflowTabs } from './workflow-tabs.js';
 
 describe('workflowTabs', () => {
-  it('are Overview, Pipeline, Questions, Automations and Test, in that order', () => {
+  it('are Pipeline, Questions, Automations and Test, in that order', () => {
     expect(workflowTabs.map((tab) => [tab.value, tab.label])).toEqual([
-      ['overview', 'Overview'],
       ['pipeline', 'Pipeline'],
       ['questions', 'Questions'],
       ['automations', 'Automations'],
       ['test', 'Test'],
     ]);
-    expect(defaultWorkflowTab).toBe('overview');
+    expect(defaultWorkflowTab).toBe('pipeline');
   });
 });
 
 describe('tabFrom', () => {
-  it.each(['overview', 'pipeline', 'questions', 'automations', 'test'] as const)('reads %s as itself', (value) => {
+  it.each(['pipeline', 'questions', 'automations', 'test'] as const)('reads %s as itself', (value) => {
     expect(tabFrom(value)).toBe(value);
   });
 
   it('opens the new tab for an old name', () => {
+    expect(tabFrom('overview')).toBe('pipeline');
     expect(tabFrom('graph')).toBe('automations');
     expect(tabFrom('questionnaire')).toBe('questions');
     expect(tabFrom('simulate')).toBe('test');
   });
 
-  it('opens Overview for nothing or for a name that is not a tab', () => {
-    expect(tabFrom(null)).toBe('overview');
-    expect(tabFrom(undefined)).toBe('overview');
-    expect(tabFrom('')).toBe('overview');
-    expect(tabFrom('settings')).toBe('overview');
+  it('opens Pipeline for nothing or for a name that is not a tab', () => {
+    expect(tabFrom(null)).toBe('pipeline');
+    expect(tabFrom(undefined)).toBe('pipeline');
+    expect(tabFrom('')).toBe('pipeline');
+    expect(tabFrom('settings')).toBe('pipeline');
   });
 });
 
 describe('tabHref', () => {
-  const url = new URL('http://dashboard.test/templates/t-1?version=2&tab=pipeline');
+  const url = new URL('http://dashboard.test/templates/t-1?version=2&tab=questions');
 
   it('sets ?tab= and keeps the other parameters', () => {
     expect(tabHref(url, 'automations')).toBe('/templates/t-1?version=2&tab=automations');
   });
 
   it('makes the first tab the bare address, still keeping the other parameters', () => {
-    expect(tabHref(url, 'overview')).toBe('/templates/t-1?version=2');
-    expect(tabHref(new URL('http://dashboard.test/jobs/j-1/workflow?tab=test'), 'overview')).toBe('/jobs/j-1/workflow');
+    expect(tabHref(url, 'pipeline')).toBe('/templates/t-1?version=2');
+    expect(tabHref(new URL('http://dashboard.test/jobs/j-1/workflow?tab=test'), 'pipeline')).toBe('/jobs/j-1/workflow');
   });
 
   it('drops ?show=, which belongs to the tab it lit a path on', () => {

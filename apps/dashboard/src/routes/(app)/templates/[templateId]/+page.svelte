@@ -18,7 +18,6 @@
   import FolderArchiveIcon from '~icons/lucide/folder-archive';
   import ArchiveRestoreIcon from '~icons/lucide/archive-restore';
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
-  import CheckIcon from '~icons/lucide/check';
   import CopyIcon from '~icons/lucide/copy';
   import LayersIcon from '~icons/lucide/layers';
   import PencilIcon from '~icons/lucide/pencil';
@@ -33,8 +32,6 @@
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
-  import Hint from '#lib/components/hint.svelte';
-  import HistorySheet from '#lib/components/history-sheet.svelte';
   import HiringTeamSheet from '#lib/components/hiring-team-sheet.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
@@ -42,10 +39,13 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
+  import TemplateUpdateDialog from '#lib/components/template-update-dialog.svelte';
+  import VersionsSheet, { type VersionsTab } from '#lib/components/versions-sheet.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
-  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
+  import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
@@ -53,13 +53,25 @@
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
   import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
-  import { formatDateTime } from '#lib/dates.js';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath, templatesPath } from '#lib/realtime.js';
-  import { copyName, maxNameLength, templatesHref, templateUsagePath, usageHref, usageLabel, usedByLabel, usedByNouns } from '#lib/templates.js';
-  import { cn } from '#lib/utils.js';
+  import {
+    copyName,
+    maxNameLength,
+    olderJobs,
+    olderJobsWords,
+    publishWords,
+    templatesHref,
+    templateUsagePath,
+    usageHref,
+    usageLabel,
+    usedByLabel,
+    usedByNouns,
+    usedByWords,
+  } from '#lib/templates.js';
+  import type { UsageItem } from '@screenhire/api-client';
   import { createWorkflowDraft } from '#lib/workflow-draft.svelte.js';
   import { createWorkflowTab } from '#lib/workflow-tab.svelte.js';
   import { lastUpdateWords } from '#lib/history.js';
@@ -67,10 +79,13 @@
 
   // One hiring template: its versions, and the chosen one. Your own draft opens in the builder, to edit, save and
   // publish; anything else (a ScreenHire template, a published version, an archived template) reads as content. A
-  // published version never changes, so editing one starts the next version as a draft. The header's facts are Used by
-  // (the jobs started from it, T4), the version and Last updated with History (T6). A built-in says it reads only and
-  // offers Copy template (E3); your own can be duplicated and archived, and an archived one restored. The Questionnaire
-  // tab has the Edit / Preview switch (A8): it is the part of a template that someone else sees.
+  // published version never changes, so editing one starts the next version as a draft. The header's facts are the shown
+  // version's Status, the Live version new jobs get, Used by (the jobs started from it, with those left on an older
+  // version, T4) and Last updated (T6). Versions and History are one sheet, with tabs Versions and All changes. Under the
+  // title, a line says what publishing does: new jobs get the version, and the template's jobs keep theirs until someone
+  // updates them, which Review updates does job by job. A built-in says it reads only and offers Copy template (E3); your
+  // own can be duplicated and archived, and an archived one restored. The Questions tab has the Edit / Preview switch
+  // (A8): it is the part of a template that someone else sees.
   let { params }: PageProps = $props();
 
   const queryClient = useQueryClient();
@@ -110,6 +125,15 @@
   const usage = createGetTemplateUsage();
   const use = $derived(usage.data?.data.hiring.find((entry) => entry.templateId === params.templateId));
   const draftVersion = $derived(versions.find((candidate) => candidate.status === 'Draft'));
+  // The version new jobs get, and the jobs still on an older one, each with an update to review.
+  const live = $derived(detail?.latestPublishedVersion ?? null);
+  const jobs = $derived((use?.usedBy ?? []).filter((item) => item.kind === 'Job'));
+  const older = $derived(olderJobs(jobs, live));
+  const mayUpdateJobs = $derived(can(page.data.user, 'EditJobs'));
+  let reviewOpen = $state(false);
+  let updating = $state<UsageItem | null>(null);
+  let updateOpen = $state(false);
+  let updated = $state('');
 
   const save = createUpdateHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
   const publish = createPublishHiringTemplateVersion(() => ({ mutation: { onSettled: refresh } }));
@@ -122,11 +146,18 @@
   const team = createListTeamMembers();
   const members = $derived(team.data?.data);
   const currentUserId = $derived(page.data.user?.id);
-  let historyOpen = $state(false);
+  let versionsOpen = $state(false);
+  let versionsTab = $state<VersionsTab>('versions');
   const history = createHistoryPages(
     (before) => getGetHiringTemplateHistoryQueryOptions(params.templateId, { before }),
-    () => historyOpen,
+    () => versionsOpen && versionsTab === 'changes',
   );
+  function showVersions(tab: VersionsTab) {
+    versionsTab = tab;
+    versionsOpen = true;
+  }
+  // The phone's More menu opens Versions once the menu has closed, so the focus goes into the sheet.
+  let versionsChosen = false;
 
   const draft = createWorkflowDraft();
   $effect(() => {
@@ -258,20 +289,6 @@
       <p class="sr-only" role="status">Loading the template…</p>
     {/if}
   {:else}
-    {#snippet versionItems()}
-      {#each versions.toReversed() as candidate (candidate.id)}
-        <!-- A version is a place, so its item is a link (A5). -->
-        <DropdownMenu.Item>
-          {#snippet child({ props })}
-            <a href={`/templates/${detail.id}?version=${candidate.version}`} {...props}>
-              Version {candidate.version}, {candidate.status === 'Draft' ? 'draft' : 'published'}
-              {#if candidate.version === current.version}<CheckIcon aria-hidden="true" class="ml-auto" /><span class="sr-only">(shown)</span>{/if}
-            </a>
-          {/snippet}
-        </DropdownMenu.Item>
-      {/each}
-    {/snippet}
-
     {#snippet ownItems()}
       <DropdownMenu.Item disabled={busy} onSelect={copyTemplate}><CopyIcon aria-hidden="true" />Duplicate</DropdownMenu.Item>
       {#if !detail.archived}
@@ -289,13 +306,31 @@
       {:else if isDraft}
         <!-- A draft with problems saves; only Test and Publish wait for them, and the Fix button beside the title says why. -->
         <!-- It goes off and on with every edit, so it does not fade: a half-faded button reads as a contrast failure to a checker that looks mid-change. -->
-        <Button size="lg" class="transition-none" onclick={publishDraft} disabled={busy || !draft.ready}><SendIcon aria-hidden="true" />Publish version {current.version}</Button>
+        <Button size="lg" class="transition-none" onclick={publishDraft} disabled={busy || !draft.ready}><SendIcon aria-hidden="true" />Publish</Button>
       {:else if draftVersion}
         <Button size="lg" href={`/templates/${detail.id}?version=${draftVersion.version}`}><PencilIcon aria-hidden="true" />Open the draft</Button>
       {:else}
         <Button size="lg" onclick={startNextVersion} disabled={busy}
           ><PencilIcon aria-hidden="true" />Edit as version {(versions.at(-1)?.version ?? 0) + 1}</Button
         >
+      {/if}
+    {/snippet}
+
+    {#snippet headerLine()}
+      <!-- One line under the title (S8): why it reads only, what publishing the draft does, and the jobs on an older
+           version with Review updates. -->
+      {#if !isDraft && (detail.isSystem || detail.archived || !mayEdit)}{@render readOnlyReason()}{/if}
+      {#if isDraft}<p data-publish-line>{publishWords(current.version, jobs)}</p>{/if}
+      {#if older.length > 0 && !detail.isSystem && !detail.archived}
+        <p class="flex flex-wrap items-baseline gap-x-2">
+          <span>{olderJobsWords(older.length)}</span>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            class="font-semibold text-foreground underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11"
+            onclick={() => (reviewOpen = true)}>Review updates</button
+          >
+        </p>
       {/if}
     {/snippet}
 
@@ -313,7 +348,10 @@
     {/snippet}
 
     <Tabs.Root bind:value={workflowTab.value}>
-      <HeaderBand title={detail.name} details={!isDraft && (detail.isSystem || detail.archived || !mayEdit) ? readOnlyReason : undefined}>
+      <HeaderBand
+        title={detail.name}
+        details={isDraft || detail.isSystem || detail.archived || !mayEdit || older.length > 0 ? headerLine : undefined}
+      >
         {#snippet status()}
           {#if detail.isSystem}<BuiltInBadge />{/if}
           {#if detail.archived}<StatusBadge status="archived" label="Archived" />{/if}
@@ -325,13 +363,18 @@
           {#if sidebar.isMobile}
             <!-- A phone has the primary action in the action bar and the rest in More (section 8). -->
             {#if isDraft || versions.length > 1 || ownActions}
-              <MoreMenu label="More actions">
+              <MoreMenu
+                label="More actions"
+                onclosed={() => {
+                  if (versionsChosen) showVersions('versions');
+                  versionsChosen = false;
+                }}
+              >
                 {#if isDraft}<DropdownMenu.Item disabled={busy} onSelect={saveDraft}>Save draft</DropdownMenu.Item>{/if}
                 {#if ownActions}{@render ownItems()}{/if}
                 {#if versions.length > 1}
                   {#if isDraft || ownActions}<DropdownMenu.Separator />{/if}
-                  <DropdownMenu.Label class="text-caption text-muted-foreground">Versions</DropdownMenu.Label>
-                  {@render versionItems()}
+                  <DropdownMenu.Item onSelect={() => (versionsChosen = true)}><LayersIcon aria-hidden="true" />Versions</DropdownMenu.Item>
                 {/if}
               </MoreMenu>
             {/if}
@@ -340,18 +383,27 @@
               <MoreMenu label="More actions">{@render ownItems()}</MoreMenu>
             {/if}
             {#if versions.length > 1}
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>
-                  <LayersIcon aria-hidden="true" />Versions
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content align="end" class="w-56">{@render versionItems()}</DropdownMenu.Content>
-              </DropdownMenu.Root>
+              <Button variant="outline" size="lg" aria-haspopup="dialog" onclick={() => showVersions('versions')}><LayersIcon aria-hidden="true" />Versions</Button>
             {/if}
             {#if isDraft}<Button size="lg" variant="outline" onclick={saveDraft} disabled={busy}><SaveIcon aria-hidden="true" />Save draft</Button>{/if}
             {@render primaryAction()}
           {/if}
         {/snippet}
         {#snippet facts()}
+          <!-- The shown version's state and the version new jobs get are two facts (W6, W7). -->
+          <Fact label="Status">
+            {#if current.status === 'Draft'}
+              <StatusBadge status="draft" label="Draft, unpublished changes" />
+            {:else if live !== null && current.version !== live}
+              <!-- An earlier version, read from Versions: the fact says which, since the live one is the next fact. -->
+              <StatusBadge status="published" label={`Published, version ${current.version}`} />
+            {:else}
+              <StatusBadge status="published" label="Published" />
+            {/if}
+          </Fact>
+          <Fact label="Live version">
+            {#if live}<span class="tabular-nums">Version {live}</span>{:else}Not published yet{/if}
+          </Fact>
           <Fact label="Used by">
             {#if use}
               <CountButton
@@ -359,21 +411,13 @@
                 one={usedByNouns.hiring.one}
                 other={usedByNouns.hiring.other}
                 empty={usedByLabel('hiring', 0)}
+                text={usedByWords('hiring', use.usedBy, live)}
+                link
                 title="Used by"
                 description={detail.name}
               />
             {:else}
               <Skeleton class="h-5 w-20" />
-            {/if}
-          </Fact>
-          <Fact label="Version">
-            {#if current.status !== 'Draft' && current.publishedAt}
-              <Hint content={`Published ${formatDateTime(current.publishedAt)}`}>
-                {#snippet children({ props })}<span {...props} class="tabular-nums">{current.version}</span>{/snippet}
-              </Hint>
-            {:else}
-              <!-- A draft is a state of the version, so its badge sits in this fact (W6). -->
-              <span class="inline-flex items-center gap-2"><span class="tabular-nums">{current.version}</span><StatusBadge status="draft" label="Draft" /></span>
             {/if}
           </Fact>
           {#if !detail.isSystem && teamSize !== undefined}
@@ -384,7 +428,7 @@
             </Fact>
           {/if}
           <Fact label={lastUpdateWords(detail.lastUpdated).label}>
-            <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={detail.isSystem ? undefined : () => (historyOpen = true)} />
+            <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={detail.isSystem ? undefined : () => showVersions('changes')} />
           </Fact>
         {/snippet}
         {#snippet tabs()}<WorkflowTabs />{/snippet}
@@ -398,20 +442,27 @@
           mayEdit={can(page.data.user, 'EditHiringTemplates')}
           seesAllJobs={seesAllJobs(page.data.user)}
         />
-        <HistorySheet
-          bind:open={historyOpen}
-          name={detail.name}
-          entries={history.entries}
-          error={history.error}
-          onretry={history.retry}
-          hasMore={history.hasMore}
-          loadingMore={history.loadingMore}
-          onmore={history.more}
-          {members}
-          {currentUserId}
-          note="Jobs keep the copy they started with; a change here reaches jobs created after it."
-        />
       {/if}
+      <!-- A ScreenHire template has no History, so its sheet holds only Versions. -->
+      <VersionsSheet
+        bind:open={versionsOpen}
+        bind:tab={versionsTab}
+        name={detail.name}
+        {versions}
+        shown={current.version}
+        {live}
+        hrefOf={(number) => `/templates/${detail.id}?version=${number}`}
+        changes={!detail.isSystem}
+        entries={history.entries}
+        error={history.error}
+        onretry={history.retry}
+        hasMore={history.hasMore}
+        loadingMore={history.loadingMore}
+        onmore={history.more}
+        {members}
+        {currentUserId}
+        note="Jobs keep the copy they started with; a change here reaches jobs created after it."
+      />
 
       <div class={workArea}>
         {#if isDraft}
@@ -432,6 +483,62 @@
         <ActionBar>{@render primaryAction()}</ActionBar>
       {/if}
     </Tabs.Root>
+
+    <!-- Review updates: each job on an older version, with what changes (its pipeline page) and Update, which asks with
+         the differences first, because it replaces that job's own changes too. -->
+    <Sheet.Root bind:open={reviewOpen}>
+      <Sheet.Content side="right" class="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-md">
+        <Sheet.Header class="border-b border-border-subtle">
+          <Sheet.Title>Review updates</Sheet.Title>
+          <Sheet.Description>New jobs get version {live}. These jobs keep theirs until you update them.</Sheet.Description>
+        </Sheet.Header>
+        {#if older.length === 0}
+          <p class="p-4 text-muted-foreground">Every job is on version {live}.</p>
+        {:else}
+          <ul aria-label="Jobs on an older version" class="flex flex-col">
+            {#each older as item (item.id)}
+              <li class="flex flex-col gap-2 border-b border-border-subtle px-4 py-3 last:border-b-0">
+                <div class="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3">
+                  <a href={`/jobs/${item.id}`} class="min-w-0 font-semibold break-words underline-offset-2 hover:underline">{item.name}</a>
+                  <span class="text-caption text-muted-foreground tabular-nums">On version {item.templateVersion}</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <a
+                    href={`/jobs/${item.id}/workflow?review=update`}
+                    class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
+                    >See what changes{' '}<span class="sr-only">for {item.name}</span></a
+                  >
+                  {#if mayUpdateJobs}
+                    <Button
+                      variant="outline"
+                      aria-haspopup="dialog"
+                      onclick={() => {
+                        updating = item;
+                        updateOpen = true;
+                      }}>Update{' '}<span class="sr-only">{item.name}</span></Button
+                    >
+                  {/if}
+                </div>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        <p role="status" class="border-t border-border-subtle px-4 py-3 text-muted-foreground empty:hidden">{updated}</p>
+      </Sheet.Content>
+    </Sheet.Root>
+    {#if updating}
+      <TemplateUpdateDialog
+        bind:open={updateOpen}
+        jobId={updating.id}
+        jobTitle={updating.name}
+        templateName={detail.name}
+        expectedWorkflowVersion={updating.workflowVersion ?? 1}
+        onapplied={(job, version) => {
+          updated = `Updated ${job.title} to version ${version}.`;
+          void refresh();
+        }}
+      />
+    {/if}
   {/if}
 </main>
 

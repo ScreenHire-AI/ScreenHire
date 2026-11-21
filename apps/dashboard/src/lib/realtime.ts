@@ -35,7 +35,8 @@ export const notificationsPath = '/v1/notifications';
  * Which queries each tenant event makes stale, as API paths. Add a line when a page shows what an event changes.
  * `/v1/jobs` covers the jobs list, each job (its postings and applicant count) and each job's applications.
  * HiringTemplateVersionPublished is here because the jobs list shows "template update available" and the templates
- * pages show each template's versions; an automation run can tag an application, which its page shows.
+ * pages show each template's versions. It and JobWorkflowChanged also refetch where each template is used, which counts
+ * the jobs left on an older version (Review updates); an automation run can tag an application, which its page shows.
  * VerificationAssessed changes the chips in every list, the job's overview, the Verification area's Overview and Activity log and the application's verification panel
  * (`/v1/applications/{id}/verification`). An automation run can also create a task, which My tasks (`/v1/tasks`) and the
  * application's own tasks show, and so can a person or an API key (ApplicationTaskCreated), which Activity shows too.
@@ -59,10 +60,10 @@ export const invalidations: InvalidationMap = {
   JobClosed: [jobsPath, reportsPath, billingPath],
   JobPostingsChanged: [jobsPath],
   // A changed time limit changes when applications fall overdue (slaDueAt), so the lists refetch too.
-  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath, reportsPath],
+  JobWorkflowChanged: [jobsPath, applicationsPath, candidatesPath, reportsPath, templateUsagePath],
   // A job's team (`/v1/jobs/{id}/hiring-team`), the Team page's job counts, and for someone just added, the job itself.
   HiringTeamChanged: [jobsPath, membersPath, reportsPath],
-  HiringTemplateVersionPublished: [jobsPath, templatesPath],
+  HiringTemplateVersionPublished: [jobsPath, templatesPath, templateUsagePath],
   // Any template edit, of the three kinds: the Templates page, the pickers on a new job, the email composer and an
   // application's scorecard library read them, and the usage list shows where each is used. Events are mapped by
   // type, not by kind, so all of them refetch.

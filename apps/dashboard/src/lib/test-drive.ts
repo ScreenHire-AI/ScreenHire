@@ -9,7 +9,7 @@ import type {
   SimulateWorkflowRequest,
   WorkflowSimulationResult,
 } from '@screenhire/api-client';
-import { actionWords } from '#lib/journey-text.js';
+import { actionWords } from '#lib/action-words.js';
 import { blankCandidate, factsOf, listenersOf, momentsOf, presetsFor, triggerFor, type Preset } from '#lib/simulate.js';
 import type { TriggerType } from '@screenhire/api-client';
 

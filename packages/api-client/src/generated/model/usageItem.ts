@@ -8,7 +8,10 @@ import type { UsageKind } from './usageKind.ts';
 
 /**
  * One thing that uses a template. `id` is the job's or the hiring template's id; for an automation it is the job
- * or template the automation belongs to, and `automationId` and `automationName` name the automation.
+ * or template the automation belongs to, and `automationId` and `automationName` name the automation. A job
+ * using a hiring template carries `templateVersion`, the template version its pipeline came from (below the
+ * template's newest published version, it is on an older one), and `workflowVersion`, its pipeline's own version,
+ * which applying an update expects; both are null on every other kind.
  */
 export interface UsageItem {
   kind: UsageKind;
@@ -18,4 +21,8 @@ export interface UsageItem {
   automationId?: string | null;
   /** @nullable */
   automationName?: string | null;
+  /** @nullable */
+  templateVersion?: number | null;
+  /** @nullable */
+  workflowVersion?: number | null;
 }

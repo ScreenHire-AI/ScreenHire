@@ -122,7 +122,7 @@ describe('validation badge', () => {
 });
 
 describe('read-only workflow', () => {
-  it('reads the pipeline as content: stages in a flow, end stages in the footer, automations as rows', async () => {
+  it('reads the pipeline as content: stages in a flow with their short facts, Ends in the footer, automations as rows', async () => {
     const { container } = renderViews('summary');
 
     const pane = screen.getByRole('tabpanel', { name: 'Pipeline' });
@@ -131,13 +131,13 @@ describe('read-only workflow', () => {
     const stages = within(pane).getByRole('region', { name: 'Stages' });
     const line = within(stages).getByRole('list', { name: 'Stages in order' });
     expect(Array.from(line.children).map((item) => item.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      '1 Applied',
-      '2 Phone screen 3-day limit 1 automation',
+      '1 Applied Asks 1 question',
+      '2 Phone screen Respond within 3 days Tag screened',
     ]);
-    const footer = stages.lastElementChild as HTMLElement;
-    expect(footer).toHaveTextContent('End stages');
-    expect(within(footer).getByText('Hired')).toHaveAttribute('data-slot', 'badge');
-    expect(within(footer).getByText('Not progressing')).toHaveAttribute('data-slot', 'badge');
+    const ends = within(stages).getByRole('region', { name: 'Ends' });
+    expect(ends).toHaveTextContent('Hired');
+    expect(ends).toHaveTextContent('Not progressing');
+    expect(within(stages).queryByRole('link')).toBeNull();
 
     const automations = within(pane).getAllByRole('region', { name: 'Automations' });
     expect(automations).toHaveLength(1);
@@ -172,6 +172,8 @@ describe('read-only workflow', () => {
     await fireEvent.click(within(pane).getByRole('button', { name: 'Preview' }));
     expect(within(pane).queryByRole('region', { name: 'Screening questions' })).toBeNull();
     expect(within(pane).getByRole('group', { name: 'Screen size' })).toBeInTheDocument();
+    // The preview pages as the candidate's form does: the details first, the questions after Next.
+    await fireEvent.click(within(pane).getByRole('button', { name: 'Next' }));
     expect(within(pane).getByRole('group', { name: 'Do you have the right to work here?' })).toBeInTheDocument();
   });
 
@@ -279,11 +281,15 @@ describe('workflow builder', () => {
 
     const stages = screen.getByRole('region', { name: 'Stages' });
     const cards = () => within(stages).getAllByRole('group', { name: /^Stage / }).map((card) => card.getAttribute('aria-label'));
-    expect(cards()).toEqual(['Stage 1: Applied', 'Stage 2: Phone screen', 'Stage 3: Hired', 'Stage 4: Not progressing']);
+    expect(cards()).toEqual(['Stage 1: Applied', 'Stage 2: Phone screen']);
+    expect(within(within(stages).getByRole('region', { name: 'Ends' })).getAllByRole('group').map((card) => card.getAttribute('aria-label'))).toEqual([
+      'End stage: Hired',
+      'End stage: Not progressing',
+    ]);
     // The time limit is in the stage's sheet, not on the card, and a card is no panel inside the panel (S4).
     expect(within(stages).queryByRole('spinbutton')).toBeNull();
-    expect(within(stages).getByRole('group', { name: 'Stage 2: Phone screen' })).toHaveTextContent('3-day limit');
-    expect(within(stages).getByRole('group', { name: 'Stage 2: Phone screen' })).toHaveTextContent('1 automation');
+    expect(within(stages).getByRole('group', { name: 'Stage 2: Phone screen' })).toHaveTextContent('Respond within 3 days');
+    expect(within(stages).getByRole('group', { name: 'Stage 2: Phone screen' })).toHaveTextContent('Tag screened');
     expect(stages.querySelectorAll('[data-slot="panel"]')).toHaveLength(0);
     // The old panel of automations is gone: they are counted on their stage and listed under Automations.
     expect(screen.queryByRole('region', { name: 'Workflow automations' })).toBeNull();
@@ -291,12 +297,14 @@ describe('workflow builder', () => {
     await fireEvent.click(within(stages).getByRole('button', { name: 'Reorder Applied' }));
     expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim())).toEqual(['Move right', 'Move to end']);
     await fireEvent.click(screen.getByRole('menuitem', { name: 'Move right' }));
-    expect(cards()).toEqual(['Stage 1: Phone screen', 'Stage 2: Applied', 'Stage 3: Hired', 'Stage 4: Not progressing']);
+    expect(cards()).toEqual(['Stage 1: Phone screen', 'Stage 2: Applied']);
 
-    await fireEvent.click(within(stages).getByRole('button', { name: 'Reorder Not progressing' }));
+    await fireEvent.click(within(stages).getByRole('button', { name: 'Reorder Applied' }));
     expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent?.trim())).toEqual(['Move left', 'Move to start']);
     await fireEvent.click(screen.getByRole('menuitem', { name: 'Move to start' }));
-    expect(cards()).toEqual(['Stage 1: Not progressing', 'Stage 2: Phone screen', 'Stage 3: Applied', 'Stage 4: Hired']);
+    // The stages that end a candidacy keep their place after the open ones.
+    expect(cards()).toEqual(['Stage 1: Applied', 'Stage 2: Phone screen']);
+    expect(screen.getByTestId('draft')).toHaveTextContent('"stages":[{"id":"applied"');
 
     await expectNoAxeViolations(container);
   });
@@ -380,6 +388,8 @@ describe('workflow builder', () => {
     await fireEvent.click(within(pane).getByRole('button', { name: 'Preview' }));
 
     const shown = within(pane.querySelector<HTMLElement>('[data-preview-pane]')!);
+    // The AI-use question is on the last step, the review.
+    while (shown.queryByRole('button', { name: 'Next' })) await fireEvent.click(shown.getByRole('button', { name: 'Next' }));
     expect(shown.getByRole('group', { name: /Did you use AI tools for this application\? \(optional\)/ })).toBeInTheDocument();
   });
 
@@ -854,7 +864,7 @@ describe('workflow simulation', () => {
     await fireEvent.click(within(pane()).getByRole('button', { name: /A candidate moved to a stage/ }));
     await fireEvent.click(await within(pane()).findByRole('button', { name: /Meets every requirement/ }));
 
-    expect(await within(pane()).findByRole('alert')).toHaveTextContent('Fix the problems in this workflow first: it cannot be tested until it is valid.');
+    expect(await within(pane()).findByRole('alert')).toHaveTextContent('Fix the problems in this pipeline first: it cannot be tested until it is valid.');
     // The message names its own thing, so no "where" comes before it.
     expect(pane()).toHaveTextContent('An action needs a tag.');
     expect(pane()).not.toHaveTextContent(/Automation "Tag screened"|The step "/);
@@ -962,12 +972,10 @@ describe('workflow graph in the builder', () => {
 
   it('moves between nodes with the arrow keys, down an automation and across to the next column', async () => {
     renderViews('editor', 'automations');
-    const lane = node('Lane Whole workflow');
-    lane.focus();
+    const first = node('Stage Applied');
+    first.focus();
 
-    await fireEvent.keyDown(lane, { key: 'ArrowRight' });
-    expect(node('Stage Applied')).toHaveFocus();
-    await fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' });
+    await fireEvent.keyDown(first, { key: 'ArrowRight' });
     expect(node('Stage Phone screen')).toHaveFocus();
     await fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' });
     expect(node('Add an automation to Phone screen')).toHaveFocus();
@@ -976,7 +984,7 @@ describe('workflow graph in the builder', () => {
     await fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' });
     expect(node('Add a condition to Tag screened')).toHaveFocus();
     await fireEvent.keyDown(document.activeElement!, { key: 'Home' });
-    expect(lane).toHaveFocus();
+    expect(first).toHaveFocus();
   });
 
   it("lights a node's path when it has the pointer or the focus, and quietens the rest", async () => {
@@ -1069,11 +1077,11 @@ describe('workflow graph in the builder', () => {
     await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Show this path in the graph' })).toBeNull());
     // The answer on screen stays the one the tested workflow gave, whatever the edit, and says it is from before the edit.
     expect(screen.getByRole('list', { name: 'What would happen, in order' })).toHaveTextContent('Tag screened');
-    expect(screen.getByText('The workflow changed after this test.')).toBeInTheDocument();
+    expect(screen.getByText('The pipeline changed after this test.')).toBeInTheDocument();
 
     await fireEvent.click(screen.getByRole('button', { name: 'Run it again' }));
     await screen.findByRole('button', { name: 'Show this path in the graph' });
-    expect(screen.queryByText('The workflow changed after this test.')).toBeNull();
+    expect(screen.queryByText('The pipeline changed after this test.')).toBeNull();
   });
 
   it('gives a node that cannot be pressed the focus ring too: it is still a tab stop', () => {

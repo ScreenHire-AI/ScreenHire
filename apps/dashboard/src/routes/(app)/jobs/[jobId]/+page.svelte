@@ -275,7 +275,7 @@
             {#if mayEdit && detail.status !== 'Closed'}
               <Button href={`/jobs/${detail.id}/edit`} variant="outline" size="lg"><PencilIcon aria-hidden="true" />Edit details</Button>
             {/if}
-            <Button href={`/jobs/${detail.id}/workflow`} variant="outline" size="lg"><WorkflowIcon aria-hidden="true" />Edit workflow</Button>
+            <Button href={`/jobs/${detail.id}/workflow`} variant="outline" size="lg"><WorkflowIcon aria-hidden="true" />Edit pipeline</Button>
             {#if canAdd}
               <Button variant="outline" size="lg" aria-haspopup="dialog" onclick={() => (adding = true)}><UserPlusIcon aria-hidden="true" />Add candidate</Button>
             {/if}
@@ -304,7 +304,7 @@
                   </DropdownMenu.Item>
                 {/if}
                 <DropdownMenu.Item>
-                  {#snippet child({ props })}<a {...props} href={`/jobs/${detail.id}/workflow`}><WorkflowIcon aria-hidden="true" />Edit workflow</a>{/snippet}
+                  {#snippet child({ props })}<a {...props} href={`/jobs/${detail.id}/workflow`}><WorkflowIcon aria-hidden="true" />Edit pipeline</a>{/snippet}
                 </DropdownMenu.Item>
                 {#if canAdd}
                   <DropdownMenu.Item onSelect={() => (addChosen = true)}><UserPlusIcon aria-hidden="true" />Add candidate</DropdownMenu.Item>
@@ -332,10 +332,17 @@
             <Fact label="Created"><RelativeTime at={detail.createdAt} /></Fact>
           {/if}
           {#if detail.template}
-            <Fact label="Template">
-              <!-- The fact's state in its words, never a pill in a header (section 11, Fact pill). -->
-              {detail.template.templateName} v{detail.template.version}{#if detail.template.updateAvailable}, update available{/if}
-            </Fact>
+            <!-- The fact's state in its words, never a pill in a header (section 11, Fact pill). A newer published version is
+                 its own fact, with a link to what it changes (workflow-engine.md section 1). -->
+            <Fact label="Template">{detail.template.templateName} v{detail.template.version}</Fact>
+            {#if detail.template.updateAvailable && detail.template.latestPublishedVersion}
+              <Fact label="Update available">
+                <span>
+                  {detail.template.templateName} v{detail.template.latestPublishedVersion},
+                  <a href={`/jobs/${detail.id}/workflow?review=update`} class="underline underline-offset-2">See what changes</a>
+                </span>
+              </Fact>
+            {/if}
           {/if}
           <Fact label={lastUpdateWords(detail.lastUpdated).label}>
             <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={() => (historyOpen = true)} />

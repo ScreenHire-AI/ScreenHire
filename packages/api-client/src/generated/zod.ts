@@ -103,8 +103,10 @@ export const GetTemplateUsageResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "automationId": zod.string().nullish(),
-  "automationName": zod.string().nullish()
-}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+  "automationName": zod.string().nullish(),
+  "templateVersion": zod.int().nullish(),
+  "workflowVersion": zod.int().nullish()
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation. A job\nusing a hiring template carries `templateVersion`, the template version its pipeline came from (below the\ntemplate\'s newest published version, it is on an older one), and `workflowVersion`, its pipeline\'s own version,\nwhich applying an update expects; both are null on every other kind.')),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "notUsedRecently": zod.boolean()
 }).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.')),
@@ -115,8 +117,10 @@ export const GetTemplateUsageResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "automationId": zod.string().nullish(),
-  "automationName": zod.string().nullish()
-}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+  "automationName": zod.string().nullish(),
+  "templateVersion": zod.int().nullish(),
+  "workflowVersion": zod.int().nullish()
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation. A job\nusing a hiring template carries `templateVersion`, the template version its pipeline came from (below the\ntemplate\'s newest published version, it is on an older one), and `workflowVersion`, its pipeline\'s own version,\nwhich applying an update expects; both are null on every other kind.')),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "notUsedRecently": zod.boolean()
 }).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.')),
@@ -127,8 +131,10 @@ export const GetTemplateUsageResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "automationId": zod.string().nullish(),
-  "automationName": zod.string().nullish()
-}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+  "automationName": zod.string().nullish(),
+  "templateVersion": zod.int().nullish(),
+  "workflowVersion": zod.int().nullish()
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation. A job\nusing a hiring template carries `templateVersion`, the template version its pipeline came from (below the\ntemplate\'s newest published version, it is on an older one), and `workflowVersion`, its pipeline\'s own version,\nwhich applying an update expects; both are null on every other kind.')),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "notUsedRecently": zod.boolean()
 }).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.'))

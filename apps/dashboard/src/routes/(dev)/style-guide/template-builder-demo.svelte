@@ -5,14 +5,13 @@
   import Panel from '#lib/components/panel.svelte';
   import StartingPointCard from '#lib/components/starting-point-card.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
-  import JourneyOverview from '#lib/components/workflow/journey-overview.svelte';
   import StageCards from '#lib/components/workflow/stage-cards.svelte';
   import StageSheet from '#lib/components/workflow/stage-sheet.svelte';
   import TestDrive from '#lib/components/workflow/test-drive.svelte';
   import ValidationBadge from '#lib/components/workflow/validation-badge.svelte';
 
-  // The template builder's parts (design system section 11: Journey, Stage cards, Stage sheet, Start from card, Test
-  // drive, Fix button) on one sample workflow. Journey, Stage cards and Test drive draw their own panel, so they sit under
+  // The template builder's parts (design system section 11: Stage cards, Stage sheet, Start from card, Test drive, Fix
+  // button) on one sample workflow. Stage cards and Test drive draw their own panel, so they sit under
   // a heading rather than inside another panel. The style guide has no API, so this example brings its own query cache with
   // the answers the parts read; the Test drive shows its paused state, which runs nothing.
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false }, mutations: { retry: false } } });
@@ -70,22 +69,25 @@
   let chosen = $state('demo-office');
 </script>
 
-<section aria-labelledby="style-guide-journey" class="flex flex-col gap-2">
-  <h2 id="style-guide-journey" class="text-heading">Journey</h2>
-  <JourneyOverview {workflow} onopen={(id) => (stageId = id)} questionsHref="#journey" />
-</section>
-
 <section aria-labelledby="style-guide-stage-cards" class="flex flex-col gap-2">
   <h2 id="style-guide-stage-cards" class="text-heading">Stage cards</h2>
-  <StageCards bind:workflow errors={problems} onopen={(id) => (stageId = id)} onscorecard={nothing} onautomations={nothing} />
+  <StageCards
+    bind:workflow
+    errors={problems}
+    onopen={(id) => (stageId = id)}
+    onscorecard={nothing}
+    onautomations={nothing}
+    automationHref={(id) => `#automation-${id}`}
+    questionsHref="#questions"
+  />
 </section>
 
 <Panel title="Stage sheet">
   <div class="flex flex-col gap-2">
-    <p class="text-caption text-muted-foreground">Opens from a stage card or a Journey column, in place.</p>
+    <p class="text-caption text-muted-foreground">Opens from a stage card's name, in place.</p>
     <div><Button variant="outline" onclick={() => (stageId = 'phone-call')}>Open the Phone call sheet</Button></div>
   </div>
-  <StageSheet bind:workflow bind:stageId errors={[]} onscorecard={nothing} onautomations={nothing} onremove={nothing} automationsHref="#stage-sheet" />
+  <StageSheet bind:workflow bind:stageId errors={[]} onscorecard={nothing} onautomations={nothing} onremove={nothing} onreminder={nothing} automationsHref="#stage-sheet" automationHref={(id) => `#automation-${id}`} />
 </Panel>
 
 <Panel title="Start from card">
