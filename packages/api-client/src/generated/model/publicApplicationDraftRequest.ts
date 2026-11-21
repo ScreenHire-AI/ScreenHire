@@ -23,4 +23,6 @@ export interface PublicApplicationDraftRequest {
   aiUseDetails?: string | null;
   /** @nullable */
   botCheckToken?: string | null;
+  /** @nullable */
+  language?: string | null;
 }

@@ -114,23 +114,26 @@ export function dayKey(instant: Date, zone: string): string {
   return `${day['year']}-${day['month']}-${day['day']}`;
 }
 
-// Built from the parts, because Intl writes a narrow no-break space before AM or PM.
-const clock = (instant: Date, zone: string): string => {
-  const time = parts(instant, zone, { hour: 'numeric', minute: '2-digit', hourCycle: 'h12' });
-  return `${time['hour']}:${time['minute']} ${time['dayPeriod']}`;
-};
+// The time of day in the reader's language ("10:00 AM" in en-US, "10:00" in en-GB). Intl writes a narrow no-break space
+// before AM or PM, which an email and a test compare badly, so any no-break space becomes a plain one.
+const clock = (instant: Date, zone: string, locale: string): string =>
+  new Intl.DateTimeFormat(locale, { timeZone: zone, timeStyle: 'short' }).format(instant).replace(/[\u202f\u00a0]/g, ' ');
 
 const MINUTE = 60_000;
 
 /** "10:00 AM to 10:30 AM": the start and the end in the zone. Written out, because the range formatter uses an en dash. */
-export const timeRange = (start: Date, minutes: number, zone: string): string =>
-  `${clock(start, zone)} to ${clock(new Date(start.getTime() + minutes * MINUTE), zone)}`;
+export const timeRange = (start: Date, minutes: number, zone: string, locale: string): string =>
+  `${clock(start, zone, locale)} to ${clock(new Date(start.getTime() + minutes * MINUTE), zone, locale)}`;
 
-/** "Tuesday, March 3" (with the year when asked), the day an instant falls on in the zone. */
-export function dayHeading(instant: Date, zone: string, withYear = false): string {
-  const day = parts(instant, zone, { weekday: 'long', month: 'long', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) });
-  return `${day['weekday']}, ${day['month']} ${day['day']}${withYear ? `, ${day['year']}` : ''}`;
-}
+/** "Tuesday, March 3" (with the year when asked), the day an instant falls on in the zone, in the reader's language. */
+export const dayHeading = (instant: Date, zone: string, locale: string, withYear = false): string =>
+  new Intl.DateTimeFormat(locale, {
+    timeZone: zone,
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    ...(withYear ? { year: 'numeric' } : {}),
+  }).format(instant);
 
 /** The zone's name for people, such as "Eastern Time". Generic, so it holds whether or not daylight saving time is on. */
 export function zoneName(instant: Date, zone: string): string {
@@ -176,7 +179,7 @@ export interface SlotDay {
 }
 
 /** The offered times grouped by the local day they fall on in the zone, earliest first. A late slot can land on the next day. */
-export function groupByDay(slots: readonly string[], zone: string): SlotDay[] {
+export function groupByDay(slots: readonly string[], zone: string, locale: string): SlotDay[] {
   const instants = [...new Set(slots)]
     .map((value) => ({ value, at: new Date(value) }))
     .filter((slot) => !Number.isNaN(slot.at.getTime()))
@@ -189,11 +192,11 @@ export function groupByDay(slots: readonly string[], zone: string): SlotDay[] {
     let day = days.at(-1);
     if (day?.key !== key) {
       // The year only where the days cross into another, so "January 2" is never two different years.
-      day = { key, heading: dayHeading(at, zone, key.slice(0, 4) !== firstYear), slots: [] };
+      day = { key, heading: dayHeading(at, zone, locale, key.slice(0, 4) !== firstYear), slots: [] };
       days.push(day);
     }
 
-    day.slots.push({ value, label: clock(at, zone) });
+    day.slots.push({ value, label: clock(at, zone, locale) });
   }
 
   return days;
@@ -227,9 +230,9 @@ export function durationText(minutes: number): string {
 export const hoursText = (hours: number): string => `${hours} hour${hours === 1 ? '' : 's'}`;
 
 /** The booked time as the page writes it: the day with its year, the range and the zone's name. */
-export function describeBooked(startsAt: string, minutes: number, zone: string): { day: string; range: string; zone: string } {
+export function describeBooked(startsAt: string, minutes: number, zone: string, locale: string): { day: string; range: string; zone: string } {
   const start = new Date(startsAt);
-  return { day: dayHeading(start, zone, true), range: timeRange(start, minutes, zone), zone: zoneName(start, zone) };
+  return { day: dayHeading(start, zone, locale, true), range: timeRange(start, minutes, zone, locale), zone: zoneName(start, zone) };
 }
 
 /** The path of the interview page with the view to show: the zone, the picker, the screen of times, what just happened. */

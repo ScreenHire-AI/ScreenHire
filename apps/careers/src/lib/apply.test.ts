@@ -306,7 +306,13 @@ describe('toRequest', () => {
       embedOrigin: null,
       // No job board sent this candidate.
       source: null,
+      // The browser named no language.
+      language: null,
     });
+  });
+
+  it("carries the language of the candidate's browser, for the dates in their emails", () => {
+    expect(toRequest(emptyState(), [], { honeypotFilled: false, botCheckToken: null, language: 'de-DE' }).language).toBe('de-DE');
   });
 
   it("sends the telemetry session and what the module left in the form", () => {

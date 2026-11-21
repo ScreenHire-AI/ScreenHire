@@ -13,7 +13,7 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261121080503_AddInterviewMeetingName")]
+    [Migration("20261121081059_AddInterviewMeetingName")]
     partial class AddInterviewMeetingName
     {
         /// <inheritdoc />
@@ -787,6 +787,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("KeptInMindAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("kept_in_mind_at");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")

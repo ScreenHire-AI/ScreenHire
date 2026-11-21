@@ -86,7 +86,7 @@ internal sealed class ApplicationDrafts(
     /// <see cref="ApplicationDraft.LinksPerAddress"/> links in the last day. The caller has checked the answers.
     /// </summary>
     public async Task<(ApplicationDraft Draft, string Token)?> CreateAsync(
-        ScreenHireDbContext db, Organization organization, Job job, string email, ApplicationDraftContent content, CancellationToken cancellationToken)
+        ScreenHireDbContext db, Organization organization, Job job, string email, ApplicationDraftContent content, CultureInfo culture, CancellationToken cancellationToken)
     {
         var now = time.GetUtcNow();
         var normalized = Candidate.Normalize(email);
@@ -117,7 +117,7 @@ internal sealed class ApplicationDrafts(
         }
 
         var token = Issue(draft);
-        var message = Compose(email.Trim(), organization.Name, job.Title, Url(organization.Slug, job.Slug, token), draft.ExpiresAt);
+        var message = Compose(email.Trim(), organization.Name, job.Title, Url(organization.Slug, job.Slug, token), draft.ExpiresAt, culture);
         try
         {
             await (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync(message, cancellationToken);
@@ -136,11 +136,12 @@ internal sealed class ApplicationDrafts(
 
     /// <summary>
     /// The email with the link: ScreenHire's own words, not an organization template, because it goes before there is an
-    /// application to name. The date is the day the draft is deleted, in UTC.
+    /// application to name. The date is the day the draft is deleted, in UTC, written in <paramref name="culture"/>: the
+    /// language of the browser the candidate saved from, since no application records one yet.
     /// </summary>
-    internal static EmailMessage Compose(string to, string organizationName, string jobTitle, Uri link, DateTimeOffset expiresAt)
+    internal static EmailMessage Compose(string to, string organizationName, string jobTitle, Uri link, DateTimeOffset expiresAt, CultureInfo culture)
     {
-        var until = expiresAt.UtcDateTime.ToString("d MMMM yyyy", CultureInfo.InvariantCulture);
+        var until = CandidateLanguage.LongDate(expiresAt, culture);
         var subject = $"Finish your application for {jobTitle} at {organizationName}";
         var text = $"""
             You saved your application for {jobTitle} at {organizationName} to finish later.

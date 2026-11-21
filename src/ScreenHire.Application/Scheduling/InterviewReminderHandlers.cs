@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -72,7 +73,9 @@ public static partial class SendInterviewNewTimesHandler
             MeetingName = interview.MeetingNameOrDefault(),
             BookingLink = links.Url(organization.Slug, links.Issue(interview)),
             InterviewLength = InterviewText.Length(interview.DurationMinutes),
-            InterviewTime = interview.StartsAt is { } start ? InterviewText.Time(start, start + interview.Duration, interview.TimeZone) : null,
+            InterviewTime = interview.StartsAt is { } start
+                ? InterviewText.Time(start, start + interview.Duration, interview.TimeZone, CandidateLanguage.Culture(application.Language))
+                : null,
         };
         var header = await headers.ForAsync(db, organization, cancellationToken);
         // Routed like every email about an application: a reply address and the link to the candidate's own page.
@@ -170,7 +173,9 @@ public static partial class SendInterviewReminderHandler
 
         var (interview, application, job, candidate, organization) = context!;
         var start = message.StartsAt;
-        var timeText = InterviewText.Time(start, start + interview.Duration, interview.TimeZone);
+        // The candidate's reminder is in their recorded language. The interviewers' is the team's and stays in US English.
+        var timeText = InterviewText.Time(start, start + interview.Duration, interview.TimeZone, CandidateLanguage.Culture(application.Language));
+        var teamTimeText = InterviewText.Time(start, start + interview.Duration, interview.TimeZone, CultureInfo.GetCultureInfo("en-US"));
 
         var sendId = InterviewText.ReminderSendId(message.Kind, interview.Id, start);
         if (links.IsConfigured
@@ -192,7 +197,7 @@ public static partial class SendInterviewReminderHandler
 
         if (message.Kind == InterviewReminderKind.DayBefore)
         {
-            await RemindInterviewersAsync(db, email, dashboard.Value, interview, application, job, candidate, organization, timeText, start, cancellationToken);
+            await RemindInterviewersAsync(db, email, dashboard.Value, interview, application, job, candidate, organization, teamTimeText, start, cancellationToken);
         }
 
         return outgoing;

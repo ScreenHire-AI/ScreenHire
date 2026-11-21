@@ -13,8 +13,8 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261121080511_AddTrialShiftMeetingNames")]
-    partial class AddTrialShiftMeetingNames
+    [Migration("20261121071249_AddApplicationLanguage")]
+    partial class AddApplicationLanguage
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -787,6 +787,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("KeptInMindAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("kept_in_mind_at");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)")
+                        .HasColumnName("language");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
@@ -3417,11 +3422,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("LookupStart")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lookup_start");
-
-                    b.Property<string>("MeetingName")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("meeting_name");
 
                     b.Property<string>("MeetingUrl")
                         .HasMaxLength(500)

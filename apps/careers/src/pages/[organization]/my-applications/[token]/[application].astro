@@ -12,12 +12,13 @@ import PortalLinkProblem from '../../../../components/PortalLinkProblem.astro';
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
 import { getPublicOrganization, getPublicPortalMessages } from '../../../../lib/api';
 import { forwardedFor } from '../../../../lib/apply-server';
-import { longDate } from '../../../../lib/drafts';
+import { localeOf, longDate } from '../../../../lib/locale';
 import { basePath } from '../../../../lib/host';
 import { FILE_TYPES, isGuid, isToken, MAX_FILE_BYTES, MAX_FILES, newReplyKey, REPLY_MESSAGES } from '../../../../lib/portal';
 
 const { organization, token, application } = Astro.params;
 const base = basePath(Astro.request, organization!);
+const locale = localeOf(Astro.request);
 const mine = `${base}/my-applications/${token}`;
 const result = Astro.getActionResult(actions.sendPortalReply);
 if (result?.data?.outcome === 'sent' && isToken(token) && isGuid(application)) {
@@ -74,7 +75,7 @@ const heading = { open: messages?.jobTitle ?? 'Messages', busy: 'Too many attemp
               <li class:list={['rounded-panel border border-candidate-border p-5 shadow-surface', message.direction === 'FromYou' ? 'bg-candidate-background' : 'bg-candidate-surface']}>
                 <p class="text-candidate-hint text-candidate-muted-foreground">
                   <span class="font-semibold text-candidate-foreground">{message.direction === 'FromYou' ? 'You' : employer.name}</span>
-                  {' '}on <time datetime={message.at}>{longDate(message.at)}</time>
+                  {' '}on <time datetime={message.at}>{longDate(message.at, locale)}</time>
                 </p>
                 <p class="mt-1 font-semibold">{message.subject}</p>
                 <p class="mt-2 break-words whitespace-pre-wrap">{message.body}</p>
