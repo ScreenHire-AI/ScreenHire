@@ -105,18 +105,18 @@ describe('the Messages history', () => {
 
   it('opens and closes every row with Expand all and Collapse all', async () => {
     const list = show();
-    const expand = screen.getByRole('button', { name: 'Expand all' });
-    const collapse = screen.getByRole('button', { name: 'Collapse all' });
-    expect(collapse).toBeDisabled();
+    // Each shows only while it would change something (A3).
+    expect(screen.queryByRole('button', { name: 'Collapse all' })).not.toBeInTheDocument();
 
-    await fireEvent.click(expand);
-    for (const row of within(list).getAllByRole('button', { expanded: true })) expect(row).toHaveAttribute('aria-expanded', 'true');
+    await fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));
+    expect(within(list).getAllByRole('button', { expanded: true })).toHaveLength(3);
     expect(within(list).queryAllByRole('button', { expanded: false })).toHaveLength(0);
-    expect(expand).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Expand all' })).not.toBeInTheDocument();
     await screen.findByText('Casey Morgan <casey@example.com>');
 
-    await fireEvent.click(collapse);
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }));
     expect(within(list).queryAllByRole('button', { expanded: true })).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Expand all' })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByText('Casey Morgan <casey@example.com>')).not.toBeInTheDocument());
   });
 

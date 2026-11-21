@@ -94,9 +94,10 @@
 <!-- The tab says how many there are; the panel does not repeat it (W4). -->
 <Panel title="Messages">
   {#snippet actions()}
+    <!-- Each shows only while it would change something, never disabled (A3). -->
     {#if ids.length > 1}
-      <Button variant="outline" disabled={open.size === ids.length} onclick={() => ids.forEach((id) => open.add(id))}>Expand all</Button>
-      <Button variant="outline" disabled={open.size === 0} onclick={() => open.clear()}>Collapse all</Button>
+      {#if open.size < ids.length}<Button variant="outline" onclick={() => ids.forEach((id) => open.add(id))}>Expand all</Button>{/if}
+      {#if open.size > 0}<Button variant="outline" onclick={() => open.clear()}>Collapse all</Button>{/if}
     {/if}
   {/snippet}
   <div class="flex flex-col gap-5">

@@ -3,15 +3,36 @@ using ScreenHire.Api.Email;
 namespace ScreenHire.UnitTests.Email;
 
 /// <summary>
-/// The snippet a row in Messages shows: the first line of the email's text part with words in it, never the quoted
-/// email under a reply, and never longer than one row can hold.
+/// The snippet a row in Messages shows: the first line of the email's text part that says something, not a lone greeting,
+/// never the quoted email under a reply, and never longer than one row can hold.
 /// </summary>
 public sealed class EmailSnippetTests
 {
     [Fact]
-    public void The_first_line_with_words_is_the_snippet()
+    public void The_first_line_after_a_lone_greeting_is_the_snippet()
     {
-        EmailSnippet.FirstLine("\n\n  Hi Jordan,  \nThanks for applying.").Should().Be("Hi Jordan,");
+        EmailSnippet.FirstLine("\n\n  Hi Jordan,  \n\nThanks for applying.\nAvery").Should().Be("Thanks for applying.");
+    }
+
+    [Theory]
+    [InlineData("Dear Ms Quinn\nWe would like to meet you.")]
+    [InlineData("Hello all!\nWe would like to meet you.")]
+    [InlineData("Good morning Jordan Reyes,\nWe would like to meet you.")]
+    public void Each_kind_of_lone_greeting_is_skipped(string text)
+    {
+        EmailSnippet.FirstLine(text).Should().Be("We would like to meet you.");
+    }
+
+    [Fact]
+    public void A_line_that_opens_with_a_greeting_and_says_more_is_kept()
+    {
+        EmailSnippet.FirstLine("Hi Avery, I can do Friday.\nCasey").Should().Be("Hi Avery, I can do Friday.");
+    }
+
+    [Fact]
+    public void An_email_that_is_only_a_greeting_shows_it()
+    {
+        EmailSnippet.FirstLine("Hi Casey,\n> Are you free?").Should().Be("Hi Casey,");
     }
 
     [Fact]

@@ -72,9 +72,9 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
         var messages = Page.GetByRole(AriaRole.Region, new() { Name = "Messages", Exact = true });
         var row = messages.GetByRole(AriaRole.List, new() { Name = "Emails" }).GetByRole(AriaRole.Button).Filter(new() { HasText = $"Interview {marker}" });
         await Expect(row).ToBeVisibleAsync(new() { Timeout = 30_000 });
-        // A compact row to scan: who sent it and the email's first line, before it opens.
+        // A compact row to scan: who sent it and the email's first line that says something (not "Hi Casey,"), before it opens.
         await Expect(row).ToContainTextAsync("Sent by you");
-        await Expect(row.Locator("[data-email-snippet]")).ToHaveTextAsync("Hi Casey,");
+        await Expect(row.Locator("[data-email-snippet]")).ToHaveTextAsync($"Your portfolio stood out {marker}.");
         await row.ClickAsync();
         await Expect(row).ToHaveAttributeAsync("aria-expanded", "true");
         // The row names the subject; the opened email does not repeat it (W4).

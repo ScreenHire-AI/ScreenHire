@@ -197,9 +197,10 @@ the reason.
 ## Messages
 
 `GET /v1/candidates/{candidateId}/emails` lists every email to the candidate, about any of their applications, newest
-first: the subject, who or which automation sent it, when, the job, `kept`, and `snippet`, the first line of the text
-part with words in it (the quoted email under a reply left out, cut at a word to 140 characters; `EmailSnippet`, which
-reads only the first 400 characters from the database). A reply also has `inReplyTo`, the id of the sent email it answers
+first: the subject, who or which automation sent it, when, the job, `kept`, and `snippet`. The snippet is the first line
+of the text part that says something: not a lone greeting such as "Hi Casey,", and never the quoted email under a reply.
+`EmailSnippet` cuts it at a word to 140 characters and reads only the first 400 characters of the text from the
+database. A reply also has `inReplyTo`, the id of the sent email it answers
 (the send its reply address named), so the tab shows it under that email. `GET /v1/emails/{emailId}` returns one
 email as it went: the address, the subject, the HTML part and the plain-text part. Emails sent before copies were kept
 have only their subject (`kept` is false), and Messages says so. A copy is never changed: the application role cannot

@@ -1229,11 +1229,12 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   Built: Messages lists every email to the candidate, about any of their applications, as a history to scan, with the email
   composer in its own panel under them for people who can send. Each email is one compact row (Expandable row): the
   direction's icon (send or the reply arrow), the subject, who ("Sent by you", "Sent by an automation", "From" the
-  address), the first line of the text, cut to the row, and how long ago. A candidate's reply sits under the email it
+  address), the first line of the text that says something (as in Latest message, not a lone greeting), cut to the row,
+  and how long ago. A candidate's reply sits under the email it
   answers, on a rule from that email's icon, oldest first; a reply whose email is not listed is a row of its own. Rows are
   newest first by their latest message, so a reply that came today brings its email to the top. A click opens a row in
   place to the email as it went, with Email and Plain text on its To or From line; Expand all and Collapse all in the
-  panel header, shown once there are two emails, open or close every row. One sent before ScreenHire kept a copy of each
+  panel header open or close every row, once there are two emails, each shown only while it would change something (A3). One sent before ScreenHire kept a copy of each
   email says only its subject was kept. A reply opens to the sender, the message and its files; a file shows once its
   malware scan allows it. A
   flagged address puts a status beside the name, a notice at the top of the tab and Allow email again, and takes the
