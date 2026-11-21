@@ -55,13 +55,14 @@
   let focusSetup = false;
   let handledRequests = setupPanel.requests;
 
-  // Set once the checklist is hidden from this panel, so the panel says where it comes back, until the panel closes.
-  let hiddenHere = $state(false);
+  // Set once a step is skipped or the checklist hidden from this panel, so the panel says that it reaches the whole
+  // organization and where it comes back (design system A11), until the panel closes.
+  let changedHere = $state<'skipped' | 'hidden' | null>(null);
 
   $effect(() => {
     if (!open) {
       focusSetup = false;
-      hiddenHere = false;
+      changedHere = null;
     }
   });
   $effect(() => {
@@ -97,6 +98,7 @@
     } catch {
       return; // `setup.failed` says so in the section.
     }
+    changedHere = 'skipped';
     await tick();
     (panel?.querySelector<HTMLElement>('[data-bell-setup]') ?? panel)?.focus();
   }
@@ -107,7 +109,7 @@
     } catch {
       return;
     }
-    hiddenHere = true;
+    changedHere = 'hidden';
     await tick();
     panel?.focus();
   }
@@ -176,8 +178,8 @@
       </section>
     {/if}
 
-    <!-- Hiding has no Undo in the bell: Settings, General brings the checklist back, so the panel says so and links there. -->
-    <p role="status" class="border-b border-border-subtle px-4 py-3 text-body text-muted-foreground empty:hidden">{#if hiddenHere}Setup is hidden for everyone. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Show it again in Settings, General</a>.{/if}</p>
+    <!-- Neither has an Undo in the bell: Settings, General brings the steps back, so the panel says so and links there. -->
+    <p role="status" class="border-b border-border-subtle px-4 py-3 text-body text-muted-foreground empty:hidden">{#if changedHere === 'hidden'}Setup is hidden for everyone. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Show it again in Settings, General</a>.{:else if changedHere === 'skipped'}Not needed for everyone in your organization. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Bring it back in Settings, General</a>.{/if}</p>
 
     {#if notifications.isError}
       <div class="p-4">

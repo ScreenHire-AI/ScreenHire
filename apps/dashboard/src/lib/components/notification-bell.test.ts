@@ -285,6 +285,8 @@ describe('notification bell', () => {
     expect(within(setup).getAllByRole('listitem').map((item) => item.textContent?.match(/^\s*(\d)/)?.[1])).toEqual(['2', '3']);
     expect(within(setup).queryByText(/done$/)).toBeNull();
     expect(screen.getByRole('button', { name: 'Notifications, 2 need attention' })).toBeInTheDocument();
+    // It reaches the whole organization, so the panel says so and where the step comes back (A11).
+    expect((await within(panel).findByText(/Not needed for everyone in your organization/)).querySelector('a')).toHaveAttribute('href', '/settings/organization');
   });
 
   it('hides the whole setup for the organization from the section, which takes its steps out of the count', async () => {
