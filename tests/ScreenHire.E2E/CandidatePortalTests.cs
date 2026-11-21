@@ -137,7 +137,8 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
         await SignInToDashboardAsync(owner);
         await Page.GotoAsync(new Uri(Fixture.GetEndpoint("dashboard"), $"/applications/{applicationId}?tab=messages").ToString());
         var emails = Page.GetByRole(AriaRole.Region, new() { Name = "Messages", Exact = true }).GetByRole(AriaRole.List, new() { Name = "Emails" });
-        var replyRows = emails.GetByRole(AriaRole.Button).Filter(new() { HasText = "Reply from" });
+        // A reply's row says who it is from; an email the team sent says who sent it.
+        var replyRows = emails.GetByRole(AriaRole.Button).Filter(new() { HasTextRegex = new Regex(@"From \S+@") });
         await Expect(replyRows).ToHaveCountAsync(2);
         var shown = new List<string>();
         for (var index = 0; index < 2; index++)
@@ -146,6 +147,9 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
             var attachments = Page.GetByRole(AriaRole.List, new() { Name = "Attachments" });
             await Expect(attachments.GetByRole(AriaRole.Listitem)).ToHaveCountAsync(2);
             shown.Add(await attachments.InnerTextAsync());
+            // Rows stay open until closed, so close this one: the next reply's list is then the only one on the page.
+            await replyRows.Nth(index).ClickAsync();
+            await Expect(attachments).ToHaveCountAsync(0);
         }
 
         shown.Should().ContainSingle(text => text.Contains("availability.pdf") && text.Contains("portfolio.pdf"));
