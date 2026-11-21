@@ -44,13 +44,24 @@ public static class SystemTemplates
 
     public static readonly Guid TradeRoleVersion1 = new("0199e8a0-0000-7000-8000-000000000401");
 
-    /// <summary>Version 1 with the trial shift stage naming its meeting "trial shift" (migration <c>AddTradeRoleVersion2</c>).</summary>
+    /// <summary>Version 1 with the Trial shift scorecard on its Trial shift stage (migration <c>AddHospitalityTemplate</c>).</summary>
     public static readonly Guid TradeRoleVersion2 = new("0199e8a0-0000-7000-8000-000000000402");
+
+    /// <summary>Version 2 with the trial shift stage naming its meeting "trial shift" (migration <c>AddTrialShiftMeetingNames</c>).</summary>
+    public static readonly Guid TradeRoleVersion3 = new("0199e8a0-0000-7000-8000-000000000403");
 
     public static readonly Guid HighVolume = new("0199e8a0-0000-7000-8000-000000000005");
 
     public static readonly Guid HighVolumeVersion1 = new("0199e8a0-0000-7000-8000-000000000501");
 
+    /// <summary>The fourth starting point, for cafes, restaurants and bars (migration <c>AddHospitalityTemplate</c>): published version 1.</summary>
+    public static readonly Guid Hospitality = new("0199e8a0-0000-7000-8000-000000000006");
+
+    public static readonly Guid HospitalityVersion1 = new("0199e8a0-0000-7000-8000-000000000601");
+
+    /// <summary>Version 1 with the Trial shift stage naming its meeting "trial shift" (migration <c>AddTrialShiftMeetingNames</c>).</summary>
+    public static readonly Guid HospitalityVersion2 = new("0199e8a0-0000-7000-8000-000000000602");
+
     /// <summary>Every system template, the ones each organization sees beside its own.</summary>
-    public static IReadOnlyList<Guid> All { get; } = [SoftwareEngineer, HourlyRole, OfficeRole, TradeRole, HighVolume];
+    public static IReadOnlyList<Guid> All { get; } = [SoftwareEngineer, HourlyRole, OfficeRole, TradeRole, HighVolume, Hospitality];
 }

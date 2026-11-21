@@ -35,6 +35,44 @@ public static class AiUsageCost
     }
 }
 
+/// <summary>
+/// The usual split of a check's tokens between input and output, which turns a token count into a dollar figure when the
+/// deployment's default budget and cap are shown in dollars (ai-usage.md, "Defaults"). The consistency check reads long sources
+/// and answers briefly, so most of its tokens are input. An estimate for display: enforcement stays in tokens.
+/// </summary>
+public static class AiUsageMix
+{
+    /// <summary>The share of a check's tokens that is input; the rest is output.</summary>
+    public const decimal InputShare = 0.8m;
+
+    private const decimal PerMillion = 1_000_000m;
+
+    /// <summary>One price per million tokens for the usual mix, from a model's input and output prices.</summary>
+    public static decimal BlendedPerMillion(decimal inputPerMillion, decimal outputPerMillion)
+        => (inputPerMillion * InputShare) + (outputPerMillion * (1m - InputShare));
+
+    /// <summary>What <paramref name="tokens"/> cost at <paramref name="blendedPerMillion"/> dollars per million tokens.</summary>
+    public static decimal Dollars(decimal tokens, decimal blendedPerMillion) => tokens * blendedPerMillion / PerMillion;
+
+    /// <summary>
+    /// The price a limit is shown in dollars at, or null where it stays as it is: only the deployment's default, which is counted
+    /// in tokens, and only when the model that answers has a price. An organization's own limit keeps the unit it was set in.
+    /// </summary>
+    public static decimal? DollarPriceFor(bool isDefault, UsageUnit unit, decimal? blendedPerMillion)
+        => isDefault && unit == UsageUnit.Tokens && blendedPerMillion is > 0 ? blendedPerMillion : null;
+
+    /// <summary>
+    /// What <paramref name="tokens"/> used against a default shown in dollars come to, to four places like a call's cost, so one
+    /// check's use never reads as $0.00.
+    /// </summary>
+    public static decimal EstimateInDollars(decimal tokens, decimal blendedPerMillion)
+        => Math.Round(Dollars(tokens, blendedPerMillion), 4, MidpointRounding.AwayFromZero);
+
+    /// <summary>A default limit of <paramref name="tokens"/> in dollars, to the cent, and never shown as $0.00.</summary>
+    public static decimal DefaultInDollars(decimal tokens, decimal blendedPerMillion)
+        => Math.Max(0.01m, Math.Round(Dollars(tokens, blendedPerMillion), 2, MidpointRounding.AwayFromZero));
+}
+
 /// <summary>The monthly budget, alert and cap rules, as pure functions of what was used (ai-usage.md, "Budget, alerts and the cap").</summary>
 public static class AiUsageLimits
 {

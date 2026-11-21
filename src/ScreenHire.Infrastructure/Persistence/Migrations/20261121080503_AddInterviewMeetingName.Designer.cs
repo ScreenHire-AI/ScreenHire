@@ -13,8 +13,8 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261121071955_AddTradeRoleVersion2")]
-    partial class AddTradeRoleVersion2
+    [Migration("20261121080503_AddInterviewMeetingName")]
+    partial class AddInterviewMeetingName
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

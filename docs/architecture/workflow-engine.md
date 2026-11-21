@@ -160,12 +160,16 @@ Organization
   fork the copy. When a template gets a new version, jobs show "update available" and the recruiter can diff and apply —
   live jobs are never mutated silently.
 - **System templates** ship with the product (SMB quick-start), customers clone and edit them.
-  Three of them are the starting points of the new hiring template screen (`/templates/new`): "Office role", "Trade role with a
-  trial shift" and "High volume" (`AddStartingPointTemplates`, ids in `SystemTemplates.cs`, listed by the dashboard in
-  `starting-points.ts`, which a unit test keeps in step). Each started as published version 1 with its questions, the built-in thank-you
+  Four of them are the starting points of the new hiring template screen (`/templates/new`): "Office role", "Trade role with a
+  trial shift", "Hospitality" and "High volume" (`AddStartingPointTemplates` and `AddHospitalityTemplate`, ids in `SystemTemplates.cs`,
+  listed by the dashboard in `starting-points.ts`, which a unit test keeps in step). Each has its questions, the built-in thank-you
   email, a reminder for the team on every stage with a time limit, and nothing that rejects anyone on a check; its description is the
-  card's example line. Trade role is at version 2 (`AddTradeRoleVersion2`): its trial shift stage names its meeting "trial shift".
-  Choosing one is `POST /v1/templates` with `copyFromVersionId` (the latest version); "Start from nothing" is the basic pipeline.
+  card's example line. "Hospitality" (Applied, Screening, Trial shift, Offer; "Barista, line cook, server") puts the built-in Trial shift
+  scorecard on its Trial shift stage and emails a "Before your trial shift" questionnaire on entering it. It ships no "Offer an interview"
+  automation, because that names interviewers, who are an organization's members: the recruiter offers times from the candidate's page.
+  "Trade role with a trial shift" has three versions: the second adds the Trial shift scorecard to its trial stage, and the third names that
+  stage's meeting "trial shift" (`meetingName`), as "Hospitality" does from its version 2 (`AddTrialShiftMeetingNames`). The card copies the
+  newest. Choosing one is `POST /v1/templates` with `copyFromVersionId`; "Start from nothing" is the basic pipeline.
 - **Archived templates.** An organization archives its own hiring template or library scorecard
   (`POST .../archive`, `.../unarchive`): it leaves the pickers, no new job starts from it (`POST /v1/jobs` answers 400),
   and it reads only until restored (409 on an edit). Jobs keep the copy they took, and stages that name an archived
@@ -595,7 +599,9 @@ The data model and API from the jobs and templates task, and the engine that run
   without a template) has scorecards on Screening and Interview. `AddScorecardTemplates` rewrote every version in
   place to name the built-in scorecards instead of holding v0.2 criteria: a change of storage, not of what they ask. `AddFollowUpQuestionnaires` ships "Software engineer"
   version 4 and "Hourly role" version 3, whose right-to-work automation fires on `ApplicationSubmitted`: it read an
-  apply-form answer on a `QuestionnaireCompleted` trigger that nothing raised.
+  apply-form answer on a `QuestionnaireCompleted` trigger that nothing raised. `AddHospitalityTemplate` ships "Hospitality" version 1
+  and "Trade role with a trial shift" version 2, which is version 1 with the Trial shift scorecard on its trial stage; jobs on version 1
+  keep it and show "update available".
 - **Jobs** copy a published template version's workflow and keep `sourceTemplateVersionId`. `JobSummary` shows
   `templateUpdateAvailable`, and `GET /v1/jobs/{id}/workflow/template-diff` compares the job's workflow with the
   template's newest published version, matching list elements by id.

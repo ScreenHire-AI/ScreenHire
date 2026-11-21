@@ -11,6 +11,9 @@
   let { limits, cap = true }: { limits: AiUsageLimitsView; cap?: boolean } = $props();
 
   const line = (limit: AiUsageLimitView) => `${formatAmount(limit.used, limit.unit)} of ${formatAmount(limit.amount, limit.unit)}`;
+  // ScreenHire's default counts tokens; the API shows it in dollars at the usual mix where the model has a price, so the figures
+  // are an estimate and can differ from the Usage tab's actual cost. Said once, under the limits (ai-usage.md, "Defaults in dollars").
+  const estimated = $derived([limits.effectiveBudget, cap ? limits.effectiveCap : null].some((limit) => limit?.isDefault && limit.unit === 'Money'));
 </script>
 
 {#if limits.effectiveBudget || (cap && limits.effectiveCap)}
@@ -38,6 +41,11 @@
       </SummaryItem>
     {/if}
   </SummaryList>
+  {#if estimated}
+    <p class="mt-2 text-caption text-muted-foreground" data-estimate>
+      ScreenHire's default counts tokens. In dollars it is an estimate at the usual mix of input and output.
+    </p>
+  {/if}
 {:else}
   <p class="text-muted-foreground">No budget or cap is set.</p>
 {/if}

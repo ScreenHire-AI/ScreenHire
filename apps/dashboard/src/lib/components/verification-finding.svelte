@@ -13,7 +13,7 @@
   // One finding on the Verification tab (design system section 16): its title, opening (A9) to what was observed in plain
   // words, its evidence as a facts row, any quote or comparison, the counter-evidence as the other side of the argument, and
   // the code, which is there for support and audit (W6). Only the exception is marked: a finding that never counts toward the
-  // level says it is information only, with the sparkles mark for AI help and the grey info mark for context. The one review action is Mark explained; an explanation shows under the row so it reads while the finding is
+  // level is marked by its mark alone, the sparkles for AI help and the grey info mark for context (the words "Information only" are for screen readers here, and said once on screen, in the AI row's tooltip). The one review action is Mark explained; an explanation shows under the row so it reads while the finding is
   // closed, with Undo for its author (it cannot sit inside the summary, which is itself the control, A9).
   let {
     signal,
@@ -53,9 +53,10 @@
     <summary class="flex min-h-11 list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2.5 hover:bg-secondary/60 [&::-webkit-details-marker]:hidden">
       <span class="min-w-0 flex-1 font-semibold">{signal.title}</span>
       {#if informationOnly}
-        <!-- The exception is marked, not the rule: AI help and context never change the level. The sparkles mean AI help only. -->
-        <span data-information-only={ai ? 'ai' : 'context'} class={['inline-flex items-center gap-1 text-caption', ai ? 'text-status-ai-mark' : 'text-muted-foreground']}>
-          {#if ai}<SparklesIcon aria-hidden="true" class="size-3.5" />{:else}<InfoIcon aria-hidden="true" class="size-3.5" />{/if}Information only
+        <!-- The exception is marked, not the rule: AI help and context never change the level. The sparkles mean AI help only. Only the
+             mark shows: the words "Information only" are said once, in the AI row's tooltip, and here for screen readers. -->
+        <span data-information-only={ai ? 'ai' : 'context'} class={['inline-flex items-center', ai ? 'text-status-ai-mark' : 'text-muted-foreground']}>
+          {#if ai}<SparklesIcon aria-hidden="true" class="size-4" />{:else}<InfoIcon aria-hidden="true" class="size-4" />{/if}<span class="sr-only">Information only</span>
         </span>
       {/if}
       <!-- A state of the finding, so a badge on its row (W6); calm, so quiet (T3). -->

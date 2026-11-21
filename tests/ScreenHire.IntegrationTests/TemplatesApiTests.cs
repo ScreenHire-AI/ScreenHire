@@ -7,27 +7,29 @@ namespace ScreenHire.IntegrationTests;
 public sealed class TemplatesApiTests(AppHostFixture fixture)
 {
     [Fact]
-    public async Task A_new_organization_lists_exactly_the_five_system_templates()
+    public async Task A_new_organization_lists_exactly_the_six_system_templates()
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
 
         var list = (await recruiter.GetAsync("/v1/templates")).Expect(HttpStatusCode.OK);
 
-        list.Count().Should().Be(5);
-        var byName = Enumerable.Range(0, 5).ToDictionary(i => list.Text($"{i}.name"), i => list.At($"{i}"));
-        byName.Keys.Should().BeEquivalentTo("Software engineer", "Hourly role", "Office role", "Trade role with a trial shift", "High volume");
+        list.Count().Should().Be(6);
+        var byName = Enumerable.Range(0, 6).ToDictionary(i => list.Text($"{i}.name"), i => list.At($"{i}"));
+        byName.Keys.Should().BeEquivalentTo("Software engineer", "Hourly role", "Office role", "Trade role with a trial shift", "High volume", "Hospitality");
         byName["Software engineer"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.SoftwareEngineer);
         byName["Software engineer"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.SoftwareEngineerVersion5);
         byName["Hourly role"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.HourlyRole);
         byName["Hourly role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HourlyRoleVersion3);
         byName["Office role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.OfficeRoleVersion1);
-        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.TradeRoleVersion2);
+        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.TradeRoleVersion3);
         byName["High volume"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HighVolumeVersion1);
+        byName["Hospitality"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HospitalityVersion2);
         byName.Values.Should().OnlyContain(t => t.GetProperty("isSystem").GetBoolean());
         byName["Software engineer"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(5);
         byName["Hourly role"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(3);
-        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(2);
+        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(3);
         byName["Trade role with a trial shift"].GetProperty("description").GetString().Should().Be("Plumber, electrician, driver");
+        byName["Hospitality"].GetProperty("description").GetString().Should().Be("Barista, line cook, server");
     }
 
     [Fact]
@@ -38,10 +40,10 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
 
         var list = (await recruiter.GetAsync("/v1/templates")).Expect(HttpStatusCode.OK);
 
-        list.Count().Should().Be(6);
-        list.Text("5.name").Should().Be("Aardvark pipeline", "system templates come first even when an own name sorts earlier");
-        list.At("5.isSystem").GetBoolean().Should().BeFalse();
-        list.At("5.draftVersion").GetInt32().Should().Be(1);
+        list.Count().Should().Be(7);
+        list.Text("6.name").Should().Be("Aardvark pipeline", "system templates come first even when an own name sorts earlier");
+        list.At("6.isSystem").GetBoolean().Should().BeFalse();
+        list.At("6.draftVersion").GetInt32().Should().Be(1);
     }
 
     [Fact]
@@ -112,7 +114,7 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         var rejected = await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "No stages", ["definition"] = noStages });
 
         rejected.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Contain("definition.workflow.stages");
-        (await recruiter.GetAsync("/v1/templates")).Count().Should().Be(5, "nothing was saved");
+        (await recruiter.GetAsync("/v1/templates")).Count().Should().Be(6, "nothing was saved");
     }
 
     // A draft saves with its problems, but change history matches parts by id and words each rule, so a part with no id

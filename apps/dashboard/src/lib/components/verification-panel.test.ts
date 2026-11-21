@@ -58,6 +58,7 @@ async function assessed() {
   await waitFor(() => expect(document.querySelector('[data-summary]')).toBeInTheDocument());
   return summaryPanel();
 }
+const decisions = () => document.querySelector<HTMLElement>('[data-decisions]')!;
 const group = (name: string) => screen.getByRole('region', { name });
 const tile = (key: string) => document.querySelector<HTMLElement>(`[data-group-map] [data-group="${key}"]`)!;
 const finding = (code: string) => document.querySelector<HTMLElement>(`[data-signal="${code}"]`)!;
@@ -135,8 +136,8 @@ describe('verification tab', () => {
     expect([...map.querySelectorAll('[data-group]')].map((item) => item.getAttribute('data-group'))).toEqual(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']);
     expect(tile('Network')).toHaveTextContent('Network 1 found');
     expect(tile('Contact')).toHaveTextContent('Contact details Nothing found');
-    expect(tile('Documents')).toHaveTextContent('Documents 1 note, information only');
-    expect(tile('Answers')).toHaveTextContent('Answers 1 note, information only');
+    expect(tile('Documents')).toHaveTextContent('Documents 1 note');
+    expect(tile('Answers')).toHaveTextContent('Answers 1 note');
     expect(tile('Duplicates')).toHaveTextContent('Duplicates Nothing found');
     expect(tile('FormUse')).toHaveTextContent('Form use 2 found');
     // A group that found nothing is a tile and not a link; one that found something links to its panel.
@@ -157,15 +158,18 @@ describe('verification tab', () => {
     expect(group('Network')).toHaveFocus();
   });
 
-  it('says a finding that never counts is information only, with the sparkles for AI help alone, and offers it no action', async () => {
+  it('marks a finding that never counts by its mark alone, the sparkles for AI help only, and offers it no action', async () => {
     serve(botVerification());
     renderPanel();
 
     await assessed();
     for (const code of ['CNT_PROMPT_INJECTION', 'CNT_NEAR_DUPLICATE_ANSWER']) {
-      expect(finding(code).querySelector('[data-information-only]')).toHaveTextContent('Information only');
       expect(finding(code).querySelector('[data-information-only]')).toHaveAttribute('data-information-only', 'ai');
+      // The words are for screen readers: "Information only" is said once on screen, in the AI row's tooltip.
+      expect(finding(code).querySelector('[data-information-only] .sr-only')).toHaveTextContent('Information only');
     }
+    expect(screen.getByRole('region', { name: 'Verification' })).not.toHaveTextContent(/information only/i);
+    expect(tile('Documents')).not.toHaveTextContent(/information only/i);
     // A context signal that did not count (the VPN) is information too, in grey: the sparkles would call it AI help.
     expect(finding('NET_ANON_PROXY').querySelector('[data-information-only]')).toHaveAttribute('data-information-only', 'context');
     // The exception is marked, not the rule: a finding that counts carries no tag.
@@ -229,10 +233,11 @@ describe('verification tab', () => {
     expect(checked.querySelector('summary')).toHaveTextContent('What was checked');
     const names = [...checked.querySelectorAll('li')].map((item) => item.querySelector('span')?.textContent);
     expect(names).toEqual(['Network:', 'Contact details:', 'Documents:', 'Answers:', 'Duplicates:', 'Form use:']);
-    // Nothing to dismiss, and the footer is on the one panel.
+    // Nothing to dismiss, and the audit lines are the page's last, outside the panel.
     expect(screen.queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
-    expect(summary.querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
-    expect(summary).toHaveTextContent('No automated decision has been made. Every action is logged.');
+    expect(summary.querySelector('[data-audit]')).toBeNull();
+    expect(decisions().querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
+    expect(decisions()).toHaveTextContent('No automated decision has been made. Every action is logged.');
   });
 
   it('says the AI checks were paused at the cap, in words that put nothing on the candidate', async () => {
@@ -303,7 +308,7 @@ describe('verification tab', () => {
 
     await assessed();
     const network = screen.getByRole('list', { name: 'Check groups' }).querySelector('[data-group="Network"]')!;
-    expect(network).toHaveTextContent('Network 1 note, information only');
+    expect(network).toHaveTextContent('Network 1 note');
     expect(network.querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'info');
     expect(screen.getByRole('list', { name: 'Check groups' }).querySelector('[data-status-icon="sparkles"]')).toBeNull();
     expect(finding('NET_ANON_PROXY').querySelector('[data-information-only]')).toHaveAttribute('data-information-only', 'context');
@@ -324,15 +329,17 @@ describe('verification tab', () => {
     await waitFor(() => expect(open().some((details) => details.open)).toBe(false));
   });
 
-  it('puts the audit line and the decision line last, on the last panel only', async () => {
+  it('puts the decision line and the audit line last on the page, under every panel and in none of them (W10)', async () => {
     serve(botVerification());
     renderPanel();
 
     await assessed();
     expect(document.querySelectorAll('[data-audit]')).toHaveLength(1);
-    expect(group('Form use').querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
-    expect(group('Form use')).toHaveTextContent('No automated decision has been made. Every action is logged.');
-    expect(summaryPanel().querySelector('[data-audit]')).toBeNull();
+    expect(decisions().querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
+    expect(decisions()).toHaveTextContent('No automated decision has been made. Every action is logged.');
+    expect(decisions().closest('section, [role="region"]')).toBeNull();
+    expect(group('Form use')).not.toHaveTextContent('No automated decision');
+    expect(decisions()).toBe(document.querySelector('[data-verification]')!.lastElementChild);
   });
 
   it('shows a trusted-domain or network note in the group it concerns', async () => {
@@ -611,6 +618,9 @@ describe('verification tab', () => {
 
     expect(await screen.findByText(/Checks are still running/)).toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Check groups' })).not.toBeInTheDocument();
+    // The decision line is still the page's last, outside the panel.
+    expect(decisions()).toHaveTextContent('No automated decision has been made. Every action is logged.');
+    expect(summaryPanel()).not.toHaveTextContent('No automated decision');
   });
 
   it('tolerates an API that sends no check groups', async () => {

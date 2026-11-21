@@ -21,19 +21,29 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         { SystemTemplates.OfficeRole, SystemTemplates.OfficeRoleVersion1, 1, "Office role" },
         { SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion1, 1, "Trade role with a trial shift" },
         { SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion2, 2, "Trade role with a trial shift" },
+        { SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion3, 3, "Trade role with a trial shift" },
         { SystemTemplates.HighVolume, SystemTemplates.HighVolumeVersion1, 1, "High volume" },
+        { SystemTemplates.Hospitality, SystemTemplates.HospitalityVersion1, 1, "Hospitality" },
+        { SystemTemplates.Hospitality, SystemTemplates.HospitalityVersion2, 2, "Hospitality" },
     };
 
-    public static TheoryData<Guid> StartingPoints => new() { SystemTemplates.OfficeRole, SystemTemplates.TradeRole, SystemTemplates.HighVolume };
+    // The newest version of each starting point of the new template screen, which the dashboard copies from.
+    public static TheoryData<Guid, int> StartingPoints => new()
+    {
+        { SystemTemplates.OfficeRole, 1 },
+        { SystemTemplates.TradeRole, 3 },
+        { SystemTemplates.Hospitality, 2 },
+        { SystemTemplates.HighVolume, 1 },
+    };
 
-    // The three starting points of the new template screen: a copy of one is a draft a fresh organization can publish at
+    // The starting points of the new template screen: a copy of one is a draft a fresh organization can publish at
     // once (its emails are the built-in ones), and nothing in it turns anyone down.
     [Theory]
     [MemberData(nameof(StartingPoints))]
-    public async Task A_starting_point_copies_into_a_draft_that_publishes_and_never_rejects(Guid templateId)
+    public async Task A_starting_point_copies_into_a_draft_that_publishes_and_never_rejects(Guid templateId, int number)
     {
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
-        var system = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/1")).Expect(HttpStatusCode.OK);
+        var system = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/{number}")).Expect(HttpStatusCode.OK);
         var definition = JsonSerializer.Deserialize<HiringTemplateDefinition>(system.At("definition").GetRawText(), JsonColumns.SerializerOptions)!;
 
         var copy = (await recruiter.PostAsync("/v1/templates", new JsonObject { ["name"] = "Our copy", ["copyFromVersionId"] = system.Id() })).Expect(HttpStatusCode.Created);
@@ -86,24 +96,29 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
             .Should().OnlyContain(fact => fact!.StartsWith("verification.", StringComparison.Ordinal));
     }
 
-    // Version 2 is version 1 with the trial shift stage calling its meeting "trial shift" (migration AddTradeRoleVersion2).
-    // Version 1 is published, so it keeps its words, and a job copied from version 2 carries the name.
-    [Fact]
-    public async Task Trade_role_version_2_names_the_trial_shift_meeting_and_version_1_does_not()
+    // The newest version of Trade role and of Hospitality is the one before it with the trial shift stage calling its meeting
+    // "trial shift" (migration AddTrialShiftMeetingNames). The earlier version is published, so it keeps its words, and a job
+    // copied from the newest carries the name.
+    [Theory]
+    [InlineData("TradeRole", 2, 3, "Plumber")]
+    [InlineData("Hospitality", 1, 2, "Barista")]
+    public async Task The_newest_trial_shift_template_names_the_trial_shift_meeting_and_the_version_before_it_does_not(string which, int before, int after, string title)
     {
+        var templateId = which == "TradeRole" ? SystemTemplates.TradeRole : SystemTemplates.Hospitality;
+        var afterId = which == "TradeRole" ? SystemTemplates.TradeRoleVersion3 : SystemTemplates.HospitalityVersion2;
         using var recruiter = await fixture.SignedInWithOrganizationAsync();
 
-        var one = (await recruiter.GetAsync($"/v1/templates/{SystemTemplates.TradeRole}/versions/1")).Expect(HttpStatusCode.OK);
-        var two = (await recruiter.GetAsync($"/v1/templates/{SystemTemplates.TradeRole}/versions/2")).Expect(HttpStatusCode.OK);
-        var body = Samples.RemoteJob("Plumber");
-        body["templateVersionId"] = SystemTemplates.TradeRoleVersion2;
+        var older = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/{before}")).Expect(HttpStatusCode.OK);
+        var newer = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/{after}")).Expect(HttpStatusCode.OK);
+        var body = Samples.RemoteJob(title);
+        body["templateVersionId"] = afterId;
         var job = await recruiter.CreateJobAsync(body);
 
-        StageOf(one.At("definition.workflow.stages"), "trial_shift").Has("meetingName").Should().BeFalse("a published version never changes");
-        StageOf(two.At("definition.workflow.stages"), "trial_shift").GetProperty("meetingName").GetString().Should().Be("trial shift");
-        two.At("definition.workflow.stages").EnumerateArray().Where(s => s.GetProperty("id").GetString() != "trial_shift")
+        StageOf(older.At("definition.workflow.stages"), "trial_shift").Has("meetingName").Should().BeFalse("a published version never changes");
+        StageOf(newer.At("definition.workflow.stages"), "trial_shift").GetProperty("meetingName").GetString().Should().Be("trial shift");
+        newer.At("definition.workflow.stages").EnumerateArray().Where(s => s.GetProperty("id").GetString() != "trial_shift")
             .Should().OnlyContain(s => !s.Has("meetingName"), "only the trial shift stage names its meeting");
-        two.At("definition.workflow.stages").GetArrayLength().Should().Be(one.At("definition.workflow.stages").GetArrayLength());
+        newer.At("definition.workflow.stages").GetArrayLength().Should().Be(older.At("definition.workflow.stages").GetArrayLength());
         StageOf(job.At("workflow.stages"), "trial_shift").GetProperty("meetingName").GetString().Should().Be("trial shift", "the job copies the stage as it is");
     }
 
@@ -126,13 +141,34 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         string[] expected = (templateId, number) switch
         {
             _ when templateId == SystemTemplates.OfficeRole => ["phone-screen", "interview"],
-            _ when templateId == SystemTemplates.TradeRole => ["phone-screen"],
+            _ when templateId == SystemTemplates.TradeRole && number == 1 => ["phone-screen"],
+            _ when templateId == SystemTemplates.TradeRole => ["phone-screen", "trial-shift"],
             _ when templateId == SystemTemplates.HighVolume => ["screening"],
+            _ when templateId == SystemTemplates.Hospitality => ["screening", "trial-shift"],
             _ when templateId == SystemTemplates.SoftwareEngineer && number >= 3 => ["screening", "technical-exercise", "engineering-interview"],
             _ when templateId == SystemTemplates.HourlyRole && number >= 2 => ["phone-screen", "hourly-interview"],
             _ => [],
         };
         named.Values.Should().BeEquivalentTo(expected);
+    }
+
+    // Version 2 of Trade role is version 1 with the Trial shift scorecard on its trial stage and nothing else changed
+    // (migration AddHospitalityTemplate): a published version keeps its words, so version 1 still names no scorecard there.
+    [Fact]
+    public async Task Trade_role_version_2_differs_from_version_1_only_by_the_scorecard_on_its_trial_shift_stage()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+
+        var one = (await recruiter.GetAsync($"/v1/templates/{SystemTemplates.TradeRole}/versions/1")).Expect(HttpStatusCode.OK);
+        var two = (await recruiter.GetAsync($"/v1/templates/{SystemTemplates.TradeRole}/versions/2")).Expect(HttpStatusCode.OK);
+
+        var withoutScorecard = JsonNode.Parse(two.At("definition").GetRawText())!;
+        var trialShift = withoutScorecard["workflow"]!["stages"]!.AsArray().Single(s => s!["id"]!.GetValue<string>() == "trial_shift")!.AsObject();
+        trialShift["scorecardTemplateId"]!.GetValue<string>().Should().Be("trial-shift");
+        trialShift["scorecardTemplateId"] = null;
+
+        one.At("definition.workflow.stages").EnumerateArray().Should().NotContain(s => s.Has("scorecardTemplateId") && s.GetProperty("id").GetString() == "trial_shift");
+        withoutScorecard.ToJsonString().Should().Be(JsonNode.Parse(one.At("definition").GetRawText())!.ToJsonString());
     }
 
     [Theory]

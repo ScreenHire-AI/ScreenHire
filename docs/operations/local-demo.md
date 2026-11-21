@@ -159,8 +159,9 @@ Interview. Mailpit keeps them with the rest of the data. Every candidate except 
 `apps/api/Demo/DemoCandidates.cs`; the synthetic applicants are `SyntheticApplicants` in `ScreenHire.Application`, the
 same people the verification golden tests use ([verification-engine.md](../architecture/verification-engine.md) §10.8).
 
-Templates: the Templates page has a tab each for hiring templates, scorecards and emails. Hiring: the two system
-templates ("Software engineer", "Hourly role") and "Brightwater engineering", which is the Software engineer pipeline and
+Templates: the Templates page has a tab each for hiring templates, scorecards and emails. Hiring: the system
+templates ("Software engineer", "Hourly role" and the four starting points: "Office role", "Trade role with a trial shift", "Hospitality",
+"High volume") and "Brightwater engineering", which is the Software engineer pipeline and
 questionnaire plus the three candidate emails, with Jordan's version 2 as a draft. Scorecards: the built-ins and
 Brightwater's own "Technical interview". Emails: the built-ins, "Interview invitation", and Brightwater's wording of the
 built-in rejection email, "Not progressing", which offers Reset to original in its menu.
@@ -246,7 +247,10 @@ and Archived.
   only and offers **Copy scorecard**.
 - **Hiring.** "Brightwater engineering" shows version 1 and the Draft 2 badge. **Duplicate** in a row's menu makes
   "Brightwater engineering (copy)" and opens it; **Archive** moves your own template under Archived, out of the new job
-  page's list, until **Restore**.
+  page's list, until **Restore**. **New template** offers four starting points: pick **Hospitality** ("Barista, line cook,
+  server"), name it and press **Use this starting point**. On its Pipeline tab, open **Trial shift**: its scorecard is the
+  built-in "Trial shift", and entering the stage emails "Before your trial shift" (the email lands in Mailpit). "Trade role
+  with a trial shift" has the same scorecard from its version 2.
 
 Settings, as Avery (any role with a settings permission; Owners and Admins have them all):
 

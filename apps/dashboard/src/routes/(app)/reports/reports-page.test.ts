@@ -112,15 +112,23 @@ describe('reports page', () => {
       return card;
     });
     expect(cards.map((card) => card.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      'Applications 8 3 3 more than before Last application 3 hours ago',
-      'Reached interview 3 1 1 fewer than before Last reached interview 5 hours ago',
+      'Applications 8 3 3 more than the previous period Last application 3 hours ago',
+      'Reached interview 3 1 1 fewer than the previous period Last reached interview 5 hours ago',
       'Offers 1 No change No offers yet',
       'Hires 3 No change Last hire 2 days ago',
-      'Median time to hire 21 days 3 days 3 days faster Last hire 2 days ago',
+      'Median time to hire 21 days 3 days 3 days faster than the previous period Last hire 2 days ago',
     ]);
     // The change is muted text with an arrow: a report states how far a number moved, it does not judge it.
     expect(stats.querySelectorAll('[class*="text-status-"]')).toHaveLength(0);
     expect(stats.querySelectorAll('[data-report-change] svg')).toHaveLength(3);
+    // The pill shows the short form ("3", "3 days", unit kept) and a screen reader hears only the full sentence, never
+    // the bare amount.
+    const pills = [...stats.querySelectorAll<HTMLElement>('[data-report-change]')].filter((pill) => pill.querySelector('.sr-only'));
+    expect(pills.map((pill) => [pill.querySelector('[aria-hidden="true"]:not(svg)')?.textContent, pill.querySelector('.sr-only')?.textContent])).toEqual([
+      ['3', '3 more than the previous period'],
+      ['1', '1 fewer than the previous period'],
+      ['3 days', '3 days faster than the previous period'],
+    ]);
   });
 
   it('ends every headline card with when it last moved, as time ago with the exact time on hover (T7)', async () => {
