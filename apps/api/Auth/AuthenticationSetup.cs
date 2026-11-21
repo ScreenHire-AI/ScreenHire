@@ -87,6 +87,8 @@ internal static class AuthenticationSetup
             options.Events.OnRedirectToLogin = context => Status(context.Response, StatusCodes.Status401Unauthorized);
             options.Events.OnRedirectToAccessDenied = context => Status(context.Response, StatusCodes.Status403Forbidden);
         });
+        // Sign out everywhere changes the person's security stamp; each session finds out at its next check, within this interval.
+        services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = authOptions.SecurityStampInterval);
         services.ConfigureExternalCookie(options =>
         {
             options.Cookie.Name = "sh.external";

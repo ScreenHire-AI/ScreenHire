@@ -1,4 +1,4 @@
-import type { BillingAiUsage, BillingOverview, BillingPlan, BillingState } from '@screenhire/api-client';
+import type { BillingAiUsage, BillingInvoiceStatus, BillingOverview, BillingPaymentMethod, BillingPlan, BillingState } from '@screenhire/api-client';
 import { formatCost } from '#lib/ai-usage.js';
 import { locales } from '#lib/dates.js';
 import type { StatusName } from '#lib/status.js';
@@ -11,13 +11,12 @@ export const billingStatus: Record<NonNullable<BillingState>, { status: StatusNa
   Ended: { status: 'notInEffect', label: 'Ended' },
 };
 
-/** An amount in the plan's currency and the browser's locale: `$49`, `$49.50`. */
+/**
+ * An amount in its currency and the browser's locale, always with its two decimals, as people read money: `$49.00`, `$49.50`
+ * (the owner's walk-through, 2026-11-21). A currency with no minor unit (yen) keeps none.
+ */
 export function formatMoney(amount: number, currency: string): string {
-  return new Intl.NumberFormat(locales, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
-  }).format(amount);
+  return new Intl.NumberFormat(locales, { style: 'currency', currency }).format(amount);
 }
 
 /** A plan's price, or the words for a price its owner has not set. */
@@ -40,11 +39,42 @@ export function openJobsText(overview: Pick<BillingOverview, 'openJobs' | 'activ
   return overview.activeJobLimit === null ? `${overview.openJobs}` : `${overview.openJobs} of ${overview.activeJobLimit}`;
 }
 
-/** The margin as people say it: `20%`, or `17.5%` when it is not a whole number. */
-export const marginText = (percent: number) => `${Number.isInteger(percent) ? percent : Number(percent.toFixed(2))}%`;
-
-/** The calls this month, as a count under a label (the panel's first sentence already names ScreenHire's key). */
+/** The calls this month, as a count: `59 AI calls`. */
 export const aiCallsText = (calls: number) => `${calls} AI ${calls === 1 ? 'call' : 'calls'}`;
+
+/** The AI usage panel's one line for the month: the calls and the one amount for them, `59 AI calls, $0.05`. Never the provider's price or a margin. */
+export const aiMonthText = (usage: Pick<BillingAiUsage, 'builtInCalls' | 'charge'>) => `${aiCallsText(usage.builtInCalls)}, ${formatCost(usage.charge)}`;
+
+const cardBrands: Record<string, string> = {
+  amex: 'American Express',
+  diners: 'Diners Club',
+  discover: 'Discover',
+  eftpos_au: 'eftpos',
+  jcb: 'JCB',
+  mastercard: 'Mastercard',
+  unionpay: 'UnionPay',
+  visa: 'Visa',
+};
+
+/**
+ * The payment method as people name it: `Visa ending in 4242` for a card, `Card ending in 4242` when the network is not one we
+ * name, and for another kind of method its kind in words. Never the provider's name.
+ */
+export function paymentMethodText(method: BillingPaymentMethod): string {
+  if (method.type === 'card') {
+    const brand = method.brand ? (cardBrands[method.brand] ?? 'Card') : 'Card';
+    return method.last4 ? `${brand} ending in ${method.last4}` : brand;
+  }
+
+  return method.type.endsWith('_debit') || method.type === 'us_bank_account' ? 'Bank account' : 'Payment method on file';
+}
+
+/** How an invoice's state reads as a status (section 3.2): paid and void are calm, due waits on a payment. */
+export const invoiceStatus: Record<BillingInvoiceStatus, { status: StatusName; label: string }> = {
+  Paid: { status: 'done', label: 'Paid' },
+  Due: { status: 'waiting', label: 'Due' },
+  Void: { status: 'notInEffect', label: 'Void' },
+};
 
 /**
  * What else the AI usage panel says, one sentence each, depending on where the organization stands (docs/architecture/billing.md,

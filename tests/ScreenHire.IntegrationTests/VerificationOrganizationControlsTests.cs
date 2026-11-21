@@ -513,8 +513,9 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
         var own = OwnKey(Secret);
         own["alerts"] = new JsonObject { ["budgetEmail"] = true };
         (await ownKey.PutAsync(Settings, own)).Expect(HttpStatusCode.OK);
-        // A budget of one token: the first check passes 50%, 80% and 100% at once.
-        (await tenant.PutAsync("/v1/organization/ai-usage/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 1 })).Expect(HttpStatusCode.OK);
+        // A budget of one cent and a dollar already used: the first check's alerts pass 50%, 80% and 100% at once.
+        (await tenant.PutAsync("/v1/organization/ai-usage/limits", new JsonObject { ["budget"] = 0.01m })).Expect(HttpStatusCode.OK);
+        await VerificationSupport.SpendAsync(fixture, tenant.OrganizationId, 1m);
         var ownerEmail = await EmailOfAsync(tenant);
         var ownKeyEmail = await EmailOfAsync(ownKey);
 

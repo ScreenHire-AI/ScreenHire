@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Notifications"
-description: "The bell in the top bar: setup steps (with the organization's skipped steps and hidden checklist) and per-person alerts, how any handler raises or clears one through RaiseNotification, the audience by permission, the unique row per person, live refresh, retention, the Jobs overview numbers, and the daily email domain check that raises the first alert."
+description: "The bell in the top bar: setup steps (with the organization's skipped steps and hidden checklist) and per-person alerts, how any handler raises or clears one through RaiseNotification, the audience by permission, the unique row per person, each person's choices by toast, email and Slack with the organization's alerts as defaults, the daily digest, live refresh, retention, the Jobs overview numbers, and the daily email domain check that raises the first alert."
 tags: [notifications, dashboard, wolverine, tenancy, email]
 sources:
   - resource: src/ScreenHire.Domain/Notifications/Notification.cs
@@ -13,6 +13,18 @@ sources:
   - resource: src/ScreenHire.Application/SendingDomains/RecheckSendingDomain.cs
   - resource: src/ScreenHire.Application/SendingDomains/SendingDomainService.cs
   - resource: src/ScreenHire.Application/Messaging/ScreenHireMessaging.cs
+  - resource: src/ScreenHire.Domain/Notifications/NoticeKind.cs
+  - resource: src/ScreenHire.Domain/Notifications/DigestItem.cs
+  - resource: src/ScreenHire.Domain/Organizations/MemberPreferences.cs
+  - resource: src/ScreenHire.Application/Notifications/NoticePreferences.cs
+  - resource: src/ScreenHire.Application/Notifications/NoticeDelivery.cs
+  - resource: src/ScreenHire.Application/Notifications/MemberNotices.cs
+  - resource: src/ScreenHire.Application/Notifications/Digest.cs
+  - resource: src/ScreenHire.Application/Applications/ApplicationSubmitted.cs
+  - resource: src/ScreenHire.Application/Candidates/CandidateErasure.cs
+  - resource: apps/api/Endpoints/AccountEndpoints.cs
+  - resource: apps/dashboard/src/routes/(app)/account/notifications/+page.svelte
+  - resource: apps/dashboard/src/lib/notice-grid.ts
   - resource: apps/api/Endpoints/NotificationEndpoints.cs
   - resource: apps/api/Endpoints/OrganizationEndpoints.cs
   - resource: src/ScreenHire.Domain/Organizations/SetupStepId.cs
@@ -76,8 +88,9 @@ when the checklist is not hidden. There is no live event for these choices: anot
 reads `/v1/organization/setup` (a minute's stale time, or a reload). The old per-browser hide (`screenhire:setup-dismissed:*`
 in localStorage) is no longer read, so a checklist someone hid that way shows again until it is hidden for the organization.
 
-The panel is called Needs attention, because Notifications already names the toast settings in the account menu and the
-toast tray. The bell holds no team news: that stays in the tray (the realtime doc).
+The panel is called Needs attention, because Notifications already names the person's choices on Your account and the toast
+tray. The bell holds no team news: that stays in the tray (the realtime doc). It does keep what is addressed to the person
+(a mention, a candidate's reply, a task given to them, an interview they are on), whatever they chose for toasts and email.
 
 ## Raising a notification
 
@@ -127,13 +140,103 @@ Both messages implement `ITenantMessage`, so the handler runs under the organiza
 | `ai-usage-budget` | `yyyy-MM:budget-N` (N is 50, 80 or 100) | `percent` | `/verification/usage` | who sees AI usage (`ViewAiUsage`) |
 | `ai-usage-cap` | `yyyy-MM:cap` | none | `/verification/usage` | who sees AI usage (`ViewAiUsage`) |
 | `ai-usage-spike` | `yyyy-MM-dd:spike` | `day` | `/verification/usage` | who sees AI usage (`ViewAiUsage`) |
+| `mention` | the note's id | `actor`, when known | the note on the candidate's Activity | the person mentioned |
+| `candidate-reply` | the reply's id | none: the line never names the candidate | the candidate's Messages | the person who sent the email it answers |
+| `task-assigned` | the task's id | `actor`, when a teammate gave it | the application | the person the task is for |
+| `interview-changed` | `interviewId:revision` | `change` (`Booked`, `Moved`, `Cancelled`) | the application | each member on the interview |
+
+The last four are raised for one person, not an audience by permission: `NoticeDelivery.RaiseForPersonAsync` inserts the row
+with the same `ON CONFLICT DO NOTHING` and returns whether it did, so the caller sends `NotificationsChanged`.
 
 The two trial kinds are one story: `trial-ending` appears 7 days before the trial ends and is replaced by `trial-ended` when it
 ends, and a plan starting clears both ([billing](billing.md#trial-reminders)). Their line says the days left, which the dashboard
 works out from `endsAt` when it draws the line, so one row stays right as the days pass.
 
-The AI usage kinds are raised by `NotifyAiUsageHandler`, which also sends the email or Slack copy when the organization chose
-one ([ai-usage](ai-usage.md)). Raising the cap clears `ai-usage-cap`.
+The AI usage kinds are raised by `NotifyAiUsageHandler`, which also sends the email or Slack copy each person chose, starting
+from the organization's choice ([ai-usage](ai-usage.md) and below). Raising the cap clears `ai-usage-cap`.
+
+## Each person's choices
+
+Your account > Notifications (`/account/notifications`) is a grid: a row per kind of thing, a column per way to hear of it.
+The rows are one list on each side, `NoticeRows` in `NoticePreferences.cs` and `noticeRows` in the dashboard's
+`#lib/account.ts`; a new row is one entry in each, appended to `NoticeKind`.
+
+| Row | In the app (toast kinds) | Email starts at | Slack | Shown to |
+|---|---|---|---|---|
+| Mentions | `Mentions` (the tray's card) | Instantly | on (the Slack link's Mentions) | everyone |
+| Candidate replies | `Replies` (the tray's card) | Instantly | none | everyone |
+| Interviews booked or changed | none yet: the event carries no actor, so it cannot toast | Instantly | none | everyone |
+| Tasks assigned to you | `Tasks` | Daily digest | on (the Slack link's Tasks) | everyone |
+| New applications on your jobs | `NewCandidates` | Daily digest | none | everyone |
+| Teammates' moves and notes | `Moves`, `Notes`, `Tags`, `Emails`, `Scorecards`, `Templates` (one switch; Choose kinds opens each) | Off | none | everyone |
+| Verification suggested | none: never a toast (ADR-0004) | the organization's verification email alert | the organization's verification Slack alert | holders of Review verification |
+| AI use and billing | none: the bell keeps them | the organization's AI usage email alert; Instantly for whoever handles billing, whose trial reminders start there. While the organization's switch is off, whatever such a person saves for the row is kept and covers both; until they save, they get the trial's reminders and no AI alerts | the organization's AI usage Slack alert | holders of View AI usage or Manage billing |
+
+- **In the app** switches the toast or card in the tray; the bell keeps what is addressed to the person either way. It is the
+  `Off` list of `NotificationSettings` on the membership, the same column the Teammate changes sheet saved, so nobody's
+  earlier choice moved. Pause toasts is `Toasts` turned off, and Close toasts automatically is `CloseToasts`.
+- **Email** is Instantly, Daily digest or Off. **Slack** shows once the person's Slack account is linked, on the rows ScreenHire
+  sends a Slack message for; Mentions and Tasks keep their choice on the Slack link, as the direct messages always read it.
+- **Scope** (My jobs, Everything I can see) decides whose jobs New applications and Teammates' moves and notes cover: the hiring
+  teams the person is on (the toasts' rule until now), or every job they see. It applies to toasts and email alike.
+  Verification suggested keeps going to everyone who reviews verification and sees the job.
+- **The organization's alerts are defaults.** Verification's Notifications tab is unchanged: its four switches are each
+  member's starting value for the last two rows, and a person's own choice wins. `PersonNotices.Normalize` keeps only what
+  differs from the person's defaults, so someone who never chose follows a later change to the organization's switches, and
+  someone who did keeps theirs.
+- Where it lives: `member_preferences` (`MemberPreferences`, one row per membership, a tenant table with row-level security)
+  holds the email and Slack choices (`notices`, JSONB, overrides only) and the scope; the toasts stay on
+  `organization_members.notifications`. Both belong to the membership, so each organization keeps its own.
+
+`GET /v1/account/notifications` returns the rows this person sees, each with its toast kinds, the person's email choice and its
+default, and their Slack choice (null for a row without one). `PUT` saves the whole grid in one transaction; a row or a toast kind
+named twice is a 400, and a row the person does not see is ignored (its earlier choice stays, for a permission given back).
+Session only, with antiforgery, and no permission.
+
+### Delivery
+
+Every notice goes through `NoticeDelivery.EmailAsync` with the person's choice: Instantly sends it now, Daily digest keeps a
+`DigestItem`, Off does nothing. The handlers that pick the people:
+
+| Row | Handler | Who |
+|---|---|---|
+| Mentions | `TeammateMentionedHandler` | the person mentioned, unless they wrote the note or no longer see the job |
+| Candidate replies | `CandidateRepliedHandler` | the person who sent the email it answers |
+| Interviews | `NotifyInterviewChanged` from the calendar handlers (booked, moved, cancelled), then `NotifyMember` | the members on the interview, never the member who cancelled it from the dashboard (bookings and moves are the candidate's); a later revision tells them again, so an out-of-date one tells nobody |
+| Tasks | `NotifyMember` from `ApplicationTaskCreated` (a member or a key) and from an automation's task | the assignee, never the member who gave it to themselves |
+| New applications | `NotifyNewApplication` from `ApplicationSubmitted` | the members whose scope covers the job and who do not have it Off |
+| Teammates' moves and notes | `NotifyTeammateChange` from `ApplicationMoved` and `ApplicationNoteAdded` with a member as actor | as new applications, never the actor; never an API key, an automation or a candidate |
+| Verification suggested, AI use and billing | `NotifyVerificationSuggested`, `NotifyAiUsage`, `EmailTrialEnding` | as before; each person's choice now decides email and Slack |
+
+`NotifyMember` is deduplicated on `notice:{kind}:{source}:{user}`; the bell row and the digest row are unique on their own. It sends
+nothing to someone who no longer sees the job or for a task done since. Instant emails use ScreenHire's own wording (`MemberNoticeEmails`),
+names and titles only, never a note's, a task's or a reply's text, and never a verification level, reason or evidence.
+
+Every notification email ends with "Change what we email you", a link to `/account/notifications` (`TeamEmail.WithFooter`): the
+rows above, the interviewer's day-before reminder, the email domain alert, the data request alert and the digest. Sign-in links
+and invitations are not notifications and have none.
+
+### The daily digest
+
+One email per person per organization per day, at 08:00 in their time zone (UTC while they have none; the dashboard fills it from the
+browser once), only when there is something in it.
+
+- `SendDueDigests` runs every half hour (UTC cron, in the worker) and fans out `SendOrganizationDigests(organization, at)`.
+  The instant is in the message, so a test picks the hour.
+- `SendOrganizationDigests` picks the people with unsent items whose local time at `at` is 08:00 or later, whose
+  `LastDigestOn` is before their local date, and who have an item from before that day's 08:00 (`DigestSchedule.Due`). It sends
+  `SendDigest`, deduplicated on the organization, the person and the local date.
+- `SendDigest` reads the person's unsent items from before the cutoff, leaves out what they no longer see and what is gone (an
+  erased candidate), and what belongs to a row they no longer see or have since turned Off (their permissions and choices as
+  they are at send time, not when the item was queued), marks every item it read sent, and sends one email grouped by row, each line a link to its record. With
+  nothing left it sends nothing. Something that arrives at 10:00 waits for the next morning, so a day that starts empty never gets
+  a "daily" email in the afternoon.
+- `digest_items` holds ids and a word for what happened (`Moved`, `Booked`), never a name or text: the lines are written when the
+  digest is sent. The daily notification purge deletes items past the retention, sent or not. Erasing an application, a
+  candidate's or by record retention, deletes its digest items and the bell rows that link to it (`CandidateErasure`). Its row-level security is the
+  organization's, as for `notifications`, and every read narrows to the person. Because it names a job and an application it also has
+  a restrictive `job_scope` policy (ADR-0015, written in the migration: both ids are optional, so it is not an `IApplicationScoped`
+  entity), which the worker, acting for no user, passes.
 
 ## Storage and reading
 
@@ -220,7 +323,7 @@ records and the records themselves show openly only until then.
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `ScreenHire:Notifications:RetentionDays` | 30 | Days a notification is kept |
+| `ScreenHire:Notifications:RetentionDays` | 30 | Days a notification, and a digest item, is kept |
 | `ScreenHire:SendingDomainRecheck:ConfirmDelay` | 1 hour | Time between a failing daily look and the confirming one |
 
 Both are forwarded to the API and the worker by the AppHost.
@@ -231,16 +334,23 @@ Both are forwarded to the API and the worker by the AppHost.
 - Integration: the setup choices (`OrganizationSetupTests`): a skip and a hide hold for another Admin, Show setup again clears
   both, skips sent at the same time all stay, only Edit settings changes them, an unknown step is refused, and another
   organization is untouched.
+- Unit: `NoticeChoicesTests` (each row's default, the organization's alerts as the start, a person's choice winning, what a save
+  keeps, the footer) and `DigestTests` (when a digest is due in a zone, its lines and its email).
 - Integration: raising, reading, dismissing and clearing through the real worker queue, per-person isolation, row-level security,
   the live event, retention, the schedules, and the daily check on a real Wolverine host with the sandbox zone as fake DNS.
+  `AccountNotificationsTests` (defaults from the organization, a choice that survives a change to it, each membership its own),
+  `DigestEmailTests` (a digest with a mention and a task, sent once a day and never empty, a 10:00 item waiting for the next
+  morning, Instantly and Off, scope).
 - Vitest: the checklist's skipped steps, the bell's Not needed and Hide setup for everyone, Settings, General's Show setup
-  again, the Jobs tiles, the new views, the lines and the Email domain page.
+  again, the Jobs tiles, the new views, the lines and the Email domain page. The account pages: the notification grid (rows, the Slack column, the dash cells, one save), Profile, Sign-in and
+  security, Preferences and the shrunk menu.
 - End to end: a new Owner's bell opens by itself once at the setup steps after onboarding, the Jobs empty state points to them
   and its button opens them again; a step marked Not needed is gone, and a hidden checklist hidden, for the same Owner in
   another browser.
 
 ## Not built
 
-- Email or Slack copies of alerts other than the email domain one. A kind that wants them sends them itself.
-- Notification settings per kind. Every alert of a kind goes to everyone its audience names.
+- Choices for the email domain and data request alerts: they are duties for the people who hold them.
+- Toasts for interviews and questionnaires, and a bell tab of the workspace's activity (the new applications and teammates'
+  changes the bell does not keep): the next task on the board.
 - A history page. The bell lists what needs attention, not what happened.

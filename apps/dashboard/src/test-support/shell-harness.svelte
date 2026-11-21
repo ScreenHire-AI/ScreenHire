@@ -20,6 +20,7 @@
     back,
     openTasks,
     trialEndsAt,
+    billing = false,
     saved = [],
     hiddenBuiltIns = [],
     viewActions,
@@ -38,6 +39,8 @@
     openTasks?: number;
     /** When the trial ends, as the layout works it out for an Owner; missing for everyone else. */
     trialEndsAt?: string | null;
+    /** Billing is set up and the person may see it, as the layout works it out. */
+    billing?: boolean;
   } = $props();
 
   // The top bar's notification bell reads the notifications and the setup answers. No retries, so a request nobody stubbed fails at once.
@@ -46,11 +49,10 @@
   const views = $derived(sidebarViews({ saved, hiddenBuiltIns, sidebarOrder: saved.filter((view) => view.inSidebar && !view.mine).map((view) => view.id), jobTitles: {} }));
 
   let shortcutsOpen = $state(false);
-  let notificationsOpen = $state(false);
   setShell({
     openPalette: () => {},
     openShortcuts: () => (shortcutsOpen = true),
-    openNotifications: () => (notificationsOpen = true),
+    openNotifications: () => {},
     openCalendar: () => {},
     live: () => 'connected',
     user: () => user,
@@ -63,7 +65,7 @@
 <!-- The root layout's tooltip provider. -->
 <Tooltip.Provider>
   <Sidebar.Provider open={laptop.current}>
-    <AppSidebar {user} {views} {viewActions} {teamViews} {openTasks} {trialEndsAt} />
+    <AppSidebar {user} {views} {viewActions} {teamViews} {openTasks} {trialEndsAt} {billing} />
     <Sidebar.Inset>
       <TopBar {crumbs} {back} />
       <main><h1>Page</h1></main>
@@ -71,5 +73,4 @@
   </Sidebar.Provider>
   <ShortcutsDialog bind:open={shortcutsOpen} />
   <!-- The sheet itself needs the query cache; the harness shows only that the menu opens it. -->
-  {#if notificationsOpen}<p>Teammate changes sheet open</p>{/if}
 </Tooltip.Provider>

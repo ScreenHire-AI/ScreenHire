@@ -316,6 +316,8 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<PurgeEndedApplications>("12 4 * * *");
         // Notifications past their retention, daily (docs/architecture/notifications.md).
         opts.Schedules.ScheduleRecurring<PurgeExpiredNotifications>("32 4 * * *");
+        // Each person's daily digest at 08:00 their time, looked for every half hour (docs/architecture/notifications.md).
+        opts.Schedules.ScheduleRecurring<SendDueDigests>("*/30 * * * *");
         // Each organization's sending domain looked up again, daily (docs/architecture/notifications.md).
         opts.Schedules.ScheduleRecurring<RecheckSendingDomains>("47 5 * * *");
         // AI usage (docs/architecture/ai-usage.md): yesterday judged against the recent average, ledger rows past each

@@ -10,7 +10,7 @@ import type { CurrentOrganization } from './currentOrganization.ts';
  * The signed-in user, and the organization they work in (null until onboarding). `name` is the person's own name, or
  * null while the account has none (a name the provider left as the email address counts as none), which is how the
  * onboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the
- * email address while there is none.
+ * email address while there is none. `photoUrl` is their profile photo's address, null while they have none.
  */
 export interface CurrentUser {
   id: string;
@@ -19,4 +19,6 @@ export interface CurrentUser {
   /** @nullable */
   name: string | null;
   organization: null | CurrentOrganization;
+  /** @nullable */
+  photoUrl?: string | null;
 }

@@ -88,7 +88,8 @@ public sealed class RichTextTests(E2EFixture fixture) : BrowserTest(fixture)
     {
         var scene = await SceneAsync();
         await SignInAsync(scene.Email);
-        await Page.EvaluateAsync("() => localStorage.setItem('screenhire:shortcuts', 'off')");
+        // Single-key shortcuts are the person's, saved on the server (Your account > Preferences), so turn them off there.
+        await SetShortcutsAsync(on: false);
 
         await Page.GotoAsync(DashboardUrl($"/jobs/{scene.JobId}/edit"));
         var editor = Page.GetByRole(AriaRole.Textbox, new() { Name = "Description" });
@@ -100,12 +101,35 @@ public sealed class RichTextTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(editor.Locator("ul")).ToHaveCountAsync(0);
 
         // With them on, the same keys start a list.
-        await Page.EvaluateAsync("() => localStorage.setItem('screenhire:shortcuts', 'on')");
-        await Page.ReloadAsync();
+        await SetShortcutsAsync(on: true);
+        await Page.GotoAsync(DashboardUrl($"/jobs/{scene.JobId}/edit"));
         await editor.ClickAsync();
         await Page.Keyboard.PressAsync("ControlOrMeta+A");
         await Page.Keyboard.TypeAsync("- a list item");
         await Expect(editor.Locator("ul > li")).ToHaveTextAsync("a list item");
+    }
+
+    // Flips the switch on Your account > Preferences and waits for the server to answer the save, so leaving the page cannot cancel it.
+    private async Task SetShortcutsAsync(bool on)
+    {
+        await Page.GotoAsync(DashboardUrl("/account/preferences"));
+        var shortcuts = Page.GetByRole(AriaRole.Switch, new() { Name = "Single-key shortcuts" });
+        if (await shortcuts.IsCheckedAsync() == on)
+        {
+            return;
+        }
+
+        await Page.RunAndWaitForResponseAsync(
+            async () => await shortcuts.ClickAsync(),
+            response => response.Url.EndsWith("/v1/account/preferences", StringComparison.Ordinal) && response.Request.Method == "PUT");
+        if (on)
+        {
+            await Expect(shortcuts).ToBeCheckedAsync();
+        }
+        else
+        {
+            await Expect(shortcuts).Not.ToBeCheckedAsync();
+        }
     }
 
     private sealed record Scene(string Email, string Slug, Guid JobId, string JobSlug);

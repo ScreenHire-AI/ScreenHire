@@ -1,12 +1,23 @@
 /**
- * Per-browser preferences: the colour theme, whether single-key shortcuts are on, whether a move asks first, each table's
- * sort and whether the bell has opened itself after onboarding. (Skipping a setup step or hiding the checklist is the
- * organization's, saved on the server.) They live in
- * localStorage, which can be missing or refuse writes (private windows, blocked site data), so every read and write
- * falls back quietly. Being per browser, a sort does not follow a person to another browser.
+ * Preferences the dashboard reads everywhere. Those about the device stay in this browser: the colour theme, reduced
+ * motion, each table's sort, whether the setup checklist was dismissed for an organization and whether the bell has opened
+ * itself after onboarding. (Skipping a setup step or hiding the checklist is the organization's, saved on the server.) Those about the person, single-key shortcuts and whether a move asks first, live on the server
+ * per organization (Your account, docs/architecture/sign-in-and-tenancy.md): the shell applies the saved values
+ * (`applyHabits`) and saves each change (`saveHabitsWith`), and this browser's copy stands in until the server answers. The
+ * browser's copy lives in localStorage, which can be missing or refuse writes (private windows, blocked site data), so every
+ * read and write falls back quietly.
  */
 
 export type Theme = 'light' | 'dark';
+
+/** The theme the person chose: one of the two, or whatever the system says, followed as it changes. */
+export type ThemeChoice = Theme | 'system';
+
+/** The two habits kept on the server. */
+export interface Habits {
+  shortcutsEnabled: boolean;
+  confirmMoves: boolean;
+}
 
 /** A table's one sorted column (design system L2). */
 export interface TableSort {
@@ -17,6 +28,7 @@ export interface TableSort {
 const themeKey = 'screenhire:theme';
 const shortcutsKey = 'screenhire:shortcuts';
 const confirmMovesKey = 'screenhire:confirm-moves';
+const reduceMotionKey = 'screenhire:reduce-motion';
 const sortKey = (table: string) => `screenhire:sort:${table}`;
 const setupTourKey = (userId: string) => `screenhire:setup-tour:${userId}`;
 const pipelineViewKey = 'screenhire:pipeline-view';
@@ -40,18 +52,26 @@ function write(key: string, value: string): void {
   }
 }
 
-function initialTheme(): Theme {
+function initialThemeChoice(): ThemeChoice {
   const stored = read(themeKey);
-  if (stored === 'light' || stored === 'dark') {
-    return stored;
-  }
-
-  return globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return stored === 'light' || stored === 'dark' ? stored : 'system';
 }
 
+const systemDark = () => globalThis.matchMedia?.('(prefers-color-scheme: dark)') ?? null;
+
+const resolve = (choice: ThemeChoice): Theme => (choice === 'system' ? (systemDark()?.matches ? 'dark' : 'light') : choice);
+
 class Preferences {
-  /** Light by default, or the system's choice until the person picks one. The tokens switch on `.dark` (`@screenhire/ui`). */
-  theme = $state<Theme>(initialTheme());
+  /** What the person chose: Light, Dark, or System until they pick one. */
+  themeChoice = $state<ThemeChoice>(initialThemeChoice());
+
+  /** The theme showing now. The tokens switch on `.dark` (`@screenhire/ui`). */
+  theme = $state<Theme>(resolve(initialThemeChoice()));
+
+  /** Animations and transitions stopped, beyond what the system asks: `.reduce-motion` on the page (design system section 17). */
+  reduceMotion = $state(read(reduceMotionKey) === 'on');
+
+  #saveHabits: ((habits: Habits) => void) | undefined;
 
   /**
    * Single-key shortcuts (G J, J / K, X, V) can be turned off, for speech input and anyone who presses keys by accident
@@ -61,21 +81,59 @@ class Preferences {
 
   constructor() {
     this.#applyTheme();
+    this.#applyMotion();
+    // System follows the system as it changes, with the page open.
+    systemDark()?.addEventListener?.('change', () => {
+      if (this.themeChoice === 'system') {
+        this.theme = resolve('system');
+        this.#applyTheme();
+      }
+    });
   }
 
-  setTheme(theme: Theme): void {
-    this.theme = theme;
-    write(themeKey, theme);
+  setThemeChoice(choice: ThemeChoice): void {
+    this.themeChoice = choice;
+    this.theme = resolve(choice);
+    write(themeKey, choice);
     this.#applyTheme();
   }
 
   toggleTheme(): void {
-    this.setTheme(this.theme === 'dark' ? 'light' : 'dark');
+    this.setThemeChoice(this.theme === 'dark' ? 'light' : 'dark');
+  }
+
+  setReduceMotion(on: boolean): void {
+    this.reduceMotion = on;
+    write(reduceMotionKey, on ? 'on' : 'off');
+    this.#applyMotion();
   }
 
   setShortcutsEnabled(enabled: boolean): void {
     this.shortcutsEnabled = enabled;
     write(shortcutsKey, enabled ? 'on' : 'off');
+    this.#saveHabits?.(this.habits);
+  }
+
+  /** The two habits as they stand. */
+  get habits(): Habits {
+    return { shortcutsEnabled: this.shortcutsEnabled, confirmMoves: this.confirmMoves };
+  }
+
+  /** The person's saved habits from the server; a value never saved there (null) keeps this browser's. */
+  applyHabits(saved: { shortcutsEnabled?: boolean | null; confirmMoves?: boolean | null }): void {
+    if (typeof saved.shortcutsEnabled === 'boolean') {
+      this.shortcutsEnabled = saved.shortcutsEnabled;
+      write(shortcutsKey, saved.shortcutsEnabled ? 'on' : 'off');
+    }
+    if (typeof saved.confirmMoves === 'boolean') {
+      this.confirmMoves = saved.confirmMoves;
+      write(confirmMovesKey, saved.confirmMoves ? 'on' : 'off');
+    }
+  }
+
+  /** Where a change to a habit is saved: the shell's save to the server, or nowhere (undefined) once it goes away. */
+  saveHabitsWith(save: ((habits: Habits) => void) | undefined): void {
+    this.#saveHabits = save;
   }
 
   /**
@@ -87,6 +145,7 @@ class Preferences {
   setConfirmMoves(enabled: boolean): void {
     this.confirmMoves = enabled;
     write(confirmMovesKey, enabled ? 'on' : 'off');
+    this.#saveHabits?.(this.habits);
   }
 
   /** The sort the person last chose for a table, read from storage each time; anything unreadable counts as none. */
@@ -134,6 +193,10 @@ class Preferences {
 
   #applyTheme(): void {
     globalThis.document?.documentElement.classList.toggle('dark', this.theme === 'dark');
+  }
+
+  #applyMotion(): void {
+    globalThis.document?.documentElement.classList.toggle('reduce-motion', this.reduceMotion);
   }
 }
 

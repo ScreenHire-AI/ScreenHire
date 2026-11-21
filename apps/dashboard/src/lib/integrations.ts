@@ -21,7 +21,7 @@ export interface Integration {
 /**
  * Every integration, in the order the Settings menu lists them. Adding one is one more entry here: its Settings page
  * entry, its permission gate, its Settings menu entry and Ctrl K (design system S9) all read this list. Personal connections (a member's calendar, their Slack account) are not integrations of the
- * organization and stay in the account menu.
+ * organization and live on Your account > Connected accounts.
  */
 export const integrations: readonly Integration[] = [
   {
@@ -29,7 +29,7 @@ export const integrations: readonly Integration[] = [
     href: '/settings/slack',
     keywords: ['chat', 'channel', 'notifications', 'messages', 'direct messages', 'scorecard'],
     // A channel post reaches everyone in the channel, whatever jobs they see, so Slack needs all jobs too. Each person links
-    // their own account from their menu (SlackAccountSheet), not here.
+    // their own account on Your account > Connected accounts, not here.
     permission: 'ManageIntegrations',
     allJobs: true,
     feature: 'slack',

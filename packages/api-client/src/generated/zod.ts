@@ -82,6 +82,13 @@ export const ListSandboxListingsResponseItem = zod.object({
 export const ListSandboxListingsResponse = zod.array(ListSandboxListingsResponseItem)
 
 
+export const GetUserPhotoParams = zod.object({
+  "userId": zod.uuid()
+})
+
+export const GetUserPhotoResponse = zod.void()
+
+
 export const ListAutomationIssuesResponseItem = zod.object({
   "runId": zod.uuid(),
   "applicationId": zod.uuid(),
@@ -179,8 +186,9 @@ export const GetCurrentUserResponse = zod.object({
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "photoUrl": zod.string().nullish()
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
 
 export const ListMyOrganizationsResponseItem = zod.object({
@@ -239,8 +247,9 @@ export const CompleteOnboardingResponse = zod.object({
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "photoUrl": zod.string().nullish()
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
 
 export const LookUpInvitationBody = zod.object({
@@ -273,8 +282,9 @@ export const AcceptInvitationResponse = zod.object({
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "photoUrl": zod.string().nullish()
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
 
 export const SwitchOrganizationBody = zod.object({
@@ -295,8 +305,9 @@ export const SwitchOrganizationResponse = zod.object({
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "photoUrl": zod.string().nullish()
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
 
 export const SignOutResponse = zod.void()
@@ -7434,15 +7445,16 @@ export const GetOrganizationVerificationSettingsResponse = zod.object({
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
   "effectiveCap": zod.union([zod.null(),zod.object({
   "amount": zod.number(),
   "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "priced": zod.boolean()
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).')]),
   "presets": zod.array(zod.object({
   "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)]),
   "baseUrl": zod.string().nullable(),
@@ -7550,15 +7562,16 @@ export const UpdateOrganizationVerificationSettingsResponse = zod.object({
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
   "effectiveCap": zod.union([zod.null(),zod.object({
   "amount": zod.number(),
   "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "priced": zod.boolean()
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).')]),
   "presets": zod.array(zod.object({
   "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)]),
   "baseUrl": zod.string().nullable(),
@@ -7829,24 +7842,155 @@ export const RevokeInvitationParams = zod.object({
 export const RevokeInvitationResponse = zod.void()
 
 
-export const GetNotificationSettingsResponse = zod.object({
-  "toasts": zod.boolean(),
-  "closeToasts": zod.boolean(),
-  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text.'))
-}).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\nthe kinds of change that do not toast. Everything starts on.')
+export const GetAccountResponse = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullable(),
+  "displayName": zod.string(),
+  "photoUrl": zod.string().nullable(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.'),
+  "shortcutsEnabled": zod.boolean().nullable(),
+  "confirmMoves": zod.boolean().nullable()
+}).describe('The signed-in person\'s own account in their current organization (docs/architecture/sign-in-and-tenancy.md, "Your\naccount"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser\'s.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser\'s\nearlier choice and saves it.')
 
 
-export const UpdateNotificationSettingsBody = zod.object({
-  "toasts": zod.boolean(),
+export const GetAccountNotificationsResponse = zod.object({
+  "scope": zod.enum(['MyJobs', 'Everything']).describe('Which jobs the job rows (new applications, teammates\' changes, verification suggested) cover: the jobs whose hiring\nteam the person is on, or every job they can see.'),
+  "pauseToasts": zod.boolean(),
   "closeToasts": zod.boolean(),
-  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text.'))
-}).describe('Replaces the signed-in member\'s notification settings; `off` names each kind at most once.')
+  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "rows": zod.array(zod.object({
+  "kind": zod.enum(['Mentions', 'Replies', 'Interviews', 'Tasks', 'NewApplications', 'TeammateChanges', 'VerificationSuggested', 'AiUseAndBilling']).describe('A row of the person\'s notification choices on Your account (docs/architecture/notifications.md, "Each person\'s\nchoices"): what they can be told about, by toast, email and Slack. Stored and sent as text; new rows are appended.'),
+  "toasts": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "email": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
+  "emailDefault": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
+  "slack": zod.boolean().nullable(),
+  "scoped": zod.boolean()
+}).describe('One row of the grid. `toasts` are the toast kinds its In the app switch covers (none: nothing toasts for it).\n`email` is the person\'s choice and `emailDefault` where it starts. `slack` is null for a row with no Slack\nmessage. `scoped` rows follow My jobs or Everything I can see.')),
+  "slackAvailable": zod.boolean(),
+  "slackLinked": zod.boolean()
+}).describe('The person\'s notification choices here (docs/architecture/notifications.md, "Each person\'s choices"). `pauseToasts`\nstops every toast; `closeToasts` closes each after a few seconds; `toastsOff` lists the kinds of toast turned\noff (the In the app column). `rows` are the grid\'s rows this person sees, in order. `slackLinked` says whether\ntheir Slack account is linked, which shows the Slack column; `slackAvailable` whether the workspace is connected.')
 
-export const UpdateNotificationSettingsResponse = zod.object({
-  "toasts": zod.boolean(),
+
+export const UpdateAccountNotificationsBody = zod.object({
+  "scope": zod.enum(['MyJobs', 'Everything']).describe('Which jobs the job rows (new applications, teammates\' changes, verification suggested) cover: the jobs whose hiring\nteam the person is on, or every job they can see.'),
+  "pauseToasts": zod.boolean(),
   "closeToasts": zod.boolean(),
-  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text.'))
-}).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\nthe kinds of change that do not toast. Everything starts on.')
+  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "rows": zod.array(zod.object({
+  "kind": zod.enum(['Mentions', 'Replies', 'Interviews', 'Tasks', 'NewApplications', 'TeammateChanges', 'VerificationSuggested', 'AiUseAndBilling']).describe('A row of the person\'s notification choices on Your account (docs/architecture/notifications.md, "Each person\'s\nchoices"): what they can be told about, by toast, email and Slack. Stored and sent as text; new rows are appended.'),
+  "email": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
+  "slack": zod.boolean().nullable()
+}))
+}).describe('Saves the whole grid. A row the person does not see is ignored; `slack` is ignored for a row without one.')
+
+export const UpdateAccountNotificationsResponse = zod.object({
+  "scope": zod.enum(['MyJobs', 'Everything']).describe('Which jobs the job rows (new applications, teammates\' changes, verification suggested) cover: the jobs whose hiring\nteam the person is on, or every job they can see.'),
+  "pauseToasts": zod.boolean(),
+  "closeToasts": zod.boolean(),
+  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "rows": zod.array(zod.object({
+  "kind": zod.enum(['Mentions', 'Replies', 'Interviews', 'Tasks', 'NewApplications', 'TeammateChanges', 'VerificationSuggested', 'AiUseAndBilling']).describe('A row of the person\'s notification choices on Your account (docs/architecture/notifications.md, "Each person\'s\nchoices"): what they can be told about, by toast, email and Slack. Stored and sent as text; new rows are appended.'),
+  "toasts": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "email": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
+  "emailDefault": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
+  "slack": zod.boolean().nullable(),
+  "scoped": zod.boolean()
+}).describe('One row of the grid. `toasts` are the toast kinds its In the app switch covers (none: nothing toasts for it).\n`email` is the person\'s choice and `emailDefault` where it starts. `slack` is null for a row with no Slack\nmessage. `scoped` rows follow My jobs or Everything I can see.')),
+  "slackAvailable": zod.boolean(),
+  "slackLinked": zod.boolean()
+}).describe('The person\'s notification choices here (docs/architecture/notifications.md, "Each person\'s choices"). `pauseToasts`\nstops every toast; `closeToasts` closes each after a few seconds; `toastsOff` lists the kinds of toast turned\noff (the In the app column). `rows` are the grid\'s rows this person sees, in order. `slackLinked` says whether\ntheir Slack account is linked, which shows the Slack column; `slackAvailable` whether the workspace is connected.')
+
+
+export const GetAccountSignInResponse = zod.object({
+  "email": zod.string(),
+  "emailLinks": zod.boolean(),
+  "providers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+})),
+  "passkeys": zod.int(),
+  "passkeyLimit": zod.int()
+}).describe('How the person signs in: the email link to `email` (when this ScreenHire sends them), the providers they have\nsigned in with, and how many passkeys they have of `passkeyLimit`.')
+
+
+export const UpdateProfileBody = zod.object({
+  "name": zod.string(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.')
+}).describe('The person\'s name (global, the same in every organization), and their time zone, language and date format here.')
+
+export const UpdateProfileResponse = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullable(),
+  "displayName": zod.string(),
+  "photoUrl": zod.string().nullable(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.'),
+  "shortcutsEnabled": zod.boolean().nullable(),
+  "confirmMoves": zod.boolean().nullable()
+}).describe('The signed-in person\'s own account in their current organization (docs/architecture/sign-in-and-tenancy.md, "Your\naccount"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser\'s.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser\'s\nearlier choice and saves it.')
+
+
+export const FillTimeZoneBody = zod.object({
+  "timeZone": zod.string()
+}).describe('The browser\'s time zone, saved only while the person has none, so digests arrive at 08:00 their time.')
+
+export const FillTimeZoneResponse = zod.void()
+
+
+export const UpdateAccountPreferencesBody = zod.object({
+  "shortcutsEnabled": zod.boolean(),
+  "confirmMoves": zod.boolean()
+}).describe('The person\'s working habits here: single-key shortcuts, and whether a move that sends emails or creates tasks asks first.')
+
+export const UpdateAccountPreferencesResponse = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullable(),
+  "displayName": zod.string(),
+  "photoUrl": zod.string().nullable(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.'),
+  "shortcutsEnabled": zod.boolean().nullable(),
+  "confirmMoves": zod.boolean().nullable()
+}).describe('The signed-in person\'s own account in their current organization (docs/architecture/sign-in-and-tenancy.md, "Your\naccount"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser\'s.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser\'s\nearlier choice and saves it.')
+
+
+export const UploadPhotoBody = zod.object({
+  "data": zod.string()
+}).describe('A profile photo as base64, at most 512 KB once decoded, PNG, JPEG or WebP (read from the bytes, not the name). The\ndashboard crops and scales it to 256 pixels first, which also drops what the camera wrote into it. The server checks\nonly the type and the size and keeps the bytes as sent, so a caller that skips the crop keeps its metadata.')
+
+export const UploadPhotoResponse = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullable(),
+  "displayName": zod.string(),
+  "photoUrl": zod.string().nullable(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.'),
+  "shortcutsEnabled": zod.boolean().nullable(),
+  "confirmMoves": zod.boolean().nullable()
+}).describe('The signed-in person\'s own account in their current organization (docs/architecture/sign-in-and-tenancy.md, "Your\naccount"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser\'s.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser\'s\nearlier choice and saves it.')
+
+
+export const RemovePhotoResponse = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullable(),
+  "displayName": zod.string(),
+  "photoUrl": zod.string().nullable(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.'),
+  "shortcutsEnabled": zod.boolean().nullable(),
+  "confirmMoves": zod.boolean().nullable()
+}).describe('The signed-in person\'s own account in their current organization (docs/architecture/sign-in-and-tenancy.md, "Your\naccount"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser\'s.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser\'s\nearlier choice and saves it.')
+
+
+export const SignOutEverywhereResponse = zod.void()
 
 
 export const ListNotificationsResponse = zod.object({
@@ -9808,17 +9952,26 @@ export const GetBillingResponse = zod.object({
   "aiUsage": zod.union([zod.null(),zod.object({
   "month": zod.string(),
   "builtInCalls": zod.int(),
-  "tokens": zod.int(),
-  "providerCost": zod.number(),
   "charge": zod.number(),
-  "marginPercent": zod.number(),
   "callsWithUnknownCost": zod.int(),
   "ownKeyCalls": zod.int(),
   "trialAllowance": zod.number(),
   "trialAllowanceUsed": zod.number(),
   "metered": zod.boolean()
-}).describe('This UTC month\'s use of ScreenHire\'s AI key, in US dollars (docs/architecture/billing.md, "AI usage"). `providerCost` is what\nthe provider charged ScreenHire for the calls and `charge` is what the organization pays: each call\'s cost plus\n`marginPercent` (20 is "plus 20%"), rounded to a micro-dollar per call. A call whose cost is unknown\n(`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on the organization\'s own key, never\ncharged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what it has already covered.\n`metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered price is set).')])
-}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".\n`aiUsage`: this month\'s use of ScreenHire\'s AI key and what it costs (null while billing is off).')
+}).describe('This UTC month\'s use of ScreenHire\'s AI key (docs/architecture/billing.md, "AI usage"). `charge` is what the organization\npays for it in US dollars, the one amount for AI use that the Usage tab shows too, and it never names the provider\'s price or a\nmargin. A call whose cost is unknown (`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on\nthe organization\'s own key, never charged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what\nit has already covered. `metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered\nprice is set).')]),
+  "thisMonth": zod.union([zod.null(),zod.object({
+  "month": zod.string(),
+  "currency": zod.string(),
+  "planName": zod.string().nullable(),
+  "planAmount": zod.number().nullable(),
+  "aiCalls": zod.int(),
+  "aiAmount": zod.number().nullable(),
+  "trialCredit": zod.number(),
+  "total": zod.number(),
+  "nextInvoiceAmount": zod.number().nullable(),
+  "nextInvoiceAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('This UTC month so far, added up (docs/architecture/billing.md, "The Billing page"), in `currency`. `planName` and\n`planAmount` are the plan\'s line: its monthly price while subscribed, 0 on the free trial, and null with no plan (ended).\n`aiCalls` and `aiAmount` are AI use on ScreenHire\'s key, null where it is not billed here. `trialCredit` is what the\ntrial\'s allowance covers of that use, 0 or more. `total` is the plan, plus AI use, less the credit, each to the cent first, so\nthe lines shown add up to it. `nextInvoiceAmount`\nand `nextInvoiceAt` estimate the next invoice while a subscription runs: the next plan payment (none when it is set to end)\nplus this month\'s AI use, so the page says "about"; null when no invoice is coming.')])
+}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".\n`aiUsage`: this month\'s use of ScreenHire\'s AI key and what it costs (null while billing is off). `thisMonth`: what the\norganization pays this month so far, each charge on its line and added up, and the next invoice (null while billing is off).')
 
 
 export const StartBillingCheckoutBody = zod.object({
@@ -9852,9 +10005,34 @@ export const ChangeBillingPlanBody = zod.object({
 export const ChangeBillingPlanResponse = zod.void()
 
 
+export const OpenBillingPortalQueryParams = zod.object({
+  "intent": zod.enum(['Manage', 'ChangeCard', 'Cancel']).optional()
+})
+
 export const OpenBillingPortalResponse = zod.object({
   "url": zod.string()
 }).describe('Where to send the browser next: the payment provider\'s page, or the sandbox\'s.')
+
+
+export const ListBillingInvoicesResponse = zod.object({
+  "invoices": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.iso.datetime({"offset":true}),
+  "amount": zod.number(),
+  "currency": zod.string(),
+  "status": zod.enum(['Paid', 'Due', 'Void']).describe('Where an invoice stands, in words a customer uses.'),
+  "pdfUrl": zod.string().nullable()
+}).describe('One invoice: `date` it was made, its `amount` (tax included) in `currency`, where it stands, and `pdfUrl`, the\naddress of its PDF (absolute for the payment provider, a path of this site for the local sandbox), null when there is none.'))
+}).describe('The organization\'s invoices, newest first. Empty before it has chosen a plan.')
+
+
+export const GetBillingPaymentMethodResponse = zod.object({
+  "method": zod.union([zod.null(),zod.object({
+  "type": zod.string(),
+  "brand": zod.string().nullable(),
+  "last4": zod.string().nullable()
+}).describe('A payment method on file: its type as the provider names it (`card` for a card), and for a card its network and last four digits.')])
+}).describe('The payment method the plan is charged to, or `method` null when there is none on file yet. A card has its network\n(`brand`, such as `visa`) and its last four digits; another method has only its `type`.')
 
 
 export const getAiUsageSummaryQueryTimeZoneDefault = `UTC`;
@@ -9875,7 +10053,7 @@ export const GetAiUsageSummaryResponse = zod.object({
   "cost": zod.number(),
   "callsWithUnknownCost": zod.int(),
   "failedCalls": zod.int()
-}).describe('Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost.'),
+}).describe('Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost. Each call counts at the\none amount a customer sees for it: on ScreenHire\'s key what it is billed, on an own key the provider\'s price, an estimate. So\n`cost` here sums both keys; `byKeySource` keeps them apart, which is how the Usage tab shows them.'),
   "byDay": zod.array(zod.object({
   "date": zod.string(),
   "calls": zod.int(),
@@ -9917,15 +10095,16 @@ export const GetAiUsageSummaryResponse = zod.object({
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
   "effectiveCap": zod.union([zod.null(),zod.object({
   "amount": zod.number(),
   "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.'),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "priced": zod.boolean()
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).'),
   "lastCallAt": zod.iso.datetime({"offset":true}).nullable()
 }).describe('This organization\'s AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester\'s days (`timeZone`). `limits` is\nthe month\'s position against the budget and cap, whatever range was asked for. `lastCallAt` is when the newest model call\nhappened, whatever the range, so the page can say how recent its numbers are (design system T7); null before the first.')
 
@@ -9960,7 +10139,7 @@ export const ListAiUsageCallsResponse = zod.object({
   "durationMs": zod.int(),
   "outcome": zod.enum(['Ok', 'Error', 'TimedOut']),
   "errorKind": zod.string().nullable()
-}).describe('One model call, as it happened. `providerRequestId` is the provider\'s id for the response, which finds the call in the\nprovider\'s own logs. Tokens are null when the provider reported none. `cost` is null when `costBasis` is\n`Unknown`. `check` names the check (for example `consistency.extraction`). Holds nothing that was sent or received.')),
+}).describe('One model call, as it happened. `providerRequestId` is the provider\'s id for the response, which finds the call in the\nprovider\'s own logs. Tokens are null when the provider reported none. `cost` is null when `costBasis` is\n`Unknown`, and is the billed amount on ScreenHire\'s key and the provider\'s price on an own key. `check` names the check (for example `consistency.extraction`). Holds nothing that was sent or received.')),
   "nextBefore": zod.uuid().nullable()
 }).describe('A page of calls, newest first. `nextBefore` is the id to pass as `before` for the next page, null on the last.')
 
@@ -9980,10 +10159,9 @@ export const ExportAiUsageCallsResponse = zod.unknown()
 
 
 export const UpdateAiUsageLimitsBody = zod.object({
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
   "budget": zod.number().nullish(),
   "cap": zod.number().nullish()
-}).describe('Sets the monthly budget and cap. Both are in `unit` (whole tokens, or dollars to the cent); null removes one. With\n`Money` and an own key, the own key\'s prices must be set, since a call with no known cost counts as nothing.')
+}).describe('Sets the monthly budget and cap, in US dollars to the cent, counted against the amount billed for AI use; null removes one.\nSetting one needs a price for the key in use (an own key\'s two prices), since a call with no known cost counts as nothing.')
 
 export const UpdateAiUsageLimitsResponse = zod.object({
   "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
@@ -9995,15 +10173,16 @@ export const UpdateAiUsageLimitsResponse = zod.object({
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
   "effectiveCap": zod.union([zod.null(),zod.object({
   "amount": zod.number(),
   "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "priced": zod.boolean()
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).')
 
 
 export const GetVerificationOverviewResponse = zod.object({

@@ -353,22 +353,25 @@ public sealed class SlackTests(E2EFixture fixture) : BrowserTest(fixture)
             because,
             Ct);
 
-    // The person's menu holds Slack account, whose sheet links the account through the sandbox's sign-in and opens again
-    // on return, showing the link and the two switches.
+    // Your account > Connected accounts links the account through the sandbox's sign-in and comes back there, showing the
+    // link; the notification grid then has its Slack column, with Mentions and Tasks on.
     private async Task LinkFromMenuAsync(IPage page)
     {
+        var back = page.Url;
         await page.Locator("[data-sidebar=footer]").GetByRole(AriaRole.Button).ClickAsync();
-        await page.GetByRole(AriaRole.Menuitem, new() { Name = "Slack account" }).ClickAsync();
-        var sheet = page.GetByRole(AriaRole.Dialog, new() { Name = "Slack account" });
-        await Expect(sheet).ToBeVisibleAsync();
+        await page.GetByRole(AriaRole.Menuitem, new() { Name = "Your account" }).ClickAsync();
+        await page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Connected accounts" }).ClickAsync();
+        var slack = page.GetByRole(AriaRole.Region, new() { Name = "Slack" });
+        await Expect(slack).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
-        await sheet.GetByRole(AriaRole.Button, new() { Name = "Link my Slack account" }).ClickAsync();
-        await Expect(sheet).ToContainTextAsync(new Regex("Linked as"));
-        await Expect(sheet.GetByRole(AriaRole.Switch, new() { Name = "Mentions" })).ToBeCheckedAsync();
-        await Expect(sheet.GetByRole(AriaRole.Switch, new() { Name = "Tasks given to me" })).ToBeCheckedAsync();
+        await slack.GetByRole(AriaRole.Button, new() { Name = "Link my Slack account" }).ClickAsync();
+        await Expect(slack).ToContainTextAsync(new Regex("Linked as"));
+        await page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Notifications" }).ClickAsync();
+        var grid = page.GetByRole(AriaRole.Table);
+        await Expect(grid.GetByRole(AriaRole.Switch, new() { Name = "Mentions: Slack" })).ToBeCheckedAsync();
+        await Expect(grid.GetByRole(AriaRole.Switch, new() { Name = "Tasks assigned to you: Slack" })).ToBeCheckedAsync();
         await ExpectNoAccessibilityViolationsAsync();
-        await page.Keyboard.PressAsync("Escape");
-        await Expect(sheet).ToHaveCountAsync(0);
+        await page.GotoAsync(back);
     }
 
     // Connects the sandbox workspace through the API, as the page's Add to Slack does: start, then follow the redirects.

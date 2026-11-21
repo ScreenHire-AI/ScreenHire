@@ -4,9 +4,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Notifications;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Notifications;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
+using Wolverine;
 
 namespace ScreenHire.Application.Applications;
 
@@ -111,15 +114,16 @@ public static class ReplyEmail
 }
 
 /// <summary>
-/// Emails the person who sent the original email, in the worker. Idempotent on its own: the reply's
-/// <see cref="InboundEmail.NotifiedAt"/> records the send, so a redelivery finds it and sends nothing. Nobody is told
-/// about an automatic answer, an email an automation sent (no one to tell: the dashboard card goes to the job's
-/// members), or by a person who has left or can no longer see the job (ADR-0015). The email goes before the row
-/// commits, so a crash between the two can repeat it once, as with a mention.
+/// Tells the person who sent the original email, in the worker: a row in their bell, then an email now, a line in their
+/// daily digest, or nothing, by their choice for Candidate replies (docs/architecture/notifications.md). Idempotent on its
+/// own: the bell and digest rows are unique, and the reply's <see cref="InboundEmail.NotifiedAt"/> records an email sent, so
+/// a redelivery sends nothing. Nobody is told about an automatic answer, an email an automation sent (no one to tell: the
+/// dashboard card goes to the job's members), or by a person who has left or can no longer see the job (ADR-0015). The
+/// email goes before the row commits, so a crash between the two can repeat it once, as with a mention.
 /// </summary>
 public static partial class CandidateRepliedHandler
 {
-    public static async Task Handle(
+    public static async Task<OutgoingMessages> Handle(
         CandidateReplied message,
         ScreenHireDbContext db,
         TransactionalEmail email,
@@ -128,30 +132,35 @@ public static partial class CandidateRepliedHandler
         ILogger<CandidateReplied> logger,
         CancellationToken cancellationToken)
     {
+        var outgoing = new OutgoingMessages();
         if (message.AutoReply || message.SenderUserId is not { } senderId)
         {
-            return;
+            return outgoing;
         }
 
         var reply = await db.InboundEmails.SingleOrDefaultAsync(r => r.Id == message.InboundEmailId, cancellationToken);
         if (reply is null || reply.NotifiedAt is not null)
         {
-            return; // removed since, or told already
-        }
-
-        var link = links.Value.Url(ReplyEmail.MessagesPath(message.ApplicationId));
-        if (!email.IsConfigured || link is null)
-        {
-            LogNotSent(logger, reply.Id, "this host has no email sender or no dashboard address");
-            return;
+            return outgoing; // removed since, or told already
         }
 
         if (!await JobAccessQueries.SeesJobAsync(db, message.OrganizationId, senderId, message.JobId, cancellationToken))
         {
             LogNotSent(logger, reply.Id, "the sender left the organization or cannot see the job");
-            return;
+            return outgoing;
         }
 
+        var now = time.GetUtcNow();
+        var path = ReplyEmail.MessagesPath(message.ApplicationId);
+        var bell = new PersonalBell(NotificationKinds.CandidateReply, reply.Id.ToString("N"), new Dictionary<string, string>(), path);
+        if (await NoticeDelivery.RaiseForPersonAsync(db, message.OrganizationId, senderId, bell, now, cancellationToken))
+        {
+            outgoing.Add(new NotificationsChanged(message.OrganizationId));
+        }
+
+        var link = links.Value.Url(path);
+        var preferences = await PersonNotices.ForUserAsync(db, message.OrganizationId, senderId, cancellationToken);
+        var choice = PersonNotices.Email(preferences, NoticeKind.Replies, OrganizationAlertDefaults.None);
         var to = await db.Users.Where(u => u.Id == senderId).Select(u => u.Email).SingleOrDefaultAsync(cancellationToken);
         var place = await (
             from application in db.Applications.AsNoTracking()
@@ -163,11 +172,24 @@ public static partial class CandidateRepliedHandler
         if (to is null || place is null)
         {
             LogNotSent(logger, reply.Id, "the person or the application is gone");
-            return;
+            return outgoing;
         }
 
-        await email.SendAsync(ReplyEmail.Compose(to, place.Candidate, place.Job, place.Organization, link), cancellationToken);
-        reply.MarkNotified(time.GetUtcNow());
+        var notice = new Notice(message.OrganizationId, senderId, NoticeKind.Replies, reply.Id.ToString("N"), message.ApplicationId, message.JobId);
+        var outcome = await NoticeDelivery.EmailAsync(
+            db, email, links.Value, notice, choice,
+            () => link is null ? null : ReplyEmail.Compose(to, place.Candidate, place.Job, place.Organization, link),
+            now, cancellationToken);
+        if (outcome == NoticeOutcome.Emailed)
+        {
+            reply.MarkNotified(now);
+        }
+        else if (outcome == NoticeOutcome.NotEmailed && choice == EmailChoice.Instantly)
+        {
+            LogNotSent(logger, reply.Id, "this host has no email sender or no dashboard address");
+        }
+
+        return outgoing;
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Reply {ReplyId} did not notify its sender: {Reason}")]

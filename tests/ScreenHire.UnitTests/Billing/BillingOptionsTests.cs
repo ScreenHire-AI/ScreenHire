@@ -29,6 +29,28 @@ public sealed class BillingOptionsTests
         options.Mode.Should().Be(expected);
     }
 
+    // The one amount for AI use carries the margin only where it is billed: a figure with a margin nobody is charged is not
+    // the amount the customer pays (docs/architecture/ai-usage.md).
+    [Theory]
+    [InlineData("sk", "whsec", false, "price_meter", true)]
+    [InlineData("sk", "whsec", false, null, false)]
+    [InlineData("sk", "whsec", false, "  ", false)]
+    [InlineData(null, null, true, null, true)]
+    [InlineData(null, null, false, "price_meter", false)]
+    public void The_margin_is_in_force_only_while_ai_use_is_metered(string? secretKey, string? webhookSecret, bool sandbox, string? meterPrice, bool metered)
+    {
+        var options = new BillingOptions
+        {
+            SecretKey = secretKey,
+            WebhookSecret = webhookSecret,
+            Sandbox = new BillingSandboxOptions { Enabled = sandbox },
+            Ai = new BillingAiOptions { Margin = 0.25m, StripePriceId = meterPrice },
+        };
+
+        options.AiMetered.Should().Be(metered);
+        options.AiMarginInForce.Should().Be(metered ? 0.25m : 0m);
+    }
+
     [Fact]
     public void A_new_organization_gets_a_fourteen_day_trial_on_the_growth_plan_unless_configured()
     {

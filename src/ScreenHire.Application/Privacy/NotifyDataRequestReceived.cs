@@ -7,6 +7,7 @@ using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Privacy;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
+using ScreenHire.Application.Notifications;
 
 namespace ScreenHire.Application.Privacy;
 
@@ -59,7 +60,7 @@ public static partial class DataRequestReceivedHandler
 
         foreach (var to in recipients)
         {
-            await email.SendAsync(DataRequestNotificationEmail.Compose(to, organization.Name, message.Kind, link), cancellationToken);
+            await email.SendAsync(TeamEmail.WithFooter(DataRequestNotificationEmail.Compose(to, organization.Name, message.Kind, link), links.Value), cancellationToken);
         }
 
         LogNotified(logger, message.RequestId, recipients.Count);

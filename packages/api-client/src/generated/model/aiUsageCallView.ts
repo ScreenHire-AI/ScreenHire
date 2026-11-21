@@ -11,7 +11,7 @@ import type { AiKeySource } from './aiKeySource.ts';
 /**
  * One model call, as it happened. `providerRequestId` is the provider's id for the response, which finds the call in the
  * provider's own logs. Tokens are null when the provider reported none. `cost` is null when `costBasis` is
- * `Unknown`. `check` names the check (for example `consistency.extraction`). Holds nothing that was sent or received.
+ * `Unknown`, and is the billed amount on ScreenHire's key and the provider's price on an own key. `check` names the check (for example `consistency.extraction`). Holds nothing that was sent or received.
  */
 export interface AiUsageCallView {
   id: string;

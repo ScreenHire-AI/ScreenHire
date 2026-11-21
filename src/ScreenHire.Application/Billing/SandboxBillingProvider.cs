@@ -1,7 +1,10 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
+using ScreenHire.Domain.Billing;
 
 namespace ScreenHire.Application.Billing;
 
@@ -47,8 +50,90 @@ public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtectio
     public Task<Uri> CreatePortalAsync(PortalRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var state = Issue(new SandboxBillingState(request.OrganizationId, null, request.ReturnUrl.ToString()));
+        var state = Issue(new SandboxBillingState(request.OrganizationId, null, request.ReturnUrl.ToString(), Intent: request.Intent));
         return Task.FromResult(new Uri($"{PortalPath}?state={Uri.EscapeDataString(state)}", UriKind.Relative));
+    }
+
+    /// <summary>Where a sample invoice's PDF is served, by its id (<c>in_sandbox_yyyyMM</c>).</summary>
+    public const string InvoicePdfPath = "/v1/billing/sandbox/invoices";
+
+    /// <summary>How many sample invoices the sandbox lists for an organization that has subscribed.</summary>
+    public const int SampleInvoices = 3;
+
+    /// <summary>
+    /// Sample invoices, so the local demo and the tests show the Billing page's list: one a month at the plan's price, the newest at
+    /// the start of the current period (a month before the period end its checkout set), and the two months before. The newest is Due
+    /// while a payment has failed (PastDue), every other one Paid. None before the organization has a customer.
+    /// </summary>
+    public Task<IReadOnlyList<ProviderInvoice>> ListInvoicesAsync(InvoiceListRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrEmpty(request.CustomerId))
+        {
+            return Task.FromResult<IReadOnlyList<ProviderInvoice>>([]);
+        }
+
+        var periodStart = (request.CurrentPeriodEnd ?? request.Now.AddMonths(1)).AddMonths(-1);
+        var invoices = Enumerable.Range(0, SampleInvoices).Select(months =>
+        {
+            var at = periodStart.AddMonths(-months);
+            var id = SampleInvoiceId(at);
+            var status = months == 0 && request.Status == SubscriptionStatus.PastDue ? BillingInvoiceStatus.Due : BillingInvoiceStatus.Paid;
+            return new ProviderInvoice(
+                id, at, request.Plan?.MonthlyPrice ?? 0m, request.Plan?.Currency ?? "USD", status, new Uri($"{InvoicePdfPath}/{id}", UriKind.Relative));
+        });
+        return Task.FromResult<IReadOnlyList<ProviderInvoice>>([.. invoices]);
+    }
+
+    /// <summary>The sandbox's card, the test number every payment provider documents, once the organization has a customer.</summary>
+    public Task<ProviderPaymentMethod?> GetPaymentMethodAsync(PaymentMethodRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Task.FromResult(string.IsNullOrEmpty(request.CustomerId) ? null : new ProviderPaymentMethod("card", "visa", "4242"));
+    }
+
+    /// <summary>The id of the sample invoice made at <paramref name="at"/>.</summary>
+    public static string SampleInvoiceId(DateTimeOffset at) => $"in_sandbox_{at.UtcDateTime.ToString("yyyyMM", CultureInfo.InvariantCulture)}";
+
+    /// <summary>
+    /// A one-page PDF for a sample invoice id, or null for an id the sandbox never made. Written by hand (no PDF package: ADR-0008),
+    /// with one line of text in a standard font, so the link on the Billing page opens a real file locally.
+    /// </summary>
+    public static byte[]? SampleInvoicePdf(string id)
+    {
+        if (id is not { Length: 17 } || !id.StartsWith("in_sandbox_", StringComparison.Ordinal)
+            || !DateTime.TryParseExact(id[11..], "yyyyMM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var month))
+        {
+            return null;
+        }
+
+        var text = $"Sample invoice {month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)}. Local sandbox: nothing was charged.";
+        var content = $"BT /F1 14 Tf 72 720 Td ({text}) Tj ET";
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            $"<< /Length {content.Length} >>\nstream\n{content}\nendstream",
+        ];
+        var pdf = new StringBuilder("%PDF-1.4\n");
+        var offsets = new List<int>();
+        for (var i = 0; i < objects.Length; i++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append(CultureInfo.InvariantCulture, $"{i + 1} 0 obj\n{objects[i]}\nendobj\n");
+        }
+
+        var xref = pdf.Length;
+        pdf.Append(CultureInfo.InvariantCulture, $"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (var offset in offsets)
+        {
+            pdf.Append(CultureInfo.InvariantCulture, $"{offset:D10} 00000 n \n");
+        }
+
+        pdf.Append(CultureInfo.InvariantCulture, $"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return Encoding.ASCII.GetBytes(pdf.ToString());
     }
 
     /// <summary>
@@ -125,5 +210,11 @@ public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtectio
     private string Issue(SandboxBillingState state) => Protector.Protect(JsonSerializer.Serialize(state), time.GetUtcNow() + Lifetime);
 }
 
-/// <summary>What a sandbox page does: start <c>PlanKey</c> (Checkout; null for the portal) for the organization, then send the browser to <c>ReturnUrl</c>, the Billing page. <c>TaxRequested</c> and <c>TaxIdsRequested</c> say the checkout asked for tax and a tax id.</summary>
-public sealed record SandboxBillingState(Guid OrganizationId, string? PlanKey, string ReturnUrl, bool TaxRequested = false, bool TaxIdsRequested = false);
+/// <summary>
+/// What a sandbox page does: start <c>PlanKey</c> (Checkout; null for the portal) for the organization, then send the browser to
+/// <c>ReturnUrl</c>, the Billing page. <c>TaxRequested</c> and <c>TaxIdsRequested</c> say the checkout asked for tax and a tax id.
+/// <c>Intent</c> is what the portal was opened for: it cancels the plan, except to change the card, which the sandbox has nothing to do for.
+/// </summary>
+public sealed record SandboxBillingState(
+    Guid OrganizationId, string? PlanKey, string ReturnUrl, bool TaxRequested = false, bool TaxIdsRequested = false,
+    BillingPortalIntent Intent = BillingPortalIntent.Manage);

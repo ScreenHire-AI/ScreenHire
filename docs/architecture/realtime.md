@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Real-time updates"
-description: "How an ITenantEvent reaches open dashboards: the API's own Wolverine cluster in wolverine_api, the SignalR hub at /v1/hubs/events and its tenant and job groups, the packages/realtime client and cache invalidation, teammates' changes as toasts with each member's notification settings, the C# to Zod contract test, and scaling out."
+description: "How an ITenantEvent reaches open dashboards: the API's own Wolverine cluster in wolverine_api, the SignalR hub at /v1/hubs/events and its tenant and job groups, the packages/realtime client and cache invalidation, teammates' changes as toasts following each member's notification grid on Your account, the C# to Zod contract test, and scaling out."
 tags: [realtime, signalr, events]
 sources:
   - resource: apps/api/Realtime/EventsHub.cs
@@ -21,8 +21,8 @@ sources:
   - resource: apps/dashboard/src/lib/teammate-toasts.ts
   - resource: apps/dashboard/src/lib/notifications.svelte.ts
   - resource: apps/dashboard/src/lib/components/notification-tray.svelte
-  - resource: apps/dashboard/src/lib/components/notification-settings-sheet.svelte
-  - resource: apps/api/Endpoints/NotificationSettingsEndpoints.cs
+  - resource: apps/dashboard/src/routes/(app)/account/notifications/+page.svelte
+  - resource: apps/api/Endpoints/AccountEndpoints.cs
   - resource: src/ScreenHire.Domain/Organizations/NotificationSettings.cs
   - resource: tests/ScreenHire.UnitTests/Realtime/RealtimeContractTests.cs
   - resource: src/ScreenHire.Application/Templates/TemplateChanged.cs
@@ -190,7 +190,7 @@ feeds every event to `TeammateToasts` (`apps/dashboard/src/lib/teammate-toasts.t
 
 | Kind | Event | For the person when |
 |---|---|---|
-| Moves, New candidates, Notes, Tags, Emails, Scorecards | `ApplicationMoved`, `ApplicationSubmitted`, `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ApplicationEmailed`, `ScorecardSubmitted` | the job is one whose hiring team they are on (`GET /v1/organization/members/{memberId}/jobs`); seeing the job is not enough (ADR-0015) |
+| Moves, New candidates, Notes, Tags, Emails, Scorecards | `ApplicationMoved`, `ApplicationSubmitted`, `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ApplicationEmailed`, `ScorecardSubmitted` | the job is one whose hiring team they are on (`GET /v1/organization/members/{memberId}/jobs`), or any job they see when their scope is Everything I can see (the hub sends a job's events only to people who see it, ADR-0015) |
 | Tasks | `ApplicationTaskCreated`, `ApplicationTaskCompleted`, `ApplicationTaskReopened` | the task is assigned to them |
 | Templates | `HiringTemplateVersionPublished`; `TemplateChanged` of an email template or a scorecard | they are its `PreviousEditorUserId` |
 
@@ -224,21 +224,21 @@ email makes one toast and no request per candidate. A `TeammateMentioned` for th
 from the same author on the same application: the mention card already says it. Reads go through the shell's query
 cache, so a burst of events reads the team once, and a read that fails drops the toast.
 
-Each member picks what they get in the Teammate changes sheet, from the account menu: toasts on or off, each kind, and
-whether toasts close on their own. The settings are on their membership (`organization_members.notifications`, JSONB,
-`NotificationSettings`), so each organization keeps its own and they follow the person to another browser. They hold
-the kinds turned off, so a kind added later starts on.
-
-| Route | Who | What it does |
-|---|---|---|
-| `GET /v1/notification-settings` | The signed-in member | Their settings in the current organization; everything on until they change it. |
-| `PUT /v1/notification-settings` | The signed-in member | Replaces them. A kind named twice in `off` is a 400. Session only, with antiforgery; no permission, because it changes only the caller's own membership. |
+Each member picks what they get in the In the app column of their notification grid, on Your account > Notifications
+([notifications.md](notifications.md#each-persons-choices)): Pause toasts, the toast kinds of each row (Teammates' moves and
+notes opens to its six), whether toasts close on their own, and the scope. The tray's cards for a mention and a candidate's
+reply follow the same column (`ToastKind.Mentions` and `Replies`, `cardShows` in `teammate-changes.ts`); the bell keeps both
+either way. The toast settings stay where the Teammate changes sheet kept them, on the membership
+(`organization_members.notifications`, JSONB, `NotificationSettings`), so each organization keeps its own and they follow the
+person to another browser. They hold the kinds turned off, so a kind added later starts on. The shell reads them from
+`GET /v1/account/notifications` (`toastSettingsFrom`) through its query cache, which the page invalidates when it saves, so
+the next toast follows the change. The Teammate changes sheet and `/v1/notification-settings` are gone.
 
 ### New applications
 
 `ApplicationSubmitted` with no `ActorUserId` is a candidate applying through the careers site, or an API key adding one.
 It toasts the members on the job's hiring team, under the New candidates kind and its existing setting, and nobody else:
-a member who sees the job without being on its team hears nothing. It is a toast only. The bell is for what needs
+a member who sees the job without being on its team hears nothing, unless their scope is Everything I can see. It is a toast only. The bell is for what needs
 attention and a busy job would fill it, so the backlog stays in the Not screened view and the Jobs table's Candidates
 and Last applied columns. A member who adds a candidate by hand is the actor, so they get no toast and the rest of the
 team gets "Jordan Ellis added Taylor Brook" as before.
@@ -298,9 +298,9 @@ otherwise run.
 | `packages/realtime` (Vitest) | backoff, reconnect and re-subscribe, 401 handling (against the real SignalR stack too), schema parsing, invalidation, the runes store |
 | `JobScopeRealtimeTests` (integration) | a member on Only jobs they're on receives events about their team's job and none about another, `TeamNotified` and `TeammateMentioned` included; subscribing to a hidden job fails; joining a team starts its events without a reconnect; leaving it, or a change of job access, closes the connection |
 | `TeammateChangesRealtimeTests` (integration) | a person's move, note, tags, scorecard, task create, complete and reopen, and email carry their `actorUserId`, and the task events `assigneeUserId`; the same move by an API key carries none; publishing a template another member last changed carries both ids; each reaches its own organization only |
-| `NotificationSettingsTests` (integration) | the defaults, saving and reading back, each member and each organization keeping their own, a kind named twice, antiforgery, and an API key refused |
+| `AccountNotificationsTests` (integration) | the grid's defaults, saving and reading back the toasts and the scope, each member and each organization keeping their own, a kind named twice, antiforgery, and an API key refused |
 | `teammate-changes.test.ts`, `teammate-toasts.test.ts`, `notifications.test.ts` (Vitest) | which changes toast and their words, grouping, new applications (the hiring team only, one count for a minute, replacing the toast in the tray), a mention's note left to its card, the shared limit of three, and the countdown and what holds it |
-| `TeammateToastsTests` (Playwright) | a recruiter's move shows as a toast in the owner's dashboard with its link, the owner's own move does not, turning Moves off in the sheet stops it, and on a phone the toast ends above the jobs list's action bar; a candidate applying toasts a member on the job's hiring team and not one who is off it, and a second application takes the first's place with a link to the job's Not screened candidates, which filters by the job even from the Candidates page |
+| `TeammateToastsTests` (Playwright) | a recruiter's move shows as a toast in the owner's dashboard with its link, the owner's own move does not, turning Moves off in the notification grid stops it, and on a phone the toast ends above the jobs list's action bar; a candidate applying toasts a member on the job's hiring team and not one who is off it, and a second application takes the first's place with a link to the job's Not screened candidates, which filters by the job even from the Candidates page |
 | `LiveUpdatesTests` (Playwright) | two browser contexts in one organization: publishing and closing a job in one updates the other without a reload, over the hub's WebSocket (no fallback transport) |
 
 `CheckLiveUpdates` exists so that a test, or an operator, can prove the worker-to-browser path without a feature that

@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Interview scheduling on team calendars"
-description: "Members connect their own Google, Outlook or sandbox calendar from the account menu: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off. The recruiter's side in the dashboard: the Schedule interview sheet on the candidate's page, the Interview panel on Overview, whose first fact is the booked time. Reminders to the candidate and the interviewers a day before a booked interview, and to the candidate an hour before. Moving a booked interview: the team offers new days, the booked time stays held until the candidate picks one, and the events in every calendar then move."
+description: "Members connect their own Google, Outlook or sandbox calendar on Your account: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off. The recruiter's side in the dashboard: the Schedule interview sheet on the candidate's page, the Interview panel on Overview, whose first fact is the booked time. Reminders to the candidate and the interviewers a day before a booked interview, and to the candidate an hour before. Moving a booked interview: the team offers new days, the booked time stays held until the candidate picks one, and the events in every calendar then move."
 tags: [scheduling, calendar, integrations, oauth]
 sources:
   - resource: src/ScreenHire.Domain/Scheduling/CalendarConnection.cs
@@ -42,6 +42,7 @@ sources:
   - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewReminderTests.cs
   - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewNewTimesTests.cs
   - resource: apps/dashboard/src/lib/components/calendar-account-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/calendar-connection.svelte
   - resource: apps/dashboard/src/lib/calendar.ts
   - resource: apps/dashboard/src/lib/schedule-interview.ts
   - resource: apps/dashboard/src/lib/components/schedule-interview-sheet.svelte
@@ -67,8 +68,9 @@ page the candidate books on, and the recruiter's side in the dashboard.
 
 ## Connecting a calendar
 
-Any member can connect a calendar from the Calendar item in the account menu. No permission is needed: each route
-changes only the caller's own row. The menu item shows only when this ScreenHire has a calendar to connect.
+Any member can connect a calendar on Your account > Connected accounts (`CalendarConnection`), or from the Calendar sheet a
+page opens when it needs one (scheduling an interview, through `shell.openCalendar()`). No permission is needed: each route
+changes only the caller's own row. The section shows only when this ScreenHire has a calendar to connect.
 
 | Route | What it does |
 |---|---|
@@ -82,7 +84,8 @@ handler signs a person in, while this stores tokens for later calls. Sign-in's o
 Data Protection under its own purpose, limited to ten minutes, and carries the provider, the organization, the member and
 a nonce. The nonce also sits in an HttpOnly, Lax cookie whose path is `/v1/calendar/oauth/callback`, so a state copied out
 of one browser does not work in another. The callback redirects to the dashboard with `?calendar=connected`, `denied`,
-`expired` or `failed`, and the account menu opens the sheet to show how it went.
+`expired` or `failed`, and the page it started on shows how it went: Connected accounts in its Calendar section, any other page
+in the Calendar sheet.
 
 The redirect URI is built like Slack's, `ScreenHire:Domains` plus the callback path, so it sits on the dashboard origin,
 which proxies `/v1`.
@@ -471,7 +474,7 @@ It opens `ScheduleInterviewSheet`, which lists the members who see the job from 
   starts ticked when their own calendar is connected. The first person ticked is the organizer, in the order of ticking, and
   the sheet says whose calendar sends the invitation.
 - When nobody can be ticked, the sheet shows one line and a Connect your calendar button instead of the form. The button
-  closes the sheet and opens the Calendar sheet of the account menu through `shell.openCalendar()`.
+  closes the sheet and opens the Calendar sheet through `shell.openCalendar()`.
 - Length is one of the six the API allows. The first and last day are the person's own days in the zone they pick, which
   starts as the browser's zone, and the working hours default to 9:00 to 17:00 on weekdays. `lib/schedule-interview.ts` turns
   the days into the instants the API takes: the start of the first day to the start of the day after the last, in the chosen

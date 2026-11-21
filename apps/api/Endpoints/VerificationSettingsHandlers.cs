@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Slack;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Hiring;
@@ -404,7 +405,8 @@ internal static class VerificationSettingsHandlers
     {
         var edits = permissions.Contains(Permission.EditSettings);
         var limits = permissions.Contains(Permission.ViewAiUsage)
-            ? await AiUsageHandlers.LimitsAsync(db, settings, options.Llm, now, cancellationToken)
+            ? await AiUsageHandlers.LimitsAsync(
+                db, settings, options.Llm, services.GetRequiredService<IOptions<BillingOptions>>().Value.AiMarginInForce, now, cancellationToken)
             : null;
         var last = settings is null
             ? null

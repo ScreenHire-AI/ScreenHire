@@ -19,10 +19,14 @@ export interface Shell {
   openPalette(): void;
   /** Opens the keyboard shortcuts dialog (`?`). */
   openShortcuts(): void;
-  /** Opens the Teammate changes sheet: which teammates' changes show as toasts. */
+  /** Goes to the person's notification choices on Your account. */
   openNotifications(): void;
-  /** Opens the Calendar sheet from the account menu, for a page that needs the person's calendar connected. */
+  /** Opens the Calendar sheet, for a page that needs the person's calendar connected (Your account has it too). */
   openCalendar(): void;
+  /** Whether this ScreenHire has a calendar to connect or a Slack workspace connected, which shows Connected accounts. */
+  hasConnections?(): boolean;
+  /** Reads the person's account again after a page changed it (their name, photo, time zone or habits). */
+  refreshAccount?(): void;
   /** The hub connection's state, for the top bar's Live indicator. */
   live(): ConnectionStatus;
   /** Which optional features this installation has (Slack today); a feature not heard from yet is missing, and counts as off. */

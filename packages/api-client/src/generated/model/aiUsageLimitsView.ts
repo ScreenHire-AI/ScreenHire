@@ -8,9 +8,11 @@ import type { AiUsageLimitView } from './aiUsageLimitView.ts';
 import type { UsageUnit } from './usageUnit.ts';
 
 /**
- * The organization's monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in
- * one `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are
- * what applies, which for ScreenHire's key falls back to the deployment's defaults, in tokens. An own key has no default.
+ * The organization's monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted
+ * in billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in
+ * dollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key's price,
+ * which for ScreenHire's key falls back to the deployment's defaults. An own key has no default. `priced`: the key in use has a
+ * price, so a limit can be set in dollars (an own key needs its two prices).
  */
 export interface AiUsageLimitsView {
   unit: UsageUnit;
@@ -20,4 +22,5 @@ export interface AiUsageLimitsView {
   cap: number | null;
   effectiveBudget: null | AiUsageLimitView;
   effectiveCap: null | AiUsageLimitView;
+  priced: boolean;
 }

@@ -236,7 +236,10 @@ public static partial class SendInterviewReminderHandler
             }
 
             await email.SendAsync(
-                InterviewReminderEmail.Compose(to, candidate.FullName, job.Title, organization.Name, timeText, interview.MeetingUrl, link, interview.MeetingNameOrDefault()), cancellationToken);
+                Notifications.TeamEmail.WithFooter(
+                    InterviewReminderEmail.Compose(to, candidate.FullName, job.Title, organization.Name, timeText, interview.MeetingUrl, link, interview.MeetingNameOrDefault()),
+                    dashboard),
+                cancellationToken);
             attendee.MarkReminded(start);
         }
     }

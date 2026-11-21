@@ -14,7 +14,7 @@ namespace ScreenHire.Api.Endpoints;
 /// The signed-in member's notifications, the bell in the dashboard's top bar (docs/architecture/notifications.md). Every
 /// route reads and writes only the caller's own rows: another member's id is a 404. Session only: an API key is no member and
 /// has no bell. No permission, because a notification is addressed to a person by the permission that raised it, and the
-/// routes change nothing but their own row, as <c>/v1/notification-settings</c> does. Not in the change history.
+/// routes change nothing but their own row, as the routes under <c>/v1/account</c> do. Not in the change history.
 /// </summary>
 internal static class NotificationEndpoints
 {

@@ -17,6 +17,7 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
+  import AccountMenu from '#lib/components/account-menu.svelte';
   import ActionBar from '#lib/components/action-bar.svelte';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
@@ -46,8 +47,8 @@
   import { cn } from '#lib/utils.js';
 
   // The signed-in person's passkeys (docs/architecture/sign-in-and-tenancy.md, "Passkeys"), on the list template. A
-  // passkey belongs to the person, not to an organization, so this page is under their menu and not under Settings, and
-  // needs no permission. Adding names the device first, then the browser's own prompt takes over; removing is confirmed,
+  // passkey belongs to the person, not to an organization, so this page is under Your account (Sign-in and security, whose
+  // entry stays current here) and not under Settings, and needs no permission. Adding names the device first, then the browser's own prompt takes over; removing is confirmed,
   // and the API refuses the last way to sign in, which the dialog shows in its own words.
   const passkeysPath = '/v1/auth/passkeys';
 
@@ -133,7 +134,7 @@
   <title>Passkeys · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={[{ label: 'Account' }, { label: 'Passkeys' }]} />
+<TopBar crumbs={[{ label: 'Account', href: '/account' }, { label: 'Sign-in and security', href: '/account/security' }, { label: 'Passkeys' }]} />
 
 <main class={[sidebar.isMobile && supported && 'pb-28']}>
   <HeaderBand
@@ -141,7 +142,7 @@
     actions={supported && !sidebar.isMobile ? bandActions : undefined}
   />
 
-  <div class="flex flex-col gap-5 px-4 py-6 md:px-6">
+  <AccountMenu current="/account/security">
     <p role="status" class="sr-only">{announcement}</p>
     {#if !supported}
       <Notice>This browser cannot add passkeys. Use a current version of Chrome, Edge, Safari or Firefox.</Notice>
@@ -216,7 +217,7 @@
         {/if}
       </Panel>
     {/if}
-  </div>
+  </AccountMenu>
 
   {#if sidebar.isMobile && supported}
     <ActionBar>

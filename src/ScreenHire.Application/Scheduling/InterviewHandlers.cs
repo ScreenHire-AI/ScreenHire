@@ -13,6 +13,7 @@ using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine;
 using Wolverine.Attributes;
+using ScreenHire.Application.Notifications;
 
 namespace ScreenHire.Application.Scheduling;
 
@@ -404,7 +405,7 @@ internal static partial class InterviewCalendarSync
 public static class CreateInterviewEventsHandler
 {
     [Deduplicated(ValueSource.InputMember, nameof(CreateInterviewEvents.IdempotencyKey))]
-    public static Task<OutgoingMessages> Handle(
+    public static async Task<OutgoingMessages> Handle(
         CreateInterviewEvents message,
         ScreenHireDbContext db,
         CalendarAccess calendar,
@@ -417,16 +418,21 @@ public static class CreateInterviewEventsHandler
         IOptions<DashboardLinkOptions> dashboard,
         TimeProvider time,
         ILogger<CreateInterviewEvents> logger,
-        CancellationToken cancellationToken) =>
-        InterviewCalendarSync.WriteAsync(
+        CancellationToken cancellationToken)
+    {
+        var outgoing = await InterviewCalendarSync.WriteAsync(
             message.OrganizationId, message.InterviewId, message.Revision, move: false, db, calendar, email, renderer, store, links, headers, routing, dashboard, time, logger, cancellationToken);
+        // The interviewers, by their own choices (docs/architecture/notifications.md); out of date by then, it tells nobody.
+        outgoing.Add(new NotifyInterviewChanged(message.OrganizationId, message.InterviewId, message.Revision, "Booked"));
+        return outgoing;
+    }
 }
 
 /// <summary>Moves each interviewer's event to the new time and confirms it to the candidate (<see cref="InterviewCalendarSync"/>).</summary>
 public static class UpdateInterviewEventsHandler
 {
     [Deduplicated(ValueSource.InputMember, nameof(UpdateInterviewEvents.IdempotencyKey))]
-    public static Task<OutgoingMessages> Handle(
+    public static async Task<OutgoingMessages> Handle(
         UpdateInterviewEvents message,
         ScreenHireDbContext db,
         CalendarAccess calendar,
@@ -439,16 +445,20 @@ public static class UpdateInterviewEventsHandler
         IOptions<DashboardLinkOptions> dashboard,
         TimeProvider time,
         ILogger<UpdateInterviewEvents> logger,
-        CancellationToken cancellationToken) =>
-        InterviewCalendarSync.WriteAsync(
+        CancellationToken cancellationToken)
+    {
+        var outgoing = await InterviewCalendarSync.WriteAsync(
             message.OrganizationId, message.InterviewId, message.Revision, move: true, db, calendar, email, renderer, store, links, headers, routing, dashboard, time, logger, cancellationToken);
+        outgoing.Add(new NotifyInterviewChanged(message.OrganizationId, message.InterviewId, message.Revision, "Moved"));
+        return outgoing;
+    }
 }
 
 /// <summary>Removes each interviewer's event and tells the candidate the interview is cancelled (<see cref="InterviewCalendarSync"/>).</summary>
 public static class CancelInterviewEventsHandler
 {
     [Deduplicated(ValueSource.InputMember, nameof(CancelInterviewEvents.IdempotencyKey))]
-    public static Task<OutgoingMessages> Handle(
+    public static async Task<OutgoingMessages> Handle(
         CancelInterviewEvents message,
         ScreenHireDbContext db,
         CalendarAccess calendar,
@@ -459,7 +469,11 @@ public static class CancelInterviewEventsHandler
         Applications.CandidateMailRouting routing,
         TimeProvider time,
         ILogger<CancelInterviewEvents> logger,
-        CancellationToken cancellationToken) =>
-        InterviewCalendarSync.CancelAsync(
+        CancellationToken cancellationToken)
+    {
+        var outgoing = await InterviewCalendarSync.CancelAsync(
             message.OrganizationId, message.InterviewId, message.Revision, message.TellCandidate, db, calendar, email, renderer, store, headers, routing, time, logger, cancellationToken);
+        outgoing.Add(new NotifyInterviewChanged(message.OrganizationId, message.InterviewId, message.Revision, "Cancelled", message.ActorUserId));
+        return outgoing;
+    }
 }
