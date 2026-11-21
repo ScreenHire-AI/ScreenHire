@@ -1,29 +1,52 @@
 <script lang="ts">
-  import type { ListVerificationActivityParams } from '@screenhire/api-client';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
+  import type { ListVerificationActivityParams, VerificationActivityCheck, VerificationActivityRun } from '@screenhire/api-client';
   import { createListVerificationActivity } from '@screenhire/api-client/svelte-query';
   import Self from '#lib/components/verification-area/activity-rows.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
-  import TruncatedText from '#lib/components/truncated-text.svelte';
   import { needsAttention } from '#lib/status.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
-  import { activityCheckLabel, activityGroupLabels, activityOutcomeLabels, activityOutcomeStatuses } from '#lib/activity-log.js';
+  import { activityCheckLabel, activityGroupLabels, activityOutcomeLabels, activityOutcomeStatuses, callOutcomeLabels, runLabel } from '#lib/activity-log.js';
   import { formatCost, formatTokens, keySourceLabels, pageSize } from '#lib/ai-usage.js';
-  import { formatDateTime } from '#lib/dates.js';
+  import { formatDate, formatDateTime, formatTime } from '#lib/dates.js';
+  import type { SvelteSet } from 'svelte/reactivity';
   import { describeError } from '#lib/query.js';
+  import { cn } from '#lib/utils.js';
 
-  // Rows for one page of the activity log (newest first) and, after them, a button that renders the next page the same way:
-  // the cursor is the `nextBefore` of the page above, so a page never needs to know the ones before it. Rendered inside the
-  // table, one tbody per page. `usage` adds the columns that show what a call cost and the provider's request id.
-  let { filters, usage, before }: { filters: ListVerificationActivityParams; usage: boolean; before?: string } = $props();
+  // One page of the activity log (newest first), one row per run of the checks over an application, and after them a button
+  // that renders the next page the same way: the cursor is the `nextBefore` of the page above, so a page never needs to know the
+  // ones before it. Rendered inside the table, one tbody per page. A row's Outcome is its status and nothing else; the row opens
+  // (A9) to its checks: why one did not run, what one found in the candidate tab's words, and for the AI check, with `usage`, the
+  // model, key, tokens, cost and the provider's request id (the API sends those only to who can see AI usage). Thresholds,
+  // weights and rules never appear. Which runs are open is the page's (`open`), so Expand all reaches every page shown; each
+  // page adds its runs to `loaded` for it.
+  let {
+    filters,
+    before,
+    open,
+    loaded,
+  }: { filters: ListVerificationActivityParams; before?: string; open: SvelteSet<string>; loaded: SvelteSet<string> } = $props();
 
   const activity = createListVerificationActivity(() => ({ ...filters, before, limit: pageSize }));
   const page = $derived(activity.data?.data);
-  const columns = $derived(usage ? 11 : 5);
+  const columns = 3;
   let more = $state(false);
+  $effect(() => {
+    for (const run of page?.runs ?? []) loaded.add(run.id);
+  });
+  const toggle = (id: string) => (open.has(id) ? open.delete(id) : open.add(id));
+
+  const detailId = (run: VerificationActivityRun) => `activity-run-${run.id.replace(/[^a-z0-9]/gi, '-')}`;
+  const outcomeLabel = (check: VerificationActivityCheck) =>
+    check.kind === 'ModelCall' ? (callOutcomeLabels[check.outcome] ?? activityOutcomeLabels[check.outcome]) : activityOutcomeLabels[check.outcome];
 </script>
+
+{#snippet outcome(value: VerificationActivityRun['outcome'], label: string)}
+  <StatusBadge status={activityOutcomeStatuses[value]} {label} quiet={!needsAttention(activityOutcomeStatuses[value])} />
+{/snippet}
 
 {#if activity.isError && !page}
   <tbody>
@@ -42,40 +65,85 @@
   </tbody>
 {:else}
   <Table.Body>
-    {#each page.entries as entry (entry.id)}
-      <Table.Row>
-        <Table.Cell class="whitespace-nowrap tabular-nums"><time datetime={entry.at} title={formatDateTime(entry.at)}>{formatDateTime(entry.at)}</time></Table.Cell>
-        <Table.Cell class="whitespace-nowrap">{activityCheckLabel(entry.check)}</Table.Cell>
-        <Table.Cell class="whitespace-nowrap">{#if entry.group}{activityGroupLabels[entry.group]}{:else}<span class="sr-only">No group</span>{/if}</Table.Cell>
-        <Table.Cell>
-          <span class="flex items-center gap-2">
-            <!-- A check that completed is the calm default, so its cell stays blank and only the exceptions are marked (T3). -->
-            {#if entry.outcome === 'Completed'}
-              <span class="sr-only">{activityOutcomeLabels.Completed}</span>
-            {:else}
-              <StatusBadge status={activityOutcomeStatuses[entry.outcome]} label={activityOutcomeLabels[entry.outcome]} quiet={!needsAttention(activityOutcomeStatuses[entry.outcome])} />
-            {/if}
-            {#if entry.note}<TruncatedText text={entry.note} class="max-w-56 text-muted-foreground" />{/if}
-          </span>
+    {#each page.runs as run (run.id)}
+      {@const expanded = open.has(run.id)}
+      <Table.Row data-run={run.id} data-row-opens class="hover:bg-secondary/60" onclick={(event) => {
+        // The whole row opens it; the button inside is the control for keyboards and screen readers.
+        if (!(event.target as HTMLElement).closest('button, a')) toggle(run.id);
+      }}>
+        <!-- On a phone the time and the run's words wrap, so Outcome stays in view and an opened run fits the panel (F1). -->
+        <Table.Cell class="whitespace-normal tabular-nums">
+          <time datetime={run.at} title={formatDateTime(run.at)}><span class="whitespace-nowrap">{formatDate(run.at)},</span> <span class="whitespace-nowrap">{formatTime(run.at)}</span></time>
         </Table.Cell>
-        <Table.Cell>
-          {#if entry.applicationId}
-            <a href={`/applications/${entry.applicationId}`} class="inline-flex min-h-6 items-center whitespace-nowrap underline underline-offset-2 pointer-coarse:min-h-11">{entry.jobTitle ?? 'Application'}</a>
-          {:else}
-            <span class="sr-only">No application</span>
-          {/if}
+        <Table.Cell class="whitespace-normal">
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={expanded ? detailId(run) : undefined}
+            onclick={() => toggle(run.id)}
+            class="-mx-1 inline-flex min-h-6 items-center gap-1.5 rounded-sm px-1 text-left focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
+          >
+            <span>{runLabel(run)}</span>
+            <ChevronDownIcon
+              aria-hidden="true"
+              class={cn('size-4 shrink-0 text-muted-foreground transition-transform duration-180 ease-in-out motion-reduce:transition-none', expanded && 'rotate-180')}
+            />
+          </button>
         </Table.Cell>
-        {#if usage}
-          <Table.Cell>{#if entry.call}<TruncatedText text={entry.call.model} class="max-w-48" />{:else}<span class="sr-only">Not a model call</span>{/if}</Table.Cell>
-          <Table.Cell class="whitespace-nowrap">{#if entry.call}{keySourceLabels[entry.call.keySource]}{/if}</Table.Cell>
-          <Table.Cell>
-            {#if entry.call?.providerRequestId}<TruncatedText text={entry.call.providerRequestId} class="max-w-48" />{:else if entry.call}<span class="sr-only">No request id sent</span>{/if}
-          </Table.Cell>
-          <Table.Cell class="text-right tabular-nums">{#if entry.call}{formatTokens(entry.call.inputTokens)}{#if entry.call.inputTokens === null}<span class="sr-only">Not reported</span>{/if}{/if}</Table.Cell>
-          <Table.Cell class="text-right tabular-nums">{#if entry.call}{formatTokens(entry.call.outputTokens)}{#if entry.call.outputTokens === null}<span class="sr-only">Not reported</span>{/if}{/if}</Table.Cell>
-          <Table.Cell class="text-right tabular-nums">{#if entry.call}{#if entry.call.cost === null}<span class="sr-only">Unknown cost</span>{:else}{formatCost(entry.call.cost)}{/if}{/if}</Table.Cell>
-        {/if}
+        <Table.Cell class="whitespace-nowrap">
+          {@render outcome(run.outcome, run.checks === 0 ? outcomeLabel(run.items[0]!) : activityOutcomeLabels[run.outcome])}
+        </Table.Cell>
       </Table.Row>
+      {#if expanded}
+        <Table.Row id={detailId(run)} data-run-detail class="hover:bg-transparent">
+          <Table.Cell colspan={columns} class="bg-muted/40 px-4.5 py-3 whitespace-normal max-md:px-4">
+            <ul class="flex flex-col divide-y divide-border-subtle" aria-label={`Checks in ${runLabel(run)}`}>
+              {#each run.items as check (check.id)}
+                <li class="flex flex-col gap-1 py-2.5 first:pt-0 last:pb-0" data-check={check.check}>
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span class="font-medium">{activityCheckLabel(check.check)}</span>
+                    {#if check.group}<span class="text-muted-foreground">{activityGroupLabels[check.group]}</span>{/if}
+                    {@render outcome(check.outcome, outcomeLabel(check))}
+                  </div>
+                  {#if check.reason}<p class="max-w-measure text-muted-foreground">{check.reason}</p>{/if}
+                  {#if check.findings.length > 0}
+                    <ul class="flex list-disc flex-col gap-0.5 pl-5" aria-label="What it found">
+                      {#each check.findings as finding (finding)}<li class="max-w-measure">{finding}</li>{/each}
+                    </ul>
+                  {/if}
+                  {#if check.call}
+                    <!-- What a model call cost and where to find it in the provider's own logs: only for who can see AI usage. -->
+                    <dl class="flex flex-wrap gap-x-5 gap-y-1 text-muted-foreground" data-call>
+                      <div class="flex gap-1.5"><dt>Model</dt><dd class="break-all text-foreground">{check.call.model}</dd></div>
+                      <div class="flex gap-1.5"><dt>Key</dt><dd class="text-foreground">{keySourceLabels[check.call.keySource]}</dd></div>
+                      <div class="flex gap-1.5">
+                        <dt>Tokens</dt>
+                        <dd class="text-foreground tabular-nums">
+                          {check.call.inputTokens === null ? 'Not reported' : formatTokens(check.call.inputTokens)} in, {check.call.outputTokens === null
+                            ? 'not reported'
+                            : formatTokens(check.call.outputTokens)} out
+                        </dd>
+                      </div>
+                      <div class="flex gap-1.5"><dt>Cost</dt><dd class="text-foreground tabular-nums">{formatCost(check.call.cost)}</dd></div>
+                      <div class="flex gap-1.5">
+                        <dt>Provider request id</dt>
+                        <dd class="break-all text-foreground">{check.call.providerRequestId ?? 'None sent'}</dd>
+                      </div>
+                    </dl>
+                  {/if}
+                </li>
+              {/each}
+            </ul>
+            <!-- Audit details come last (W10): the application to open, then the ruleset the run was read under. -->
+            <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+              {#if run.applicationId}
+                <a href={`/applications/${run.applicationId}`} class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11">Open application</a>
+              {/if}
+              {#if run.rulesetVersion}<span class="text-caption text-muted-foreground">Ruleset {run.rulesetVersion}</span>{/if}
+            </div>
+          </Table.Cell>
+        </Table.Row>
+      {/if}
     {:else}
       {#if !before}
         <Table.Row><Table.Cell colspan={columns} class="text-muted-foreground">No activity matches.</Table.Cell></Table.Row>
@@ -84,7 +152,7 @@
   </Table.Body>
   {#if page.nextBefore}
     {#if more}
-      <Self {filters} {usage} before={page.nextBefore} />
+      <Self {filters} before={page.nextBefore} {open} {loaded} />
     {:else}
       <tbody>
         <tr>

@@ -435,10 +435,12 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // Added by hand, so Verification says which groups had nothing to look at, once the checks have run.
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Verification") }).ClickAsync();
-        var notRun = Page.Locator("[data-not-run]");
-        await Expect(notRun.Locator("[data-group='Network']")).ToContainTextAsync("Not checked", new() { Timeout = 30_000 });
-        await Expect(notRun.Locator("[data-group='Network']")).ToContainTextAsync("Added by hand");
-        await Expect(notRun.Locator("[data-group='FormUse']")).ToContainTextAsync("Not checked");
+        var tiles = Page.Locator("[data-group-map]");
+        await Expect(tiles.Locator("[data-group='Network']")).ToContainTextAsync("Did not run", new() { Timeout = 30_000 });
+        await Expect(tiles.Locator("[data-group='FormUse']")).ToContainTextAsync("Did not run");
+        // Why is one hover away, in the tile's tooltip.
+        await tiles.Locator("[data-group='Network'] [tabindex='0']").HoverAsync();
+        await Expect(Page.Locator("[data-slot='tooltip-content']").First).ToContainTextAsync("Added by hand");
         await ExpectNoAccessibilityViolationsAsync();
     }
 

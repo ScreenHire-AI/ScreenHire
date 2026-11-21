@@ -436,9 +436,9 @@ that may open it. Under
 `/settings/*`, Organization holds General, Team, Roles, Tags, Email domain, Data requests and Billing; Careers site holds Careers page and
 Branding; Integrations holds Slack, MCP server, Webhooks and API keys. Email templates are on the Templates page, and their old
 `/settings/email-templates` addresses redirect there; the old Integrations directory (`/settings/integrations`) redirects to the home.
-Verification is a sidebar item of its own at `/verification`, for every member: its Overview, Activity log, Checks and Policy tabs
-are open to all, Usage needs View AI usage and All jobs, and AI model and Notifications need Edit settings (`verificationTabs` in
-`apps/dashboard/src/lib/verification-area.ts`). `/settings/verification` and `/settings/integrity` redirect to it. A page's menu lists only the pages of its group, and its breadcrumb is Settings, the group and
+Verification is a sidebar item of its own at `/verification`, for every member: its Overview, Activity log and Checks tabs are open
+to all, and AI use needs View AI usage with All jobs or Edit settings, each of its parts behind its own permission (`verificationTabs`
+in `apps/dashboard/src/lib/verification-area.ts`). `/settings/verification` and `/settings/integrity` redirect to it. A page's menu lists only the pages of its group, and its breadcrumb is Settings, the group and
 the page; each page is behind its permission (`settingsSections` and `settingsGroups` in `apps/dashboard/src/lib/settings.ts`, the
 integrations from `integrations` in `apps/dashboard/src/lib/integrations.ts`), and the command palette finds the same settings by the
 same words (`searchSettings`). Settings search also lists the pages people look for there that live in an area of their own (`settingsElsewhere`, `searchElsewhere`: Templates and the Verification tabs), only for a role that may open them. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its

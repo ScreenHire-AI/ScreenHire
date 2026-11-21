@@ -179,7 +179,7 @@ public sealed class AiUsageTests(AppHostFixture fixture)
                 limit.GetProperty("unit").GetString().Should().Be("Money", $"{path} {name}");
                 limit.GetProperty("isDefault").GetBoolean().Should().BeTrue();
                 limit.GetProperty("amount").GetDecimal().Should().Be(AiUsageMix.LimitInDollars(2_000_000, perMillion));
-                limit.GetProperty("used").GetDecimal().Should().Be(1.50m, "the billed amount, the same the Usage tab shows");
+                limit.GetProperty("used").GetDecimal().Should().Be(1.50m, "the billed amount, the same the AI use tab shows");
                 limit.GetProperty("percent").GetInt32().Should().Be((int)Math.Floor(150m / AiUsageMix.LimitInDollars(2_000_000, perMillion)), "the share is of billed dollars");
             }
         }
@@ -398,7 +398,7 @@ public sealed class AiUsageTests(AppHostFixture fixture)
 
         var bell = await tenant.WaitForItemsAsync(1);
         bell.Text("items.0.kind").Should().Be("ai-usage-cap");
-        bell.Text("items.0.link").Should().Be("/verification/usage");
+        bell.Text("items.0.link").Should().Be("/verification/ai-use");
 
         (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 100_000 })).Expect(HttpStatusCode.OK);
         await WolverineStore.WaitUntilAsync(

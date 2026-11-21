@@ -1,23 +1,24 @@
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The Verification area in a real browser: seven tabs under one header band, each at its own path. An owner walks all of them,
-/// changes a check group and the AI-use policy and finds both saved after a reload; a Recruiter has the four read-only tabs, sees
-/// plain text instead of switches, and is sent back to the Overview from a tab their role cannot use. Each test that makes an
-/// organization signs in as a new owner of a new one.
+/// The Verification area in a real browser: four tabs under one header band, each at its own path. An owner walks all of them,
+/// turns a check group off and changes the AI-use policy on Checks with one Save and finds both saved after a reload; an old
+/// tab's address lands on the tab that holds its settings now; a Recruiter has the three tabs their role may use, sees plain text
+/// instead of switches, and is sent back to the Overview from AI use. Each test that makes an organization signs in as a new owner
+/// of a new one.
 /// </summary>
 public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixture)
 {
-    private static readonly string[] EveryTab = ["Overview", "Activity log", "Usage", "Checks", "Policy", "AI model", "Notifications"];
+    private static readonly string[] EveryTab = ["Overview", "Activity log", "Checks", "AI use"];
 
-    private static readonly string[] ReadOnlyTabs = ["Overview", "Activity log", "Checks", "Policy"];
+    private static readonly string[] ReadOnlyTabs = ["Overview", "Activity log", "Checks"];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private ILocator Tabs => Page.GetByRole(AriaRole.Tablist, new() { Name = "Verification pages" }).GetByRole(AriaRole.Tab);
 
     [Fact]
-    public async Task An_owner_walks_all_seven_tabs_and_a_change_to_the_checks_and_the_policy_is_saved()
+    public async Task An_owner_walks_the_four_tabs_and_a_group_and_the_policy_saved_together_on_Checks_stay_saved()
     {
         await SignInAsNewOwnerAsync();
         await Page.SetViewportSizeAsync(1440, 1000);
@@ -27,70 +28,51 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await Expect(Tabs).ToHaveTextAsync(EveryTab);
         await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Overview" })).ToHaveAttributeAsync("aria-selected", "true");
         await Expect(Page.GetByText("Applications checked")).ToBeVisibleAsync();
-        await Expect(Page.GetByText("No group of checks found anything this month.")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
         await OpenTabAsync("Activity log", "/verification/activity");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity table" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Export CSV" })).ToBeVisibleAsync();
-        await Page.GetByRole(AriaRole.Combobox, new() { Name = "Filter by outcome" }).SelectOptionAsync(new SelectOptionValue { Value = "Failed" });
+        await Page.GetByRole(AriaRole.Combobox, new() { Name = "Filter by outcome" }).SelectOptionAsync(new SelectOptionValue { Value = "Found" });
         await Expect(Page.GetByText("No activity matches.")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
-        await OpenTabAsync("Usage", "/verification/usage");
-        await Expect(Page.GetByText("Model calls", new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Use by day, this month" })).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Monthly limits" })).ToBeVisibleAsync();
-        await ExpectNoAccessibilityViolationsAsync();
-
-        // Checks: turn Documents off, save, and find it off after a reload.
+        // Checks: turn Documents off and the AI-use policy to Not allowed, one Save, and find both after a reload.
         await OpenTabAsync("Checks", "/verification/checks");
         var documents = Page.GetByRole(AriaRole.Switch, new() { Name = "Documents" });
         await Expect(documents).ToBeCheckedAsync();
         await documents.ClickAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
-        await Expect(Page.GetByText("Saved. It applies from the next application.")).ToBeVisibleAsync();
-        await ExpectNoAccessibilityViolationsAsync();
-        await Page.ReloadAsync();
-        await Expect(Page.GetByRole(AriaRole.Switch, new() { Name = "Documents" })).Not.ToBeCheckedAsync();
-        await Expect(Page.GetByRole(AriaRole.Switch, new() { Name = "Network" })).ToBeCheckedAsync();
-
-        // Policy: the organization's AI-use policy, which has no Signal Network control.
-        await OpenTabAsync("Policy", "/verification/policy");
-        await Page.GetByLabel("AI use while applying").SelectOptionAsync(new SelectOptionValue { Value = "NotAllowed" });
+        var answers = Page.Locator("[data-check-group='Answers']");
+        await answers.GetByRole(AriaRole.Combobox, new() { Name = "AI use while applying", Exact = true }).SelectOptionAsync(new SelectOptionValue { Value = "NotAllowed" });
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
         await Expect(Page.GetByText("Saved. It applies from the next application.")).ToBeVisibleAsync();
         await Expect(Page.GetByText("Signal Network")).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await Page.ReloadAsync();
-        await Expect(Page.GetByLabel("AI use while applying")).ToHaveValueAsync("NotAllowed");
-
-        // The Policy tab saved only the policy: the group turned off on Checks is still off.
-        await OpenTabAsync("Checks", "/verification/checks");
         await Expect(Page.GetByRole(AriaRole.Switch, new() { Name = "Documents" })).Not.ToBeCheckedAsync();
+        await Expect(Page.GetByRole(AriaRole.Switch, new() { Name = "Network" })).ToBeCheckedAsync();
+        await Expect(answers.GetByRole(AriaRole.Combobox, new() { Name = "AI use while applying", Exact = true })).ToHaveValueAsync("NotAllowed");
 
-        await OpenTabAsync("AI model", "/verification/ai-model");
-        await Expect(Page.GetByRole(AriaRole.Radio, new() { Name = "ScreenHire's included model" })).ToBeCheckedAsync();
-        await ExpectNoAccessibilityViolationsAsync();
-
-        await OpenTabAsync("Notifications", "/verification/notifications");
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Alerts" })).ToBeVisibleAsync();
+        await OpenTabAsync("AI use", "/verification/ai-use");
+        await Expect(Page.GetByText("Model calls", new() { Exact = true })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Monthly limits" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Radio, new() { Name = "ScreenHire's key" })).ToBeCheckedAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
-        // The AI-use row in a hiring template links to the Policy tab.
-        await GoToAsync("dashboard", "/verification/usage");
-        await Expect(Page).ToHaveURLAsync(DashboardUrl("/verification/usage"));
+        // A link from before the tabs merged lands on the tab that holds its settings now.
+        await GoToAsync("dashboard", "/verification/policy");
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/verification/checks"));
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Checks" })).ToHaveAttributeAsync("aria-selected", "true");
     }
 
     [Fact]
-    public async Task The_owners_phone_has_the_same_seven_tabs_in_a_strip_that_scrolls_and_no_sideways_page_scroll()
+    public async Task The_owners_phone_has_the_same_four_tabs_and_no_sideways_page_scroll()
     {
         await SignInAsNewOwnerAsync();
         await Page.SetViewportSizeAsync(390, 844);
-        await GoToAsync("dashboard", "/verification");
+        await GoToAsync("dashboard", "/verification/checks");
 
-        await Expect(Page.GetByText("Applications checked")).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Switch, new() { Name = "Network" })).ToBeVisibleAsync();
         await Expect(Tabs).ToHaveTextAsync(EveryTab);
         (await Page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= document.documentElement.clientWidth"))
             .Should().BeTrue("the page never scrolls sideways; the tab strip does");
@@ -98,7 +80,7 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
     }
 
     [Fact]
-    public async Task A_recruiter_has_the_four_read_only_tabs_with_text_instead_of_switches_and_is_sent_back_from_a_tab_their_role_cannot_use()
+    public async Task A_recruiter_has_three_tabs_with_text_instead_of_switches_and_is_sent_back_from_AI_use()
     {
         const string recruiter = "jordan@brightwater.example.com"; // the seeded Brightwater Recruiter (DevSso/config.json)
         await SignInAsync(recruiter);
@@ -108,31 +90,22 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Verification", Exact = true })).ToBeVisibleAsync();
         await Expect(Tabs).ToHaveTextAsync(ReadOnlyTabs);
         await Expect(Page.GetByText("Applications checked")).ToBeVisibleAsync();
-        await ExpectNoAccessibilityViolationsAsync();
 
         await OpenTabAsync("Activity log", "/verification/activity");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity table" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Export CSV" })).ToHaveCountAsync(0);
-        await Expect(Page.GetByRole(AriaRole.Columnheader, new() { Name = "Provider request id" })).ToHaveCountAsync(0);
 
         await OpenTabAsync("Checks", "/verification/checks");
-        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Check groups" }).GetByRole(AriaRole.Listitem)).ToHaveCountAsync(6);
-        await Expect(Page.GetByRole(AriaRole.Switch)).ToHaveCountAsync(0);
-        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Save" })).ToHaveCountAsync(0);
-        await ExpectNoAccessibilityViolationsAsync();
-
-        await OpenTabAsync("Policy", "/verification/policy");
+        await Expect(Page.Locator("[data-check-group]")).ToHaveCountAsync(6);
         await Expect(Page.GetByText("AI use while applying")).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Switch)).ToHaveCountAsync(0);
         await Expect(Page.GetByRole(AriaRole.Combobox)).ToHaveCountAsync(0);
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Save" })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
 
-        foreach (var path in new[] { "/verification/usage", "/verification/ai-model", "/verification/notifications" })
-        {
-            await GoToAsync("dashboard", path);
-            await Expect(Page).ToHaveURLAsync(DashboardUrl("/verification"));
-            await Expect(Page.GetByText("Applications checked")).ToBeVisibleAsync();
-        }
+        await GoToAsync("dashboard", "/verification/ai-use");
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/verification"));
+        await Expect(Page.GetByText("Applications checked")).ToBeVisibleAsync();
     }
 
     private async Task OpenTabAsync(string name, string path)

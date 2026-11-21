@@ -76,7 +76,7 @@ public sealed class SignalGroupTests
     [InlineData(CheckGroup.Documents, "documents")]
     [InlineData(CheckGroup.Answers, "answers")]
     [InlineData(CheckGroup.Duplicates, "duplicates")]
-    [InlineData(CheckGroup.FormUse, "form use")]
+    [InlineData(CheckGroup.FormUse, "form activity")]
     public void The_summary_names_a_group_as_a_phrase(CheckGroup group, string expected) =>
         CheckGroups.SentenceName(group).Should().Be(expected);
 }

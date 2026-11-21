@@ -58,7 +58,7 @@ public static class AiUsageQueries
 
     /// <summary>
     /// What the organization's calls have used this month, in <paramref name="unit"/>: tokens, or billed dollars at
-    /// <paramref name="margin"/> (<see cref="BilledAmount"/>). A call with an unknown cost counts nothing toward dollars; the Usage tab
+    /// <paramref name="margin"/> (<see cref="BilledAmount"/>). A call with an unknown cost counts nothing toward dollars; the AI use tab
     /// says how many there are.
     /// </summary>
     public static async Task<decimal> UsedThisMonthAsync(

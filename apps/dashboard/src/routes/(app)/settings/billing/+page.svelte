@@ -163,7 +163,7 @@
         </Panel>
 
         <!-- What the organization pays this month, each charge on its line and added up, then the next invoice (docs/architecture/billing.md,
-             "The Billing page"). The AI line is the one amount the Usage tab shows too, and links to it. -->
+             "The Billing page"). The AI line is the one amount the AI use tab shows too, and links to it. -->
         {#if month}
           <Panel title="This month so far">
             <div class="flex max-w-form flex-col gap-3">
@@ -178,7 +178,7 @@
                   <li class="flex items-baseline justify-between gap-4 py-1.5">
                     <span>
                       AI use,
-                      <a href="/verification/usage" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11"
+                      <a href="/verification/ai-use" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11"
                         >{aiCallsText(month.aiCalls)}</a
                       >
                     </span>
@@ -302,7 +302,7 @@
   <div class="flex flex-col gap-1 text-muted-foreground">
     <p>Bring your own key and this charge goes away.</p>
     <div class="flex flex-wrap gap-x-4">
-      <a href="/verification" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">Use your own key</a>
+      <a href="/verification/ai-use" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">Use your own key</a>
       <a href="/verification/activity" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">See every call</a>
     </div>
   </div>

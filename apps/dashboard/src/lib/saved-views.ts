@@ -1,4 +1,4 @@
-import type { ApplicationSummary } from '@screenhire/api-client';
+import type { ApplicationSummary, AuthenticityLevel } from '@screenhire/api-client';
 import CalendarCheckIcon from '~icons/lucide/calendar-check';
 import CalendarPlusIcon from '~icons/lucide/calendar-plus';
 import InboxIcon from '~icons/lucide/inbox';
@@ -17,6 +17,8 @@ export type SavedView = {
   id: string;
   label: string;
   matches(application: ApplicationSummary, now: number): boolean;
+  /** The verification level a view is, which the filter row shows as its Verification filter (`#lib/view-filters.ts`). */
+  authenticity?: AuthenticityLevel;
 } & ({ status: StatusName; icon?: never } | { icon: LucideIcon; status?: never });
 
 const day = 24 * 60 * 60 * 1000;
@@ -24,19 +26,22 @@ const week = 7 * day;
 
 /**
  * The sidebar's saved views, in order. They open `/candidates?view=<id>`. The verification views follow authenticity only:
- * AI assistance is information, not a queue (ADR-0004). A dismissed assessment leaves both.
+ * AI assistance is information, not a queue (ADR-0004). To review holds Review and To verify holds Verify, so the two never
+ * overlap (the owner's walk-through, 2026-11-21). A dismissed assessment leaves both.
  */
 export const savedViews: readonly SavedView[] = [
   {
     id: 'needs-review',
     label: 'To review',
     status: 'review',
+    authenticity: 'ReviewSuggested',
     matches: (application) => needsReview(application),
   },
   {
     id: 'verification-recommended',
     label: 'To verify',
     status: 'verification',
+    authenticity: 'VerificationRecommended',
     matches: (application) => verificationRecommended(application),
   },
   {

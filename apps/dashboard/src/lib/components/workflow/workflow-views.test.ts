@@ -313,7 +313,7 @@ describe('workflow builder', () => {
     const { container } = render(WithQueryClient, {
       props: {
         component: WorkflowHarness,
-        props: { workflow: structuredClone(workflow), errors: [], mode: 'editor', tab: 'questions', aiUse: { policy: 'NotAllowed', href: '/verification/policy' } },
+        props: { workflow: structuredClone(workflow), errors: [], mode: 'editor', tab: 'questions', aiUse: { policy: 'NotAllowed', href: '/verification/checks' } },
       },
     });
     const pane = screen.getByRole('tabpanel', { name: 'Questions' });
@@ -325,7 +325,7 @@ describe('workflow builder', () => {
 
     // The AI-use question is locked: ScreenHire asks it, and the policy is the organization's.
     expect(pane.querySelector('[data-ai-use-row]')).toHaveTextContent('AI use. Asked by ScreenHire. Policy: Not allowed.');
-    expect(within(pane).getByRole('link', { name: 'Change policy' })).toHaveAttribute('href', '/verification/policy');
+    expect(within(pane).getByRole('link', { name: 'Change policy' })).toHaveAttribute('href', '/verification/checks');
     expect(within(pane).queryByRole('combobox', { name: 'AI use while applying' })).toBeNull();
 
     // Ask more later asks when, then makes the form and the automation that emails it.

@@ -22,17 +22,17 @@ sources:
   - resource: apps/dashboard/src/lib/verification-settings-save.ts
   - resource: apps/dashboard/src/lib/verification-settings.ts
   - resource: apps/dashboard/src/lib/components/verification-area/ai-model-form.svelte
-  - resource: apps/dashboard/src/lib/components/verification-area/alerts-form.svelte
-  - resource: apps/dashboard/src/lib/components/verification-area/checks-form.svelte
-  - resource: apps/dashboard/src/lib/components/verification-area/policy-form.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/checks-settings.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/trusted-list.svelte
+  - resource: apps/dashboard/src/lib/components/verification-area/ai-usage-alert-form.svelte
+  - resource: apps/dashboard/src/lib/components/alert-grid.svelte
   - resource: apps/dashboard/src/lib/components/verification-area/settings-tab.svelte
   - resource: apps/dashboard/src/lib/components/verification-area/activity-rows.svelte
   - resource: apps/dashboard/src/routes/(app)/verification/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/verification/activity/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/verification/checks/+page.svelte
-  - resource: apps/dashboard/src/routes/(app)/verification/policy/+page.svelte
-  - resource: apps/dashboard/src/routes/(app)/verification/ai-model/+page.svelte
-  - resource: apps/dashboard/src/routes/(app)/verification/notifications/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/ai-use/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/policy/+page.ts
   - resource: apps/dashboard/src/routes/(app)/verification/tab-guard.ts
   - resource: src/ScreenHire.Domain/Verification/DeviceCheckBasis.cs
   - resource: src/ScreenHire.Domain/Verification/TrustedSources.cs
@@ -261,11 +261,12 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   three-step level mark on Review and Verify, with a bare AI mark beside it for Some and Strong signs only, sortable
   (Verify, Review, Dismissed, Clear, then Pending) and filterable from a "Verification" menu on the Candidates list, with
   calm Clear quiet and the reason count and long names heard by screen readers only; a job's verification filter chips,
-  one per state with its count, which filter the job's table and board; the "To review" and "To verify" saved views (authenticity above its lowest level,
-  not dismissed; AI assistance is information, not a queue); and the candidate's Verification tab. While authenticity
+  one per state with its count, which filter the job's table and board; the "To review" and "To verify" saved views (Review and Verify, each
+  not dismissed, so the two never overlap; each shows its level in the Candidates filter row, "Verification: Review" and
+  "Verification: Verify", and choosing another level leaves the view; AI assistance is information, not a queue); and the candidate's Verification tab. While authenticity
   needs a look and is not dismissed, its state is the candidate's status beside their name and the tab's grey
   count is the signals behind it. The tab is organised by the six groups of checks the engine runs (`CheckGroup`:
-  Network, Contact details, Documents, Answers, Duplicates, Form use), not by the two assessments. It opens with the
+  Network, Contact details, Documents, Answers, Duplicates, Form activity), not by the two assessments. It opens with the
   suggested next step (a callout in the level's colour with the summary under it when the level needs a look, one quiet
   line otherwise) and Dismiss, then AI help as information (its badge, the job's policy as a pill, and for Some and
   Strong signs its summary and next step), then a map of the six groups, each tile with one state: `Found` (counts toward
@@ -273,8 +274,11 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   it is a panel for each group that has findings, each finding expanding to its evidence drawn by kind (§10.1) and
   counter-evidence. The API computes the states (`checkGroups` on the verification view, from the signals, the
   analyzers' run notes and the application's source) and each signal's `group` (from its source analyzer through
-  `CheckGroups.ByAnalyzer`), so the dashboard holds no second table. A calm result (no finding in any group) is one line, the
-  AI row, one line for each group that was turned off or not checked, and a collapsed "What was checked". The level
+  `CheckGroups.ByAnalyzer`), so the dashboard holds no second table. The tiles read "Nothing found", "Off" (`TurnedOff`) and
+  "Did not run" (`NotChecked`). A clear result (no finding in any group) is a check icon and "Nothing unusual found", never
+  "Verified" or "Genuine", with the next step under it, the AI row, and the same six tiles a flagged result gets, so it shows
+  what was looked at. A group's note (why it was off, what a trusted list kept it from counting) is in its tile's tooltip. Run
+  notes are stored values: `RunNotes.Describe` words one written under a group's old name in the current one. The level
   is the page header's mark, shown once. Each finding of an authenticity result above its lowest level and not dismissed that
   counts toward the level can be *Marked explained*, with a reason (Confirmed with the candidate, Expected for this
   role, A known false positive, or Other with a note) and an optional note; it then shows closed, as Explained, with who,
@@ -285,14 +289,15 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   own reason. After a dismissal the explanations are read only. There is no review log panel and no *Add review note* in the
   dashboard: every dismissal, explanation, undo, note, re-check's evidence change and read through an API key is a line in
   the candidate's Activity, under its Verification filter (`reviewLog` in the API is that audit trail; a run of reads by one
-  key is one line). *Request verification* is hidden until phase 2 builds it. The page's last line, under every panel and in none of them, reads "No automated decision has
-  been made. Every action is logged." `VerificationAssessed` refetches the chips, overview and tab live. AI chips take the
+  key is one line). *Request verification* is hidden until phase 2 builds it. When the checks last assessed the application is "Checked 19
+  minutes ago" in the Verification panel's header, with the ruleset version in that word's tooltip; the ruleset is not a line
+  on the page. The panel's closing line, inside it, reads "No automated decision has been made. Every action is logged." `VerificationAssessed` refetches the chips, overview and tab live. AI chips take the
   AI colour and the sparkles icon at every level, and stay quiet in lists, so they read as information. While a
   verification filter is set, the job page's bulk move offers no Rejected or Withdrawn stage, and a new filter clears the
   selection (`bulkMoveStages` in `#lib/verification.ts`): a filtered "select all" must not become rejection driven by
   verification signals. Moving one candidate stays a person's decision about that candidate. A candidate a recruiter
   added by hand came through no careers form, so `network` and `automation` had nothing to read and `behavioural` no
-  telemetry: Network and Form use read `NotChecked` instead of `NothingFound`. It goes by the application's source alone, so a
+  telemetry: Network and Form activity read `NotChecked` ("Did not run") instead of `NothingFound`. It goes by the application's source alone, so a
   careers applicant who turned telemetry off with the assistive-technology switch is never told apart; the ruleset is
   unchanged.
 - **Candidate**: notice before collection, accommodation toggle, AI-use declaration, a "why we asked you to verify"
@@ -802,23 +807,26 @@ and the organization boundary. `AiUsageTests` covers the ledger.
 
 ### 10.11 What an organization controls
 
-The Verification area (`/verification`, a sidebar item) has seven tabs, each at its own path: Overview, Activity log, Usage, Checks,
-Policy, AI model and Notifications ([design-system.md](../design/design-system.md), section 16). The four that show settings (AI model, Checks, Policy and
-the alerts under Notifications) each save only their own part with `PUT /v1/organization/verification-settings` (Edit settings): the
-tab sends what is saved with its part laid over it, the API key `null` (keep) and the connection unchanged, so the provider is not
-asked again. Everyone who can see verification reads Checks and Policy as plain text; Edit settings changes them and sees AI model and
-Notifications; View AI usage with All jobs sees Usage. A tab a role cannot use is left out of the strip and its address returns to the
-Overview. Every change is a History line (`SettingsChanges.Verification`, seen through `VerificationSettingsFacts`).
+The Verification area (`/verification`, a sidebar item) has four tabs, each at its own path: Overview, Activity log, Checks and AI use
+([design-system.md](../design/design-system.md), section 16), grouped by what a setting affects (the owner's walk-through,
+2026-11-21). Checks holds every switch that decides what runs and the settings that tune each group; AI use holds who pays and how
+much. Each form saves only its own part with `PUT /v1/organization/verification-settings` (Edit settings): it sends what is saved
+with its part laid over it, the API key `null` (keep) and the connection unchanged, so the provider is not asked again, and the
+alert it does not hold as saved. Everyone who can see verification reads Checks as plain text; Edit settings changes it. AI use is for
+View AI usage with All jobs (what the checks used) or Edit settings (the key and the AI usage alert), and each part checks its own
+permission; the budget and cap are an Owner's to set (Manage billing). A tab a role cannot use is left out of the strip and its
+address returns to the Overview. The old tabs' addresses redirect with their query string (`movedTabs` in
+`apps/dashboard/src/lib/verification-area.ts`): Policy and Notifications to Checks, Usage and AI model to AI use. Every change is a History line (`SettingsChanges.Verification`, seen through `VerificationSettingsFacts`).
 Settings apply from the next application: an analysis already recorded is not redone.
 
-**AI model tab.** The consistency check runs on ScreenHire's included model, billed at the provider's price plus a margin
+**Whose key runs the AI check (AI use tab).** The consistency check runs on ScreenHire's key, billed at the provider's price plus a margin
 (`ScreenHire:Billing:Ai:Margin`, [billing.md](billing.md)), or on the organization's own key, which costs it nothing extra. The own
 key is one of six provider presets (`ModelPresets`): Anthropic, OpenAI, OpenRouter, Azure OpenAI, Google Gemini, and Other (any
 OpenAI-compatible address). A preset fills in the address and the way the key is sent; Azure OpenAI and Other take an address the
 organization types. One model id serves both steps of the check. The page lists the provider's own models through
 `.../llm/models` (Anthropic `/v1/models`, the others `/models`) and takes a typed id when the provider offers no list (Azure lists
 base models, not the deployments a key calls); no model name is kept in the code. The own key's prices are optional and only
-make the Usage tab show costs. Every call is in the usage ledger either way, and the provider handles
+make the AI use tab show costs. Every call is in the usage ledger either way, and the provider handles
 the data under the organization's own terms rather than ScreenHire's (docs/research/legal.md). The candidate privacy page says the
 model comes from ScreenHire's provider or one the employer chose, and that the no-training promise covers only the first.
 
@@ -834,17 +842,23 @@ that no longer decrypts makes the check unavailable, with a note that says to en
 limited like the sign-in routes.
 
 **Checks tab.** Six groups can be turned off, each a fixed set of analyzers (`CheckGroups`): Network (`network`), Contact details
-(`identity`), Documents (`documents`), Answers (`answers`, `consistency`), Duplicates (`duplicates`) and Form use
-(`automation`, `behavioural`). A group that is off is not run: the pipeline writes the analyzer's run with no signals and the
+(`identity`), Documents (`documents`), Answers (`answers`, `consistency`), Duplicates (`duplicates`) and Form activity
+(`automation`, `behavioural`; its enum value and stored notes keep the old name, `FormUse` and "Form use", and `RunNotes.Describe`
+words a stored note in the current one). Each group's section has its switch, two or three lines on what it looks at, one example
+of what it catches, what turning it off costs (`checkGroupCopy` in `apps/dashboard/src/lib/verification-settings.ts`), and "Found
+something in 4 of 14 applications this month": the Overview's count for the group against the month's applications checked, a count
+and never a score. The settings that tune a group sit inside it: the AI-use policy and "Compare each application's sources" (the
+consistency check, `llmConsistencyCheck`) in Answers, trusted networks in Network, trusted email domains and the device check in
+Duplicates. The Verification suggested alert follows the groups. One Save keeps the tab. A group that is off is not run: the pipeline writes the analyzer's run with no signals and the
 note "<Group> checks are turned off in this organization's settings", the consistency check is recorded as off so no source
 is sent to a model, and `checksNotRun` shows the reviewer which groups did not look. A re-check never runs a group that is off.
-Turning Form use off stops the apply page collecting form telemetry: the form is issued no session token, ingest keeps nothing
+Turning Form activity off stops the apply page collecting form telemetry: the form is issued no session token, ingest keeps nothing
 a page opened earlier still sends, and the submission drops what the page sent. The device fingerprint comes from the same page
 module, so the device basis is `Off` then too, no consent box shows, and the `duplicates` run says the device was not compared.
-Turning Duplicates off stops the device fingerprint as well, which feeds only that check. The ruleset is untouched: form use alone still never
+Turning Duplicates off stops the device fingerprint as well, which feeds only that check. The ruleset is untouched: form activity alone still never
 raises a level (§10.3) and nothing rejects on a verification signal.
 
-**Policy.** The AI-use policy is the organization's, asked on every application, and a job may set its own in its settings
+**Policy (on the Checks tab).** The AI-use policy is the organization's, asked on every application, and a job may set its own in its settings
 (`PUT /v1/jobs/{id}/ai-use`); a template carries none. It is read when an application is assessed, so a changed policy applies to
 the next assessment of an application, not to the ones stored. The device check basis is the more protective of the region's (`DeviceCheck:Countries`) and the organization's choice, in
 the order `Off`, then `Consent`, then `Notice`, so an organization can ask for consent or turn the check off anywhere but cannot
@@ -856,17 +870,21 @@ raise no network signal and a shared device from them is not counted as a duplic
 still counts. The run's note says what was left out. A network no wider than /16 (IPv4) or /48 (IPv6) is accepted, and each
 list holds 50 entries at most.
 
-**Notifications tab.** Each of two alerts goes by email, by Slack or both. Verification suggested goes once, when an application first
+**Alerts.** Each of two alerts is a row of an alert grid: In the app (always, a fixed tick), Email where this deployment can send it,
+and Slack once Slack is connected; each row's long sentence is in its info button. Verification suggested is on the Checks tab, and
+"in the app" for it is the To verify view and its sidebar count (it raises no bell notification: the bell's audience is a permission
+across the organization, and this alert goes only to the job's reviewers). The AI usage alert is on the AI use tab, and the bell
+always gets it. Verification suggested goes once, when an application first
 reaches that level (not at each later stage of evidence, and not again if the level falls and returns), to members who hold Review verification and see the job. The AI usage
 alerts (50%, 80% and 100% of the budget, the cap, and a spike) go once each to members who see AI usage, as a notification in the
 bell and by email or Slack when the organization chose them ([ai-usage.md](ai-usage.md)). Slack gets a direct message to a member who linked Slack, never
 a channel post, because a channel skips permission and job scoping. Neither carries a level, reason, evidence or candidate name:
 the email and the Slack message both name the job, say the application needs a closer look and link to it. The AI usage alerts
-link to the Usage tab (`/verification/usage`). The Owner's monthly budget and cap sit on this tab too, as a form for an Owner and as
-facts for an Admin ([ai-usage.md](ai-usage.md)).
+link to the AI use tab (`/verification/ai-use`). The Owner's monthly budget and cap sit on that tab, as a form for an Owner and as
+facts for an Admin; they apply whichever key runs the checks ([ai-usage.md](ai-usage.md)).
 
 **Signal Network.** There is no control for it on any tab. It stays off until legal review (section 6), and a switch that cannot be turned
-on would be a disabled control. When it can be, it joins the Policy tab.
+on would be a disabled control. When it can be, it joins the Checks tab.
 
 ### 10.12 Overview and activity log
 
@@ -875,16 +893,25 @@ on sees those jobs. Neither holds a score or a percentage.
 
 | Route | What it gives |
 |---|---|
-| `GET /v1/verification/overview` | This UTC month's applications: how many have an authenticity level (`checked`) and how many are still being checked (`pending`); how many are at each level (`clear`, `review`, `verify`, the newest authenticity assessment of each application, a dismissal not moving it); the groups of checks that counted a signal in an application, with that number of applications, most first; and when the newest of the month's checks finished (`lastCheckedAt`, null before the first), which the page shows as "Last checked 2 hours ago" (design system T7). AI assistance is never counted |
-| `GET /v1/verification/activity` | One newest-first feed of check runs (`VerificationAnalyzerRun`) and model calls (`AiUsageCall`), with filters `group`, `keySource` (model calls only), `outcome`, `from` and `to`, and a cursor (`before`, an opaque token of the last entry's time and id) |
-| `GET /v1/verification/activity/export` | The same feed as CSV, at most 50,000 rows. Needs View AI usage with All jobs |
+| `GET /v1/verification/overview` | This UTC month's applications: how many have an authenticity level (`checked`) and how many are still being checked (`pending`); how many are at each level (`clear`, `review`, `verify`, the newest authenticity assessment of each application, a dismissal not moving it); all six groups of checks in their order, each with the applications in which it counted a signal and whether the organization runs it (`on`), so the page marks a group that is off as Off with a link to Checks; and when the newest of the month's checks finished (`lastCheckedAt`, null before the first), which the page shows as "Last checked 2 hours ago" (design system T7). AI assistance is never counted |
+| `GET /v1/verification/activity` | One newest-first page of runs, each one row: a pass of the checks over one application (its check runs, `VerificationAnalyzerRun`, and the model calls, `AiUsageCall`, that belong to it), or a model call that belongs to no pass. Filters `group`, `keySource`, `outcome`, `from` and `to` keep a run when one of its checks matches; a cursor (`before`, an opaque token of the last run's time and id) |
+| `GET /v1/verification/activity/export` | One line per check run or model call as CSV, every column, with `run` (the run it belongs to) and `ruleset`, at most 50,000 rows. The same filters keep lines, not runs: with `outcome=Completed` it lists the checks that found nothing, including those of a run where another check found something. Needs View AI usage with All jobs |
 
-A run's outcome is a word for what it did: Found (it wrote signals), Completed (it looked and wrote none, including when the
-organization's trusted list stopped a signal), Not run (its group was off, the AI checks were paused, or it could not look; the run's
-note says which). A model call is Completed or Failed. A model call belongs to Answers, or to no group for a connection test. Model calls are
+There is no run entity: one pass of `VerificationPipeline.RunAsync` stamps every analyzer run it writes with the same time, so a run
+is an application and that time; a re-check's later revision is a run of its own. A model call belongs to the first run of its
+application at or after it, because the consistency check's calls are made before the pass that reads their answers
+(`VerificationActivity.PassOfCall`); a call with no application, or none after it yet, is a run of its own. A run carries the job's
+title, how many checks ran, found something and did not run ("Frontend Engineer (Svelte), 8 checks, 1 did not run"), and the
+ruleset of the application's newest authenticity assessment at that time. It opens to its checks: each check's outcome; the reason it
+did not run as a sentence (`RunNotes.Describe`); what it found, as the signals' titles in the candidate tab's words
+(`SignalCatalogue.TitleOf`); and for a model call, with View AI usage, the model, key, tokens, cost and provider request id. A check
+run's outcome is a word for what it did: Found (it wrote signals), Completed, shown as "Nothing found" (it looked and wrote none,
+including when the organization's trusted list stopped a signal), Not run, "Did not run" (its group was off, the AI checks were paused,
+or it could not look). A run is Found when a check in it found something, Did not run when none looked, and Nothing found otherwise.
+A model call is Completed ("Answered") or Failed. Thresholds, weights and the ruleset's rules never appear. A model call belongs to Answers, or to no group for a connection test. Model calls are
 the organization's, not a job's: a member without View AI usage sees only calls about an application they can open, with no model, key,
-tokens, cost or provider request id, and the call list is empty of calls with no application. The feed merges the two sources in memory, each read
-to one more row than the page holds, ordered by time and then by id as Postgres orders uuids, so a page break never skips or repeats an entry.
+tokens, cost or provider request id, and the call list is empty of calls with no application. The page merges the runs and the lone calls in memory, each read
+to one more than the page holds, ordered by time and then by id as Postgres orders uuids, so a page break never skips or repeats a run.
 
 ## Open questions
 

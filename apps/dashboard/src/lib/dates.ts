@@ -14,6 +14,7 @@ interface Formatters {
   version: number;
   date: Intl.DateTimeFormat;
   dateTime: Intl.DateTimeFormat;
+  time: Intl.DateTimeFormat;
   relative: Intl.RelativeTimeFormat;
   monthDay: Intl.DateTimeFormat;
   dayMonth: Intl.DateTimeFormat;
@@ -63,6 +64,7 @@ function formatters(): Formatters {
     version,
     date: new Intl.DateTimeFormat(dateLocales(), { dateStyle: iso ? 'short' : 'medium', timeZone }),
     dateTime: new Intl.DateTimeFormat(dateLocales(), { dateStyle: iso ? 'short' : 'medium', timeStyle: 'short', timeZone }),
+    time: new Intl.DateTimeFormat(dateLocales(), { timeStyle: 'short', timeZone }),
     relative: new Intl.RelativeTimeFormat(personLocales(), { numeric: 'auto' }),
     monthDay: new Intl.DateTimeFormat(dateLocales(), iso ? { month: '2-digit', day: '2-digit', timeZone } : { month: 'short', day: 'numeric', timeZone }),
     dayMonth: new Intl.DateTimeFormat(dateLocales(), { day: 'numeric', month: 'long', timeZone }),
@@ -73,6 +75,9 @@ function formatters(): Formatters {
 
 /** The date, for tables and old events: `Oct 20, 2026`. */
 export const formatDate = (iso: string) => formatters().date.format(new Date(iso));
+
+/** The time alone, beside a `formatDate` where a narrow column may put it on a line of its own: `2:30 PM`. */
+export const formatTime = (iso: string) => formatters().time.format(new Date(iso));
 
 /** The exact date and time, for the `title` of a `<time>`: `Oct 20, 2026, 2:30 PM`. */
 export const formatDateTime = (iso: string) => formatters().dateTime.format(new Date(iso));

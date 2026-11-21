@@ -10,21 +10,21 @@
   import { z } from 'zod';
   import ChoiceCard from '#lib/components/choice-card.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
+  import InfoButton from '#lib/components/info-button.svelte';
   import Panel from '#lib/components/panel.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { Switch } from '#lib/components/ui/switch/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { describeError } from '#lib/query.js';
   import { modelProblemMessages, modelProviderLabels } from '#lib/verification-settings.js';
   import { createVerificationSettingsSave, savedMessage } from '#lib/verification-settings-save.js';
 
-  // The AI model tab (verification-engine.md 10.11): which model answers the consistency check, and the provider, key and
-  // model when the organization brings its own. It saves only these fields. The API key is write-only: the box is never
-  // filled from the server, and an empty box keeps the saved key.
+  // Whose key runs the AI check, on the AI use tab (verification-engine.md 10.11): ScreenHire's, or the organization's own
+  // provider, key and model. It saves only these fields; whether the check runs at all is "Compare each application's sources"
+  // on the Checks tab. The API key is write-only: the box is never filled from the server, and an empty box keeps the saved key.
   let { detail }: { detail: OrganizationVerificationSettings } = $props();
 
   type ModelProvider = NonNullable<ModelProviderOrNull>;
@@ -43,7 +43,6 @@
 
   const schema = z
     .object({
-      llmConsistencyCheck: z.boolean(),
       modelSource: z.enum(['Included', 'OwnKey']),
       provider: z.enum(providers),
       baseUrl: z.string().trim(),
@@ -70,7 +69,6 @@
     });
 
   const initial = untrack(() => ({
-    llmConsistencyCheck: detail.llmConsistencyCheck,
     modelSource: detail.modelSource as 'Included' | 'OwnKey',
     provider: (detail.provider ?? 'Anthropic') as ModelProvider,
     baseUrl: detail.baseUrl ?? '',
@@ -96,7 +94,6 @@
       const own = data.modelSource === 'OwnKey';
       try {
         await save(detail, {
-          llmConsistencyCheck: data.llmConsistencyCheck,
           modelSource: data.modelSource,
           provider: own ? data.provider : null,
           baseUrl: own && presetOf(data.provider)?.baseUrlEditable ? data.baseUrl : null,
@@ -179,31 +176,24 @@
   const describedBy = (...ids: (string | false | undefined)[]) => ids.filter(Boolean).join(' ') || undefined;
 </script>
 
-<form method="POST" use:enhance novalidate aria-label="AI model settings" class="flex flex-col gap-5">
-  <Panel title="AI model">
+<form method="POST" use:enhance novalidate aria-label="Whose key runs the AI check" class="flex flex-col gap-5">
+  <Panel title="Whose key runs the AI check">
             <div class="flex flex-col gap-5">
               <div class="flex flex-col gap-2">
-                <p id="model-source-label" class="text-body font-medium">Which model checks consistency</p>
+                <div class="flex items-center gap-1">
+                  <p id="model-source-label" class="text-body font-medium">Key</p>
+                  <InfoButton label="About the two keys">
+                    <p>ScreenHire's key: the AI check runs on ScreenHire's AI provider, and you're billed for what the checks use, on your ScreenHire invoice.</p>
+                    <p>Your own key: your provider handles this data under your own terms and bills you for it. ScreenHire charges nothing for these calls, and the Activity log lists every call with the provider's request id, so you can compare it with your provider's dashboard.</p>
+                  </InfoButton>
+                </div>
                 <div role="radiogroup" aria-labelledby="model-source-label" class="grid gap-2 sm:grid-cols-2">
-                  <ChoiceCard name="modelSource" value="Included" bind:group={$form.modelSource} onchange={endpointChanged} title="ScreenHire's included model" description="Billed through ScreenHire." />
-                  <ChoiceCard name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} title="Your own key" description="A key from your own AI provider." />
+                  <ChoiceCard name="modelSource" value="Included" bind:group={$form.modelSource} onchange={endpointChanged} title="ScreenHire's key" description="Billed through ScreenHire." />
+                  <ChoiceCard name="modelSource" value="OwnKey" bind:group={$form.modelSource} onchange={endpointChanged} title="Your own key" description="Your AI provider bills you." />
                 </div>
-              </div>
-
-              <div class="flex items-start gap-4">
-                <div class="flex min-w-0 flex-1 flex-col gap-1">
-                  <Field.Label for="consistency-check">Compare each application's sources</Field.Label>
-                  <Field.Description id="consistency-check-hint">
-                    Sends the resume, answers and any uploaded LinkedIn export to {own ? 'your AI provider' : "ScreenHire's AI provider"}.
-                  </Field.Description>
-                </div>
-                <Switch id="consistency-check" bind:checked={$form.llmConsistencyCheck} aria-describedby="consistency-check-hint" class="mt-1" />
               </div>
 
               {#if own}
-                <p class="text-muted-foreground">
-                  Your provider handles this data under your own terms and bills you for it. ScreenHire charges nothing extra, and the Activity log lists every call so you can compare it with your provider's dashboard.
-                </p>
 
                 <Field.Field>
                   <Field.Label for="llm-provider">Provider</Field.Label>

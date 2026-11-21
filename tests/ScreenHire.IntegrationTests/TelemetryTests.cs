@@ -240,7 +240,7 @@ public sealed class TelemetryTests(AppHostFixture fixture)
         await using var db = await TenantDbAsync(organization.Id);
         var observation = await db.SubmissionObservations.SingleAsync(o => o.ApplicationId == application, Ct);
         observation.AutomationMarkers.Should().BeEmpty();
-        observation.DeviceHash.Should().BeNull("the device code comes from the same page module, so it stops with form use checks");
+        observation.DeviceHash.Should().BeNull("the device code comes from the same page module, so it stops with form activity checks");
         (await db.TelemetrySnapshots.AnyAsync(s => s.JobId == job.Id, Ct)).Should().BeFalse();
     }
 

@@ -13,16 +13,15 @@
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
-  import LimitsSummary from '#lib/components/verification-area/limits-summary.svelte';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { cn } from '#lib/utils.js';
   import { formatCost, formatDay, formatTokens, keySourceLabels, ownKeyCostLabel } from '#lib/ai-usage.js';
   import { describeError } from '#lib/query.js';
 
-  // The Usage tab (docs/architecture/ai-usage.md): tokens and cost by day and model, ScreenHire's key against the organization's
-  // own, and the month against the budget and cap. For who can see AI usage (the tab's +page.ts). Never about a candidate. Cost is
-  // the one amount for AI use the Billing page charges too; an own key's is the provider's price, labelled as an estimate, and the
-  // two are never added together.
+  // What the checks used, on the AI use tab (docs/architecture/ai-usage.md): calls, tokens and cost for a range, use by day
+  // split between ScreenHire's key and the organization's own, and use by model and key. For who can see AI usage. Never about a
+  // candidate. Cost is the one amount for AI use the Billing page charges too; an own key's is the provider's price, labelled as an
+  // estimate, and the two are never added together. The month against the budget and cap is the tab's limits panel (W7).
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const ranges = [
     { value: 'month', label: 'This month', days: null },
@@ -80,10 +79,6 @@
   };
 </script>
 
-<svelte:head>
-  <title>Usage · Verification · ScreenHire</title>
-</svelte:head>
-
 {#if summary.isError && !data}
   <Panel title="Usage">
     <QueryError message={describeError(summary.error, 'Could not load the AI usage')} onretry={() => summary.refetch()} inset />
@@ -119,10 +114,6 @@
       share={costNotes.length > 0 ? costNotes.join('. ') : null}
     />
   </div>
-
-  <Panel title="Monthly limits">
-    <LimitsSummary limits={data.limits} />
-  </Panel>
 
   <ChartPanel
     title={`Use by day, ${period}`}

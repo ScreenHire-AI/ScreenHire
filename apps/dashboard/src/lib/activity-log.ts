@@ -19,14 +19,35 @@ const analyzerLabels: Record<string, string> = {
 
 export const activityCheckLabel = (check: string) => analyzerLabels[check] ?? checkLabels[check] ?? check;
 
+/**
+ * How a run or a check ended, as its status's words (Nothing found, Found, Did not run). A model call is no check: it answered or
+ * it failed (`callOutcomeLabels`).
+ */
 export const activityOutcomeLabels: Record<VerificationActivityOutcome, string> = {
-  Completed: 'Completed',
-  Found: 'Found something',
+  Completed: 'Nothing found',
+  Found: 'Found',
   NotRun: 'Did not run',
   Failed: 'Failed',
 };
 
-/** Found is a result to read, not a failure, so it takes the review colour, never the verify one (T1). */
+/** A model call's outcome: the provider answered, or the call failed. */
+export const callOutcomeLabels: Partial<Record<VerificationActivityOutcome, string>> = {
+  Completed: 'Answered',
+  Failed: 'Failed',
+};
+
+/** The outcomes the log filters by: a run's three. */
+export const activityOutcomeFilters: readonly VerificationActivityOutcome[] = ['Found', 'Completed', 'NotRun'];
+
+/** A run's one line, as its row reads: "Frontend Engineer (Svelte), 8 checks, 1 did not run". */
+export function runLabel(run: { jobTitle?: string | null; checks: number; notRun: number; items: readonly { check: string }[] }): string {
+  if (run.checks === 0) return [run.jobTitle, run.items[0] ? activityCheckLabel(run.items[0].check) : 'Model call'].filter(Boolean).join(', ');
+  const parts = [run.jobTitle ?? 'Application', `${run.checks} ${run.checks === 1 ? 'check' : 'checks'}`];
+  if (run.notRun > 0) parts.push(`${run.notRun} did not run`);
+  return parts.join(', ');
+}
+
+/** Found is a result to read, not a failure, so it takes the review colour, never the verify one (T1). Nothing found is calm. */
 export const activityOutcomeStatuses: Record<VerificationActivityOutcome, StatusName> = {
   Completed: 'done',
   Found: 'review',
@@ -40,5 +61,5 @@ export const activityGroupLabels: Record<CheckGroup, string> = {
   Documents: 'Documents',
   Answers: 'Answers',
   Duplicates: 'Duplicates',
-  FormUse: 'Form use',
+  FormUse: 'Form activity',
 };

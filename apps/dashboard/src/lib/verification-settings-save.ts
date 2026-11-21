@@ -2,6 +2,7 @@ import type { OrganizationVerificationSettings, UpdateVerificationSettingsReques
 import {
   createUpdateOrganizationVerificationSettings,
   getGetOrganizationVerificationSettingsQueryKey,
+  getGetVerificationOverviewQueryKey,
 } from '@screenhire/api-client/svelte-query';
 import { useQueryClient } from '@tanstack/svelte-query';
 
@@ -53,7 +54,14 @@ export const savedMessage = 'Saved. It applies from the next application.';
 export function createVerificationSettingsSave() {
   const queryClient = useQueryClient();
   const update = createUpdateOrganizationVerificationSettings(() => ({
-    mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetOrganizationVerificationSettingsQueryKey(), exact: true }) },
+    // The Overview marks a group that is off, so a saved switch refreshes it too rather than waiting out the cache.
+    mutation: {
+      onSuccess: () =>
+        Promise.all([
+          queryClient.invalidateQueries({ queryKey: getGetOrganizationVerificationSettingsQueryKey(), exact: true }),
+          queryClient.invalidateQueries({ queryKey: getGetVerificationOverviewQueryKey(), exact: true }),
+        ]),
+    },
   }));
   return (saved: OrganizationVerificationSettings, part: Partial<UpdateVerificationSettingsRequest>) =>
     update.mutateAsync({ data: { ...savedRequest(saved), ...part } });

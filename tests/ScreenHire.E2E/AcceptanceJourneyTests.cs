@@ -129,7 +129,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Verification") }).ClickAsync();
         var panel = Page.GetByRole(AriaRole.Tabpanel);
         var summary = panel.GetByRole(AriaRole.Region, new() { Name = "Verification", Exact = true });
-        await Expect(panel.GetByRole(AriaRole.Region, new() { Name = "Form use", Exact = true })).ToBeVisibleAsync(new() { Timeout = 60_000 });
+        await Expect(panel.GetByRole(AriaRole.Region, new() { Name = "Form activity", Exact = true })).ToBeVisibleAsync(new() { Timeout = 60_000 });
         foreach (var code in new[] { "AUTO_HONEYPOT", "AUTO_WEBDRIVER", "AUTO_SUBMIT_VELOCITY", "ID_EMAIL_DISPOSABLE", "ID_PHONE_INVALID" })
         {
             await Expect(panel.Locator($"[data-signal='{code}']")).ToBeVisibleAsync();

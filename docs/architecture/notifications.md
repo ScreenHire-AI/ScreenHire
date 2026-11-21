@@ -200,9 +200,9 @@ Both messages implement `ITenantMessage`, so the handler runs under the organiza
 | `sending-domain-failing` | the sending domain's id | `domain` | `/settings/sending-domain` | Owners (`ManageOwners`) |
 | `trial-ending` | `trial` | `endsAt`, `plan` | `/settings/billing` | Owners (`ManageBilling`) |
 | `trial-ended` | `trial` | `endsAt`, `plan` | `/settings/billing` | Owners (`ManageBilling`) |
-| `ai-usage-budget` | `yyyy-MM:budget-N` (N is 50, 80 or 100) | `percent` | `/verification/usage` | who sees AI usage (`ViewAiUsage`) |
-| `ai-usage-cap` | `yyyy-MM:cap` | none | `/verification/usage` | who sees AI usage (`ViewAiUsage`) |
-| `ai-usage-spike` | `yyyy-MM-dd:spike` | `day` | `/verification/usage` | who sees AI usage (`ViewAiUsage`) |
+| `ai-usage-budget` | `yyyy-MM:budget-N` (N is 50, 80 or 100) | `percent` | `/verification/ai-use` | who sees AI usage (`ViewAiUsage`) |
+| `ai-usage-cap` | `yyyy-MM:cap` | none | `/verification/ai-use` | who sees AI usage (`ViewAiUsage`) |
+| `ai-usage-spike` | `yyyy-MM-dd:spike` | `day` | `/verification/ai-use` | who sees AI usage (`ViewAiUsage`) |
 | `mention` | the note's id | `actor`, when known | the note on the candidate's Activity | the person mentioned |
 | `candidate-reply` | the reply's id | none: the line never names the candidate | the candidate's Messages | the person who sent the email it answers |
 | `task-assigned` | the task's id | `actor`, when a teammate gave it | the application | the person the task is for |
@@ -243,8 +243,8 @@ The rows are one list on each side, `NoticeRows` in `NoticePreferences.cs` and `
 - **Scope** (My jobs, Everything I can see) decides whose jobs New applications and Teammates' moves and notes cover: the hiring
   teams the person is on (the toasts' rule until now), or every job they see. It applies to toasts and email alike.
   Verification suggested keeps going to everyone who reviews verification and sees the job.
-- **The organization's alerts are defaults.** Verification's Notifications tab is unchanged: its four switches are each
-  member's starting value for the last two rows, and a person's own choice wins. `PersonNotices.Normalize` keeps only what
+- **The organization's alerts are defaults.** Verification's alerts are unchanged, but they moved: Verification suggested is on the Checks tab and AI usage on the AI use
+  tab, and their four switches are each member's starting value for the last two rows, and a person's own choice wins. `PersonNotices.Normalize` keeps only what
   differs from the person's defaults, so someone who never chose follows a later change to the organization's switches, and
   someone who did keeps theirs.
 - Where it lives: `member_preferences` (`MemberPreferences`, one row per membership, a tenant table with row-level security)

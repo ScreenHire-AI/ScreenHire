@@ -36,7 +36,7 @@ const groupLabels: Record<CheckGroup, string> = {
   Documents: 'Documents',
   Answers: 'Answers',
   Duplicates: 'Duplicates',
-  FormUse: 'Form use',
+  FormUse: 'Form activity',
 };
 
 /** The six groups in order, all with nothing found unless `overrides` says otherwise for a group. */

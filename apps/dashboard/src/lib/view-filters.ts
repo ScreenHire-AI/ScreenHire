@@ -55,8 +55,17 @@ export function filtersOf(parts: FilterParts): ViewFilters {
 }
 
 /**
- * The verification filter a view holds; a level this build does not know counts as no filter. A view saved when AI
- * assistance was a filter keeps its other filters and drops that one: the field stays in the API, and nothing reads it.
+ * The verification level a built-in view is: To review is Review and To verify is Verify, so the filter row reads
+ * "Verification: Review" while the view filters (the owner's walk-through, note 23). Null for any other view.
+ */
+export function viewVerification(baseView: string | null | undefined): VerificationFilter['authenticity'] {
+  return findSavedView(baseView ?? null)?.authenticity ?? null;
+}
+
+/**
+ * The verification filter a view holds; a level this build does not know counts as no filter, and a view on To review or To
+ * verify with none of its own holds that view's level. A view saved when AI assistance was a filter keeps its other filters
+ * and drops that one: the field stays in the API, and nothing reads it.
  */
 export function verificationOf(filters: ViewFilters): VerificationFilter {
   const authenticity = filters.authenticity;
@@ -64,7 +73,7 @@ export function verificationOf(filters: ViewFilters): VerificationFilter {
     authenticity:
       authenticity === 'Pending' || (authenticity && Object.hasOwn(authenticityLevels, authenticity))
         ? (authenticity as VerificationFilter['authenticity'])
-        : null,
+        : viewVerification(filters.baseView),
   };
 }
 
@@ -94,7 +103,7 @@ export function sameFilters(a: ViewFilters, b: ViewFilters, scope: ViewScope): b
     (a.baseView ?? null) === (b.baseView ?? null) &&
     sorted(a.jobIds).join() === sorted(b.jobIds).join() &&
     sorted(a.stages).join() === sorted(b.stages).join() &&
-    (a.authenticity ?? null) === (b.authenticity ?? null) &&
+    verificationOf(a).authenticity === verificationOf(b).authenticity &&
     (a.tag ?? null) === (b.tag ?? null) &&
     sortA.id === sortB.id &&
     sortA.desc === sortB.desc
@@ -160,8 +169,9 @@ export function describeFilters(
     const names = filters.stages.map((stage) => context.stageNames?.[stage] ?? stage);
     parts.push(`${phrase('stage')} ${names.join(' or ')}`);
   }
+  // The level a built-in view already is is said by the view's name ("To review"), never again after it (W7).
   const authenticity = verificationOf(filters).authenticity;
-  if (authenticity) parts.push(authenticity === 'Pending' ? phrase('checks not run yet') : authenticityLevels[authenticity].label);
+  if (authenticity && authenticity !== viewVerification(filters.baseView)) parts.push(authenticity === 'Pending' ? phrase('checks not run yet') : authenticityLevels[authenticity].label);
   if (filters.tag) parts.push(`${phrase('tagged')} ${filters.tag}`);
   return parts.length > 0 ? parts.join(', ') : 'Every candidate';
 }

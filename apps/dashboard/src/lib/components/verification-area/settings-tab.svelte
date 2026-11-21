@@ -9,14 +9,15 @@
 
   // The 688px column of a settings tab (design system section 7, Form) around the organization's saved verification
   // settings: a skeleton while they load, an error with Retry, then `children` with the settings. The layout reads the same
-  // query for the Last updated fact, so this adds no request.
-  let { title, children }: { title: string; children: Snippet<[OrganizationVerificationSettings]> } = $props();
+  // query for the Last updated fact, so this adds no request. `wide` gives the tab the full width, for Checks, whose groups put
+  // their settings beside what they are.
+  let { title, wide = false, children }: { title: string; wide?: boolean; children: Snippet<[OrganizationVerificationSettings]> } = $props();
 
   const settings = createGetOrganizationVerificationSettings();
   const detail = $derived(settings.data?.data);
 </script>
 
-<div class="flex w-full max-w-form flex-col gap-5">
+<div class={['flex w-full flex-col gap-5', !wide && 'max-w-form']}>
   {#if settings.isError && !detail}
     <Panel {title}>
       <QueryError message={describeError(settings.error, 'Could not load the verification settings')} onretry={() => settings.refetch()} inset />

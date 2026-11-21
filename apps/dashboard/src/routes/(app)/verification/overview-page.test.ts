@@ -16,8 +16,12 @@ const overview: VerificationOverviewView = {
   pending: 2,
   levels: { clear: 41, review: 6, verify: 2 },
   groups: [
-    { group: 'Network', label: 'Network', applications: 5 },
-    { group: 'Duplicates', label: 'Duplicates', applications: 3 },
+    { group: 'Network', label: 'Network', applications: 5, on: true },
+    { group: 'Contact', label: 'Contact details', applications: 0, on: true },
+    { group: 'Documents', label: 'Documents', applications: 0, on: false },
+    { group: 'Answers', label: 'Answers', applications: 0, on: true },
+    { group: 'Duplicates', label: 'Duplicates', applications: 3, on: true },
+    { group: 'FormUse', label: 'Form activity', applications: 0, on: true },
   ],
   // Two hours before the test runs, so it always reads as time ago.
   lastCheckedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
@@ -91,17 +95,20 @@ describe('the Overview tab', () => {
     expect(screen.queryByRole('button', { name: /reject/i })).not.toBeInTheDocument();
   });
 
-  it('charts the groups that found something most, with the same numbers as a table', async () => {
+  it('charts all six groups in their order, with the same numbers as a table, and marks a group that is off as Off with a link to Checks', async () => {
     renderPage(overview);
 
     const panel = (await screen.findByRole('heading', { name: 'Findings by group, November 2026' })).closest('section') as HTMLElement;
-    expect(within(panel).getByText('Network')).toBeInTheDocument();
+    for (const name of ['Network', 'Contact details', 'Answers', 'Duplicates', 'Form activity']) expect(within(panel).getByText(name)).toBeInTheDocument();
     expect(within(panel).getByText('5')).toBeInTheDocument();
+    const off = within(panel).getByRole('link', { name: 'Documents' });
+    expect(off).toHaveAttribute('href', '/verification/checks');
+    expect(within(panel).getByText('Off')).toBeInTheDocument();
     expect(within(panel).getByRole('button', { name: 'Table' })).toBeInTheDocument();
   });
 
-  it('says so when no group found anything', async () => {
-    renderPage({ ...overview, groups: [], levels: { clear: 49, review: 0, verify: 0 } });
+  it('says so when every group is on and found nothing', async () => {
+    renderPage({ ...overview, groups: overview.groups.map((group) => ({ ...group, applications: 0, on: true })), levels: { clear: 49, review: 0, verify: 0 } });
 
     expect(await screen.findByText('No group of checks found anything this month.')).toBeInTheDocument();
   });
@@ -113,12 +120,12 @@ describe('the Overview tab', () => {
     expect(screen.queryByText(/still being checked/)).not.toBeInTheDocument();
   });
 
-  it('shows the AI usage against the budget, with a link to Usage, for who can see usage', async () => {
+  it('shows the AI usage against the budget, with a link to AI use, for who can see usage', async () => {
     renderPage(overview);
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
     expect(screen.getAllByText('420 tokens of 2,000,000 tokens').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'See usage' })).toHaveAttribute('href', '/verification/usage');
+    expect(screen.getByRole('link', { name: 'See AI use' })).toHaveAttribute('href', '/verification/ai-use');
   });
 
   it('shows the budget in billed dollars where the deployment prices its model, with no estimate to explain', async () => {
@@ -136,7 +143,7 @@ describe('the Overview tab', () => {
 
       expect(await screen.findByText('Applications checked')).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'Monthly limits' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('link', { name: 'See usage' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'See AI use' })).not.toBeInTheDocument();
     });
   });
 

@@ -2,7 +2,7 @@ import type { AiKeySource, AiUsageLimitView, UsageUnit } from '@screenhire/api-c
 import { locales } from '#lib/dates.js';
 import type { StatusName } from '#lib/status.js';
 
-// The words and numbers of the Usage tab and the Activity log (docs/architecture/ai-usage.md). Costs are US dollars; a cost that nothing could
+// The words and numbers of the AI use tab and the Activity log (docs/architecture/ai-usage.md). Costs are US dollars; a cost that nothing could
 // price is "Unknown", never zero. Every cost is the one amount a customer sees for AI use: on ScreenHire's key what it is billed, on the
 // organization's own key the provider's price, which that provider charges and ScreenHire never bills.
 

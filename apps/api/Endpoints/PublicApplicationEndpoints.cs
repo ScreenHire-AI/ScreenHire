@@ -228,7 +228,7 @@ internal static class PublicApplicationEndpoints
         }
 
         // The device check's footing where the job is (verification-engine.md §3): the page is not trusted to have asked.
-        // The organization's settings can ask for more protection than the region needs, or turn form use checks off, in
+        // The organization's settings can ask for more protection than the region needs, or turn form activity checks off, in
         // which case nothing the page sent about how the form was filled in is kept.
         var collection = await TelemetrySessions.CollectionForAsync(job, verification.Value, outbox.DbContext, cancellationToken);
         var fingerprint = collection.DeviceCheck switch

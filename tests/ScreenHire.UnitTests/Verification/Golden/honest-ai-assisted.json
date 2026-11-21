@@ -55,7 +55,7 @@
     "appliedRules": [
       "telemetry-never-alone"
     ],
-    "summary": "2 observations from documents and form use checks, with nothing independent to back them up. Shown for context only.",
+    "summary": "2 observations from documents and form activity checks, with nothing independent to back them up. Shown for context only.",
     "nextStep": "No action needed.",
     "policyContext": "Disclosed",
     "signals": [

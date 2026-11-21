@@ -10,11 +10,12 @@ import type { VerificationActivityKind } from './verificationActivityKind.ts';
 import type { VerificationActivityOutcome } from './verificationActivityOutcome.ts';
 
 /**
- * One check run or model call. `check` is the analyzer's name (`network`) or the model check's
- * (`consistency.extraction`). `group` is null for a call that belongs to none. `note` is why a check did not look,
- * when it did not. `jobTitle` and `applicationId` let a reader open the application; neither names the candidate.
+ * One check run or model call inside a run. `check` is the analyzer's name (`network`) or the model check's
+ * (`consistency.extraction`). `group` is null for a call that belongs to none. `reason` is, in a sentence, why a
+ * check did not look or what the organization's trusted lists kept it from counting. `findings` are the titles of what it
+ * found, in the candidate's Verification tab's words.
  */
-export interface VerificationActivityEntry {
+export interface VerificationActivityCheck {
   id: string;
   kind: VerificationActivityKind;
   at: string;
@@ -22,10 +23,7 @@ export interface VerificationActivityEntry {
   check: string;
   outcome: VerificationActivityOutcome;
   /** @nullable */
-  note: string | null;
-  /** @nullable */
-  applicationId: string | null;
-  /** @nullable */
-  jobTitle: string | null;
+  reason: string | null;
+  findings: string[];
   call: null | VerificationActivityCall;
 }

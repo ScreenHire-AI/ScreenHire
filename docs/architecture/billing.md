@@ -347,7 +347,7 @@ so its AI line and the meter agree to the micro-dollar for calls past the trial 
 **One amount for AI use.** A customer sees one amount for AI use, the amount they pay, and never the provider's price or the margin
 (the owner's walk-through, 2026-11-21). `AiCharge.Billed` is that amount for one call: on ScreenHire's key `AiCharge.Micros` in dollars, the
 figure the meter is sent; on the organization's own key the provider's price, which that provider charges and ScreenHire never bills, so
-it is labelled "Charged by your provider (estimate)". The Usage tab, its by-day and by-model tables, the call list, the Activity log, both
+it is labelled "Charged by your provider (estimate)". The AI use tab, its by-day and by-model tables, the call list, the Activity log, both
 CSVs, the budget and the cap and the Billing page all show it (`AiUsageQueries.BilledAmount` in SQL). The margin is
 `BillingOptions.AiMarginInForce`: `Ai:Margin` while AI use is billed (`AiMetered`: the sandbox, or Stripe with `Ai:StripePriceId` set), and 0 otherwise, because nobody is billed for it then. The ledger keeps
 the provider's price, so a margin changed later reprices what is shown but never what was reported.
@@ -402,7 +402,7 @@ takes that customer's meter events, so the calls are recorded as `Reported`, but
 with provider `Sandbox`, is the record that the usage was reported, so the local demo and the tests show it. Brightwater is seeded Active on
 Unlimited with a trial that ended the day before, so the worker's next 15-minute report sends its demo calls to the sandbox meter in full.
 
-**Budgets and caps count billed dollars** (owner decision, 2026-11-21): the same amount the Usage tab and this page show, so a cap of $50
+**Budgets and caps count billed dollars** (owner decision, 2026-11-21): the same amount the AI use tab and this page show, so a cap of $50
 stops at $50 billed ([AI usage](ai-usage.md#budget-alerts-and-the-cap)).
 
 ### Owner actions for AI usage
@@ -505,7 +505,7 @@ in order:
   not repeated here: This month so far says it (W7).
 - **This month so far** (`thisMonth` on the overview, `BillingEndpoints.ThisMonth`). Each charge on its own line: the plan at its monthly
   price while subscribed ("Growth, free trial" at $0.00 on the trial, no line once ended), AI use on ScreenHire's key with its call count,
-  which links to the Verification area's Usage tab (no line where Stripe has no metered price, because none is billed), "Included in your
+  which links to the Verification area's AI use tab (no line where Stripe has no metered price, because none is billed), "Included in your
   trial" taken off for what the allowance covers (`AiUsageBillingQueries.TrialCreditThisMonthAsync`: calls already settled as waived and the
   trial calls still waiting, planned by `AiChargePlanner` as the report will settle them), and the total. Then "Next invoice about $X on
   <date>" while a subscription runs: the next plan payment (none once it is set to end) plus this month's AI use, "about" because the

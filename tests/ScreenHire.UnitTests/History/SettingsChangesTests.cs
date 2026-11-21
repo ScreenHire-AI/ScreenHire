@@ -123,7 +123,7 @@ public sealed class SettingsChangesTests
             "set the AI model to model-one",
             "saved an API key",
             "turned off documents checks",
-            "turned off form use checks",
+            "turned off form activity checks",
             "set the AI use policy to Not allowed",
             "set the device check to Ask for consent",
             "trusted the domain partner.example.com",
