@@ -17,7 +17,10 @@ internal static class Like
     public static string? StartsWith(string? text) =>
         string.IsNullOrWhiteSpace(text) ? null : Literal(text) + "%";
 
-    /// <summary>The pattern for values equal to <paramref name="text"/> without regard to case.</summary>
+    /// <summary>
+    /// The pattern for values equal to <paramref name="text"/> without regard to case. The worker's
+    /// <c>RetagApplicationsHandler</c> builds the same pattern itself, because it cannot reference the API: change both.
+    /// </summary>
     public static string Exactly(string text) => Literal(text);
 
     private static string Literal(string text) =>

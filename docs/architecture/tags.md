@@ -56,6 +56,11 @@ Every member reads it, and so does an organization API key: it is hiring data.
 so "senior" added where "Senior" exists is "Senior". The MCP tools go through the same code. The worker's Add a tag
 action writes the name the automation holds, which a rename keeps in step.
 
+The spelling is read under the caller's job scope, like the list. A member on only their own jobs who adds "senior"
+while "Senior" exists only on jobs they cannot see stores "senior". Nothing breaks: every comparison ignores case, so
+filters, conditions and the list treat the two as one tag, shown as spelled on the most applications the reader sees.
+Settings, Tags can rename it to one spelling.
+
 ## Suggestions in the add field
 
 `TagList` takes `suggestions`, the list above, and its field becomes a combobox (design system section 11, Tag list).
@@ -98,6 +103,11 @@ their actor, and one `ApplicationTagsChanged`, which refreshes the open dashboar
 application no longer matches, so a repeated or redelivered message finds nothing to do. The added event comes a
 microsecond after the removal, because the timeline sorts ties by version 7 ids, which can fall either way inside one
 millisecond, and a case-only rename must replay in order.
+
+Changes run one after another only as far as the worker takes them. A second rename sent while the first one's batches
+are still running checks the tags as they are at that moment, so renaming "Sr" to "Senior" and then "Senior" to "Lead"
+before the first finishes can leave some applications on "Senior". The route does not queue or refuse it; the page shows
+the counts, and running the second change again once they settle picks up the rest.
 
 ## Tests
 
