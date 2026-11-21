@@ -1,10 +1,11 @@
 using System.Text.Json.Nodes;
+using ScreenHire.Application.Scheduling;
 
 namespace ScreenHire.IntegrationTests.Scheduling;
 
 /// <summary>
 /// A stage's optional <c>meetingName</c> from the hiring definition to the candidate's words: the invitation, the
-/// confirmation and the cancellation emails, the calendar event, the candidate's page and the answer to a save that
+/// confirmation, the reminders and the cancellation emails, the calendar event, the candidate's page and the answer to a save that
 /// names it badly. A stage that names none calls the meeting "interview".
 /// </summary>
 public sealed class StageMeetingNameTests(AppHostFixture fixture)
@@ -38,6 +39,14 @@ public sealed class StageMeetingNameTests(AppHostFixture fixture)
         organizerEvent.Summary.Should().Be("Trial shift: Casey Morgan - Line Cook");
         var confirmation = await world.WaitForEmailAsync(email, "is set");
         confirmation.Subject.Should().StartWith("Your trial shift with ");
+
+        // The reminders a day before name it too: the candidate's from its template, the interviewer's from the worker's own words.
+        await world.WaitForSyncAsync(interviewId, "Synced", application);
+        await world.DeliverReminderAsync(interviewId, chosen, InterviewReminderKind.DayBefore, application);
+        (await world.WaitForEmailAsync(email, "Reminder: your trial shift")).Subject.Should().StartWith("Reminder: your trial shift with ");
+        var forInterviewer = await world.WaitForEmailAsync(await world.Owner.EmailOfAsync(), "Trial shift in a day");
+        forInterviewer.Subject.Should().Be("Trial shift in a day: Casey Morgan");
+        forInterviewer.Text.Should().Contain("Your trial shift with a candidate is in about a day");
 
         // The candidate goes on to the interview stage, which names no meeting. The interview they were invited to keeps its name.
         await MoveAsync(world, application, "interview");

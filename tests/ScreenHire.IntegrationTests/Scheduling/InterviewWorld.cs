@@ -206,15 +206,16 @@ internal sealed partial class InterviewWorld : IDisposable
 
     /// <summary>
     /// Delivers the reminder message the schedule would release a day or an hour before the interview, and waits until the worker
-    /// has handled it (sent or not), so a test can then read what reached Mailpit.
+    /// has handled it (sent or not), so a test can then read what reached Mailpit. <paramref name="applicationId"/> is the
+    /// interview's application when it is not the world's own.
     /// </summary>
-    public async Task DeliverReminderAsync(Guid interviewId, DateTimeOffset startsAt, InterviewReminderKind kind)
+    public async Task DeliverReminderAsync(Guid interviewId, DateTimeOffset startsAt, InterviewReminderKind kind, Guid? applicationId = null)
     {
         var store = await WolverineStore.ForAppHostAsync(fixture, Ct);
         var handledBefore = await store.CountHandledAsync(interviewId.ToString(), Ct, ".SendInterviewReminder");
         await using var publisher = await MessagingHost.StartPublisherToAppHostQueuesAsync(fixture, Ct);
         await publisher.Services.GetRequiredService<IMessageBus>().PublishAsync(
-            new SendInterviewReminder(OrganizationId, ApplicationId, interviewId, startsAt, kind));
+            new SendInterviewReminder(OrganizationId, applicationId ?? ApplicationId, interviewId, startsAt, kind));
         await WolverineStore.WaitUntilAsync(
             async () => await store.CountHandledAsync(interviewId.ToString(), Ct, ".SendInterviewReminder") > handledBefore,
             "the worker to handle the reminder",

@@ -188,8 +188,9 @@ A stage may also have a `meetingName`: what the meeting held there is called, in
 "phone screen"; at most 40 characters). It is optional and absent means "interview", so every stored definition reads as it
 did and needs no migration. The interview emails (`{{ meeting.name }}`), the candidate's booking page and page, the
 scheduling sheet and the calendar event name the meeting with it
-([interview scheduling](interview-scheduling.md#the-stages-meeting-name)). Validation refuses a blank or too long name at
-`stages[i].meetingName`.
+([interview scheduling](interview-scheduling.md#the-stages-meeting-name)). Validation refuses, at
+`stages[i].meetingName`, a name that is blank or too long, or that holds markup, a line break or an invisible format
+character such as a right-to-left override.
 
 ### Automations (trigger → conditions → actions)
 
