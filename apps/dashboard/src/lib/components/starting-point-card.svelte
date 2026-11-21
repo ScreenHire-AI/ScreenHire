@@ -5,7 +5,8 @@
 
   // One starting point on the new template screen (design system section 11, Start from card): the template's name, one
   // example line, and its stages as plain text. The card is a radio, so the choice is one control the keyboard reaches. No
-  // icon tile, no arrows between the stages, no third caption.
+  // icon tile, no arrows between the stages, no third caption. The stages are read from version 1: a later version of a
+  // starting point (Trade role has two) keeps its stage names, so the card never says something the copy will not.
   let {
     template,
     chosen,

@@ -251,12 +251,15 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.SetViewportSizeAsync(1440, 1040);
         await SignInAsync(email);
 
-        // Start from: three cards, each its name, one example line and its stages as text.
+        // Start from: four cards, each its name, one example line and its stages as text.
         await Page.GotoAsync(DashboardUrl("/templates/new"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("New hiring template");
         var cards = Page.GetByRole(AriaRole.Group, new() { Name = "Starting point" });
         await Expect(cards).ToContainTextAsync("Plumber, electrician, driver");
         await Expect(cards).ToContainTextAsync("Applied, Phone call, Trial shift, Offer");
+        await Expect(cards).ToContainTextAsync("Hospitality");
+        await Expect(cards).ToContainTextAsync("Barista, line cook, server");
+        await Expect(cards).ToContainTextAsync("Applied, Screening, Trial shift, Offer");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-start-from-light");
         await cards.GetByText("Trade role with a trial shift").ClickAsync();
