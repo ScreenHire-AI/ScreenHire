@@ -17,7 +17,7 @@
   import ActionBar from '#lib/components/action-bar.svelte';
   import AddCandidateSheet, { type AddedCandidate } from '#lib/components/add-candidate-sheet.svelte';
   import ApplicationTable from '#lib/components/application-table.svelte';
-  import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
+  import CandidatesListTabs from '#lib/components/candidates-list-tabs.svelte';
   import EmailSelectionButton from '#lib/components/email-selection-button.svelte';
   import EmailComposerSheet from '#lib/components/email-composer-sheet.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -42,13 +42,18 @@
   import { matchesTag, tagsOf } from '#lib/tags.js';
   import { jobOptions, readReached, reachedLabel, stageOptions } from '#lib/candidate-filters.js';
   import { stageLabel } from '#lib/talent-pool.js';
-  import { closedJobIds, isCurrentApplication, listCounts } from '#lib/candidate-lists.js';
+  import { candidateListHref, closedJobIds, isCurrentApplication, listCounts, type CandidateList } from '#lib/candidate-lists.js';
+  import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { defaultSorts, differsFromView, filtersOf, sortOf, verificationOf } from '#lib/view-filters.js';
 
   // Every application in the organization, newest first; new ones, stage moves and verification levels arrive live
   // (#lib/realtime.ts).
   // Current (the default) or All; the Saved list is its own component.
   let { scope = 'current' }: { scope?: 'current' | 'all' } = $props();
+  // A tab goes to its list's address, which starts that list clean (`candidateListHref`).
+  const openList = (value: string) => {
+    if (value !== scope) void goto(candidateListHref(value as CandidateList));
+  };
 
   const applications = createListApplications();
   // Only for the Saved choice's count.
@@ -207,17 +212,20 @@
 
 <!-- From a tablet up the table fills the window below the header and scrolls inside itself (S6). -->
 <main class={['flex min-w-0 flex-col', !phone.current && 'h-[calc(100svh-3.5rem)] min-h-160', phone.current && canAdd && 'pb-28']}>
-  <HeaderBand
-    title={view?.label ?? 'Candidates'}
-    status={listSwitch}
-    actions={canAdd && !phone.current ? addButton : undefined}
-  />
+  <!-- The list page (design system section 11): the title and Add candidate, the lists as tabs under it, then the panel
+       named after the list, with its search on the right and its filters in one row under that. -->
+  <Tabs.Root value={scope} onValueChange={openList} class={phone.current ? undefined : 'min-h-0 flex-1'}>
+  <HeaderBand title={view?.label ?? 'Candidates'} actions={canAdd && !phone.current ? addButton : undefined}>
+    {#snippet tabs()}
+      <CandidatesListTabs counts={listCounts(applications.data?.data, savedPeople.data?.data.people.length, closedJobs)} />
+    {/snippet}
+  </HeaderBand>
 
-  <div class={['@container', !phone.current && 'flex min-h-0 flex-1 flex-col']}>
+  <Tabs.Content value={scope} class={['@container', !phone.current && 'flex min-h-0 flex-1 flex-col']}>
     <div class={['flex w-full flex-col px-4 py-6 md:px-6', !phone.current && 'min-h-0 flex-1']}>
-      <Panel title="Candidates" flush fill={!phone.current} class={phone.current ? undefined : 'min-h-0 flex-1'}>
+      <Panel title={scope === 'all' ? 'All candidates' : 'Current candidates'} flush fill={!phone.current} class={phone.current ? undefined : 'min-h-0 flex-1'}>
         {#snippet tools()}
-          <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+          <SearchField bind:value={search} label="Search candidates" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
           {#if selectedCount > 0}<span data-selected-count class="flex shrink-0 items-center gap-1.5 text-muted-foreground">Selected <Badge variant="count">{selectedCount}</Badge></span>{/if}
           {#if canEmail && selectedCount > 0 && !phone.current}
             <EmailSelectionButton count={selectedCount} onclick={() => (emailOpen = true)} />
@@ -272,7 +280,8 @@
         </p>
       </Panel>
     </div>
-  </div>
+  </Tabs.Content>
+  </Tabs.Root>
 
   {#if canAdd && phone.current}
     <ActionBar>{@render addButton()}</ActionBar>
@@ -295,9 +304,6 @@
   <SaveViewButton scope="Candidates" filters={filtersNow} show={canSave} />
 {/snippet}
 
-{#snippet listSwitch()}
-  <CandidatesListSwitch list={scope} counts={listCounts(applications.data?.data, savedPeople.data?.data.people.length, closedJobs)} />
-{/snippet}
 
 {#snippet addButton()}
   <Button size="lg" aria-haspopup="dialog" onclick={() => (adding = true)}><UserPlusIcon aria-hidden="true" />Add candidate</Button>

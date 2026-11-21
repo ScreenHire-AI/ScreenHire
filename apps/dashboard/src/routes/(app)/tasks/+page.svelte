@@ -9,6 +9,8 @@
   import ListItem from '#lib/components/list-item.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RecordTabs from '#lib/components/record-tabs.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -19,9 +21,11 @@
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
+  import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { sentenceStart } from '#lib/history.js';
   import { describeError } from '#lib/query.js';
+  import { matchesWords } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { taskHref } from '#lib/tasks.svelte.js';
   import { assigneeText, personName, taskKindLabels } from '#lib/team.js';
@@ -54,11 +58,18 @@
   const everyone = $derived((open.data?.data ?? []).toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)));
   const inScope = (task: TaskListItem, which: TaskScope) =>
     which === 'Everyone' || (which === 'Mine' ? task.assigneeUserId === currentUserId && currentUserId !== undefined : task.assigneeUserId === null);
-  const shown = $derived(status === 'Open' ? everyone.filter((task) => inScope(task, scope)) : (done[scope].data?.data ?? []));
+  const listed = $derived(status === 'Open' ? everyone.filter((task) => inScope(task, scope)) : (done[scope].data?.data ?? []));
+  // Search reads what a row shows: the task, the candidate, the job and the type, every word somewhere in them.
+  let search = $state('');
+  const shown = $derived(
+    search.trim() === '' ? listed : listed.filter((task) => matchesWords(`${task.note} ${task.candidateName} ${task.jobTitle} ${taskKindLabels[task.kind]}`, search)),
+  );
   const countOf = (which: TaskScope) =>
     status === 'Open' ? everyone.filter((task) => inScope(task, which)).length : done[which].data?.data.length;
-  // The panel is Tasks whichever toggle is pressed, so its title does not repeat the toggle (W4); the table says which.
+  // The list page (design system section 11): whose tasks are the tabs under the title, with their counts, and the
+  // panel is named after what it shows, Open or Done, the pills under its header.
   const listLabel = $derived(status === 'Open' ? 'Open tasks' : 'Done tasks');
+  const scopeTabs = $derived(scopes.map((option) => ({ value: option.value, label: option.label, count: tasks.isSuccess ? countOf(option.value) : undefined })));
 
   // Who a task is for: a value of the Everyone's list only. Mine and For the team already say it (W7), so they have no
   // such column.
@@ -122,32 +133,25 @@
 <TopBar crumbs={[{ label: 'My tasks' }]} />
 
 <main class="flex min-w-0 flex-col">
-  <!-- The counts are on the Whose toggles, so the header does not repeat one (W4). -->
-  <HeaderBand title="My tasks" />
+  <Tabs.Root value={scope} onValueChange={(value) => (scope = value as TaskScope)}>
+  <HeaderBand title="My tasks">
+    {#snippet tabs()}<RecordTabs tabs={scopeTabs} label="Whose tasks" />{/snippet}
+  </HeaderBand>
 
-  <div class="@container">
+  <Tabs.Content value={scope} class="@container">
     <div class="flex w-full flex-col px-4 py-6 md:px-6">
-      <Panel title="Tasks" flush>
-        <!-- The filters, in a row under the header because the list has no search (section 7). Each group stays on one
-             line (F5); in a narrow container the two groups stack, and the Whose toggles, whose counts all matter at a
-             glance, stack one per line (section 11, Toggle). On a phone the Sort chip ends the row. -->
-        <div class="@container/filters overflow-x-auto [scrollbar-width:thin] border-b border-border-subtle px-4.5 py-2 max-md:px-4">
-          <div class="flex flex-col items-start gap-2 @md/filters:flex-row @md/filters:items-center @md/filters:gap-4">
-            <div role="group" aria-label="Status" class="flex shrink-0 gap-1">
-              <Toggle size="lg" bind:pressed={() => status === 'Open', () => (status = 'Open')}>Open</Toggle>
-              <Toggle size="lg" bind:pressed={() => status === 'Completed', () => (status = 'Completed')}>Done</Toggle>
-            </div>
-            <div role="group" aria-label="Whose" class="flex shrink-0 flex-col items-start gap-1 @md/filters:flex-row">
-              {#each scopes as option (option.value)}
-                <Toggle size="lg" bind:pressed={() => scope === option.value, () => (scope = option.value)}>
-                  {option.label}
-                  {@const count = countOf(option.value)}
-                  {#if tasks.isSuccess && count !== undefined}<Badge variant="count">{count}</Badge>{/if}
-                </Toggle>
-              {/each}
-            </div>
-            {#if sidebar.isMobile && shown.length > 0}<SortMenu {table} class="shrink-0" />{/if}
+      <Panel title={listLabel} flush>
+        {#snippet tools()}
+          <SearchField bind:value={search} label="Search tasks" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
+        {/snippet}
+        <!-- Open or Done in one row under the header, as every list page's state filters are (section 11). Done is each
+             scope's newest 200, so it carries no count that would read as a total. On a phone the Sort chip ends the row. -->
+        <div class="flex items-center gap-2 overflow-x-auto [scrollbar-width:thin] border-b border-border-subtle px-4.5 py-2 max-md:px-4">
+          <div role="group" aria-label="Status" class="flex shrink-0 gap-1">
+            <Toggle size="lg" bind:pressed={() => status === 'Open', () => (status = 'Open')}>Open</Toggle>
+            <Toggle size="lg" bind:pressed={() => status === 'Completed', () => (status = 'Completed')}>Done</Toggle>
           </div>
+          {#if sidebar.isMobile && shown.length > 0}<SortMenu {table} class="ml-auto shrink-0" />{/if}
         </div>
 
         {#if tasks.isError}
@@ -160,6 +164,8 @@
             {#each [0, 1, 2] as row (row)}<Skeleton class="h-12 w-full max-md:h-24" />{/each}
           </div>
           <p class="sr-only" role="status">Loading tasks…</p>
+        {:else if shown.length === 0 && listed.length > 0}
+          <p role="status" class="p-4.5 text-muted-foreground max-md:p-4">No task matches "{search.trim()}".</p>
         {:else if shown.length === 0}
           <Empty.Root>
             <Empty.Header>
@@ -231,5 +237,6 @@
         {/if}
       </Panel>
     </div>
-  </div>
+  </Tabs.Content>
+  </Tabs.Root>
 </main>

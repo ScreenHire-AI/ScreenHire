@@ -8858,7 +8858,10 @@ export const GetHiringReportResponse = zod.object({
   "daysOpen": zod.int(),
   "hires": zod.int()
 }).describe('An open job: when it opened, applications in the range, applications in an Interview stage now, days open and hires in the range.')),
-  "lastApplicationAt": zod.iso.datetime({"offset":true}).nullable()
+  "lastApplicationAt": zod.iso.datetime({"offset":true}).nullable(),
+  "lastInterviewAt": zod.iso.datetime({"offset":true}).nullable(),
+  "lastOfferAt": zod.iso.datetime({"offset":true}).nullable(),
+  "lastHireAt": zod.iso.datetime({"offset":true}).nullable()
 }).describe('The Reports page (docs/architecture/reports.md): headline numbers, applications and hires by week, the funnel, time to\nhire, sources and open jobs for the jobs the person can see, between two instants. All of it comes from one snapshot,\nso the numbers agree. Nothing here reads verification (verification) results.')
 
 

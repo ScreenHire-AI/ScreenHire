@@ -81,7 +81,7 @@
   import ScorecardRoster from '#lib/components/candidate/scorecard-roster.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SecretDialog from '#lib/components/secret-dialog.svelte';
-  import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
+  import CandidatesListTabs from '#lib/components/candidates-list-tabs.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import ShortcutsDialog from '#lib/components/shortcuts-dialog.svelte';
   import SignalEvidence from '#lib/components/signal-evidence.svelte';
@@ -1469,17 +1469,10 @@
       </section>
 
       <div class="flex flex-wrap items-start gap-5">
-        <Panel title="Candidates list switch" class="flex-[1_1_320px]">
-          <div class="flex flex-wrap gap-x-8 gap-y-4">
-            <figure class="flex flex-col gap-2">
-              <figcaption class="text-caption text-muted-foreground">Current</figcaption>
-              <CandidatesListSwitch list="current" counts={{ current: 13, saved: 1, all: 19 }} />
-            </figure>
-            <figure class="flex flex-col gap-2">
-              <figcaption class="text-caption text-muted-foreground">Saved</figcaption>
-              <CandidatesListSwitch list="saved" counts={{ current: 13, saved: 1, all: 19 }} />
-            </figure>
-          </div>
+        <Panel title="Candidates list tabs" class="flex-[1_1_320px]">
+          <Tabs.Root value="current">
+            <CandidatesListTabs counts={{ current: 13, saved: 1, all: 19 }} />
+          </Tabs.Root>
         </Panel>
       </div>
 

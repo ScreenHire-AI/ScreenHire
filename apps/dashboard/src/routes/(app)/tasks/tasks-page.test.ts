@@ -62,15 +62,21 @@ afterEach(() => {
   localStorage.clear();
 });
 
+// bits-ui picks a tab on pointer down, as a person's click does.
+async function pick(tab: HTMLElement) {
+  await fireEvent.mouseDown(tab);
+  await fireEvent.click(tab);
+}
+
 describe('my tasks page', () => {
   it("opens on the person's own tasks, with a count on Mine, For the team and Everyone's", async () => {
     renderPage();
-    const panel = await screen.findByRole('region', { name: 'Tasks' });
-    const whose = screen.getByRole('group', { name: 'Whose' });
+    const panel = await screen.findByRole('region', { name: /^(Open|Done) tasks$/ });
+    const whose = screen.getByRole('tablist', { name: 'Whose tasks' });
 
-    await waitFor(() => expect(within(whose).getByRole('button', { name: 'Mine 1' })).toHaveAttribute('aria-pressed', 'true'));
-    expect(within(whose).getByRole('button', { name: 'For the team 1' })).toBeInTheDocument();
-    expect(within(whose).getByRole('button', { name: "Everyone's 3" })).toBeInTheDocument();
+    await waitFor(() => expect(within(whose).getByRole('tab', { name: 'Mine 1' })).toHaveAttribute('aria-selected', 'true'));
+    expect(within(whose).getByRole('tab', { name: 'For the team 1' })).toBeInTheDocument();
+    expect(within(whose).getByRole('tab', { name: "Everyone's 3" })).toBeInTheDocument();
     const own = rows(panel);
     expect(own).toHaveLength(1);
     // The row links to where the work is done, and the task is ticked off there, so there is no checkbox here.
@@ -84,13 +90,13 @@ describe('my tasks page', () => {
     expect(within(panel).queryByRole('columnheader', { name: 'For' })).not.toBeInTheDocument();
     expect(within(own[0]!).queryByRole('checkbox')).not.toBeInTheDocument();
 
-    await fireEvent.click(within(whose).getByRole('button', { name: /^For the team/ }));
+    await pick(within(whose).getByRole('tab', { name: /^For the team/ }));
     const team = rows(panel);
     expect(team).toHaveLength(1);
     expect(team[0]).toHaveTextContent('To-do');
     expect(within(panel).queryByRole('columnheader', { name: 'For' })).not.toBeInTheDocument();
 
-    await fireEvent.click(within(whose).getByRole('button', { name: /^Everyone's/ }));
+    await pick(within(whose).getByRole('tab', { name: /^Everyone's/ }));
     expect(rows(panel)).toHaveLength(3);
     // Everyone's is the one list where whose task it is varies, so it has the column.
     expect(within(panel).getByRole('columnheader', { name: /^For/ })).toBeInTheDocument();
@@ -114,7 +120,7 @@ describe('my tasks page', () => {
           }),
         ]),
     });
-    const panel = await screen.findByRole('region', { name: 'Tasks' });
+    const panel = await screen.findByRole('region', { name: /^(Open|Done) tasks$/ });
 
     await waitFor(() => expect(rows(panel)).toHaveLength(2));
     expect(within(panel).getByRole('link', { name: 'Fill in the Interview scorecard.' })).toHaveAttribute(
@@ -131,30 +137,30 @@ describe('my tasks page', () => {
 
   it('shows done tasks with who finished them, and no checkbox on them', async () => {
     renderPage();
-    await screen.findByRole('region', { name: 'Tasks' });
+    await screen.findByRole('region', { name: /^(Open|Done) tasks$/ });
 
     await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-    await fireEvent.click(screen.getByRole('button', { name: /^Everyone's/ }));
-    const panel = await screen.findByRole('region', { name: 'Tasks' });
+    await pick(screen.getByRole('tab', { name: /^Everyone's/ }));
+    const panel = await screen.findByRole('region', { name: /^(Open|Done) tasks$/ });
     // Who finished it and when are columns of their own, with the date and not a time ago (T5).
     expect(await within(panel).findByText('Robin Ashby')).toBeInTheDocument();
     expect(within(panel).getByRole('columnheader', { name: /^Done by/ })).toBeInTheDocument();
     expect(within(panel).getByText('Oct 20, 2026', { selector: 'time[datetime="2026-10-20T11:00:00Z"]' })).toBeInTheDocument();
     expect(within(panel).queryByRole('checkbox')).not.toBeInTheDocument();
 
-    await fireEvent.click(screen.getByRole('button', { name: /^Mine/ }));
+    await pick(screen.getByRole('tab', { name: /^Mine/ }));
     expect(await screen.findByText('Nothing done yet')).toBeInTheDocument();
   });
 
   it("asks for each scope's own done tasks, so a busy team does not crowd out the person's", async () => {
     const fetch = renderPage();
-    await screen.findByRole('region', { name: 'Tasks' });
+    await screen.findByRole('region', { name: /^(Open|Done) tasks$/ });
 
     await fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-    const whose = screen.getByRole('group', { name: 'Whose' });
-    await waitFor(() => expect(within(whose).getByRole('button', { name: 'Mine 0' })).toBeInTheDocument());
-    expect(within(whose).getByRole('button', { name: 'For the team 1' })).toBeInTheDocument();
-    expect(within(whose).getByRole('button', { name: "Everyone's 1" })).toBeInTheDocument();
+    const whose = screen.getByRole('tablist', { name: 'Whose tasks' });
+    await waitFor(() => expect(within(whose).getByRole('tab', { name: 'Mine 0' })).toBeInTheDocument());
+    expect(within(whose).getByRole('tab', { name: 'For the team 1' })).toBeInTheDocument();
+    expect(within(whose).getByRole('tab', { name: "Everyone's 1" })).toBeInTheDocument();
     for (const scope of ['Mine', 'Team', 'Everyone']) {
       expect(fetch.mock.calls.some(([called]) => String(called) === `/v1/tasks?status=Completed&scope=${scope}`)).toBe(true);
     }
@@ -162,8 +168,8 @@ describe('my tasks page', () => {
 
   it('sorts by a column and says which way, opening on the task that has waited longest (L2)', async () => {
     renderPage();
-    const panel = await screen.findByRole('region', { name: 'Tasks' });
-    await fireEvent.click(within(screen.getByRole('group', { name: 'Whose' })).getByRole('button', { name: /^Everyone's/ }));
+    const panel = await screen.findByRole('region', { name: /^(Open|Done) tasks$/ });
+    await pick(within(screen.getByRole('tablist', { name: 'Whose tasks' })).getByRole('tab', { name: /^Everyone's/ }));
 
     expect(within(panel).getByRole('columnheader', { name: /^Created/ })).toHaveAttribute('aria-sort', 'ascending');
     expect(rows(panel)[0]).toHaveTextContent('Call the references.');
@@ -178,14 +184,14 @@ describe('my tasks page', () => {
   it('opens on its default when a remembered sort names a column the scope does not have', async () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
     renderPage();
-    const panel = await screen.findByRole('region', { name: 'Tasks' });
-    const whose = screen.getByRole('group', { name: 'Whose' });
-    await fireEvent.click(within(whose).getByRole('button', { name: /^Everyone's/ }));
+    const panel = await screen.findByRole('region', { name: /^(Open|Done) tasks$/ });
+    const whose = screen.getByRole('tablist', { name: 'Whose tasks' });
+    await pick(within(whose).getByRole('tab', { name: /^Everyone's/ }));
     await fireEvent.click(within(within(panel).getByRole('columnheader', { name: /^For/ })).getByRole('button'));
     expect(within(panel).getByRole('columnheader', { name: /^For/ })).toHaveAttribute('aria-sort', 'ascending');
 
     // Mine has no For column, so the sort falls back to the oldest task first instead of sorting on nothing.
-    await fireEvent.click(within(whose).getByRole('button', { name: /^For the team/ }));
+    await pick(within(whose).getByRole('tab', { name: /^For the team/ }));
     await waitFor(() => expect(within(panel).getByRole('columnheader', { name: /^Created/ })).toHaveAttribute('aria-sort', 'ascending'));
     expect(rows(panel)).toHaveLength(1);
     expect(errors).not.toHaveBeenCalled();
@@ -196,8 +202,8 @@ describe('my tasks page', () => {
     let sendMembers: (response: Response) => void = () => {};
     const pendingMembers = new Promise<Response>((resolve) => (sendMembers = resolve));
     renderPage({ 'GET /v1/organization/members': () => pendingMembers });
-    const panel = await screen.findByRole('region', { name: 'Tasks' });
-    await fireEvent.click(within(screen.getByRole('group', { name: 'Whose' })).getByRole('button', { name: /^Everyone's/ }));
+    const panel = await screen.findByRole('region', { name: /^(Open|Done) tasks$/ });
+    await pick(within(screen.getByRole('tablist', { name: 'Whose tasks' })).getByRole('tab', { name: /^Everyone's/ }));
     await waitFor(() => expect(rows(panel)).toHaveLength(3));
 
     await fireEvent.click(within(within(panel).getByRole('columnheader', { name: /^For/ })).getByRole('button'));
@@ -210,8 +216,8 @@ describe('my tasks page', () => {
   it('lists the tasks as items on a phone, naming whose each is with a name as it is written', async () => {
     stubViewport(360);
     renderPage();
-    await screen.findByRole('region', { name: 'Tasks' });
-    await fireEvent.click(within(screen.getByRole('group', { name: 'Whose' })).getByRole('button', { name: /^Everyone's/ }));
+    await screen.findByRole('region', { name: /^(Open|Done) tasks$/ });
+    await pick(within(screen.getByRole('tablist', { name: 'Whose tasks' })).getByRole('tab', { name: /^Everyone's/ }));
 
     const list = await screen.findByRole('list', { name: 'Open tasks' });
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
@@ -219,6 +225,6 @@ describe('my tasks page', () => {
     expect(list).toHaveTextContent('For the team');
     expect(list).toHaveTextContent('For you');
     expect(list).not.toHaveTextContent('robin ashby');
-    expect(within(screen.getByRole('region', { name: 'Tasks' })).getByRole('button', { name: 'Sort' })).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: /^(Open|Done) tasks$/ })).getByRole('button', { name: 'Sort' })).toBeInTheDocument();
   });
 });

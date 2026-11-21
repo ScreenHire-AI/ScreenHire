@@ -241,6 +241,23 @@ internal static class HiringReportReads
                 [.. Args(from, to)])
             .ToListAsync(cancellationToken)).Single();
 
+        // When an application to those jobs last moved into an interview, an offer or a hired stage, whatever the range, so
+        // each headline number says when it last moved (T7). Read from the moves themselves, through the same tables.
+        var lastMoves = (await db.Database.SqlQueryRaw<LastMovesRow>(
+                Scope + """
+
+                SELECT
+                    max(e.occurred_at) FILTER (WHERE sk.pos = @interview) AS last_interview_at,
+                    max(e.occurred_at) FILTER (WHERE sk.pos = @offer) AS last_offer_at,
+                    max(e.occurred_at) FILTER (WHERE sk.pos = @hired) AS last_hire_at
+                FROM application_events e
+                JOIN applications a ON a.id = e.application_id
+                JOIN stage_kinds sk ON sk.job_id = a.job_id AND sk.stage_id = e.data->>'toStageId'
+                WHERE e.type IN ('Submitted', 'StageChanged')
+                """,
+                [.. Args(from, to)])
+            .ToListAsync(cancellationToken)).Single();
+
         await transaction.CommitAsync(cancellationToken);
 
         return new HiringReport(
@@ -268,7 +285,10 @@ internal static class HiringReportReads
                 .. openJobs.Select(j => new ReportOpenJob(
                     j.JobId, j.Title, j.PublishedAt, j.Applications, j.InInterview, DaysOpen(j.PublishedAt, now), j.Hires)),
             ],
-            lastApplicationAt);
+            lastApplicationAt,
+            lastMoves.LastInterviewAt,
+            lastMoves.LastOfferAt,
+            lastMoves.LastHireAt);
     }
 
     /// <summary>The ids of the applications submitted in the range that reached <paramref name="kind"/> or a later one.</summary>
@@ -346,6 +366,8 @@ internal static class HiringReportReads
     private sealed record JobHireRow(Guid JobId, string JobTitle, int Hires, double MedianDays);
 
     private sealed record StageDaysRow(int Pos, int Hires, double MedianDays);
+
+    private sealed record LastMovesRow(DateTimeOffset? LastInterviewAt, DateTimeOffset? LastOfferAt, DateTimeOffset? LastHireAt);
 
     private sealed record SourceRow(string Key, int Applications, int Hires);
 

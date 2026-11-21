@@ -120,7 +120,6 @@
   // Headline numbers: each with its change from the previous period, when asked for.
   const previous = $derived(compare ? data?.previous : undefined);
   const medianText = $derived(data?.headline.medianDaysToHire == null ? 'None' : daysText(data.headline.medianDaysToHire));
-  const interviewShare = $derived(data ? shareText(data.headline.reachedInterview, data.headline.applications) : null);
   // Five cards: one row on a wide page, three over two in the middle, two columns on a phone with the last across both,
   // so no card sits beside an empty cell.
   const statGrid = 'grid grid-cols-2 gap-3 @3xl:grid-cols-6 @5xl:grid-cols-5';
@@ -348,34 +347,55 @@
             role="group"
             aria-label="Headline numbers"
           >
-            {#snippet lastApplication()}
-              {#if data.lastApplicationAt}Last application <RelativeTime at={data.lastApplicationAt} class="inline" />{/if}
+            <!-- Every card the same three rows (T7): what it counts, the number with its change, and one muted line saying when
+                 it last moved, whatever the dates chosen, or that nothing has yet. The funnel below has each stage's share. -->
+            {#snippet since(at: string | null, last: string, none: string)}
+              {#if at}{last} <RelativeTime {at} class="inline" />{:else}{none}{/if}
             {/snippet}
-            <!-- Passed only when there is a date, so the tile has no empty line under its value (L1). -->
+            {#snippet lastApplication()}{@render since(data.lastApplicationAt, 'Last application', 'No applications yet')}{/snippet}
+            {#snippet lastInterview()}{@render since(data.lastInterviewAt, 'Last reached interview', 'No interviews yet')}{/snippet}
+            {#snippet lastOffer()}{@render since(data.lastOfferAt, 'Last offer', 'No offers yet')}{/snippet}
+            {#snippet lastHire()}{@render since(data.lastHireAt, 'Last hire', 'No hires yet')}{/snippet}
             <ReportStat
               class={statSpans[0]}
               icon={InboxIcon}
               title="Applications"
               value={countText(data.headline.applications)}
               change={changeText(data.headline.applications, previous?.applications)}
-              footnote={data.lastApplicationAt ? lastApplication : undefined}
+              footnote={lastApplication}
             />
             <ReportStat
               class={statSpans[1]}
               icon={CalendarCheckIcon}
               title="Reached interview"
               value={countText(data.headline.reachedInterview)}
-              share={interviewShare === null ? null : `${interviewShare} of applications`}
               change={changeText(data.headline.reachedInterview, previous?.reachedInterview)}
+              footnote={lastInterview}
             />
-            <ReportStat class={statSpans[2]} icon={FileCheckIcon} title="Offers" value={countText(data.headline.offers)} change={changeText(data.headline.offers, previous?.offers)} />
-            <ReportStat class={statSpans[3]} icon={UserCheckIcon} title="Hires" value={countText(data.headline.hires)} change={changeText(data.headline.hires, previous?.hires)} />
+            <ReportStat
+              class={statSpans[2]}
+              icon={FileCheckIcon}
+              title="Offers"
+              value={countText(data.headline.offers)}
+              change={changeText(data.headline.offers, previous?.offers)}
+              footnote={lastOffer}
+            />
+            <ReportStat
+              class={statSpans[3]}
+              icon={UserCheckIcon}
+              title="Hires"
+              value={countText(data.headline.hires)}
+              change={changeText(data.headline.hires, previous?.hires)}
+              footnote={lastHire}
+            />
+            <!-- The median moves only when someone is hired, so its line is the last hire too. -->
             <ReportStat
               class={statSpans[4]}
               icon={TimerIcon}
               title="Median time to hire"
               value={medianText}
               change={changeText(data.headline.medianDaysToHire, previous?.medianDaysToHire, 'days')}
+              footnote={lastHire}
             />
           </div>
 

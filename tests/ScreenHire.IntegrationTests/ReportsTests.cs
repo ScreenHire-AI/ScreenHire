@@ -251,17 +251,23 @@ public sealed class ReportsTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task The_report_says_when_the_newest_application_arrived_whatever_the_range_and_nothing_before_the_first()
+    public async Task The_report_says_when_the_newest_application_arrived_and_each_stage_last_moved_whatever_the_range_and_nothing_before_the_first()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         var none = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
         none.At("lastApplicationAt").ValueKind.Should().Be(JsonValueKind.Null, "nothing has been applied for yet");
+        foreach (var field in LastMoveFields)
+        {
+            none.At(field).ValueKind.Should().Be(JsonValueKind.Null, "nobody has moved yet");
+        }
 
         var (platform, data) = await SeedAsync(owner.OrganizationId);
 
-        // The newest application, to Platform, arrived 6 days ago.
+        // The newest application, to Platform, arrived 6 days ago. The newest move into an interview was 4 days ago, into an
+        // offer 1 day ago (a hire moved back to Offer still entered it) and into Hired 2 days ago.
         var report = (await owner.GetAsync($"/v1/reports/hiring?{Range}")).Expect(HttpStatusCode.OK);
         report.At("lastApplicationAt").GetDateTimeOffset().Should().BeCloseTo(DaysAgo(6), TimeSpan.FromMilliseconds(1));
+        ExpectLastMoves(report, 4, 1, 2);
 
         // A range before it, with no applications in it, still names it.
         var older = $"from={Uri.EscapeDataString(DaysAgo(400).ToString("O"))}&to={Uri.EscapeDataString(DaysAgo(200).ToString("O"))}";
@@ -272,6 +278,7 @@ public sealed class ReportsTests(AppHostFixture fixture)
         // It follows the jobs in scope: Data's newest application arrived 14 days ago, and a job nobody can see has none.
         var dataOnly = (await owner.GetAsync($"/v1/reports/hiring?{Range}&jobId={data}")).Expect(HttpStatusCode.OK);
         dataOnly.At("lastApplicationAt").GetDateTimeOffset().Should().BeCloseTo(DaysAgo(14), TimeSpan.FromMilliseconds(1));
+        ExpectLastMoves(dataOnly, 12, 11, 9);
         var unknown = (await owner.GetAsync($"/v1/reports/hiring?{Range}&jobId={Guid.NewGuid()}")).Expect(HttpStatusCode.OK);
         unknown.At("lastApplicationAt").ValueKind.Should().Be(JsonValueKind.Null);
 
@@ -282,6 +289,10 @@ public sealed class ReportsTests(AppHostFixture fixture)
         theirs.At("lastApplicationAt").GetDateTimeOffset().Should().BeCloseTo(DaysAgo(14), TimeSpan.FromMilliseconds(1), "Platform's newer application is not theirs to see");
         var hidden = (await viewer.GetAsync($"/v1/reports/hiring?{Range}&jobId={platform}")).Expect(HttpStatusCode.OK);
         hidden.At("lastApplicationAt").ValueKind.Should().Be(JsonValueKind.Null, "a job they cannot see says nothing about it");
+        foreach (var field in LastMoveFields)
+        {
+            hidden.At(field).ValueKind.Should().Be(JsonValueKind.Null, "a job they cannot see says nothing about it");
+        }
 
         // Another organization's newer application never counts.
         using var other = await fixture.SignedInWithOrganizationAsync();
@@ -453,6 +464,17 @@ public sealed class ReportsTests(AppHostFixture fixture)
         await AddFrom(data, 25, null, "https://www.example.com", ("screening", 24), ("technical", 23), ("interview", 22), ("offer", 21), ("hired", 11));
 
         return (platform.Id, data.Id);
+    }
+
+    private static readonly string[] LastMoveFields = ["lastInterviewAt", "lastOfferAt", "lastHireAt"];
+
+    // Interview, offer and hire, in days ago, to the millisecond (Postgres keeps microseconds).
+    private static void ExpectLastMoves(ApiResult report, params double[] daysAgo)
+    {
+        for (var i = 0; i < LastMoveFields.Length; i++)
+        {
+            report.At(LastMoveFields[i]).GetDateTimeOffset().Should().BeCloseTo(DaysAgo(daysAgo[i]), TimeSpan.FromMilliseconds(1), LastMoveFields[i]);
+        }
     }
 
     private static IEnumerable<(string, int, int?)> Funnel(ApiResult report) =>
