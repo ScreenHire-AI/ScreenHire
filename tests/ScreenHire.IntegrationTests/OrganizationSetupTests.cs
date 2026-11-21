@@ -45,6 +45,27 @@ public sealed class OrganizationSetupTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Skips_sent_at_the_same_time_all_stay()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var admin = await fixture.InviteAndJoinAsync(owner, "Admin");
+
+        // Each skip rewrites the whole list, so without the row lock the later save drops the others.
+        var responses = await Task.WhenAll(
+            owner.PostAsync("/v1/organization/setup/skip", Skip("Branding")),
+            admin.PostAsync("/v1/organization/setup/skip", Skip("Job")),
+            owner.PostAsync("/v1/organization/setup/skip", Skip("Team")),
+            admin.PostAsync("/v1/organization/setup/skip", Skip("Email")));
+        foreach (var response in responses)
+        {
+            response.Expect(HttpStatusCode.OK);
+        }
+
+        Skipped((await owner.GetAsync("/v1/organization/setup")).Expect(HttpStatusCode.OK))
+            .Should().BeEquivalentTo(["Branding", "Job", "Team", "Email"]);
+    }
+
+    [Fact]
     public async Task Only_edit_settings_changes_the_choices_and_an_unknown_step_is_refused()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
