@@ -501,7 +501,8 @@ public sealed partial class EmailTemplates
             // A variable is one name, or "meeting.name": the segments joined by a dot are what the list holds.
             var segments = memberExpression.Segments;
             var name = segments.All(s => s is IdentifierSegment) ? string.Join('.', segments.Cast<IdentifierSegment>().Select(s => s.Identifier)) : "";
-            if (segments.Count is < 1 or > 2 || name.Length == 0)
+            // Any other member access, on a variable or on the meeting, is still refused with the same words as before.
+            if (segments.Count is < 1 or > 2 || name.Length == 0 || (segments.Count == 2 && name != MeetingName.Name))
             {
                 Problems.Add($"Use a variable on its own, such as {{{{ {Variables[0].Name} }}}}.");
             }
