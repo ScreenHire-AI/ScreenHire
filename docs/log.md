@@ -2,8 +2,9 @@
 
 ## 2026-11-21
 
-**Every dashboard page was held to the List template and the checklist.** The walk covered every route at 1440 px and 390 px (light), and the
-list pages in the dark theme too. The four main lists already matched. The drift was in the settings
+**Every dashboard page was held to the List template and the checklist.** The walk measured every route at 1440 px and
+all but two settings pages at 390 px in the light theme, and the seven list routes in the dark theme too; the
+[roadmap](roadmap.md#the-consistency-review-of-the-dashboard) says what stayed unchecked by eye. The four main lists already matched. The drift was in the settings
 lists: Team, Roles, API keys, Webhooks and Passkeys put a count beside the page title, which the List row forbids, and
 three of them searched with a different placeholder. The count now sits in the list panel's header, only once the list has
 a row, `HeaderBand` has no `count` to give, and the three searches read "Search" and take the phone layout of the main

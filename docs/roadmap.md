@@ -211,6 +211,8 @@ size in the same terms as the section above. Nothing here is built. The owner pi
    all three. Size M.
 10. **A panel's title follows the pill.** Jobs and My tasks retitle the panel with the state (Open jobs, Draft jobs, Done
     tasks), and Templates keeps "Hiring templates" while Archived is pressed. Size S.
+11. **One Add candidate for the Candidates tabs.** Current and Saved each wire the same button, sheet, phone action bar and
+    "Added ... to ..." line, so a change to one can miss the other. One small component would hold all four. Size S.
 
 #### Where the main action sits
 
