@@ -196,7 +196,7 @@ public sealed class InterviewWorkflowActionTests(AppHostFixture fixture)
         var run = await AutomationSamples.WaitForRunAsync(world.Owner, application, "schedule", "Failed");
         var action = run.GetProperty("actions")[0];
         action.GetProperty("status").GetString().Should().Be("Failed");
-        action.GetProperty("detail").GetString().Should().Contain("no working calendar connected").And.Contain("connect one from the account menu");
+        action.GetProperty("detail").GetString().Should().Contain("no working calendar connected").And.Contain("connect one in Your account, Connected accounts");
         (await world.InterviewsAsync(application)).Should().BeEmpty();
         (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().BeEmpty();
     }

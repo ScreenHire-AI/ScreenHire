@@ -1,13 +1,22 @@
-import type { ApiKeySummary, CurrentUser, OrganizationRole, PendingInvitation, TeamMember } from '@screenhire/api-client';
+import type { ApiKeySummary, CurrentUser, OrganizationRole, PendingInvitation, TeamDetail, TeamMember } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
-import { expectCountInPanelNotBand } from '../../../../test-support/list-template.js';
 import { apiStub, interviewerRoleId, roleCatalogue, user, userAs } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
-vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/settings/team') }, navigating: { to: null } }));
+// The address holds the tab (`?tab=teams`); a test sets it before rendering.
+const address = vi.hoisted(() => ({ url: new URL('http://dashboard.test/settings/team') }));
+vi.mock('$app/state', () => ({
+  page: {
+    data: { user },
+    get url() {
+      return address.url;
+    },
+  },
+  navigating: { to: null },
+}));
 // Superforms needs the rest of the module (beforeNavigate).
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
 
@@ -35,6 +44,18 @@ const invitations: PendingInvitation[] = [
   { id: 'i-2', email: 'robin@example.com', role: 'Owner', customRoleId: null, roleName: 'Owner', createdAt: '2026-10-18T09:00:00Z', expiresAt: '2026-10-25T09:00:00Z', jobAccess: 'All' as const },
 ];
 
+// A named team, Kitchen, with Jordan Lee on it.
+const onTeam = (teammate: TeamMember) => ({
+  memberId: teammate.id,
+  userId: teammate.userId,
+  email: teammate.email,
+  displayName: teammate.displayName,
+  roleName: teammate.roleName,
+  seesAllJobs: teammate.seesAllJobs,
+});
+const kitchen: TeamDetail = { id: 'team-1', name: 'Kitchen', members: [onTeam(recruiter)], createdAt: '2026-10-01T09:00:00Z', updatedAt: null };
+const teams: TeamDetail[] = [kitchen];
+
 // Nothing has changed the team since Avery created it.
 const teamUpdated = { at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), by: 'Member', userId: user.id, apiKeyId: null, created: true };
 
@@ -56,6 +77,7 @@ function renderPage(
       'GET /v1/organization/roles': () => Response.json(roleCatalogue),
       'GET /v1/organization/members/m-4/jobs': () => Response.json([{ id: 'j-1', title: 'Senior .NET Engineer', status: 'Open' }]),
       'GET /v1/organization/team/last-update': () => Response.json(teamUpdated),
+      'GET /v1/organization/teams': () => Response.json(teams),
       ...routes,
     }),
   );
@@ -73,10 +95,20 @@ async function openMenu(name: string) {
   return screen.findByRole('menu');
 }
 
+// A picker's list is portalled out of its sheet; looking for it there is quicker than a role query over the whole page.
+function pickerOption(name: RegExp) {
+  return waitFor(() => {
+    const list = document.querySelector<HTMLElement>('[data-slot="command-list"]');
+    expect(list).not.toBeNull();
+    return within(list!).getByRole('option', { name });
+  });
+}
+
 const writes = (fetchMock: ReturnType<typeof renderPage>, method: string) => fetchMock.mock.calls.filter(([, init]) => init?.method === method);
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  address.url = new URL('http://dashboard.test/settings/team');
 });
 
 describe('team page', () => {
@@ -89,8 +121,11 @@ describe('team page', () => {
     expect((await screen.findAllByText('sam@example.com')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('robin@example.com').length).toBeGreaterThan(0);
     expect(screen.getAllByText('You').length).toBeGreaterThan(0);
-    // The count of each list is in its panel, never beside the title (List template, T4).
-    expectCountInPanelNotBand('Members', 4);
+    // Members and Teams are the page's tabs, each with its count; Invitations is a panel of its own with its count (List template, T4).
+    const tabs = screen.getByRole('tablist', { name: 'Team' });
+    await waitFor(() => expect(within(tabs).getByRole('tab', { name: /Members/ })).toHaveTextContent('4'));
+    expect(within(tabs).getByRole('tab', { name: /Teams/ })).toHaveTextContent('1');
+    expect(within(screen.getByRole('region', { name: 'Members' })).queryByText('4', { selector: '[data-slot="badge"]' })).toBeNull();
     expect(within(screen.getByRole('region', { name: 'Invitations' })).getByText('2', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
     await expectNoAxeViolations();
   });
@@ -572,5 +607,82 @@ describe('team page', () => {
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Revoke invitation' }));
 
     await waitFor(() => expect(reads()).toBe(2));
+  });
+
+  describe('teams', () => {
+    const openTeams = () => {
+      address.url = new URL('http://dashboard.test/settings/team?tab=teams');
+    };
+
+    it('lists the named teams on their own tab with their people, and New team replaces Invite', async () => {
+      openTeams();
+      renderPage('Owner');
+
+      const panel = await screen.findByRole('region', { name: 'Teams' });
+      expect((await within(panel).findAllByRole('button', { name: 'Kitchen' })).length).toBeGreaterThan(0);
+      expect(within(panel).getAllByText(/Jordan Lee/).length).toBeGreaterThan(0);
+      expect(screen.getByRole('button', { name: 'New team' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Invite' })).toBeNull();
+      await expectNoAxeViolations();
+    });
+
+    it('says what a team is for while there are none', async () => {
+      openTeams();
+      renderPage('Owner', { 'GET /v1/organization/teams': () => Response.json([]) });
+
+      const panel = await screen.findByRole('region', { name: 'Teams' });
+      expect(await within(panel).findByText('No teams yet')).toBeInTheDocument();
+      expect(within(panel).getByText(/puts the same people on a job's hiring team in one step/)).toBeInTheDocument();
+    });
+
+    it('makes a team with a name and the people picked', async () => {
+      openTeams();
+      const fetchMock = renderPage('Owner', { 'POST /v1/organization/teams': () => Response.json({ ...kitchen, id: 'team-2', name: 'Front of house' }, { status: 201 }) });
+
+      // The people are the Members tab's, loaded with the page.
+      await waitFor(() => expect(screen.getByRole('tab', { name: /Members/ })).toHaveTextContent('4'));
+      await fireEvent.click(screen.getByRole('button', { name: 'New team' }));
+      const sheet = await screen.findByRole('dialog', { name: 'New team' });
+      expect(within(sheet).getByText(/Changing the team later changes no job/)).toBeInTheDocument();
+      await fireEvent.input(within(sheet).getByLabelText('Name'), { target: { value: '  Front of house ' } });
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Add a person' }));
+      await fireEvent.click(await pickerOption(/Casey Morgan/));
+      expect(await within(sheet).findByText('Casey Morgan')).toBeInTheDocument();
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Add team' }));
+
+      await waitFor(() => expect(writes(fetchMock, 'POST')).toHaveLength(1));
+      expect(JSON.parse(String(writes(fetchMock, 'POST')[0]![1]!.body))).toEqual({ name: 'Front of house', memberIds: ['m-3'] });
+    });
+
+    it('opens a team from its name, and shows a name another team has under the field', async () => {
+      openTeams();
+      const fetchMock = renderPage('Owner', {
+        'PUT /v1/organization/teams/team-1': () => Response.json({ errors: { name: ['Another team has this name.'] } }, { status: 400 }),
+      });
+
+      const [name] = await screen.findAllByRole('button', { name: 'Kitchen' });
+      await fireEvent.click(name!);
+      const sheet = await screen.findByRole('dialog', { name: 'Edit team' });
+      expect(within(sheet).getByLabelText('Name')).toHaveValue('Kitchen');
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Remove Jordan Lee from the team' }));
+      await fireEvent.input(within(sheet).getByLabelText('Name'), { target: { value: 'Bar' } });
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+      expect(await within(sheet).findByText('Another team has this name.')).toBeInTheDocument();
+      expect(JSON.parse(String(writes(fetchMock, 'PUT')[0]![1]!.body))).toEqual({ name: 'Bar', memberIds: [] });
+    });
+
+    it('deletes a team once confirmed, saying the jobs it was added to keep their people', async () => {
+      openTeams();
+      const fetchMock = renderPage('Owner', { 'DELETE /v1/organization/teams/team-1': () => new Response(null, { status: 204 }) });
+
+      await fireEvent.click(within(await openMenu('Actions for Kitchen')).getByRole('menuitem', { name: 'Delete team' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Delete Kitchen?' });
+      expect(within(dialog).getByText(/Jobs it was added to keep their people/)).toBeInTheDocument();
+      await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete team' }));
+
+      await waitFor(() => expect(writes(fetchMock, 'DELETE')).toHaveLength(1));
+      expect(writes(fetchMock, 'DELETE')[0]![0]).toBe('/v1/organization/teams/team-1');
+    });
   });
 });

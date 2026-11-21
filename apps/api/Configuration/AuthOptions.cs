@@ -52,6 +52,12 @@ public sealed class AuthOptions
     [Range(1, 5)]
     public int ForwardLimit { get; set; } = 1;
 
+    /// <summary>
+    /// How often a session cookie is checked against the person's security stamp, which Sign out everywhere changes: the
+    /// longest another browser stays signed in after it. Each check reads the person's row once per session.
+    /// </summary>
+    public TimeSpan SecurityStampInterval { get; set; } = TimeSpan.FromMinutes(1);
+
     /// <summary>The proxies as single entries: <see cref="TrustedProxies"/> split on commas, blanks dropped.</summary>
     public IEnumerable<string> TrustedProxyEntries() => ProductionSettings.TrustedProxyEntries(TrustedProxies);
 }

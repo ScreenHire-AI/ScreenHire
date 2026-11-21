@@ -68,7 +68,13 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         ("integrations", scene => $"/settings/webhooks/{scene.EndpointId}/edit"),
         ("integrations", _ => "/settings/mcp-server"),
         ("integrations", _ => "/settings/slack"),
-        ("integrations", _ => "/account/passkeys"),
+        ("account", _ => "/account"),
+        ("account", _ => "/account/profile"),
+        ("account", _ => "/account/notifications"),
+        ("account", _ => "/account/connected"),
+        ("account", _ => "/account/security"),
+        ("account", _ => "/account/passkeys"),
+        ("account", _ => "/account/preferences"),
     ];
 
     /// <summary>
@@ -98,7 +104,7 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
     ];
 
     /// <summary>The groups a team sets things up in. Every other group is one it works in.</summary>
-    private static readonly string[] SetupSide = ["verification", "organization", "integrations"];
+    private static readonly string[] SetupSide = ["verification", "organization", "integrations", "account"];
 
     /// <summary>The rows of the walk over the scene: every group of <see cref="RouteTable"/>, then the overlays.</summary>
     public static TheoryData<string> WalkGroups => [.. RouteTable.Select(route => route.Group).Distinct(), OverlaysGroup];

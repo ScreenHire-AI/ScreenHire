@@ -604,6 +604,9 @@ internal static class AuthEndpoints
         }
 
         var email = user.Email ?? "";
-        return new CurrentUser(user.Id, email, user.DisplayName ?? email, UsableName(user.DisplayName, email), organization);
+        var photo = await db.UserPhotos.AsNoTracking().Where(p => p.UserId == user.Id).Select(p => (DateTimeOffset?)p.UpdatedAt).SingleOrDefaultAsync(cancellationToken);
+        return new CurrentUser(
+            user.Id, email, user.DisplayName ?? email, UsableName(user.DisplayName, email), organization,
+            photo is { } at ? AccountEndpoints.PhotoUrl(user.Id, at) : null);
     }
 }

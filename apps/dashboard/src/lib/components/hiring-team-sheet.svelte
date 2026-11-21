@@ -2,16 +2,9 @@
   import CopyIcon from '~icons/lucide/copy';
   import SaveIcon from '~icons/lucide/save';
   import UserPlusIcon from '~icons/lucide/user-plus';
+  import UsersRoundIcon from '~icons/lucide/users-round';
   import XIcon from '~icons/lucide/x';
-  import {
-    createGetHiringTemplateTeam,
-    createGetJobHiringTeam,
-    createListJobs,
-    createListTeamMembers,
-    createSetHiringTemplateTeam,
-    createSetJobHiringTeam,
-    getJobHiringTeam,
-  } from '@screenhire/api-client/svelte-query';
+  import { createGetJobHiringTeam, createListJobs, createListTeamMembers, createListTeams, createSetJobHiringTeam, getJobHiringTeam } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import FailureText from '#lib/components/failure-text.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
@@ -21,18 +14,17 @@
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { accessWords, mergeTeam } from '#lib/hiring-team.js';
+  import { accessWords, mergeTeam, teamMemberIds, teamOptions } from '#lib/hiring-team.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { cn } from '#lib/utils.js';
 
   // Hiring team (design system section 21, ADR-0015): the people who work on a job. Anyone on Only jobs they're on sees
-  // the job through this list. On a hiring template it is the default team that new jobs from the template start with.
-  // Changes collect here and land on Save; Copy from another job brings that job's people into the list first. Without
-  // the permission the sheet only lists the people and says why (E3). Someone who sees only their own jobs cannot take
-  // themselves off one, so their own row has no remove button.
+  // the job through this list. Changes collect here and land on Save. Add a team brings a named team's people into the
+  // list as they are now (Settings, Team, Teams), and Copy from another job that job's people; either can then be taken
+  // off one by one, and only the list as shown is saved. Without the permission the sheet only lists the people and says
+  // why (E3). Someone who sees only their own jobs cannot take themselves off one, so their own row has no remove button.
   let {
     open = $bindable(false),
-    kind,
     id,
     name,
     mayEdit,
@@ -40,12 +32,11 @@
     seesAllJobs,
   }: {
     open?: boolean;
-    kind: 'job' | 'template';
-    /** The job's or the template's id. */
+    /** The job's id. */
     id: string;
-    /** The job's title or the template's name, the sheet's one line. */
+    /** The job's title, the sheet's one line. */
     name: string;
-    /** Whether the signed-in person's role may change it: Edit jobs, or Edit hiring templates. */
+    /** Whether the signed-in person's role may change it: Edit jobs. */
     mayEdit: boolean;
     /** The signed-in person's membership id, to keep them on a job while they see only their own jobs. */
     currentMemberId?: string;
@@ -53,15 +44,13 @@
   } = $props();
 
   const queryClient = useQueryClient();
-  const path = $derived(kind === 'job' ? `/v1/jobs/${id}/hiring-team` : `/v1/templates/${id}/hiring-team`);
-  const jobTeam = createGetJobHiringTeam(() => id, () => ({ query: { enabled: kind === 'job' } }));
-  const templateTeam = createGetHiringTemplateTeam(() => id, () => ({ query: { enabled: kind === 'template' } }));
-  const team = $derived(kind === 'job' ? jobTeam : templateTeam);
+  const path = $derived(`/v1/jobs/${id}/hiring-team`);
+  const team = createGetJobHiringTeam(() => id);
   const members = createListTeamMembers(() => ({ query: { enabled: open && mayEdit } }));
-  const jobs = createListJobs(() => ({ query: { enabled: open && mayEdit && kind === 'job' } }));
+  const teams = createListTeams(() => ({ query: { enabled: open && mayEdit } }));
+  const jobs = createListJobs(() => ({ query: { enabled: open && mayEdit } }));
   const afterSave = () => Promise.all([invalidatePath(queryClient, path), invalidatePath(queryClient, '/v1/organization/members')]);
   const saveJob = createSetJobHiringTeam(() => ({ mutation: { onSettled: afterSave } }));
-  const saveTemplate = createSetHiringTemplateTeam(() => ({ mutation: { onSettled: afterSave } }));
 
   let draft = $state<string[]>([]);
   let copyFromJobId = $state<string | null>(null);
@@ -102,8 +91,9 @@
       .filter((member) => !draft.includes(member.id))
       .map((member) => ({ id: member.id, label: member.displayName, hint: `${member.roleName}, ${accessWords(member).toLowerCase()}` })),
   );
+  const teamList = $derived(teams.data?.data ?? []);
   const copyable = $derived((jobs.data?.data ?? []).filter((job) => job.id !== id).map((job) => ({ id: job.id, label: job.title })));
-  const mayRemove = (memberId: string) => seesAllJobs || kind === 'template' || memberId !== currentMemberId;
+  const mayRemove = (memberId: string) => seesAllJobs || memberId !== currentMemberId;
 
   async function copyFrom(jobId: string) {
     failure = '';
@@ -122,11 +112,7 @@
     failure = '';
     saving = true;
     try {
-      if (kind === 'job') {
-        await saveJob.mutateAsync({ jobId: id, data: { memberIds: draft, copyFromJobId } });
-      } else {
-        await saveTemplate.mutateAsync({ templateId: id, data: { memberIds: draft } });
-      }
+      await saveJob.mutateAsync({ jobId: id, data: { memberIds: draft, copyFromJobId } });
       open = false;
     } catch (error) {
       failure = describeError(error, 'Could not save the hiring team');
@@ -139,17 +125,11 @@
 <Sheet.Root bind:open>
   <Sheet.Content side="right" class="w-full overflow-y-auto">
     <Sheet.Header>
-      <Sheet.Title>{kind === 'job' ? 'Hiring team' : 'Default hiring team'}</Sheet.Title>
+      <Sheet.Title>Hiring team</Sheet.Title>
       <Sheet.Description>{name}</Sheet.Description>
     </Sheet.Header>
     <form onsubmit={save} novalidate class="flex flex-col gap-5 px-4 pb-4">
-      <p class="text-muted-foreground">
-        {#if kind === 'job'}
-          Anyone set to Only jobs they're on sees this job through this list.
-        {:else}
-          New jobs from this template start with these people.
-        {/if}
-      </p>
+      <p class="text-muted-foreground">Anyone set to Only jobs they're on sees this job through this list.</p>
 
       {#if team.isError}
         <QueryError message={describeError(team.error, 'Could not load the hiring team')} onretry={() => team.refetch()} inset />
@@ -187,9 +167,16 @@
         {:else}
           <div class="flex flex-wrap gap-2">
             <Picker label="Add a person" icon={UserPlusIcon} options={addable} searchLabel="Search people" empty="Nobody else to add." onpick={(memberId) => (draft = mergeTeam(draft, [memberId]))} />
-            {#if kind === 'job'}
-              <Picker label="Copy from another job" icon={CopyIcon} options={copyable} searchLabel="Search jobs" empty="No other job to copy from." onpick={copyFrom} />
-            {/if}
+            <!-- A team adds its people only; nothing remembers it, so a later change to the team changes no job. -->
+            <Picker
+              label="Add a team"
+              icon={UsersRoundIcon}
+              options={teamOptions(teamList)}
+              searchLabel="Search teams"
+              empty={teams.isError ? 'Could not load the teams.' : 'No teams yet. Make one in Settings, Team.'}
+              onpick={(teamId) => (draft = mergeTeam(draft, teamMemberIds(teamList, teamId)))}
+            />
+            <Picker label="Copy from another job" icon={CopyIcon} options={copyable} searchLabel="Search jobs" empty="No other job to copy from." onpick={copyFrom} />
           </div>
         {/if}
         <FailureText message={failure} />
@@ -199,7 +186,7 @@
         </div>
       {:else}
         <p class="text-muted-foreground">
-          Your role cannot change the hiring team. Ask someone who can {kind === 'job' ? 'edit jobs' : 'edit hiring templates'}.
+          Your role cannot change the hiring team. Ask someone who can edit jobs.
         </p>
       {/if}
     </form>

@@ -1,8 +1,8 @@
-import type { MemberNotificationSettings, ToastKind } from '@screenhire/api-client';
+import type { AccountNotifications, NoticeScope, ToastKind } from '@screenhire/api-client';
 import type { RealtimeEvent } from '@screenhire/realtime';
 
 /** The kinds about a candidate on a job whose hiring team the person is on. */
-export type CandidateKind = Exclude<ToastKind, 'Tasks' | 'Templates'>;
+export type CandidateKind = Exclude<ToastKind, 'Tasks' | 'Templates' | 'Mentions' | 'Replies'>;
 
 export type TaskAction = 'created' | 'completed' | 'reopened';
 
@@ -36,13 +36,39 @@ export type TeammateChange =
 export interface ChangeContext {
   /** The signed-in person's user id. */
   userId: string | undefined;
-  /** The jobs whose hiring team they are on (ADR-0015); seeing a job is not enough. */
+  /** The jobs whose hiring team they are on (ADR-0015); seeing a job is not enough, unless their scope is Everything I can see. */
   teamJobIds: ReadonlySet<string>;
-  settings: MemberNotificationSettings;
+  settings: ToastSettings;
 }
 
-/** Everything on: a member who never opened the Teammate changes sheet, and the fallback while it cannot be read. */
-export const defaultNotificationSettings: MemberNotificationSettings = { toasts: true, closeToasts: true, off: [] };
+/**
+ * The person's toast choices, from the notification grid on Your account (docs/architecture/realtime.md): toasts on unless
+ * paused, whether each closes on its own, the kinds turned off (the In the app column), and the jobs the job rows cover.
+ */
+export interface ToastSettings {
+  toasts: boolean;
+  closeToasts: boolean;
+  off: readonly ToastKind[];
+  scope: NoticeScope;
+}
+
+/** Everything on, for the hiring team's jobs: a member who never changed the grid, and the fallback while it cannot be read. */
+export const defaultNotificationSettings: ToastSettings = { toasts: true, closeToasts: true, off: [], scope: 'MyJobs' };
+
+/** The toast choices in the person's notification grid. */
+export const toastSettingsFrom = (account: AccountNotifications): ToastSettings => ({
+  toasts: !account.pauseToasts,
+  closeToasts: account.closeToasts,
+  off: account.toastsOff,
+  scope: account.scope,
+});
+
+/** Whether a card of this kind (a mention, a reply) shows in the tray: toasts not paused and the kind on. */
+export const cardShows = (settings: ToastSettings, kind: 'Mentions' | 'Replies') => settings.toasts && !settings.off.includes(kind);
+
+// A change on a job reaches the person on its hiring team, or on any job they see when their scope is Everything I can see:
+// the hub only sends a job's events to the people who see it (ADR-0015).
+const onTheirJobs = (context: ChangeContext, jobId: string) => context.settings.scope === 'Everything' || context.teamJobIds.has(jobId);
 
 const candidateEvents: Partial<Record<RealtimeEvent['type'], CandidateKind>> = {
   ApplicationMoved: 'Moves',
@@ -80,7 +106,7 @@ function describe(event: RealtimeEvent, context: ChangeContext): TeammateChange 
     case 'ApplicationSubmitted': {
       // A member's own addition is a teammate's change; one with no member behind it is a candidate applying, and tells the team.
       const { actorUserId, applicationId, jobId } = event.data;
-      if (!context.teamJobIds.has(jobId)) return undefined;
+      if (!onTheirJobs(context, jobId)) return undefined;
       return actorUserId
         ? { kind: 'NewCandidates', actorUserId, applicationId, jobId }
         : { kind: 'NewCandidates', actorUserId: null, applicationId, jobId };
@@ -89,7 +115,7 @@ function describe(event: RealtimeEvent, context: ChangeContext): TeammateChange 
       const kind = candidateEvents[event.type];
       if (!kind || !('actorUserId' in event.data) || !('applicationId' in event.data) || !('jobId' in event.data)) return undefined;
       const { actorUserId, applicationId, jobId } = event.data;
-      if (!actorUserId || !context.teamJobIds.has(jobId)) return undefined;
+      if (!actorUserId || !onTheirJobs(context, jobId)) return undefined;
       return { kind, actorUserId, applicationId, jobId };
     }
   }

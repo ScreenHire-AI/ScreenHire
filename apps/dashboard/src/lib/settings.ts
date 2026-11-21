@@ -6,6 +6,9 @@ import { verificationTab, type VerificationTabValue } from '#lib/verification-ar
 /** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
 export const teamPath = '/v1/organization/team';
 
+/** The named teams in Settings, Team, Teams, which a job's hiring team and a new job's Who's hiring offer. */
+export const teamsPath = '/v1/organization/teams';
+
 /** Settings' own address, which opens the first settings page the person's role may use (design system section 11). */
 export const settingsHome = '/settings';
 

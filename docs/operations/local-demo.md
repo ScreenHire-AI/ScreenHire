@@ -267,7 +267,8 @@ organization's Owner or Admin also finds **Finish setting up** in the bell at th
   Deleting Interviewer is refused while Robin has it, saying so.
 - **Job access.** Team's Jobs column says "1 job" for Robin and "All jobs" for everyone else. **Edit access** in Robin's
   menu opens his role and job access, with the Senior .NET Engineer job listed. On a job, **Hiring team** lists Jordan
-  (on every job) and, on the .NET job, Robin; **Add a person** and **Copy from another job** change it. Sign in as Robin
+  (on every job) and, on the .NET job, Robin; **Add a person**, **Add a team** and **Copy from another job** change it.
+  Team's **Teams** tab holds Engineering, Jordan and Robin, which **New job** offers under Who's hiring. Sign in as Robin
   through Dev SSO: Jobs lists only Senior .NET Engineer, another job's address says it is not found, and the
   candidates, saved views and My tasks hold only that job's.
 - **Branding.** Brightwater's teal is saved. Type a pale brand colour such as ffd400: the field says links in it are
@@ -297,8 +298,8 @@ organization's Owner or Admin also finds **Finish setting up** in the bell at th
   has written. Send an email from a candidate's page in the dashboard, then answer it on the candidate's page: the reply
   appears in that candidate's Messages and Activity, and an email reply posted to the sandbox route `/v1/dev/inbound-email` (below) joins the same thread.
   Every email in Mailpit now ends with a link to the candidate's page ([candidate portal](../architecture/candidate-portal.md)).
-- **Interview scheduling.** The sandbox calendar is on in `pnpm dev`, so Avery's account menu has **Calendar**. Open it,
-  press **Connect Sandbox calendar** and the browser comes straight back connected. Open a candidate who is still in the
+- **Interview scheduling.** The sandbox calendar is on in `pnpm dev`, so Avery's **Your account** (from the menu on their name)
+  has **Connected accounts**. Open it, press **Connect Sandbox calendar** and the browser comes straight back connected. Open a candidate who is still in the
   hiring process, such as Robin Ashby, and press **Schedule interview** beside Email: Avery is ticked as the interviewer
   (Jordan and Robin show "No calendar connected" until they connect theirs, which the same menu does when you sign in as
   them), choose a length and the days, and **Send invitation**. Mailpit and the candidate's Messages tab hold "Pick a time for your interview with Brightwater

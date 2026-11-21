@@ -60,7 +60,6 @@ function renderPage(routes: Parameters<typeof apiStub>[0] = {}) {
     apiStub({
       'GET /v1/templates/t-1': () => Response.json(detail),
       'GET /v1/templates/t-1/versions/1': () => Response.json(version()),
-      'GET /v1/templates/t-1/hiring-team': () => Response.json([]),
       'GET /v1/template-usage': () => Response.json(noUsage),
       'GET /v1/organization/members': () => Response.json([]),
       'GET /v1/organization/verification-settings': () => Response.json({ defaultAiUse: 'NotAllowed' }),

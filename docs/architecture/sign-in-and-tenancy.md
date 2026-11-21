@@ -19,6 +19,19 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Persistence/ScreenHireDbContext.cs
   - resource: apps/dashboard/src/lib/passkeys.ts
   - resource: apps/dashboard/src/routes/(app)/account/passkeys/+page.svelte
+  - resource: apps/api/Endpoints/AccountEndpoints.cs
+  - resource: apps/api/Contracts/AccountContracts.cs
+  - resource: src/ScreenHire.Domain/Organizations/MemberPreferences.cs
+  - resource: src/ScreenHire.Infrastructure/Identity/UserPhoto.cs
+  - resource: apps/dashboard/src/lib/account.ts
+  - resource: apps/dashboard/src/routes/(app)/account/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/account/profile/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/account/connected/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/account/security/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/account/preferences/+page.svelte
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/MemberPreferencesConfiguration.cs
+  - resource: apps/dashboard/src/lib/components/account-menu.svelte
+  - resource: apps/dashboard/src/lib/date-settings.svelte.ts
   - resource: apps/dashboard/src/routes/(auth)/sign-in/+page.svelte
   - resource: apps/api/Configuration/AuthOptions.cs
   - resource: apps/api/Auth/EmailVerification.cs
@@ -41,6 +54,9 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/settings/api-keys/+page.svelte
   - resource: apps/api/Endpoints/VerificationEndpoints.cs
   - resource: apps/api/Endpoints/HiringTeamEndpoints.cs
+  - resource: apps/api/Endpoints/NamedTeamEndpoints.cs
+  - resource: apps/api/Contracts/NamedTeamContracts.cs
+  - resource: apps/api/Contracts/HiringTeamContracts.cs
   - resource: apps/api/Hiring/HiringTeams.cs
   - resource: apps/api/Configuration/DomainOptions.cs
   - resource: apps/api/Configuration/LegalOptions.cs
@@ -50,11 +66,13 @@ sources:
   - resource: src/ScreenHire.Domain/Organizations/IJobScoped.cs
   - resource: src/ScreenHire.Domain/Organizations/JobAccess.cs
   - resource: src/ScreenHire.Domain/Organizations/MembershipEvent.cs
+  - resource: src/ScreenHire.Domain/Organizations/NamedTeam.cs
   - resource: src/ScreenHire.Domain/Organizations/Organization.cs
   - resource: src/ScreenHire.Domain/Organizations/OrganizationInvitation.cs
   - resource: src/ScreenHire.Domain/Organizations/OrganizationMember.cs
   - resource: src/ScreenHire.Domain/Organizations/TeamPolicy.cs
   - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/CustomRoleConfiguration.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/NamedTeamConfiguration.cs
   - resource: src/ScreenHire.Infrastructure/Tenancy/ITenantContext.cs
   - resource: src/ScreenHire.Infrastructure/Tenancy/TenantSecurity.cs
   - resource: src/ScreenHire.Infrastructure/Tenancy/TenantSessionInterceptor.cs
@@ -67,6 +85,9 @@ sources:
   - resource: apps/dashboard/src/lib/hiring-team.ts
   - resource: apps/dashboard/src/lib/components/member-access-sheet.svelte
   - resource: apps/dashboard/src/lib/components/hiring-team-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/named-teams-panel.svelte
+  - resource: apps/dashboard/src/lib/components/team-sheet.svelte
+  - resource: apps/dashboard/src/routes/(app)/jobs/new/+page.svelte
   - resource: apps/dashboard/src/lib/components/member-jobs.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/team/+page.svelte
   - resource: apps/dashboard/src/lib/moves.svelte.ts
@@ -119,7 +140,7 @@ organization API key in place of the session ("API keys" below).
 | `POST /v1/auth/invitations/lookup` | Names the organization and role an open invitation offers, and whether the invited address `needsName`, for the accept page. It uses nothing up, and answers an unusable token as accepting does. |
 | `GET /v1/auth/organizations` | Every organization the signed-in user belongs to, with their role in each. A custom role is named only in the one they work in: row-level security hides other organizations' roles. |
 | `POST /v1/auth/switch-organization` | Makes another of the user's organizations the one they work in. |
-| `POST /v1/auth/sign-out` | Ends the session. |
+| `POST /v1/auth/sign-out` | Ends the session in this browser. Sign out everywhere is on Your account (below). |
 | `POST /v1/auth/passkeys/sign-in/options` | Anonymous. The WebAuthn request options for a sign-in with no username, as `{ optionsJson }`. The challenge waits in the `sh.passkey` cookie. |
 | `POST /v1/auth/passkeys/sign-in` | Anonymous. Checks the browser's answer and signs in with 204, or answers 401 for any failure. |
 | `GET /v1/auth/passkeys` | The signed-in person's passkeys: id, name, created, last used, and the limit. |
@@ -163,8 +184,8 @@ waits for SMTP; moving the send to a worker message is a later change.
 A passkey (WebAuthn) signs a person in with their device's own unlock and nothing typed, which suits people who sign in once
 a week and would otherwise wait for an email. ADR-0008 chose `SignInManager`'s passkey support with our own endpoints
 (`apps/api/Endpoints/PasskeyEndpoints.cs`), because only the Blazor template wires them. The dashboard side is
-`apps/dashboard/src/lib/passkeys.ts` (the browser's own WebAuthn calls, no library) and the Passkeys page in the person's
-menu (`/account/passkeys`, outside Settings because it is the person's own, not the organization's).
+`apps/dashboard/src/lib/passkeys.ts` (the browser's own WebAuthn calls, no library) and the Passkeys page under Your account >
+Sign-in and security (`/account/passkeys`, outside Settings because it is the person's own, not the organization's).
 
 - **Data.** `user_passkeys` holds Identity's row (credential id, user, a JSON `data` column with the public key, name, created
   time and signature counter) and `last_used_at`, which Identity does not keep. It is global like `users`: no
@@ -204,7 +225,7 @@ menu (`/account/passkeys`, outside Settings because it is the person's own, not 
   Asking for a fresh sign-in before adding one is the next step if the threat grows.
 - **Sessions.** Adding or removing a credential may rotate the security stamp, which would sign the person out of their own
   session within the validator's interval, so the endpoints refresh the sign-in when the stamp changed. Removing a passkey
-  does not end other sessions.
+  does not end other sessions; Sign out everywhere does (Your account, below).
 - **Abuse.** Antiforgery on every POST and DELETE. The two anonymous routes have their own per-IP limit,
   `ScreenHire:Auth:PasskeyPermitsPerMinute` (default 20), which Development does not raise, so each test uses a unique
   `X-Forwarded-For`. The rest use the `auth` limit. A request body over 64 KB is a 413 before it is read, and a
@@ -311,15 +332,57 @@ real endpoints, because tests use random ports, and gives the careers server the
 `CareersHostPattern` (`{tenant}.{CareersDomain}`) for tenant hosts (`docs/architecture/apply-flow.md` section 6). `AppHost` drives OIDC redirect URIs, emailed links, redirects after sign-in and the
 CORS origin. Leave `CookieDomain` empty: a parent-domain cookie would also reach tenant careers pages.
 
+### Your account
+
+What belongs to the person, whatever organization they work in, is under `/account` (design system section 21): Profile,
+Notifications, Connected accounts (only where there is a calendar or a Slack workspace to connect), Sign-in and security, and
+Preferences, with one menu like Settings'. The person's menu in the sidebar holds their name and email, Your account, Keyboard
+shortcuts, Billing (an Owner, where a payment provider is set up) and Sign out.
+
+Where each preference lives:
+
+| Preference | Where | Why |
+|---|---|---|
+| Name, photo | `users.display_name`; `user_photos` (one row per user, the bytes) | The person, the same in every organization. Global like `users`: no row-level security |
+| Time zone, language, date format | `member_preferences`, one row per membership | About the person, kept per organization as the brief chose. The daily digest goes at 08:00 in this time zone |
+| Single-key shortcuts, confirm moves | `member_preferences` (null until saved there) | About the person: a person who turns single-key shortcuts off for speech input needs them off on every device (WCAG 2.1.4). While null the dashboard keeps the browser's earlier choice and saves it once |
+| Email and Slack per kind, scope | `member_preferences.notices`, `scope` | [notifications.md](notifications.md#each-persons-choices) |
+| Toasts | `organization_members.notifications` | [realtime.md](realtime.md#teammates-changes-as-toasts) |
+| Theme (Light, Dark, System), reduce motion | this browser's `localStorage` (`preferences.svelte.ts`) | About the device: a dark room or a slow screen |
+
+`member_preferences` is a tenant table with row-level security, made on the first save; a member with none has every
+default. It goes with the membership, so someone who leaves and rejoins starts again.
+
+| Route | What it does |
+|---|---|
+| `GET /v1/account` | The person's sign-in email (read only), name, photo address, time zone, language, date format and the two habits. |
+| `PUT /v1/account/profile` | Saves the name (as onboarding asks for it), an IANA time zone, a language and a date format; one the server cannot read is a 400. |
+| `POST /v1/account/time-zone` | Fills the time zone from the browser while none is set; the dashboard sends it once. |
+| `PUT /v1/account/preferences` | Saves the two habits. |
+| `PUT /v1/account/photo`, `DELETE /v1/account/photo` | A PNG, JPEG or WebP of at most 512 KB, as base64, read from its bytes. The dashboard crops and scales it to a 256 px square on a canvas first, which drops what the camera wrote into it, so the server needs no image library (ADR-0008). |
+| `GET /v1/users/{userId}/photo` | The photo, to the person and to people who share the current organization with them; anyone else gets a 404. Its address carries its version, so a browser keeps it (`private`). `GET /v1/auth/me` carries `photoUrl`. |
+| `GET /v1/account/sign-in` | How the person signs in: the email link, the providers they have used, how many passkeys. |
+| `POST /v1/account/sign-out-everywhere` | Changes the person's security stamp and signs this session in again, and closes their live connections. |
+| `GET`, `PUT /v1/account/notifications` | [notifications.md](notifications.md#each-persons-choices). |
+
+All are session only (an API key is no person), need no permission and are not in the change history: personal preferences,
+not configuration the team shares.
+
+**Sign out everywhere.** The session is a cookie and ScreenHire keeps no list of sessions (no `ITicketStore`), so the page has
+no list, only the button. A new security stamp ends every other session at its next check: the cookie's validator compares the
+stamp every `ScreenHire:Auth:SecurityStampInterval` (one minute; a second in the test stacks, so a test waits on a condition).
+Connected AI assistants keep their access: their tokens are the assistant's API key's, not the person's cookie, and the
+person disconnects them on the MCP server page.
+
 ## Organizations and roles
 
 `OrganizationMember` joins a user to an organization with a role: Owner, Admin, Recruiter or Viewer. A user can
 belong to several organizations and works in one at a time: the one in `users.active_organization_id` while they are
 still a member of it, otherwise the first one they joined. Joining by invitation and `POST /v1/auth/switch-organization`
 set it. It is per user, not per session, so it follows them to every device, and switching closes their live-update
-connections into the organization they left (`docs/architecture/realtime.md`). A membership also holds the member's own notification
-settings (`organization_members.notifications`), so each organization keeps its own (realtime.md, "Teammates' changes
-as toasts"). Onboarding creates the organization and the
+connections into the organization they left (`docs/architecture/realtime.md`). A membership also holds the member's own toast
+settings (`organization_members.notifications`), and their preferences row (`member_preferences`, Your account, below), so each
+organization keeps its own. Onboarding creates the organization and the
 Owner membership in one transaction, under a per-user advisory lock, so a double submit makes one organization, not
 two. A slug is a DNS label (3 to 63 lower-case letters, digits and hyphens) that is not reserved, because it becomes
 a careers subdomain. The slug never changes after onboarding: `PUT /v1/organization` (Edit settings) renames the
@@ -456,14 +519,15 @@ you are on." for a member on Only jobs they're on. Nothing is stored: a reload d
 removal with who did it, who it was about and the roles before and after, a custom role by its id and its name at the
 time; every custom role made, changed (`RoleUpdated`, with the old name after a rename) or deleted; and every job access
 change (`JobAccessChanged`) and person added to or removed from a hiring team (`AddedToHiringTeam`,
-`RemovedFromHiringTeam`, with the job or the hiring template). An invitation and a join record their job access. A job a
-key creates starts with its template's team, and those entries name the key (`actorApiKeyId`) instead of a person. The
+`RemovedFromHiringTeam`, with the job; entries from before templates lost their default team name the hiring template). An
+invitation and a join record their job access. An entry a key causes names the key (`actorApiKeyId`) instead of a person. The
 log shows job titles and template names as they are now, and leaves out entries about jobs the reader cannot see. Two membership facts have no entry: the
 founding Owner, whose membership onboarding creates with the organization, and an invitation accepted by someone who is
 already a member, which only uses up the invitation (its row keeps `accepted_at` and `accepted_by_user_id`). It is append-only for audit: `screenhire_app` has no
 `UPDATE` or `DELETE` on it. It holds user ids and no foreign key to `organization_members`, so a removal keeps its own
 record. The Team page's History sheet reads the change history instead, which says the same team changes in words and
-also records the founding Owner, as "created the team". Hiring teams stay in the membership log only.
+also records the founding Owner, as "created the team", and each named team added, renamed, given other people or deleted
+("added the team Kitchen"). A job's hiring team stays in the membership log only.
 
 ### Job access
 
@@ -481,11 +545,28 @@ not change):
 |---|---|---|
 | `GET /v1/jobs/{jobId}/hiring-team` | Anyone who sees the job | The people on the team, with their role name and whether they see all jobs. |
 | `PUT /v1/jobs/{jobId}/hiring-team` | Edit jobs | Sets the team to `memberIds`, plus another job's team when `copyFromJobId` names one the caller sees (400 otherwise). Someone who is not a member is 400. A member on Only jobs they're on cannot take themselves off (400). Raises `HiringTeamChanged`. |
-| `GET /v1/templates/{templateId}/hiring-team` | Any member | A hiring template's default team; empty for a ScreenHire template. |
-| `PUT /v1/templates/{templateId}/hiring-team` | Edit hiring templates | Sets it. 409 for a ScreenHire template, which has none. |
 
-`POST /v1/jobs` starts a job with its template's default team, current members only, and the person who creates it, in
-the same insert. Every person added or removed is a membership log entry, written under the member lock.
+`POST /v1/jobs` starts a job's team with the person who creates it, the people of the named team `teamId` who are still
+members, and `memberIds` (400 for anyone who is not a member, or a team that is not the organization's), in the same insert.
+Every person added or removed is a membership log entry. An API key sends neither (400 on `teamId`): it does not choose who
+works on a job, so its job starts with nobody on the team.
+
+**Named teams** (`named_teams`, `NamedTeam`, tenant-owned with row-level security) are the organization's groups of people,
+such as Engineering or Kitchen: a name, unique in any case, and member ids. Adding one to a job copies its people into the
+job's hiring team, as they are then; the job keeps that copy, so changing or deleting the team changes no job, and a team
+gives nobody access by itself. A job records the team it started with (`jobs.started_with_team_id`, set to null when the team
+is deleted) for one use: the next job's suggestion. Hiring templates have no team of their own: `AddNamedTeams` turned each
+template's default hiring team of current members into a team named "<template name> team" (a second of the same name gets
+" 2"), then dropped the column. `apps/api/Endpoints/NamedTeamEndpoints.cs`, session only, every change a line in the Team
+page's history:
+
+| Route | Who | What it does |
+|---|---|---|
+| `GET /v1/organization/teams` | Any member | The teams by name, each with its people who are still members, as a hiring team lists them. |
+| `GET /v1/organization/teams/suggested?templateVersionId=` | Any member | The team the newest job from the same template, or with the template's department (in any case), started with, among the jobs the reader sees; null without a template or a match. |
+| `POST /v1/organization/teams` | Manage the team | Makes a team. A name another team has, in any case, is 400 on `name`; someone who is not a member, 400 on `memberIds`. |
+| `PUT /v1/organization/teams/{teamId}` | Manage the team | Renames it and sets its people, with the same checks. |
+| `DELETE /v1/organization/teams/{teamId}` | Manage the team | Deletes it. Jobs keep their people. |
 
 The subset rule covers job access (`TeamPolicy.MayGiveJobAccess`): a member on Only jobs they're on cannot give All jobs,
 invite with it, or give the Owner or Admin role (403 "Needs all jobs"). Manage API keys, Manage webhooks, Manage
@@ -496,8 +577,12 @@ when that email is already a candidate only on jobs they cannot see.
 The dashboard: Team has a Jobs column ("All jobs" or "2 jobs"), and Edit access in a member's menu opens one sheet for
 their role and job access, which lists their jobs read only (`member-access-sheet.svelte`). The invite sheet asks for job
 access with one Only some jobs switch, off at the start; it sends no job ids, so the person joins hiring teams after
-they accept. The job page has a Hiring team button with its count (`hiring-team-sheet.svelte`), with Add a person and Copy
-from another job, and a hiring template its Default hiring team. The Role page shows each person's jobs. Settings leaves
+they accept. Team's second tab, Teams (`?tab=teams`, `named-teams-panel.svelte`), lists the named teams and opens each in
+the team sheet (`team-sheet.svelte`): a name and people, with New team as the tab's action. The job page has a Hiring team
+button with its count (`hiring-team-sheet.svelte`), with Add a person, Add a team and Copy from another job; Add a team puts
+the team's people in the list, so someone taken off before Save stays off. A new job asks Who's hiring? (`jobs/new`): a Team
+select that starts on the suggestion until the person picks one, and Add a person for anyone else; with nobody but its creator
+in the organization it is not shown. The Role page shows each person's jobs. Settings leaves
 out API keys and Webhooks for someone on Only jobs they're on.
 
 ## Tenant isolation

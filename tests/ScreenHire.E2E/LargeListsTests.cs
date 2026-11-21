@@ -114,7 +114,9 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectFitsAsync($"tasks-{width}");
 
         await GoToPageAsync("/settings/team", "Team");
-        await ExpectCountAsync("Members", "26");
+        // Team's collections are tabs, Members and Teams, so the count is on the tab.
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Members") })).ToContainTextAsync("26");
+        await Expect(Page.Locator("[data-slot=header-band]").First.Locator("[data-slot='badge']")).ToHaveCountAsync(0);
         await ExpectFitsAsync($"team-{width}");
         await SearchAsync("member07", "member07", "member08");
 

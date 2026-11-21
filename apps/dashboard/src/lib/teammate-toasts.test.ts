@@ -1,7 +1,7 @@
-import type { ApplicationDetail, MemberNotificationSettings, TeamMember } from '@screenhire/api-client';
+import type { ApplicationDetail, TeamMember } from '@screenhire/api-client';
 import type { RealtimeEvent } from '@screenhire/realtime';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { appliedWindow, defaultNotificationSettings, type Toast } from './teammate-changes.js';
+import { appliedWindow, defaultNotificationSettings, type Toast, type ToastSettings } from './teammate-changes.js';
 import { groupWindow, TeammateToasts, type TeammateToastSources } from './teammate-toasts.js';
 
 const me = '0199f0c4-0000-7000-8000-00000000000a';
@@ -16,7 +16,7 @@ const members = [
   { id: 'member-jordan', userId: jordan, displayName: 'Jordan Ellis' },
 ] as TeamMember[];
 
-function sources(settings: MemberNotificationSettings = defaultNotificationSettings): TeammateToastSources & { application: ReturnType<typeof vi.fn> } {
+function sources(settings: ToastSettings = defaultNotificationSettings): TeammateToastSources & { application: ReturnType<typeof vi.fn> } {
   return {
     userId: () => me,
     members: async () => members,

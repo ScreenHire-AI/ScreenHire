@@ -67,9 +67,11 @@ public sealed record UpdateInterviewEvents(Guid OrganizationId, Guid Application
 /// <summary>
 /// Removes each interviewer's event after a cancellation. <see cref="Revision"/> is the request's revision at the
 /// cancellation. <see cref="TellCandidate"/> is false when the application ended, which has its own message to the
-/// candidate (or none), so a rejection is not followed by a notice that an interview was cancelled.
+/// candidate (or none), so a rejection is not followed by a notice that an interview was cancelled. <see cref="ActorUserId"/>
+/// is the member who cancelled it, null for the candidate or the system, so the interviewers' emails skip that member.
 /// </summary>
-public sealed record CancelInterviewEvents(Guid OrganizationId, Guid ApplicationId, Guid InterviewId, int Revision, bool TellCandidate = true) : ITenantMessage
+public sealed record CancelInterviewEvents(
+    Guid OrganizationId, Guid ApplicationId, Guid InterviewId, int Revision, bool TellCandidate = true, Guid? ActorUserId = null) : ITenantMessage
 {
     public string IdempotencyKey => $"interview-events:cancel:{InterviewId}:{Revision}";
 }

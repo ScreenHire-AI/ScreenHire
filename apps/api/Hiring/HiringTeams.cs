@@ -10,7 +10,7 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.Api.Hiring;
 
 /// <summary>
-/// The pieces a hiring team change shares, on a job or a hiring template (ADR-0015): who the organization's members
+/// The pieces a hiring team change shares (ADR-0015), and the named teams that fill one: who the organization's members
 /// are, how a team reads, the membership log entry per person, and the live-update groups of the people it touches.
 /// </summary>
 internal static class HiringTeams
@@ -42,23 +42,25 @@ internal static class HiringTeams
     /// who left are dropped here; they never match a member again, because a rejoin is a new membership.
     /// </summary>
     public static async Task<List<HiringTeamMember>> DescribeAsync(
-        ScreenHireDbContext db, IReadOnlyDictionary<Guid, Member> members, IEnumerable<Guid> team, CancellationToken cancellationToken)
-    {
-        var names = await RoleAccess.CustomNamesAsync(db, cancellationToken);
-        return [.. team.Distinct()
+        ScreenHireDbContext db, IReadOnlyDictionary<Guid, Member> members, IEnumerable<Guid> team, CancellationToken cancellationToken) =>
+        Describe(members, await RoleAccess.CustomNamesAsync(db, cancellationToken), team);
+
+    /// <summary>As <see cref="DescribeAsync"/>, with the custom roles' names already read, for several teams at once.</summary>
+    public static List<HiringTeamMember> Describe(
+        IReadOnlyDictionary<Guid, Member> members, IReadOnlyDictionary<Guid, string> customRoleNames, IEnumerable<Guid> team) =>
+        [.. team.Distinct()
             .Where(members.ContainsKey)
             .Select(id => members[id])
             .OrderBy(m => m.DisplayName, StringComparer.CurrentCultureIgnoreCase)
-            .Select(m => new HiringTeamMember(m.Id, m.UserId, m.Email, m.DisplayName, RoleAccess.NameOf(m.Role, m.CustomRoleId, names), m.SeesAllJobs))];
-    }
+            .Select(m => new HiringTeamMember(m.Id, m.UserId, m.Email, m.DisplayName, RoleAccess.NameOf(m.Role, m.CustomRoleId, customRoleNames), m.SeesAllJobs))];
 
     /// <summary>
-    /// One membership log entry per person who joined or left: a job's team (<paramref name="jobId"/>) or a template's
-    /// default team (<paramref name="templateId"/>). The actor is the signed-in user, or the API key.
+    /// One membership log entry per person who joined or left the hiring team of the job <paramref name="jobId"/>. The
+    /// actor is the signed-in user, or the API key. Entries from before templates lost their default team name the template.
     /// </summary>
     public static void Log(
         ScreenHireDbContext db, ITenantContext tenant, IReadOnlyDictionary<Guid, Member> members, HiringTeamChange change,
-        DateTimeOffset now, Guid? jobId = null, Guid? templateId = null)
+        DateTimeOffset now, Guid jobId)
     {
         foreach (var (memberId, kind) in change.Added.Select(id => (id, MembershipEventKind.AddedToHiringTeam))
                      .Concat(change.Removed.Select(id => (id, MembershipEventKind.RemovedFromHiringTeam))))
@@ -76,7 +78,6 @@ internal static class HiringTeams
                 ActorApiKeyId = tenant.UserId is null ? tenant.ApiKeyId : null,
                 MemberUserId = member.UserId,
                 JobId = jobId,
-                HiringTemplateId = templateId,
                 OccurredAt = now,
             });
         }

@@ -125,7 +125,9 @@ public sealed record JobTemplateSource(
 /// h3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text
 /// works too: a blank line starts a paragraph and lines starting with "- " make a list. The summary is the plain-text
 /// line a careers card shows under the title, at most 160 characters; leave it out and the card uses the description's
-/// first sentence.
+/// first sentence. Who's hiring: the job's hiring team starts with the person who creates it, the people of the named team
+/// <c>teamId</c> as they are now, and <c>memberIds</c>, the organization's member ids. They are copied, so a later change
+/// to the team changes no job. An API key sends neither, and its job starts with nobody on its team.
 /// </summary>
 public sealed record CreateJobRequest(
     string Title,
@@ -139,7 +141,9 @@ public sealed record CreateJobRequest(
     IReadOnlyList<string>? ApplicantLocationRequirements = null,
     SalaryRequest? Salary = null,
     DateTimeOffset? ValidThrough = null,
-    string? Summary = null);
+    string? Summary = null,
+    Guid? TeamId = null,
+    IReadOnlyList<Guid>? MemberIds = null);
 
 /// <summary>
 /// Replaces a job's posting content. A published job keeps its slug; a closed job cannot change. The description is rich

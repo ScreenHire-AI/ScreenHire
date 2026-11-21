@@ -77,7 +77,8 @@ describe('Passkeys page', () => {
     renderPage({ 'GET /v1/auth/passkeys': () => listOf([laptop, phone]) });
 
     await screen.findByRole('table');
-    const items = within(screen.getByRole('main')).getAllByRole('listitem');
+    // The passkeys' list, not the Your account menu beside it.
+    const items = within(screen.getByRole('main')).getAllByRole('listitem').filter((item) => !item.closest('nav'));
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent('Chrome on Windows');
     expect(items[0]).toHaveTextContent('Added Oct 1, 2026');

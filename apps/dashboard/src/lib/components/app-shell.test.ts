@@ -169,14 +169,14 @@ describe('app shell', () => {
     await waitFor(() => expect(sheet).toContainElement(document.activeElement as HTMLElement));
   });
 
-  it('opens the Teammate changes sheet from the user menu', async () => {
+  it("links to Your account from the person's menu", async () => {
     stubViewport(1280);
     render(ShellHarness, { props: { user } });
 
     await fireEvent.pointerDown(screen.getByRole('button', { name: /^Avery Quinn/ }), { button: 0, pointerType: 'mouse' });
-    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Teammate changes' }));
 
-    expect(await screen.findByText('Teammate changes sheet open')).toBeInTheDocument();
+    // A real link, so it opens in a new tab and shows where it goes (A5).
+    expect(await screen.findByRole('menuitem', { name: 'Your account' })).toHaveAttribute('href', '/account');
   });
 
   it('keeps the sheet shut after the window widens past phone size and narrows again', async () => {

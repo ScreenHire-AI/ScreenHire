@@ -45,9 +45,10 @@ public sealed record PendingInvitation(
 /// RoleUpdated and RoleDeleted, <c>customRoleId</c> and <c>roleName</c> are the role, and a rename keeps the old name in
 /// <c>previousRoleName</c>. JobAccessChanged sets <c>previousJobAccess</c> and <c>jobAccess</c>; an invitation and a
 /// join set <c>jobAccess</c>. AddedToHiringTeam and RemovedFromHiringTeam name a job (<c>jobId</c>, with its title now)
-/// or a hiring template's default team (<c>hiringTemplateId</c>, with its name now). A reader who sees only their own
-/// jobs gets no entries about the others. The data request kinds and CandidateErased from a request set <c>dataRequestId</c>
-/// (an id only, never the candidate); RetentionApplied sets <c>itemCount</c>, the applications it deleted.
+/// or, in an entry from before templates lost their default team, a hiring template (<c>hiringTemplateId</c>, with its
+/// name now). A reader who sees only their own jobs gets no entries about the others. The data request kinds and
+/// CandidateErased from a request set <c>dataRequestId</c> (an id only, never the candidate); RetentionApplied sets
+/// <c>itemCount</c>, the applications it deleted.
 /// </summary>
 public sealed record MembershipLogEntry(
     Guid Id,

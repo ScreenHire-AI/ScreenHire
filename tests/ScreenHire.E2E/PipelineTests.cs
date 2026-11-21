@@ -143,9 +143,14 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(screening.GetByRole(AriaRole.Listitem, new() { Name = "Riley Chen, Screening" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Dialog)).ToHaveCountAsync(0);
 
-        // The account menu turns the question back on.
-        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new("Owner$") }).ClickAsync();
-        await Page.GetByRole(AriaRole.Menuitemcheckbox, new() { Name = "Confirm moves that send emails or create tasks" }).ClickAsync();
+        // Your account > Preferences turns the question back on.
+        var board = Page.Url;
+        await Page.GotoAsync(new Uri(new Uri(board), "/account/preferences").ToString());
+        var confirm = Page.GetByRole(AriaRole.Switch, new() { Name = "Confirm moves that send emails or create tasks" });
+        await Expect(confirm).Not.ToBeCheckedAsync();
+        await confirm.ClickAsync();
+        await Expect(confirm).ToBeCheckedAsync();
+        await Page.GotoAsync(board);
         await Page.GetByRole(AriaRole.Listitem, new() { Name = "Sam Taylor, Applied" }).FocusAsync();
         await Page.Keyboard.PressAsync("Shift+ArrowRight");
         await Expect(Page.GetByRole(AriaRole.Dialog, new() { Name = "Move Sam Taylor to Screening?" })).ToBeVisibleAsync();

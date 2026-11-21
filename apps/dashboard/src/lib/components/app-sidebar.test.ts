@@ -100,18 +100,17 @@ describe("the person's block at the foot of the sidebar", () => {
     expectDivider(document.body);
   });
 
-  it('links to the Passkeys page from the menu of the signed-in person, above Sign out', async () => {
+  it("holds the person's name and email, Your account, Keyboard shortcuts and Sign out, and nothing else", async () => {
     stubViewport(1280);
     render(ShellHarness, { props: { user } });
 
     await fireEvent.pointerDown(screen.getByRole('button', { name: /^Avery Quinn/ }), { button: 0, pointerType: 'mouse' });
     const menu = await screen.findByRole('menu');
-    const names = within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim());
-    expect(names.indexOf('Passkeys')).toBeGreaterThan(-1);
-    expect(names.indexOf('Passkeys')).toBe(names.indexOf('Sign out') - 1);
-
-    // A real link, so it opens in a new tab and shows where it goes (A5).
-    expect(within(menu).getByRole('menuitem', { name: 'Passkeys' })).toHaveAttribute('href', '/account/passkeys');
+    expect(menu).toHaveTextContent(user.email);
+    const names = within(menu).getAllByRole('menuitem').map((item) => item.textContent?.replace('?', '').trim());
+    expect(names).toEqual(['Your account', 'Keyboard shortcuts', 'Sign out']);
+    expect(within(menu).queryAllByRole('menuitemcheckbox')).toHaveLength(0);
+    expect(within(menu).getByRole('menuitem', { name: 'Your account' })).toHaveAttribute('href', '/account');
   });
 
   it("links to Billing from the person's menu for who may see it, and not for anyone else", async () => {
@@ -128,22 +127,11 @@ describe("the person's block at the foot of the sidebar", () => {
     expect(within(await screen.findByRole('menu')).queryByRole('menuitem', { name: 'Billing' })).toBeNull();
   });
 
-  it("turns the move confirmation back on from the person's menu, next to the keyboard shortcuts switch", async () => {
-    preferences.setConfirmMoves(false);
+  it('shows the photo in the person\'s block once they have one', () => {
     stubViewport(1280);
-    render(ShellHarness, { props: { user } });
+    render(ShellHarness, { props: { user: { ...user, photoUrl: '/v1/users/me/photo?v=1' } } });
 
-    await fireEvent.pointerDown(screen.getByRole('button', { name: /^Avery Quinn/ }), { button: 0, pointerType: 'mouse' });
-    const menu = await screen.findByRole('menu');
-    const item = within(menu).getByRole('menuitemcheckbox', { name: 'Confirm moves that send emails or create tasks' });
-    expect(item).toHaveAttribute('aria-checked', 'false');
-    const names = within(menu).getAllByRole('menuitemcheckbox').map((entry) => entry.textContent?.trim());
-    expect(names).toEqual(['Single-key shortcuts', 'Confirm moves that send emails or create tasks']);
-
-    await fireEvent.click(item);
-
-    expect(preferences.confirmMoves).toBe(true);
-    expect(globalThis.localStorage.getItem('screenhire:confirm-moves')).toBe('on');
+    expect(document.querySelector('img[src="/v1/users/me/photo?v=1"]')).not.toBeNull();
   });
 
   it('keeps the hairline in the sheet on a phone', async () => {

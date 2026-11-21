@@ -4,10 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Application.Notifications;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Notifications;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Email;
 using ScreenHire.Infrastructure.Persistence;
+using Wolverine;
 
 namespace ScreenHire.Application.Applications;
 
@@ -91,14 +94,16 @@ public static class MentionEmail
 }
 
 /// <summary>
-/// Emails the teammate a note mentioned, in the worker. Idempotent on its own: the mention row records the send
-/// (<see cref="ApplicationNoteMention.EmailedAt"/>), so a redelivery finds it and sends nothing. A mention that is gone
-/// (the note was deleted, or an edit took the mention out) or a person who left the organization gets no email. The
-/// email goes before the row commits, so a crash between the two can repeat it once, as with emails to candidates.
+/// Tells the teammate a note mentioned, in the worker: a row in their bell, then an email now, a line in their daily digest,
+/// or nothing, by their choice for Mentions (docs/architecture/notifications.md, "Each person's choices"). Idempotent on its
+/// own: the bell row and the digest row are unique, and the mention row records an email sent
+/// (<see cref="ApplicationNoteMention.EmailedAt"/>), so a redelivery sends nothing. A mention that is gone (the note was
+/// deleted, or an edit took the mention out) or a person who left the organization gets nothing. The email goes before the
+/// row commits, so a crash between the two can repeat it once, as with emails to candidates.
 /// </summary>
 public static partial class TeammateMentionedHandler
 {
-    public static async Task Handle(
+    public static async Task<OutgoingMessages> Handle(
         TeammateMentioned message,
         ScreenHireDbContext db,
         TransactionalEmail email,
@@ -107,35 +112,45 @@ public static partial class TeammateMentionedHandler
         ILogger<TeammateMentioned> logger,
         CancellationToken cancellationToken)
     {
+        var outgoing = new OutgoingMessages();
         var mention = await db.ApplicationNoteMentions.SingleOrDefaultAsync(m => m.Id == message.MentionId, cancellationToken);
         if (mention is null || mention.EmailedAt is not null)
         {
-            return; // removed since, or sent already
-        }
-
-        var link = links.Value.Url(MentionEmail.NotePath(message.ApplicationId, mention.NoteId));
-        if (!email.IsConfigured)
-        {
-            LogNotSent(logger, mention.Id, "no email sender is configured");
-            return;
-        }
-
-        if (link is null)
-        {
-            // Email works but this worker has no ScreenHire:Domains:AppHost: a deployment mistake, not a choice.
-            LogNoDashboardAddress(logger, mention.Id);
-            return;
+            return outgoing; // removed since, or sent already
         }
 
         // Narrowed to this organization: the members filter also shows a user's memberships elsewhere. The worker sees
         // every job, so whether the person still sees this one is checked here (ADR-0015): one taken off the job's
-        // hiring team since the note gets no email about its candidate.
+        // hiring team since the note gets nothing about its candidate.
         var seesJob = await JobAccessQueries.SeesJobAsync(db, message.OrganizationId, mention.UserId, message.JobId, cancellationToken);
         var note = await db.ApplicationNotes.AsNoTracking().IgnoreAutoIncludes().SingleOrDefaultAsync(n => n.Id == mention.NoteId, cancellationToken);
         if (!seesJob || note is null || note.AuthorUserId == mention.UserId)
         {
             LogNotSent(logger, mention.Id, "the person is not a member, cannot see the job, or wrote the note");
-            return;
+            return outgoing;
+        }
+
+        var author = note.AuthorUserId is { } authorId
+            ? await db.Users.Where(u => u.Id == authorId).Select(u => u.DisplayName ?? u.Email).SingleOrDefaultAsync(cancellationToken)
+            : await db.ApiKeys.Where(k => k.Id == note.AuthorApiKeyId).Select(k => k.Name).SingleOrDefaultAsync(cancellationToken);
+        var now = time.GetUtcNow();
+        var path = MentionEmail.NotePath(message.ApplicationId, mention.NoteId);
+        var bell = new PersonalBell(
+            NotificationKinds.Mention, mention.NoteId.ToString("N"),
+            author is null ? new Dictionary<string, string>() : new Dictionary<string, string> { ["actor"] = author }, path);
+        if (await NoticeDelivery.RaiseForPersonAsync(db, message.OrganizationId, mention.UserId, bell, now, cancellationToken))
+        {
+            outgoing.Add(new NotificationsChanged(message.OrganizationId));
+        }
+
+        var preferences = await PersonNotices.ForUserAsync(db, message.OrganizationId, mention.UserId, cancellationToken);
+        var choice = PersonNotices.Email(preferences, NoticeKind.Mentions, OrganizationAlertDefaults.None);
+        var link = links.Value.Url(path);
+        if (choice == EmailChoice.Instantly && link is null)
+        {
+            // Email works but this worker has no ScreenHire:Domains:AppHost: a deployment mistake, not a choice.
+            LogNoDashboardAddress(logger, mention.Id);
+            return outgoing;
         }
 
         var to = await db.Users.Where(u => u.Id == mention.UserId).Select(u => u.Email).SingleOrDefaultAsync(cancellationToken);
@@ -149,16 +164,22 @@ public static partial class TeammateMentionedHandler
         if (to is null || place is null)
         {
             LogNotSent(logger, mention.Id, "the person or the application is gone");
-            return;
+            return outgoing;
         }
 
-        var author = note.AuthorUserId is { } authorId
-            ? await db.Users.Where(u => u.Id == authorId).Select(u => u.DisplayName ?? u.Email).SingleOrDefaultAsync(cancellationToken)
-            : await db.ApiKeys.Where(k => k.Id == note.AuthorApiKeyId).Select(k => k.Name).SingleOrDefaultAsync(cancellationToken);
+        var notice = new Notice(
+            message.OrganizationId, mention.UserId, NoticeKind.Mentions, mention.NoteId.ToString("N"), message.ApplicationId, message.JobId,
+            note.AuthorUserId);
+        var outcome = await NoticeDelivery.EmailAsync(
+            db, email, links.Value, notice, choice,
+            () => link is null ? null : MentionEmail.Compose(to, author ?? "A teammate", place.Candidate, place.Job, place.Organization, link),
+            now, cancellationToken);
+        if (outcome == NoticeOutcome.Emailed)
+        {
+            mention.MarkEmailed(now);
+        }
 
-        await email.SendAsync(
-            MentionEmail.Compose(to, author ?? "A teammate", place.Candidate, place.Job, place.Organization, link), cancellationToken);
-        mention.MarkEmailed(time.GetUtcNow());
+        return outgoing;
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Mention {MentionId} was not emailed: {Reason}")]

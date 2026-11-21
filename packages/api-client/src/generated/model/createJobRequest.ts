@@ -16,7 +16,9 @@ import type { WorkplaceType } from './workplaceType.ts';
  * h3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text
  * works too: a blank line starts a paragraph and lines starting with "- " make a list. The summary is the plain-text
  * line a careers card shows under the title, at most 160 characters; leave it out and the card uses the description's
- * first sentence.
+ * first sentence. Who's hiring: the job's hiring team starts with the person who creates it, the people of the named team
+ * `teamId` as they are now, and `memberIds`, the organization's member ids. They are copied, so a later change
+ * to the team changes no job. An API key sends neither, and its job starts with nobody on its team.
  */
 export interface CreateJobRequest {
   title: string;
@@ -39,4 +41,8 @@ export interface CreateJobRequest {
   validThrough?: string | null;
   /** @nullable */
   summary?: string | null;
+  /** @nullable */
+  teamId?: string | null;
+  /** @nullable */
+  memberIds?: string[] | null;
 }

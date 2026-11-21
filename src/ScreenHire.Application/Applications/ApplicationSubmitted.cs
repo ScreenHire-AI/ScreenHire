@@ -9,6 +9,7 @@ using ScreenHire.Application.Webhooks;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine;
+using ScreenHire.Application.Notifications;
 
 namespace ScreenHire.Application.Applications;
 
@@ -61,6 +62,8 @@ public static partial class ApplicationSubmittedHandler
             outgoing.Add(post);
         }
 
+        // The hiring team (or anyone whose scope is everything they see) by email or in the digest, by their choice.
+        outgoing.Add(new NotifyNewApplication(message.OrganizationId, message.ApplicationId, message.JobId));
         return outgoing;
     }
 

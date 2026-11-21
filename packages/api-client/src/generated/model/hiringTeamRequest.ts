@@ -6,8 +6,9 @@
  */
 
 /**
- * Sets a hiring team to `memberIds`, the organization's member ids. For a job, `copyFromJobId` also brings
- * over another job's team, which the caller must be able to see.
+ * Sets a job's hiring team to `memberIds`, the organization's member ids. `copyFromJobId` also brings over
+ * another job's team, which the caller must be able to see. A named team is added by its people, which the dashboard
+ * puts in `memberIds`, so someone taken off before saving stays off.
  */
 export interface HiringTeamRequest {
   /** @nullable */

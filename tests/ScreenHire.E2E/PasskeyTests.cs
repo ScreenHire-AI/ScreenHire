@@ -83,7 +83,9 @@ public sealed class PasskeyTests(E2EFixture fixture) : BrowserTest(fixture)
     private async Task OpenPasskeysPageAsync()
     {
         await Page.GetByRole(AriaRole.Button, new() { Name = ApiSession.OwnerName }).ClickAsync();
-        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Passkeys" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Your account" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Sign-in and security" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Manage passkeys" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/account/passkeys"));
     }
 

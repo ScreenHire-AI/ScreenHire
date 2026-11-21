@@ -117,7 +117,7 @@
           // Someone chosen has no working calendar: the API names them by id, and the words are ours.
           const names = ((error.body as { interviewerUserIds?: string[] } | undefined)?.interviewerUserIds ?? []).map(nameOf);
           const who = names.length === 0 ? 'Someone you chose' : names.length === 1 ? names[0]! : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
-          setError(submitted, 'interviewerUserIds._errors', `${who} ${names.length > 1 ? 'have' : 'has'} no working calendar connected. Ask them to connect one from the account menu.`);
+          setError(submitted, 'interviewerUserIds._errors', `${who} ${names.length > 1 ? 'have' : 'has'} no working calendar connected. Ask them to connect one in Your account, Connected accounts.`);
         } else if (error instanceof ApiError && error.status === 404) {
           submitted.errors._errors = ['Scheduling is not set up here, so the candidate could not be sent a link.'];
         } else {

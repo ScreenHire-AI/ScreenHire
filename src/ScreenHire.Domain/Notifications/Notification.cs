@@ -143,4 +143,19 @@ public static class NotificationKinds
 
     /// <summary>A day's AI use was well above the recent average. Key: <c>yyyy-MM-dd:spike</c>. Payload: <c>day</c>.</summary>
     public const string AiUsageSpike = "ai-usage-spike";
+
+    /// <summary>A teammate mentioned the person in a note. Key: the note's id. Payload: <c>actor</c> (the teammate's name), when known.</summary>
+    public const string Mention = "mention";
+
+    /// <summary>A candidate replied to an email the person sent. Key: the reply's id. No payload: the line never names the candidate.</summary>
+    public const string CandidateReply = "candidate-reply";
+
+    /// <summary>A task was given to the person. Key: the task's id. Payload: <c>actor</c>, when a teammate gave it.</summary>
+    public const string TaskAssigned = "task-assigned";
+
+    /// <summary>
+    /// An interview the person is on was booked, moved or cancelled. Key: <c>interviewId:revision</c>. Payload: <c>change</c>
+    /// (<c>Booked</c>, <c>Moved</c> or <c>Cancelled</c>).
+    /// </summary>
+    public const string InterviewChanged = "interview-changed";
 }

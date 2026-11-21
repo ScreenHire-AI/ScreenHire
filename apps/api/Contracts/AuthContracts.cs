@@ -38,9 +38,9 @@ public sealed record OnboardingRequest(string OrganizationName, string Slug, str
 /// The signed-in user, and the organization they work in (null until onboarding). <c>name</c> is the person's own name, or
 /// null while the account has none (a name the provider left as the email address counts as none), which is how the
 /// onboarding and invitation forms know whether to ask. <c>displayName</c> is always something to show: the name, or the
-/// email address while there is none.
+/// email address while there is none. <c>photoUrl</c> is their profile photo's address, null while they have none.
 /// </summary>
-public sealed record CurrentUser(Guid Id, string Email, string DisplayName, string? Name, CurrentOrganization? Organization);
+public sealed record CurrentUser(Guid Id, string Email, string DisplayName, string? Name, CurrentOrganization? Organization, string? PhotoUrl = null);
 
 /// <summary>
 /// The organization the signed-in user works in, their role there (a built-in one, or Custom with <c>customRoleId</c>),

@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ScreenHire.Domain.Scheduling;
 using ScreenHire.IntegrationTests.Messaging;
+using ScreenHire.IntegrationTests.Notifications;
 using ScreenHire.IntegrationTests.Realtime;
 
 namespace ScreenHire.IntegrationTests.Scheduling;
@@ -323,6 +324,15 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
         await world.WaitForLiveEventsAsync(world.Owner.UserId, 0);
         await world.WaitForLiveEventsAsync(world.Second.UserId, 0);
         await world.WaitForEmailAsync(world.CandidateEmail, "is cancelled");
+        // The other interviewer is told by email (Interviews starts at Instantly); the member who cancelled it is not.
+        var ownerEmail = await world.Owner.EmailOfAsync();
+        var secondEmail = await world.Second.EmailOfAsync();
+        await world.WaitForEmailAsync(ownerEmail, "Interview cancelled");
+        // The cancellation's own notices (one per interviewer, keyed by the interview and its revision) have both been handled.
+        // The booking's notice may have run before or after the cancel and tells nobody once it is out of date, so it is not counted.
+        var cancelledRevision = (await world.StoredAsync(booked)).Revision;
+        await fixture.WaitHandledAsync($"{booked:N}:{cancelledRevision}", ".NotifyMember", 2);
+        (await fixture.Mailpit.MessagesAsync(secondEmail, Ct)).Should().NotContain(m => m.Subject.StartsWith("Interview cancelled", StringComparison.Ordinal));
         await world.WaitForSyncAsync(booked, "Synced");
         var entry = (await world.Owner.GetAsync($"/v1/applications/{world.ApplicationId}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
             .Where(e => e.GetProperty("type").GetString() == "InterviewCancelled").ToList();
