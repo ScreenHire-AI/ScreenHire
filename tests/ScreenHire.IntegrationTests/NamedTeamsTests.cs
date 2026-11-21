@@ -87,7 +87,20 @@ public sealed class NamedTeamsTests(AppHostFixture fixture)
         job["teamId"] = teamId;
         (await other.PostAsync("/v1/jobs", job)).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("teamId");
         // Names are unique within one organization only.
-        (await other.PostAsync("/v1/organization/teams", Team("Kitchen"))).Expect(HttpStatusCode.Created);
+        var theirs = (await other.PostAsync("/v1/organization/teams", Team("Kitchen"))).Expect(HttpStatusCode.Created).Id();
+
+        // Nobody from another organization goes on a team or a job, and another organization's jobs suggest nothing.
+        var ownerMember = await owner.MemberIdAsync(owner.UserId);
+        (await other.PostAsync("/v1/organization/teams", Team("Bar", ownerMember))).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("memberIds");
+        (await other.PutAsync($"/v1/organization/teams/{theirs}", Team("Kitchen", ownerMember))).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("memberIds");
+        var withStranger = Samples.RemoteJob("Sous chef");
+        withStranger["memberIds"] = new JsonArray(JsonValue.Create(ownerMember));
+        (await other.PostAsync("/v1/jobs", withStranger)).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("memberIds");
+        var (_, versionId) = await owner.CreatePublishedTemplateAsync("Line cook");
+        var used = new JsonObject { ["title"] = "Line cook", ["templateVersionId"] = versionId, ["teamId"] = teamId };
+        await owner.CreateJobAsync(used);
+        (await other.GetAsync($"/v1/organization/teams/suggested?templateVersionId={versionId}")).Expect(HttpStatusCode.OK)
+            .At("teamId").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     // The job keeps the people it was given: a later change to the team, deleting it, or someone leaving the organization

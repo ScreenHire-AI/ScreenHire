@@ -359,12 +359,13 @@
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <Tabs.Root value={tab} onValueChange={selectTab}>
-    <HeaderBand title="Team" actions={bandActions} oneRow>
-      {#snippet tabs()}<RecordTabs tabs={tabsView} label="Team" />{/snippet}
-    </HeaderBand>
+    <HeaderBand title="Team" actions={bandActions} oneRow />
 
     <SettingsMenu>
       <p role="status" class="sr-only">{announcement}</p>
+      <!-- The tabs open the content rather than sit on the band, so the band keeps the one height every settings page has
+           and the Settings menu starts at the same place on each (S8). -->
+      <RecordTabs tabs={tabsView} label="Team" class="border-b border-border" />
 
       <Tabs.Content value="members" class="flex min-w-0 flex-col gap-5">
         <Panel title="Members" flush footer={memberFailure ? memberFooter : undefined}>

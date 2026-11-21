@@ -139,7 +139,7 @@
   });
   const chosenTeam = $derived(teamList.find((team) => team.id === $form.teamId));
   const teamHint = $derived.by(() => {
-    if (!chosenTeam) return 'Their people join the hiring team.';
+    if (!chosenTeam) return '';
     const people = chosenTeam.members.filter((person) => person.memberId !== selfId).map((person) => person.displayName);
     const names = people.length === 0 ? 'Nobody else is on it.' : `${people.join(', ')}.`;
     return !teamChosen && chosenTeam.id === suggestedId ? `Used on the last job like this one. ${names}` : names;
@@ -212,12 +212,12 @@
                     bind:value={$form.teamId}
                     onchange={() => (teamChosen = true)}
                     aria-invalid={$errors.teamId ? 'true' : undefined}
-                    aria-describedby={describedBy('new-job-team-error', $errors.teamId, 'new-job-team-hint')}
+                    aria-describedby={describedBy('new-job-team-error', $errors.teamId, teamHint ? 'new-job-team-hint' : undefined)}
                   >
                     <option value="">No team</option>
                     {#each teamList as team (team.id)}<option value={team.id}>{team.name} ({peopleWords(team.members.length)})</option>{/each}
                   </select>
-                  <Field.Description id="new-job-team-hint">{teamHint}</Field.Description>
+                  {#if teamHint}<Field.Description id="new-job-team-hint">{teamHint}</Field.Description>{/if}
                   <Field.Error id="new-job-team-error" errors={$errors.teamId?.map((message) => ({ message }))} />
                 </Field.Field>
               {/if}
@@ -252,7 +252,6 @@
                 />
               </div>
               <Field.Error errors={$errors.memberIds?._errors?.map((message) => ({ message }))} />
-              <p class="text-caption text-muted-foreground">You're on the hiring team too. Change it later from the job's Hiring team.</p>
             </fieldset>
           {/if}
           <Field.Field data-invalid={$errors.workplaceType ? true : undefined}>

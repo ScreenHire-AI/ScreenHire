@@ -5,12 +5,23 @@
   import type { TeamDetail } from '@screenhire/api-client';
   import { createDeleteTeam } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { createSortedRowModel, createTable, rowSortingFeature, sortFn_alphanumeric, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
+  import {
+    createSortedRowModel,
+    createTable,
+    rowSortingFeature,
+    sortFn_alphanumeric,
+    sortFn_basic,
+    tableFeatures,
+    type ColumnDef,
+  } from '@tanstack/svelte-table';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
+  import DateText from '#lib/components/date-text.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
+  import SortMenu from '#lib/components/sort-menu.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -23,8 +34,9 @@
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
   // Teams on Settings, Team (sign-in-and-tenancy.md, "Job access"): the organization's named teams on the list template, by
-  // name, each with its people. A team's name opens it in the team sheet, as Edit team in its menu does; Delete team
-  // confirms (A2) and says what it leaves alone, the jobs the team was added to. The tab holds the count, so the panel has none.
+  // name, each with its people and when it last changed (T6). A team's name opens it in the team sheet, as Edit team in its
+  // menu does; Delete team confirms (A2) and says what it leaves alone, the jobs the team was added to. The tab holds the
+  // count, so the panel has none. Past about ten teams the panel has a search by name or person (S9).
   let {
     teams,
     pending,
@@ -52,19 +64,31 @@
   }));
 
   const names = (team: TeamDetail) => team.members.map((person) => person.displayName).join(', ');
-  const features = tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns: { alphanumeric: sortFn_alphanumeric } });
+  // A team nobody has changed since it was made reads as made then.
+  const changedAt = (team: TeamDetail) => team.updatedAt ?? team.createdAt;
+  let search = $state('');
+  const visible = $derived.by(() => {
+    const words = search.trim().toLowerCase();
+    return words ? teams.filter((team) => [team.name, names(team)].some((text) => text.toLowerCase().includes(words))) : teams;
+  });
+  const features = tableFeatures({
+    rowSortingFeature,
+    sortedRowModel: createSortedRowModel(),
+    sortFns: { alphanumeric: sortFn_alphanumeric, basic: sortFn_basic },
+  });
   // `any`: one list mixes columns of different value types. People has no accessor: names do not sort usefully.
   const columns: ColumnDef<typeof features, TeamDetail, any>[] = [
     { id: 'name', header: 'Name', accessorFn: (team) => team.name, sortFn: 'alphanumeric' },
     { id: 'people', header: 'People' },
+    { id: 'updated', header: 'Last updated', accessorFn: changedAt, sortFn: 'basic', sortDescFirst: true },
   ];
-  const sort = createTableSort('team-teams', { id: 'name', desc: false }, ['name']);
+  const sort = createTableSort('team-teams', { id: 'name', desc: false }, ['name', 'updated']);
   const table = createTable({
     ...tableSortOptions(() => sort),
     features,
     columns,
     get data() {
-      return teams as TeamDetail[];
+      return visible as TeamDetail[];
     },
     getRowId: (team) => team.id,
   });
@@ -91,6 +115,9 @@
 </script>
 
 <Panel title="Teams" flush>
+  {#snippet tools()}
+    {#if teams.length > 10}<SearchField bind:value={search} label="Search teams" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
+  {/snippet}
   {#if error}
     <div class="p-4"><QueryError message={error} {onretry} inset /></div>
   {:else if pending}
@@ -113,12 +140,17 @@
       <Empty.Content><Button variant="outline" size="lg" onclick={oncreate}><UsersRoundIcon aria-hidden="true" />New team</Button></Empty.Content>
     </Empty.Root>
   {:else}
+    <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
+    {#if visible.length === 0}
+      <p class="border-b border-border-subtle px-4.5 py-3 text-muted-foreground max-md:px-4">No team matches the search.</p>
+    {/if}
     <ul class="md:hidden">
       {#each sorted as team (team.id)}
         <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
           <div class="flex min-w-0 flex-1 flex-col gap-1.5">
             <button type="button" class="min-w-0 text-left font-semibold break-words underline-offset-2 hover:underline pointer-coarse:min-h-11" onclick={() => onedit(team)}>{team.name}</button>
             <span class="text-muted-foreground">{peopleWords(team.members.length)}{#if team.members.length > 0}: {names(team)}{/if}</span>
+            <span class="text-muted-foreground">Updated <DateText at={changedAt(team)} /></span>
           </div>
           {@render teamMenu(team)}
         </li>
@@ -143,8 +175,9 @@
                 <button type="button" class="max-w-full truncate text-left font-semibold underline-offset-2 hover:underline" onclick={() => onedit(team)}>{team.name}</button>
               </Table.Cell>
               <Table.Cell class="w-full max-w-0 min-w-48 text-muted-foreground">
-                {#if team.members.length === 0}Nobody yet{:else}<TruncatedText text={names(team)} />{/if}
+                {#if team.members.length === 0}<span class="sr-only">Nobody yet</span>{:else}<TruncatedText text={names(team)} />{/if}
               </Table.Cell>
+              <Table.Cell class="whitespace-nowrap text-muted-foreground"><DateText at={changedAt(team)} /></Table.Cell>
               <Table.Cell class="pr-4.5 text-right">{@render teamMenu(team)}</Table.Cell>
             </Table.Row>
           {/each}

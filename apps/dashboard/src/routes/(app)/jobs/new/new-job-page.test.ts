@@ -199,7 +199,7 @@ describe('new job page', () => {
     });
 
     it('keeps the team the person picked, and sends no team for No team', async () => {
-      const { bodies } = stubCreate([template], {
+      const { bodies, fetchMock } = stubCreate([template], {
         'GET /v1/organization/members': () => Response.json([avery, jordan]),
         'GET /v1/organization/teams': () => Response.json([kitchen]),
         [`GET /v1/organization/teams/suggested?templateVersionId=${versionId}`]: () => Response.json({ teamId: kitchen.id }),
@@ -211,7 +211,9 @@ describe('new job page', () => {
         target: { value: versionId },
       });
       // The suggestion arrives for the template, but the person already chose.
-      await waitFor(() => expect(within(form).getByLabelText('Team')).toHaveAccessibleDescription('Their people join the hiring team.'));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(`/v1/organization/teams/suggested?templateVersionId=${versionId}`, expect.anything()));
+      expect(within(form).getByLabelText('Team')).toHaveValue('');
+      expect(within(form).getByLabelText('Team')).toHaveAccessibleDescription('');
       await fillIn(form);
       await fireEvent.click(within(form).getByRole('button', { name: 'Create job' }));
 

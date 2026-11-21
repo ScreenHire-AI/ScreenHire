@@ -27,7 +27,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
         // Each own template, archived ones included, whose default team still names a current member of its organization becomes
         // "<template name> team" with those members. Template names are not unique, so a second template of the same name, in any
         // case, gets " 2", the next " 3", oldest first: team names are unique ignoring case, as the API checks them. Template
-        // names are at most 120 characters, so every name fits the 140 of the column. People who left are dropped, as a job's
+        // names are at most 120 characters, so every name fits the 140 of the column. upper() is the database's, where the API
+        // uses ToUpperInvariant: they agree on every name but rare non-ASCII ones, where a later rename may meet a near-twin
+        // the index lets through, which harms nothing. People who left are dropped, as a job's
         // team drops them. The tables are forced, so with no tenant set the owner reads and writes nothing unless the force is
         // lifted around the copy. It is put back before the migration ends, and the copy aborts it when a team was missed, before
         // the column is dropped.
