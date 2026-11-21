@@ -39,7 +39,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
-  import SecretDialog from '#lib/components/secret-dialog.svelte';
+  import SecretField from '#lib/components/secret-field.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import { settingsCrumbs } from '#lib/settings.js';
   import SortHeader from '#lib/components/sort-header.svelte';
@@ -51,11 +51,11 @@
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
-  import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
+  import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
@@ -66,8 +66,8 @@
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
 
-  // Organization API keys for the hiring API (ADR-0011), on the list template. A new key is shown once, in a dialog,
-  // and kept nowhere else; the list shows only its first characters. Revoking is for good. Under the keys, a panel says
+  // Organization API keys for the hiring API (ADR-0011), on the list template. Create key is a sheet over the list (design
+  // system A16), and its last step shows the new key once, kept nowhere else; the list shows only its first characters. Revoking is for good. Under the keys, a panel says
   // what the API is for, how to call it and where its reference is (design system section 21). The API's public origin
   // comes from the API itself (ScreenHire:Domains:ApiHost through /v1/meta), never from a host written here. The title's
   // row has Last updated and History: every key created and revoked, by whom (design system T6, S8). Invalidating the
@@ -82,7 +82,7 @@
   const sidebar = Sidebar.useSidebar();
   const keys = createListApiKeys();
   const lastUpdate = createGetApiKeysLastUpdate();
-  // gcTime 0: the response holds the token, so the mutation cache drops it as soon as the page goes, dialog open or not.
+  // gcTime 0: the response holds the token, so the mutation cache drops it as soon as the page goes, sheet open or not.
   const create = createCreateApiKey(() => ({ mutation: { gcTime: 0, onSettled: () => invalidatePath(queryClient, keysPath) } }));
   const revoke = createRevokeApiKey(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, keysPath) } }));
 
@@ -95,7 +95,7 @@
     return words ? all.filter((key) => key.name.toLowerCase().includes(words)) : all;
   });
   const access = (scopes: readonly ApiKeyScope[]) => (scopes.includes('Write') ? 'Read and write' : 'Read only');
-  // What the Verification read scope opens, in the create dialog (ADR-0021).
+  // What the Verification read scope opens, in the Create key sheet (ADR-0021).
   const verificationOpens = 'Opens verification levels, reasons and evidence.';
   // The Access column holds everything a key can do, so a row's name is the only line of text in it (L1). A revoked key
   // keeps the words it had, for anyone auditing what it could read; its Revoked status says it no longer can.
@@ -140,11 +140,16 @@
     announcement = `${revoking.name} was revoked.`;
   }
 
-  // The new key's token, only while its dialog is open.
+  // The new key's token, only while the sheet shows it. `shown` keeps the sheet on its last step while it slides away,
+  // after the token is already gone.
   let token = $state('');
-  let tokenOpen = $state(false);
-
+  let shown = $state(false);
   let creating = $state(false);
+  function forgetToken() {
+    token = '';
+    create.reset();
+  }
+
   const schema = z.object({
     name: z.string().trim().min(1, 'Give the key a name.').max(100, 'Keep the name to 100 characters or fewer.'),
     access: z.enum(['Read', 'Write']),
@@ -162,9 +167,8 @@
         const scopes: ApiKeyScope[] = submitted.data.access === 'Write' ? ['Read', 'Write'] : ['Read'];
         if (submitted.data.verification && mayGrantVerification) scopes.push('VerificationRead');
         const response = await create.mutateAsync({ data: { name: submitted.data.name.trim(), scopes } });
-        creating = false;
         token = response.data.token;
-        tokenOpen = true;
+        shown = true;
       } catch (error) {
         if (error instanceof ApiError && error.status === 400) {
           applyValidationProblem(submitted, error.body as HttpValidationProblemDetails);
@@ -177,7 +181,9 @@
   });
 
   $effect(() => {
-    if (creating) reset({ data: { name: '', access: 'Read', verification: false } });
+    if (!creating) return;
+    shown = false;
+    reset({ data: { name: '', access: 'Read', verification: false } });
   });
 </script>
 
@@ -354,52 +360,68 @@
   {#snippet icon()}<BanIcon aria-hidden="true" />{/snippet}
 </ConfirmDialog>
 
-<SecretDialog bind:open={tokenOpen} title="Your new API key" label="API key" value={token} onclose={() => ((token = ''), create.reset())} />
-
-<Dialog.Root bind:open={creating}>
-  <Dialog.Content class="sm:max-w-md">
-    <Dialog.Header>
-      <Dialog.Title>Create an API key</Dialog.Title>
-      <Dialog.Description>For the hiring API: jobs, applications, candidates, templates and reports.</Dialog.Description>
-    </Dialog.Header>
-    <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
-      <Field.Field data-invalid={$errors.name ? true : undefined}>
-        <Field.Label for="key-name">Name</Field.Label>
-        <Input
-          id="key-name"
-          name="name"
-          maxlength={100}
-          required
-          autocomplete="off"
-          bind:value={$form.name}
-          aria-invalid={$errors.name ? 'true' : undefined}
-          aria-describedby={$errors.name ? 'key-name-error' : undefined}
-        />
-        <Field.Error id="key-name-error" errors={$errors.name?.map((message) => ({ message }))} />
-      </Field.Field>
-      <div class="flex flex-col gap-2">
-        <span id="key-access-label" class="text-body font-medium">Access</span>
-        <div role="radiogroup" aria-labelledby="key-access-label" class="flex flex-col gap-2">
-          <ChoiceCard name="access" value="Read" bind:group={$form.access} title="Read only" description="Reads jobs, candidates, applications and templates." />
-          <ChoiceCard name="access" value="Write" bind:group={$form.access} title="Read and write" description="Also changes hiring data, as a Recruiter can." />
+<Sheet.Root
+  bind:open={creating}
+  onOpenChange={(next) => {
+    if (!next) forgetToken();
+  }}
+>
+  <Sheet.Content side="right" class="w-full overflow-y-auto">
+    {#if shown}
+      <Sheet.Header>
+        <Sheet.Title>Your new API key</Sheet.Title>
+        <Sheet.Description>Copy it now. You will not see it again.</Sheet.Description>
+      </Sheet.Header>
+      <div class="flex flex-col gap-5 px-4 pb-4">
+        <SecretField label="API key" value={token} focus />
+        <div class="flex justify-end">
+          <Button size="lg" onclick={() => ((creating = false), forgetToken())}>Done</Button>
         </div>
       </div>
-      {#if mayGrantVerification}
-        <div class="flex items-start gap-4">
-          <div class="flex min-w-0 flex-1 flex-col gap-1">
-            <Field.Label for="key-verification">Verification read</Field.Label>
-            <Field.Description id="key-verification-hint">{verificationOpens}</Field.Description>
+    {:else}
+      <Sheet.Header>
+        <Sheet.Title>Create an API key</Sheet.Title>
+        <Sheet.Description>For the hiring API: jobs, applications, candidates, templates and reports.</Sheet.Description>
+      </Sheet.Header>
+      <form method="POST" use:enhance novalidate class="flex flex-col gap-5 px-4 pb-4">
+        <Field.Field data-invalid={$errors.name ? true : undefined}>
+          <Field.Label for="key-name">Name</Field.Label>
+          <Input
+            id="key-name"
+            name="name"
+            maxlength={100}
+            required
+            autocomplete="off"
+            bind:value={$form.name}
+            aria-invalid={$errors.name ? 'true' : undefined}
+            aria-describedby={$errors.name ? 'key-name-error' : undefined}
+          />
+          <Field.Error id="key-name-error" errors={$errors.name?.map((message) => ({ message }))} />
+        </Field.Field>
+        <div class="flex flex-col gap-2">
+          <span id="key-access-label" class="text-body font-medium">Access</span>
+          <div role="radiogroup" aria-labelledby="key-access-label" class="flex flex-col gap-2">
+            <ChoiceCard name="access" value="Read" bind:group={$form.access} title="Read only" description="Reads jobs, candidates, applications and templates." />
+            <ChoiceCard name="access" value="Write" bind:group={$form.access} title="Read and write" description="Also changes hiring data, as a Recruiter can." />
           </div>
-          <Switch id="key-verification" bind:checked={$form.verification} aria-describedby="key-verification-hint" class="mt-1" />
         </div>
-      {:else}
-        <p class="text-caption text-muted-foreground">Only an owner can give a key Verification read.</p>
-      {/if}
-      <FailureText message={$errors._errors?.[0]} />
-      <Dialog.Footer>
-        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
-        <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create key</Button>
-      </Dialog.Footer>
-    </form>
-  </Dialog.Content>
-</Dialog.Root>
+        {#if mayGrantVerification}
+          <div class="flex items-start gap-4">
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+              <Field.Label for="key-verification">Verification read</Field.Label>
+              <Field.Description id="key-verification-hint">{verificationOpens}</Field.Description>
+            </div>
+            <Switch id="key-verification" bind:checked={$form.verification} aria-describedby="key-verification-hint" class="mt-1" />
+          </div>
+        {:else}
+          <p class="text-caption text-muted-foreground">Only an owner can give a key Verification read.</p>
+        {/if}
+        <FailureText message={$errors._errors?.[0]} />
+        <div class="flex justify-end gap-2">
+          <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
+          <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create key</Button>
+        </div>
+      </form>
+    {/if}
+  </Sheet.Content>
+</Sheet.Root>

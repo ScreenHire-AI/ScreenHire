@@ -3,7 +3,8 @@
   import PlusIcon from '~icons/lucide/plus';
   import WebhookIcon from '~icons/lucide/webhook';
   import type { WebhookEndpointEntry } from '@screenhire/api-client';
-  import { createGetMeta, createListWebhookEndpoints, createListWebhookEventTypes } from '@screenhire/api-client/svelte-query';
+  import { createCreateWebhookEndpoint, createGetMeta, createListWebhookEndpoints, createListWebhookEventTypes } from '@screenhire/api-client/svelte-query';
+  import { useQueryClient } from '@tanstack/svelte-query';
   import {
     createSortedRowModel,
     createTable,
@@ -13,6 +14,8 @@
     tableFeatures,
     type ColumnDef,
   } from '@tanstack/svelte-table';
+  import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
@@ -21,6 +24,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SearchField from '#lib/components/search-field.svelte';
+  import SecretDialog from '#lib/components/secret-dialog.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import { settingsCrumbs } from '#lib/settings.js';
   import SortHeader from '#lib/components/sort-header.svelte';
@@ -30,13 +34,14 @@
   import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import WebhookEndpointSheet from '#lib/components/webhook-endpoint-sheet.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
-  import { describeError } from '#lib/query.js';
+  import { describeError, invalidatePath } from '#lib/query.js';
   import { needsAttention } from '#lib/status.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { endpointStatus, eventLabel } from '#lib/webhooks.js';
@@ -81,6 +86,37 @@
   const sorted = $derived(table.getRowModel().rows.map((row) => row.original));
   const href = (id: string) => `/settings/webhooks/${id}`;
   const events = (count: number) => (count === 1 ? '1 event' : `${count} events`);
+
+  // Add endpoint is a sheet over this list (design system A16). The API answers with the endpoint's signing secret, shown
+  // once before the endpoint's page opens. The old address, /settings/webhooks/new, lands here with ?add: the sheet opens
+  // and the parameter leaves the address, so a reload does not open it again.
+  const queryClient = useQueryClient();
+  // gcTime 0: the response holds the signing secret, so the mutation cache drops it as soon as the secret is shown.
+  const create = createCreateWebhookEndpoint(() => ({ mutation: { gcTime: 0, onSettled: () => invalidatePath(queryClient, '/v1/webhooks') } }));
+  let adding = $state(page.url.searchParams.has('add'));
+  $effect(() => {
+    if (!page.url.searchParams.has('add')) return;
+    const url = new URL(page.url.href);
+    url.searchParams.delete('add');
+    void goto(url, { replace: true, reset: false });
+  });
+
+  let secret = $state('');
+  let secretOpen = $state(false);
+  let createdId = '';
+
+  async function add(value: { url: string; description: string | null; events: string[] }) {
+    const response = await create.mutateAsync({ data: value });
+    createdId = response.data.endpoint.id;
+    secret = response.data.signingSecret;
+    secretOpen = true;
+  }
+
+  function opened() {
+    secret = '';
+    create.reset();
+    if (createdId) void goto(`/settings/webhooks/${createdId}`);
+  }
 </script>
 
 <svelte:head>
@@ -124,7 +160,7 @@
               <Empty.Media variant="icon"><WebhookIcon /></Empty.Media>
               <Empty.Title>No webhooks yet</Empty.Title>
             </Empty.Header>
-            <Empty.Content><Button href="/settings/webhooks/new" variant="outline" size="lg"><PlusIcon aria-hidden="true" />Add endpoint</Button></Empty.Content>
+            <Empty.Content><Button variant="outline" size="lg" onclick={() => (adding = true)}><PlusIcon aria-hidden="true" />Add endpoint</Button></Empty.Content>
           </Empty.Root>
         {:else}
           <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
@@ -230,5 +266,9 @@
 {/snippet}
 
 {#snippet addButton()}
-  <Button href="/settings/webhooks/new" size="lg"><PlusIcon aria-hidden="true" />Add endpoint</Button>
+  <Button size="lg" onclick={() => (adding = true)}><PlusIcon aria-hidden="true" />Add endpoint</Button>
 {/snippet}
+
+<WebhookEndpointSheet bind:open={adding} onsave={add} />
+
+<SecretDialog bind:open={secretOpen} title="Your signing secret" label="Signing secret" value={secret} onclose={opened} />

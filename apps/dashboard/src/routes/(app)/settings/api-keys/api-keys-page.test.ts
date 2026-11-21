@@ -54,13 +54,14 @@ async function openMenu(name: string) {
   return screen.findByRole('menu');
 }
 
+// Create key is a sheet over the list (design system A16), a bits-ui dialog named by its title.
 async function createKey(name: string, access: 'Read only' | 'Read and write') {
   await fireEvent.click(await screen.findByRole('button', { name: 'Create key' }));
-  const dialog = await screen.findByRole('dialog', { name: 'Create an API key' });
-  await fireEvent.input(within(dialog).getByLabelText('Name'), { target: { value: name } });
-  await fireEvent.click(within(dialog).getByRole('radio', { name: new RegExp(`^${access}`) }));
-  await fireEvent.click(within(dialog).getByRole('button', { name: 'Create key' }));
-  return dialog;
+  const sheet = await screen.findByRole('dialog', { name: 'Create an API key' });
+  await fireEvent.input(within(sheet).getByLabelText('Name'), { target: { value: name } });
+  await fireEvent.click(within(sheet).getByRole('radio', { name: new RegExp(`^${access}`) }));
+  await fireEvent.click(within(sheet).getByRole('button', { name: 'Create key' }));
+  return sheet;
 }
 
 afterEach(() => {
@@ -73,7 +74,7 @@ function signInAsAdmin() {
   page.data = { user: { ...user, organization: { ...user.organization!, role: 'Admin', permissions: builtInPermissions.Admin } } };
 }
 
-async function openCreateDialog() {
+async function openCreateSheet() {
   await fireEvent.click(await screen.findByRole('button', { name: 'Create key' }));
   return screen.findByRole('dialog', { name: 'Create an API key' });
 }
@@ -159,7 +160,7 @@ describe('API keys page', () => {
         return Response.json({ key: key('k9', 'Auditor', { scopes: ['Read', 'VerificationRead'] }), token }, { status: 201 });
       },
     });
-    const dialog = await openCreateDialog();
+    const dialog = await openCreateSheet();
     const verification = within(dialog).getByRole('switch', { name: 'Verification read' });
 
     expect(verification).toBeEnabled();
@@ -190,7 +191,7 @@ describe('API keys page', () => {
   it('gives anyone but an owner no Verification read switch, and says who can give it', async () => {
     signInAsAdmin();
     renderPage([]);
-    const dialog = await openCreateDialog();
+    const dialog = await openCreateSheet();
 
     expect(within(dialog).queryByRole('switch', { name: 'Verification read' })).not.toBeInTheDocument();
     expect(within(dialog).getByText('Only an owner can give a key Verification read.')).toBeInTheDocument();
@@ -213,26 +214,52 @@ describe('API keys page', () => {
     expect(screen.getAllByText('Revoked').length).toBeGreaterThan(0);
   });
 
-  it('shows the new token once, with Copy, and forgets it after Done', async () => {
+  it('shows the new token once in the same sheet, with Copy, and forgets it after Done', async () => {
     const writeText = vi.fn(async () => {});
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     renderPage([], {
       'POST /v1/organization/api-keys': () => Response.json({ key: key('k9', 'Dashboard export'), token }, { status: 201 }),
     });
 
-    await createKey('Dashboard export', 'Read only');
+    const sheet = await createKey('Dashboard export', 'Read only');
 
-    const dialog = await screen.findByRole('dialog', { name: 'Your new API key' });
-    expect(within(dialog).getByDisplayValue(token)).toHaveAttribute('readonly');
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Copy' }));
+    // The sheet's last step, not a dialog of its own (A16): one layer, now named for the key, with the field focused.
+    await waitFor(() => expect(sheet).toHaveAccessibleName('Your new API key'));
+    expect(screen.getAllByRole('dialog')).toEqual([sheet]);
+    expect(sheet).toHaveAttribute('data-slot', 'sheet-content');
+    const field = within(sheet).getByLabelText('API key');
+    expect(field).toHaveValue(token);
+    expect(field).toHaveAttribute('readonly');
+    await waitFor(() => expect(field).toHaveFocus());
+    expect(within(sheet).getByText('Copy it now. You will not see it again.')).toBeInTheDocument();
+    await expectNoAxeViolations();
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Copy' }));
     expect(writeText).toHaveBeenCalledWith(token);
-    expect(await within(dialog).findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    expect(await within(sheet).findByRole('button', { name: 'Copied' })).toBeInTheDocument();
 
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Done' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.queryByDisplayValue(token)).not.toBeInTheDocument();
     expect(document.body.textContent).not.toContain(token);
+  });
+
+  it('forgets the token when the sheet is closed with Escape, and opens on the form again', async () => {
+    renderPage([], {
+      'POST /v1/organization/api-keys': () => Response.json({ key: key('k9', 'Dashboard export'), token }, { status: 201 }),
+    });
+    const sheet = await createKey('Dashboard export', 'Read only');
+    await within(sheet).findByDisplayValue(token);
+
+    await fireEvent.keyDown(sheet, { key: 'Escape' });
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(document.body.textContent).not.toContain(token);
+    // The list has loaded by now, so the empty state's Create key sits beside the band's; either opens the sheet.
+    await fireEvent.click((await screen.findAllByRole('button', { name: 'Create key' }))[0]!);
+    const again = await screen.findByRole('dialog', { name: 'Create an API key' });
+    expect(within(again).getByLabelText('Name')).toHaveValue('');
+    expect(within(again).queryByDisplayValue(token)).not.toBeInTheDocument();
   });
 
   it('asks for a name before sending anything', async () => {
@@ -244,7 +271,7 @@ describe('API keys page', () => {
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0);
   });
 
-  it('keeps the create dialog open and says why when the API refuses', async () => {
+  it('keeps the create sheet open and says why when the API refuses', async () => {
     renderPage([], { 'POST /v1/organization/api-keys': () => Response.json({ detail: 'Only owners and admins create keys.' }, { status: 403 }) });
 
     const dialog = await createKey('Dashboard export', 'Read only');
