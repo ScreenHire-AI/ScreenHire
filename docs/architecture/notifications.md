@@ -33,6 +33,13 @@ sources:
   - resource: apps/dashboard/src/lib/components/activity-feed.svelte
   - resource: apps/dashboard/src/lib/activity.ts
   - resource: apps/dashboard/src/lib/linked.svelte.ts
+  - resource: apps/dashboard/src/lib/components/activity-list.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/activity-panel.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/application-tab.svelte
+  - resource: apps/dashboard/src/lib/shortcuts.ts
+  - resource: apps/dashboard/src/routes/(dev)/style-guide/notification-bell-demo.svelte
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/ChangeRecordConfiguration.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/JobApplicationConfiguration.cs
   - resource: apps/api/Endpoints/OrganizationEndpoints.cs
   - resource: src/ScreenHire.Domain/Organizations/SetupStepId.cs
   - resource: apps/api/Contracts/NotificationItemContracts.cs
@@ -144,7 +151,8 @@ page before, time and id), and Show more loads the next.
 clock and never moved back. Each page says it (`seenAt`) and how many changes in the same scope and kinds came after it, other
 than the person's own, up to 100 (`unseenCount`, "99+" past 99). That count sits in the Activity tab's count badge, the summary
 line reads "Since you were last here: 14 changes", and a "Seen before" line marks where the new ones end. Opening the tab posts
-`POST /v1/activity/seen` once its first page is in, and leaving the tab or closing the panel posts it again, for what arrived
+`POST /v1/activity/seen` once its first page has come from the server (`ActivityFeed.fresh`, never the page still cached from the
+last visit, whose count is the last visit's), and leaving the tab or closing the panel posts it again, for what arrived
 while the person looked.
 
 ## Raising a notification
