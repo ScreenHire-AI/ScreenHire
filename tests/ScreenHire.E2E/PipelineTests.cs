@@ -438,9 +438,9 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         var tiles = Page.Locator("[data-group-map]");
         await Expect(tiles.Locator("[data-group='Network']")).ToContainTextAsync("Did not run", new() { Timeout = 30_000 });
         await Expect(tiles.Locator("[data-group='FormUse']")).ToContainTextAsync("Did not run");
-        // Why is one hover or focus away, in the tile's tooltip.
-        await tiles.Locator("[data-group='Network'] [tabindex='0']").FocusAsync();
-        await Expect(Page.GetByRole(AriaRole.Tooltip)).ToContainTextAsync("Added by hand");
+        // Why is one hover away, in the tile's tooltip.
+        await tiles.Locator("[data-group='Network'] [tabindex='0']").HoverAsync();
+        await Expect(Page.Locator("[data-slot='tooltip-content']").First).ToContainTextAsync("Added by hand");
         await ExpectNoAccessibilityViolationsAsync();
     }
 
