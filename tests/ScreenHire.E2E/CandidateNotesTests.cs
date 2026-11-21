@@ -25,7 +25,7 @@ public sealed class CandidateNotesTests(E2EFixture fixture) : BrowserTest(fixtur
         using var ownerSession = new ApiSession(Fixture);
         var ownerEmail = ApiSession.NewEmail("owner");
         await ownerSession.SignInWithDevSsoAsync(ownerEmail, Ct);
-        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { organizationName = Organization, slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = Organization, slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
         var job = await ReadAsync(await ownerSession.PostAsync(
             "/v1/jobs",
             new
@@ -175,7 +175,7 @@ public sealed class CandidateNotesTests(E2EFixture fixture) : BrowserTest(fixtur
         var session = new ApiSession(Fixture);
         try
         {
-            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token }, Ct);
+            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = "Jordan Lee" }, Ct);
             accepted.StatusCode.Should().Be(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync(Ct));
             return session;
         }

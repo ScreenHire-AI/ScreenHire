@@ -32,6 +32,8 @@ internal static class AuthEndpoints
     private const string UnusableInvitation =
         "This invitation has expired, has been withdrawn or has already been used. Ask the person who invited you for a new one.";
 
+    private const string NameRequired = "Enter your name.";
+
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/v1/auth").WithTags("Auth");
@@ -121,10 +123,18 @@ internal static class AuthEndpoints
                     return Failed("email-unverified");
                 }
 
-                var user = await FindOrCreateUserAsync(users, db, email, login.Principal.FindFirstValue("name"), time.GetUtcNow());
+                var claimedName = login.Principal.FindFirstValue("name");
+                var user = await FindOrCreateUserAsync(users, db, email, claimedName, time.GetUtcNow());
                 if (user is null || !await TryAddLoginAsync(users, db, user, login))
                 {
                     return Failed("provider");
+                }
+
+                // An account made by an invitation or an emailed link has no name yet: take the provider's, once.
+                if (UsableName(user.DisplayName, user.Email) is null && UsableName(claimedName, user.Email) is { } name)
+                {
+                    user.DisplayName = name;
+                    await users.UpdateAsync(user);
                 }
 
                 await signIn.SignInAsync(user, isPersistent: true, login.LoginProvider);
@@ -245,8 +255,8 @@ internal static class AuthEndpoints
     // token is what grants this, as it does accepting; every unusable token answers as accepting does, so the answer never
     // says whether an organization exists. It changes nothing, so a mail scanner that calls it cannot use the invitation up.
     private static async Task<Results<Ok<InvitationDetails>, ValidationProblem>> LookUpInvitation(
-        InvitationLookup request, IValidator<InvitationLookup> validator, TenantContext tenant, ScreenHireDbContext db,
-        TimeProvider time, CancellationToken cancellationToken)
+        InvitationLookup request, IValidator<InvitationLookup> validator, UserManager<ApplicationUser> users, TenantContext tenant,
+        ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
     {
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
@@ -271,7 +281,14 @@ internal static class AuthEndpoints
 
         var organizationName = await db.Organizations.AsNoTracking()
             .Where(o => o.Id == organizationId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
-        return organizationName is null ? InvitationRefused() : TypedResults.Ok(new InvitationDetails(organizationName, role.Name));
+        if (organizationName is null)
+        {
+            return InvitationRefused();
+        }
+
+        // Whether the page must ask for a name: the invited address has no account yet, or one that was made without one.
+        var invited = await users.FindByEmailAsync(invitation.Email);
+        return TypedResults.Ok(new InvitationDetails(organizationName, role.Name, UsableName(invited?.DisplayName, invitation.Email) is null));
     }
 
     // The emailed link signs in as the invited address, whoever this browser was signed in as: following it proves the
@@ -303,8 +320,22 @@ internal static class AuthEndpoints
             return InvitationRefused();
         }
 
-        var user = await FindOrCreateUserAsync(users, db, invitation.Email, null, now)
+        // An address with no name yet gives one here, before the invitation is used up, so a refusal leaves it usable.
+        var existing = await users.FindByEmailAsync(invitation.Email);
+        var posted = UsableName(request.Name, invitation.Email);
+        if (posted is null && UsableName(existing?.DisplayName, invitation.Email) is null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["name"] = [NameRequired] });
+        }
+
+        var user = existing ?? await FindOrCreateUserAsync(users, db, invitation.Email, posted, now)
             ?? throw new InvalidOperationException("Could not create the user for an accepted invitation.");
+        if (posted is not null && UsableName(user.DisplayName, user.Email) is null)
+        {
+            user.DisplayName = posted;
+            await users.UpdateAsync(user);
+        }
+
         if (!user.EmailConfirmed)
         {
             user.EmailConfirmed = true;
@@ -431,6 +462,11 @@ internal static class AuthEndpoints
         };
         // The new organization is the tenant from here on, so the membership row passes row-level security's WITH CHECK.
         tenant.SetOrganization(organization.Id);
+        // The name they typed, which replaces any the provider gave. The user is not tracked (the retry cleared the tracker),
+        // so this is its own statement in the open transaction, and the same name goes on the copy the reply describes.
+        var name = request.Name.Trim();
+        await db.Users.Where(u => u.Id == user.Id).ExecuteUpdateAsync(s => s.SetProperty(u => u.DisplayName, name), cancellationToken);
+        user.DisplayName = name;
         db.Organizations.Add(organization);
         db.OrganizationMembers.Add(OrganizationMember.Create(organization.Id, user.Id, OrganizationRole.Owner, time.GetUtcNow()));
         // The free trial starts at sign-up (ADR-0029); null while billing is off.
@@ -507,7 +543,7 @@ internal static class AuthEndpoints
             UserName = email,
             Email = email,
             EmailConfirmed = true, // only verified addresses reach here
-            DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim(),
+            DisplayName = UsableName(displayName, email),
             CreatedAt = now,
         };
         try
@@ -520,6 +556,14 @@ internal static class AuthEndpoints
             db.ChangeTracker.Clear();
             return null;
         }
+    }
+
+    // A name worth keeping: trimmed, and not blank. Some providers fill the name claim with the address (the Dev SSO "any
+    // email" login does), which is not a name, so the forms ask for one.
+    internal static string? UsableName(string? name, string? email)
+    {
+        var trimmed = name?.Trim();
+        return string.IsNullOrEmpty(trimmed) || string.Equals(trimmed, email?.Trim(), StringComparison.OrdinalIgnoreCase) ? null : trimmed;
     }
 
     private static bool IsUniqueViolation(DbUpdateException exception) =>
@@ -556,6 +600,6 @@ internal static class AuthEndpoints
         }
 
         var email = user.Email ?? "";
-        return new CurrentUser(user.Id, email, user.DisplayName ?? email, organization);
+        return new CurrentUser(user.Id, email, user.DisplayName ?? email, UsableName(user.DisplayName, email), organization);
     }
 }

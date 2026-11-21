@@ -10,7 +10,8 @@
  * (`ScreenHire:Domains:ApiHost`), which the API reference (`/scalar`), the OpenAPI file and `/v1` sit under.
  * `careersUrlPattern` is a tenant's careers address with `{tenant}` where its slug goes, such as
  * `https://{tenant}.careers.example.com` (`ScreenHire:Domains:CareersHostPattern`), so the dashboard can show the
- * address a name will get.
+ * address a name will get. `trialDays` is how long a new organization's free trial lasts, 0 while billing is off, so the
+ * onboarding form can say so before there is an organization to ask.
  */
 export interface ApiMeta {
   name: string;
@@ -18,4 +19,5 @@ export interface ApiMeta {
   environment: string;
   apiOrigin: string;
   careersUrlPattern: string;
+  trialDays: number;
 }

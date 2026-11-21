@@ -206,7 +206,7 @@ public sealed partial class TalentPoolTests(E2EFixture fixture) : BrowserTest(fi
         var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(owner, Ct);
         var slug = $"test-{Guid.NewGuid():N}";
-        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
         return new Scene(owner, slug, session, await JobAsync(session, "Platform Engineer"), await JobAsync(session, "Support Engineer"));
     }
 

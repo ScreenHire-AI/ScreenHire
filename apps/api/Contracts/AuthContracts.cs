@@ -28,11 +28,19 @@ public sealed record MagicLinkRequest(string Email, string? ReturnUrl = null);
 /// <summary>Redeems the token from an emailed sign-in link.</summary>
 public sealed record MagicLinkVerification(string Token);
 
-/// <summary>Creates the signed-in user's organization, with them as its Owner.</summary>
-public sealed record OnboardingRequest(string OrganizationName, string Slug);
+/// <summary>
+/// Creates the signed-in user's organization, with them as its Owner. <c>name</c> is the person's own name, asked for here
+/// because the team's lists and every "by" line show it; it replaces the one the identity provider gave, if any.
+/// </summary>
+public sealed record OnboardingRequest(string OrganizationName, string Slug, string Name);
 
-/// <summary>The signed-in user, and the organization they work in (null until onboarding).</summary>
-public sealed record CurrentUser(Guid Id, string Email, string DisplayName, CurrentOrganization? Organization);
+/// <summary>
+/// The signed-in user, and the organization they work in (null until onboarding). <c>name</c> is the person's own name, or
+/// null while the account has none (a name the provider left as the email address counts as none), which is how the
+/// onboarding and invitation forms know whether to ask. <c>displayName</c> is always something to show: the name, or the
+/// email address while there is none.
+/// </summary>
+public sealed record CurrentUser(Guid Id, string Email, string DisplayName, string? Name, CurrentOrganization? Organization);
 
 /// <summary>
 /// The organization the signed-in user works in, their role there (a built-in one, or Custom with <c>customRoleId</c>),
@@ -54,14 +62,20 @@ public sealed record MyOrganization(Guid Id, string Name, string Slug, Organizat
 /// <summary>Makes another of the signed-in user's organizations the one they work in.</summary>
 public sealed record SwitchOrganizationRequest(Guid OrganizationId);
 
-/// <summary>Accepts the invitation whose token an emailed link carries, signing in as the invited address.</summary>
-public sealed record InvitationAcceptance(string Token);
+/// <summary>
+/// Accepts the invitation whose token an emailed link carries, signing in as the invited address. <c>name</c> is required
+/// when the invited address has no account with a name yet (<c>needsName</c> on the lookup), and ignored otherwise.
+/// </summary>
+public sealed record InvitationAcceptance(string Token, string? Name = null);
 
 /// <summary>Asks which organization and role the invitation whose token an emailed link carries offers. It uses nothing up.</summary>
 public sealed record InvitationLookup(string Token);
 
-/// <summary>What an open invitation offers: the organization's name and the role's, such as "Recruiter" or a custom role as typed.</summary>
-public sealed record InvitationDetails(string OrganizationName, string RoleName);
+/// <summary>
+/// What an open invitation offers: the organization's name and the role's, such as "Recruiter" or a custom role as typed, and
+/// whether the invited address still needs to give a name to accept.
+/// </summary>
+public sealed record InvitationDetails(string OrganizationName, string RoleName, bool NeedsName);
 
 internal sealed class MagicLinkRequestValidator : AbstractValidator<MagicLinkRequest>
 {
@@ -90,7 +104,11 @@ internal sealed class MagicLinkVerificationValidator : AbstractValidator<MagicLi
 
 internal sealed class InvitationAcceptanceValidator : AbstractValidator<InvitationAcceptance>
 {
-    public InvitationAcceptanceValidator() => RuleFor(r => r.Token).NotEmpty().MaximumLength(100);
+    public InvitationAcceptanceValidator()
+    {
+        RuleFor(r => r.Token).NotEmpty().MaximumLength(100);
+        RuleFor(r => r.Name).MaximumLength(200);
+    }
 }
 
 internal sealed class InvitationLookupValidator : AbstractValidator<InvitationLookup>
@@ -112,6 +130,7 @@ internal sealed class OnboardingRequestValidator : AbstractValidator<OnboardingR
 
     public OnboardingRequestValidator()
     {
+        RuleFor(r => r.Name).Must(name => !string.IsNullOrWhiteSpace(name)).WithMessage("Enter your name.").MaximumLength(200);
         RuleFor(r => r.OrganizationName).Must(name => !string.IsNullOrWhiteSpace(name)).WithMessage("Enter your organization's name.")
             .MaximumLength(200);
         RuleFor(r => r.Slug)

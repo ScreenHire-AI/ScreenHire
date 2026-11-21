@@ -72,7 +72,7 @@ public sealed class ProofScene
         using var owner = new ApiSession(fixture);
         await owner.SignInWithDevSsoAsync(email, cancellationToken);
         var slug = $"test-{Guid.NewGuid():N}";
-        await ReadAsync(await owner.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug }, cancellationToken), HttpStatusCode.OK, cancellationToken);
+        await ReadAsync(await owner.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug }, cancellationToken), HttpStatusCode.OK, cancellationToken);
 
         var job = await ReadAsync(await owner.PostAsync(
             "/v1/jobs",

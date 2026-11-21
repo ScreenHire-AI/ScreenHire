@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Application.Billing;
 
 namespace ScreenHire.Api.Endpoints;
 
@@ -26,7 +27,8 @@ internal static class MetaEndpoints
         return app;
     }
 
-    private static Ok<ApiMeta> GetMeta(IHostEnvironment environment, IOptions<DomainOptions> domains) =>
+    private static Ok<ApiMeta> GetMeta(IHostEnvironment environment, IOptions<DomainOptions> domains, BillingService billing) =>
         TypedResults.Ok(new ApiMeta(
-            ProductName, Version, environment.EnvironmentName, $"{domains.Value.Scheme}://{domains.Value.ApiHost}", domains.Value.CareersUrlPattern()));
+            ProductName, Version, environment.EnvironmentName, $"{domains.Value.Scheme}://{domains.Value.ApiHost}", domains.Value.CareersUrlPattern(),
+            billing.TrialDays));
 }

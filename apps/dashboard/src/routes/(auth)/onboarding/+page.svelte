@@ -15,6 +15,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
+  import { trialLine } from '#lib/billing.js';
   import { applyValidationProblem, slugify } from '#lib/forms.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { signOutAndRedirect } from '#lib/session.js';
@@ -29,14 +30,19 @@
   // written here. This page is outside the signed-in shell's query cache, so it reads the one anonymous route directly.
   // Until it arrives (or if it fails), or while the slug is empty, the hint is the plain rule.
   let careersUrlPattern = $state<string>();
+  // The trial's length is configuration too (ScreenHire:Billing:Trial), 0 where billing is off, and is said under the button.
+  let trialDays = $state(0);
   onMount(async () => {
     const response = await getMeta().catch(() => undefined);
     if (response?.status === 200) {
       careersUrlPattern = response.data.careersUrlPattern;
+      trialDays = response.data.trialDays;
     }
   });
 
-  const { form, errors, enhance, submitting } = superForm(defaults(zod4(CompleteOnboardingBody)), {
+  // The person's own name comes first, prefilled with the identity provider's when it gave one. The form owns it from there.
+  // svelte-ignore state_referenced_locally
+  const { form, errors, enhance, submitting } = superForm(defaults({ name: data.user?.name ?? '' }, zod4(CompleteOnboardingBody)), {
     SPA: true,
     validators: zod4(CompleteOnboardingBody),
     resetForm: false,
@@ -98,6 +104,20 @@
     <form method="POST" use:enhance novalidate aria-label="Set up your organization">
       <Panel title="Organization" footer={create}>
         <div class="flex flex-col gap-4">
+          <Field.Field data-invalid={$errors.name ? true : undefined}>
+            <Field.Label for="name">Your name</Field.Label>
+            <Input
+              id="name"
+              name="name"
+              autocomplete="name"
+              required
+              bind:value={$form.name}
+              aria-invalid={$errors.name ? 'true' : undefined}
+              aria-describedby={$errors.name ? 'name-error' : undefined}
+            />
+            <Field.Error id="name-error" errors={$errors.name?.map((message) => ({ message }))} />
+          </Field.Field>
+
           <Field.Field data-invalid={$errors.organizationName ? true : undefined}>
             <Field.Label for="organizationName">Organization name</Field.Label>
             <Input
@@ -139,10 +159,16 @@
 </main>
 
 {#snippet create()}
-  <div class="flex flex-wrap items-center justify-end gap-2">
-    {#if $errors._errors}
-      <FailureText message={$errors._errors[0]} class="mr-auto" />
+  <div class="flex flex-col items-end gap-2">
+    <div class="flex w-full flex-wrap items-center justify-end gap-2">
+      {#if $errors._errors}
+        <FailureText message={$errors._errors[0]} class="mr-auto" />
+      {/if}
+      <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create organization</Button>
+    </div>
+    <!-- One quiet line under the button, only where there is a trial. -->
+    {#if trialLine(trialDays)}
+      <p class="text-caption text-muted-foreground">{trialLine(trialDays)}</p>
     {/if}
-    <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create organization</Button>
   </div>
 {/snippet}

@@ -2,14 +2,12 @@
   import type { CurrentUser } from '@screenhire/api-client';
   import {
     getGetOrganizationBrandingQueryKey,
-    getGetOrganizationQueryKey,
     getGetOrganizationSendingDomainQueryKey,
     getListInvitationsQueryKey,
     getListJobsQueryKey,
     getListNotificationsQueryKey,
     getListTeamMembersQueryKey,
   } from '@screenhire/api-client/svelte-query';
-  import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
   import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
   import NotificationBell from '#lib/components/notification-bell.svelte';
 
@@ -43,7 +41,6 @@
     getGetOrganizationBrandingQueryKey(),
     answer({ brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
   );
-  client.setQueryData(getGetOrganizationQueryKey(), answer({ embedOrigins: [], questionsPerPage: DEFAULT_QUESTIONS_PER_PAGE }));
   client.setQueryData(getGetOrganizationSendingDomainQueryKey(), answer({ available: true, sandbox: true, domain: null }));
   client.setQueryData(getListJobsQueryKey(), answer([]));
   setQueryClientContext(client);

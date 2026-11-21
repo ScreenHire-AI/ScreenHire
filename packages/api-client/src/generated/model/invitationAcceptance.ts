@@ -6,8 +6,11 @@
  */
 
 /**
- * Accepts the invitation whose token an emailed link carries, signing in as the invited address.
+ * Accepts the invitation whose token an emailed link carries, signing in as the invited address. `name` is required
+ * when the invited address has no account with a name yet (`needsName` on the lookup), and ignored otherwise.
  */
 export interface InvitationAcceptance {
   token: string;
+  /** @nullable */
+  name?: string | null;
 }

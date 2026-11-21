@@ -618,7 +618,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var email = ApiSession.NewEmail("e2e-builder");
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(email, Ct);
-        using var onboarded = await session.PostAsync("/v1/auth/onboarding", new { organizationName = "Northgate Depot", slug = $"test-{Guid.NewGuid():N}" }, Ct);
+        using var onboarded = await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Northgate Depot", slug = $"test-{Guid.NewGuid():N}" }, Ct);
         onboarded.StatusCode.Should().Be(HttpStatusCode.OK);
         return email;
     }

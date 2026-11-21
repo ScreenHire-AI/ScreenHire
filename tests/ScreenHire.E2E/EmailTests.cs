@@ -114,7 +114,7 @@ public sealed class EmailTests(E2EFixture fixture) : BrowserTest(fixture)
         var title = $"Warehouse lead {Guid.NewGuid().ToString("N")[..4]}";
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(email, Ct);
-        using (var onboarded = await session.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct))
+        using (var onboarded = await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct))
         {
             onboarded.StatusCode.Should().Be(HttpStatusCode.OK);
         }

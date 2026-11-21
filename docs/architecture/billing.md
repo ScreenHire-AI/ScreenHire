@@ -25,6 +25,9 @@ sources:
   - resource: apps/api/Endpoints/BillingEndpoints.cs
   - resource: apps/api/Endpoints/BillingWebhookEndpoints.cs
   - resource: apps/api/Contracts/BillingContracts.cs
+  - resource: apps/api/Endpoints/MetaEndpoints.cs
+  - resource: apps/api/Contracts/MetaContracts.cs
+  - resource: apps/dashboard/src/lib/components/app-sidebar.svelte
   - resource: apps/dashboard/src/lib/billing.ts
   - resource: apps/dashboard/src/lib/components/plan-problem-notice.svelte
   - resource: apps/dashboard/src/lib/components/change-plan-dialog.svelte
@@ -107,6 +110,16 @@ trial can never restart. With billing off the trial does not exist.
 
 No card is taken for the trial, so nothing is charged until an Owner chooses a plan. The Billing page says so under Plans while
 the organization is Trialing: the trial needs no card, open jobs stay open when it ends, and a new job needs a plan.
+
+Two other places say it, so nobody finds out late:
+
+- **Onboarding** says under its button, "Your free trial lasts 14 days and needs no card." There is no organization yet to ask,
+  so the days come from the anonymous `GET /v1/meta` as `trialDays` (`BillingService.TrialDays`: `Trial:Days`, or 0 while billing
+  is off). The line is left out at 0, and the dashboard never writes the number itself.
+- **The sidebar's footer**, for an Owner only, while the trial runs: one muted line above the person's block, "Trial ends December 5"
+  (the browser locale orders the day and month, so en-GB reads 5 December), linking to Billing. It reads the same `GET /v1/organization/billing` the
+  shell already asks for, and only an Owner can ask. The API sends `trialEndsAt` only while the state is Trialing, so the line
+  is gone once a plan is paid, the trial ends or billing is off, and `BillingChanged` makes it go at once. It is not in the icon rail.
 
 ## Trial reminders
 

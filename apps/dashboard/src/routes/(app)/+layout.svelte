@@ -43,6 +43,8 @@
   import { sidebarViews } from '#lib/sidebar-views.js';
   import { can } from '#lib/permissions.js';
   import { sendingDomainMark } from '#lib/sending-domain.js';
+  import { trialEnd } from '#lib/billing.js';
+  import { clock } from '#lib/clock.svelte.js';
   import { billingFeature, slackFeature } from '#lib/settings.js';
   import { sectionsFor, setShell } from '#lib/shell.js';
   import { createChordHandler } from '#lib/shortcuts.js';
@@ -239,6 +241,8 @@
   }));
   // Whether a payment provider is set up, for Settings' Billing entry (A3). Only an Owner may ask, and anyone else never sees the entry.
   const billing = createGetBilling(() => ({ query: { enabled: can(data.user, 'ManageBilling'), staleTime: 60_000 } }));
+  // Only an Owner asks for billing, so only an Owner is told when the trial ends; the minute clock drops the line when it has.
+  const trialEndsAt = $derived(trialEnd(billing.data?.data, clock.now));
   // The person's calendar, for the Calendar item in their menu (docs/architecture/interview-scheduling.md); it changes rarely.
   const calendar = createGetCalendar(() => ({ query: { enabled: Boolean(data.user?.organization), staleTime: 60_000 } }));
 
@@ -251,7 +255,7 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {views} {viewActions} {teamViews} slack={slack.data?.data} calendar={calendar.data?.data} {openTasks} bind:calendarOpen />
+  <AppSidebar user={data.user} {views} {viewActions} {teamViews} slack={slack.data?.data} calendar={calendar.data?.data} {openTasks} {trialEndsAt} bind:calendarOpen />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>

@@ -16,11 +16,11 @@ vi.mock(import('$app/state'), async (importOriginal) => ({
   } as never,
 }));
 
-const lookup = { organizationName: 'Brightwater Studio', roleName: 'Recruiter' };
+const lookup = { organizationName: 'Brightwater Studio', roleName: 'Recruiter', needsName: false };
 // The page asks which organization and role the token offers, then accepts on the click.
-const answer = (accepted: Response | (() => Response) = () => Response.json({ id: 'u', email: 'e', displayName: 'e', organization: null })) =>
+const answer = (accepted: Response | (() => Response) = () => Response.json({ id: 'u', email: 'e', displayName: 'e', name: null, organization: null }), offer = lookup) =>
   vi.fn<typeof globalThis.fetch>(async (input) =>
-    String(input).includes('/invitations/lookup') ? Response.json(lookup) : typeof accepted === 'function' ? accepted() : accepted);
+    String(input).includes('/invitations/lookup') ? Response.json(offer) : typeof accepted === 'function' ? accepted() : accepted);
 
 const show = () => render(WithTooltips, { props: { component: Page } });
 
@@ -83,10 +83,40 @@ describe('invitation accept page', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
 
-    await vi.waitFor(() => expect(navigation.goto).toHaveBeenCalledWith('/', { invalidateAll: true, replaceState: true }));
+    // `joined` is what makes the Jobs list say which team this person is on, once.
+    await vi.waitFor(() => expect(navigation.goto).toHaveBeenCalledWith('/?joined=1', { invalidateAll: true, replaceState: true }));
     const [input, init] = fetch.mock.calls.find(([url]) => String(url).includes('/invitations/accept'))!;
     expect(String(input)).toContain('/v1/auth/invitations/accept');
     expect(JSON.parse(String(init?.body))).toEqual({ token: 'abc' });
+    expect(screen.queryByLabelText('Your name')).not.toBeInTheDocument();
+  });
+
+  it('asks for a name when the invited address has none, and sends it with the token', async () => {
+    state.hash = '#invitation=abc';
+    const fetch = answer(undefined, { ...lookup, needsName: true });
+    vi.stubGlobal('fetch', fetch);
+    show();
+
+    await fireEvent.input(await screen.findByLabelText('Your name'), { target: { value: 'Jordan Lee' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+
+    await vi.waitFor(() => expect(navigation.goto).toHaveBeenCalledWith('/?joined=1', { invalidateAll: true, replaceState: true }));
+    const [, init] = fetch.mock.calls.find(([url]) => String(url).includes('/invitations/accept'))!;
+    expect(JSON.parse(String(init?.body))).toEqual({ token: 'abc', name: 'Jordan Lee' });
+  });
+
+  it('keeps the form, with the problem under the name, when the server wants a name and the invitation is still good', async () => {
+    state.hash = '#invitation=abc';
+    vi.stubGlobal('fetch', answer(Response.json({ errors: { name: ['Enter your name.'] } }, { status: 400 }), { ...lookup, needsName: true }));
+    show();
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Accept invitation' }));
+
+    expect(await screen.findByText('Enter your name.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Your name')).toHaveAttribute('aria-invalid', 'true');
+    await vi.waitFor(() => expect(screen.getByLabelText('Your name')).toHaveFocus());
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Join your team');
+    expect(navigation.goto).not.toHaveBeenCalled();
   });
 
   it('explains a link without a token', () => {

@@ -137,7 +137,7 @@ public sealed class FileViewerTests(E2EFixture fixture) : BrowserTest(fixture)
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(email, Ct);
         var slug = $"test-{Guid.NewGuid():N}";
-        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
         var job = await ReadAsync(await session.PostAsync(
             "/v1/jobs",
             new

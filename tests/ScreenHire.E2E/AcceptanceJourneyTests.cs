@@ -45,6 +45,7 @@ public sealed class AcceptanceJourneyTests(E2EFixture fixture) : BrowserTest(fix
         await Page.GetByLabel("Any email address").FillAsync(recruiter);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Sign in with this address" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/onboarding"));
+        await Page.GetByLabel("Your name").FillAsync("Casey Morgan");
         await Page.GetByLabel("Organization name").FillAsync($"Harbour Lane {Guid.NewGuid().ToString("N")[..8]}");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Create organization" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");

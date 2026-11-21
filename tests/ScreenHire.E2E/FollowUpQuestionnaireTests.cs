@@ -116,7 +116,7 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
         var title = $"Warehouse lead {Guid.NewGuid().ToString("N")[..4]}";
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(owner, Ct);
-        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
 
         // A new template's draft is the default workflow; add the follow-up and its automations, then publish it.
         var template = await ReadAsync(await session.PostAsync("/v1/templates", new { name = $"{title} template" }, Ct), HttpStatusCode.Created);

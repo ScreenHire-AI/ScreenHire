@@ -104,6 +104,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Set up your organization");
         await ExpectNoAccessibilityViolationsAsync();
         var name = $"Northwind {Guid.NewGuid().ToString("N")[..8]}";
+        await Page.GetByLabel("Your name").FillAsync("Casey Morgan");
         await Page.GetByLabel("Organization name").FillAsync(name);
         await Expect(Page.GetByLabel("Careers page address")).ToHaveValueAsync(name.ToLowerInvariant().Replace(' ', '-'));
         await Page.GetByRole(AriaRole.Button, new() { Name = "Create organization" }).ClickAsync();
@@ -133,8 +134,8 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "All jobs" })).ToContainTextAsync("left to set up your organization");
         await Expect(bell).ToBeHiddenAsync();
 
-        // The user menu names the account and signs out.
-        await Page.GetByRole(AriaRole.Button, new() { Name = email }).ClickAsync();
+        // The person's block shows the name they typed, not the address; the menu still names the account and signs out.
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Casey Morgan" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Menu)).ToContainTextAsync(email);
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Sign out" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/sign-in"));
@@ -183,11 +184,23 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await Page.GotoAsync(link.ToString());
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Join your team");
         await ExpectNoAccessibilityViolationsAsync();
+        // The address has no name yet, so the page asks for one, and the person's block then shows it, not the address.
+        await Page.GetByLabel("Your name").FillAsync("Jordan Lee");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Accept invitation" }).ClickAsync();
 
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
-        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = invitee })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Jordan Lee" })).ToBeVisibleAsync();
+
+        // The first landing says which team this is, once: it leaves with a click, and a reload does not bring it back.
+        var welcome = Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "You joined" });
+        await Expect(welcome).ToContainTextAsync("as Recruiter.");
+        await ExpectNoAccessibilityViolationsAsync();
+        await welcome.GetByRole(AriaRole.Button, new() { Name = "Dismiss" }).ClickAsync();
+        await Expect(welcome).ToHaveCountAsync(0);
+        await Page.ReloadAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
+        await Expect(welcome).ToHaveCountAsync(0);
 
         // The link works once: opening it again explains that at once, from the invitation lookup, with no button to press.
         await Page.GotoAsync(link.ToString());

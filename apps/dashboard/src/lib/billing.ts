@@ -82,3 +82,19 @@ export function aiUsageNotes(usage: BillingAiUsage, state: BillingState | null):
 
 /** Whether someone without a subscription can start one here: on the trial, or after the subscription ended. */
 export const mayChoosePlan = (state: BillingState | null) => state === 'Trialing' || state === 'Ended';
+
+/**
+ * What the onboarding form says under its button about the free trial, from the days the API reports (`trialDays` on
+ * `GET /v1/meta`, never written here). Nothing when there is no trial, which is how billing being off reads.
+ */
+export const trialLine = (days: number) =>
+  days > 0 ? `Your free trial lasts ${days} ${days === 1 ? 'day' : 'days'} and needs no card.` : '';
+
+/**
+ * When the trial ends, for the sidebar's footer, or null: the line is only for a trial that is still running, so it is
+ * null when billing is off, a plan was chosen, or the end has passed. The API sends `trialEndsAt` only while Trialing.
+ */
+export function trialEnd(overview: Pick<BillingOverview, 'available' | 'state' | 'trialEndsAt'> | undefined, now: number): string | null {
+  const at = overview?.trialEndsAt;
+  return overview?.available && overview.state === 'Trialing' && at && Date.parse(at) > now ? at : null;
+}

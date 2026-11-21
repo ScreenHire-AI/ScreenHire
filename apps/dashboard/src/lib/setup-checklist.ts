@@ -1,9 +1,8 @@
-import type { JobSummary, OrganizationBranding, OrganizationProfile, OrganizationSendingDomain, PendingInvitation, TeamMember } from '@screenhire/api-client';
-import { DEFAULT_QUESTIONS_PER_PAGE } from '@screenhire/ui/questions/model';
+import type { JobSummary, OrganizationBranding, OrganizationSendingDomain, PendingInvitation, TeamMember } from '@screenhire/api-client';
 
 /** One step of the Set up your organization panel. */
 export interface SetupStep {
-  id: 'team' | 'branding' | 'careers' | 'email' | 'job';
+  id: 'team' | 'branding' | 'email' | 'job';
   label: string;
   /** Where the step is done: the page the label links to. */
   href: string;
@@ -16,22 +15,21 @@ export interface SetupInputs {
   members: readonly TeamMember[] | undefined;
   invitations: readonly PendingInvitation[] | undefined;
   branding: OrganizationBranding | undefined;
-  organization: OrganizationProfile | undefined;
   sendingDomain: OrganizationSendingDomain | undefined;
   jobs: readonly JobSummary[] | undefined;
 }
 
 /**
  * The checklist for a new organization, in the order a team does it: what candidates see first, the first job, then the
- * team, then the settings that can wait. Each step ticks from the organization's own data, never from a click: any
- * branding set, a published job, a teammate or an invitation, a careers page changed from its defaults, a verified email
- * domain. The email domain step is left out where this installation cannot send from a company's own
- * domain (design system A3). `undefined` while any answer is still loading, so the panel never flashes steps that are
- * already done.
+ * team, then the email domain, which can wait. Each step ticks from the organization's own data, never from a click: any
+ * branding set, a published job, a teammate or an invitation, a verified email domain. There is no step for the careers
+ * page: its settings have defaults that a team may rightly keep, so it could never tick. The email domain step is left out
+ * where this installation cannot send from a company's own domain (design system A3). `undefined` while any answer is
+ * still loading, so the panel never flashes steps that are already done.
  */
 export function setupSteps(inputs: SetupInputs): SetupStep[] | undefined {
-  const { members, invitations, branding, organization, sendingDomain, jobs } = inputs;
-  if (!members || !invitations || !branding || !organization || !sendingDomain || !jobs) return undefined;
+  const { members, invitations, branding, sendingDomain, jobs } = inputs;
+  if (!members || !invitations || !branding || !sendingDomain || !jobs) return undefined;
 
   const steps: SetupStep[] = [
     {
@@ -44,14 +42,6 @@ export function setupSteps(inputs: SetupInputs): SetupStep[] | undefined {
     },
     { id: 'job', label: 'Publish your first job', href: '/jobs/new', done: jobs.some((job) => job.publishedAt !== null) },
     { id: 'team', label: 'Invite your team', href: '/settings/team', done: members.length > 1 || invitations.length > 0 },
-    {
-      id: 'careers',
-      label: 'Set up your careers page',
-      href: '/settings/careers-site',
-      // The careers page's own settings, away from ScreenHire's defaults. Not `lastUpdated`: renaming the organization
-      // moves it too. Someone who keeps the defaults has no data to tick, and dismisses the panel instead.
-      done: organization.embedOrigins.length > 0 || organization.questionsPerPage !== DEFAULT_QUESTIONS_PER_PAGE,
-    },
   ];
   // Last, because it is DNS work outside ScreenHire and the team can start without it.
   if (sendingDomain.available) {

@@ -6,9 +6,11 @@
  */
 
 /**
- * What an open invitation offers: the organization's name and the role's, such as "Recruiter" or a custom role as typed.
+ * What an open invitation offers: the organization's name and the role's, such as "Recruiter" or a custom role as typed, and
+ * whether the invited address still needs to give a name to accept.
  */
 export interface InvitationDetails {
   organizationName: string;
   roleName: string;
+  needsName: boolean;
 }

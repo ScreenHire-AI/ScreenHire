@@ -26,6 +26,7 @@
   import { Kbd } from '#lib/components/ui/kbd/index.js';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+  import { formatDayMonth } from '#lib/dates.js';
   import { initials } from '#lib/format.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import type { SidebarView } from '#lib/sidebar-views.js';
@@ -47,6 +48,7 @@
     calendar,
     calendarOpen = $bindable(false),
     openTasks,
+    trialEndsAt,
   }: {
     user: CurrentUser | null;
     /**
@@ -69,6 +71,11 @@
     calendarOpen?: boolean;
     /** How many open tasks are the person's own, in the count badge after My tasks; missing while it loads, and nothing at none. */
     openTasks?: number;
+    /**
+     * When the free trial ends, for an Owner while it runs: one quiet line above the person's block that links to Billing.
+     * Missing for everyone else, and once a plan is paid or billing is off (docs/architecture/billing.md).
+     */
+    trialEndsAt?: string | null;
   } = $props();
 
   let teamViewsOpen = $state(false);
@@ -297,6 +304,16 @@
     <Sidebar.Separator decorative />
   {/if}
   <Sidebar.Footer>
+    {#if trialEndsAt}
+      <!-- Not in the rail: a line of words has no icon to shrink to, and Billing is one click from Settings. -->
+      <a
+        href="/settings/billing"
+        onclick={closeSheet}
+        class="flex min-h-6 min-w-0 items-center px-2 text-caption text-muted-foreground underline underline-offset-2 pointer-coarse:min-h-11 group-data-[collapsible=icon]:hidden"
+      >
+        <span class="truncate">Trial ends <time datetime={trialEndsAt}>{formatDayMonth(trialEndsAt)}</time></span>
+      </a>
+    {/if}
     {#if user}
       <Sidebar.Menu>
         <Sidebar.MenuItem>

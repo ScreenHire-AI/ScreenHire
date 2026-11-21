@@ -63,6 +63,10 @@ export function timeSince(iso: string, now: number): string {
 }
 
 const monthDay = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric' });
+const dayMonth = new Intl.DateTimeFormat(locales, { day: 'numeric', month: 'long' });
+
+/** The day and month an instant falls on, in the browser's zone and locale order: `20 October` in en-GB, `October 20` in en-US. */
+export const formatDayMonth = (iso: string) => dayMonth.format(new Date(iso));
 
 /** The local day an instant falls on, as a key for grouping: `2026-10-25`. */
 export function dayKey(iso: string): string {

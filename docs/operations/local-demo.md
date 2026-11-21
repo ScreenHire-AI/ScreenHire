@@ -111,16 +111,16 @@ page says under each one what their role can and cannot do. No password anywhere
 | Avery Quinn (`avery@brightwater.example.com`) | Owner of Brightwater Studio, the seeded employer with all the demo data: everything, including billing, settings, the team and making other Owners |
 | Jordan Ellis (`jordan@brightwater.example.com`) | Recruiter at Brightwater Studio, on every job: jobs, candidates and hiring templates, but no settings, integrations, team, email templates or billing |
 | Robin Hale (`robin@brightwater.example.com`) | Interviewer at Brightwater Studio, a custom role Avery made from Viewer: sees candidates, adds notes and tags and fills in scorecards, but is offered no Move and no Settings. On Only jobs they're on, and on the Senior .NET Engineer job's hiring team, so that is the one job he sees |
-| Sam Rivera (`sam@example.org`) | A new user with no organization, who goes through onboarding. After the first time they keep the organization they made |
+| Sam Rivera (`sam@example.org`) | A new user with no organization, who goes through onboarding. The form asks **Your name**, already filled with "Sam Rivera" from Dev SSO, and says under its button how long the free trial lasts. Afterwards the Owner's sidebar has a **Trial ends** line above their name, linking to Billing. After the first time they keep the organization they made |
 | Unverified address | Avery's address from a provider that does not vouch for it: ScreenHire refuses to link it, and the sign-in page says why |
-| Any email address you type | A new user each time you use a new address, the way to show onboarding again. An address someone already uses signs in as them |
+| Any email address you type | A new user each time you use a new address, the way to show onboarding again, with **Your name** empty because Dev SSO gives no name for an address you type. An address someone already uses signs in as them |
 
 The **Work email** field and **Continue**, above the card's "or", work too: the link arrives in Mailpit, and opening it asks for
 one more click (**Sign in**) so a mail scanner cannot use it up.
 
 Avery manages the team in **Organization > Team**: **Invite** sends the invitation to Mailpit. Its link opens the
 dashboard's **Join your team** page, and **Accept invitation** signs the invitee in to Brightwater with the invited
-role. Open the link in a private window so Avery stays signed in. Jordan, a Recruiter, and Robin, an Interviewer, have
+role. A new address is asked **Your name** on that page first. The invitee lands on Jobs with one dismissible line, "You joined Brightwater Studio as Recruiter."; it shows once and a reload does not bring it back. Open the link in a private window so Avery stays signed in. Jordan, a Recruiter, and Robin, an Interviewer, have
 no Settings in the sidebar.
 
 ## What the demo data is

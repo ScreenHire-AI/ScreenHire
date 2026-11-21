@@ -136,7 +136,7 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(email, Ct);
         await ReadAsync(
-            await session.PostAsync("/v1/auth/onboarding", new { organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct),
+            await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct),
             HttpStatusCode.OK);
 
         var job = await ReadAsync(await session.PostAsync(
