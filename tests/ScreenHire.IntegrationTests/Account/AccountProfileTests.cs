@@ -69,8 +69,9 @@ public sealed class AccountProfileTests(AppHostFixture fixture)
         (await stranger.GetAsync(url)).Status.Should().Be(HttpStatusCode.NotFound, "someone in another organization never sees it");
         (await owner.PutAsync("/v1/account/photo", new JsonObject { ["data"] = Convert.ToBase64String("<svg/>"u8.ToArray()) }))
             .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("data");
-        (await owner.PutAsync("/v1/account/photo", new JsonObject { ["data"] = Convert.ToBase64String(new byte[520 * 1024]) }))
-            .Expect(HttpStatusCode.BadRequest);
+        // A picture over 512 KB is refused before it is read: its body is over the route's limit.
+        (await owner.PutAsync("/v1/account/photo", new JsonObject { ["data"] = Convert.ToBase64String(new byte[600 * 1024]) }))
+            .Status.Should().Be(HttpStatusCode.RequestEntityTooLarge);
 
         (await owner.DeleteAsync("/v1/account/photo")).Expect(HttpStatusCode.OK).At("photoUrl").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
         (await teammate.GetAsync(url)).Status.Should().Be(HttpStatusCode.NotFound);

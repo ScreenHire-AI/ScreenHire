@@ -24,7 +24,7 @@ public sealed class AccountTests(E2EFixture fixture) : SettingsArea(fixture)
 
         await Expect(Page).ToHaveURLAsync(new Regex("/account/profile$"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Profile");
-        await Expect(Page.GetByRole(AriaRole.Textbox, new() { Name = "Email" })).ToHaveValueAsync(email);
+        await Expect(Page.GetByText(email, new() { Exact = true })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
         await Page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Notifications" }).ClickAsync();

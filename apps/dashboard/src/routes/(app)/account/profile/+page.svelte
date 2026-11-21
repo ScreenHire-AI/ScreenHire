@@ -196,11 +196,12 @@
                 />
                 <Field.Error id="account-name-error" errors={$errors.name?.map((message) => ({ message }))} />
               </Field.Field>
-              <Field.Field>
-                <Field.Label for="account-email">Email</Field.Label>
-                <Input id="account-email" value={details.email} readonly aria-describedby="account-email-hint" />
-                <Field.Description id="account-email-hint">You sign in with this address, so it cannot change here.</Field.Description>
-              </Field.Field>
+              <!-- Read only, so a value and not a disabled input (E3); a long address wraps instead of being cut off. -->
+              <div class="flex flex-col gap-1">
+                <span id="account-email-label" class="font-semibold">Email</span>
+                <p aria-labelledby="account-email-label" class="break-all">{details.email}</p>
+                <span class="text-caption text-muted-foreground">You sign in with this address, so it cannot change here.</span>
+              </div>
               <Field.Field data-invalid={$errors.timeZone ? true : undefined}>
                 <Field.Label for="account-zone">Time zone</Field.Label>
                 <select id="account-zone" name="timeZone" class={selectClass} bind:value={$form.timeZone} aria-describedby="account-zone-hint">

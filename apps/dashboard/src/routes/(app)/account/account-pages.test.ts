@@ -66,9 +66,9 @@ describe('Your account', () => {
       },
     });
 
-    const email = await screen.findByRole('textbox', { name: 'Email' });
-    expect(email).toHaveAttribute('readonly');
-    expect(email).toHaveValue('avery@example.com');
+    // Read only: a value, not an input (E3).
+    expect(await screen.findByText('avery@example.com')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Email' })).toBeNull();
 
     const name = screen.getByRole('textbox', { name: 'Name' });
     await waitFor(() => expect(name).toHaveValue('Avery Quinn'));
@@ -103,7 +103,8 @@ describe('Your account', () => {
     });
 
     expect(await screen.findByText('Google')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '2 passkeys' })).toHaveAttribute('href', '/account/passkeys');
+    expect(screen.getByText('2 passkeys')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Manage passkeys' })).toHaveAttribute('href', '/account/passkeys');
 
     await fireEvent.click(screen.getByRole('button', { name: 'Sign out everywhere' }));
     const dialog = await screen.findByRole('dialog', { name: 'Sign out everywhere else?' });
@@ -137,7 +138,7 @@ describe('Your account', () => {
 
   it('has no accessibility violations on Profile', async () => {
     renderPage(ProfilePage, '/account/profile', { 'GET /v1/account': () => Response.json(details()) });
-    await screen.findByRole('textbox', { name: 'Email' });
+    await screen.findByText('avery@example.com');
     await expectNoAxeViolations(document.body);
   });
 });

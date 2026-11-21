@@ -1352,7 +1352,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   `lg` and one sideways row below it, five entries, no groups and no search) left of each page, no permission, and a breadcrumb
   that starts with Account. Its pages, in order:
   - **Profile**, on the form template: Photo (the Drop area, A12, cropped to a square in the browser, with Remove photo), then
-    Name, Email (read only, saying sign-in uses it), Time zone, Language (how dates and numbers are written; the interface is
+    Name, Email (a value, not an input, E3, that wraps rather than being cut off, saying sign-in uses it), Time zone, Language (how dates and numbers are written; the interface is
     English) and Date format, and one Save.
   - **Notifications**, on the form template: a Toasts and jobs panel (Jobs as a choice toggle, My jobs or Everything I can see;
     Pause toasts; Close toasts automatically), then What you hear about, a table of a row per kind (its name and one muted
@@ -1363,8 +1363,8 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
     stacked. One Save in the table panel's footer.
   - **Connected accounts**, shown where there is a calendar or a Slack workspace to connect: a Calendar panel and a Slack
     panel, the content the account menu's sheets had. Connecting comes back here and says how it went in that panel.
-  - **Sign-in and security**: How you sign in (the email link, the providers the person has used, and their passkeys as a
-    link to the Passkeys page), and Sessions, whose one outline button Sign out everywhere confirms in a dialog (A2). There is
+  - **Sign-in and security**: How you sign in (the email link, the providers the person has used, and how many passkeys,
+    with Manage passkeys, an outline link, in the panel's footer), and Sessions, whose one outline button Sign out everywhere confirms in a dialog (A2). There is
     no list of sessions, because ScreenHire keeps none.
   - **Preferences**: On this device (Theme as a choice toggle of Light, Dark and System; Reduce motion) and How you work
     (Single-key shortcuts; Confirm moves that send emails or create tasks). Each switch applies at once and is announced.

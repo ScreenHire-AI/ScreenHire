@@ -1,4 +1,5 @@
 <script lang="ts">
+  import KeyRoundIcon from '~icons/lucide/key-round';
   import LogOutIcon from '~icons/lucide/log-out';
   import { createGetAccountSignIn, createSignOutEverywhere } from '@screenhire/api-client/svelte-query';
   import { accountCrumbs } from '#lib/account.js';
@@ -10,7 +11,7 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
-  import { Button } from '#lib/components/ui/button/index.js';
+  import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { describeError } from '#lib/query.js';
 
@@ -49,10 +50,13 @@
           <SummaryList>
             {#if methods.emailLinks}<SummaryItem label="Email link">{methods.email}</SummaryItem>{/if}
             {#each methods.providers as provider (provider.id)}<SummaryItem label={provider.name}>Signed in before</SummaryItem>{/each}
-            <SummaryItem label="Passkeys">
-              <a href="/account/passkeys">{methods.passkeys === 0 ? 'None yet' : methods.passkeys === 1 ? '1 passkey' : `${methods.passkeys} passkeys`}</a>
-            </SummaryItem>
+            <SummaryItem label="Passkeys">{methods.passkeys === 0 ? 'None yet' : methods.passkeys === 1 ? '1 passkey' : `${methods.passkeys} passkeys`}</SummaryItem>
           </SummaryList>
+          {#snippet footer()}
+            <div class="flex justify-end">
+              <a href="/account/passkeys" class={buttonVariants({ variant: 'outline', size: 'lg' })}><KeyRoundIcon aria-hidden="true" />Manage passkeys</a>
+            </div>
+          {/snippet}
         </Panel>
       {/if}
 
