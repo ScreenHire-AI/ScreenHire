@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { CalendarStatus, CurrentUser, SavedViewSummary, SlackStatus } from '@screenhire/api-client';
   import CircleMinusIcon from '~icons/lucide/circle-minus';
-  import ChevronDownIcon from '~icons/lucide/chevron-down';
   import ChevronsUpDownIcon from '~icons/lucide/chevrons-up-down';
   import EllipsisIcon from '~icons/lucide/ellipsis';
   import EyeIcon from '~icons/lucide/eye';
@@ -80,6 +79,8 @@
   } = $props();
 
   let teamViewsOpen = $state(false);
+  // Browse team views opens once the Views menu has closed, so the sheet takes focus from the menu, not the other way.
+  let teamViewsQueued = false;
 
   const sidebar = Sidebar.useSidebar();
   const shell = getShell();
@@ -251,32 +252,46 @@
         <Sidebar.GroupLabel>
           {#snippet child({ props })}<h2 {...props}>Views</h2>{/snippet}
         </Sidebar.GroupLabel>
+        {#if !rail && (canBrowseTeamViews || views.hidden.length > 0)}
+          <!-- What acts on the views, not a view: Browse team views and the hidden built-ins sit in the heading's menu, so
+               the list holds only views (the owner's walk-through, 2026-11-21). The rail keeps Browse team views as the
+               icon above Settings, below. -->
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              {#snippet child({ props })}
+                <Sidebar.GroupAction {...props} aria-label="Views options" class="pointer-coarse:size-11"><EllipsisIcon aria-hidden="true" /></Sidebar.GroupAction>
+              {/snippet}
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content
+              side={sidebar.isMobile ? 'bottom' : 'right'}
+              align="start"
+              class="min-w-52"
+              onCloseAutoFocus={(event) => {
+                if (!teamViewsQueued) return;
+                event.preventDefault();
+                teamViewsQueued = false;
+                teamViewsOpen = true;
+              }}
+            >
+              {#if canBrowseTeamViews}
+                <DropdownMenu.Item onSelect={() => (teamViewsQueued = true)}><UserRoundSearchIcon aria-hidden="true" />Browse team views</DropdownMenu.Item>
+              {/if}
+              {#if views.hidden.length > 0}
+                <DropdownMenu.CheckboxItem checked={showHidden} onCheckedChange={(checked) => (showHidden = checked)}>
+                  Show hidden views ({views.hidden.length})
+                </DropdownMenu.CheckboxItem>
+              {/if}
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        {/if}
         <Sidebar.Menu>
           {#each views.visible as view (view.key)}
             {@render viewRow(view, false)}
           {/each}
-          {#if views.hidden.length > 0}
-            <Sidebar.MenuItem class="group-data-[collapsible=icon]:hidden">
-              <Sidebar.MenuButton aria-expanded={showHidden} onclick={() => (showHidden = !showHidden)} class="text-muted-foreground">
-                <span class="min-w-0 flex-1 truncate">Show hidden views</span>
-                <ChevronDownIcon aria-hidden="true" class={['transition-transform motion-reduce:transition-none', showHidden && 'rotate-180']} />
-              </Sidebar.MenuButton>
-            </Sidebar.MenuItem>
-            {#if showHidden && !rail}
-              {#each views.hidden as view (view.key)}
-                {@render viewRow(view, true)}
-              {/each}
-            {/if}
-          {/if}
-          {#if canBrowseTeamViews && !rail}
-            <!-- The rail has its own button in the fixed group below: its Views list scrolls, and a last icon under the list's
-                 edge fails the 24 px target size (WCAG 2.5.8) at 700 px tall. -->
-            <Sidebar.MenuItem>
-              <Sidebar.MenuButton onclick={() => (teamViewsOpen = true)} aria-haspopup="dialog" class="text-muted-foreground">
-                <UserRoundSearchIcon aria-hidden="true" />
-                <span class="min-w-0 flex-1 truncate">Browse team views</span>
-              </Sidebar.MenuButton>
-            </Sidebar.MenuItem>
+          {#if showHidden && !rail}
+            {#each views.hidden as view (view.key)}
+              {@render viewRow(view, true)}
+            {/each}
           {/if}
         </Sidebar.Menu>
         <FailureText message={viewFailure} class="px-2 group-data-[collapsible=icon]:hidden" />
@@ -461,8 +476,11 @@
           }}
         >
           {#if view.builtIn}
+            <!-- A built-in view cannot be deleted, only hidden: the label says why there is no Delete (the owner's walk-through,
+                 2026-11-21). -->
+            <DropdownMenu.Label class="text-caption text-muted-foreground">Built-in view</DropdownMenu.Label>
             <DropdownMenu.Item onSelect={() => void run(actions.setHidden(view.key, !hiddenRow))}>
-              {#if hiddenRow}<EyeIcon aria-hidden="true" />Show in sidebar{:else}<EyeOffIcon aria-hidden="true" />Hide from sidebar{/if}
+              {#if hiddenRow}<EyeIcon aria-hidden="true" />Show{:else}<EyeOffIcon aria-hidden="true" />Hide{/if}
             </DropdownMenu.Item>
           {:else if saved}
             {#if !saved.mine}

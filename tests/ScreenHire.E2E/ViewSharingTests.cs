@@ -57,11 +57,12 @@ public sealed class ViewSharingTests(E2EFixture fixture) : BrowserTest(fixture)
         var sidebar = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
 
         // Sharing offered it and added it to nobody's sidebar.
-        await Expect(sidebar.GetByRole(AriaRole.Button, new() { Name = "Browse team views" })).ToBeVisibleAsync();
         await Expect(sidebar.GetByRole(AriaRole.Link, new() { Name = ViewName })).ToHaveCountAsync(0);
 
-        // Browse team views lists it: who shared it, its filters in one line, how many candidates it shows, and New.
-        await sidebar.GetByRole(AriaRole.Button, new() { Name = "Browse team views" }).ClickAsync();
+        // Browse team views, in the Views heading's menu, lists it: who shared it, its filters in one line, how many
+        // candidates it shows, and New.
+        await sidebar.GetByRole(AriaRole.Button, new() { Name = "Views options" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Browse team views" }).ClickAsync();
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Team views" });
         var row = sheet.GetByRole(AriaRole.Listitem).Filter(new() { HasText = ViewName });
         await Expect(row).ToContainTextAsync("Shared by");
@@ -77,7 +78,8 @@ public sealed class ViewSharingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(sidebar.GetByRole(AriaRole.Link, new() { Name = ViewName })).ToHaveCountAsync(0);
 
         // Add puts it in the sidebar, and the New mark is gone on the next visit.
-        await sidebar.GetByRole(AriaRole.Button, new() { Name = "Browse team views" }).ClickAsync();
+        await sidebar.GetByRole(AriaRole.Button, new() { Name = "Views options" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Browse team views" }).ClickAsync();
         await Expect(row.GetByText("New", new() { Exact = true })).ToHaveCountAsync(0);
         await row.GetByRole(AriaRole.Button, new() { Name = $"Add {ViewName} to your sidebar" }).ClickAsync();
         await Expect(row).ToContainTextAsync("In your sidebar");
@@ -90,7 +92,8 @@ public sealed class ViewSharingTests(E2EFixture fixture) : BrowserTest(fixture)
         await sidebar.GetByRole(AriaRole.Button, new() { Name = $"Actions for {ViewName}" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Remove from sidebar" }).ClickAsync();
         await Expect(added).ToHaveCountAsync(0);
-        await sidebar.GetByRole(AriaRole.Button, new() { Name = "Browse team views" }).ClickAsync();
+        await sidebar.GetByRole(AriaRole.Button, new() { Name = "Views options" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Browse team views" }).ClickAsync();
         await Expect(row.GetByRole(AriaRole.Button, new() { Name = $"Add {ViewName} to your sidebar" })).ToBeVisibleAsync();
 
         // A tablet shows the icon rail. Browse team views is its icon in the fixed group above Settings: in view at 700 px tall

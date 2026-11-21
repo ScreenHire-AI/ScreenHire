@@ -124,7 +124,8 @@ focus to it (WCAG 2.2.1), and Escape closes it.
 Each member can hide built-in views from their own sidebar. The choice is `organization_members.views`
 (`ViewPreferences.HiddenBuiltIns`), beside the notification settings, so it follows the person across devices and each
 organization keeps its own. `PUT /v1/views/hidden-built-ins` replaces the list, so the dashboard sends one change at a time. The
-list ends with Show hidden views when any are hidden.
+Views heading's menu (Views options) has a Show hidden views choice with their count when any are hidden, and a
+built-in view's own menu says Built-in view and offers Hide or Show.
 
 ## Real-time
 
@@ -147,7 +148,7 @@ There is no toast or bell line when a teammate shares a view; the sheet's New ma
   first in the menu (the view stays shared). All of them are menu items, so the keyboard reaches them. A
   tablet's icon rail has no room for the menus, so its top bar has a button that opens the full sidebar.
 
-- **Browse team views.** A button at the foot of the Views list, or in the icon rail an icon button with a tooltip in the
+- **Browse team views.** An item in the Views heading's menu (Views options), so the list holds only views, or in the icon rail an icon button with a tooltip in the
   fixed group above Settings (outside the list that scrolls, so it stays in reach at 700 px tall), opens `TeamViewsSheet`: the shared
   views that are a teammate's, newest share first. Each row has its name and a New mark, who shared it, its filters in one
   muted line (`describeFilters`, which leaves out the sort and AI assistance), how many candidates it shows now, Preview and
