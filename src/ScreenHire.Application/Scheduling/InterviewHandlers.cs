@@ -473,7 +473,7 @@ public static class CancelInterviewEventsHandler
     {
         var outgoing = await InterviewCalendarSync.CancelAsync(
             message.OrganizationId, message.InterviewId, message.Revision, message.TellCandidate, db, calendar, email, renderer, store, headers, routing, time, logger, cancellationToken);
-        outgoing.Add(new NotifyInterviewChanged(message.OrganizationId, message.InterviewId, message.Revision, "Cancelled"));
+        outgoing.Add(new NotifyInterviewChanged(message.OrganizationId, message.InterviewId, message.Revision, "Cancelled", message.ActorUserId));
         return outgoing;
     }
 }

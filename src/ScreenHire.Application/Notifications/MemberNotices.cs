@@ -38,8 +38,12 @@ public sealed record NotifyNewApplication(Guid OrganizationId, Guid ApplicationI
 public sealed record NotifyTeammateChange(
     Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid ActorUserId, string Change, Guid SourceId) : ITenantMessage;
 
-/// <summary>An interview was booked, moved or cancelled (the change: <c>Booked</c>, <c>Moved</c>, <c>Cancelled</c>): tells the members on it.</summary>
-public sealed record NotifyInterviewChanged(Guid OrganizationId, Guid InterviewId, int Revision, string Change) : ITenantMessage;
+/// <summary>
+/// An interview was booked, moved or cancelled (the change: <c>Booked</c>, <c>Moved</c>, <c>Cancelled</c>): tells the members on
+/// it, other than the member who made the change. A booking and a move are the candidate's (the careers page), so only a
+/// cancellation from the dashboard has a member behind it.
+/// </summary>
+public sealed record NotifyInterviewChanged(Guid OrganizationId, Guid InterviewId, int Revision, string Change, Guid? ActorUserId = null) : ITenantMessage;
 
 /// <summary>The words ScreenHire's own emails about a member's work use. Names and titles only, never a note, task or reply's text.</summary>
 public static class MemberNoticeEmails
@@ -221,7 +225,7 @@ public static class NotifyInterviewChangedHandler
             .ToListAsync(cancellationToken);
         outgoing.AddRange(attendees.Select(userId => new NotifyMember(
             message.OrganizationId, userId, NoticeKind.Interviews, $"{message.InterviewId:N}:{message.Revision}", interview.ApplicationId,
-            interview.JobId, null, message.Change)));
+            interview.JobId, message.ActorUserId, message.Change)));
         return outgoing;
     }
 }

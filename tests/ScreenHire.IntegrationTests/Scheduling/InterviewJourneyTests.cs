@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ScreenHire.Domain.Scheduling;
 using ScreenHire.IntegrationTests.Messaging;
+using ScreenHire.IntegrationTests.Notifications;
 using ScreenHire.IntegrationTests.Realtime;
 
 namespace ScreenHire.IntegrationTests.Scheduling;
@@ -323,6 +324,12 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
         await world.WaitForLiveEventsAsync(world.Owner.UserId, 0);
         await world.WaitForLiveEventsAsync(world.Second.UserId, 0);
         await world.WaitForEmailAsync(world.CandidateEmail, "is cancelled");
+        // The other interviewer is told by email (Interviews starts at Instantly); the member who cancelled it is not.
+        var ownerEmail = await world.Owner.EmailOfAsync();
+        var secondEmail = await world.Second.EmailOfAsync();
+        await world.WaitForEmailAsync(ownerEmail, "Interview cancelled");
+        await fixture.WaitHandledAsync(booked.ToString("N"), ".NotifyMember", 4);
+        (await fixture.Mailpit.MessagesAsync(secondEmail, Ct)).Should().NotContain(m => m.Subject.StartsWith("Interview cancelled", StringComparison.Ordinal));
         await world.WaitForSyncAsync(booked, "Synced");
         var entry = (await world.Owner.GetAsync($"/v1/applications/{world.ApplicationId}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
             .Where(e => e.GetProperty("type").GetString() == "InterviewCancelled").ToList();

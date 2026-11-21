@@ -255,7 +255,8 @@ internal static class InterviewEndpoints
         {
             // The worker removes each event that was made, and marks the attendee Synced once it has.
             attendees.Where(a => a.ProviderEventId is not null).ToList().ForEach(a => a.MarkPending());
-            await outbox.PublishAsync(new CancelInterviewEvents(application.OrganizationId, application.Id, interview.Id, interview.Revision));
+            await outbox.PublishAsync(new CancelInterviewEvents(
+                application.OrganizationId, application.Id, interview.Id, interview.Revision, ActorUserId: tenant.UserId));
         }
 
         await outbox.PublishAsync(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString()));

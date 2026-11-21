@@ -176,7 +176,7 @@ Every notice goes through `NoticeDelivery.EmailAsync` with the person's choice: 
 |---|---|---|
 | Mentions | `TeammateMentionedHandler` | the person mentioned, unless they wrote the note or no longer see the job |
 | Candidate replies | `CandidateRepliedHandler` | the person who sent the email it answers |
-| Interviews | `NotifyInterviewChanged` from the calendar handlers (booked, moved, cancelled), then `NotifyMember` | the members on the interview; a later revision tells them again, so an out-of-date one tells nobody |
+| Interviews | `NotifyInterviewChanged` from the calendar handlers (booked, moved, cancelled), then `NotifyMember` | the members on the interview, never the member who cancelled it from the dashboard (bookings and moves are the candidate's); a later revision tells them again, so an out-of-date one tells nobody |
 | Tasks | `NotifyMember` from `ApplicationTaskCreated` (a member or a key) and from an automation's task | the assignee, never the member who gave it to themselves |
 | New applications | `NotifyNewApplication` from `ApplicationSubmitted` | the members whose scope covers the job and who do not have it Off |
 | Teammates' moves and notes | `NotifyTeammateChange` from `ApplicationMoved` and `ApplicationNoteAdded` with a member as actor | as new applications, never the actor; never an API key, an automation or a candidate |
