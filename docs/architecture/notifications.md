@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Notifications"
-description: "The bell in the top bar: setup steps and per-person alerts, how any handler raises or clears one through RaiseNotification, the audience by permission, the unique row per person, live refresh, retention, the Jobs overview numbers, and the daily email domain check that raises the first alert."
+description: "The bell in the top bar: setup steps (with the organization's skipped steps and hidden checklist) and per-person alerts, how any handler raises or clears one through RaiseNotification, the audience by permission, the unique row per person, live refresh, retention, the Jobs overview numbers, and the daily email domain check that raises the first alert."
 tags: [notifications, dashboard, wolverine, tenancy, email]
 sources:
   - resource: src/ScreenHire.Domain/Notifications/Notification.cs
@@ -69,11 +69,12 @@ whole checklist, in one browser (the owner's walk-through, 2026-11-21). Both cho
   and names the skipped steps.
 
 The routes are `GET /v1/organization/setup` (any member), and `POST /v1/organization/setup/skip` (`{ step }`), `/hide` and
-`/show`, each with Edit settings and the antiforgery token. Each write is one change rather than a replace of the whole list,
-so two Owners skipping different steps at once both keep theirs. The history describers ignore these columns, so a skip never
+`/show`, each with Edit settings and the antiforgery token. Each write is one change made under a lock on the organization
+row, so two Owners skipping different steps at once both keep theirs. The history describers ignore these columns, so a skip never
 moves General's Last updated. The dashboard asks for the choices first, and asks the five questions behind the steps only
 when the checklist is not hidden. There is no live event for these choices: another open dashboard picks them up when it next
-reads `/v1/organization/setup` (a minute's stale time, or a reload).
+reads `/v1/organization/setup` (a minute's stale time, or a reload). The old per-browser hide (`screenhire:setup-dismissed:*`
+in localStorage) is no longer read, so a checklist someone hid that way shows again until it is hidden for the organization.
 
 The panel is called Needs attention, because Notifications already names the toast settings in the account menu and the
 toast tray. The bell holds no team news: that stays in the tray (the realtime doc).
@@ -228,7 +229,8 @@ Both are forwarded to the API and the worker by the AppHost.
 
 - Unit: the `Notification` rules, `VerificationLostAt`, the recheck decision table, and a probe that saves nothing.
 - Integration: the setup choices (`OrganizationSetupTests`): a skip and a hide hold for another Admin, Show setup again clears
-  both, only Edit settings changes them, an unknown step is refused, and another organization is untouched.
+  both, skips sent at the same time all stay, only Edit settings changes them, an unknown step is refused, and another
+  organization is untouched.
 - Integration: raising, reading, dismissing and clearing through the real worker queue, per-person isolation, row-level security,
   the live event, retention, the schedules, and the daily check on a real Wolverine host with the sandbox zone as fake DNS.
 - Vitest: the checklist's skipped steps, the bell's Not needed and Hide setup for everyone, Settings, General's Show setup
