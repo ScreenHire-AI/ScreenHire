@@ -16,6 +16,18 @@ public interface IBillingProvider
     Task<Uri> CreatePortalAsync(PortalRequest request, CancellationToken cancellationToken);
 
     /// <summary>
+    /// The customer's invoices, newest first, drafts left out. Empty for an organization with no customer yet. Throws
+    /// <see cref="BillingProviderException"/> when the provider refuses or cannot be reached.
+    /// </summary>
+    Task<IReadOnlyList<ProviderInvoice>> ListInvoicesAsync(InvoiceListRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The payment method the subscription is charged to: the subscription's own default, else the customer's. Null when there is
+    /// none or no customer yet. Throws <see cref="BillingProviderException"/> when the provider refuses or cannot be reached.
+    /// </summary>
+    Task<ProviderPaymentMethod?> GetPaymentMethodAsync(PaymentMethodRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
     /// What switching the subscription to <see cref="PlanChangeRequest.NewPlan"/> would cost, priced as of
     /// <see cref="PlanChangeRequest.ProrationDate"/>. Changes nothing.
     /// </summary>
@@ -49,7 +61,56 @@ public interface IBillingProvider
 /// </summary>
 public sealed record CheckoutRequest(Guid OrganizationId, Plan Plan, string? CustomerId, string? CustomerEmail, Uri SuccessUrl, Uri CancelUrl);
 
-public sealed record PortalRequest(Guid OrganizationId, string? CustomerId, Uri ReturnUrl);
+/// <summary>
+/// Opens the portal for the owner. <c>Intent</c> says which control opened it: Stripe opens the same portal whatever it is, and the
+/// sandbox, whose portal acts at once, cancels only for <see cref="BillingPortalIntent.Cancel"/> and <see cref="BillingPortalIntent.Manage"/>.
+/// </summary>
+public sealed record PortalRequest(Guid OrganizationId, string? CustomerId, Uri ReturnUrl, BillingPortalIntent Intent = BillingPortalIntent.Manage);
+
+/// <summary>What the owner opened the payment portal to do.</summary>
+public enum BillingPortalIntent
+{
+    /// <summary>Anything the portal offers.</summary>
+    Manage,
+
+    /// <summary>Change the card the plan is charged to.</summary>
+    ChangeCard,
+
+    /// <summary>Cancel the plan.</summary>
+    Cancel,
+}
+
+/// <summary>
+/// Whose invoices to list. <c>Plan</c>, <c>Status</c> and <c>CurrentPeriodEnd</c> are what the account last heard; the sandbox makes
+/// its sample invoices from them, and Stripe knows its own.
+/// </summary>
+public sealed record InvoiceListRequest(
+    Guid OrganizationId, string? CustomerId, Plan? Plan, SubscriptionStatus Status, DateTimeOffset? CurrentPeriodEnd, DateTimeOffset Now);
+
+/// <summary>Whose payment method to read: the customer, and the subscription whose own default comes first.</summary>
+public sealed record PaymentMethodRequest(Guid OrganizationId, string? CustomerId, string? SubscriptionId);
+
+/// <summary>Where an invoice stands, in words a customer uses.</summary>
+public enum BillingInvoiceStatus
+{
+    /// <summary>Paid in full.</summary>
+    Paid,
+
+    /// <summary>Sent and not paid yet, or a payment failed and it is still owed.</summary>
+    Due,
+
+    /// <summary>Cancelled: nothing is owed.</summary>
+    Void,
+}
+
+/// <summary>One invoice: when it was made, its total in <c>Currency</c>, where it stands, and the address of its PDF when there is one.</summary>
+public sealed record ProviderInvoice(string Id, DateTimeOffset CreatedAt, decimal Amount, string Currency, BillingInvoiceStatus Status, Uri? PdfUrl);
+
+/// <summary>
+/// A payment method on file: its <c>Type</c> as the provider names it (<c>card</c>, or a bank debit), and for a card its network
+/// (<c>Brand</c>, such as <c>visa</c>) and the last four digits. Never the full number.
+/// </summary>
+public sealed record ProviderPaymentMethod(string Type, string? Brand, string? Last4);
 
 /// <summary>
 /// A switch from <c>CurrentPlan</c> to <c>NewPlan</c> on a live subscription. <c>CurrentPeriodEnd</c> is where the account

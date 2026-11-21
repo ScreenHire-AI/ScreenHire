@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Verification;
@@ -150,6 +151,7 @@ public static partial class CheckApplicationConsistencyHandler
         OrganizationModels models,
         LlmKeys keys,
         IOptions<VerificationOptions> options,
+        IOptions<BillingOptions> billing,
         TimeProvider time,
         ILogger<CheckApplicationConsistency> logger,
         CancellationToken cancellationToken)
@@ -193,7 +195,8 @@ public static partial class CheckApplicationConsistencyHandler
         var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
         // ScreenHire's model, or the organization's own key and model.
         var llm = models.AccessFor(settings, deployment, keys);
-        var early = await EarlyOutcomeAsync(db, settings, sources, llm, options.Value.Llm, now, cancellationToken);
+        var margin = billing.Value.AiMarginInForce;
+        var early = await EarlyOutcomeAsync(db, settings, sources, llm, options.Value.Llm, margin, now, cancellationToken);
 
         if (check is null)
         {
@@ -257,7 +260,7 @@ public static partial class CheckApplicationConsistencyHandler
         // Budget shares passed and the cap reached since the last alert, from the ledger. Each message claims its own key.
         if (early is null or { Status: ConsistencyCheckStatus.Paused })
         {
-            messages.AddRange(await AiUsageAlertChecks.DueAsync(db, message.OrganizationId, settings, options.Value.Llm, time.GetUtcNow(), cancellationToken));
+            messages.AddRange(await AiUsageAlertChecks.DueAsync(db, message.OrganizationId, settings, options.Value.Llm, margin, time.GetUtcNow(), cancellationToken));
         }
 
         if (resumed && check.Status != ConsistencyCheckStatus.Paused)
@@ -306,7 +309,7 @@ public static partial class CheckApplicationConsistencyHandler
     // The outcome when the model is not asked at all, or null when it should be.
     private static async Task<ConsistencyCheckOutcome?> EarlyOutcomeAsync(
         ScreenHireDbContext db, VerificationSettings? settings, IReadOnlyList<ConsistencySourceText> sources, LlmAccess llm, LlmOptions options,
-        DateTimeOffset now, CancellationToken cancellationToken)
+        decimal margin, DateTimeOffset now, CancellationToken cancellationToken)
     {
         if (settings is not { LlmConsistencyCheckEnabled: true })
         {
@@ -331,8 +334,8 @@ public static partial class CheckApplicationConsistencyHandler
 
         // The cap: an Owner's own, else the deployment's safety net for ScreenHire's key. The AI checks pause; the rule-based checks
         // keep running, and the note says the pause is no result about the candidate. An own key with no cap of its own has none.
-        var (cap, unit) = AiUsageLimits.EffectiveCap(settings, options.DefaultMonthlyTokenCap);
-        if (cap is not null && AiUsageLimits.CapReached(await db.UsedThisMonthAsync(unit, now, cancellationToken), cap))
+        var (_, cap) = await AiUsageLimitsInForce.ResolveAsync(db, settings, options, margin, now, cancellationToken);
+        if (cap is { Reached: true })
         {
             return new ConsistencyCheckOutcome(ConsistencyCheckStatus.Paused, RunNotes.AiChecksPaused);
         }

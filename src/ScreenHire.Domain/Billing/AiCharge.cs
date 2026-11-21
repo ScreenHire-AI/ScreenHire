@@ -1,4 +1,5 @@
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Verification;
 
 namespace ScreenHire.Domain.Billing;
 
@@ -31,6 +32,21 @@ public static class AiCharge
 
     /// <summary>US dollars as micro-dollars, rounded half away from zero.</summary>
     public static long ToMicros(decimal dollars) => (long)Math.Round(dollars * MicrosPerDollar, MidpointRounding.AwayFromZero);
+
+    /// <summary>
+    /// The one amount a customer sees for a call (docs/architecture/ai-usage.md, "Cost"): on ScreenHire's key what it is billed, the
+    /// provider's price plus <paramref name="margin"/> rounded to a micro-dollar as the meter is sent it; on the organization's own key
+    /// the provider's price, an estimate of what that provider charges, which ScreenHire never bills. Null when the cost is unknown.
+    /// </summary>
+    public static decimal? Billed(decimal? cost, AiKeySource key, decimal margin)
+    {
+        if (cost is not { } amount)
+        {
+            return null;
+        }
+
+        return key == AiKeySource.BuiltIn ? Dollars(Micros(amount, margin)) : amount;
+    }
 }
 
 /// <summary>

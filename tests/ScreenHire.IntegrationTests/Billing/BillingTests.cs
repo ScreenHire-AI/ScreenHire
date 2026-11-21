@@ -228,4 +228,75 @@ public sealed class BillingTests(AppHostFixture fixture)
         visible.Should().ContainSingle().Which.OrganizationId.Should().Be(second.OrganizationId);
         (await first.BillingAsync()).Text("currentPlan.key").Should().Be("unlimited");
     }
+
+    [Fact]
+    public async Task Invoices_and_the_card_come_from_the_provider_once_there_is_a_customer_and_only_the_owner_reads_them()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        using var admin = await fixture.InviteAndJoinAsync(owner, "Admin");
+
+        (await owner.GetAsync($"{BillingTestSupport.Overview}/invoices")).Expect(HttpStatusCode.OK).Count("invoices").Should().Be(0, "the trial has no customer and so no invoices");
+        (await owner.GetAsync($"{BillingTestSupport.Overview}/payment-method")).Expect(HttpStatusCode.OK).At("method").ValueKind.Should().Be(JsonValueKind.Null);
+
+        await fixture.SubscribeAsync(owner, "starter");
+
+        var invoices = (await owner.GetAsync($"{BillingTestSupport.Overview}/invoices")).Expect(HttpStatusCode.OK);
+        invoices.Count("invoices").Should().Be(3, "the sandbox lists three sample invoices");
+        var dates = invoices.At("invoices").EnumerateArray().Select(i => i.GetProperty("date").GetDateTimeOffset()).ToList();
+        dates.Should().BeInDescendingOrder("newest first");
+        invoices.At("invoices.0.amount").GetDecimal().Should().Be(ShippedPlans.Starter.MonthlyPrice);
+        invoices.Text("invoices.0.currency").Should().Be("USD");
+        invoices.Text("invoices.0.status").Should().Be("Paid");
+        var pdf = invoices.Text("invoices.0.pdfUrl");
+        pdf.Should().StartWith("/v1/billing/sandbox/invoices/in_sandbox_");
+
+        using (var file = await owner.Session.Client.GetAsync(pdf, Ct))
+        {
+            file.StatusCode.Should().Be(HttpStatusCode.OK);
+            file.Content.Headers.ContentType!.MediaType.Should().Be("application/pdf");
+            (await file.Content.ReadAsStringAsync(Ct)).Should().StartWith("%PDF-");
+        }
+
+        var card = (await owner.GetAsync($"{BillingTestSupport.Overview}/payment-method")).Expect(HttpStatusCode.OK);
+        card.Text("method.type").Should().Be("card");
+        card.Text("method.brand").Should().Be("visa");
+        card.Text("method.last4").Should().Be("4242");
+
+        (await admin.GetAsync($"{BillingTestSupport.Overview}/invoices")).Status.Should().Be(HttpStatusCode.Forbidden);
+        (await admin.GetAsync($"{BillingTestSupport.Overview}/payment-method")).Status.Should().Be(HttpStatusCode.Forbidden);
+        (await admin.Session.Client.GetAsync(pdf, Ct)).StatusCode.Should().Be(HttpStatusCode.Forbidden, "the invoice file is for who may see the invoices");
+        using var anonymous = fixture.CreateHttpClient("api");
+        (await anonymous.GetAsync($"{BillingTestSupport.Overview}/invoices", Ct)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task The_portal_opened_to_change_the_card_leaves_the_plan_and_opened_to_cancel_ends_it()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await fixture.SubscribeAsync(owner, "growth");
+
+        var change = (await owner.PostAsync($"{BillingTestSupport.Overview}/portal?intent=ChangeCard")).Expect(HttpStatusCode.OK);
+        (await fixture.FollowAsync(change.Text("url"))).Status.Should().Be(HttpStatusCode.Redirect);
+        (await owner.BillingAsync()).Text("state").Should().Be("Active", "changing the card is not cancelling");
+
+        var cancel = (await owner.PostAsync($"{BillingTestSupport.Overview}/portal?intent=Cancel")).Expect(HttpStatusCode.OK);
+        (await fixture.FollowAsync(cancel.Text("url"))).Status.Should().Be(HttpStatusCode.Redirect);
+        (await owner.BillingAsync()).Text("state").Should().Be("Ended");
+    }
+
+    [Fact]
+    public async Task A_paying_month_adds_the_plan_to_ai_use_and_estimates_the_next_invoice_on_the_payment_date()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await fixture.SubscribeAsync(owner, "starter");
+
+        var billing = await owner.BillingAsync();
+        var month = billing.At("thisMonth");
+        month.GetProperty("planName").GetString().Should().Be("Starter");
+        month.GetProperty("planAmount").GetDecimal().Should().Be(ShippedPlans.Starter.MonthlyPrice);
+        month.GetProperty("aiAmount").GetDecimal().Should().Be(billing.At("aiUsage.charge").GetDecimal());
+        month.GetProperty("total").GetDecimal().Should().Be(ShippedPlans.Starter.MonthlyPrice + billing.At("aiUsage.charge").GetDecimal() - month.GetProperty("trialCredit").GetDecimal());
+        month.GetProperty("nextInvoiceAt").GetDateTimeOffset().Should().Be(billing.At("nextPaymentAt").GetDateTimeOffset());
+        month.GetProperty("nextInvoiceAmount").GetDecimal().Should().Be(month.GetProperty("total").GetDecimal());
+    }
 }

@@ -2,7 +2,9 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Verification;
+using ScreenHire.Domain.Billing;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Verification;
 
@@ -233,7 +235,11 @@ public sealed class VerificationAreaTests(AppHostFixture fixture)
         var days = summary.At("byDay").EnumerateArray().ToList();
         days.Sum(d => d.GetProperty("builtInTokens").GetInt64()).Should().Be(calls.Sum(c => c.InputTokens!.Value + c.OutputTokens!.Value));
         days.Sum(d => d.GetProperty("ownKeyTokens").GetInt64()).Should().Be(0);
-        days.Sum(d => d.GetProperty("builtInCost").GetDecimal()).Should().Be(calls.Sum(c => c.Cost!.Value));
+        // The amount a customer sees for ScreenHire's key is what it is billed (the provider's price plus the margin, the shared stack runs
+        // the billing sandbox), never the provider's price.
+        var billed = calls.Sum(c => AiCharge.Billed(c.Cost, c.KeySource, AiDefaults.Shipped.Margin)!.Value);
+        billed.Should().BeGreaterThan(calls.Sum(c => c.Cost!.Value));
+        days.Sum(d => d.GetProperty("builtInCost").GetDecimal()).Should().Be(billed);
         days.Sum(d => d.GetProperty("ownKeyCost").GetDecimal()).Should().Be(0m);
     }
 

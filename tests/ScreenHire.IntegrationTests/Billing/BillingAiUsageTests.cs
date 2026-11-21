@@ -329,18 +329,49 @@ public sealed class BillingAiUsageTests(AppHostFixture fixture)
             Priced(owner, now.AddSeconds(-5), 9.00m, AiKeySource.OwnKey),
         ]);
 
-        var usage = (await owner.BillingAsync()).At("aiUsage");
+        var billing = await owner.BillingAsync();
+        var usage = billing.At("aiUsage");
 
         usage.GetProperty("builtInCalls").GetInt32().Should().Be(3, "the call with an unknown cost is counted");
-        usage.GetProperty("providerCost").GetDecimal().Should().Be(1.0004m);
         usage.GetProperty("charge").GetDecimal().Should().Be(1.20048m, "each call's cost plus 20%, rounded to a micro-dollar, then summed");
-        usage.GetProperty("marginPercent").GetDecimal().Should().Be(20m);
+        usage.TryGetProperty("providerCost", out _).Should().BeFalse("a customer sees one amount for AI use, never the provider's price");
+        usage.TryGetProperty("marginPercent", out _).Should().BeFalse("and never the margin");
         usage.GetProperty("callsWithUnknownCost").GetInt32().Should().Be(1);
         usage.GetProperty("ownKeyCalls").GetInt32().Should().Be(1);
         usage.GetProperty("trialAllowance").GetDecimal().Should().Be(5m);
         usage.GetProperty("trialAllowanceUsed").GetDecimal().Should().Be(0m);
         usage.GetProperty("metered").GetBoolean().Should().BeTrue("the sandbox can bill it");
         usage.GetProperty("month").GetString().Should().Be(now.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture));
+
+        // On the trial the plan costs nothing and the allowance covers the use, so nothing is owed this month and no invoice is coming.
+        var month = billing.At("thisMonth");
+        month.GetProperty("planAmount").GetDecimal().Should().Be(0m);
+        month.GetProperty("aiCalls").GetInt32().Should().Be(3);
+        month.GetProperty("aiAmount").GetDecimal().Should().Be(1.20048m, "the same amount as the AI usage panel");
+        month.GetProperty("trialCredit").GetDecimal().Should().Be(1.20048m);
+        month.GetProperty("total").GetDecimal().Should().Be(0m);
+        month.GetProperty("nextInvoiceAmount").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task The_trial_credit_covers_this_months_trial_calls_up_to_the_allowance_in_time_order_as_the_report_will()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await ActivateAsync(owner.OrganizationId, trialEndsAt: Future.AddDays(-1));
+        // Two trial calls of $3.00 (billed $3.60 each): the first fits the $5.00 allowance, the second would pass it and is billed in full.
+        // A call after the trial is never covered.
+        await SeedAsync(owner.OrganizationId, Priced(owner, Future.AddDays(-3), 3m), Priced(owner, Future.AddDays(-2), 3m), Priced(owner, Future.AddHours(-1), 1m));
+
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, owner.OrganizationId))
+        {
+            var credit = await AiUsageBillingQueries.TrialCreditThisMonthAsync(db, Future, 0.20m, Future.AddDays(-1), 5_000_000, 0, Ct);
+            credit.Should().Be(3_600_000, "the first trial call, billed at $3.60, is all the allowance covers");
+        }
+
+        await ReportAsync(owner.OrganizationId, SandboxOptions(), Future);
+        await using var after = await VerificationSupport.TenantDbAsync(fixture, owner.OrganizationId);
+        (await AiUsageBillingQueries.TrialCreditThisMonthAsync(after, Future, 0.20m, Future.AddDays(-1), 5_000_000, 3_600_000, Ct))
+            .Should().Be(3_600_000, "once settled, the waived call is the credit: the page and the invoice agree");
     }
 
     [Fact]

@@ -21,7 +21,10 @@ const summary: AiUsageSummary = {
     { provider: 'Anthropic', model: 'claude-test', keySource: 'BuiltIn', calls: 8, inputTokens: 6000, outputTokens: 500, cost: 0.3, callsWithUnknownCost: 0 },
     { provider: 'OpenAi', model: 'gpt-test', keySource: 'OwnKey', calls: 4, inputTokens: 3000, outputTokens: 1000, cost: 0.12, callsWithUnknownCost: 0 },
   ],
-  byKeySource: [],
+  byKeySource: [
+    { provider: '', model: '', keySource: 'BuiltIn', calls: 8, inputTokens: 6000, outputTokens: 500, cost: 0.3, callsWithUnknownCost: 0 },
+    { provider: '', model: '', keySource: 'OwnKey', calls: 4, inputTokens: 3000, outputTokens: 1000, cost: 0.12, callsWithUnknownCost: 0 },
+  ],
   limits,
   // Five minutes before the test runs, so it always reads as time ago.
   lastCallAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
@@ -48,17 +51,27 @@ afterEach(() => {
 });
 
 describe('the Usage tab', () => {
-  it('shows calls, tokens in and out and cost for the month', async () => {
+  const stat = (title: string) => screen.getAllByText(title).map((node) => node.closest('[data-slot="report-stat"]')).find(Boolean) as HTMLElement;
+
+  it('shows calls, tokens in and out, and as Cost what ScreenHire bills, with the own key\'s estimate apart and never added in', async () => {
     renderPage(summary);
 
     await screen.findByText('Model calls');
-    const stat = async (title: string) =>
-      screen.getAllByText(title).map((node) => node.closest('[data-slot="report-stat"]')).find(Boolean) as HTMLElement;
-    expect(within(await stat('Model calls')).getByText('12')).toBeInTheDocument();
-    expect(within(await stat('Tokens')).getByText('10,500')).toBeInTheDocument();
-    expect(within(await stat('Tokens')).getByText('9,000 in, 1,500 out')).toBeInTheDocument();
-    expect(within(await stat('Cost')).getByText('$0.42')).toBeInTheDocument();
+    expect(within(stat('Model calls')).getByText('12')).toBeInTheDocument();
+    expect(within(stat('Tokens')).getByText('10,500')).toBeInTheDocument();
+    expect(within(stat('Tokens')).getByText('9,000 in, 1,500 out')).toBeInTheDocument();
+    expect(within(stat('Cost')).getByText('$0.30')).toBeInTheDocument();
+    expect(within(stat('Cost')).getByText('$0.12 more charged by your provider (estimate)')).toBeInTheDocument();
+    expect(screen.queryByText('$0.42')).not.toBeInTheDocument();
     await expectNoAxeViolations();
+  });
+
+  it('names the tile for the own key\'s estimate when the range has only own-key use', async () => {
+    renderPage({ ...summary, byKeySource: [summary.byKeySource[1]!] });
+
+    await screen.findByText('Model calls');
+    expect(within(stat('Charged by your provider (estimate)')).getByText('$0.12')).toBeInTheDocument();
+    expect(screen.queryByText('Cost', { selector: '[data-slot="report-stat"] *' })).not.toBeInTheDocument();
   });
 
   it('says when the newest call happened under the Model calls number, as time ago with the exact time on hover (T7)', async () => {
@@ -85,16 +98,21 @@ describe('the Usage tab', () => {
     expect(within(panel).getByText('Monthly budget')).toBeInTheDocument();
     expect(within(panel).getByText('Monthly cap')).toBeInTheDocument();
     expect(within(panel).getAllByText('420 tokens of 2,000,000 tokens')).toHaveLength(2);
-    expect(within(panel).queryByText(/estimate/)).not.toBeInTheDocument();
   });
 
-  it('shows the default in dollars where the deployment prices its model, and says once that the dollars are an estimate', async () => {
+  it('shows the limits in billed dollars where the model has a price, and in tokens with one short note where it has none', async () => {
     renderPage({ ...summary, limits: dollarLimits });
 
     const panel = (await screen.findByRole('heading', { name: 'Monthly limits' })).closest('section') as HTMLElement;
-    expect(within(panel).getAllByText('$0.06 of $3.20')).toHaveLength(2);
-    // Beside the Cost tile's actual $0.42, a different dollar figure needs its reason: one line for both limits.
-    expect(within(panel).getAllByText(/In dollars it is an estimate at the usual mix of input and output/)).toHaveLength(1);
+    expect(within(panel).getAllByText('$0.07 of $3.84')).toHaveLength(2);
+    expect(within(panel).queryByText(/estimate|In tokens/)).not.toBeInTheDocument();
+  });
+
+  it('says once that limits are in tokens until the model has a price', async () => {
+    renderPage(summary);
+
+    const panel = (await screen.findByRole('heading', { name: 'Monthly limits' })).closest('section') as HTMLElement;
+    expect(within(panel).getAllByText('In tokens until the AI model has a price.')).toHaveLength(1);
   });
 
   it('charts tokens by day on ScreenHire\'s key and on the own key, with the same numbers as a table', async () => {
@@ -105,7 +123,8 @@ describe('the Usage tab', () => {
     expect(within(panel).getByText('Your own key')).toBeInTheDocument();
     await fireEvent.click(within(panel).getByRole('button', { name: 'Table' }));
     const table = await within(panel).findByRole('table');
-    expect(within(table).getByRole('columnheader', { name: /Cost/ })).toBeInTheDocument();
+    expect(within(table).getByRole('columnheader', { name: /^Cost/ })).toBeInTheDocument();
+    expect(within(table).getByRole('columnheader', { name: /Charged by your provider \(estimate\)/ })).toBeInTheDocument();
     expect(within(table).getAllByRole('row')).toHaveLength(3);
   });
 
@@ -116,6 +135,8 @@ describe('the Usage tab', () => {
     expect(within(table).getByText('claude-test')).toBeInTheDocument();
     expect(within(table).getByText('gpt-test')).toBeInTheDocument();
     expect(within(table).getByText('Your own key')).toBeInTheDocument();
+    const own = within(table).getByText('gpt-test').closest('tr') as HTMLElement;
+    expect(own).toHaveTextContent('$0.12 estimate');
   });
 
   it('asks for the last 30 days when chosen', async () => {

@@ -36,9 +36,10 @@ public static class AiUsageCost
 }
 
 /// <summary>
-/// The usual split of a check's tokens between input and output, which turns a token count into a dollar figure when the
-/// deployment's default budget and cap are shown in dollars (ai-usage.md, "Defaults"). The consistency check reads long sources
-/// and answers briefly, so most of its tokens are input. An estimate for display: enforcement stays in tokens.
+/// The usual split of a check's tokens between input and output, which turns a limit stored in tokens into dollars (ai-usage.md,
+/// "Budget, alerts and the cap"). Budgets and caps count billed dollars; a limit set in tokens before that, and the deployment's
+/// default, are converted once at the model's price, and then counted against the dollars billed like any other. The consistency
+/// check reads long sources and answers briefly, so most of its tokens are input.
 /// </summary>
 public static class AiUsageMix
 {
@@ -55,22 +56,27 @@ public static class AiUsageMix
     public static decimal Dollars(decimal tokens, decimal blendedPerMillion) => tokens * blendedPerMillion / PerMillion;
 
     /// <summary>
-    /// The price a limit is shown in dollars at, or null where it stays as it is: only the deployment's default, which is counted
-    /// in tokens, and only when the model that answers has a price. An organization's own limit keeps the unit it was set in.
+    /// The billed dollars a million tokens come to on the key in use, at the usual mix: ScreenHire's key at its configured price plus
+    /// <paramref name="margin"/>, the organization's own key at the two prices it entered. Null when that key has no price, and a
+    /// limit in tokens then stays in tokens.
     /// </summary>
-    public static decimal? DollarPriceFor(bool isDefault, UsageUnit unit, decimal? blendedPerMillion)
-        => isDefault && unit == UsageUnit.Tokens && blendedPerMillion is > 0 ? blendedPerMillion : null;
+    public static decimal? BilledPerMillion(VerificationSettings? settings, (decimal Input, decimal Output)? configuredPrice, decimal margin)
+    {
+        if (settings is { UsesOwnKey: true })
+        {
+            return settings is { OwnKeyInputPrice: { } input, OwnKeyOutputPrice: { } output } && BlendedPerMillion(input, output) is > 0 and var own
+                ? own
+                : null;
+        }
 
-    /// <summary>
-    /// What <paramref name="tokens"/> used against a default shown in dollars come to, to four places like a call's cost, so one
-    /// check's use never reads as $0.00.
-    /// </summary>
-    public static decimal EstimateInDollars(decimal tokens, decimal blendedPerMillion)
-        => Math.Round(Dollars(tokens, blendedPerMillion), 4, MidpointRounding.AwayFromZero);
+        return configuredPrice is { } price && BlendedPerMillion(price.Input, price.Output) is > 0 and var builtIn
+            ? builtIn * (1m + margin)
+            : null;
+    }
 
-    /// <summary>A default limit of <paramref name="tokens"/> in dollars, to the cent, and never shown as $0.00.</summary>
-    public static decimal DefaultInDollars(decimal tokens, decimal blendedPerMillion)
-        => Math.Max(0.01m, Math.Round(Dollars(tokens, blendedPerMillion), 2, MidpointRounding.AwayFromZero));
+    /// <summary>A limit of <paramref name="tokens"/> in dollars, to the cent, and never shown as $0.00.</summary>
+    public static decimal LimitInDollars(decimal tokens, decimal billedPerMillion)
+        => Math.Max(0.01m, Math.Round(Dollars(tokens, billedPerMillion), 2, MidpointRounding.AwayFromZero));
 }
 
 /// <summary>The monthly budget, alert and cap rules, as pure functions of what was used (ai-usage.md, "Budget, alerts and the cap").</summary>

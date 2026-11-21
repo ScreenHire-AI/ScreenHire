@@ -37,13 +37,13 @@ public static class AiUsageContexts
 public static class AiUsageAlertChecks
 {
     public static async Task<List<NotifyAiUsage>> DueAsync(
-        ScreenHireDbContext db, Guid organizationId, VerificationSettings? settings, LlmOptions llm, DateTimeOffset now, CancellationToken cancellationToken)
+        ScreenHireDbContext db, Guid organizationId, VerificationSettings? settings, LlmOptions llm, decimal margin, DateTimeOffset now,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(llm);
-        var (budget, budgetUnit) = AiUsageLimits.EffectiveBudget(settings, llm.DefaultMonthlyTokenBudget);
-        var (cap, capUnit) = AiUsageLimits.EffectiveCap(settings, llm.DefaultMonthlyTokenCap);
         var due = new List<NotifyAiUsage>();
+        var (budget, cap) = await AiUsageLimitsInForce.ResolveAsync(db, settings, llm, margin, now, cancellationToken);
         if (budget is null && cap is null)
         {
             return due;
@@ -51,27 +51,18 @@ public static class AiUsageAlertChecks
 
         var month = AiUsageQueries.Month(now);
         var raised = (await db.AiUsageAlerts.AsNoTracking().Where(a => a.Key.StartsWith(month)).Select(a => a.Key).ToListAsync(cancellationToken)).ToHashSet(StringComparer.Ordinal);
-        decimal? usedForBudget = null;
-        if (budget is not null)
+        foreach (var percent in budget?.ThresholdsReached ?? [])
         {
-            usedForBudget = await db.UsedThisMonthAsync(budgetUnit, now, cancellationToken);
-            foreach (var percent in AiUsageLimits.ThresholdsReached(usedForBudget.Value, budget))
+            var key = AiUsageAlertKeys.Budget(month, percent);
+            if (!raised.Contains(key))
             {
-                var key = AiUsageAlertKeys.Budget(month, percent);
-                if (!raised.Contains(key))
-                {
-                    due.Add(new NotifyAiUsage(organizationId, AiUsageAlertKind.Budget, key, percent));
-                }
+                due.Add(new NotifyAiUsage(organizationId, AiUsageAlertKind.Budget, key, percent));
             }
         }
 
-        if (cap is not null && !raised.Contains(AiUsageAlertKeys.Cap(month)))
+        if (cap is { Reached: true } && !raised.Contains(AiUsageAlertKeys.Cap(month)))
         {
-            var used = capUnit == budgetUnit && usedForBudget is { } same ? same : await db.UsedThisMonthAsync(capUnit, now, cancellationToken);
-            if (AiUsageLimits.CapReached(used, cap))
-            {
-                due.Add(new NotifyAiUsage(organizationId, AiUsageAlertKind.Cap, AiUsageAlertKeys.Cap(month)));
-            }
+            due.Add(new NotifyAiUsage(organizationId, AiUsageAlertKind.Cap, AiUsageAlertKeys.Cap(month)));
         }
 
         return due;

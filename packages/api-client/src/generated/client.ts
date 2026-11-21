@@ -26,7 +26,9 @@ import type {
   ApplyTemplateUpdateRequest,
   AutomationIssue,
   AutomationRunEntry,
+  BillingInvoiceList,
   BillingOverview,
+  BillingPaymentMethodView,
   BillingPlanChangePreview,
   BillingRedirect,
   BoardSummary,
@@ -146,6 +148,7 @@ import type {
   OAuthConnectionSummary,
   OfferNewInterviewTimesRequest,
   OnboardingRequest,
+  OpenBillingPortalParams,
   OrganizationBranding,
   OrganizationProfile,
   OrganizationRetention,
@@ -13434,20 +13437,137 @@ export type openBillingPortalResponseError = (openBillingPortalResponse401 | ope
 
 export type openBillingPortalResponse = (openBillingPortalResponseSuccess | openBillingPortalResponseError)
 
-export const getOpenBillingPortalUrl = () => {
+export const getOpenBillingPortalUrl = (params?: OpenBillingPortalParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/v1/organization/billing/portal`
+  return stringifiedParams.length > 0 ? `/v1/organization/billing/portal?${stringifiedParams}` : `/v1/organization/billing/portal`
 }
 
-export const openBillingPortal = async ( options?: Parameters<typeof apiFetch>[1]): Promise<openBillingPortalResponse> => {
+export const openBillingPortal = async (params?: OpenBillingPortalParams, options?: Parameters<typeof apiFetch>[1]): Promise<openBillingPortalResponse> => {
 
-  return apiFetch<openBillingPortalResponse>(getOpenBillingPortalUrl(),
+  return apiFetch<openBillingPortalResponse>(getOpenBillingPortalUrl(params),
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listBillingInvoicesResponse200 = {
+  data: BillingInvoiceList
+  status: 200
+}
+
+export type listBillingInvoicesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listBillingInvoicesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listBillingInvoicesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listBillingInvoicesResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type listBillingInvoicesResponseSuccess = (listBillingInvoicesResponse200) & {
+  headers: Headers;
+};
+export type listBillingInvoicesResponseError = (listBillingInvoicesResponse401 | listBillingInvoicesResponse403 | listBillingInvoicesResponse404 | listBillingInvoicesResponse502) & {
+  headers: Headers;
+};
+
+export type listBillingInvoicesResponse = (listBillingInvoicesResponseSuccess | listBillingInvoicesResponseError)
+
+export const getListBillingInvoicesUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/invoices`
+}
+
+export const listBillingInvoices = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listBillingInvoicesResponse> => {
+
+  return apiFetch<listBillingInvoicesResponse>(getListBillingInvoicesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getBillingPaymentMethodResponse200 = {
+  data: BillingPaymentMethodView
+  status: 200
+}
+
+export type getBillingPaymentMethodResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getBillingPaymentMethodResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getBillingPaymentMethodResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getBillingPaymentMethodResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type getBillingPaymentMethodResponseSuccess = (getBillingPaymentMethodResponse200) & {
+  headers: Headers;
+};
+export type getBillingPaymentMethodResponseError = (getBillingPaymentMethodResponse401 | getBillingPaymentMethodResponse403 | getBillingPaymentMethodResponse404 | getBillingPaymentMethodResponse502) & {
+  headers: Headers;
+};
+
+export type getBillingPaymentMethodResponse = (getBillingPaymentMethodResponseSuccess | getBillingPaymentMethodResponseError)
+
+export const getGetBillingPaymentMethodUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/payment-method`
+}
+
+export const getBillingPaymentMethod = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getBillingPaymentMethodResponse> => {
+
+  return apiFetch<getBillingPaymentMethodResponse>(getGetBillingPaymentMethodUrl(),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

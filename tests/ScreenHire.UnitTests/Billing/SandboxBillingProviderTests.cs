@@ -223,4 +223,63 @@ public sealed class SandboxBillingProviderTests
         webhook.SignatureValid.Should().BeFalse();
         webhook.Event.Should().BeNull();
     }
+
+    [Fact]
+    public async Task The_portal_state_carries_what_it_was_opened_for_so_changing_the_card_cancels_nothing()
+    {
+        foreach (var intent in Enum.GetValues<BillingPortalIntent>())
+        {
+            var link = await provider.CreatePortalAsync(new PortalRequest(organization, "cus_sandbox", Success, intent), TestContext.Current.CancellationToken);
+            provider.Read(StateOf(link))!.Intent.Should().Be(intent);
+        }
+    }
+
+    [Fact]
+    public async Task Sample_invoices_are_one_a_month_at_the_plans_price_newest_first_and_none_before_a_customer()
+    {
+        var periodEnd = new DateTimeOffset(2100, 3, 10, 9, 0, 0, TimeSpan.Zero);
+        var request = new InvoiceListRequest(organization, "cus_sandbox", Starter(), SubscriptionStatus.Active, periodEnd, Start);
+
+        var invoices = await provider.ListInvoicesAsync(request, TestContext.Current.CancellationToken);
+
+        invoices.Select(i => i.CreatedAt).Should().Equal(
+            new DateTimeOffset(2100, 2, 10, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2100, 1, 10, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2099, 12, 10, 9, 0, 0, TimeSpan.Zero));
+        invoices.Should().AllSatisfy(i =>
+        {
+            i.Amount.Should().Be(29m);
+            i.Currency.Should().Be("USD");
+            i.Status.Should().Be(BillingInvoiceStatus.Paid);
+            i.PdfUrl!.OriginalString.Should().Be($"{SandboxBillingProvider.InvoicePdfPath}/{i.Id}");
+        });
+        invoices[0].Id.Should().Be("in_sandbox_210002");
+
+        var late = await provider.ListInvoicesAsync(request with { Status = SubscriptionStatus.PastDue }, TestContext.Current.CancellationToken);
+        late.Select(i => i.Status).Should().Equal(BillingInvoiceStatus.Due, BillingInvoiceStatus.Paid, BillingInvoiceStatus.Paid);
+        (await provider.ListInvoicesAsync(request with { CustomerId = null }, TestContext.Current.CancellationToken)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task The_sandbox_card_is_the_test_visa_once_there_is_a_customer()
+    {
+        (await provider.GetPaymentMethodAsync(new PaymentMethodRequest(organization, "cus_sandbox", "sub_sandbox"), TestContext.Current.CancellationToken))
+            .Should().Be(new ProviderPaymentMethod("card", "visa", "4242"));
+        (await provider.GetPaymentMethodAsync(new PaymentMethodRequest(organization, null, null), TestContext.Current.CancellationToken)).Should().BeNull();
+    }
+
+    [Fact]
+    public void A_sample_invoice_pdf_is_a_well_formed_pdf_and_an_id_the_sandbox_never_made_is_none()
+    {
+        var pdf = System.Text.Encoding.ASCII.GetString(SandboxBillingProvider.SampleInvoicePdf("in_sandbox_210002")!);
+
+        pdf.Should().StartWith("%PDF-1.4\n").And.EndWith("%%EOF\n").And.Contain("Sample invoice February 2100");
+        // Every object starts where the cross-reference table says it does, so a reader opens the file without repairing it.
+        var xrefAt = int.Parse(pdf[(pdf.LastIndexOf("startxref\n", StringComparison.Ordinal) + 10)..].Split('\n')[0], System.Globalization.CultureInfo.InvariantCulture);
+        pdf[xrefAt..].Should().StartWith("xref\n0 6\n");
+        var offsets = pdf[xrefAt..].Split('\n').Skip(3).Take(5).Select(line => int.Parse(line[..10], System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        offsets.Select((offset, i) => pdf[offset..].StartsWith($"{i + 1} 0 obj", StringComparison.Ordinal)).Should().AllBeEquivalentTo(true);
+
+        SandboxBillingProvider.SampleInvoicePdf("in_sandbox_2100xx").Should().BeNull();
+        SandboxBillingProvider.SampleInvoicePdf("in_live_210002").Should().BeNull();
+        SandboxBillingProvider.SampleInvoicePdf("../etc/passwd").Should().BeNull();
+    }
 }

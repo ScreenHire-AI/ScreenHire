@@ -6,20 +6,17 @@
  */
 
 /**
- * This UTC month's use of ScreenHire's AI key, in US dollars (docs/architecture/billing.md, "AI usage"). `providerCost` is what
- * the provider charged ScreenHire for the calls and `charge` is what the organization pays: each call's cost plus
- * `marginPercent` (20 is "plus 20%"), rounded to a micro-dollar per call. A call whose cost is unknown
- * (`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on the organization's own key, never
- * charged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what it has already covered.
- * `metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered price is set).
+ * This UTC month's use of ScreenHire's AI key (docs/architecture/billing.md, "AI usage"). `charge` is what the organization
+ * pays for it in US dollars, the one amount for AI use that the Usage tab shows too, and it never names the provider's price or a
+ * margin. A call whose cost is unknown (`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on
+ * the organization's own key, never charged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what
+ * it has already covered. `metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered
+ * price is set).
  */
 export interface BillingAiUsage {
   month: string;
   builtInCalls: number;
-  tokens: number;
-  providerCost: number;
   charge: number;
-  marginPercent: number;
   callsWithUnknownCost: number;
   ownKeyCalls: number;
   trialAllowance: number;
