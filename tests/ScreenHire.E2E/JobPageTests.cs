@@ -251,10 +251,11 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
         var columns = fit.GetProperty("columns").EnumerateArray().ToList();
         columns.Select(column => column.GetProperty("id").GetString()).Should().Equal("applied", "screening", "interview", "offer", "closed");
         columns.Should().OnlyContain(column => column.GetProperty("inside").GetBoolean(), "every stage shows at 1920px");
-        // The stages with candidates share what is left of the width, alike and at least 264px; an empty stage and Closed stay 188px.
+        // Every stage shares the width alike, busy or empty, at most 384px, so two busy stages never stretch across half the
+        // screen (the owner's walk-through, 2026-11-21); Closed stays 188px.
         var widths = columns.Select(column => column.GetProperty("width").GetInt32()).ToList();
-        widths[0].Should().BeGreaterThan(264).And.BeCloseTo(widths[1], 1);
-        widths.Skip(2).Should().Equal(188, 188, 188);
+        widths.Take(4).Should().OnlyContain(width => width > 264 && width <= 384 && Math.Abs(width - widths[0]) <= 1);
+        widths[4].Should().Be(188);
         fit.GetProperty("sideways").GetInt32().Should().Be(0, "the board needs no sideways scroll at 1920px");
         fit.GetProperty("pageDown").GetInt32().Should().Be(0, "the board scrolls inside itself, never the page");
         fit.GetProperty("pageSideways").GetInt32().Should().Be(0, "the page never scrolls sideways (F1)");

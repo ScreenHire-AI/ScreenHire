@@ -339,21 +339,12 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
 
             if (width == 1024)
             {
-                // The board's stage columns share the width equally up to 384px each, so two busy stages never stretch
-                // across half the screen; when the stages do not fit, a column with candidates keeps 264px and an empty one
-                // 188px, so the empty ones give way first (the owner's walk-through, 2026-11-21).
+                // When the stages do not fit, a column with candidates keeps 264px and an empty one 188px, so the empty ones
+                // give way first (the owner's walk-through, 2026-11-21). JobPageTests checks the equal shares at 1920.
                 await Page.GetByRole(AriaRole.Button, new() { Name = "Board", Exact = true }).ClickAsync();
                 await Expect(Page.Locator("[data-card-id]").First).ToBeVisibleAsync();
                 foreach (var column in await StageColumnsAsync(Page))
                     column[0].Should().BeGreaterThanOrEqualTo(column[1] > 0 ? 263.5 : 187.5, "a column keeps its least width");
-
-                await Page.SetViewportSizeAsync(2560, DesignHeight);
-                await Wait.UntilAsync(async () => (await StageColumnsAsync(Page)) is var settled && settled.Max(column => column[0]) - settled.Min(column => column[0]) < 1.5, "the columns settle at the wide width", Ct);
-                var wide = await StageColumnsAsync(Page);
-                wide.Should().OnlyContain(column => column[0] <= 384.5, "no column grows past 384px");
-                (wide.Max(column => column[0]) - wide.Min(column => column[0])).Should().BeLessThan(1.5, "busy and empty stages share the width equally");
-
-                await Page.SetViewportSizeAsync(width, DesignHeight);
                 await Page.GetByRole(AriaRole.Button, new() { Name = "Table", Exact = true }).ClickAsync();
             }
 

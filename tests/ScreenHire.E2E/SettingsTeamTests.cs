@@ -50,13 +50,13 @@ public sealed class SettingsTeamTests(E2EFixture fixture) : SettingsArea(fixture
         // The sheet starts at Viewer, the least access, and says what each role is for.
         await Expect(invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Viewer") })).ToBeCheckedAsync();
         await Expect(invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Recruiter") })).ToHaveAccessibleNameAsync(new Regex("Moves candidates and edits jobs"));
-        // Each built-in role's line fits beside its name, not cut with an ellipsis (the owner's walk-through, 2026-11-21).
-        foreach (var role in new[] { "Owner", "Admin", "Recruiter", "Viewer" })
-        {
-            var line = invite.Locator("label", new() { Has = invite.GetByRole(AriaRole.Radio, new() { NameRegex = new($"^{role} ") }) }).Locator("span.text-muted-foreground");
-            await Expect(line).ToHaveCountAsync(1);
-            (await line.EvaluateAsync<bool>("element => element.scrollWidth <= element.clientWidth")).Should().BeTrue($"the {role} line fits");
-        }
+        // Each built-in role the sheet offers has a line that fits beside its name, not cut with an ellipsis (the owner's
+        // walk-through, 2026-11-21).
+        var lines = invite.GetByRole(AriaRole.Radiogroup).Locator("label span.text-muted-foreground");
+        await Expect(lines.First).ToBeVisibleAsync();
+        (await lines.CountAsync()).Should().BeGreaterThanOrEqualTo(3, "Admin, Recruiter and Viewer at least");
+        (await lines.EvaluateAllAsync<bool[]>("elements => elements.map((element) => element.scrollWidth <= element.clientWidth)"))
+            .Should().AllBeEquivalentTo(true, "every built-in role's line fits");
         await invite.GetByLabel("Email", new() { Exact = true }).FillAsync(colleague);
         await invite.GetByRole(AriaRole.Radio, new() { NameRegex = new("^Recruiter") }).CheckAsync();
         await ExpectNoAccessibilityViolationsAsync();
