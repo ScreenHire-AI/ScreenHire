@@ -36,6 +36,7 @@ import {
 } from './apply';
 import { fileProblem, type UploadRef } from '@screenhire/ui/questions/files';
 import { embedOrigin } from './embed';
+import { firstTag } from './locale';
 import { sourceBoard } from './source';
 import { parseFingerprint, parseMarkers, parseSnapshot } from './telemetry';
 
@@ -83,7 +84,9 @@ export async function applyStep(
   now: Date = new Date(),
   embed: string | null = null,
   source: string | null = null,
+  acceptLanguage: string | null = null,
 ): Promise<ApplyResult> {
+  const language = firstTag(acceptLanguage);
   const organization = text(form, 'organization');
   const jobSlug = text(form, 'job');
   const forwarded = forwardedFor(clientAddress);
@@ -123,7 +126,7 @@ export async function applyStep(
   }
 
   if (intent === 'save' && definition.saveDraftEnabled) {
-    return saveDraft(organization, definition.job.id, step, state, questions, text(form, TURNSTILE_FIELD) || null, forwarded);
+    return saveDraft(organization, definition.job.id, step, state, questions, text(form, TURNSTILE_FIELD) || null, language, forwarded);
   }
 
   // An upload's own problem ("larger than 10 MB") says more than the step's "Add a file for ..." for the same field.
@@ -149,6 +152,7 @@ export async function applyStep(
     automationMarkers: parseMarkers(form.get('automationMarkers')),
     embedOrigin: embedOrigin(embed, definition.organization.embedOrigins),
     source: sourceBoard(source),
+    language,
   });
   const submitted = await submitPublicApplication(organization, definition.job.id, request, forwarded);
   switch (submitted.status) {
@@ -188,6 +192,7 @@ async function saveDraft(
   state: ApplyState,
   questions: readonly PublicQuestion[],
   botCheckToken: string | null,
+  language: string | null,
   forwarded: RequestInit | undefined,
 ): Promise<ApplyResult> {
   const body = toDraftRequest(state, questions);
@@ -209,7 +214,7 @@ async function saveDraft(
     }
   }
 
-  const created = await createPublicApplicationDraft(organization, jobId, { ...body, botCheckToken }, forwarded);
+  const created = await createPublicApplicationDraft(organization, jobId, { ...body, botCheckToken, language }, forwarded);
   switch (created.status) {
     case 201:
       return {

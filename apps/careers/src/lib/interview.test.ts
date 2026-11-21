@@ -96,15 +96,15 @@ describe('the time that is posted', () => {
 
 describe('writing a time', () => {
   it('writes the range in the zone, on a 12-hour clock, with midnight as 12:00 AM', () => {
-    expect(timeRange(new Date('2026-03-03T10:00:00Z'), 30, 'UTC')).toBe('10:00 AM to 10:30 AM');
-    expect(timeRange(new Date('2026-03-03T10:00:00Z'), 45, 'UTC')).toBe('10:00 AM to 10:45 AM');
-    expect(timeRange(new Date('2026-03-03T23:30:00Z'), 60, 'UTC')).toBe('11:30 PM to 12:30 AM');
-    expect(timeRange(new Date('2026-03-03T00:00:00Z'), 30, 'UTC')).toBe('12:00 AM to 12:30 AM');
+    expect(timeRange(new Date('2026-03-03T10:00:00Z'), 30, 'UTC', 'en-US')).toBe('10:00 AM to 10:30 AM');
+    expect(timeRange(new Date('2026-03-03T10:00:00Z'), 45, 'UTC', 'en-US')).toBe('10:00 AM to 10:45 AM');
+    expect(timeRange(new Date('2026-03-03T23:30:00Z'), 60, 'UTC', 'en-US')).toBe('11:30 PM to 12:30 AM');
+    expect(timeRange(new Date('2026-03-03T00:00:00Z'), 30, 'UTC', 'en-US')).toBe('12:00 AM to 12:30 AM');
   });
 
   it('keeps a half-hour zone on the half hour', () => {
-    expect(timeRange(new Date('2026-03-03T09:00:00Z'), 30, 'Asia/Kolkata')).toBe('2:30 PM to 3:00 PM');
-    expect(timeRange(new Date('2026-03-03T09:30:00Z'), 30, 'Asia/Kolkata')).toBe('3:00 PM to 3:30 PM');
+    expect(timeRange(new Date('2026-03-03T09:00:00Z'), 30, 'Asia/Kolkata', 'en-US')).toBe('2:30 PM to 3:00 PM');
+    expect(timeRange(new Date('2026-03-03T09:30:00Z'), 30, 'Asia/Kolkata', 'en-US')).toBe('3:00 PM to 3:30 PM');
   });
 
   it('puts an instant on the local day of the zone', () => {
@@ -114,11 +114,29 @@ describe('writing a time', () => {
   });
 
   it('describes a booked time with its day, year, range and zone', () => {
-    expect(describeBooked('2026-03-03T09:00:00Z', 30, 'Asia/Kolkata')).toEqual({
+    expect(describeBooked('2026-03-03T09:00:00Z', 30, 'Asia/Kolkata', 'en-US')).toEqual({
       day: 'Tuesday, March 3, 2026',
       range: '2:30 PM to 3:00 PM',
       zone: expect.stringContaining('India') as string,
     });
+  });
+
+  it("writes the day and the clock in the reader's language, with the zone and the word to unchanged", () => {
+    const british = describeBooked('2026-03-03T09:00:00Z', 30, 'Asia/Kolkata', 'en-GB');
+    expect(british.day).toMatch(/^Tuesday,? 3 March 2026$/);
+    expect(british.range).toBe('14:30 to 15:00');
+    expect(british.zone).toContain('India');
+    expect(timeRange(new Date('2026-03-03T09:00:00Z'), 30, 'UTC', 'en-GB')).toBe('09:00 to 09:30');
+
+    const german = describeBooked('2026-03-03T09:00:00Z', 30, 'Asia/Kolkata', 'de');
+    expect(german.day).toBe('Dienstag, 3. März 2026');
+    expect(german.range).toBe('14:30 to 15:00');
+  });
+
+  it('keeps the day key the same in every language, since it is a key and not text', () => {
+    const slots = ['2026-03-03T09:00:00Z'];
+    expect(groupByDay(slots, 'UTC', 'de')[0]!.key).toBe('2026-03-03');
+    expect(groupByDay(slots, 'UTC', 'en-GB')[0]!.heading).toMatch(/^Tuesday,? 3 March$/);
   });
 });
 
@@ -136,7 +154,7 @@ describe('lengths', () => {
 
 describe('grouping times by day', () => {
   it('groups by the local day, earliest first, ignoring repeats and junk', () => {
-    const days = groupByDay(['2026-03-04T10:00:00Z', '2026-03-03T09:30:00Z', '2026-03-03T09:00:00Z', '2026-03-03T09:00:00Z', 'not a time'], 'UTC');
+    const days = groupByDay(['2026-03-04T10:00:00Z', '2026-03-03T09:30:00Z', '2026-03-03T09:00:00Z', '2026-03-03T09:00:00Z', 'not a time'], 'UTC', 'en-US');
     expect(days).toEqual([
       {
         key: '2026-03-03',
@@ -151,7 +169,7 @@ describe('grouping times by day', () => {
   });
 
   it('moves a late slot to the next local day when the zone is ahead of UTC', () => {
-    const days = groupByDay(['2026-03-03T09:00:00Z', '2026-03-03T20:00:00Z'], 'Asia/Kolkata');
+    const days = groupByDay(['2026-03-03T09:00:00Z', '2026-03-03T20:00:00Z'], 'Asia/Kolkata', 'en-US');
     expect(days.map((day) => [day.key, day.slots.map((slot) => slot.label)])).toEqual([
       ['2026-03-03', ['2:30 PM']],
       ['2026-03-04', ['1:30 AM']],
@@ -160,7 +178,7 @@ describe('grouping times by day', () => {
   });
 
   it('moves an early slot to the previous local day when the zone is behind UTC', () => {
-    const days = groupByDay(['2026-03-03T03:00:00Z', '2026-03-03T17:00:00Z'], 'America/Los_Angeles');
+    const days = groupByDay(['2026-03-03T03:00:00Z', '2026-03-03T17:00:00Z'], 'America/Los_Angeles', 'en-US');
     expect(days.map((day) => [day.key, day.slots.map((slot) => slot.label)])).toEqual([
       ['2026-03-02', ['7:00 PM']],
       ['2026-03-03', ['9:00 AM']],
@@ -169,14 +187,14 @@ describe('grouping times by day', () => {
 
   it('writes the day daylight saving time starts as it is on the wall, with the hour that does not exist skipped', () => {
     // New York, Sunday March 8 2026: clocks go from 02:00 to 03:00, so 01:30 EST ends at 03:00 EDT after 30 minutes.
-    const days = groupByDay(['2026-03-08T05:00:00Z', '2026-03-08T06:30:00Z', '2026-03-08T07:00:00Z', '2026-03-08T14:00:00Z'], 'America/New_York');
+    const days = groupByDay(['2026-03-08T05:00:00Z', '2026-03-08T06:30:00Z', '2026-03-08T07:00:00Z', '2026-03-08T14:00:00Z'], 'America/New_York', 'en-US');
     expect(days).toHaveLength(1);
     expect(days[0]!.heading).toBe('Sunday, March 8');
     expect(days[0]!.slots.map((slot) => slot.label)).toEqual(['12:00 AM', '1:30 AM', '3:00 AM', '10:00 AM']);
   });
 
   it('keeps the same local hour either side of the change', () => {
-    const days = groupByDay(['2026-03-06T14:00:00Z', '2026-03-09T13:00:00Z'], 'America/New_York');
+    const days = groupByDay(['2026-03-06T14:00:00Z', '2026-03-09T13:00:00Z'], 'America/New_York', 'en-US');
     expect(days.map((day) => [day.key, day.slots[0]!.label])).toEqual([
       ['2026-03-06', '9:00 AM'],
       ['2026-03-09', '9:00 AM'],
@@ -184,12 +202,12 @@ describe('grouping times by day', () => {
   });
 
   it('adds the year to days that fall in another year than the first', () => {
-    const days = groupByDay(['2026-12-31T10:00:00Z', '2027-01-02T10:00:00Z'], 'UTC');
+    const days = groupByDay(['2026-12-31T10:00:00Z', '2027-01-02T10:00:00Z'], 'UTC', 'en-US');
     expect(days.map((day) => day.heading)).toEqual(['Thursday, December 31', 'Saturday, January 2, 2027']);
   });
 
   it('offers nothing for no times', () => {
-    expect(groupByDay([], 'UTC')).toEqual([]);
+    expect(groupByDay([], 'UTC', 'en-US')).toEqual([]);
   });
 });
 

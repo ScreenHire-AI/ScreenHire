@@ -228,6 +228,13 @@ internal sealed partial class InterviewWorld : IDisposable
         await db.Database.ExecuteSqlAsync($"UPDATE interview_requests SET starts_at = {start}, ends_at = {end} WHERE id = {interviewId}", Ct);
     }
 
+    /// <summary>Records the language of the browser an application came from, as submitting it from the careers page does.</summary>
+    public async Task SetLanguageAsync(Guid applicationId, string language)
+    {
+        await using var db = await fixture.ContextAsync(OrganizationId, Ct);
+        await db.Database.ExecuteSqlAsync($"UPDATE applications SET language = {language} WHERE id = {applicationId}", Ct);
+    }
+
     /// <summary>Clears the attendees' saved event ids, as if the transaction that saved them had rolled back.</summary>
     public async Task ForgetEventIdsAsync(Guid interviewId)
     {

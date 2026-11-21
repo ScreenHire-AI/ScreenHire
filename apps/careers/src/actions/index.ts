@@ -33,6 +33,7 @@ export const server = {
         new Date(),
         context.url.searchParams.get('embed'),
         context.url.searchParams.get('src'),
+        context.request.headers.get('accept-language'),
       ),
   }),
 
