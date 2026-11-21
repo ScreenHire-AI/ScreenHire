@@ -10,9 +10,11 @@
   import HeaderBand from '#lib/components/header-band.svelte';
   import MergeTagDialog from '#lib/components/merge-tag-dialog.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
+  import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RenameTagDialog from '#lib/components/rename-tag-dialog.svelte';
+  import SearchField from '#lib/components/search-field.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
@@ -39,6 +41,9 @@
   const sidebar = Sidebar.useSidebar();
   const catalogue = createListTags();
   const tags = $derived<TagSummary[]>(catalogue.data?.data.tags ?? []);
+  // Past about ten, a list has a search (S9); it matches the tag's name, ignoring case.
+  let search = $state('');
+  const shown = $derived(search.trim() ? tags.filter((tag) => tag.name.toLowerCase().includes(search.trim().toLowerCase())) : tags);
   const refresh = () => Promise.all([tagsPath, jobsPath, applicationsPath, candidatesPath, templatesPath, viewsPath].map((path) => invalidatePath(queryClient, path)));
   const rename = createRenameTag(() => ({ mutation: { onSettled: refresh } }));
   const merge = createMergeTag(() => ({ mutation: { onSettled: refresh } }));
@@ -61,7 +66,7 @@
     features,
     columns,
     get data() {
-      return tags;
+      return shown;
     },
     getRowId: (tag) => tag.name,
   });
@@ -85,14 +90,17 @@
   }
   const others = $derived(tags.filter((tag) => tag.name !== merging).map((tag) => tag.name));
 
-  // What the last change did, said once in a status line; a published template that still names the old tag is named.
-  let outcome = $state('');
+  // What the last change did, for screen readers; a published template that still names the old tag is a notice, because
+  // someone has to publish a new version of it, and it stays until the next change.
+  let announcement = $state('');
+  let stale = $state<{ tag: string; templates: TagChangeResult['stillNamedBy'] } | null>(null);
   function said(done: string, old: string, result: TagChangeResult) {
-    const still = result.stillNamedBy.map((template) => template.name);
-    outcome = still.length === 0 ? done : `${done} ${still.join(', ')} still ${still.length === 1 ? 'names' : 'name'} "${old}" until a new version is published.`;
+    announcement = done;
+    stale = result.stillNamedBy.length > 0 ? { tag: old, templates: result.stillNamedBy } : null;
   }
 
   async function onrename(tag: string, name: string): Promise<string | null> {
+    stale = null;
     try {
       said(`Renamed "${tag}" to "${name}".`, tag, (await rename.mutateAsync({ data: { tag, newName: name } })).data);
       return null;
@@ -102,6 +110,7 @@
   }
 
   async function onmerge(tag: string, into: string): Promise<string | null> {
+    stale = null;
     try {
       said(`Merged "${tag}" into "${into}".`, tag, (await merge.mutateAsync({ data: { tag, into } })).data);
       return null;
@@ -113,8 +122,9 @@
   async function deleteTag() {
     if (!deleting) return;
     const name = deleting.name;
+    stale = null;
     await remove.mutateAsync({ params: { tag: name } });
-    outcome = `Deleted the tag "${name}".`;
+    announcement = `Deleted the tag "${name}".`;
   }
 </script>
 
@@ -128,13 +138,23 @@
   <HeaderBand title="Tags" oneRow />
 
   <SettingsMenu>
-    {#if outcome}<p role="status" class="text-muted-foreground">{outcome}</p>{/if}
+    <p role="status" class="sr-only">{announcement}</p>
+    {#if stale}
+      {@const names = stale.templates.map((template) => template.name).join(', ')}
+      {@const one = stale.templates.length === 1 ? stale.templates[0] : undefined}
+      <Notice href={one ? `/templates/${one.templateId}` : undefined} link={one ? `Open ${one.name}` : undefined}>
+        {names} still {one ? 'names' : 'name'} "{stale.tag}" in {one ? 'its' : 'their'} published version. Publish a new version to use the new name.
+      </Notice>
+    {/if}
     {#if catalogue.isError}
       <Panel title="Tags">
         <QueryError message={describeError(catalogue.error, 'Could not load the tags')} onretry={() => catalogue.refetch()} inset />
       </Panel>
     {:else}
       <Panel title="Tags" count={catalogue.isSuccess ? tags.length : undefined} flush>
+        {#snippet tools()}
+          {#if tags.length > 10}<SearchField bind:value={search} label="Search tags" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
+        {/snippet}
         {#if catalogue.isPending}
           <div aria-hidden="true" class="flex flex-col">
             {#each [0, 1, 2, 3] as row (row)}
@@ -154,6 +174,9 @@
             </Empty.Header>
           </Empty.Root>
         {:else}
+          {#if shown.length === 0}
+            <p class="border-b border-border-subtle px-4.5 py-3 text-muted-foreground max-md:px-4">No tag matches the search.</p>
+          {/if}
           <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
           <ul class="md:hidden">
             {#each sorted as tag (tag.name)}
@@ -186,7 +209,7 @@
                   <Table.Row class="h-12">
                     <Table.Cell class="max-w-64 px-4.5 font-semibold"><span class="flex min-w-0"><TruncatedText text={tag.name} /></span></Table.Cell>
                     <Table.Cell class="tabular-nums">{tag.applications}</Table.Cell>
-                    <Table.Cell class="w-full max-w-0 min-w-48 text-muted-foreground">
+                    <Table.Cell class="w-full max-w-0 min-w-48">
                       <span class="flex min-w-0"><TruncatedText text={templatesOf(tag)} /></span>
                     </Table.Cell>
                     <Table.Cell class="pr-4.5 text-right">{@render tagMenu(tag)}</Table.Cell>

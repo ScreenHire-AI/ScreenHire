@@ -70,6 +70,17 @@ describe('tags page', () => {
     await expectNoAxeViolations();
   });
 
+  it('offers a search past ten tags, matching the name ignoring case', async () => {
+    const many = Array.from({ length: 11 }, (_, index) => ({ name: `Tag ${index + 1}`, applications: 11 - index, templates: [] }));
+    renderPage({ 'GET /v1/tags': () => Response.json({ tags: [...many, { name: 'Night shift', applications: 0, templates: [] }] }) });
+
+    await fireEvent.input(await screen.findByRole('searchbox', { name: 'Search tags' }), { target: { value: 'NIGHT' } });
+
+    const table = screen.getAllByRole('table')[0]!;
+    expect(within(table).getAllByRole('row').slice(1).map((row) => within(row).getAllByRole('cell')[0]!.textContent?.trim())).toEqual(['Night shift']);
+    expectCountInPanelNotBand('Tags', 12);
+  });
+
   it('renames a tag and says which published template still names the old one', async () => {
     const bodies = renderPage();
     await choose('Sr', 'Rename');
@@ -79,7 +90,10 @@ describe('tags page', () => {
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Rename tag' }));
 
     await waitFor(() => expect(bodies.rename).toEqual([{ tag: 'Sr', newName: 'Staff' }]));
-    expect(await screen.findByText('Renamed "Sr" to "Staff". Engineering still names "Sr" until a new version is published.')).toBeInTheDocument();
+    const notice = await screen.findByText(/Engineering still names "Sr" in its published version/);
+    expect(notice.closest('[data-slot="notice"]')).toHaveTextContent('Publish a new version to use the new name.');
+    expect(screen.getByRole('link', { name: 'Open Engineering' })).toHaveAttribute('href', `/templates/${engineering.templateId}`);
+    expect(screen.getByText('Renamed "Sr" to "Staff".')).toHaveClass('sr-only');
   });
 
   it('shows why a rename was refused under the field, as Merge is the way to combine two tags', async () => {

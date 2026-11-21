@@ -1287,14 +1287,15 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   only their own jobs gets no switch, only a line saying so (A3).
 - **Tags (Settings, Organization):** the organization's tags on the list template, most used first: Tag, Candidates (a
   number) and Published templates, the hiring templates whose newest published version names the tag, as plain text
-  ("Engineering (version 2)"), with no row link because a tag has no page. A phone has list items with the candidates
-  as a fact pill. The row's More menu holds Rename, Merge into another tag (only with another tag to merge into) and
+  ("Engineering (version 2)"), with no row link because a tag has no page. Past ten tags the panel has a search by
+  name (S9). A phone has list items with the candidates as a fact pill. The row's More menu holds Rename, Merge into another tag (only with another tag to merge into) and
   Delete tag (only for a tag some candidate has), each opening its dialog once the menu closes. Rename is one field;
   a name another tag already has, in any case, is refused under the field with the way to combine them, Merge. Merge is
   a native select of the other tags. Delete is confirmed (section 10): "It comes off 4 candidates. Automations that add
   it keep adding it." A rename or a merge also changes the automations of every open job and template draft and the
-  saved views that filter on the tag, and one status line above the panel says what was done and names any published
-  template that still names the old tag until a new version is published. Candidates change a moment later and the
+  saved views that filter on the tag. Screen readers hear what was done; a published template that still names the old
+  tag is a notice above the panel (E2), "Engineering still names "Sr" in its published version. Publish a new version to
+  use the new name.", with Open Engineering when there is one, until the next change. Candidates change a moment later and the
   counts follow live. Edit settings and all jobs, as the API asks ([shared tags](../architecture/tags.md)).
 - **Saved candidates:** the Saved tab on the Candidates page, under its title (G then S goes to `/candidates?list=saved`;
   `/saved` and `/talent-pool` redirect there), on the list template, in a panel titled Saved candidates, never counting its list, because the Saved tab has the count (W7), with Add candidate in the header as on the other two tabs: the people the team saved, with search, Saved from and Tag filters, and columns Candidate, Rating, Note,

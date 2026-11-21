@@ -88,7 +88,7 @@ A rename or a merge changes, in one save and through the change tracker:
 
 `ChangeHistoryInterceptor` records the jobs' and templates' changes in their history. A published version never
 changes, so the response's `stillNamedBy` names the templates whose newest published version still names the old tag,
-and the page says so. Publishing a new version from the draft brings them in step. A Contains condition on part of a
+and the page shows them in a notice. Publishing a new version from the draft brings them in step. A Contains condition on part of a
 tag ("Sen") matches whatever contains it by design, so a rename leaves it as written.
 
 The applications change in the worker. The route publishes `RetagApplications` with that save; its handler changes up to
