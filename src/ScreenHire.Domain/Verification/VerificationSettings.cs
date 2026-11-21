@@ -41,10 +41,11 @@ public sealed class VerificationSettings : ITenantOwned
     public bool LlmConsistencyCheckEnabled { get; set; }
 
     /// <summary>
-    /// What <see cref="MonthlyBudget"/> and <see cref="MonthlyCap"/> are counted in. One unit for both, so the two never
-    /// compare tokens with dollars.
+    /// What <see cref="MonthlyBudget"/> and <see cref="MonthlyCap"/> are stored in. One unit for both, so the two never compare
+    /// tokens with dollars. Limits are set in dollars; a row an Owner saved before that may hold tokens, which are converted to
+    /// dollars where the key has a price (docs/architecture/ai-usage.md). The column's database default stays Tokens for those rows.
     /// </summary>
-    public UsageUnit BudgetUnit { get; set; } = UsageUnit.Tokens;
+    public UsageUnit BudgetUnit { get; set; } = UsageUnit.Money;
 
     /// <summary>
     /// What the organization expects to use per calendar month (UTC), in <see cref="BudgetUnit"/>. Alerts go out at 50%, 80%

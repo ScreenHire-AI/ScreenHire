@@ -303,6 +303,79 @@ public sealed class StripeBillingProviderTests : IDisposable
         call.StripeVersion.Should().Be(StripeBillingProvider.ApiVersion);
     }
 
+    // ---- Invoices and the payment method ----
+
+    private InvoiceListRequest Invoices(string? customerId = "cus_fictional") =>
+        new(organization, customerId, Plan("starter"), SubscriptionStatus.Active, null, Now);
+
+    [Fact]
+    public async Task Invoices_are_the_customers_newest_first_with_drafts_left_out_and_each_status_in_a_customers_words()
+    {
+        stripe.Answer("""
+            {"data":[
+              {"id":"in_4","status":"draft","created":1772600000,"total":2900,"currency":"usd","invoice_pdf":null},
+              {"id":"in_3","status":"open","created":1772500000,"total":2900,"currency":"usd","invoice_pdf":"https://pay.stripe.com/invoice/in_3/pdf"},
+              {"id":"in_2","status":"uncollectible","created":1772400000,"total":2900,"currency":"usd","invoice_pdf":"https://pay.stripe.com/invoice/in_2/pdf"},
+              {"id":"in_1","status":"paid","created":1772300000,"total":3480,"currency":"usd","invoice_pdf":"https://pay.stripe.com/invoice/in_1/pdf"},
+              {"id":"in_0","status":"void","created":1772200000,"total":500,"currency":"jpy","invoice_pdf":"http://insecure.example.org/in_0.pdf"}
+            ]}
+            """);
+
+        var invoices = await Provider().ListInvoicesAsync(Invoices(), TestContext.Current.CancellationToken);
+
+        var call = stripe.Calls.Single();
+        call.Method.Should().Be(HttpMethod.Get);
+        call.Uri.Should().Be(new Uri("https://api.stripe.com/v1/invoices?customer=cus_fictional&limit=24"));
+        call.StripeVersion.Should().Be(StripeBillingProvider.ApiVersion);
+        invoices.Select(i => i.Id).Should().Equal("in_3", "in_2", "in_1", "in_0");
+        invoices.Select(i => i.Status).Should().Equal(BillingInvoiceStatus.Due, BillingInvoiceStatus.Due, BillingInvoiceStatus.Paid, BillingInvoiceStatus.Void);
+        invoices[2].Amount.Should().Be(34.80m, "the total, tax included, in dollars");
+        invoices[2].Currency.Should().Be("USD");
+        invoices[2].CreatedAt.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1772300000));
+        invoices[2].PdfUrl.Should().Be(new Uri("https://pay.stripe.com/invoice/in_1/pdf"));
+        invoices[3].Amount.Should().Be(500m, "yen has no minor unit");
+        invoices[3].PdfUrl.Should().BeNull("only a secure link is offered");
+    }
+
+    [Fact]
+    public async Task No_customer_lists_no_invoices_without_asking_stripe()
+    {
+        (await Provider().ListInvoicesAsync(Invoices(customerId: null), TestContext.Current.CancellationToken)).Should().BeEmpty();
+        stripe.Calls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task The_payment_method_is_the_subscriptions_own_default_then_the_customers()
+    {
+        stripe.Answer("""{"id":"sub_fictional","default_payment_method":{"id":"pm_1","type":"card","card":{"brand":"mastercard","last4":"4444"}},"customer":{"id":"cus_fictional","invoice_settings":{"default_payment_method":{"id":"pm_2","type":"card","card":{"brand":"visa","last4":"1111"}}}}}""");
+        stripe.Answer("""{"id":"sub_fictional","default_payment_method":null,"customer":{"id":"cus_fictional","invoice_settings":{"default_payment_method":{"id":"pm_2","type":"card","card":{"brand":"visa","last4":"1111"}}}}}""");
+        stripe.Answer("""{"id":"sub_fictional","default_payment_method":{"id":"pm_3","type":"sepa_debit","sepa_debit":{"last4":"3000"}},"customer":"cus_fictional"}""");
+        stripe.Answer("""{"id":"sub_fictional","default_payment_method":null,"customer":{"id":"cus_fictional","invoice_settings":{"default_payment_method":null}}}""");
+        var provider = Provider();
+        var request = new PaymentMethodRequest(organization, "cus_fictional", "sub_fictional");
+
+        (await provider.GetPaymentMethodAsync(request, TestContext.Current.CancellationToken)).Should().Be(new ProviderPaymentMethod("card", "mastercard", "4444"));
+        (await provider.GetPaymentMethodAsync(request, TestContext.Current.CancellationToken)).Should().Be(new ProviderPaymentMethod("card", "visa", "1111"));
+        (await provider.GetPaymentMethodAsync(request, TestContext.Current.CancellationToken)).Should().Be(new ProviderPaymentMethod("sepa_debit", null, null));
+        (await provider.GetPaymentMethodAsync(request, TestContext.Current.CancellationToken)).Should().BeNull();
+
+        stripe.Calls[0].Uri.Should().Be(new Uri(
+            "https://api.stripe.com/v1/subscriptions/sub_fictional?expand[]=default_payment_method&expand[]=customer.invoice_settings.default_payment_method"));
+    }
+
+    [Fact]
+    public async Task A_refused_read_of_invoices_or_the_card_is_a_provider_failure_that_never_names_the_key()
+    {
+        stripe.Answer(HttpStatusCode.Unauthorized, """{"error":{"type":"invalid_request_error","message":"Invalid API Key provided: sk_test_fictional_key"}}""");
+        stripe.Answer(HttpStatusCode.InternalServerError, """{"error":{"type":"api_error"}}""");
+        var provider = Provider();
+
+        (await FluentActions.Awaiting(() => provider.ListInvoicesAsync(Invoices(), TestContext.Current.CancellationToken))
+            .Should().ThrowAsync<BillingProviderException>()).Which.Message.Should().NotContain(SecretKey);
+        await FluentActions.Awaiting(() => provider.GetPaymentMethodAsync(new PaymentMethodRequest(organization, "cus_fictional", "sub_fictional"), TestContext.Current.CancellationToken))
+            .Should().ThrowAsync<BillingProviderException>();
+    }
+
     // ---- Plan change ----
 
     private static readonly DateTimeOffset ProrationDate = new(2026, 3, 2, 9, 0, 0, TimeSpan.Zero);

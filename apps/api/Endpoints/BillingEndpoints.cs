@@ -71,7 +71,7 @@ internal static class BillingEndpoints
             app.MapGet(SandboxBillingProvider.CheckoutPath, CompleteSandboxCheckout).AllowAnonymous().ExcludeFromDescription();
             app.MapGet(SandboxBillingProvider.PortalPath, CompleteSandboxPortal).AllowAnonymous().ExcludeFromDescription();
             // A sample invoice's PDF: for the Owner who may see the invoices, as the provider's own link is.
-            app.MapGet($"{SandboxBillingProvider.InvoicePdfPath}/{{id}}", SandboxInvoicePdf).ExcludeFromDescription()
+            app.MapGet($"{SandboxBillingProvider.InvoicePdfPath}/{{id}}", SandboxInvoicePdf).WithName("GetSandboxInvoicePdf").ExcludeFromDescription()
                 .RequireAuthorization()
                 .RequirePermission(Permission.ManageBilling);
         }
