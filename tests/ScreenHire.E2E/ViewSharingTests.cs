@@ -10,7 +10,8 @@ namespace ScreenHire.E2E;
 /// with an Owner and a Recruiter. The Owner shares a saved view: it is not in the Recruiter's sidebar, but Browse team views
 /// lists it with a New mark, who shared it, its filters and how many candidates it shows. The Recruiter previews it (the
 /// page opens, the sidebar still has nothing), adds it (the sidebar lists it, and the New mark is gone the next time they
-/// open the sheet), and removes it from the sidebar's menu (it leaves the sidebar and stays on offer).
+/// open the sheet), and removes it from the sidebar's menu (it leaves the sidebar and stays on offer). On a tablet, at 768 by
+/// 700 px, the icon rail reaches the sheet from its own button above Settings, with axe clean.
 /// </summary>
 public sealed class ViewSharingTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -91,6 +92,25 @@ public sealed class ViewSharingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(added).ToHaveCountAsync(0);
         await sidebar.GetByRole(AriaRole.Button, new() { Name = "Browse team views" }).ClickAsync();
         await Expect(row.GetByRole(AriaRole.Button, new() { Name = $"Add {ViewName} to your sidebar" })).ToBeVisibleAsync();
+
+        // A tablet shows the icon rail. Browse team views is its icon in the fixed group above Settings: in view at 700 px tall
+        // and 24 px or more across (WCAG 2.5.8), where a last icon in the scrolling Views list failed on target size.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(sheet).ToBeHiddenAsync();
+        await Page.SetViewportSizeAsync(768, 700);
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Expand sidebar" })).ToBeVisibleAsync();
+        var railButton = sidebar.GetByRole(AriaRole.Button, new() { Name = "Browse team views" });
+        await Expect(railButton).ToBeInViewportAsync(new() { Ratio = 1 });
+        var box = await railButton.BoundingBoxAsync();
+        box.Should().NotBeNull();
+        box!.Width.Should().BeGreaterThanOrEqualTo(24);
+        box.Height.Should().BeGreaterThanOrEqualTo(24);
+        // Axe on the rail itself, before the sheet's overlay covers it: no Views icon may sit half under the fixed group.
+        await ExpectNoAccessibilityViolationsAsync();
+
+        await railButton.ClickAsync();
+        await Expect(row.GetByRole(AriaRole.Button, new() { Name = $"Add {ViewName} to your sidebar" })).ToBeVisibleAsync();
+        await ExpectNoAccessibilityViolationsAsync();
     }
 
     private async Task<ApiSession> InviteAsync(ApiSession owner, string email, string role)

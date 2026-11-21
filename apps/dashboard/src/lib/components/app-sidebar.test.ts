@@ -245,16 +245,43 @@ describe('the Views list in the sidebar', () => {
     expect(within(sheet).getByRole('heading', { name: 'Team queue' })).toBeInTheDocument();
   });
 
-  it('has no Browse team views button without the views to browse, and hides it in the icon rail', () => {
+  it('has no Browse team views button without the views to browse', () => {
     stubViewport(1280);
-    const { unmount } = render(ShellHarness, { props: { user, viewActions: actions() } });
-    expect(within(main()).queryByRole('button', { name: 'Browse team views' })).toBeNull();
-    unmount();
+    render(ShellHarness, { props: { user, viewActions: actions() } });
 
+    expect(within(main()).queryByRole('button', { name: 'Browse team views' })).toBeNull();
+  });
+
+  it('ends the Views list with Browse team views in the full sidebar, and has one button, not two', () => {
+    stubViewport(1280);
     render(ShellHarness, {
       props: { user, viewActions: actions(), teamViews: { views: [], seenAt: '2026-10-01T00:00:00Z', jobTitles: {} } },
     });
-    expect(within(main()).getByRole('button', { name: 'Browse team views' }).closest('li')).toHaveClass('group-data-[collapsible=icon]:hidden');
+
+    const button = within(main()).getByRole('button', { name: 'Browse team views' });
+    expect(within(main()).getAllByRole('button', { name: 'Browse team views' })).toHaveLength(1);
+    expect(button.closest('[data-sidebar="group"]')).toContainElement(within(main()).getByRole('heading', { name: 'Views' }));
+  });
+
+  it("puts Browse team views in the icon rail's fixed group above Settings, outside the Views list that scrolls", async () => {
+    stubViewport(800);
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/applications': () => Response.json([]) })));
+    const offered = savedView({ id: 'offered', name: 'Team queue', shared: true, mine: false, canEdit: false, inSidebar: false });
+    const teamViews = { views: [offered], seenAt: '2026-10-01T00:00:00Z', jobTitles: {} };
+    render(ShellHarness, { props: { user, saved: [offered], viewActions: actions(), teamViews } });
+
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
+    const buttons = within(main()).getAllByRole('button', { name: 'Browse team views' });
+    expect(buttons).toHaveLength(1);
+    const group = buttons[0]!.closest<HTMLElement>('[data-sidebar="group"]')!;
+    expect(group).toHaveClass('sticky', 'bottom-0');
+    expect(within(group).queryByRole('heading', { name: 'Views' })).toBeNull();
+    const settings = within(group).getByRole('link', { name: 'Settings' });
+    expect(buttons[0]!.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await fireEvent.click(buttons[0]!);
+
+    expect(await screen.findByRole('dialog', { name: 'Team views' })).toBeInTheDocument();
   });
 
   it('gives a tablet a button that opens the full sidebar, where the Views menus are', async () => {

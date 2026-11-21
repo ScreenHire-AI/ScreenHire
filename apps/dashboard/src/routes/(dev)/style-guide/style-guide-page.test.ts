@@ -77,6 +77,7 @@ const panels: Record<string, string[]> = {
   'Task checkbox': ['Task list'],
   'Save view button': ['Save view button'],
   'Rename view dialog': ['Save view button'],
+  'Team views sheet': ['Team views sheet'],
   'Undo notice': ['Undo notice'],
   'Move confirmation': ['Move confirmation'],
   Scorecard: ['Scorecard'],

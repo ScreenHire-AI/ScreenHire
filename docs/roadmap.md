@@ -143,12 +143,11 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 15. **Decide whether the bell opens itself.** After onboarding the bell opens once, takes focus and covers the top bar's
     Search and Jobs controls until closed. A dot on the bell with a tooltip is quieter and needs no dismissing, but loses
     the nudge. An owner's call, then Size S. (second walk-through)
-16. **Reach Team views from the icon rail.** The tablet's icon rail has no Browse team views button, so a shared view
-    nobody added cannot be found without opening the full sidebar. An icon at the foot of the Views list failed axe's 24 px
-    target size at 700 px tall, because the rail's list scrolls and the last icon sits under its edge. It needs the rail's
-    items to fit or the button to live in the top bar. Size S to M. (second walk-through)
-17. **A catalogue entry for the Team views sheet.** Section 11 lists no row for it, and a row needs a panel on the style
-    guide page (`style-guide-page.test.ts` checks both). Size S. (second walk-through)
+16. **Reach Team views from the icon rail.** Built: in the rail, Browse team views is an icon button in the fixed group
+    above Settings, outside the Views list that scrolls, so it stays in reach at 700 px tall. Kept here so the numbers
+    hold. (second walk-through)
+17. **A catalogue entry for the Team views sheet.** Built: section 11 has its row and the style guide its panel. Kept
+    here so the numbers hold. (second walk-through)
 
 #### The candidate's side
 
