@@ -33,6 +33,11 @@ export interface ActivityFeed {
   readonly entries: ActivityEntry[] | undefined;
   /** The first page: when the person last looked and how many changes came since. */
   readonly first: ActivityPage | undefined;
+  /**
+   * The first page as the server has it now, or undefined while it is read again: a panel opened a second time shows the
+   * last visit's cached page until the refetch lands, and that page's count is the last visit's.
+   */
+  readonly fresh: ActivityPage | undefined;
   readonly error: string | undefined;
   readonly hasMore: boolean;
   readonly loadingMore: boolean;
@@ -84,6 +89,9 @@ export function createActivityFeed(enabled: () => boolean): ActivityFeed {
     },
     get first() {
       return queries[0]?.data?.data;
+    },
+    get fresh() {
+      return queries[0]?.isFetching ? undefined : queries[0]?.data?.data;
     },
     get error() {
       const failed = queries.find((query) => query.isError);

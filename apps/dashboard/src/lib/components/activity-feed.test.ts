@@ -63,6 +63,7 @@ function feedOf(entries: ActivityEntry[], patch: Partial<Feed> = {}): Feed {
   return {
     entries,
     first,
+    fresh: first,
     error: undefined,
     hasMore: false,
     loadingMore: false,

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import { apiStub, jobs, user, userAs } from '../../test-support/fixtures.js';
@@ -31,7 +32,7 @@ const newOrganization = {
   'GET /v1/activity': () => Response.json({ entries: [], nextBefore: null, seenAt: null, unseenCount: null, scope: 'MyJobs' }),
 };
 
-function stub(items: unknown[], unreadCount: number, extra: Record<string, (init: RequestInit | undefined) => Response> = {}) {
+function stub(items: unknown[], unreadCount: number, extra: Record<string, (init: RequestInit | undefined) => Response | Promise<Response>> = {}) {
   vi.stubGlobal(
     'fetch',
     vi.fn(apiStub({ ...newOrganization, 'GET /v1/notifications': () => Response.json({ items, unreadCount }), ...extra })),
@@ -435,6 +436,34 @@ describe('notification bell', () => {
       expect(within(panel).getByRole('list', { name: 'Activity' })).toHaveTextContent('Created Senior .NET Engineer by ATS sync, via an API key');
       await waitFor(() => expect(posted('/v1/activity/seen')).toBe(true));
       await expectNoAxeViolations();
+    });
+
+    it('counts the changes since this visit afresh when the panel is opened again, not from the page it read last time', async () => {
+      let calls = 0;
+      let answer: (response: Response) => void = () => {};
+      const later = new Promise<Response>((resolve) => (answer = resolve));
+      stub([], 0, {
+        ...activity,
+        'GET /v1/activity': () => (++calls === 1 ? Response.json(page) : later),
+      });
+      renderBell(userAs('Recruiter'));
+
+      let panel = await openBell();
+      await fireEvent.click(await within(panel).findByRole('tab', { name: 'Activity 3' }));
+      expect(await within(panel).findByText(/Since you were last here: 3 changes/)).toBeInTheDocument();
+      await fireEvent.keyDown(panel, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull());
+
+      // Opened again: the last visit's page is still cached while the server is asked again.
+      panel = await openBell();
+      await fireEvent.click(await within(panel).findByRole('tab', { name: /^Activity/ }));
+      await within(panel).findByRole('list', { name: 'Activity' });
+      expect(within(panel).queryByText(/Since you were last here/)).toBeNull();
+
+      answer(Response.json({ ...page, seenAt: '2026-11-21T10:00:00Z', unseenCount: 0 }));
+      await waitFor(() => expect(calls).toBe(2));
+      await tick();
+      expect(within(panel).queryByText(/Since you were last here/)).toBeNull();
     });
 
     it('opens straight at Activity when the A shortcut asks', async () => {

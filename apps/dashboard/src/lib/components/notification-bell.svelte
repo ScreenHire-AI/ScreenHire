@@ -90,10 +90,11 @@
     }
   });
   // Opening Activity records that the person has looked, once its first page is in; leaving it (another tab, or closing the
-  // panel) records it again, for what arrived while they looked, and the count is read afresh next time.
+  // panel) records it again, for what arrived while they looked, and the count is read afresh next time: from the page
+  // the server sends then, never the last visit's page still in the cache.
   $effect(() => {
     const viewing = open && tab === 'activity';
-    const first = feed.first;
+    const first = feed.fresh;
     if (viewing && first && !since) {
       since = { at: first.seenAt ?? '', count: first.seenAt ? (first.unseenCount ?? 0) : 0 };
       markSeen.mutate();
@@ -205,67 +206,66 @@
         {/if}
       </header>
       <Tabs.Content value="attention">
+        {#if setup.steps}
+          <section data-bell-setup tabindex="-1" aria-labelledby="bell-setup-title" class="flex flex-col gap-1 outline-hidden border-b border-border-subtle px-4 py-3">
+            <div class="flex items-center gap-2">
+              <h3 id="bell-setup-title" class="min-w-0 flex-1 truncate font-semibold">Finish setting up</h3>
+              <IconButton label="Hide setup for everyone" onclick={hide} disabled={setup.saving}><XIcon aria-hidden="true" /></IconButton>
+            </div>
+            <ol aria-label="Setup steps" class="flex flex-col">
+              {#each numbered as { step, number } (step.id)}
+                <li class="flex min-w-0 items-center gap-3 py-1.5">
+                  <StepMarker state="upcoming">{number}</StepMarker>
+                  <a href={step.href} onclick={() => (open = false)} class="block min-w-0 break-words py-0.5 font-semibold text-foreground underline underline-offset-2 pointer-coarse:py-3">{step.label}</a>
+                  {#if step.optional}<span class="shrink-0 text-caption text-muted-foreground">Optional</span>{/if}
+                  <Button variant="outline" size="sm" class="ml-auto shrink-0" aria-label={`Not needed: ${step.label}`} disabled={setup.saving} onclick={() => skip(step)}>Not needed</Button>
+                </li>
+              {/each}
+            </ol>
+            {#if setup.doneCount > 0}
+              <p class="text-body text-muted-foreground">{setup.doneCount} {setup.doneCount === 1 ? 'step' : 'steps'} done</p>
+            {/if}
+            <FailureText message={setup.failed ? 'Could not save that. Try again.' : null} />
+          </section>
+        {/if}
 
-      {#if setup.steps}
-        <section data-bell-setup tabindex="-1" aria-labelledby="bell-setup-title" class="flex flex-col gap-1 outline-hidden border-b border-border-subtle px-4 py-3">
-          <div class="flex items-center gap-2">
-            <h3 id="bell-setup-title" class="min-w-0 flex-1 truncate font-semibold">Finish setting up</h3>
-            <IconButton label="Hide setup for everyone" onclick={hide} disabled={setup.saving}><XIcon aria-hidden="true" /></IconButton>
+        <!-- Neither has an Undo in the bell: Settings, General brings the steps back, so the panel says so and links there. -->
+        <p role="status" class="border-b border-border-subtle px-4 py-3 text-body text-muted-foreground empty:hidden">{#if changedHere === 'hidden'}Setup is hidden for everyone. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Show it again in Settings, General</a>.{:else if changedHere === 'skipped'}Not needed for everyone in your organization. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Bring it back in Settings, General</a>.{/if}</p>
+
+        {#if notifications.isError}
+          <div class="p-4">
+            <QueryError message={describeError(notifications.error, 'Could not load notifications')} onretry={() => notifications.refetch()} inset />
           </div>
-          <ol aria-label="Setup steps" class="flex flex-col">
-            {#each numbered as { step, number } (step.id)}
-              <li class="flex min-w-0 items-center gap-3 py-1.5">
-                <StepMarker state="upcoming">{number}</StepMarker>
-                <a href={step.href} onclick={() => (open = false)} class="block min-w-0 break-words py-0.5 font-semibold text-foreground underline underline-offset-2 pointer-coarse:py-3">{step.label}</a>
-                {#if step.optional}<span class="shrink-0 text-caption text-muted-foreground">Optional</span>{/if}
-                <Button variant="outline" size="sm" class="ml-auto shrink-0" aria-label={`Not needed: ${step.label}`} disabled={setup.saving} onclick={() => skip(step)}>Not needed</Button>
+        {:else if notifications.isPending && !setup.steps}
+          <div class="flex flex-col gap-3 p-4" aria-busy="true">
+            <Skeleton class="h-5 w-4/5" />
+            <Skeleton class="h-5 w-3/5" />
+          </div>
+        {:else if items.length > 0}
+          <ul aria-label="Alerts" class="flex flex-col">
+            {#each items as item (item.id)}
+              {@const line = notificationLine(item.kind, item.payload)}
+              <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle py-2.5 pr-2 pl-4 last:border-b-0">
+                <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <a
+                    href={item.link}
+                    onclick={() => {
+                      if (!item.readAt) markRead.mutate({ id: item.id });
+                      open = false;
+                    }}
+                    class={['min-w-0 break-words text-foreground underline underline-offset-2 pointer-coarse:py-3', !item.readAt && 'font-semibold']}
+                  >
+                    {#if !item.readAt}<span class="sr-only">Unread:</span>{' '}{/if}{line}
+                  </a>
+                  <RelativeTime at={item.createdAt} class="text-caption text-muted-foreground" />
+                </div>
+                <IconButton label={`Dismiss: ${line}`} onclick={() => dismiss.mutate({ id: item.id })}><XIcon aria-hidden="true" /></IconButton>
               </li>
             {/each}
-          </ol>
-          {#if setup.doneCount > 0}
-            <p class="text-body text-muted-foreground">{setup.doneCount} {setup.doneCount === 1 ? 'step' : 'steps'} done</p>
-          {/if}
-          <FailureText message={setup.failed ? 'Could not save that. Try again.' : null} />
-        </section>
-      {/if}
-
-      <!-- Neither has an Undo in the bell: Settings, General brings the steps back, so the panel says so and links there. -->
-      <p role="status" class="border-b border-border-subtle px-4 py-3 text-body text-muted-foreground empty:hidden">{#if changedHere === 'hidden'}Setup is hidden for everyone. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Show it again in Settings, General</a>.{:else if changedHere === 'skipped'}Not needed for everyone in your organization. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Bring it back in Settings, General</a>.{/if}</p>
-
-      {#if notifications.isError}
-        <div class="p-4">
-          <QueryError message={describeError(notifications.error, 'Could not load notifications')} onretry={() => notifications.refetch()} inset />
-        </div>
-      {:else if notifications.isPending && !setup.steps}
-        <div class="flex flex-col gap-3 p-4" aria-busy="true">
-          <Skeleton class="h-5 w-4/5" />
-          <Skeleton class="h-5 w-3/5" />
-        </div>
-      {:else if items.length > 0}
-        <ul aria-label="Alerts" class="flex flex-col">
-          {#each items as item (item.id)}
-            {@const line = notificationLine(item.kind, item.payload)}
-            <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle py-2.5 pr-2 pl-4 last:border-b-0">
-              <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                <a
-                  href={item.link}
-                  onclick={() => {
-                    if (!item.readAt) markRead.mutate({ id: item.id });
-                    open = false;
-                  }}
-                  class={['min-w-0 break-words text-foreground underline underline-offset-2 pointer-coarse:py-3', !item.readAt && 'font-semibold']}
-                >
-                  {#if !item.readAt}<span class="sr-only">Unread:</span>{' '}{/if}{line}
-                </a>
-                <RelativeTime at={item.createdAt} class="text-caption text-muted-foreground" />
-              </div>
-              <IconButton label={`Dismiss: ${line}`} onclick={() => dismiss.mutate({ id: item.id })}><XIcon aria-hidden="true" /></IconButton>
-            </li>
-          {/each}
-        </ul>
-      {:else if empty}
-        <p class="px-4 py-6 text-body text-muted-foreground">Nothing needs attention.</p>
-      {/if}
+          </ul>
+        {:else if empty}
+          <p class="px-4 py-6 text-body text-muted-foreground">Nothing needs attention.</p>
+        {/if}
       </Tabs.Content>
       <Tabs.Content value="activity">
         <ActivityFeed {feed} members={team.data?.data} currentUserId={user?.id} {since} onnavigate={() => (open = false)} />

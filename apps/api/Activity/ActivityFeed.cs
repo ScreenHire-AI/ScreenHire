@@ -85,7 +85,9 @@ internal static class ActivityFeed
 
     /// <summary>
     /// One page of the feed for the signed-in member: up to <paramref name="limit"/> entries older than
-    /// <paramref name="cursor"/>, and how many came after <paramref name="seenAt"/>.
+    /// <paramref name="cursor"/>, and how many came after <paramref name="seenAt"/>. The cursor and the merge of the two
+    /// sources are the verification feed's (<see cref="VerificationActivity"/>) on purpose: both page two tables by time
+    /// then id, so a change to that paging changes this feed's too.
     /// </summary>
     public static async Task<ActivityPage> PageAsync(
         ScreenHireDbContext db,
