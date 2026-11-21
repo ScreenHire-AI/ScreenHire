@@ -358,7 +358,6 @@
       {/if}
       <HiringTeamSheet
         bind:open={teamOpen}
-        kind="job"
         id={detail.id}
         name={detail.title}
         {mayEdit}

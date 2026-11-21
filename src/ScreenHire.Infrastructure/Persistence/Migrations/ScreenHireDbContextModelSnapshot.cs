@@ -1797,13 +1797,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.PrimitiveCollection<List<Guid>>("DefaultHiringTeam")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid[]")
-                        .HasColumnName("default_hiring_team")
-                        .HasDefaultValueSql("'{}'::uuid[]");
-
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
@@ -2112,6 +2105,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("source_template_version_id");
 
+                    b.Property<Guid?>("StartedWithTeamId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("started_with_team_id");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -2169,6 +2166,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SourceTemplateVersionId")
                         .HasDatabaseName("ix_jobs_source_template_version_id");
+
+                    b.HasIndex("StartedWithTeamId")
+                        .HasDatabaseName("ix_jobs_started_with_team_id");
 
                     b.HasIndex("Title")
                         .HasDatabaseName("ix_jobs_title");
@@ -2749,6 +2749,54 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_membership_events_organization_id_occurred_at");
 
                     b.ToTable("membership_events", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Organizations.NamedTeam", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.PrimitiveCollection<List<Guid>>("MemberIds")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("member_ids")
+                        .HasDefaultValueSql("'{}'::uuid[]");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_named_teams");
+
+                    b.HasIndex("OrganizationId", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_named_teams_organization_id_normalized_name");
+
+                    b.ToTable("named_teams", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Organizations.OAuthCode", b =>
@@ -5894,6 +5942,12 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasForeignKey("SourceTemplateVersionId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_jobs_hiring_template_versions_source_template_version_id");
+
+                    b.HasOne("ScreenHire.Domain.Organizations.NamedTeam", null)
+                        .WithMany()
+                        .HasForeignKey("StartedWithTeamId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_jobs_named_teams_started_with_team_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Jobs.JobVersion", b =>
@@ -6015,6 +6069,16 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_membership_events_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Organizations.NamedTeam", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_named_teams_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Organizations.OAuthCode", b =>

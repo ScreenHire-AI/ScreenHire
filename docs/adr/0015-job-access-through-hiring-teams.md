@@ -57,6 +57,10 @@ query filters and row-level security that every read passes through.
    added. Both are session only: who sees a job's candidates is not an API key's to change. Each person added or
    removed, and each change of job access, writes a membership log entry; the log leaves out entries about jobs the
    reader cannot see.
+   *Amended 2026-11-21:* hiring templates have no default team any more. A new job starts with its creator, a named team's
+   people as they are then and anyone else chosen (Who's hiring?), and the job's hiring team sheet can add a named team's
+   people too. The job keeps the people, never the team. `AddNamedTeams` turned each template's default team into a named
+   team. Detail: `docs/architecture/sign-in-and-tenancy.md`, "Job access".
 9. **Live updates go to per-job groups.** Every event that carries a job id implements `IJobEvent` and goes to
    `org:{org}:all-jobs` and `org:{org}:team:{jobId}`. A connection joins one of the two kinds when it opens. Joining a
    team adds the job's group to the person's open connections; leaving one, or a change of job access or of a role

@@ -1,4 +1,3 @@
-using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 
@@ -43,18 +42,5 @@ public sealed class JobAccessTests
         change.Added.Should().Equal(c);
         change.Removed.Should().Equal(a);
         job.SetHiringTeam([b, c]).IsEmpty.Should().BeTrue();
-    }
-
-    [Fact]
-    public void A_system_template_has_no_default_hiring_team()
-    {
-        var system = new HiringTemplate { Name = "System" };
-        var own = new HiringTemplate { Name = "Own", OrganizationId = Guid.NewGuid() };
-        var member = Guid.NewGuid();
-
-        var setting = () => system.SetDefaultHiringTeam([member]);
-        setting.Should().Throw<InvalidOperationException>();
-        own.SetDefaultHiringTeam([member]).Added.Should().Equal(member);
-        own.DefaultHiringTeam.Should().Equal(member);
     }
 }

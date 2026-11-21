@@ -93,4 +93,26 @@ public sealed class TeamChangesTests
 
         InvitationFacts.Of(invitation).ToString().Should().NotContain("0123abcd");
     }
+
+    [Fact]
+    public void A_named_team_says_it_was_added_renamed_given_other_people_or_deleted()
+    {
+        var (jo, kim) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        var kitchen = NamedTeam.Create(Organization, "Kitchen", [jo], Now);
+
+        var added = TeamChanges.Named(null, kitchen).Single();
+        added.Sentence().Should().Be("added the team Kitchen");
+        added.Details.Should().Equal(new ChangeDetail("People", null, "1 person"));
+
+        var renamed = NamedTeam.Create(Organization, "Kitchen", [jo], Now);
+        renamed.Update("Front of house", [jo, kim], Now);
+        TeamChanges.Named(kitchen, renamed).Select(line => line.Sentence())
+            .Should().Equal("renamed the team Kitchen to Front of house", "changed who is in Front of house");
+        TeamChanges.Named(kitchen, renamed)[1].Details.Should().Equal(new ChangeDetail("People", "1 person", "2 people"));
+
+        var reordered = NamedTeam.Create(Organization, "Kitchen", [jo], Now);
+        reordered.Update("Kitchen", [jo], Now);
+        TeamChanges.Named(kitchen, reordered).Should().BeEmpty("nothing changed");
+        TeamChanges.Named(kitchen, null).Single().Sentence().Should().Be("deleted the team Kitchen");
+    }
 }

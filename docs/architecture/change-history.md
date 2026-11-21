@@ -49,8 +49,8 @@ nothing for a check that only refreshes its records. A webhook endpoint has one 
 address by host, its events, its switch and each rotation of its signing secret (Secrets, below). The retired talent
 pool settings (the permission period) keep the `TalentPoolSettings` kind so their old rows still read, and nothing
 writes it now. Built-in roles never change, so they have no history. History never holds candidate data, so it has no
-retention limit. A job's hiring team and a template's default team are left out: who was added or removed is the
-membership log's to record (ADR-0015).
+retention limit. A job's hiring team is left out: who was added or removed is the membership log's to record (ADR-0015).
+The Team history also has the named teams in Settings, Team, Teams (`TeamChanges.Named`).
 
 ## What is recorded
 

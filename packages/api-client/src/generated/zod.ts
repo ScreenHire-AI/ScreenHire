@@ -1249,8 +1249,10 @@ export const CreateJobBody = zod.object({
   "period": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]).optional()
 }).describe('A pay range. Currency and period may come from the template\'s posting defaults on create.')]).optional(),
   "validThrough": zod.iso.datetime({"offset":true}).nullish(),
-  "summary": zod.string().nullish()
-}).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor\'s elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with "- " make a list. The summary is the plain-text\nline a careers card shows under the title, at most 160 characters; leave it out and the card uses the description\'s\nfirst sentence.')
+  "summary": zod.string().nullish(),
+  "teamId": zod.uuid().nullish(),
+  "memberIds": zod.array(zod.uuid()).nullish()
+}).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor\'s elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with "- " make a list. The summary is the plain-text\nline a careers card shows under the title, at most 160 characters; leave it out and the card uses the description\'s\nfirst sentence. Who\'s hiring: the job\'s hiring team starts with the person who creates it, the people of the named team\n`teamId` as they are now, and `memberIds`, the organization\'s member ids. They are copied, so a later change\nto the team changes no job. An API key sends neither, and its job starts with nobody on its team.')
 
 export const createJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const createJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
@@ -7716,7 +7718,7 @@ export const ListMembershipLogResponseItem = zod.object({
   "actorApiKeyId": zod.uuid().nullable(),
   "dataRequestId": zod.uuid().nullish(),
   "itemCount": zod.int().nullish()
-}).describe('One entry in the organization\'s membership log. `actorUserId` made the change, or `actorApiKeyId` when an\nAPI key did; `memberUserId` is who it is\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\n`role` are set where the kind has them, with the custom role\'s id and its name at the time; for RoleCreated,\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\nor a hiring template\'s default team (`hiringTemplateId`, with its name now). A reader who sees only their own\njobs gets no entries about the others. The data request kinds and CandidateErased from a request set `dataRequestId`\n(an id only, never the candidate); RetentionApplied sets `itemCount`, the applications it deleted.')
+}).describe('One entry in the organization\'s membership log. `actorUserId` made the change, or `actorApiKeyId` when an\nAPI key did; `memberUserId` is who it is\nabout (null for an invitation not accepted yet and for a change to a role itself). `previousRole` and\n`role` are set where the kind has them, with the custom role\'s id and its name at the time; for RoleCreated,\nRoleUpdated and RoleDeleted, `customRoleId` and `roleName` are the role, and a rename keeps the old name in\n`previousRoleName`. JobAccessChanged sets `previousJobAccess` and `jobAccess`; an invitation and a\njoin set `jobAccess`. AddedToHiringTeam and RemovedFromHiringTeam name a job (`jobId`, with its title now)\nor, in an entry from before templates lost their default team, a hiring template (`hiringTemplateId`, with its\nname now). A reader who sees only their own jobs gets no entries about the others. The data request kinds and\nCandidateErased from a request set `dataRequestId` (an id only, never the candidate); RetentionApplied sets\n`itemCount`, the applications it deleted.')
 export const ListMembershipLogResponse = zod.array(ListMembershipLogResponseItem)
 
 
@@ -8225,7 +8227,7 @@ export const GetJobHiringTeamResponseItem = zod.object({
   "displayName": zod.string(),
   "roleName": zod.string(),
   "seesAllJobs": zod.boolean()
-}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')
+}).describe('A person on a job\'s hiring team, or on a named team (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')
 export const GetJobHiringTeamResponse = zod.array(GetJobHiringTeamResponseItem)
 
 
@@ -8236,7 +8238,7 @@ export const SetJobHiringTeamParams = zod.object({
 export const SetJobHiringTeamBody = zod.object({
   "memberIds": zod.array(zod.uuid()).nullable(),
   "copyFromJobId": zod.uuid().nullish()
-}).describe('Sets a hiring team to `memberIds`, the organization\'s member ids. For a job, `copyFromJobId` also brings\nover another job\'s team, which the caller must be able to see.')
+}).describe('Sets a job\'s hiring team to `memberIds`, the organization\'s member ids. `copyFromJobId` also brings over\nanother job\'s team, which the caller must be able to see. A named team is added by its people, which the dashboard\nputs in `memberIds`, so someone taken off before saving stays off.')
 
 export const SetJobHiringTeamResponseItem = zod.object({
   "memberId": zod.uuid(),
@@ -8245,43 +8247,87 @@ export const SetJobHiringTeamResponseItem = zod.object({
   "displayName": zod.string(),
   "roleName": zod.string(),
   "seesAllJobs": zod.boolean()
-}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')
+}).describe('A person on a job\'s hiring team, or on a named team (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')
 export const SetJobHiringTeamResponse = zod.array(SetJobHiringTeamResponseItem)
 
 
-export const GetHiringTemplateTeamParams = zod.object({
-  "templateId": zod.uuid()
-})
-
-export const GetHiringTemplateTeamResponseItem = zod.object({
+export const ListTeamsResponseItem = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "members": zod.array(zod.object({
   "memberId": zod.uuid(),
   "userId": zod.uuid(),
   "email": zod.string(),
   "displayName": zod.string(),
   "roleName": zod.string(),
   "seesAllJobs": zod.boolean()
-}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')
-export const GetHiringTemplateTeamResponse = zod.array(GetHiringTemplateTeamResponseItem)
+}).describe('A person on a job\'s hiring team, or on a named team (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('A named team in Settings, Team, Teams: its name and its people who are still members, each with their role, as a job\'s\nhiring team lists them. Adding it to a job copies these people.')
+export const ListTeamsResponse = zod.array(ListTeamsResponseItem)
 
 
-export const SetHiringTemplateTeamParams = zod.object({
-  "templateId": zod.uuid()
-})
+export const CreateTeamBody = zod.object({
+  "name": zod.string().nullable(),
+  "memberIds": zod.array(zod.uuid()).nullable()
+}).describe('Makes a named team, or renames one and sets its people to `memberIds`, the organization\'s member ids.')
 
-export const SetHiringTemplateTeamBody = zod.object({
-  "memberIds": zod.array(zod.uuid()).nullable(),
-  "copyFromJobId": zod.uuid().nullish()
-}).describe('Sets a hiring team to `memberIds`, the organization\'s member ids. For a job, `copyFromJobId` also brings\nover another job\'s team, which the caller must be able to see.')
-
-export const SetHiringTemplateTeamResponseItem = zod.object({
+export const CreateTeamResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "members": zod.array(zod.object({
   "memberId": zod.uuid(),
   "userId": zod.uuid(),
   "email": zod.string(),
   "displayName": zod.string(),
   "roleName": zod.string(),
   "seesAllJobs": zod.boolean()
-}).describe('A person on a job\'s hiring team, or on a hiring template\'s default one (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')
-export const SetHiringTemplateTeamResponse = zod.array(SetHiringTemplateTeamResponseItem)
+}).describe('A person on a job\'s hiring team, or on a named team (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('A named team in Settings, Team, Teams: its name and its people who are still members, each with their role, as a job\'s\nhiring team lists them. Adding it to a job copies these people.')
+
+
+export const GetSuggestedTeamQueryParams = zod.object({
+  "templateVersionId": zod.uuid().optional()
+})
+
+export const GetSuggestedTeamResponse = zod.object({
+  "teamId": zod.uuid().nullable()
+}).describe('The team a new job from a template is likely to want: the one the newest job from the same template, or with the same\ndepartment, started with, among the jobs the reader sees. Null when there is none.')
+
+
+export const UpdateTeamParams = zod.object({
+  "teamId": zod.uuid()
+})
+
+export const UpdateTeamBody = zod.object({
+  "name": zod.string().nullable(),
+  "memberIds": zod.array(zod.uuid()).nullable()
+}).describe('Makes a named team, or renames one and sets its people to `memberIds`, the organization\'s member ids.')
+
+export const UpdateTeamResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "members": zod.array(zod.object({
+  "memberId": zod.uuid(),
+  "userId": zod.uuid(),
+  "email": zod.string(),
+  "displayName": zod.string(),
+  "roleName": zod.string(),
+  "seesAllJobs": zod.boolean()
+}).describe('A person on a job\'s hiring team, or on a named team (ADR-0015). `memberId` is their\nmembership\'s id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they\'re on sees this job through this list.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('A named team in Settings, Team, Teams: its name and its people who are still members, each with their role, as a job\'s\nhiring team lists them. Adding it to a job copies these people.')
+
+
+export const DeleteTeamParams = zod.object({
+  "teamId": zod.uuid()
+})
+
+export const DeleteTeamResponse = zod.void()
 
 
 export const listRolesResponseRolesItemLastUpdatedCreatedDefault = false;

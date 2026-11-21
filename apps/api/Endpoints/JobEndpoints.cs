@@ -172,6 +172,35 @@ internal static class JobEndpoints
             }
         }
 
+        // Who's hiring: a named team's people and anyone else chosen, copied into the job's team with its creator. A key has
+        // no say in who works on a job (ADR-0011), and a job a key creates starts with nobody on it.
+        if (tenant.MemberId is null && (request.TeamId is not null || request.MemberIds is { Count: > 0 }))
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                "teamId", "An API key does not choose who works on a job. Add people from the job's Hiring team in ScreenHire."));
+        }
+
+        if (request.MemberIds is { Count: > HiringTeamRequestValidator.MaxMembers })
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("memberIds", $"At most {HiringTeamRequestValidator.MaxMembers} people."));
+        }
+
+        var members = await HiringTeams.MembersAsync(db, tenant, cancellationToken);
+        if (request.MemberIds?.Any(id => !members.ContainsKey(id)) == true)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("memberIds", "Choose people on the team."));
+        }
+
+        NamedTeam? startingTeam = null;
+        if (request.TeamId is { } teamId)
+        {
+            startingTeam = await db.NamedTeams.AsNoTracking().SingleOrDefaultAsync(t => t.Id == teamId, cancellationToken);
+            if (startingTeam is null)
+            {
+                return TypedResults.ValidationProblem(ValidationExtensions.Problem("teamId", "There is no team with this id. Choose another."));
+            }
+        }
+
         var defaults = template?.Definition.PostingDefaults ?? PostingDefaults.None;
         var title = request.Title?.Trim() ?? "";
         var jobId = Guid.CreateVersion7();
@@ -207,22 +236,25 @@ internal static class JobEndpoints
         }
 
         var now = time.GetUtcNow();
-        var job = new Job { Id = jobId, OrganizationId = tenant.OrganizationId!.Value, Title = content.Title, Slug = content.Slug, CreatedAt = now };
+        var job = new Job
+        {
+            Id = jobId, OrganizationId = tenant.OrganizationId!.Value, Title = content.Title, Slug = content.Slug, CreatedAt = now,
+            StartedWithTeamId = startingTeam?.Id,
+        };
         job.Revise(content, now);
         if (template is not null)
         {
             job.UseTemplate(template, scorecards);
         }
 
-        // The job starts with its template's default hiring team and the person who creates it (ADR-0015), in the same
-        // insert: the creator's id is in the row, so even a member on Only jobs they're on sees the job they just made.
-        var members = await HiringTeams.MembersAsync(db, tenant, cancellationToken);
-        var defaultTeam = template is null
-            ? []
-            : await db.HiringTemplates.AsNoTracking()
-                .Where(t => t.Id == template.TemplateId).Select(t => t.DefaultHiringTeam).SingleAsync(cancellationToken);
-        var team = job.SetHiringTeam(defaultTeam.Where(members.ContainsKey).Concat(tenant.MemberId is { } creator ? [creator] : []));
-        HiringTeams.Log(db, tenant, members, team, now, jobId: job.Id);
+        // The job starts with the person who creates it, the chosen team's people as they are now and anyone else chosen
+        // (ADR-0015), in the same insert: the creator's id is in the row, so even a member on Only jobs they're on sees the
+        // job they just made. The people are copied: a later change to the team changes no job.
+        IEnumerable<Guid> creator = tenant.MemberId is { } self ? [self] : [];
+        var team = job.SetHiringTeam(creator
+            .Concat((startingTeam?.MemberIds ?? []).Where(members.ContainsKey))
+            .Concat(request.MemberIds ?? []));
+        HiringTeams.Log(db, tenant, members, team, now, job.Id);
 
         db.Jobs.Add(job);
         try

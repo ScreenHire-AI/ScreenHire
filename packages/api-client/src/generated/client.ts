@@ -98,6 +98,7 @@ import type {
   GetRoleHistoryParams,
   GetSavedNoteHistoryParams,
   GetScorecardTemplateHistoryParams,
+  GetSuggestedTeamParams,
   GetTeamHistoryParams,
   GetWebhookEndpointHistoryParams,
   HiringReport,
@@ -233,7 +234,10 @@ import type {
   TagList,
   TalentPoolList,
   TaskListItem,
+  TeamDetail,
   TeamMember,
+  TeamRequest,
+  TeamSuggestion,
   TelemetrySnapshotInput,
   TemplateUsageList,
   TestEmailSent,
@@ -10389,41 +10393,36 @@ return apiFetch<setJobHiringTeamResponse>(getSetJobHiringTeamUrl(jobId),
 
 
 
-export type getHiringTemplateTeamResponse200 = {
-  data: HiringTeamMember[]
+export type listTeamsResponse200 = {
+  data: TeamDetail[]
   status: 200
 }
 
-export type getHiringTemplateTeamResponse401 = {
+export type listTeamsResponse401 = {
   data: void
   status: 401
 }
 
-export type getHiringTemplateTeamResponse404 = {
-  data: void
-  status: 404
-}
-
-export type getHiringTemplateTeamResponseSuccess = (getHiringTemplateTeamResponse200) & {
+export type listTeamsResponseSuccess = (listTeamsResponse200) & {
   headers: Headers;
 };
-export type getHiringTemplateTeamResponseError = (getHiringTemplateTeamResponse401 | getHiringTemplateTeamResponse404) & {
+export type listTeamsResponseError = (listTeamsResponse401) & {
   headers: Headers;
 };
 
-export type getHiringTemplateTeamResponse = (getHiringTemplateTeamResponseSuccess | getHiringTemplateTeamResponseError)
+export type listTeamsResponse = (listTeamsResponseSuccess | listTeamsResponseError)
 
-export const getGetHiringTemplateTeamUrl = (templateId: string,) => {
-
-
+export const getListTeamsUrl = () => {
 
 
-  return `/v1/templates/${templateId}/hiring-team`
+
+
+  return `/v1/organization/teams`
 }
 
-export const getHiringTemplateTeam = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringTemplateTeamResponse> => {
+export const listTeams = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listTeamsResponse> => {
 
-  return apiFetch<getHiringTemplateTeamResponse>(getGetHiringTemplateTeamUrl(templateId),
+  return apiFetch<listTeamsResponse>(getListTeamsUrl(),
   {
     ...options,
     method: 'GET'
@@ -10434,50 +10433,44 @@ export const getHiringTemplateTeam = async (templateId: string, options?: Parame
 
 
 
-export type setHiringTemplateTeamResponse200 = {
-  data: HiringTeamMember[]
-  status: 200
+export type createTeamResponse201 = {
+  data: TeamDetail
+  status: 201
 }
 
-export type setHiringTemplateTeamResponse400 = {
+export type createTeamResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type setHiringTemplateTeamResponse401 = {
+export type createTeamResponse401 = {
   data: void
   status: 401
 }
 
-export type setHiringTemplateTeamResponse403 = {
+export type createTeamResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type setHiringTemplateTeamResponse404 = {
-  data: void
-  status: 404
-}
-
-export type setHiringTemplateTeamResponseSuccess = (setHiringTemplateTeamResponse200) & {
+export type createTeamResponseSuccess = (createTeamResponse201) & {
   headers: Headers;
 };
-export type setHiringTemplateTeamResponseError = (setHiringTemplateTeamResponse400 | setHiringTemplateTeamResponse401 | setHiringTemplateTeamResponse403 | setHiringTemplateTeamResponse404) & {
+export type createTeamResponseError = (createTeamResponse400 | createTeamResponse401 | createTeamResponse403) & {
   headers: Headers;
 };
 
-export type setHiringTemplateTeamResponse = (setHiringTemplateTeamResponseSuccess | setHiringTemplateTeamResponseError)
+export type createTeamResponse = (createTeamResponseSuccess | createTeamResponseError)
 
-export const getSetHiringTemplateTeamUrl = (templateId: string,) => {
-
-
+export const getCreateTeamUrl = () => {
 
 
-  return `/v1/templates/${templateId}/hiring-team`
+
+
+  return `/v1/organization/teams`
 }
 
-export const setHiringTemplateTeam = async (templateId: string,
-    hiringTeamRequest: HiringTeamRequest, options?: Parameters<typeof apiFetch>[1]): Promise<setHiringTemplateTeamResponse> => {
+export const createTeam = async (teamRequest: TeamRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createTeamResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -10493,12 +10486,179 @@ export const setHiringTemplateTeam = async (templateId: string,
     }
     return headers;
   };
-return apiFetch<setHiringTemplateTeamResponse>(getSetHiringTemplateTeamUrl(templateId),
+return apiFetch<createTeamResponse>(getCreateTeamUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(teamRequest)
+  }
+);}
+
+
+
+export type getSuggestedTeamResponse200 = {
+  data: TeamSuggestion
+  status: 200
+}
+
+export type getSuggestedTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getSuggestedTeamResponseSuccess = (getSuggestedTeamResponse200) & {
+  headers: Headers;
+};
+export type getSuggestedTeamResponseError = (getSuggestedTeamResponse401) & {
+  headers: Headers;
+};
+
+export type getSuggestedTeamResponse = (getSuggestedTeamResponseSuccess | getSuggestedTeamResponseError)
+
+export const getGetSuggestedTeamUrl = (params?: GetSuggestedTeamParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/teams/suggested?${stringifiedParams}` : `/v1/organization/teams/suggested`
+}
+
+export const getSuggestedTeam = async (params?: GetSuggestedTeamParams, options?: Parameters<typeof apiFetch>[1]): Promise<getSuggestedTeamResponse> => {
+
+  return apiFetch<getSuggestedTeamResponse>(getGetSuggestedTeamUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateTeamResponse200 = {
+  data: TeamDetail
+  status: 200
+}
+
+export type updateTeamResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateTeamResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateTeamResponseSuccess = (updateTeamResponse200) & {
+  headers: Headers;
+};
+export type updateTeamResponseError = (updateTeamResponse400 | updateTeamResponse401 | updateTeamResponse403 | updateTeamResponse404) & {
+  headers: Headers;
+};
+
+export type updateTeamResponse = (updateTeamResponseSuccess | updateTeamResponseError)
+
+export const getUpdateTeamUrl = (teamId: string,) => {
+
+
+
+
+  return `/v1/organization/teams/${teamId}`
+}
+
+export const updateTeam = async (teamId: string,
+    teamRequest: TeamRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateTeamResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateTeamResponse>(getUpdateTeamUrl(teamId),
   {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(hiringTeamRequest)
+    body: JSON.stringify(teamRequest)
+  }
+);}
+
+
+
+export type deleteTeamResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteTeamResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteTeamResponseSuccess = (deleteTeamResponse204) & {
+  headers: Headers;
+};
+export type deleteTeamResponseError = (deleteTeamResponse401 | deleteTeamResponse403 | deleteTeamResponse404) & {
+  headers: Headers;
+};
+
+export type deleteTeamResponse = (deleteTeamResponseSuccess | deleteTeamResponseError)
+
+export const getDeleteTeamUrl = (teamId: string,) => {
+
+
+
+
+  return `/v1/organization/teams/${teamId}`
+}
+
+export const deleteTeam = async (teamId: string, options?: Parameters<typeof apiFetch>[1]): Promise<deleteTeamResponse> => {
+
+  return apiFetch<deleteTeamResponse>(getDeleteTeamUrl(teamId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
   }
 );}
 

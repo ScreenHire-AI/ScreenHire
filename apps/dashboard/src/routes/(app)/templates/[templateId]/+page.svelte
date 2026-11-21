@@ -6,7 +6,6 @@
     createGetHiringTemplate,
     createGetOrganizationVerificationSettings,
     createArchiveHiringTemplate,
-    createGetHiringTemplateTeam,
     createGetHiringTemplateVersion,
     createGetTemplateUsage,
     createListTeamMembers,
@@ -32,7 +31,6 @@
   import Fact from '#lib/components/fact.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
-  import HiringTeamSheet from '#lib/components/hiring-team-sheet.svelte';
   import LastUpdated from '#lib/components/last-updated.svelte';
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -54,7 +52,7 @@
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
   import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
   import { createHistoryPages } from '#lib/history-pages.svelte.js';
-  import { can, seesAllJobs } from '#lib/permissions.js';
+  import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath, templatesPath } from '#lib/realtime.js';
   import {
@@ -93,10 +91,6 @@
     Promise.all([invalidatePath(queryClient, templatesPath), invalidatePath(queryClient, jobsPath), invalidatePath(queryClient, templateUsagePath)]);
   const template = createGetHiringTemplate(() => params.templateId);
   const detail = $derived(template.data?.data);
-  // The default hiring team new jobs from an own template start with (ADR-0015); a ScreenHire template has none.
-  const defaultTeam = createGetHiringTemplateTeam(() => params.templateId, () => ({ query: { enabled: detail !== undefined && !detail.isSystem } }));
-  const teamSize = $derived(defaultTeam.data?.data.length);
-  let teamOpen = $state(false);
   const requested = $derived(Number(page.url.searchParams.get('version')) || null);
   const versions = $derived(detail?.versions ?? []);
   const chosen = $derived(
@@ -417,29 +411,12 @@
               <Skeleton class="h-5 w-20" />
             {/if}
           </Fact>
-          {#if !detail.isSystem && teamSize !== undefined}
-            <Fact label="Default hiring team">
-              <Button variant="outline" size="sm" class="tabular-nums" aria-haspopup="dialog" onclick={() => (teamOpen = true)}>
-                {teamSize === 1 ? '1 person' : `${teamSize} people`}
-              </Button>
-            </Fact>
-          {/if}
           <Fact label={lastUpdateWords(detail.lastUpdated).label}>
             <LastUpdated value={detail.lastUpdated} {members} {currentUserId} onhistory={detail.isSystem ? undefined : () => showVersions('changes')} />
           </Fact>
         {/snippet}
         {#snippet tabs()}<WorkflowTabs />{/snippet}
       </HeaderBand>
-      {#if !detail.isSystem}
-        <HiringTeamSheet
-          bind:open={teamOpen}
-          kind="template"
-          id={detail.id}
-          name={detail.name}
-          mayEdit={can(page.data.user, 'EditHiringTemplates')}
-          seesAllJobs={seesAllJobs(page.data.user)}
-        />
-      {/if}
       <!-- A ScreenHire template has no History, so its sheet holds only Versions. -->
       <VersionsSheet
         bind:open={versionsOpen}

@@ -114,6 +114,7 @@ import type {
   GetRoleHistoryParams,
   GetSavedNoteHistoryParams,
   GetScorecardTemplateHistoryParams,
+  GetSuggestedTeamParams,
   GetTeamHistoryParams,
   GetWebhookEndpointHistoryParams,
   HiringReport,
@@ -249,7 +250,10 @@ import type {
   TagList,
   TalentPoolList,
   TaskListItem,
+  TeamDetail,
   TeamMember,
+  TeamRequest,
+  TeamSuggestion,
   TelemetrySnapshotInput,
   TemplateUsageList,
   TestEmailSent,
@@ -18705,39 +18709,34 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return createMutation(() => ({ ...getSetJobHiringTeamMutationOptions(options?.()) }), queryClient);
     }
 
-export type getHiringTemplateTeamResponse200 = {
-  data: HiringTeamMember[]
+export type listTeamsResponse200 = {
+  data: TeamDetail[]
   status: 200
 }
 
-export type getHiringTemplateTeamResponse401 = {
+export type listTeamsResponse401 = {
   data: void
   status: 401
 }
 
-export type getHiringTemplateTeamResponse404 = {
-  data: void
-  status: 404
-}
-
-export type getHiringTemplateTeamResponseSuccess = (getHiringTemplateTeamResponse200) & {
+export type listTeamsResponseSuccess = (listTeamsResponse200) & {
   headers: Headers;
 };
-export type getHiringTemplateTeamResponseError = (getHiringTemplateTeamResponse401 | getHiringTemplateTeamResponse404) & {
+export type listTeamsResponseError = (listTeamsResponse401) & {
   headers: Headers;
 };
 
-export const getGetHiringTemplateTeamUrl = (templateId: string,) => {
+export const getListTeamsUrl = () => {
 
 
 
 
-  return `/v1/templates/${templateId}/hiring-team`
+  return `/v1/organization/teams`
 }
 
-export const getHiringTemplateTeam = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getHiringTemplateTeamResponseSuccess> => {
+export const listTeams = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listTeamsResponseSuccess> => {
 
-  return apiQueryFetch<getHiringTemplateTeamResponseSuccess>(getGetHiringTemplateTeamUrl(templateId),
+  return apiQueryFetch<listTeamsResponseSuccess>(getListTeamsUrl(),
   {
     ...options,
     method: 'GET'
@@ -18750,44 +18749,44 @@ export const getHiringTemplateTeam = async (templateId: string, options?: Parame
 
 
 
-export const getGetHiringTemplateTeamQueryKey = (templateId: string,) => {
+export const getListTeamsQueryKey = () => {
     return [
-    'v1','templates',templateId,'hiring-team'
+    'v1','organization','teams'
     ] as const;
     }
 
 
-export const getGetHiringTemplateTeamQueryOptions = <TData = Awaited<ReturnType<typeof getHiringTemplateTeam>>, TError = ErrorType<void>>(templateId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHiringTemplateTeam>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+export const getListTeamsQueryOptions = <TData = Awaited<ReturnType<typeof listTeams>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetHiringTemplateTeamQueryKey(templateId);
+  const queryKey =  queryOptions?.queryKey ?? getListTeamsQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHiringTemplateTeam>>> = ({ signal }) => getHiringTemplateTeam(templateId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTeams>>> = ({ signal }) => listTeams({ signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: templateId !== null && templateId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getHiringTemplateTeam>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetHiringTemplateTeamQueryResult = NonNullable<Awaited<ReturnType<typeof getHiringTemplateTeam>>>
-export type GetHiringTemplateTeamQueryError = ErrorType<void>
+export type ListTeamsQueryResult = NonNullable<Awaited<ReturnType<typeof listTeams>>>
+export type ListTeamsQueryError = ErrorType<void>
 
 
 
-export function createGetHiringTemplateTeam<TData = Awaited<ReturnType<typeof getHiringTemplateTeam>>, TError = ErrorType<void>>(
- templateId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHiringTemplateTeam>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+export function createListTeams<TData = Awaited<ReturnType<typeof listTeams>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listTeams>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient
  ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
 
 
-  const query = createQuery(() => getGetHiringTemplateTeamQueryOptions(templateId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+  const query = createQuery(() => getListTeamsQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return query
 }
@@ -18798,48 +18797,42 @@ export function createGetHiringTemplateTeam<TData = Awaited<ReturnType<typeof ge
 
 
 
-export type setHiringTemplateTeamResponse200 = {
-  data: HiringTeamMember[]
-  status: 200
+export type createTeamResponse201 = {
+  data: TeamDetail
+  status: 201
 }
 
-export type setHiringTemplateTeamResponse400 = {
+export type createTeamResponse400 = {
   data: HttpValidationProblemDetails
   status: 400
 }
 
-export type setHiringTemplateTeamResponse401 = {
+export type createTeamResponse401 = {
   data: void
   status: 401
 }
 
-export type setHiringTemplateTeamResponse403 = {
+export type createTeamResponse403 = {
   data: ProblemDetails
   status: 403
 }
 
-export type setHiringTemplateTeamResponse404 = {
-  data: void
-  status: 404
-}
-
-export type setHiringTemplateTeamResponseSuccess = (setHiringTemplateTeamResponse200) & {
+export type createTeamResponseSuccess = (createTeamResponse201) & {
   headers: Headers;
 };
-export type setHiringTemplateTeamResponseError = (setHiringTemplateTeamResponse400 | setHiringTemplateTeamResponse401 | setHiringTemplateTeamResponse403 | setHiringTemplateTeamResponse404) & {
+export type createTeamResponseError = (createTeamResponse400 | createTeamResponse401 | createTeamResponse403) & {
   headers: Headers;
 };
 
-export const getSetHiringTemplateTeamUrl = (templateId: string,) => {
+export const getCreateTeamUrl = () => {
 
 
 
 
-  return `/v1/templates/${templateId}/hiring-team`
+  return `/v1/organization/teams`
 }
 
-export const setHiringTemplateTeam = async (templateId: string,
-    hiringTeamRequest: HiringTeamRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<setHiringTemplateTeamResponseSuccess> => {
+export const createTeam = async (teamRequest: TeamRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createTeamResponseSuccess> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -18855,12 +18848,12 @@ export const setHiringTemplateTeam = async (templateId: string,
     }
     return headers;
   };
-return apiQueryFetch<setHiringTemplateTeamResponseSuccess>(getSetHiringTemplateTeamUrl(templateId),
+return apiQueryFetch<createTeamResponseSuccess>(getCreateTeamUrl(),
   {
     ...options,
-    method: 'PUT',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(hiringTeamRequest)
+    body: JSON.stringify(teamRequest)
   }
 );}
 
@@ -18868,13 +18861,13 @@ return apiQueryFetch<setHiringTemplateTeamResponseSuccess>(getSetHiringTemplateT
 
 
 
-export const getSetHiringTemplateTeamMutationKey = () => ['setHiringTemplateTeam'] as const;
+export const getCreateTeamMutationKey = () => ['createTeam'] as const;
 
-export const getSetHiringTemplateTeamMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setHiringTemplateTeam>>, TError,SetHiringTemplateTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
-): CreateMutationOptions<Awaited<ReturnType<typeof setHiringTemplateTeam>>, TError,SetHiringTemplateTeamMutationVariables, TContext> => {
+export const getCreateTeamMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,CreateTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,CreateTeamMutationVariables, TContext> => {
 
-const mutationKey = getSetHiringTemplateTeamMutationKey();
+const mutationKey = getCreateTeamMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -18884,10 +18877,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setHiringTemplateTeam>>, SetHiringTemplateTeamMutationVariables> = (props) => {
-          const {templateId,data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTeam>>, CreateTeamMutationVariables> = (props) => {
+          const {data} = props ?? {};
 
-          return  setHiringTemplateTeam(templateId,data,requestOptions)
+          return  createTeam(data,requestOptions)
         }
 
 
@@ -18897,20 +18890,325 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type SetHiringTemplateTeamMutationResult = NonNullable<Awaited<ReturnType<typeof setHiringTemplateTeam>>>
-    export type SetHiringTemplateTeamMutationBody = HiringTeamRequest
-    export type SetHiringTemplateTeamMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
-    export type SetHiringTemplateTeamMutationVariables = {templateId: string;data: HiringTeamRequest}
+    export type CreateTeamMutationResult = NonNullable<Awaited<ReturnType<typeof createTeam>>>
+    export type CreateTeamMutationBody = TeamRequest
+    export type CreateTeamMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreateTeamMutationVariables = {data: TeamRequest}
 
-    export const createSetHiringTemplateTeam = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setHiringTemplateTeam>>, TError,SetHiringTemplateTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+    export const createCreateTeam = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createTeam>>, TError,CreateTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
-        Awaited<ReturnType<typeof setHiringTemplateTeam>>,
+        Awaited<ReturnType<typeof createTeam>>,
         TError,
-        SetHiringTemplateTeamMutationVariables,
+        CreateTeamMutationVariables,
         TContext
       > => {
-      return createMutation(() => ({ ...getSetHiringTemplateTeamMutationOptions(options?.()) }), queryClient);
+      return createMutation(() => ({ ...getCreateTeamMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getSuggestedTeamResponse200 = {
+  data: TeamSuggestion
+  status: 200
+}
+
+export type getSuggestedTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getSuggestedTeamResponseSuccess = (getSuggestedTeamResponse200) & {
+  headers: Headers;
+};
+export type getSuggestedTeamResponseError = (getSuggestedTeamResponse401) & {
+  headers: Headers;
+};
+
+export const getGetSuggestedTeamUrl = (params?: GetSuggestedTeamParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/teams/suggested?${stringifiedParams}` : `/v1/organization/teams/suggested`
+}
+
+export const getSuggestedTeam = async (params?: GetSuggestedTeamParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getSuggestedTeamResponseSuccess> => {
+
+  return apiQueryFetch<getSuggestedTeamResponseSuccess>(getGetSuggestedTeamUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSuggestedTeamQueryKey = (params?: GetSuggestedTeamParams,) => {
+    return [
+    'v1','organization','teams','suggested', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSuggestedTeamQueryOptions = <TData = Awaited<ReturnType<typeof getSuggestedTeam>>, TError = ErrorType<void>>(params?: GetSuggestedTeamParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getSuggestedTeam>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSuggestedTeamQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSuggestedTeam>>> = ({ signal }) => getSuggestedTeam(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getSuggestedTeam>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSuggestedTeamQueryResult = NonNullable<Awaited<ReturnType<typeof getSuggestedTeam>>>
+export type GetSuggestedTeamQueryError = ErrorType<void>
+
+
+
+export function createGetSuggestedTeam<TData = Awaited<ReturnType<typeof getSuggestedTeam>>, TError = ErrorType<void>>(
+ params?: () =>  GetSuggestedTeamParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getSuggestedTeam>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetSuggestedTeamQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type updateTeamResponse200 = {
+  data: TeamDetail
+  status: 200
+}
+
+export type updateTeamResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateTeamResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateTeamResponseSuccess = (updateTeamResponse200) & {
+  headers: Headers;
+};
+export type updateTeamResponseError = (updateTeamResponse400 | updateTeamResponse401 | updateTeamResponse403 | updateTeamResponse404) & {
+  headers: Headers;
+};
+
+export const getUpdateTeamUrl = (teamId: string,) => {
+
+
+
+
+  return `/v1/organization/teams/${teamId}`
+}
+
+export const updateTeam = async (teamId: string,
+    teamRequest: TeamRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateTeamResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateTeamResponseSuccess>(getUpdateTeamUrl(teamId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(teamRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateTeamMutationKey = () => ['updateTeam'] as const;
+
+export const getUpdateTeamMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,UpdateTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,UpdateTeamMutationVariables, TContext> => {
+
+const mutationKey = getUpdateTeamMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTeam>>, UpdateTeamMutationVariables> = (props) => {
+          const {teamId,data} = props ?? {};
+
+          return  updateTeam(teamId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTeamMutationResult = NonNullable<Awaited<ReturnType<typeof updateTeam>>>
+    export type UpdateTeamMutationBody = TeamRequest
+    export type UpdateTeamMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type UpdateTeamMutationVariables = {teamId: string;data: TeamRequest}
+
+    export const createUpdateTeam = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateTeam>>, TError,UpdateTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateTeam>>,
+        TError,
+        UpdateTeamMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateTeamMutationOptions(options?.()) }), queryClient);
+    }
+
+export type deleteTeamResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteTeamResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteTeamResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteTeamResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteTeamResponseSuccess = (deleteTeamResponse204) & {
+  headers: Headers;
+};
+export type deleteTeamResponseError = (deleteTeamResponse401 | deleteTeamResponse403 | deleteTeamResponse404) & {
+  headers: Headers;
+};
+
+export const getDeleteTeamUrl = (teamId: string,) => {
+
+
+
+
+  return `/v1/organization/teams/${teamId}`
+}
+
+export const deleteTeam = async (teamId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<deleteTeamResponseSuccess> => {
+
+  return apiQueryFetch<deleteTeamResponseSuccess>(getDeleteTeamUrl(teamId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteTeamMutationKey = () => ['deleteTeam'] as const;
+
+export const getDeleteTeamMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,DeleteTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,DeleteTeamMutationVariables, TContext> => {
+
+const mutationKey = getDeleteTeamMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteTeam>>, DeleteTeamMutationVariables> = (props) => {
+          const {teamId} = props ?? {};
+
+          return  deleteTeam(teamId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteTeamMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTeam>>>
+
+    export type DeleteTeamMutationError = ErrorType<void | ProblemDetails>
+    export type DeleteTeamMutationVariables = {teamId: string}
+
+    export const createDeleteTeam = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteTeam>>, TError,DeleteTeamMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof deleteTeam>>,
+        TError,
+        DeleteTeamMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getDeleteTeamMutationOptions(options?.()) }), queryClient);
     }
 
 export type listRolesResponse200 = {

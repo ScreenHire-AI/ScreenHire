@@ -201,7 +201,7 @@ screen reader hears. Every teammate toast needs an `ActorUserId` that is not the
 automation or the candidate never toasts: it is not a teammate's, and a key may be the person's own AI assistant. The one
 exception is a new application, which tells the job's hiring team ("New applications", below). Any event the table does not name
 never toasts, so a verification result (`VerificationAssessed`) cannot. Every edit of a hiring, email or scorecard
-template (create, change, archive, restore, delete or reset, and a hiring template's default team) raises
+template (create, change, archive, restore, delete or reset) raises
 `TemplateChanged` so open dashboards refresh the template lists and pickers. It toasts for an email template or a
 scorecard, to the member who changed it last before this edit ("Jordan Ellis changed the email template Stage change",
 linking to it), and never for a hiring template: its edits are drafts, and only its publish toasts. A template deleted
