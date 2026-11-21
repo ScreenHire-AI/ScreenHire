@@ -1,5 +1,5 @@
-import type { SavedViewSummary, WorkflowStage } from '@screenhire/api-client';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import type { ApplicationSummary, SavedViewSummary, WorkflowStage } from '@screenhire/api-client';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goto } from '$app/navigation';
 import { preferences } from '#lib/preferences.svelte.js';
@@ -20,7 +20,7 @@ function canSendEmail() {
   vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/email-templates': () => Response.json({ sendingEnabled: true, templates: [], variables: [] }) })));
 }
 
-function renderPipeline(overrides: { stages?: WorkflowStage[]; verificationFilter?: VerificationFilter } = {}) {
+function renderPipeline(overrides: { stages?: WorkflowStage[]; applications?: ApplicationSummary[]; verificationFilter?: VerificationFilter } = {}) {
   return render(WithQueryClient, { props: { component: JobPipelineHarness, props: { stages, applications, ...overrides } } });
 }
 
@@ -234,6 +234,25 @@ describe('job pipeline', () => {
 
     expect(screen.getByRole('list', { name: 'Applied stage' })).toBeInTheDocument();
     expect(within(panelHeader()).getByRole('button', { name: 'Board' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('draws no search, filters or Save view for a job nobody applied to, on a laptop or a phone (design system section 7)', () => {
+    renderPipeline({ applications: [] });
+
+    expect(screen.getByText('No candidates yet')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Candidates' })).toBeInTheDocument();
+    expect(within(panelHeader()).getByRole('group', { name: 'View' })).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox', { name: 'Search candidates' })).toBeNull();
+    expect(panel().querySelector('[data-filters]')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save view' })).toBeNull();
+    cleanup();
+
+    stubViewport(390);
+    renderPipeline({ applications: [] });
+    expect(screen.getByText('No candidates yet')).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox', { name: 'Search candidates' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sort' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Stage/ })).toBeNull();
   });
 
   it('offers the Stage, Verification and Sort chips in one row above the list on a phone (L2, section 8)', () => {

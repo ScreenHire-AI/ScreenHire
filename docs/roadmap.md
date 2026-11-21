@@ -121,9 +121,9 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
    `pointer: coarse`. A check first, then a fix if it fails. Size S. (#148)
 9. **Ask for a name at onboarding.** A member with no name shows as a truncated email address in Team, and the Email
    column repeats it. Ask on the onboarding form, prefilled from the identity provider when it has one. Size S to M. (#149)
-10. **Quieter empty states.** An empty Candidates panel shows the whole toolbar (Stage filter, three zero chips, a Save
-   view that looks disabled), and the Invite sheet stacks six two-line cards. Hide the toolbar until there are rows; one
-   line per role and a single "Only some jobs" switch. Size S to M. (#149)
+10. **Quieter empty states.** Built: a list with no rows shows its title and empty state with no search, filters or Save
+   view, and the Invite sheet has one line per role and a single "Only some jobs" switch ([design system](design/design-system.md)).
+   Kept here so the numbers hold. (#149)
 11. **Starting points for a cafe.** The Trial shift scorecard is not on the Trade role template's stage, and the
     template's example line is "Plumber, electrician, driver". Wiring the scorecard in and adding a Hospitality
     starting point each need a data migration. Size S to M. (#147)

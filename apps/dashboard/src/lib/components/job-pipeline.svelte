@@ -89,6 +89,9 @@
   const chosenStage = $derived(stages.some((stage) => stage.id === stageFilter) ? stageFilter : null);
   const shown = $derived(onBoard.filter((application) => !chosenStage || (application.stage.id === chosenStage && !application.keptInMindAt)));
   const filtering = $derived(Boolean(chosenStage) || Boolean(search.trim()) || isVerificationFiltered(verificationFilter));
+  // No applications on the job at all: the panel shows its title, the view switch and the empty state, with no search,
+  // filters or Save view over nothing (design system section 7). The first application brings them back.
+  const bare = $derived(!pending && !error && applications.length === 0 && !filtering);
   const moveTargets = $derived(bulkMoveStages(stages, verificationFilter));
 
   // A Rating column with nothing in any row is an empty column on every page load (L1): it joins the table once a scorecard
@@ -189,7 +192,7 @@
      board fills the panel, which fills the page's height, so it scrolls inside itself. -->
 <Panel title="Candidates" flush fill={!sidebar.isMobile} class={sidebar.isMobile ? undefined : 'min-h-0 flex-1'} {onkeydown}>
   {#snippet tools()}
-    {#if !sidebar.isMobile}{@render searchField('flex-[0_1_15rem] @max-3xl/panel:flex-1')}{/if}
+    {#if !sidebar.isMobile && !bare}{@render searchField('flex-[0_1_15rem] @max-3xl/panel:flex-1')}{/if}
   {/snippet}
   {#snippet actions()}
     <div role="group" aria-label="View" class="flex gap-1">
@@ -212,10 +215,10 @@
     </div>
   {/snippet}
 
-  {#if sidebar.isMobile}
+  {#if sidebar.isMobile && !bare}
     <div class="flex border-b border-border-subtle px-4 py-2">{@render searchField('flex-1')}</div>
   {/if}
-  {#if !pending && !error}
+  {#if !pending && !error && !bare}
     {#if !sidebar.isMobile}
       <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5), with Save view in view at its end.
            The board's columns are the stages, so only the table has the Stage filter. -->
@@ -270,13 +273,9 @@
       emptyTitle={filtering ? undefined : 'No candidates yet'}
       emptyText={filtering ? 'No candidates match these filters.' : emptyText}
       onclearfilters={filtering ? clearFilters : undefined}
-    >
-      {#snippet filters()}
-        {@render stageMenu()}
-        <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
-      {/snippet}
-      {#snippet filterAction()}{@render saveView()}{/snippet}
-    </ApplicationTable>
+      filters={bare ? undefined : phoneFilters}
+      filterAction={bare ? undefined : saveView}
+    />
   {:else if onBoard.length === 0}
     <Empty.Root class="gap-3 p-6">
       {#if filtering}
@@ -306,6 +305,11 @@
   <MoveConfirmDialog {moves} />
   <SaveCandidateSheet bind:open={keepOpen} applicationIds={selected.map((application) => application.id)} ondone={(message) => ((emailed = message), (selectedIds = []))} />
 {/if}
+
+{#snippet phoneFilters()}
+  {@render stageMenu()}
+  <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />
+{/snippet}
 
 {#snippet searchField(className: string)}
   <SearchField bind:value={search} label="Search candidates" class={className} />

@@ -412,7 +412,9 @@
   <div class={['flex flex-col', fill && 'min-h-0 flex-1']} {onkeydown} {onfocusin}>
     <!-- relative: the containing block for the chips' absolutely placed sr-only labels, so this scroller clips them
          instead of the page scrolling sideways on a phone (F1). On a tablet the table scrolls sideways here, with the
-         checkbox and name columns stuck to its left edge (section 8). -->
+         checkbox and name columns stuck to its left edge (section 8). With no rows there is nothing to put the column headers
+         over, so the empty state stands alone. -->
+    {#if rows.length > 0}
     <div
       bind:this={scrollElement}
       onscroll={(event) => (scrolledSideways = event.currentTarget.scrollLeft > 0)}
@@ -473,6 +475,7 @@
         </tbody>
       </table>
     </div>
+    {/if}
     <!-- Outside the scroller, so a table wider than its panel never pushes the message out of view (F1). -->
     {#if rows.length === 0}{@render empty()}{/if}
   </div>
