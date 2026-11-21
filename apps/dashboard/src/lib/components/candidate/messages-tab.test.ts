@@ -135,6 +135,19 @@ describe('the Messages history', () => {
     await expectNoAxeViolations();
   });
 
+  it('still offers Expand all when an email that was open leaves the list and a closed one arrives', async () => {
+    const tab = (emails: CandidateEmailEntry[]) => ({ component: MessagesTab, props: { emails, onretry: () => {}, members, currentUserId: 'u1' } });
+    const { rerender } = render(WithQueryClient, { props: tab([invite, welcome]) });
+    await fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));
+
+    // Wrapped in `props`: the wrapper's own props have a `props` key, which rerender would read as its options.
+    await rerender({ props: tab([{ ...welcome, id: 'reminder', subject: 'A reminder', sentAt: '2026-11-20T10:00:00Z' }, welcome]) });
+    expect(screen.getByRole('button', { name: /^A reminder/ })).toHaveAttribute('aria-expanded', 'false');
+
+    expect(screen.getByRole('button', { name: 'Expand all' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Collapse all' })).toBeInTheDocument();
+  });
+
   it('offers Expand all only when there is more than one email', () => {
     show([welcome]);
 
