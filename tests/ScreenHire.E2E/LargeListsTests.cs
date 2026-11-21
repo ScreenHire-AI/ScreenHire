@@ -124,7 +124,7 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
         await SearchAsync("Integration key 07", "Integration key 07", "Integration key 08");
 
         await GoToPageAsync("/settings/webhooks", "Webhooks");
-        await ExpectCountAsync("Endpoints", BusyOrganization.WebhookEndpoints.ToString());
+        await ExpectCountAsync("Endpoints", $"{BusyOrganization.WebhookEndpoints}");
         await ExpectFitsAsync($"webhooks-{width}");
         await SearchAsync("Receiver 07", "Receiver 07", "Receiver 08");
     }
