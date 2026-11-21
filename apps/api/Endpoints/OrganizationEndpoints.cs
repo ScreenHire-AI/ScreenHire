@@ -177,12 +177,12 @@ internal static class OrganizationEndpoints
     private static async Task<Results<Ok<OrganizationSetup>, NotFound, ValidationProblem>> SkipSetupStep(
         SkipSetupStepRequest request, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
     {
-        if (!Enum.IsDefined(request.Step))
+        if (request.Step is not { } step || !Enum.IsDefined(step))
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("step", "Choose one of the setup steps."));
         }
 
-        return await ChangeSetupAsync(db, tenant, o => o.SkipSetupStep(request.Step), cancellationToken) switch
+        return await ChangeSetupAsync(db, tenant, o => o.SkipSetupStep(step), cancellationToken) switch
         {
             { } setup => TypedResults.Ok(setup),
             null => TypedResults.NotFound(),

@@ -57,6 +57,8 @@ public sealed class OrganizationSetupTests(AppHostFixture fixture)
         (await recruiter.PostAsync("/v1/organization/setup/show")).Expect(HttpStatusCode.Forbidden);
 
         (await owner.PostAsync("/v1/organization/setup/skip", Skip("CareersPage"))).Expect(HttpStatusCode.BadRequest);
+        // A body without a step is refused, not read as the first step.
+        (await owner.PostAsync("/v1/organization/setup/skip", new JsonObject())).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("step");
         var setup = (await owner.GetAsync("/v1/organization/setup")).Expect(HttpStatusCode.OK);
         Skipped(setup).Should().BeEmpty();
         Hidden(setup).Should().BeFalse();

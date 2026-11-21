@@ -7171,8 +7171,8 @@ export const GetOrganizationSetupResponse = zod.object({
 
 
 export const SkipSetupStepBody = zod.object({
-  "step": zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')
-}).describe('Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing.')
+  "step": zod.union([zod.null(),zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')])
+}).describe('Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing. Nullable\nonly so a body without it is refused rather than read as the first step.')
 
 export const SkipSetupStepResponse = zod.object({
   "hidden": zod.boolean(),

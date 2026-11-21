@@ -119,8 +119,11 @@ public sealed record OrganizationProfile(
 /// </summary>
 public sealed record OrganizationSetup(bool Hidden, IReadOnlyList<SetupStepId> SkippedSteps);
 
-/// <summary>Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing.</summary>
-public sealed record SkipSetupStepRequest(SetupStepId Step);
+/// <summary>
+/// Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing. Nullable
+/// only so a body without it is refused rather than read as the first step.
+/// </summary>
+public sealed record SkipSetupStepRequest(SetupStepId? Step);
 
 /// <summary>
 /// Replaces the sites allowed to embed the careers pages, at most 20. Each is an https site's address; a bare name gets

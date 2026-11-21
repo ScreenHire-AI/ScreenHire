@@ -7,8 +7,9 @@
 import type { SetupStepId } from './setupStepId.ts';
 
 /**
- * Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing.
+ * Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing. Nullable
+ * only so a body without it is refused rather than read as the first step.
  */
 export interface SkipSetupStepRequest {
-  step: SetupStepId;
+  step: null | SetupStepId;
 }

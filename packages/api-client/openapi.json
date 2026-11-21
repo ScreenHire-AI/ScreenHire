@@ -26693,10 +26693,17 @@
         "type": "object",
         "properties": {
           "step": {
-            "$ref": "#/components/schemas/SetupStepId"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SetupStepId"
+              }
+            ]
           }
         },
-        "description": "Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing."
+        "description": "Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing. Nullable\nonly so a body without it is refused rather than read as the first step."
       },
       "SlackAccount": {
         "required": [

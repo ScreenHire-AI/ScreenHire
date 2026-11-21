@@ -303,6 +303,8 @@ describe('notification bell', () => {
 
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Finish setting up' })).toBeNull());
     expect(posted('/v1/organization/setup/hide')).toBe(true);
+    // No Undo here: the panel says where the checklist comes back.
+    expect((await within(panel).findByText(/Setup is hidden for everyone/)).querySelector('a')).toHaveAttribute('href', '/settings/organization');
     expect(await screen.findByRole('button', { name: 'Notifications' })).toBeInTheDocument();
   });
 
