@@ -90,6 +90,16 @@ export const settingsSections: readonly SettingsSection[] = [
     permission: 'ManageTeam',
     group: 'Organization',
   },
+  // A tag's rename, merge or delete reaches every job's candidates and pipeline, so the page needs all jobs, as the API does.
+  {
+    label: 'Tags',
+    href: '/settings/tags',
+    description: 'Rename, merge or delete the tags on candidates',
+    keywords: ['tag', 'label', 'labels', 'rename tag', 'merge tags', 'duplicate tags'],
+    permission: 'EditSettings',
+    group: 'Organization',
+    allJobs: true,
+  },
   {
     label: 'Email domain',
     href: '/settings/sending-domain',

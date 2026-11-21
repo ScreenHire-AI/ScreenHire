@@ -67,3 +67,62 @@ describe('tag list, compact (a candidate header)', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 });
+
+describe('tag list, suggesting the tags the organization has', () => {
+  const suggestions = [
+    { name: 'Senior engineer', applications: 9 },
+    { name: 'Senior', applications: 4 },
+    { name: 'Remote', applications: 7 },
+  ];
+
+  async function typeIn(text: string) {
+    await fireEvent.click(screen.getByRole('button', { name: 'Add tag' }));
+    const field = screen.getByRole('combobox', { name: 'New tag' });
+    await fireEvent.input(field, { target: { value: text } });
+    return field;
+  }
+
+  it('lists the matching tags most used first with Create last, and Enter picks the top one', async () => {
+    const onadd = vi.fn(async () => true);
+    show({ compact: true, tags: ['Remote'], onadd, suggestions });
+
+    const field = await typeIn('sen');
+    const options = within(screen.getByRole('listbox', { name: 'Tags' })).getAllByRole('option');
+    expect(options.map((option) => option.textContent?.trim())).toEqual(['Senior engineer', 'Senior', 'Create "sen"']);
+    expect(field).toHaveAttribute('aria-expanded', 'true');
+    expect(field).toHaveAttribute('aria-activedescendant', options[0]!.id);
+
+    await fireEvent.submit(field.closest('form')!);
+    expect(onadd).toHaveBeenCalledWith('Senior engineer');
+  });
+
+  it('reuses the existing tag for text in another case, and the arrow keys reach Create', async () => {
+    const onadd = vi.fn(async () => true);
+    show({ compact: true, tags: [], onadd, suggestions });
+
+    const field = await typeIn('SENIOR');
+    expect(screen.queryByRole('option', { name: /Create/ })).toBeNull();
+    await fireEvent.submit(field.closest('form')!);
+    expect(onadd).toHaveBeenLastCalledWith('Senior');
+
+    const again = await typeIn('Night shift');
+    await fireEvent.keyDown(again, { key: 'ArrowUp' });
+    expect(again).toHaveAttribute('aria-activedescendant', screen.getByRole('option', { name: 'Create "Night shift"' }).id);
+    await fireEvent.submit(again.closest('form')!);
+    expect(onadd).toHaveBeenLastCalledWith('Night shift');
+  });
+
+  it('closes the list on Escape and keeps the field open, and a pick by pointer adds it', async () => {
+    const onadd = vi.fn(async () => true);
+    show({ compact: true, tags: [], onadd, suggestions });
+
+    const field = await typeIn('rem');
+    await fireEvent.keyDown(field, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(field).toBeInTheDocument();
+
+    await fireEvent.input(field, { target: { value: 're' } });
+    await fireEvent.mouseDown(screen.getByRole('option', { name: 'Remote' }));
+    expect(onadd).toHaveBeenCalledWith('Remote');
+  });
+});
