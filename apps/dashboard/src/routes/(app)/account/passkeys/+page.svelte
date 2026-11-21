@@ -138,8 +138,6 @@
 <main class={[sidebar.isMobile && supported && 'pb-28']}>
   <HeaderBand
     title="Passkeys"
-    count={passkeys.isSuccess ? list.length : undefined}
-    countLabel={list.length === 1 ? 'passkey' : 'passkeys'}
     actions={supported && !sidebar.isMobile ? bandActions : undefined}
   />
 
@@ -153,7 +151,7 @@
         <QueryError message={describeError(passkeys.error, 'Could not load your passkeys')} onretry={() => passkeys.refetch()} inset />
       </Panel>
     {:else}
-      <Panel label="Passkeys" flush footer={nearLimit ? limitNote : undefined}>
+      <Panel title="Your passkeys" count={list.length || undefined} flush footer={nearLimit ? limitNote : undefined}>
         {#if passkeys.isPending}
           <div aria-hidden="true" class="flex flex-col">
             {#each [0, 1] as row (row)}

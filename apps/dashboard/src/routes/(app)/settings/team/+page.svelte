@@ -152,7 +152,7 @@
     { id: 'sent', header: 'Sent', accessorFn: (invitation) => invitation.createdAt, sortFn: 'basic', sortDescFirst: true },
     { id: 'expires', header: 'Expires', accessorFn: (invitation) => invitation.expiresAt, sortFn: 'basic' },
   ];
-  const memberSort = createTableSort('team-members', { id: 'name', desc: false }, ['name', 'email', 'role', 'jobs', 'joined']);
+  const memberSort = createTableSort('team-members', { id: 'name', desc: false }, ['name', 'email', 'role', 'jobs', 'joined', 'updated']);
   const invitationSort = createTableSort('team-invitations', { id: 'email', desc: false }, ['email', 'role', 'sent', 'expires']);
   const memberTable = createTable({
     ...tableSortOptions(() => memberSort),
@@ -330,8 +330,6 @@
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
     title="Team"
-    count={members.isSuccess ? memberList.length : undefined}
-    countLabel={memberList.length === 1 ? 'member' : 'members'}
     actions={bandActions}
     oneRow
   />
@@ -339,10 +337,10 @@
   <SettingsMenu>
     <p role="status" class="sr-only">{announcement}</p>
 
-    <Panel title="Members" flush footer={memberFailure ? memberFooter : undefined}>
+    <Panel title="Members" count={members.isSuccess ? memberList.length : undefined} flush footer={memberFailure ? memberFooter : undefined}>
       {#snippet tools()}
         <!-- Past about ten, a list has a search, so adding one never changes the layout (S9). -->
-        {#if memberList.length > 10}<SearchField bind:value={search} label="Search members" class="ml-auto flex-[0_1_15rem]" />{/if}
+        {#if memberList.length > 10}<SearchField bind:value={search} label="Search members" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
       {/snippet}
       {#if members.isError}
         <div class="p-4"><QueryError message={describeError(members.error, 'Could not load the team')} onretry={() => members.refetch()} inset /></div>
@@ -425,7 +423,7 @@
       {/if}
     </Panel>
 
-    <Panel title="Invitations" count={invitations.isSuccess ? invitationList.length : undefined} flush>
+    <Panel title="Invitations" count={invitationList.length || undefined} flush>
       {#if invitations.isError}
         <div class="p-4">
           <QueryError message={describeError(invitations.error, 'Could not load the invitations')} onretry={() => invitations.refetch()} inset />

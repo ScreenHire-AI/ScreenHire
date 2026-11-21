@@ -185,14 +185,12 @@
   <title>API keys · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={settingsCrumbs('/settings/api-keys')} back />
+<TopBar crumbs={settingsCrumbs('/settings/api-keys')} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
     title="API keys"
     oneRow
-    count={keys.isSuccess ? all.length : undefined}
-    countLabel={all.length === 1 ? 'key' : 'keys'}
     actions={bandActions}
   />
 
@@ -201,10 +199,10 @@
     {#if keys.isError}
       <Panel title="Keys"><QueryError message={describeError(keys.error, 'Could not load the API keys')} onretry={() => keys.refetch()} inset /></Panel>
     {:else}
-      <Panel title="Keys" flush>
+      <Panel title="Keys" count={all.length || undefined} flush>
         {#snippet tools()}
           <!-- Past about ten, a list has a search, so adding one never changes the layout (S9). -->
-          {#if all.length > 10}<SearchField bind:value={search} label="Search keys" class="ml-auto flex-[0_1_15rem]" />{/if}
+          {#if all.length > 10}<SearchField bind:value={search} label="Search keys" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
         {/snippet}
         {#if keys.isPending}
           <div aria-hidden="true" class="flex flex-col">

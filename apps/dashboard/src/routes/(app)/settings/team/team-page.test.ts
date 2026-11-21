@@ -2,6 +2,7 @@ import type { ApiKeySummary, CurrentUser, OrganizationRole, PendingInvitation, T
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
+import { expectCountInPanelNotBand } from '../../../../test-support/list-template.js';
 import { apiStub, interviewerRoleId, roleCatalogue, user, userAs } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
@@ -88,6 +89,9 @@ describe('team page', () => {
     expect((await screen.findAllByText('sam@example.com')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('robin@example.com').length).toBeGreaterThan(0);
     expect(screen.getAllByText('You').length).toBeGreaterThan(0);
+    // The count of each list is in its panel, never beside the title (List template, T4).
+    expectCountInPanelNotBand('Members', 4);
+    expect(within(screen.getByRole('region', { name: 'Invitations' })).getByText('2', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
     await expectNoAxeViolations();
   });
 

@@ -192,7 +192,8 @@ describe('saved candidates page', () => {
 
     await search('jordan');
     expect(nameLinks()).toEqual(['Jordan Lee']);
-    expect(within(screen.getByRole('region', { name: 'Saved candidates' }).querySelector('header')!).getByText('1', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
+    // The count of the list is on its tab, so the panel's header never repeats it (W7).
+    expect(screen.getByRole('region', { name: 'Saved candidates' }).querySelector('header [data-slot="badge"]')).toBeNull();
 
     await search('wrong timing');
     expect(nameLinks()).toEqual(['Casey Morgan']);
@@ -324,6 +325,42 @@ describe('saved candidates page', () => {
       const menu = await openRowMenu('Casey Morgan');
 
       expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit note', 'Remove from saved']);
+    });
+
+    it('keeps the Candidates page action in the header on this tab too, and says where the new candidate went (List template)', async () => {
+      const job = jobs[1]!;
+      renderPage({
+        routes: {
+          [`POST /v1/jobs/${job.id}/applications`]: () =>
+            Response.json({ id: 'new-application', jobTitle: job.title, candidate: { fullName: 'Robin Ashby' } }, { status: 201 }),
+        },
+      });
+      await screen.findByRole('table', { name: 'Saved candidates' });
+
+      const band = document.querySelector('[data-slot="header-band"]') as HTMLElement;
+      await fireEvent.click(within(band).getByRole('button', { name: 'Add candidate' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Add candidate' });
+      const picker = within(sheet).getByLabelText('Job');
+      await waitFor(() => expect(within(picker).getByRole('option', { name: job.title })).toBeInTheDocument());
+      await fireEvent.change(picker, { target: { value: job.id } });
+      await fireEvent.input(within(sheet).getByLabelText('First name'), { target: { value: 'Robin' } });
+      await fireEvent.input(within(sheet).getByLabelText('Email'), { target: { value: 'robin.ashby@example.com' } });
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Add candidate' }));
+
+      // The new candidate joins a job, not the saved list, so a sighted person reads where they went, as on the Current tab.
+      const line = await waitFor(() => {
+        const added = document.querySelector<HTMLElement>('[data-added]')!;
+        expect(added).toHaveTextContent(`Added Robin Ashby to ${job.title}.`);
+        return added;
+      });
+      expect(within(line).getByRole('link', { name: 'Robin Ashby' })).toHaveAttribute('href', '/applications/new-application');
+    });
+
+    it('offers no Add candidate to a viewer', async () => {
+      renderPage({ as: userAs('Viewer') });
+      await screen.findByRole('table', { name: 'Saved candidates' });
+
+      expect(screen.queryByRole('button', { name: 'Add candidate' })).toBeNull();
     });
 
     it('gives a viewer the list and the links but no menu and no checkboxes that act', async () => {

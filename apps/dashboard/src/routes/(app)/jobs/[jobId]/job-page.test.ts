@@ -358,6 +358,23 @@ describe('job page', () => {
     expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
   });
 
+  it('says a closed job is closed once: no Closed fact when closing was the last change', async () => {
+    stub({ ...job, status: 'Closed', closedAt: '2026-10-20T10:00:00Z', lastUpdated: { at: '2026-10-20T10:00:20Z', by: 'Member', userId: user.id } } as JobDetail);
+
+    await screen.findByRole('heading', { level: 1 });
+    const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
+    expect([...band.querySelectorAll('dt')].map((term) => term.textContent)).not.toContain('Closed');
+    expect(within(band).getAllByText('Closed')).not.toHaveLength(0);
+  });
+
+  it('keeps the Closed fact when an edit came after closing', async () => {
+    stub({ ...job, status: 'Closed', closedAt: '2026-10-20T10:00:00Z', lastUpdated: { at: '2026-10-22T10:00:00Z', by: 'Member', userId: user.id } } as JobDetail);
+
+    await screen.findByRole('heading', { level: 1 });
+    const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
+    expect([...band.querySelectorAll('dt')].map((term) => term.textContent)).toContain('Closed');
+  });
+
   it('says what saving the details did above the tabs, whichever one is open', async () => {
     page.state = { saved: 'Saved. The careers page shows it now.' };
     stub(job);

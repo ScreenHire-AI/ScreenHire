@@ -18,6 +18,8 @@
   import { createSortedRowModel, createTable, rowSortingFeature, sortFn_alphanumeric, sortFn_basic, tableFeatures, type ColumnDef } from '@tanstack/svelte-table';
   import { mergeProps } from 'bits-ui';
   import { page } from '$app/state';
+  import ActionBar from '#lib/components/action-bar.svelte';
+  import AddCandidateSheet, { type AddedCandidate } from '#lib/components/add-candidate-sheet.svelte';
   import AddToJobSheet from '#lib/components/add-to-job-sheet.svelte';
   import { candidateListHref, closedJobIds, listCounts, type CandidateList } from '#lib/candidate-lists.js';
   import CandidatesListTabs from '#lib/components/candidates-list-tabs.svelte';
@@ -186,6 +188,8 @@
   let noting = $state<TalentPoolMember | null>(null);
   let candidateAsked = $state(false);
   let announcement = $state('');
+  let addingCandidate = $state(false);
+  let added = $state<AddedCandidate | null>(null);
   function onMenuClosed() {
     if (chosen) open(chosen.action, [chosen.person]);
     chosen = null;
@@ -224,9 +228,9 @@
 
 <TopBar crumbs={[{ label: 'Candidates' }]} />
 
-<main class="flex min-w-0 flex-col">
+<main class={['flex min-w-0 flex-col', sidebar.isMobile && mayAdd && 'pb-28']}>
   <Tabs.Root value="saved" onValueChange={(value) => value !== 'saved' && void goto(candidateListHref(value as CandidateList))}>
-  <HeaderBand title="Candidates">
+  <HeaderBand title="Candidates" actions={mayAdd && !sidebar.isMobile ? addButton : undefined}>
     {#snippet tabs()}
       <CandidatesListTabs counts={listCounts(applications.data?.data, saved.data?.data.people.length, closedJobIds(jobList.data?.data))} />
     {/snippet}
@@ -234,9 +238,8 @@
 
   <Tabs.Content value="saved" class="@container w-full px-4 py-6 md:px-6">
     <p role="status" class="sr-only">{announcement}</p>
-    <!-- Titled like the Current list's panel. The size of the list is on its choice beside the page title (T4), so the panel counts
-         only when a search or filter leaves fewer than that (W7). -->
-    <Panel title="Saved candidates" count={saved.isSuccess && filtering ? shown.length : undefined} flush>
+    <!-- Titled like the Current list's panel. The size of the list is on its tab (T4), so the panel never counts it (W7). -->
+    <Panel title="Saved candidates" flush>
       {#snippet tools()}
         {#if !bare}<SearchField bind:value={search} label="Search saved candidates" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
       {/snippet}
@@ -395,11 +398,27 @@
           </Table.Root>
         </div>
       {/if}
+      <!-- As on the Current tab: the new candidate joins a job, not this list, so the line says where they went. -->
+      <p role="status" class="px-4.5 py-2 text-body text-muted-foreground empty:hidden max-md:px-4" data-added>
+        {#if added}Added <a href={`/applications/${added.applicationId}`} class="text-foreground underline underline-offset-2">{added.name}</a> to {added.jobTitle}.{/if}
+      </p>
     </Panel>
   </Tabs.Content>
   </Tabs.Root>
+
+  {#if mayAdd && sidebar.isMobile}
+    <ActionBar>{@render addButton()}</ActionBar>
+  {/if}
 </main>
 
+<!-- The page's main action is the same on every tab (List template, section 7): the Candidates header always offers Add candidate. -->
+{#snippet addButton()}
+  <Button size="lg" aria-haspopup="dialog" onclick={() => (addingCandidate = true)}><UserPlusIcon aria-hidden="true" />Add candidate</Button>
+{/snippet}
+
+{#if mayAdd}
+  <AddCandidateSheet bind:open={addingCandidate} onadded={(candidate) => (added = candidate)} />
+{/if}
 
 {#snippet personMenu(person: TalentPoolMember)}
   <MoreMenu label={`Actions for ${person.candidateName}`} size="icon" quiet onclosed={onMenuClosed}>

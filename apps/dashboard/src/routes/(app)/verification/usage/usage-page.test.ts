@@ -81,7 +81,7 @@ describe('the Usage tab', () => {
   it('shows the month against the budget and the cap', async () => {
     renderPage(summary);
 
-    const panel = (await screen.findByRole('heading', { name: 'This month against the limits' })).closest('section') as HTMLElement;
+    const panel = (await screen.findByRole('heading', { name: 'Monthly limits' })).closest('section') as HTMLElement;
     expect(within(panel).getByText('Monthly budget')).toBeInTheDocument();
     expect(within(panel).getByText('Monthly cap')).toBeInTheDocument();
     expect(within(panel).getAllByText('420 tokens of 2,000,000 tokens')).toHaveLength(2);
@@ -91,7 +91,7 @@ describe('the Usage tab', () => {
   it('shows the default in dollars where the deployment prices its model, and says once that the dollars are an estimate', async () => {
     renderPage({ ...summary, limits: dollarLimits });
 
-    const panel = (await screen.findByRole('heading', { name: 'This month against the limits' })).closest('section') as HTMLElement;
+    const panel = (await screen.findByRole('heading', { name: 'Monthly limits' })).closest('section') as HTMLElement;
     expect(within(panel).getAllByText('$0.0569 of $3.20')).toHaveLength(2);
     // Beside the Cost tile's actual $0.42, a different dollar figure needs its reason: one line for both limits.
     expect(within(panel).getAllByText(/In dollars it is an estimate at the usual mix of input and output/)).toHaveLength(1);

@@ -71,6 +71,9 @@ describe('the Activity log tab', () => {
     expect(within(rows[0]).getByText('Found something')).toBeInTheDocument();
     expect(within(rows[0]).getByRole('link', { name: 'Product designer' })).toHaveAttribute('href', '/applications/01a157d4-0000-7000-8000-0000000000a1');
     expect(within(rows[1]).getByText('Did not run')).toBeInTheDocument();
+    // A check that did not run is a waiting state, so it is quiet in the table; the one that found something keeps its fill (T3).
+    expect(within(rows[1]).getByText('Did not run').closest('[data-slot="badge"]')!.className).not.toMatch(/bg-/);
+    expect(within(rows[0]).getByText('Found something').closest('[data-slot="badge"]')).toHaveClass('bg-status-review-soft');
     expect(within(rows[1]).getByText(/turned off in this organization/)).toBeInTheDocument();
     expect(within(rows[2]).getByText('Consistency, reading a source')).toBeInTheDocument();
     expect(within(rows[2]).getByText('req_01ABC')).toBeInTheDocument();

@@ -87,14 +87,12 @@
   <title>Webhooks · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={settingsCrumbs('/settings/webhooks')} back />
+<TopBar crumbs={settingsCrumbs('/settings/webhooks')} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
     title="Webhooks"
     oneRow
-    count={endpoints.isSuccess ? all.length : undefined}
-    countLabel={all.length === 1 ? 'endpoint' : 'endpoints'}
     actions={sidebar.isMobile ? undefined : addButton}
   />
 
@@ -104,10 +102,10 @@
         <QueryError message={describeError(endpoints.error, 'Could not load the webhooks')} onretry={() => endpoints.refetch()} inset />
       </Panel>
     {:else}
-      <Panel title="Endpoints" flush>
+      <Panel title="Endpoints" count={all.length || undefined} flush>
         {#snippet tools()}
           <!-- Past about ten, a list has a search, so adding one never changes the layout (S9). -->
-          {#if all.length > 10}<SearchField bind:value={search} label="Search endpoints" class="ml-auto flex-[0_1_15rem]" />{/if}
+          {#if all.length > 10}<SearchField bind:value={search} label="Search endpoints" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
         {/snippet}
         {#if endpoints.isPending}
           <div aria-hidden="true" class="flex flex-col">

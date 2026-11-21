@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
+import { expectCountInPanelNotBand } from '../../../../test-support/list-template.js';
 import { apiStub, interviewerRoleId, roleCatalogue, user } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
@@ -49,6 +50,7 @@ describe('roles page', () => {
     expect(screen.getByRole('link', { name: 'Compare roles' })).toHaveAttribute('href', '/settings/roles/compare');
     // In its natural order, by access, with no column marked sorted until someone sorts (L2).
     expect(within(table).getAllByRole('columnheader').filter((header) => (header.getAttribute('aria-sort') ?? 'none') !== 'none')).toEqual([]);
+    expectCountInPanelNotBand('Roles', 5);
     await expectNoAxeViolations();
   });
 

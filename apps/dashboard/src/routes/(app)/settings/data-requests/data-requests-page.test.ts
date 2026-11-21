@@ -137,6 +137,8 @@ describe('Data requests page: the list', () => {
     await screen.findAllByText('Robin Ashby');
 
     expect(document.querySelector('[data-slot="header-band"]')).toHaveTextContent(/Data requests\s*2\s*open/);
+    // Words, not a count pill (List template, section 7): the open count is this queue's status.
+    expect(document.querySelector('[data-slot="header-band"] [data-slot="badge"]')).toBeNull();
     expect(screen.getAllByText(/^Overdue by 3 days/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Open').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Completed').length).toBeGreaterThan(0);
@@ -174,7 +176,8 @@ describe('Data requests page: the list', () => {
 
     expect(await screen.findByText('No data requests yet')).toBeInTheDocument();
     expect(screen.getByText(/appears here with a due date/)).toBeInTheDocument();
-    expect(document.querySelector('[data-slot="header-band"]')).toHaveTextContent(/Data requests\s*0\s*open/);
+    // Nothing waits, and the empty list says so, so the band does not add "0 open" (W7).
+    expect(document.querySelector('[data-slot="header-band"]')).not.toHaveTextContent(/open/);
   });
 
   it('says it could not load the requests, with a retry', async () => {

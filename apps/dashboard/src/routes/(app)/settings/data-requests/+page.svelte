@@ -324,8 +324,10 @@
 <TopBar crumbs={settingsCrumbs('/settings/data-requests')} />
 
 <main class={[sidebar.isMobile && 'pb-6']}>
-  <HeaderBand title="Data requests" count={openCount} oneRow>
-    {#snippet status()}{#if openCount !== undefined}<span class="text-muted-foreground">open</span>{/if}{/snippet}
+  <!-- A queue with due dates, not a list of records: how many are open is its status, as words beside the title, never a count pill (section 11, Header band). -->
+  <HeaderBand title="Data requests" oneRow>
+    <!-- Only while something waits: with none open, the list below already says so (W7). -->
+    {#snippet status()}{#if openCount}<span class="text-muted-foreground">{openCount} open</span>{/if}{/snippet}
   </HeaderBand>
 
   <SettingsMenu>

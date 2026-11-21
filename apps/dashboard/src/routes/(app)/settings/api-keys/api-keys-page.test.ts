@@ -2,6 +2,7 @@ import type { ApiKeyScope, ApiKeySummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
+import { expectCountInPanelNotBand } from '../../../../test-support/list-template.js';
 import { apiStub, builtInPermissions, user } from '../../../../test-support/fixtures.js';
 import { page } from '$app/state';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
@@ -111,6 +112,7 @@ describe('API keys page', () => {
     expect(screen.getAllByText('Read and write').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Active').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Revoked').length).toBeGreaterThan(0);
+    expectCountInPanelNotBand('Keys', 2);
     await expectNoAxeViolations();
   });
 
