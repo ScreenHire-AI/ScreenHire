@@ -11,6 +11,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
         // Tenant row-level security like every tenant table (AddSignInAndTenantIsolation). Digest items belong to one person,
         // but the worker writes and sends them for people it does not act as, so the policy is the organization's and every
         // read narrows to the person, as for notifications. user_photos is global like users and has none.
+        // A digest item names the job and the application it is about, so it also gets a restrictive job_scope policy
+        // (ADR-0015, AddJobAccess): a member on Only jobs they're on sees none about another job. Both ids can be null (an AI
+        // use item names neither), which every member passes. The worker sets no user, so it sees every row.
         private const string EnableRowLevelSecurity = """
             ALTER TABLE member_preferences ENABLE ROW LEVEL SECURITY;
             ALTER TABLE member_preferences FORCE ROW LEVEL SECURITY;
@@ -22,6 +25,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             CREATE POLICY tenant_isolation ON digest_items
                 USING (organization_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid)
                 WITH CHECK (organization_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+            CREATE POLICY job_scope ON digest_items AS RESTRICTIVE FOR ALL TO screenhire_app
+                USING ((job_id IS NULL OR app_sees_job(organization_id, job_id))
+                    AND (application_id IS NULL OR app_sees_application(organization_id, application_id)))
+                WITH CHECK ((job_id IS NULL OR app_sees_job(organization_id, job_id))
+                    AND (application_id IS NULL OR app_sees_application(organization_id, application_id)));
             """;
 
         /// <inheritdoc />

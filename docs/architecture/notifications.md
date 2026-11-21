@@ -234,7 +234,9 @@ browser once), only when there is something in it.
 - `digest_items` holds ids and a word for what happened (`Moved`, `Booked`), never a name or text: the lines are written when the
   digest is sent. The daily notification purge deletes items past the retention, sent or not. Erasing an application, a
   candidate's or by record retention, deletes its digest items and the bell rows that link to it (`CandidateErasure`). Its row-level security is the
-  organization's, as for `notifications`, and every read narrows to the person.
+  organization's, as for `notifications`, and every read narrows to the person. Because it names a job and an application it also has
+  a restrictive `job_scope` policy (ADR-0015, written in the migration: both ids are optional, so it is not an `IApplicationScoped`
+  entity), which the worker, acting for no user, passes.
 
 ## Storage and reading
 

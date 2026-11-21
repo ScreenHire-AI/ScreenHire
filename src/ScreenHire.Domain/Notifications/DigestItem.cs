@@ -9,9 +9,11 @@ namespace ScreenHire.Domain.Notifications;
 /// </summary>
 /// <remarks>
 /// Row-level security is the organization's, as for <see cref="Notification"/>, because the worker writes rows for people it
-/// does not act as, so it has no restrictive <c>job_scope</c> policy (ADR-0015) although it carries job ids. Every read for a
-/// person narrows to <see cref="UserId"/>, and the digest checks the job again when it sends. Only the worker reads the table;
-/// an API route that read it would need that policy first.
+/// does not act as. Every read for a person narrows to <see cref="UserId"/>, and the digest checks the job again when it sends.
+/// It carries a job and an application id, so the migration also gives it a restrictive <c>job_scope</c> policy (ADR-0015) that
+/// hides a row about another job from a member on Only jobs they're on. It is a policy and not an
+/// <see cref="IApplicationScoped"/> entity because both ids are optional: an AI use item names neither. Only the worker reads
+/// the table, and it sets no user, so it sees every row.
 /// </remarks>
 public sealed class DigestItem : ITenantOwned
 {
