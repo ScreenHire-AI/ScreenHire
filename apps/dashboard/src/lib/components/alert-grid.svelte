@@ -65,18 +65,23 @@
         </Table.Cell>
         {#if emailAvailable}
           <Table.Cell class="text-center">
-            <input type="checkbox" checked={values[row.email]} onchange={(event) => choose(row.email, event.currentTarget.checked)} aria-label={`${row.label} by email`} class={checkboxClass} />
+            <!-- The label is the 44px touch target on a touch screen (F4); the box inside stays its own size. -->
+            <label class="inline-flex items-center justify-center pointer-coarse:size-11">
+              <input type="checkbox" checked={values[row.email]} onchange={(event) => choose(row.email, event.currentTarget.checked)} aria-label={`${row.label} by email`} class={checkboxClass} />
+            </label>
           </Table.Cell>
         {/if}
         {#if slackConnected}
           <Table.Cell class="text-center">
-            <input
-              type="checkbox"
-              checked={values[row.slack]}
-              onchange={(event) => choose(row.slack, event.currentTarget.checked)}
-              aria-label={`${row.label} on Slack, as a direct message`}
-              class={checkboxClass}
-            />
+            <label class="inline-flex items-center justify-center pointer-coarse:size-11">
+              <input
+                type="checkbox"
+                checked={values[row.slack]}
+                onchange={(event) => choose(row.slack, event.currentTarget.checked)}
+                aria-label={`${row.label} on Slack, as a direct message`}
+                class={checkboxClass}
+              />
+            </label>
           </Table.Cell>
         {/if}
       </Table.Row>

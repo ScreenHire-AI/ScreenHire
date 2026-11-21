@@ -139,6 +139,18 @@ describe('the Activity log tab', () => {
     expect(document.getElementById(detail.id)).toBeNull();
   });
 
+  it('opens a run from a click anywhere on its row, leaving the button the control for keyboards', async () => {
+    renderPage({ 'limit=50': { runs: [run], nextBefore: null, usageVisible: true } });
+
+    const button = await runButton(/Frontend Engineer/);
+    const row = button.closest('tr')!;
+    expect(row).toHaveAttribute('data-row-opens');
+    await fireEvent.click(row.querySelector('time')!);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    await fireEvent.click(row.querySelectorAll('td')[2]!);
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+  });
+
   describe.each(['Recruiter', 'Viewer'] as const)('for a %s', (role) => {
     it('leaves out the call details, the key filter and the export', async () => {
       renderPage({ 'limit=50': { runs: [withoutCallDetails(run)], nextBefore: null, usageVisible: false } }, userAs(role));
