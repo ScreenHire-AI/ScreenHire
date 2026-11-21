@@ -54,6 +54,15 @@ public sealed class EmailSnippetTests
     }
 
     [Theory]
+    [InlineData("On Tue, Nov 17, 2026 at 9:00 AM Avery Quinn\n<avery@example.com> wrote:\n> Can you talk?")]
+    [InlineData("On Tue, Nov 17, 2026 at 9:00 AM Avery Quinn <avery@example.com>\nwrote:\n\n> Can you talk?")]
+    [InlineData("-----Original Message-----\nFrom: Avery Quinn <avery@example.com>\nCan you talk?")]
+    public void A_wrapped_or_Outlook_quote_header_also_starts_the_quoted_email(string text)
+    {
+        EmailSnippet.FirstLine(text).Should().BeNull();
+    }
+
+    [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData(" \n \n")]

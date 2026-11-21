@@ -24,16 +24,19 @@ internal static partial class EmailSnippet
         }
 
         string? salutation = null;
-        foreach (var raw in text.Split('\n'))
+        var lines = text.Split('\n').Select(raw => Spaces().Replace(raw, " ").Trim()).Where(line => line.Length > 0).ToList();
+        for (var i = 0; i < lines.Count; i++)
         {
-            var line = Spaces().Replace(raw, " ").Trim();
-            if (line.Length == 0 || line.StartsWith('>'))
+            var line = lines[i];
+            if (line.StartsWith('>'))
             {
                 continue;
             }
 
             // A mail program's "On Tue, Nov 17, Avery wrote:" starts the quoted email: nothing after it is the reply's own.
-            if (QuoteHeader().IsMatch(line))
+            // A long one wraps, with "wrote:" on the next line, and Outlook's starts "-----Original Message-----".
+            if (QuoteHeader().IsMatch(line) || OriginalMessage().IsMatch(line)
+                || (line.StartsWith("On ", StringComparison.Ordinal) && i + 1 < lines.Count && lines[i + 1].EndsWith("wrote:", StringComparison.Ordinal)))
             {
                 break;
             }
@@ -66,6 +69,9 @@ internal static partial class EmailSnippet
 
     [GeneratedRegex(@"^On .+ wrote:$")]
     private static partial Regex QuoteHeader();
+
+    [GeneratedRegex(@"^-+ ?Original Message ?-+$", RegexOptions.IgnoreCase)]
+    private static partial Regex OriginalMessage();
 
     // A line that is only a greeting ("Hi Taylor,", "Dear Ms Quinn", "Hello all"): it says who the email is to, not what it
     // says. After the salutation come at most three capitalised names or a word for a group, and nothing else, so a short

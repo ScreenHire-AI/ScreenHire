@@ -14,7 +14,7 @@
 <EmailPreview subject={false} preview={email.data?.data} failure={email.isError ? describeError(email.error, 'Could not load the email') : undefined}>
   {#snippet header()}
     {#if email.data}
-      <p class="min-w-0 break-words"><span class="text-muted-foreground">To</span> <span class="font-semibold">{email.data.data.to}</span></p>
+      <p class="min-w-0 [overflow-wrap:anywhere]"><span class="text-muted-foreground">To</span> <span class="font-semibold">{email.data.data.to}</span></p>
     {/if}
   {/snippet}
 </EmailPreview>

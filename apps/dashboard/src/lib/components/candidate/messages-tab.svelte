@@ -49,6 +49,8 @@
   let sent = $state('');
   const threads = $derived(emailThreads(emails ?? []));
   const ids = $derived(threadIds(threads));
+  // Counted against the listed emails, so an id left open on an email that is no longer listed hides neither button.
+  const openCount = $derived(ids.filter((id) => open.has(id)).length);
   // The job of each email, only when the candidate has more than one application to tell apart.
   const manyJobs = $derived(new Set(emails?.map((email) => email.applicationId)).size > 1);
 
@@ -96,8 +98,8 @@
   {#snippet actions()}
     <!-- Each shows only while it would change something, never disabled (A3). -->
     {#if ids.length > 1}
-      {#if open.size < ids.length}<Button variant="outline" onclick={() => ids.forEach((id) => open.add(id))}>Expand all</Button>{/if}
-      {#if open.size > 0}<Button variant="outline" onclick={() => open.clear()}>Collapse all</Button>{/if}
+      {#if openCount < ids.length}<Button variant="outline" onclick={() => ids.forEach((id) => open.add(id))}>Expand all</Button>{/if}
+      {#if openCount > 0}<Button variant="outline" onclick={() => open.clear()}>Collapse all</Button>{/if}
     {/if}
   {/snippet}
   <div class="flex flex-col gap-5">

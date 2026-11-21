@@ -60,7 +60,9 @@
     </div>
     <p class="sr-only" role="status">Loading the preview…</p>
   {:else}
-    <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
+    <!-- Beside `header` the line never wraps: a long address breaks inside its own text, so the toggle keeps the line on a
+         phone too. A subject still wraps the toggle under it. -->
+    <div class={['flex min-w-0 items-center justify-between gap-2', !header && 'flex-wrap']}>
       {#if header}
         {@render header()}
       {:else if subject}
