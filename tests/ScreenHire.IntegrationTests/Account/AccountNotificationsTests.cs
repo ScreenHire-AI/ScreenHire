@@ -36,8 +36,9 @@ public sealed class AccountNotificationsTests(AppHostFixture fixture)
             ["TeammateChanges"] = "Off",
             // The organization sends no verification alert by email yet, so its people start at Off.
             ["VerificationSuggested"] = "Off",
-            // An Owner handles billing, so the trial's emails start at Instantly whatever the AI alert says.
-            ["AiUseAndBilling"] = "Instantly",
+            // The AI use row follows the organization's AI usage email, which a new organization has off. The trial's reminders
+            // still reach an Owner who never chose (NoticeChoicesTests).
+            ["AiUseAndBilling"] = "Off",
         });
 
         // The organization turns the verification email on: everyone who never chose follows it.

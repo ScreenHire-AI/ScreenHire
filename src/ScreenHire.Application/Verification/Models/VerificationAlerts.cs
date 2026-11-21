@@ -193,12 +193,9 @@ public static partial class NotifyAiUsageHandler
             return outgoing;
         }
 
-        // As for a suggested verification: the organization's settings are the start, each person's own choice wins. Someone
-        // who handles billing starts at Instantly, as for the trial's emails.
+        // As for a suggested verification: the organization's settings are the start, each person's own choice wins.
         var alerts = await OrganizationAlertDefaults.ReadAsync(db, cancellationToken);
         var recipients = await VerificationRecipients.WithPermissionAsync(db, Permission.ViewAiUsage, message.OrganizationId, null, cancellationToken);
-        var billing = (await VerificationRecipients.WithPermissionAsync(db, Permission.ManageBilling, message.OrganizationId, null, cancellationToken))
-            .Select(r => r.UserId).ToHashSet();
         var preferences = await PersonNotices.ForUsersAsync(db, message.OrganizationId, [.. recipients.Select(r => r.UserId)], cancellationToken);
         var wording = SlackMessages.AiUsage(AiUsageAlertWording.Subject(message.Kind, message.Percent), link);
         foreach (var recipient in recipients.DistinctBy(r => r.UserId))
@@ -206,7 +203,7 @@ public static partial class NotifyAiUsageHandler
             var mine = preferences.GetValueOrDefault(recipient.UserId);
             var notice = new Notice(message.OrganizationId, recipient.UserId, NoticeKind.AiUseAndBilling, message.Key, Detail: "AI");
             await NoticeDelivery.EmailAsync(
-                db, email, links.Value, notice, PersonNotices.Email(mine, NoticeKind.AiUseAndBilling, alerts, billing.Contains(recipient.UserId)),
+                db, email, links.Value, notice, PersonNotices.Email(mine, NoticeKind.AiUseAndBilling, alerts),
                 () => AiUsageAlertWording.Email(recipient.Email, message.Kind, message.Percent, organization, link), now, cancellationToken);
             if (slack.IsConfigured && PersonNotices.Slack(mine, NoticeKind.AiUseAndBilling, alerts))
             {

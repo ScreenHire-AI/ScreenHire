@@ -190,7 +190,9 @@ internal static class AccountEndpoints
         var permissions = await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken);
         var alerts = await OrganizationAlertDefaults.ReadAsync(db, cancellationToken);
         var (slackAvailable, link) = await SlackAsync(db, userId, cancellationToken);
-        var handlesBilling = permissions.Contains(Permission.ManageBilling);
+        // The row's default is the AI alerts' (the organization's switch) for anyone who sees AI use; someone who only handles
+        // billing hears only of the trial, whose reminders start at Instantly.
+        var handlesBilling = BillingOnly(permissions);
         var rows = NoticeRows.All.Where(r => r.IsFor(permissions)).Select(row => new NoticeRowState(
             row.Kind,
             row.Toasts,
@@ -248,7 +250,7 @@ internal static class AccountEndpoints
 
         var permissions = await RoleAccess.PermissionsOfAsync(db, tenant, cancellationToken);
         var alerts = await OrganizationAlertDefaults.ReadAsync(db, cancellationToken);
-        var handlesBilling = permissions.Contains(Permission.ManageBilling);
+        var handlesBilling = BillingOnly(permissions);
         var visible = NoticeRows.All.Where(r => r.IsFor(permissions)).Select(r => r.Kind).ToHashSet();
         var (_, link) = await SlackAsync(db, userId, cancellationToken);
 
@@ -401,6 +403,9 @@ internal static class AccountEndpoints
 
         return preferences;
     }
+
+    private static bool BillingOnly(IReadOnlySet<Permission> permissions) =>
+        permissions.Contains(Permission.ManageBilling) && !permissions.Contains(Permission.ViewAiUsage);
 
     private static bool IsIanaZone(string? timeZone) =>
         timeZone is { Length: > 0 and <= MemberPreferences.MaxTimeZoneLength }

@@ -38,9 +38,10 @@ public sealed class NoticeChoicesTests
     }
 
     [Fact]
-    public void Someone_who_handles_billing_starts_at_instantly_for_AI_use_and_billing_as_the_trial_emails_always_went()
+    public void The_trial_reminders_start_at_instantly_as_they_always_went_while_the_AI_alerts_follow_the_organization()
     {
         NoticeDefaults.Email(NoticeKind.AiUseAndBilling, OrganizationAlertDefaults.None, handlesBilling: true).Should().Be(EmailChoice.Instantly);
+        NoticeDefaults.Email(NoticeKind.AiUseAndBilling, OrganizationAlertDefaults.None).Should().Be(EmailChoice.Off);
     }
 
     [Fact]

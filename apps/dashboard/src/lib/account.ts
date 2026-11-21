@@ -44,7 +44,7 @@ export const noticeRows: Readonly<Record<NoticeKind, { label: string; hint: stri
   NewApplications: { label: 'New applications on your jobs', hint: 'A candidate applies' },
   TeammateChanges: { label: "Teammates' moves and notes", hint: 'A teammate moves a candidate or adds a note' },
   VerificationSuggested: { label: 'Verification suggested', hint: 'An application needs a closer look' },
-  AiUseAndBilling: { label: 'AI use and billing', hint: 'AI use passes the budget, or the trial ends' },
+  AiUseAndBilling: { label: 'AI use and billing', hint: "AI use passes the budget; the trial's reminders come unless this is Off" },
 };
 
 export const emailChoices: readonly { value: EmailChoice; label: string }[] = [

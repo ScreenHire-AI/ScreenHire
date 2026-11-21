@@ -20,6 +20,7 @@ sources:
   - resource: src/ScreenHire.Application/Notifications/NoticeDelivery.cs
   - resource: src/ScreenHire.Application/Notifications/MemberNotices.cs
   - resource: src/ScreenHire.Application/Notifications/Digest.cs
+  - resource: src/ScreenHire.Application/Candidates/CandidateErasure.cs
   - resource: apps/api/Endpoints/AccountEndpoints.cs
   - resource: apps/dashboard/src/routes/(app)/account/notifications/+page.svelte
   - resource: apps/dashboard/src/lib/notice-grid.ts
@@ -143,7 +144,7 @@ The rows are one list on each side, `NoticeRows` in `NoticePreferences.cs` and `
 | New applications on your jobs | `NewCandidates` | Daily digest | none | everyone |
 | Teammates' moves and notes | `Moves`, `Notes`, `Tags`, `Emails`, `Scorecards`, `Templates` (one switch; Choose opens each) | Off | none | everyone |
 | Verification suggested | none: never a toast (ADR-0004) | the organization's verification email alert | the organization's verification Slack alert | holders of Review verification |
-| AI use and billing | none: the bell keeps them | the organization's AI usage email alert, or Instantly for someone who handles billing | the organization's AI usage Slack alert | holders of View AI usage or Manage billing |
+| AI use and billing | none: the bell keeps them | the organization's AI usage email alert; the trial's reminders start at Instantly (the row shows that default to someone who only handles billing) | the organization's AI usage Slack alert | holders of View AI usage or Manage billing |
 
 - **In the app** switches the toast or card in the tray; the bell keeps what is addressed to the person either way. It is the
   `Off` list of `NotificationSettings` on the membership, the same column the Teammate changes sheet saved, so nobody's
@@ -204,7 +205,8 @@ browser once), only when there is something in it.
   nothing left it sends nothing. Something that arrives at 10:00 waits for the next morning, so a day that starts empty never gets
   a "daily" email in the afternoon.
 - `digest_items` holds ids and a word for what happened (`Moved`, `Booked`), never a name or text: the lines are written when the
-  digest is sent. The daily notification purge deletes items past the retention, sent or not. Its row-level security is the
+  digest is sent. The daily notification purge deletes items past the retention, sent or not. Erasing an application, a
+  candidate's or by record retention, deletes its digest items and the bell rows that link to it (`CandidateErasure`). Its row-level security is the
   organization's, as for `notifications`, and every read narrows to the person.
 
 ## Storage and reading
