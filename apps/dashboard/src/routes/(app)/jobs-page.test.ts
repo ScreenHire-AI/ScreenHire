@@ -270,6 +270,7 @@ describe('jobs page', () => {
     // The signed-in Owner alone, nothing set, no job: three setup steps are open (no email provider here).
     const newTeam = {
       'GET /v1/jobs': () => Response.json([]),
+      'GET /v1/organization/setup': () => Response.json({ hidden: false, skippedSteps: [] }),
       'GET /v1/organization/members': () => Response.json([{ id: 'avery' }]),
       'GET /v1/organization/invitations': () => Response.json([]),
       'GET /v1/organization/branding': () => Response.json({ brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
