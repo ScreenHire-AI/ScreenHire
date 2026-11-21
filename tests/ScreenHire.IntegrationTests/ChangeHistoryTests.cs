@@ -301,7 +301,9 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
             .Expect(HttpStatusCode.Created);
         (await owner.DeleteAsync($"/v1/organization/invitations/{revoked.Id()}")).Expect(HttpStatusCode.NoContent);
         var joinerAddress = ApiSession.NewEmail("joiner");
-        using var joiner = await fixture.InviteAndJoinAsync(owner, "Viewer", joinerAddress);
+        // The log names a person by the name they gave, and an address only while they have not accepted.
+        var joinerName = ApiSession.NewName("Joiner");
+        using var joiner = await fixture.InviteAndJoinAsync(owner, "Viewer", joinerAddress, name: joinerName);
         var memberId = await owner.MemberIdAsync(joiner.UserId);
         (await owner.PutAsync($"/v1/organization/members/{memberId}/role", new JsonObject { ["role"] = "Recruiter" })).Expect(HttpStatusCode.OK);
         (await owner.PutAsync($"/v1/organization/members/{memberId}/job-access", new JsonObject { ["jobAccess"] = "HiringTeamOnly" }))
@@ -311,9 +313,9 @@ public sealed class ChangeHistoryTests(AppHostFixture fixture)
         var history = (await owner.GetAsync("/v1/organization/team/history")).Expect(HttpStatusCode.OK);
         var entries = history.Body.GetProperty("entries").EnumerateArray().ToList();
         entries.Select(e => e.At("lines.0.text").GetString()).Should().Equal(
-            $"removed {joinerAddress} from the team",
-            $"changed {joinerAddress}'s jobs from All jobs to Only jobs they're on",
-            $"changed {joinerAddress}'s role from Viewer to Recruiter",
+            $"removed {joinerName} from the team",
+            $"changed {joinerName}'s jobs from All jobs to Only jobs they're on",
+            $"changed {joinerName}'s role from Viewer to Recruiter",
             "joined the team as Viewer",
             $"invited {joinerAddress} as Viewer",
             $"revoked the invitation to {revokedAddress}",

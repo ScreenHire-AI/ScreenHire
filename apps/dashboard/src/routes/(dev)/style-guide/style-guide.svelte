@@ -24,7 +24,7 @@
   import UserPlusIcon from '~icons/lucide/user-plus';
   import UserRoundIcon from '~icons/lucide/user-round';
   import UsersIcon from '~icons/lucide/users';
-  import type { ApplicationFileSummary, ApplicationInterview, HiringWorkflow, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, SimulateWorkflowRequest, WorkflowSimulationResult, WorkflowStage } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, ApplicationInterview, CurrentOrganization, HiringWorkflow, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, SimulateWorkflowRequest, WorkflowSimulationResult, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -66,6 +66,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import MoveToStage from '#lib/components/move-to-stage.svelte';
   import ExpandableRow from '#lib/components/expandable-row.svelte';
+  import JoinedNotice from '#lib/components/joined-notice.svelte';
   import Notice from '#lib/components/notice.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
@@ -147,6 +148,17 @@
   // Every component in design system section 11, in each state, for authors and reviewers to compare against. Pick a
   // width to see the section 8 sizes; the components respond to the frame, not the window. Development builds only.
 
+  // The Welcome line reads the signed-in organization, so its examples carry their own.
+  const welcome = (seesAllJobs: boolean): CurrentOrganization => ({
+    id: '01a157d4-0000-7000-8000-0000000000bb',
+    name: 'Harbour Lane Studio',
+    slug: 'harbour-lane',
+    role: 'Recruiter',
+    customRoleId: null,
+    roleName: 'Recruiter',
+    permissions: [],
+    seesAllJobs,
+  });
   const widths = [
     { value: 0, label: 'Fit the window' },
     { value: 360, label: 'Phone, 360px' },
@@ -1357,6 +1369,13 @@
         <div class="flex flex-col gap-3">
           <Notice href="#notice" link="Fix on Distribution"><span class="font-semibold">Adzuna refused this job's posting.</span> The job stays off that board until it is fixed.</Notice>
           <Notice href="#notice" link="Fix in Branding">The careers page could not be published because the logo is missing.</Notice>
+        </div>
+      </Panel>
+
+      <Panel title="Welcome line">
+        <div class="flex flex-col gap-3">
+          <JoinedNotice organization={welcome(true)} ondismiss={() => {}} />
+          <JoinedNotice organization={welcome(false)} ondismiss={() => {}} />
         </div>
       </Panel>
 

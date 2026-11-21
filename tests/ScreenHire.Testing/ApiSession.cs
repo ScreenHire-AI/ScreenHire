@@ -157,11 +157,14 @@ public sealed class ApiSession : IDisposable
         return await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
     }
 
+    /// <summary>The name <see cref="OnboardAsync"/> gives the person: what the sidebar, the Team list and every "by" fact show for them.</summary>
+    public const string OwnerName = "Riley Harper";
+
     /// <summary>Onboards the signed-in user into a new organization with a unique slug and returns its id.</summary>
     public async Task<Guid> OnboardAsync(CancellationToken cancellationToken)
     {
         var slug = $"test-{Guid.NewGuid():N}";
-        using var response = await PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = $"Org {slug}", slug }, cancellationToken);
+        using var response = await PostAsync("/v1/auth/onboarding", new { name = OwnerName, organizationName = $"Org {slug}", slug }, cancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var user = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
         return user.GetProperty("organization").GetProperty("id").GetGuid();

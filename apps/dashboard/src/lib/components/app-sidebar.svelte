@@ -305,11 +305,13 @@
   {/if}
   <Sidebar.Footer>
     {#if trialEndsAt}
-      <!-- Not in the rail: a line of words has no icon to shrink to, and Billing is one click from Settings. -->
+      <!-- Not in the rail: a line of words has no icon to shrink to, and Billing is one click from Settings. On touch the 44px
+           target (F4) is padding that a negative margin takes back, so the line costs the sheet only its text's height: the
+           views scroll under the sticky Settings group, and a taller footer parks a row half under it. -->
       <a
         href="/settings/billing"
         onclick={closeSheet}
-        class="flex min-h-6 min-w-0 items-center px-2 text-caption text-muted-foreground underline underline-offset-2 pointer-coarse:min-h-11 group-data-[collapsible=icon]:hidden"
+        class="flex min-h-6 min-w-0 items-center px-2 text-caption text-muted-foreground underline underline-offset-2 pointer-coarse:-my-3.5 pointer-coarse:min-h-0 pointer-coarse:py-3.5 group-data-[collapsible=icon]:hidden"
       >
         <span class="truncate">Trial ends <time datetime={trialEndsAt}>{formatDayMonth(trialEndsAt)}</time></span>
       </a>
