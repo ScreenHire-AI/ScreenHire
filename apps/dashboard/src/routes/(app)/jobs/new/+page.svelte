@@ -25,8 +25,10 @@
   import IconButton from '#lib/components/icon-button.svelte';
   import Panel from '#lib/components/panel.svelte';
   import Picker from '#lib/components/picker.svelte';
+  import QueryError from '#lib/components/query-error.svelte';
   import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
@@ -56,7 +58,9 @@
   const teams = createListTeams();
   const memberList = $derived(members.data?.data ?? []);
   const teamList = $derived(teams.data?.data ?? []);
-  const showWho = $derived(members.isSuccess && memberList.length > 1);
+  const askWho = $derived(members.isSuccess && memberList.length > 1);
+  // A failed list shows the step with its error and a retry, so nobody creates the job without knowing who is on it.
+  const showWho = $derived(askWho || members.isError);
   const selfId = $derived(memberList.find((member) => member.userId === page.data.user?.id)?.id);
   let teamChosen = $state(false);
 
@@ -110,7 +114,7 @@
             // An empty editor sends nothing, so a template's description still applies.
             description: isBlank(description) ? null : description,
             // Nothing when the step is not shown: the job starts with its creator.
-            ...(showWho ? { teamId: teamId || null, memberIds } : {}),
+            ...(askWho ? { teamId: teamId || null, memberIds } : {}),
           },
         });
         await goto(`/jobs/${response.data.id}`);
@@ -129,7 +133,7 @@
 
   const suggestion = createGetSuggestedTeam(
     () => ({ templateVersionId: $form.templateVersionId || undefined }),
-    () => ({ query: { enabled: showWho && !!$form.templateVersionId } }),
+    () => ({ query: { enabled: askWho && !!$form.templateVersionId } }),
   );
   const suggestedId = $derived($form.templateVersionId ? (suggestion.data?.data.teamId ?? '') : '');
   // Follows the suggestion, for the chosen template, until the person picks a team; a deleted team suggests nothing.
@@ -147,9 +151,11 @@
   const extras = $derived(
     $form.memberIds.map((memberId) => memberList.find((member) => member.id === memberId)).filter((member) => member !== undefined),
   );
+  // The chosen team's people come with it, so they are not offered again.
+  const onTeam = $derived(new Set(chosenTeam?.members.map((person) => person.memberId) ?? []));
   const addable = $derived(
     memberList
-      .filter((member) => member.id !== selfId && !$form.memberIds.includes(member.id))
+      .filter((member) => member.id !== selfId && !$form.memberIds.includes(member.id) && !onTeam.has(member.id))
       .map((member) => ({ id: member.id, label: member.displayName, hint: `${member.roleName}, ${accessWords(member).toLowerCase()}` })),
   );
 </script>
@@ -202,56 +208,63 @@
           {#if showWho}
             <fieldset class="flex min-w-0 flex-col gap-3">
               <legend class="mb-2 text-body font-semibold">Who's hiring?</legend>
-              {#if teamList.length > 0}
-                <Field.Field data-invalid={$errors.teamId ? true : undefined}>
-                  <Field.Label for="new-job-team">Team</Field.Label>
-                  <select
-                    id="new-job-team"
-                    name="teamId"
-                    class={selectClass}
-                    bind:value={$form.teamId}
-                    onchange={() => (teamChosen = true)}
-                    aria-invalid={$errors.teamId ? 'true' : undefined}
-                    aria-describedby={describedBy('new-job-team-error', $errors.teamId, teamHint ? 'new-job-team-hint' : undefined)}
-                  >
-                    <option value="">No team</option>
-                    {#each teamList as team (team.id)}<option value={team.id}>{team.name} ({peopleWords(team.members.length)})</option>{/each}
-                  </select>
-                  {#if teamHint}<Field.Description id="new-job-team-hint">{teamHint}</Field.Description>{/if}
-                  <Field.Error id="new-job-team-error" errors={$errors.teamId?.map((message) => ({ message }))} />
-                </Field.Field>
+              <!-- Without the people nothing here can be sent, so a failed list shows only its error and Try again. -->
+              {#if members.isError}
+                <QueryError message={describeError(members.error, 'Could not load the team')} onretry={() => members.refetch()} inset />
+              {:else}
+                {#if teams.isError}
+                  <QueryError message={describeError(teams.error, 'Could not load the teams')} onretry={() => teams.refetch()} inset />
+                {:else if teamList.length > 0}
+                  <Field.Field data-invalid={$errors.teamId ? true : undefined}>
+                    <Field.Label for="new-job-team">Team</Field.Label>
+                    <select
+                      id="new-job-team"
+                      name="teamId"
+                      class={selectClass}
+                      bind:value={$form.teamId}
+                      onchange={() => (teamChosen = true)}
+                      aria-invalid={$errors.teamId ? 'true' : undefined}
+                      aria-describedby={describedBy('new-job-team-error', $errors.teamId, teamHint ? 'new-job-team-hint' : undefined)}
+                    >
+                      <option value="">No team</option>
+                      {#each teamList as team (team.id)}<option value={team.id}>{team.name} ({peopleWords(team.members.length)})</option>{/each}
+                    </select>
+                    {#if teamHint}<Field.Description id="new-job-team-hint">{teamHint}</Field.Description>{/if}
+                    <Field.Error id="new-job-team-error" errors={$errors.teamId?.map((message) => ({ message }))} />
+                  </Field.Field>
+                {/if}
+                {#if extras.length > 0}
+                  <ul aria-label="Also hiring" class="flex flex-col">
+                    {#each extras as person (person.id)}
+                      <li class="flex min-w-0 items-center gap-3 border-b border-border-subtle py-2 last:border-b-0">
+                        <span class="flex min-w-0 flex-1 flex-col">
+                          <span class="truncate font-semibold">{person.displayName}</span>
+                          <span class="truncate text-caption text-muted-foreground">{person.roleName}</span>
+                        </span>
+                        {#if !person.seesAllJobs}<Badge variant="muted" class="shrink-0">{accessWords(person)}</Badge>{/if}
+                        <IconButton
+                          type="button"
+                          label={`Remove ${person.displayName}`}
+                          onclick={() => ($form.memberIds = $form.memberIds.filter((memberId) => memberId !== person.id))}
+                        >
+                          <XIcon aria-hidden="true" />
+                        </IconButton>
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+                <div>
+                  <Picker
+                    label="Add a person"
+                    icon={UserPlusIcon}
+                    options={addable}
+                    searchLabel="Search people"
+                    empty="Nobody else to add."
+                    onpick={(memberId) => ($form.memberIds = mergeTeam($form.memberIds, [memberId]))}
+                  />
+                </div>
+                <Field.Error errors={$errors.memberIds?._errors?.map((message) => ({ message }))} />
               {/if}
-              {#if extras.length > 0}
-                <ul aria-label="Also hiring" class="flex flex-col">
-                  {#each extras as person (person.id)}
-                    <li class="flex min-w-0 items-center gap-3 border-b border-border-subtle py-2 last:border-b-0">
-                      <span class="flex min-w-0 flex-1 flex-col">
-                        <span class="truncate font-semibold">{person.displayName}</span>
-                        <span class="truncate text-caption text-muted-foreground">{person.roleName}</span>
-                      </span>
-                      {#if !person.seesAllJobs}<span class="shrink-0 text-caption text-muted-foreground">{accessWords(person)}</span>{/if}
-                      <IconButton
-                        type="button"
-                        label={`Remove ${person.displayName}`}
-                        onclick={() => ($form.memberIds = $form.memberIds.filter((memberId) => memberId !== person.id))}
-                      >
-                        <XIcon aria-hidden="true" />
-                      </IconButton>
-                    </li>
-                  {/each}
-                </ul>
-              {/if}
-              <div>
-                <Picker
-                  label="Add a person"
-                  icon={UserPlusIcon}
-                  options={addable}
-                  searchLabel="Search people"
-                  empty="Nobody else to add."
-                  onpick={(memberId) => ($form.memberIds = mergeTeam($form.memberIds, [memberId]))}
-                />
-              </div>
-              <Field.Error errors={$errors.memberIds?._errors?.map((message) => ({ message }))} />
             </fieldset>
           {/if}
           <Field.Field data-invalid={$errors.workplaceType ? true : undefined}>

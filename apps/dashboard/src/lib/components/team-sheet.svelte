@@ -108,7 +108,7 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto">
     <Sheet.Header>
       <Sheet.Title>{team ? 'Edit team' : 'New team'}</Sheet.Title>
-      <Sheet.Description>Add a team to a job to put its people on the job's hiring team. Changing the team later changes no job.</Sheet.Description>
+      <Sheet.Description>Changing the team later changes no job.</Sheet.Description>
     </Sheet.Header>
     <form method="POST" use:enhance novalidate aria-label={team ? 'Edit team' : 'New team'} class="flex flex-col gap-5 px-4 pb-4">
       <Field.Field data-invalid={$errors.name ? true : undefined}>

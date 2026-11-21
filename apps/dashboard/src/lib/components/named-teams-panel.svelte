@@ -1,5 +1,6 @@
 <script lang="ts">
   import PencilIcon from '~icons/lucide/pencil';
+  import PlusIcon from '~icons/lucide/plus';
   import Trash2Icon from '~icons/lucide/trash-2';
   import UsersRoundIcon from '~icons/lucide/users-round';
   import type { TeamDetail } from '@screenhire/api-client';
@@ -76,13 +77,13 @@
     sortedRowModel: createSortedRowModel(),
     sortFns: { alphanumeric: sortFn_alphanumeric, basic: sortFn_basic },
   });
-  // `any`: one list mixes columns of different value types. People has no accessor: names do not sort usefully.
+  // `any`: one list mixes columns of different value types. People sorts by how many people a team has (L2).
   const columns: ColumnDef<typeof features, TeamDetail, any>[] = [
     { id: 'name', header: 'Name', accessorFn: (team) => team.name, sortFn: 'alphanumeric' },
-    { id: 'people', header: 'People' },
+    { id: 'people', header: 'People', accessorFn: (team) => team.members.length, sortFn: 'basic', sortDescFirst: true },
     { id: 'updated', header: 'Last updated', accessorFn: changedAt, sortFn: 'basic', sortDescFirst: true },
   ];
-  const sort = createTableSort('team-teams', { id: 'name', desc: false }, ['name', 'updated']);
+  const sort = createTableSort('team-teams', { id: 'name', desc: false }, ['name', 'people', 'updated']);
   const table = createTable({
     ...tableSortOptions(() => sort),
     features,
@@ -137,7 +138,7 @@
         <Empty.Title>No teams yet</Empty.Title>
         <Empty.Description>A team puts the same people on a job's hiring team in one step, such as Engineering or Kitchen.</Empty.Description>
       </Empty.Header>
-      <Empty.Content><Button variant="outline" size="lg" onclick={oncreate}><UsersRoundIcon aria-hidden="true" />New team</Button></Empty.Content>
+      <Empty.Content><Button variant="outline" size="lg" onclick={oncreate}><PlusIcon aria-hidden="true" />New team</Button></Empty.Content>
     </Empty.Root>
   {:else}
     <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu {table} /></div>
@@ -172,7 +173,7 @@
           {#each sorted as team (team.id)}
             <Table.Row class="h-12">
               <Table.Cell class="max-w-64 px-4.5">
-                <button type="button" class="max-w-full truncate text-left font-semibold underline-offset-2 hover:underline" onclick={() => onedit(team)}>{team.name}</button>
+                <button type="button" class="max-w-full truncate text-left font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11" onclick={() => onedit(team)}>{team.name}</button>
               </Table.Cell>
               <Table.Cell class="w-full max-w-0 min-w-48 text-muted-foreground">
                 {#if team.members.length === 0}<span class="sr-only">Nobody yet</span>{:else}<TruncatedText text={names(team)} />{/if}

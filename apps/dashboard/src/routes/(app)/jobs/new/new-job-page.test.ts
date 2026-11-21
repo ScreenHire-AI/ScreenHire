@@ -189,7 +189,10 @@ describe('new job page', () => {
       expect(team).toHaveAccessibleDescription('Used on the last job like this one. Jordan Ellis.');
 
       await fireEvent.click(within(form).getByRole('button', { name: 'Add a person' }));
-      await fireEvent.click(await screen.findByRole('option', { name: /Robin Hale/ }));
+      const robinOption = await screen.findByRole('option', { name: /Robin Hale/ });
+      // Jordan comes with the Kitchen team, so the picker does not offer them a second time.
+      expect(screen.queryByRole('option', { name: /Jordan Ellis/ })).toBeNull();
+      await fireEvent.click(robinOption);
       expect(await within(form).findByRole('list', { name: 'Also hiring' })).toHaveTextContent('Robin Hale');
       await fillIn(form);
       await fireEvent.click(within(form).getByRole('button', { name: 'Create job' }));
@@ -219,6 +222,35 @@ describe('new job page', () => {
 
       await waitFor(() => expect(bodies).toHaveLength(1));
       expect(bodies[0]).toMatchObject({ teamId: null, memberIds: [] });
+    });
+
+    // A list that fails to load says so with a retry, rather than quietly starting the job with no team.
+    it('says when the teams could not be loaded', async () => {
+      stubCreate([], {
+        'GET /v1/organization/members': () => Response.json([avery, jordan]),
+        'GET /v1/organization/teams': () => Response.json({ title: 'Server error', status: 500 }, { status: 500 }),
+      });
+      const form = await openForm();
+
+      const who = await within(form).findByRole('group', { name: "Who's hiring?" });
+      expect(await within(who).findByText(/Could not load the teams/)).toBeInTheDocument();
+      expect(within(who).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+      expect(within(who).queryByLabelText('Team')).toBeNull();
+    });
+
+    // Without the people nothing in the step can be sent, so a team that did load is not offered either.
+    it('says when the people could not be loaded, and offers no team it could not send', async () => {
+      stubCreate([], {
+        'GET /v1/organization/members': () => Response.json({ title: 'Server error', status: 500 }, { status: 500 }),
+        'GET /v1/organization/teams': () => Response.json([kitchen]),
+      });
+      const form = await openForm();
+
+      const who = await within(form).findByRole('group', { name: "Who's hiring?" });
+      expect(await within(who).findByText(/Could not load the team/)).toBeInTheDocument();
+      expect(within(who).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+      expect(within(who).queryByLabelText('Team')).toBeNull();
+      expect(within(who).queryByRole('button', { name: 'Add a person' })).toBeNull();
     });
 
     it('does not ask when nobody but the creator is in the organization, and the job starts with them alone', async () => {
