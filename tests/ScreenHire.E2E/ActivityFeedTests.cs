@@ -51,9 +51,7 @@ public sealed class ActivityFeedTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // The Recruiter's move and note arrive while it is open.
         await PostAsync(recruiterSession, $"/v1/applications/{applicationId}/move", new { toStageId = "screening" }, HttpStatusCode.OK);
-        var noteId = (await ReadAsync(
-            await recruiterSession.PostAsync($"/v1/applications/{applicationId}/notes", new { note = "Strong portfolio." }, Ct), HttpStatusCode.Created))
-            .GetProperty("id").GetGuid();
+        await PostAsync(recruiterSession, $"/v1/applications/{applicationId}/notes", new { note = "Strong portfolio." }, HttpStatusCode.Created);
         var moveRow = feed.GetByRole(AriaRole.Listitem).Filter(new() { HasText = $"{recruiterName} moved {Candidate} to Screening" });
         var noteRow = feed.GetByRole(AriaRole.Listitem).Filter(new() { HasText = $"{recruiterName} added a note on {Candidate}" });
         await Expect(moveRow).ToHaveCountAsync(1, new() { Timeout = 30_000 });
@@ -67,10 +65,14 @@ public sealed class ActivityFeedTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // The note opens on the candidate's Activity, at the note itself.
         await Page.Keyboard.PressAsync("a");
-        await noteRow.GetByRole(AriaRole.Link, new() { Name = Candidate }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(new Regex($"/applications/{applicationId}\\?tab=activity#note-{noteId}$"));
-        await Expect(Page.Locator($"#note-{noteId}")).ToContainTextAsync("Strong portfolio.");
-        await Expect(Page.Locator($"#note-{noteId}")).ToBeInViewportAsync();
+        var noteLink = noteRow.GetByRole(AriaRole.Link, new() { Name = Candidate });
+        var href = await noteLink.GetAttributeAsync("href");
+        href.Should().MatchRegex($"^/applications/{applicationId}\\?tab=activity#note-[0-9a-f-]+$");
+        await noteLink.ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex($"{Regex.Escape(href!)}$"));
+        var note = Page.Locator(href![href.IndexOf('#', StringComparison.Ordinal)..]);
+        await Expect(note).ToContainTextAsync("Strong portfolio.");
+        await Expect(note).ToBeInViewportAsync();
     }
 
     private static async Task PostAsync(ApiSession session, string path, object body, HttpStatusCode expected)

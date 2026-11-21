@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Notifications"
-description: "The bell in the top bar: setup steps (with the organization's skipped steps and hidden checklist) and per-person alerts, how any handler raises or clears one through RaiseNotification, the audience by permission, the unique row per person, each person's choices by toast, email and Slack with the organization's alerts as defaults, the daily digest, live refresh, retention, the Jobs overview numbers, and the daily email domain check that raises the first alert."
+description: "The bell in the top bar: setup steps (with the organization's skipped steps and hidden checklist) and per-person alerts, how any handler raises or clears one through RaiseNotification, the audience by permission, the unique row per person, each person's choices by toast, email and Slack with the organization's alerts as defaults, the daily digest, the workspace's Activity tab (a paged, job-scoped feed with each person's last-seen time), live refresh, retention, the Jobs overview numbers, and the daily email domain check that raises the first alert."
 tags: [notifications, dashboard, wolverine, tenancy, email]
 sources:
   - resource: src/ScreenHire.Domain/Notifications/Notification.cs
@@ -26,6 +26,13 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/account/notifications/+page.svelte
   - resource: apps/dashboard/src/lib/notice-grid.ts
   - resource: apps/api/Endpoints/NotificationEndpoints.cs
+  - resource: apps/api/Endpoints/ActivityEndpoints.cs
+  - resource: apps/api/Activity/ActivityFeed.cs
+  - resource: apps/api/Contracts/ActivityContracts.cs
+  - resource: apps/dashboard/src/lib/activity-feed.svelte.ts
+  - resource: apps/dashboard/src/lib/components/activity-feed.svelte
+  - resource: apps/dashboard/src/lib/activity.ts
+  - resource: apps/dashboard/src/lib/linked.svelte.ts
   - resource: apps/api/Endpoints/OrganizationEndpoints.cs
   - resource: src/ScreenHire.Domain/Organizations/SetupStepId.cs
   - resource: apps/api/Contracts/NotificationItemContracts.cs
@@ -45,7 +52,8 @@ sources:
 
 # Notifications
 
-A bell in the top bar holds what needs one person's attention. It has two parts:
+A bell in the top bar holds what needs one person's attention, and, in a second tab, what is happening across the
+workspace (Activity, below). Its first tab, Needs attention, has two parts:
 
 - **Setup**, for whoever can do the steps (Owners and Admins): the four steps a new organization takes, each linking to the
   page where it is done, in the order a team does them: branding, the first published job, inviting the team, then sending email from the company's own domain (last, because it is DNS work outside ScreenHire and
@@ -88,9 +96,56 @@ when the checklist is not hidden. There is no live event for these choices: anot
 reads `/v1/organization/setup` (a minute's stale time, or a reload). The old per-browser hide (`screenhire:setup-dismissed:*`
 in localStorage) is no longer read, so a checklist someone hid that way shows again until it is hidden for the organization.
 
-The panel is called Needs attention, because Notifications already names the person's choices on Your account and the toast
-tray. The bell holds no team news: that stays in the tray (the realtime doc). It does keep what is addressed to the person
-(a mention, a candidate's reply, a task given to them, an interview they are on), whatever they chose for toasts and email.
+The panel is Notifications, with two tabs: Needs attention and Activity. Needs attention holds no team news; it keeps what is
+addressed to the person (a mention, a candidate's reply, a task given to them, an interview they are on), whatever they chose
+for toasts and email. The bell's badge counts only that tab: the team's news has its own count, inside the panel.
+
+## Activity
+
+The panel's second tab is the workspace's changes, newest first, from any page: who did what, the record as a link, the job on
+a second line and how long ago, which ticks every minute. A opens the bell straight at it (a single-key shortcut the
+Single-key shortcuts switch turns off). It reads the server, never the live events, so a missed push or a closed laptop loses
+nothing: `GET /v1/activity` merges two sources.
+
+- **Every application's timeline** (`application_events`), under the reader's row-level security and job scope, so a member on
+  Only jobs they're on sees only their teams' candidates. A note's edit or deletion and leaving saved candidates stay out
+  (`ActivityFeed.Left`); every other type has a kind (`ActivityFeed.Kinds`, which `ActivityFeedKindsTests` holds to the enum).
+- **Every job's change history** (`change_records` for a job). That table is under the tenant's policy only, so the read joins it to
+  the jobs the reader can see and never reads it alone (sign-in-and-tenancy.md, "Job access").
+
+| Kind | What it holds |
+|---|---|
+| Moves | Stage changes |
+| Applications | New applications, invitations to apply, saved for later, and "Checks finished for Taylor Brook" |
+| Messages | Emails sent and replies, follow-up forms sent and answered |
+| Interviews | Offered, booked, moved, cancelled, new times |
+| Scorecards | Scorecards submitted |
+| Notes | Notes and tags |
+| Tasks | Tasks made. Completing or reopening one writes no timeline entry, so it is not in the feed |
+| Jobs | A job created or changed, with its first change in words |
+
+Each entry says who made it: a member by id (the screen names them, "You" for the reader), an automation ("by an automation"),
+an API key ("by ATS sync, via an API key"), the candidate (who applied, replied, answered or booked), or nobody when ScreenHire
+did it. The feed carries what the candidate's Activity tab carries and less: no note text, no move note, never a recommendation,
+never a verification level (non-negotiable 1: a check reads "Checks finished for Taylor Brook"), and a scorecard's id only when
+the reader may read that scorecard (`RatingReads.WithheldAmongAsync`, ADR-0013), so its link opens the tab, not the sheet.
+
+Every link goes to exactly where the change is (`activityHref` in `#lib/activity.ts`): a note to `?tab=activity#note-<id>`, an
+email to `?tab=messages#email-<id>` (the row opens), a scorecard to `?tab=scorecards#scorecard-<id>` (its sheet opens), a
+follow-up form to `?tab=application#follow-up-<id>`, an interview to `#interview`, a check to `?tab=verification`, a move or a
+tag to the candidate, a job's change to the job. `#lib/linked.svelte.ts` scrolls to or opens the thing once its data has loaded.
+The candidate's own Activity tab links the same way, except what is already on the page (a move, a tag, the note itself).
+
+Filters: My jobs or Everything I can see (starting from the person's own scope on Your account) and any of the kinds, kept in
+the browser (`screenhire:activity-filters`). Pages are 50 entries (`limit` up to 100), cursor `before` (the `nextBefore` of the
+page before, time and id), and Show more loads the next.
+
+**Since you were last here.** `member_preferences.activity_seen_at` is when the person last opened the tab, from the server's
+clock and never moved back. Each page says it (`seenAt`) and how many changes in the same scope and kinds came after it, other
+than the person's own, up to 100 (`unseenCount`, "99+" past 99). That count sits in the Activity tab's count badge, the summary
+line reads "Since you were last here: 14 changes", and a "Seen before" line marks where the new ones end. Opening the tab posts
+`POST /v1/activity/seen` once its first page is in, and leaving the tab or closing the panel posts it again, for what arrived
+while the person looked.
 
 ## Raising a notification
 
@@ -165,9 +220,9 @@ The rows are one list on each side, `NoticeRows` in `NoticePreferences.cs` and `
 |---|---|---|---|---|
 | Mentions | `Mentions` (the tray's card) | Instantly | on (the Slack link's Mentions) | everyone |
 | Candidate replies | `Replies` (the tray's card) | Instantly | none | everyone |
-| Interviews booked or changed | none yet: the event carries no actor, so it cannot toast | Instantly | none | everyone |
+| Interviews booked or changed | `Interviews`: the candidate books, moves or cancels on a job in the person's scope (email goes to the interviewers) | Instantly | none | everyone |
 | Tasks assigned to you | `Tasks` | Daily digest | on (the Slack link's Tasks) | everyone |
-| New applications on your jobs | `NewCandidates` | Daily digest | none | everyone |
+| New applications and answered forms | `NewCandidates`, `Forms` (a candidate answers a follow-up form) | Daily digest | none | everyone |
 | Teammates' moves and notes | `Moves`, `Notes`, `Tags`, `Emails`, `Scorecards`, `Templates` (one switch; Choose kinds opens each) | Off | none | everyone |
 | Verification suggested | none: never a toast (ADR-0004) | the organization's verification email alert | the organization's verification Slack alert | holders of Review verification |
 | AI use and billing | none: the bell keeps them | the organization's AI usage email alert; Instantly for whoever handles billing, whose trial reminders start there. While the organization's switch is off, whatever such a person saves for the row is kept and covers both; until they save, they get the trial's reminders and no AI alerts | the organization's AI usage Slack alert | holders of View AI usage or Manage billing |
@@ -253,7 +308,17 @@ write is narrowed to the signed-in user, and another person's id is a 404.
 
 The routes are session only (an API key is no person) and need no permission: they change nothing but the caller's own rows.
 
+| Route | What it does |
+|---|---|
+| `GET /v1/activity` | The workspace's Activity: `scope`, repeatable `kinds`, `before`, `limit`. Returns `entries`, `nextBefore`, `seenAt`, `unseenCount` and the `scope` it covers |
+| `POST /v1/activity/seen` | Sets the person's `activity_seen_at` to now, with antiforgery. Repeating it is fine |
+
+Both are session only and need no permission, as the notification routes do.
+
 ## Live refresh
+
+The Activity tab reads only while the panel is open, and every event that writes a timeline entry or changes a job refetches it
+then (`activityPath` in `#lib/realtime.ts`).
 
 `NotificationsChanged` carries only the organization id. The push reaches every member of the organization, so it names no
 person and no words; each open dashboard refetches its own list (`invalidations` maps it to `/v1/notifications`). The list is
@@ -344,6 +409,13 @@ Both are forwarded to the API and the worker by the AppHost.
 - Vitest: the checklist's skipped steps, the bell's Not needed and Hide setup for everyone, Settings, General's Show setup
   again, the Jobs tiles, the new views, the lines and the Email domain page. The account pages: the notification grid (rows, the Slack column, the dash cells, one save), Profile, Sign-in and
   security, Preferences and the shrunk menu.
+- Integration: `ActivityFeedTests`: another organization's changes and a hidden job's never appear, My jobs and the kinds, paging
+  across both sources with no gaps, keys and automations named, a check with no level, a held-back scorecard with no id, and
+  the count since the person last looked, never their own changes. Unit: `ActivityFeedKindsTests`.
+- Vitest: the feed (`activity-feed.test.ts`: rows, links, the minute tick, the summary and the Seen before line, the filters), the
+  bell's Activity tab and the A shortcut (`notification-bell.test.ts`, `shortcuts.test.ts`), and the links (`activity.test.ts`).
+- End to end: `ActivityFeedTests`: A opens Activity, a teammate's move and note arrive live in another session, and each link
+  opens the record, the note in view.
 - End to end: a new Owner's bell opens by itself once at the setup steps after onboarding, the Jobs empty state points to them
   and its button opens them again; a step marked Not needed is gone, and a hidden checklist hidden, for the same Owner in
   another browser.
@@ -351,6 +423,4 @@ Both are forwarded to the API and the worker by the AppHost.
 ## Not built
 
 - Choices for the email domain and data request alerts: they are duties for the people who hold them.
-- Toasts for interviews and questionnaires, and a bell tab of the workspace's activity (the new applications and teammates'
-  changes the bell does not keep): the next task on the board.
-- A history page. The bell lists what needs attention, not what happened.
+- A page of its own for the workspace's activity. The bell's tab pages back through all of it, which has been enough.
