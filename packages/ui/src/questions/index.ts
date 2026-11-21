@@ -3,6 +3,7 @@
 export { default as ChoiceField } from './ChoiceField.svelte';
 export { default as DropArea } from './DropArea.svelte';
 export { default as FileField } from './FileField.svelte';
+export { default as FilesField } from './FilesField.svelte';
 export { default as PageProgress } from './PageProgress.svelte';
 export { default as QuestionField } from './QuestionField.svelte';
 export { default as TextField } from './TextField.svelte';

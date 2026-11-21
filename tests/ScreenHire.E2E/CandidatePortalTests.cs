@@ -10,7 +10,8 @@ namespace ScreenHire.E2E;
 /// A candidate's own page end to end (docs/architecture/candidate-portal.md), with JavaScript off: from the footer of a careers
 /// page to the form, an address that applied gets a link by email and an address that did not gets the same answer on the page,
 /// the link opens the application on its four steps, and after the team writes the candidate reads the message and answers it
-/// from the page, which the team then sees as a reply. The organization, its job and the application are made through the API.
+/// from the page, with two files in the plain input and then, with JavaScript on, with the files the list left after one was
+/// removed, which the team then sees as two replies with their files. The organization, its job and the application are made through the API.
 /// The stack has no bot check configured, so the form posts without one.
 /// </summary>
 public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -85,11 +86,16 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
         await Page.GetByRole(AriaRole.Link, new() { Name = "Read and answer your messages" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Platform Engineer");
         await Expect(Page.GetByText("Hello, can we talk on Friday?")).ToBeVisibleAsync();
-        (await Page.Locator("script:not([type='application/ld+json'])").CountAsync()).Should().Be(0, "the page ships no JavaScript, so no telemetry or device code");
         await ExpectNoAccessibilityViolationsAsync();
+        var thread = Page.Url;
 
-        // The candidate answers from the page; a refresh after the redirect posts nothing again.
+        // The candidate answers from the page, with two files in the plain input; a refresh after the redirect posts nothing again.
         await Page.GetByLabel("Your message").FillAsync("Friday works for me.");
+        await Page.GetByLabel("Files").SetInputFilesAsync(
+        [
+            new FilePayload { Name = "availability.pdf", MimeType = "application/pdf", Buffer = ApplySteps.Pdf },
+            new FilePayload { Name = "portfolio.pdf", MimeType = "application/pdf", Buffer = ApplySteps.Pdf },
+        ]);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Send message" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex(@"\?sent=1$"));
         await Expect(Page.GetByText("Your message was sent.")).ToBeVisibleAsync();
@@ -102,7 +108,61 @@ public sealed partial class CandidatePortalTests(E2EFixture fixture) : BrowserTe
         var detail = await ReadAsync(await session.Client.GetAsync($"/v1/applications/{applicationId}", Ct), HttpStatusCode.OK);
         var candidateId = detail.GetProperty("candidate").GetProperty("id").GetGuid();
         var messages = await ReadAsync(await session.Client.GetAsync($"/v1/candidates/{candidateId}/emails", Ct), HttpStatusCode.OK);
-        messages.EnumerateArray().Count(m => m.GetProperty("direction").GetString() == "Received").Should().Be(1);
+        var replies = messages.EnumerateArray().Where(m => m.GetProperty("direction").GetString() == "Received").ToList();
+        replies.Should().ContainSingle();
+        (await AttachmentNamesAsync(session, replies[0].GetProperty("id").GetGuid())).Should().BeEquivalentTo("availability.pdf", "portfolio.pdf");
+
+        // With JavaScript on, the files field lists each file with Remove. Three are chosen, one is taken off, and the two left are sent.
+        await WithJavaScriptAsync();
+        await Page.GotoAsync(thread);
+        await Page.Locator("astro-island:not([ssr])").WaitForAsync();
+        await Page.GetByLabel("Your message").FillAsync("Here are the documents.");
+        await Page.GetByLabel("Files").SetInputFilesAsync(
+        [
+            new FilePayload { Name = "references.pdf", MimeType = "application/pdf", Buffer = ApplySteps.Pdf },
+            new FilePayload { Name = "draft.pdf", MimeType = "application/pdf", Buffer = ApplySteps.Pdf },
+            new FilePayload { Name = "plan.pdf", MimeType = "application/pdf", Buffer = ApplySteps.Pdf },
+        ]);
+        var chosen = Page.GetByRole(AriaRole.Listitem).Filter(new() { HasText = "Remove" });
+        await Expect(chosen).ToHaveCountAsync(3);
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Remove draft.pdf" }).ClickAsync();
+        await Expect(chosen).ToHaveCountAsync(2);
+        await ExpectNoAccessibilityViolationsAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Send message" }).ClickAsync();
+        await Expect(Page.GetByText("Your message was sent.")).ToBeVisibleAsync();
+
+        // Both replies are on the dashboard, each with the files that were sent: the second has exactly the two the list kept.
+        await SignInToDashboardAsync(owner);
+        await Page.GotoAsync(new Uri(Fixture.GetEndpoint("dashboard"), $"/applications/{applicationId}?tab=messages").ToString());
+        var emails = Page.GetByRole(AriaRole.Region, new() { Name = "Messages", Exact = true }).GetByRole(AriaRole.List, new() { Name = "Emails" });
+        var replyRows = emails.GetByRole(AriaRole.Button).Filter(new() { HasText = "Reply from" });
+        await Expect(replyRows).ToHaveCountAsync(2);
+        var shown = new List<string>();
+        for (var index = 0; index < 2; index++)
+        {
+            await replyRows.Nth(index).ClickAsync();
+            var attachments = Page.GetByRole(AriaRole.List, new() { Name = "Attachments" });
+            await Expect(attachments.GetByRole(AriaRole.Listitem)).ToHaveCountAsync(2);
+            shown.Add(await attachments.InnerTextAsync());
+        }
+
+        shown.Should().ContainSingle(text => text.Contains("availability.pdf") && text.Contains("portfolio.pdf"));
+        shown.Should().ContainSingle(text => text.Contains("references.pdf") && text.Contains("plan.pdf") && !text.Contains("draft.pdf"));
+    }
+
+    private async Task SignInToDashboardAsync(string email)
+    {
+        await Page.GotoAsync(new Uri(Fixture.GetEndpoint("dashboard"), "/sign-in").ToString());
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Continue with Dev SSO" }).ClickAsync();
+        await Page.GetByLabel("Any email address").FillAsync(email);
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Sign in with this address" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Jobs");
+    }
+
+    private static async Task<string[]> AttachmentNamesAsync(ApiSession session, Guid replyId)
+    {
+        var reply = await ReadAsync(await session.Client.GetAsync($"/v1/replies/{replyId}", Ct), HttpStatusCode.OK);
+        return [.. reply.GetProperty("attachments").EnumerateArray().Select(file => file.GetProperty("fileName").GetString()!)];
     }
 
     [Fact]

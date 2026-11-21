@@ -1,4 +1,4 @@
-import { DropArea, FileField } from '@screenhire/ui/questions';
+import { DropArea, FileField, FilesField } from '@screenhire/ui/questions';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -235,5 +235,164 @@ describe('file question on the drop area', () => {
 
     expect(reference()).toBeNull();
     expect(input().required).toBe(true);
+  });
+});
+
+describe('drop area taking several files', () => {
+  // jsdom has no DataTransfer; this one holds what the area puts into the input, so a test can read what would post.
+  function stubDataTransfer() {
+    const posted: File[][] = [];
+    vi.stubGlobal(
+      'DataTransfer',
+      class {
+        list: File[] = [];
+        items = { add: (file: File) => this.list.push(file) };
+        get files() {
+          posted.push(this.list);
+          return this.list;
+        }
+      },
+    );
+    return posted;
+  }
+
+  const area = () => document.querySelector<HTMLElement>('[data-drop-area]')!;
+  const rows = () => screen.queryAllByRole('listitem').map((row) => row.textContent);
+
+  function renderMany(props: Record<string, unknown> = {}) {
+    const onproblems = vi.fn();
+    const onchange = vi.fn();
+    render(DropArea, {
+      props: { id: 'files', name: 'files', multiple: true, accept: ['.pdf', '.png'], maxBytes: 1024 * 1024, maxFiles: 3, maxTotalBytes: 2 * 1024 * 1024, onproblems, onchange, ...props },
+    });
+    const input = () => document.getElementById('files') as HTMLInputElement;
+    return { onproblems, onchange, input };
+  }
+
+  it('is a named file input that takes several files, and keeps its name so the form posts them', () => {
+    const { input } = renderMany();
+
+    expect(input()).toHaveAttribute('multiple');
+    expect(input()).toHaveAttribute('name', 'files');
+    expect(screen.getByText('Drop files here or')).toBeInTheDocument();
+    expect(screen.getByText('Choose files')).toBeInTheDocument();
+  });
+
+  it('lists every dropped file with its name and size, and puts all of them into the input', async () => {
+    const posted = stubDataTransfer();
+    const { input, onchange } = renderMany();
+    const assigned = vi.spyOn(input(), 'files', 'set').mockImplementation(() => {});
+
+    await fireEvent.drop(area(), files(pdf('cv.pdf', 184_320), pdf('letter.pdf', 2048)));
+
+    expect(rows()).toEqual(['cv.pdf 180 KB Remove', 'letter.pdf 2 KB Remove']);
+    expect(assigned).toHaveBeenCalledOnce();
+    expect(posted.at(-1)!.map((file) => file.name)).toEqual(['cv.pdf', 'letter.pdf']);
+    expect(onchange).toHaveBeenCalledOnce();
+    expect(screen.getByText('Add files')).toBeInTheDocument();
+  });
+
+  it('adds a later pick to the files already chosen', async () => {
+    const posted = stubDataTransfer();
+    const { input } = renderMany();
+    vi.spyOn(input(), 'files', 'set').mockImplementation(() => {});
+
+    await fireEvent.drop(area(), files(pdf('cv.pdf')));
+    await fireEvent.change(input(), { target: { files: [pdf('letter.pdf')] } });
+
+    expect(rows()).toHaveLength(2);
+    expect(posted.at(-1)!.map((file) => file.name)).toEqual(['cv.pdf', 'letter.pdf']);
+  });
+
+  it('removes one file and posts the rest', async () => {
+    const posted = stubDataTransfer();
+    const { input, onchange } = renderMany();
+    vi.spyOn(input(), 'files', 'set').mockImplementation(() => {});
+    await fireEvent.drop(area(), files(pdf('cv.pdf'), pdf('letter.pdf')));
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove cv.pdf' }));
+
+    expect(rows()).toEqual(['letter.pdf 2 KB Remove']);
+    expect(posted.at(-1)!.map((file) => file.name)).toEqual(['letter.pdf']);
+    expect(onchange).toHaveBeenLastCalledWith([expect.objectContaining({ name: 'letter.pdf' })]);
+    expect(input()).toHaveFocus();
+  });
+
+  it('refuses each wrong file in a message of its own that names it, and still takes the rest', async () => {
+    stubDataTransfer();
+    const { input, onproblems } = renderMany();
+    vi.spyOn(input(), 'files', 'set').mockImplementation(() => {});
+
+    await fireEvent.drop(area(), files(new File(['x'], 'setup.exe'), pdf('cv.pdf'), pdf('big.pdf', 2 * 1024 * 1024), new File([], 'empty.pdf')));
+
+    expect(onproblems).toHaveBeenCalledExactlyOnceWith([
+      'setup.exe: Upload a PDF or PNG file.',
+      'big.pdf: This file is larger than 1 MB.',
+      'empty.pdf: This file is empty.',
+    ]);
+    expect(rows()).toEqual(['cv.pdf 2 KB Remove']);
+  });
+
+  it('refuses the file that would be a fourth, or push the total over, or is already attached', async () => {
+    stubDataTransfer();
+    const { input, onproblems } = renderMany({ maxTotalBytes: 3000 });
+    vi.spyOn(input(), 'files', 'set').mockImplementation(() => {});
+    const first = pdf('a.pdf', 1000);
+
+    await fireEvent.drop(area(), files(first, pdf('b.pdf', 1000)));
+    await fireEvent.drop(area(), files(first, pdf('c.pdf', 1500), pdf('d.pdf', 500), pdf('e.pdf', 100)));
+
+    expect(onproblems.mock.calls.at(-1)![0]).toEqual([
+      'a.pdf: This file is already attached.',
+      'c.pdf: Your files add up to more than 3 KB.',
+      'e.pdf: Attach up to 3 files.',
+    ]);
+    expect(rows().map((row) => row?.slice(0, 5))).toEqual(['a.pdf', 'b.pdf', 'd.pdf']);
+  });
+
+  it('clears the earlier refusals when the next add is clean', async () => {
+    stubDataTransfer();
+    const { input, onproblems } = renderMany();
+    vi.spyOn(input(), 'files', 'set').mockImplementation(() => {});
+
+    await fireEvent.drop(area(), files(new File(['x'], 'setup.exe')));
+    await fireEvent.drop(area(), files(pdf()));
+
+    expect(onproblems).toHaveBeenLastCalledWith([]);
+  });
+
+  it('says so, and keeps no files, in a browser that cannot put a list into the input', async () => {
+    const { onproblems } = renderMany();
+
+    // jsdom has no DataTransfer, like a browser too old for its constructor.
+    await fireEvent.drop(area(), files(pdf()));
+
+    expect(rows()).toEqual([]);
+    expect(onproblems.mock.calls.at(-1)![0]).toEqual(['This browser cannot attach more than one file this way. Choose them again, all at once.']);
+  });
+});
+
+describe('reply files field', () => {
+  const props = { name: 'files', label: 'Files', hint: 'Up to 3 files.', accept: ['.pdf'], maxBytes: 1024, maxFiles: 3, maxTotalBytes: 2048 };
+
+  it('names every refused file in the field error, and has no accessibility violations', async () => {
+    vi.stubGlobal(
+      'DataTransfer',
+      class {
+        list: File[] = [];
+        items = { add: (file: File) => this.list.push(file) };
+        files = this.list;
+      },
+    );
+    render(FilesField, { props });
+    const input = document.getElementById('field-files') as HTMLInputElement;
+    vi.spyOn(input, 'files', 'set').mockImplementation(() => {});
+
+    await fireEvent.drop(document.querySelector('[data-drop-area]')!, files(new File(['x'], 'a.exe'), new File(['x'], 'b.exe')));
+
+    expect(screen.getByText('a.exe: Upload a PDF file.')).toBeInTheDocument();
+    expect(screen.getByText('b.exe: Upload a PDF file.')).toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    await expectNoAxeViolations();
   });
 });
