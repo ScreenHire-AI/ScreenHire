@@ -28,6 +28,7 @@ sources:
   - resource: apps/api/Endpoints/MetaEndpoints.cs
   - resource: apps/api/Contracts/MetaContracts.cs
   - resource: apps/dashboard/src/lib/components/app-sidebar.svelte
+  - resource: apps/dashboard/src/routes/(app)/+layout.svelte
   - resource: apps/dashboard/src/lib/billing.ts
   - resource: apps/dashboard/src/lib/components/plan-problem-notice.svelte
   - resource: apps/dashboard/src/lib/components/change-plan-dialog.svelte

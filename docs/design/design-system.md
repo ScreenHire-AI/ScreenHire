@@ -9,6 +9,7 @@ sources:
   - resource: apps/dashboard/vite.config.ts
   - resource: apps/dashboard/src/app.css
   - resource: apps/dashboard/src/lib/status.ts
+  - resource: apps/dashboard/src/lib/dates.ts
   - resource: apps/dashboard/src/lib/verification-area.ts
   - resource: apps/dashboard/src/lib/shell.ts
   - resource: apps/dashboard/src/routes/(app)/verification/+layout.svelte
@@ -923,6 +924,7 @@ overview waits for the first job, and the empty state says what to do first and 
 | Text, headers, activity | Time ago, exact date and time on hover | 2 hours ago |
 | Tables | The date, so the column lines up and sorts | Oct 20, 2026 |
 | Older than 7 days | The date | Oct 3, 2026 |
+| A day coming up, in a line of words (the trial's end) | The day and month in full, no year, in the locale's order | December 5 (en-GB: 5 December) |
 | Last updated (T6) | Time ago and who, the exact time on hover; Created until the first change | 2 hours ago by Avery Quinn; Created 2 hours ago by Avery Quinn |
 
 Always the reader's locale. The dashboard uses the browser's (US English by default), through one shared formatter on

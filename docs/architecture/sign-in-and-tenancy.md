@@ -7,6 +7,7 @@ sources:
   - resource: apps/api/Auth/Antiforgery.cs
   - resource: apps/api/Contracts/AuthContracts.cs
   - resource: apps/dashboard/src/lib/components/joined-notice.svelte
+  - resource: apps/dashboard/src/routes/(app)/+page.svelte
   - resource: apps/dashboard/src/routes/(auth)/invitations/accept/+page.svelte
   - resource: apps/dashboard/src/routes/(auth)/onboarding/+page.svelte
   - resource: apps/api/Auth/ApiKeyAuthentication.cs
