@@ -83,6 +83,9 @@
   const sidebar = Sidebar.useSidebar();
   const shell = getShell();
   const rail = $derived(sidebar.state === 'collapsed' && !sidebar.isMobile);
+  // The sheet of team views opens from the end of the Views list, or from the fixed group above Settings in the rail.
+  const canBrowseTeamViews = $derived(Boolean(teamViews && viewActions));
+  const railTeamViews = $derived(canBrowseTeamViews && rail);
   // A view opens on the Candidates page, or on a job's candidates tab; its id is in the address either way.
   const currentView = $derived(
     page.url.pathname === '/candidates' || page.url.pathname.startsWith('/jobs/') ? page.url.searchParams.get('view') : null,
@@ -264,9 +267,10 @@
               {/each}
             {/if}
           {/if}
-          {#if teamViews && viewActions}
-            <!-- Not in the rail: its list scrolls, and a tenth icon below the fold fails the 24 px target size (WCAG 2.5.8) at 700 px tall. -->
-            <Sidebar.MenuItem class="group-data-[collapsible=icon]:hidden">
+          {#if canBrowseTeamViews && !rail}
+            <!-- The rail has its own button in the fixed group below: its Views list scrolls, and a last icon under the list's
+                 edge fails the 24 px target size (WCAG 2.5.8) at 700 px tall. -->
+            <Sidebar.MenuItem>
               <Sidebar.MenuButton onclick={() => (teamViewsOpen = true)} aria-haspopup="dialog" class="text-muted-foreground">
                 <UsersIcon aria-hidden="true" />
                 <span class="min-w-0 flex-1 truncate">Browse team views</span>
@@ -277,21 +281,32 @@
         <FailureText message={viewFailure} class="px-2 group-data-[collapsible=icon]:hidden" />
       </Sidebar.Group>
 
-      {#if settingsShown}
-        <!-- One item at the bottom opens the first settings page, whose menu lists every setting the person's role may use,
-             with search (section 11). -->
+      {#if settingsShown || railTeamViews}
+        <!-- Fixed at the bottom, outside the Views list that scrolls. In the rail Browse team views is the icon above Settings, so
+             it is always in reach; in the full sidebar it ends the Views list instead. One Settings item opens the first settings
+             page, whose menu lists every setting the person's role may use, with search (section 11). -->
         <Sidebar.Group class="sticky bottom-0 mt-auto bg-sidebar">
           <Sidebar.Menu>
-            <Sidebar.MenuItem>
-              <Sidebar.MenuButton isActive={settingsActive} tooltipContent="Settings" onclick={closeSheet}>
-                {#snippet child({ props })}
-                  <a href={settingsHome} {...props}>
-                    <SettingsIcon aria-hidden="true" />
-                    <span class="group-data-[collapsible=icon]:sr-only">Settings</span>
-                  </a>
-                {/snippet}
-              </Sidebar.MenuButton>
-            </Sidebar.MenuItem>
+            {#if railTeamViews}
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton tooltipContent="Browse team views" onclick={() => (teamViewsOpen = true)} aria-haspopup="dialog">
+                  <UsersIcon aria-hidden="true" />
+                  <span class="group-data-[collapsible=icon]:sr-only">Browse team views</span>
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+            {/if}
+            {#if settingsShown}
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton isActive={settingsActive} tooltipContent="Settings" onclick={closeSheet}>
+                  {#snippet child({ props })}
+                    <a href={settingsHome} {...props}>
+                      <SettingsIcon aria-hidden="true" />
+                      <span class="group-data-[collapsible=icon]:sr-only">Settings</span>
+                    </a>
+                  {/snippet}
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+            {/if}
           </Sidebar.Menu>
         </Sidebar.Group>
       {/if}

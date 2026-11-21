@@ -141,6 +141,7 @@
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
   import SaveViewDemo from './save-view-demo.svelte';
+  import TeamViewsDemo from './team-views-demo.svelte';
   import TaskCheckboxDemo from './task-checkbox-demo.svelte';
   import MoveConfirmDemo from './move-confirm-demo.svelte';
   import UndoNoticeDemo from './undo-notice-demo.svelte';
@@ -869,6 +870,9 @@
         </Panel>
         <Panel title="Save view button" class="flex-[1_1_320px]">
           <SaveViewDemo />
+        </Panel>
+        <Panel title="Team views sheet" class="flex-[1_1_320px]">
+          <TeamViewsDemo />
         </Panel>
         <Panel title="Move confirmation" class="flex-[1_1_320px]">
           <MoveConfirmDemo />
