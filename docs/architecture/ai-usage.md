@@ -103,7 +103,7 @@ the provider's price; what the app shows is `AiCharge.Billed`:
 | ScreenHire's | the cost times (1 + margin), rounded to a micro-dollar: the figure the meter is sent | Cost |
 | The organization's own | the provider's price, which that provider charges; ScreenHire never bills it | Charged by your provider (estimate) |
 
-The margin is `BillingOptions.AiMarginInForce`: `Ai:Margin` while billing is on, 0 while it is off, because nobody is billed then. The
+The margin is `BillingOptions.AiMarginInForce`: `Ai:Margin` while AI use is billed (the sandbox, or Stripe with `Ai:StripePriceId` set), 0 otherwise, because nobody is billed for it then. The
 summary (totals, by day, by model, by key), the call list, its CSV's `cost_usd`, the Activity log and its CSV, the budget and the cap, and
 the Billing page all use it (`AiUsageQueries.BilledAmount` where Postgres sums it). On the Usage tab the Cost tile is ScreenHire's key, and
 an own key's amount is its own line under it ("$0.12 more charged by your provider (estimate)"), its own column in the by-day table and
