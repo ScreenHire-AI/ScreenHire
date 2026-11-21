@@ -49,6 +49,7 @@ sources:
   - resource: apps/api/Endpoints/TemplateEndpoints.cs
   - resource: apps/api/Endpoints/TemplateUsageEndpoints.cs
   - resource: apps/api/Hiring/TemplateUsage.cs
+  - resource: apps/api/Contracts/TemplateUsageContracts.cs
   - resource: apps/dashboard/src/routes/(app)/templates/+page.svelte
   - resource: apps/dashboard/src/lib/components/template-list.svelte
   - resource: apps/dashboard/src/routes/(app)/templates/scorecards/[templateId]/+page.svelte
@@ -112,6 +113,7 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/jobs/[jobId]/workflow/+page.svelte
   - resource: apps/dashboard/src/lib/components/template-update-dialog.svelte
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/questionnaire-preview.svelte
   - resource: apps/dashboard/src/lib/components/workflow/question-settings.svelte
   - resource: apps/dashboard/src/lib/components/form-builder.svelte
   - resource: apps/dashboard/src/lib/components/answer-menu.svelte
