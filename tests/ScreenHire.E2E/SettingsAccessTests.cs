@@ -33,13 +33,17 @@ public sealed class SettingsAccessTests(E2EFixture fixture) : SettingsArea(fixtu
         await Expect(keys).ToContainTextAsync("No API keys yet");
 
         await keys.GetByRole(AriaRole.Button, new() { Name = "Create key" }).ClickAsync();
+        // Create key is a sheet over the list (design system A16), and its last step shows the key in the same sheet.
         var create = Page.GetByRole(AriaRole.Dialog, new() { Name = "Create an API key" });
+        await Expect(create).ToHaveAttributeAsync("data-slot", "sheet-content");
         await create.GetByLabel("Name").FillAsync("Payroll sync");
         await create.GetByLabel("Read and write").CheckAsync();
         await create.GetByRole(AriaRole.Button, new() { Name = "Create key" }).ClickAsync();
 
         var shown = Page.GetByRole(AriaRole.Dialog, new() { Name = "Your new API key" });
         await Expect(shown).ToContainTextAsync("You will not see it again.");
+        await Expect(shown).ToHaveAttributeAsync("data-slot", "sheet-content");
+        await Expect(Page.GetByRole(AriaRole.Dialog)).ToHaveCountAsync(1);
         var token = await shown.GetByLabel("API key").InputValueAsync();
         token.Should().StartWith("shk_");
         await ExpectNoAccessibilityViolationsAsync();

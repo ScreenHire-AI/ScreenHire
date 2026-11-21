@@ -135,12 +135,14 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
         var org = await SignedInAsync(1440, 1000);
         org.Slug.Should().NotBeNull();
 
-        // The limit is a product rule (each event goes to every endpoint), so the form says so and what to do about it.
+        // The limit is a product rule (each event goes to every endpoint), so the form says so and what to do about it. The
+        // old Add endpoint address opens the sheet over the list (design system A16).
         await Page.GotoAsync(DashboardUrl("/settings/webhooks/new"));
-        await Page.GetByLabel("URL").FillAsync("https://hooks.example.com/in/21");
-        await Page.GetByRole(AriaRole.Checkbox).First.CheckAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Add endpoint" }).ClickAsync();
-        await Expect(Page.GetByText("An organization has at most 20 webhook endpoints. Delete one first.")).ToBeVisibleAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Add endpoint" });
+        await sheet.GetByLabel("URL").FillAsync("https://hooks.example.com/in/21");
+        await sheet.GetByRole(AriaRole.Checkbox).First.CheckAsync();
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Add endpoint" }).ClickAsync();
+        await Expect(sheet.GetByText("An organization has at most 20 webhook endpoints. Delete one first.")).ToBeVisibleAsync();
     }
 
     private async Task<BusyOrganization> SignedInAsync(int width, int height)

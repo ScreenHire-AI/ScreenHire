@@ -193,7 +193,7 @@ describe('settings groups', () => {
     expect(settingsGroupOf('/settings/roles/compare')).toBe('Organization');
     expect(settingsGroupOf('/settings/sending-domain')).toBe('Organization');
     expect(settingsGroupOf('/settings/branding')).toBe('Careers site');
-    expect(settingsGroupOf('/settings/webhooks/new')).toBe('Integrations');
+    expect(settingsGroupOf('/settings/webhooks/e1')).toBe('Integrations');
     expect(settingsGroupOf(settingsHome)).toBeUndefined();
     expect(settingsGroupOf('/settings/integrations')).toBeUndefined();
   });
