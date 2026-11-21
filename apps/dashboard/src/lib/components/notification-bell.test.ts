@@ -20,6 +20,7 @@ const readItem = { ...unreadItem, id: id(2), payload: { domain: 'example.org' },
 
 // A new organization: the signed-in Owner alone, nothing set, no job published. Three steps are open (no email provider here).
 const newOrganization = {
+  'GET /v1/organization/setup': () => Response.json({ hidden: false, skippedSteps: [] }),
   'GET /v1/organization/members': () => Response.json([{ id: 'avery' }]),
   'GET /v1/organization/invitations': () => Response.json([]),
   'GET /v1/organization/branding': () => Response.json({ brandColor: null, secondColor: null, headingFont: null, logo: null, favicon: null, sharingImage: null }),
@@ -44,6 +45,7 @@ async function openBell() {
   return screen.findByRole('dialog', { name: 'Needs attention' });
 }
 const posted = (path: string) => vi.mocked(fetch).mock.calls.some(([url, init]) => String(url) === path && init?.method === 'POST');
+const asked = (path: string) => vi.mocked(fetch).mock.calls.some(([url]) => String(url) === path);
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -261,15 +263,71 @@ describe('notification bell', () => {
     expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url) === '/v1/organization/members')).toBe(false);
   });
 
-  it('dismisses the setup in this browser, which takes its steps out of the count', async () => {
-    stub([], 0);
+  it('takes a step the organization does not need off the list and the count, saved on the server, and keeps focus in the steps', async () => {
+    let skipped: string[] = [];
+    stub([], 0, {
+      'GET /v1/organization/setup': () => Response.json({ hidden: false, skippedSteps: skipped }),
+      'POST /v1/organization/setup/skip': (init) => {
+        skipped = [...skipped, (JSON.parse(String(init?.body)) as { step: string }).step];
+        return Response.json({ hidden: false, skippedSteps: skipped });
+      },
+    });
+    renderBell();
+    const panel = await openBell();
+    const setup = await within(panel).findByRole('region', { name: 'Finish setting up' });
+
+    await fireEvent.click(within(setup).getByRole('button', { name: 'Not needed: Set your branding' }));
+
+    await waitFor(() => expect(within(setup).queryByRole('link', { name: 'Set your branding' })).toBeNull());
+    expect(skipped).toEqual(['Branding']);
+    await waitFor(() => expect(setup).toHaveFocus());
+    // The steps after it keep their numbers, and a skipped step is not done.
+    expect(within(setup).getAllByRole('listitem').map((item) => item.textContent?.match(/^\s*(\d)/)?.[1])).toEqual(['2', '3']);
+    expect(within(setup).queryByText(/done$/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Notifications, 2 need attention' })).toBeInTheDocument();
+  });
+
+  it('hides the whole setup for the organization from the section, which takes its steps out of the count', async () => {
+    let hidden = false;
+    stub([], 0, {
+      'GET /v1/organization/setup': () => Response.json({ hidden, skippedSteps: [] }),
+      'POST /v1/organization/setup/hide': () => {
+        hidden = true;
+        return Response.json({ hidden, skippedSteps: [] });
+      },
+    });
     renderBell();
     const panel = await openBell();
 
-    await fireEvent.click(await within(panel).findByRole('button', { name: 'Hide setup in this browser' }));
+    await fireEvent.click(await within(panel).findByRole('button', { name: 'Hide setup for everyone' }));
+
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Finish setting up' })).toBeNull());
-    expect(preferences.isSetupDismissed(user.organization!.id)).toBe(true);
+    expect(posted('/v1/organization/setup/hide')).toBe(true);
     expect(await screen.findByRole('button', { name: 'Notifications' })).toBeInTheDocument();
+  });
+
+  it('asks none of the setup questions for an organization that hid its setup', async () => {
+    stub([], 0, { 'GET /v1/organization/setup': () => Response.json({ hidden: true, skippedSteps: [] }) });
+    renderBell();
+    const panel = await openBell();
+
+    expect(await within(panel).findByText('Nothing needs attention.')).toBeInTheDocument();
+    expect(asked('/v1/organization/setup')).toBe(true);
+    expect(asked('/v1/organization/members')).toBe(false);
+    expect(asked('/v1/jobs')).toBe(false);
+  });
+
+  it('says so in the section when a skip cannot be saved, and keeps the step', async () => {
+    stub([], 0, { 'POST /v1/organization/setup/skip': () => Response.json({ errors: { step: ['Choose one of the setup steps.'] } }, { status: 400 }) });
+    renderBell();
+    const panel = await openBell();
+    const setup = await within(panel).findByRole('region', { name: 'Finish setting up' });
+
+    await fireEvent.click(within(setup).getByRole('button', { name: 'Not needed: Invite your team' }));
+
+    expect(await within(setup).findByText('Could not save that. Try again.')).toHaveAttribute('role', 'alert');
+    // By text: jsdom's floating-ui leaves the panel's wrapper hidden after the re-render, so roles read as inaccessible.
+    expect(within(setup).getByText('Invite your team').closest('a')).toHaveAttribute('href', '/settings/team');
   });
 
   it('shows a kind it does not know as a generic line with its link', async () => {

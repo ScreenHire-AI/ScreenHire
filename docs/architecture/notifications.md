@@ -14,6 +14,8 @@ sources:
   - resource: src/ScreenHire.Application/SendingDomains/SendingDomainService.cs
   - resource: src/ScreenHire.Application/Messaging/ScreenHireMessaging.cs
   - resource: apps/api/Endpoints/NotificationEndpoints.cs
+  - resource: apps/api/Endpoints/OrganizationEndpoints.cs
+  - resource: src/ScreenHire.Domain/Organizations/SetupStepId.cs
   - resource: apps/api/Contracts/NotificationItemContracts.cs
   - resource: apps/api/Endpoints/SendingDomainEndpoints.cs
   - resource: apps/dashboard/src/lib/components/notification-bell.svelte
@@ -26,6 +28,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/overview-stat.svelte
   - resource: apps/dashboard/src/lib/saved-views.ts
   - resource: apps/dashboard/src/routes/(app)/settings/sending-domain/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/settings/organization/+page.svelte
 ---
 
 # Notifications
@@ -34,9 +37,10 @@ A bell in the top bar holds what needs one person's attention. It has two parts:
 
 - **Setup**, for whoever can do the steps (Owners and Admins): the four steps a new organization takes, each linking to the
   page where it is done, in the order a team does them: branding, the first published job, inviting the team, then sending email from the company's own domain (last, because it is DNS work outside ScreenHire and
-  the team can start without it). It is not stored. The dashboard works it out from the organization's own data, as it always did, and
-  shows only the steps left, with the done ones folded into one line ("2 steps done"). It goes by itself once the last step is
-  done, and Hiding setup (an icon button in the panel) hides it in this browser for the organization.
+  the team can start without it). Whether a step is done is not stored. The dashboard works it out from the organization's own
+  data, as it always did, and shows only the steps left, with the done ones folded into one line ("2 steps done"). Sending email
+  from the company's own domain says Optional and never counts toward the badge. What the server keeps is the organization's
+  choices about the list (see Skipping a step and hiding setup, below).
 - **Alerts**, stored on the server, one row per person: a plain line that links to the page that fixes it. They are read,
   dismissed and pushed live per person.
 
@@ -50,6 +54,26 @@ opens when the count passes the one it saw when it mounted. And right after onbo
 queues a one-time ask in `preferences` for that person (`queueSetupTour`); the first bell that has steps to show takes it
 (`takeSetupTour`, so it never opens itself twice) and opens, so a bell that unmounts while the steps load leaves it for the next
 one. In both cases focus starts on the setup section, until the panel closes.
+
+### Skipping a step and hiding setup
+
+A team that will never set up its own email domain should not keep that step forever, and the only way out used to hide the
+whole checklist, in one browser (the owner's walk-through, 2026-11-21). Both choices now live on the organization row:
+
+- `SkippedSetupSteps` (`text[]` of `SetupStepId` names) holds the steps someone marked **Not needed**, a button on each open
+  step. A skipped step leaves the list and the count for every Owner and Admin on every device, keeps its place so the steps
+  after it keep their numbers, and is not counted as done. Its settings page still does it, and once the data says it is done
+  it counts as done.
+- `SetupHidden` is set by the section's icon button, **Hide setup for everyone**.
+- **Show setup again**, on Settings, General, clears both. The panel there appears only while something is hidden or skipped,
+  and names the skipped steps.
+
+The routes are `GET /v1/organization/setup` (any member), and `POST /v1/organization/setup/skip` (`{ step }`), `/hide` and
+`/show`, each with Edit settings and the antiforgery token. Each write is one change rather than a replace of the whole list,
+so two Owners skipping different steps at once both keep theirs. The history describers ignore these columns, so a skip never
+moves General's Last updated. The dashboard asks for the choices first, and asks the five questions behind the steps only
+when the checklist is not hidden. There is no live event for these choices: another open dashboard picks them up when it next
+reads `/v1/organization/setup` (a minute's stale time, or a reload).
 
 The panel is called Needs attention, because Notifications already names the toast settings in the account menu and the
 toast tray. The bell holds no team news: that stays in the tray (the realtime doc).
@@ -203,11 +227,15 @@ Both are forwarded to the API and the worker by the AppHost.
 ## Tests
 
 - Unit: the `Notification` rules, `VerificationLostAt`, the recheck decision table, and a probe that saves nothing.
+- Integration: the setup choices (`OrganizationSetupTests`): a skip and a hide hold for another Admin, Show setup again clears
+  both, only Edit settings changes them, an unknown step is refused, and another organization is untouched.
 - Integration: raising, reading, dismissing and clearing through the real worker queue, per-person isolation, row-level security,
   the live event, retention, the schedules, and the daily check on a real Wolverine host with the sandbox zone as fake DNS.
-- Vitest: the bell, the Jobs tiles, the new views, the lines and the Email domain page.
+- Vitest: the checklist's skipped steps, the bell's Not needed and Hide setup for everyone, Settings, General's Show setup
+  again, the Jobs tiles, the new views, the lines and the Email domain page.
 - End to end: a new Owner's bell opens by itself once at the setup steps after onboarding, the Jobs empty state points to them
-  and its button opens them again.
+  and its button opens them again; a step marked Not needed is gone, and a hidden checklist hidden, for the same Owner in
+  another browser.
 
 ## Not built
 

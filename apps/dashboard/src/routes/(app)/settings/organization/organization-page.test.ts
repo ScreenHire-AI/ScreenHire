@@ -30,6 +30,7 @@ function renderPage(routes: Parameters<typeof apiStub>[0] = {}) {
     vi.fn(
       apiStub({
         'GET /v1/organization': () => Response.json(organization),
+        'GET /v1/organization/setup': () => Response.json({ hidden: false, skippedSteps: [] }),
         'PUT /v1/organization': (init) => {
           const body = JSON.parse(String(init?.body)) as { name: string };
           bodies.push(body);
@@ -59,6 +60,39 @@ describe('general settings page', () => {
     expect(screen.queryByRole('link', { name: /jobs\.brightwater\.example\.com/ })).toBeNull();
     expect(screen.queryByLabelText('Questions per page')).toBeNull();
     expect(screen.queryByText('No sites yet. Add one to get the embed code.')).toBeNull();
+  });
+
+  it('offers nothing about the setup checklist while it shows in full', async () => {
+    renderPage();
+
+    await screen.findByDisplayValue('Brightwater Studio');
+    expect(screen.queryByRole('heading', { name: 'Setup checklist' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Show setup again/ })).toBeNull();
+  });
+
+  it('names the steps marked not needed and shows the checklist again for the organization', async () => {
+    let setup = { hidden: false, skippedSteps: ['Email', 'Team'] };
+    renderPage({
+      'GET /v1/organization/setup': () => Response.json(setup),
+      'POST /v1/organization/setup/show': () => {
+        setup = { hidden: false, skippedSteps: [] };
+        return Response.json(setup);
+      },
+    });
+
+    expect(await screen.findByText('Marked not needed: Send email from your own domain, Invite your team.')).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Show setup again' }));
+
+    expect(await screen.findByText('The setup checklist is back in the notification bell.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Show setup again' })).toBeNull();
+    await expectNoAxeViolations();
+  });
+
+  it('says the checklist is hidden for everyone once someone hid it', async () => {
+    renderPage({ 'GET /v1/organization/setup': () => Response.json({ hidden: true, skippedSteps: ['Branding'] }) });
+
+    expect(await screen.findByText('Hidden for everyone in your organization.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show setup again' })).toBeInTheDocument();
   });
 
   it('loads the name, with Updated and History on the title row, so every settings header is one row (T6, S8)', async () => {

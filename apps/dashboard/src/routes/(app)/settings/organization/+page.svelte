@@ -110,6 +110,13 @@
 
 </script>
 
+{#snippet setupFooter()}
+  <div class="flex flex-wrap items-center justify-end gap-2">
+    <FailureText message={showAgain.isError ? describeError(showAgain.error, 'Could not show the setup checklist') : null} class="mr-auto" />
+    <Button variant="outline" size="lg" disabled={showAgain.isPending} onclick={restoreSetup}><ListChecksIcon aria-hidden="true" />Show setup again</Button>
+  </div>
+{/snippet}
+
 <svelte:head>
   <title>General · ScreenHire</title>
 </svelte:head>
@@ -176,18 +183,10 @@
       </Panel>
 
       {#if offer || shownAgain}
-        <Panel title="Setup checklist">
+        <Panel title="Setup checklist" footer={offer ? setupFooter : undefined}>
           <p role="status" class="text-body">
             {#if !offer}The setup checklist is back in the notification bell.{:else if choices?.hidden}Hidden for everyone in your organization.{:else}Marked not needed: {skippedLabels.join(', ')}.{/if}
           </p>
-          {#if offer}
-            {#snippet footer()}
-              <div class="flex flex-wrap items-center justify-end gap-2">
-                <FailureText message={showAgain.isError ? describeError(showAgain.error, 'Could not show the setup checklist') : null} class="mr-auto" />
-                <Button variant="outline" size="lg" disabled={showAgain.isPending} onclick={restoreSetup}><ListChecksIcon aria-hidden="true" />Show setup again</Button>
-              </div>
-            {/snippet}
-          {/if}
         </Panel>
       {/if}
     {/if}
