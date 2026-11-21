@@ -56,6 +56,7 @@ sources:
   - resource: apps/api/Endpoints/HiringTeamEndpoints.cs
   - resource: apps/api/Endpoints/NamedTeamEndpoints.cs
   - resource: apps/api/Contracts/NamedTeamContracts.cs
+  - resource: apps/api/Contracts/HiringTeamContracts.cs
   - resource: apps/api/Hiring/HiringTeams.cs
   - resource: apps/api/Configuration/DomainOptions.cs
   - resource: apps/api/Configuration/LegalOptions.cs
