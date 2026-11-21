@@ -189,9 +189,12 @@ describe('elements', () => {
     expect(asChoice.knockout).toBeUndefined();
   });
 
-  it('starts an automation on its lane: a stage entry, or an arriving application', () => {
+  it('starts an automation on its lane: a stage entry, an arriving application, or a run by hand from Any stage', () => {
     expect(newAutomation(workflow, 'screening').trigger).toEqual({ type: 'StageEntered', stageId: 'screening' });
     expect(newAutomation(workflow, null).trigger).toEqual({ type: 'ApplicationSubmitted' });
+    // Written from the Any stage band, it stays there rather than landing under Applied.
+    expect(placeOf(workflow, newAutomation(workflow, null, true))).toBe('any');
+    expect(placeOf(workflow, newAutomation(workflow, null))).toBe(workflow.stages[0]!.id);
     expect(newAutomation(workflow, null).id).toBe('automation');
     // Complete from the start, and valid under every trigger, so "Write your own" never opens as a problem.
     expect(newAutomation(workflow, 'screening').actions).toEqual([{ type: 'AssignReviewer' }]);

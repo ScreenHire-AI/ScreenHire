@@ -146,17 +146,6 @@ export function anyStageFacts(workflow: HiringWorkflow, templateNames: ReadonlyM
   return placedAt(workflow, 'any').map((automation) => ({ kind: 'automation', text: automationLabel(automation, workflow, templateNames), automationId: automation.id }));
 }
 
-/**
- * The stages that end a candidacy, each with what runs there: { stage, facts }. They are outcomes, not steps, so they
- * share one row.
- */
-export function endFacts(
-  workflow: HiringWorkflow,
-  templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined),
-): { stage: WorkflowStage; facts: StageFact[] }[] {
-  return workflow.stages.filter((stage) => isTerminal(stage.kind)).map((stage) => ({ stage, facts: stageFacts(workflow, stage, templateNames) }));
-}
-
 /** When a stage's time limit passes, what the team is asked to do: the short labels of its SlaBreached automations. */
 export function whenOverdue(workflow: HiringWorkflow, stageId: string, templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined)): StageFact[] {
   return workflow.automations

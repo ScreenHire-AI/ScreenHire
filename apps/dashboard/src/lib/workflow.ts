@@ -573,13 +573,16 @@ export const answerIsRead = (workflow: HiringWorkflow, questionId: string): bool
     (automation) => automation.enabled !== false && automation.conditions?.rules.some((rule) => rule.fact === `answers.${questionId}`),
   );
 
-/** A new automation for a stage: its entry trigger, or "an application arrives" (under Applied) for none. */
-export function newAutomation(workflow: HiringWorkflow, stageId: string | null): Automation {
+/**
+ * A new automation for a stage: its entry trigger. For none, "an application arrives" (under Applied), or, written from
+ * the Any stage band (`anyStage`), a run by hand, so it stays in the band it was written from.
+ */
+export function newAutomation(workflow: HiringWorkflow, stageId: string | null, anyStage = false): Automation {
   const id = idFrom('automation', workflow.automations.map((automation) => automation.id), 'automation');
   return {
     id,
     name: 'New automation',
-    trigger: stageId ? { type: 'StageEntered', stageId } : { type: 'ApplicationSubmitted' },
+    trigger: stageId ? { type: 'StageEntered', stageId } : anyStage ? { type: 'Manual' } : { type: 'ApplicationSubmitted' },
     conditions: null,
     // A step that is complete from the start, so a new automation never opens as a problem, and one that every trigger and
     // every condition allows: a passed time limit may only remind the team or ask for a review, and after a check the sentence

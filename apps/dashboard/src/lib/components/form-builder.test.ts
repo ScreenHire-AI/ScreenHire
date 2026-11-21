@@ -149,7 +149,14 @@ describe('form builder', () => {
     await fireEvent.click(within(row).getByRole('textbox', { name: 'Help text' }));
     expect(openRow()).not.toBeNull();
 
-    await fireEvent.click(row.querySelector('[data-question-header]')!);
+    // Selecting the question's text and letting go past the field fires the click on the header: the row stays open.
+    const header = row.querySelector('[data-question-header]')!;
+    await fireEvent.pointerDown(within(row).getByRole('textbox', { name: 'Question 3' }));
+    await fireEvent.click(header);
+    expect(openRow()).not.toBeNull();
+
+    await fireEvent.pointerDown(header);
+    await fireEvent.click(header);
     expect(openRow()).toBeNull();
   });
 

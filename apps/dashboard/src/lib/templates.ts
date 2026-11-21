@@ -129,7 +129,8 @@ export function publishWords(version: number, jobs: readonly Pick<UsageItem, 'ki
   if (own.length === 0) return first;
   const versions = new Set(own.map((item) => item.templateVersion));
   const [only] = versions;
-  if (own.length === 1) return `${first} Your 1 job stays on version ${only ?? 1} until you update it.`;
+  // A job started before versions were recorded has none to name.
+  if (own.length === 1) return `${first} Your 1 job stays on ${only != null ? `version ${only}` : 'the version it has'} until you update it.`;
   if (versions.size === 1 && only != null) return `${first} Your ${own.length} jobs stay on version ${only} until you update them.`;
   return `${first} Your ${own.length} jobs stay on the versions they have until you update them.`;
 }

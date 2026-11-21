@@ -88,6 +88,8 @@
   // list behind the sheet keeps the same one.
   let view = $state<'lane' | 'recipes' | 'edit'>('lane');
   let drawerLane = $state<string | null>(null);
+  // Opened from the Any stage band (its header or its plus), not from Add automation: Write your own then stays in the band.
+  let drawerAny = $state(false);
   let editId = $state<string | null>(null);
   let asRules = $state(false);
   const editIndex = $derived(workflow.automations.findIndex((automation) => automation.id === editId));
@@ -116,6 +118,7 @@
     if (!automation) return;
     const place = placeOf(workflow, automation);
     drawerLane = place === 'any' ? null : place;
+    drawerAny = place === 'any';
     editId = automation.id;
     asRules = false;
     const wasOpen = drawerOpen;
@@ -127,10 +130,11 @@
   }
 
   // The recipes for a stage, or every recipe (null): what every Add an automation opens.
-  function openRecipes(lane: string | null) {
+  function openRecipes(lane: string | null, anyStage = false) {
     const wasOpen = drawerOpen;
     focusPath = null;
     drawerLane = lane;
+    drawerAny = lane === null && anyStage;
     view = 'recipes';
     returnTo = { node: lane ? stageNode(lane) : LANE_NODE, opener: wasOpen ? (returnTo?.opener ?? null) : document.activeElement };
     drawerOpen = true;
@@ -140,6 +144,7 @@
   function openLane(lane: string | null) {
     focusPath = null;
     drawerLane = lane;
+    drawerAny = lane === null;
     view = 'lane';
     returnTo = { node: lane ? stageNode(lane) : LANE_NODE, opener: document.activeElement };
     drawerOpen = true;
@@ -147,7 +152,7 @@
 
   // Write your own: an empty automation in the lane, opened as a sentence at its name. Closing it goes to its trigger.
   function writeOwn() {
-    const added = addAutomation(workflow, drawerLane);
+    const added = addAutomation(workflow, drawerLane, drawerAny);
     workflow.automations = added.workflow.automations;
     const index = workflow.automations.findIndex((automation) => automation.id === added.id);
     openAutomation(index, `automations[${index}]`);
@@ -203,7 +208,8 @@
   const graphActions: GraphActions = {
     edit: openAutomation,
     openLane,
-    add: openRecipes,
+    // A stage's plus, or the Any stage band's (null).
+    add: (lane) => openRecipes(lane, lane === null),
     addCondition(automationId) {
       const added = addCondition(workflow, automationId);
       if (added) openChanged(added, automationId);
@@ -358,7 +364,7 @@
     <div class="@container flex flex-col gap-6 px-4 pb-4">
       {#if view === 'lane'}
         <AutomationList {workflow} lane={drawerLane} onopen={(index) => openAutomation(index, `automations[${index}]`)} />
-        <div><Button variant="outline" size="lg" onclick={() => openRecipes(drawerLane)}>Add automation</Button></div>
+        <div><Button variant="outline" size="lg" onclick={() => openRecipes(drawerLane, drawerAny)}>Add automation</Button></div>
       {:else if view === 'recipes'}
         <AutomationRecipes bind:workflow lane={drawerLane} onwrite={writeOwn} onedit={editById} />
       {:else if editIndex >= 0}

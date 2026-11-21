@@ -339,7 +339,10 @@
               <Fact label="Update available">
                 <span>
                   {detail.template.templateName} v{detail.template.latestPublishedVersion},
-                  <a href={`/jobs/${detail.id}/workflow?review=update`} class="underline underline-offset-2">See what changes</a>
+                  <a
+                    href={`/jobs/${detail.id}/workflow?review=update`}
+                    class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">See what changes</a
+                  >
                 </span>
               </Fact>
             {/if}

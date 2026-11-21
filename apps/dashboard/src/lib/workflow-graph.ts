@@ -732,9 +732,12 @@ export function focusGraphNode(root: ParentNode, id: string): boolean {
   return Boolean(control);
 }
 
-/** Adds a new automation to a stage's band, or the Any stage band's (null), as the Pipeline view's drawer does. */
-export function addAutomation(workflow: HiringWorkflow, stageId: string | null): { workflow: HiringWorkflow; id: string } {
-  const automation = newAutomation(workflow, stageId);
+/**
+ * Adds a new automation to a stage's band, or with no stage to Applied (an arriving application) or, `anyStage`, to the
+ * Any stage band (a run by hand), as the automations sheet's Write your own does.
+ */
+export function addAutomation(workflow: HiringWorkflow, stageId: string | null, anyStage = false): { workflow: HiringWorkflow; id: string } {
+  const automation = newAutomation(workflow, stageId, anyStage);
   return { workflow: { ...workflow, automations: [...workflow.automations, automation] }, id: automation.id };
 }
 

@@ -96,8 +96,8 @@
     const cards = [...(grid?.querySelectorAll<HTMLElement>('[data-stage-card][role="group"]') ?? [])];
     cards.forEach((card, index) => {
       const next = cards[index + 1];
-      const ends = next !== undefined && next.getBoundingClientRect().left < card.getBoundingClientRect().left - 1;
-      card.toggleAttribute('data-row-end', ends);
+      const endsRow = next !== undefined && next.getBoundingClientRect().left < card.getBoundingClientRect().left - 1;
+      card.toggleAttribute('data-row-end', endsRow);
     });
   }
   $effect(() => {
@@ -130,16 +130,16 @@
   <Tooltip.Root>
     <Tooltip.Trigger>
       {#snippet child({ props })}
-      <button
-        {...props}
-        type="button"
-        data-stage-open={stage.id}
-        aria-haspopup="dialog"
-        class="-mx-2 inline-flex min-w-0 items-start gap-1.5 rounded-lg px-2 py-1 text-left font-semibold break-words hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:items-center"
-        onclick={() => onopen(stage.id)}
-      >
-        <span class="min-w-0">{stage.name}</span><PencilIcon aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-      </button>
+        <button
+          {...props}
+          type="button"
+          data-stage-open={stage.id}
+          aria-haspopup="dialog"
+          class="-mx-2 inline-flex min-w-0 items-start gap-1.5 rounded-lg px-2 py-1 text-left font-semibold break-words hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11 pointer-coarse:items-center"
+          onclick={() => onopen(stage.id)}
+        >
+          <span class="min-w-0">{stage.name}</span><PencilIcon aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        </button>
       {/snippet}
     </Tooltip.Trigger>
     <Tooltip.Content>Edit {stage.name}</Tooltip.Content>
@@ -148,7 +148,8 @@
 
 <div bind:this={root}>
   <Panel title="Stages">
-    <div class="flex flex-col gap-6">
+    <!-- The container the Any stage and Ends rows lay out against; the stage grid keeps its own below. -->
+    <div class="@container flex flex-col gap-6">
       <FieldErrors id="stages-errors" messages={errorsAt(errors, 'stages')} />
       <div class="@container" bind:this={grid}>
         <ReorderList
@@ -219,12 +220,12 @@
               {@const stageErrors = errorsUnder(errors, `stages[${index}]`).map((error) => error.message)}
               <li>
                 <div data-stage-card role="group" aria-label={`End stage: ${stage.name}`} class="group flex flex-col gap-1">
-                <div class="flex items-start gap-2">
-                  <div class="min-w-0 flex-1">{@render stageName(stage)}</div>
-                  <div data-stage-menu class="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">{@render stageMenu(stage)}</div>
-                </div>
-                <StageFactList facts={stageFacts(workflow, stage, templateNames)} {stage} {automationHref} {onshow} />
-                <FieldErrors id={`stage-${index}-errors`} messages={stageErrors} />
+                  <div class="flex items-start gap-2">
+                    <div class="min-w-0 flex-1">{@render stageName(stage)}</div>
+                    <div data-stage-menu class="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">{@render stageMenu(stage)}</div>
+                  </div>
+                  <StageFactList facts={stageFacts(workflow, stage, templateNames)} {stage} {automationHref} {onshow} />
+                  <FieldErrors id={`stage-${index}-errors`} messages={stageErrors} />
                 </div>
               </li>
             {/each}

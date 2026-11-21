@@ -34,7 +34,8 @@
   const icons: Record<StageFactKind, typeof ZapIcon> = { limit: ClockIcon, meeting: CalendarIcon, email: MailIcon, automation: ZapIcon, questions: ListIcon };
   // A stage that ends the candidacy has no scorecard to give, whatever it holds.
   const scorecard = $derived(Boolean(stage && !isTerminal(stage.kind) && (stage.scorecard || stage.scorecardTemplateId)));
-  const linkClass = 'underline-offset-2 hover:underline focus-visible:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center';
+  // Links are underlined text (A5): a light rule at rest that darkens on hover, so the muted lines stay calm.
+  const linkClass = 'underline decoration-border underline-offset-2 hover:decoration-current focus-visible:decoration-current pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center';
 </script>
 
 {#if facts.length > 0 || scorecard}

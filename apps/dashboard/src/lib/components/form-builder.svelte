@@ -241,10 +241,14 @@
   }
 
   // A click on the open row's header closes it, unless it lands in a field or on a control (the text, the answer menu,
-  // the row menu, the grip), which keep their own clicks.
+  // the row menu, the grip), which keep their own clicks. A press that began in one counts too: selecting the question's
+  // text and letting go past the field's edge fires the click on the header, and must not close the row.
+  const keepsItsClick = 'input, textarea, select, button, a, [role="switch"], [role="menuitem"]';
+  let pressedOn: Element | null = null;
   function onheaderclick(event: MouseEvent, id: string) {
-    const target = event.target as Element | null;
-    if (target?.closest('input, textarea, select, button, a, [role="switch"], [role="menuitem"]')) return;
+    const pressed = pressedOn;
+    pressedOn = null;
+    if ((event.target as Element | null)?.closest(keepsItsClick) || pressed?.closest(keepsItsClick)) return;
     void close(id);
   }
 
@@ -319,7 +323,7 @@
         >
           {#if isOpen}<span aria-hidden="true" class="absolute inset-y-0 left-0 w-1 bg-primary"></span>{/if}
           <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-          <div data-question-header class="relative flex min-w-0 items-start gap-2 rounded-lg has-[[data-question-edit]:hover]:bg-muted/40" onclick={isOpen ? (event) => onheaderclick(event, id) : undefined}>
+          <div data-question-header class="relative flex min-w-0 items-start gap-2 rounded-lg has-[[data-question-edit]:hover]:bg-muted/40" onpointerdown={isOpen ? (event) => (pressedOn = event.target as Element | null) : undefined} onclick={isOpen ? (event) => onheaderclick(event, id) : undefined}>
             <span class="relative z-10 pt-1">{@render grip()}</span>
             {#if isOpen}
               <div class="flex min-w-0 flex-1 py-0.5">

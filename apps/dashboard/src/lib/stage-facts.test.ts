@@ -2,7 +2,7 @@
 // that belong to no stage and the stages that end a candidacy.
 import type { Automation, HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
-import { anyStageFacts, automationLabel, endFacts, respondWithin, stageFacts, whenOverdue } from './stage-facts.js';
+import { anyStageFacts, automationLabel, respondWithin, stageFacts, whenOverdue } from './stage-facts.js';
 
 const automation = (id: string, trigger: Automation['trigger'], actions: Automation['actions'], extra: Partial<Automation> = {}): Automation => ({
   id,
@@ -92,13 +92,14 @@ describe('automationLabel', () => {
   });
 });
 
-describe('anyStageFacts and endFacts', () => {
+describe('anyStageFacts', () => {
   it('lists the automations that belong to no stage', () => {
     expect(anyStageFacts(workflow, names).map((fact) => fact.text)).toEqual(['When run by hand: Task for the team', 'When overdue: Tell the team']);
   });
 
-  it('lists the stages that end a candidacy with what runs there', () => {
-    expect(endFacts(workflow, names).map((end) => [end.stage.name, end.facts.map((fact) => fact.text)])).toEqual([['Rejected', ['Sends "Not this time"']]]);
+  it('gives a stage that ends a candidacy what runs there', () => {
+    const rejected = workflow.stages.find((stage) => stage.name === 'Rejected')!;
+    expect(stageFacts(workflow, rejected, names).map((fact) => fact.text)).toEqual(['Sends "Not this time"']);
   });
 });
 

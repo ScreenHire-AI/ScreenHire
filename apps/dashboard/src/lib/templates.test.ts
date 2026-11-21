@@ -26,7 +26,7 @@ const use = (count: number, notUsedRecently = false): TemplateUse => ({
   notUsedRecently,
 });
 
-const job = (id: string, templateVersion: number): UsageItem => ({ kind: 'Job', id, name: `Job ${id}`, templateVersion, workflowVersion: 1 });
+const job = (id: string, templateVersion: number | null): UsageItem => ({ kind: 'Job', id, name: `Job ${id}`, templateVersion, workflowVersion: 1 });
 
 describe('templates', () => {
   it('names a copy "(copy)" within the kind\'s longest name', () => {
@@ -80,6 +80,8 @@ describe('templates', () => {
     expect(publishWords(3, [job('a', 2), job('b', 2), job('c', 2)])).toBe(
       'Publishing makes version 3 the version new jobs get. Your 3 jobs stay on version 2 until you update them.',
     );
+    // A job with no recorded version is not given one.
+    expect(publishWords(2, [job('a', null)])).toBe('Publishing makes version 2 the version new jobs get. Your 1 job stays on the version it has until you update it.');
     expect(publishWords(3, [job('a', 1), job('b', 2)])).toBe(
       'Publishing makes version 3 the version new jobs get. Your 2 jobs stay on the versions they have until you update them.',
     );

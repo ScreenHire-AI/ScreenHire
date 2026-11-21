@@ -76,7 +76,7 @@ describe('stage sheet', () => {
     expect(within(dialog).getByRole('button', { name: 'Choose scorecard for Interview' })).toBeInTheDocument();
   });
 
-  it('lists the automations at the stage in the journey\'s words, never naming the person a step asks', async () => {
+  it('lists the automations at the stage in the pipeline\'s words, never naming the person a step asks', async () => {
     renderSheet();
     const dialog = await sheet();
 

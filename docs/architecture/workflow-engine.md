@@ -310,7 +310,9 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     automation: under each stage and the Any stage band for a new automation (`addAutomation`), on the line between a trigger and its
     first action for a first condition (`addCondition`), and under the last action for another action (`addAction`).
     The plus for a new automation opens the recipes for that stage (Applied's include those for an arriving application
-    and the checks), or every recipe under Any stage; the other two open the sentence at what they added. A
+    and the checks), or every recipe under Any stage, where Write your own starts a run by hand so the new automation
+    stays in that band (Add automation's starts one for an arriving application, under Applied); the other two open the
+    sentence at what they added. A
     workflow with no automations says what an automation is and offers one button, "Add an automation", which opens the
     every recipe.
   - **Paths.** Hovering or focusing a node lights its path (`pathOf`): an automation's chain with the stage it fires on

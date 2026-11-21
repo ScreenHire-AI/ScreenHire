@@ -324,12 +324,8 @@
       {#if older.length > 0 && !detail.isSystem && !detail.archived}
         <p class="flex flex-wrap items-baseline gap-x-2">
           <span>{olderJobsWords(older.length)}</span>
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            class="font-semibold text-foreground underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring pointer-coarse:min-h-11"
-            onclick={() => (reviewOpen = true)}>Review updates</button
-          >
+          <!-- It opens a sheet, so it is an outline button, not underlined text (A5, A6). -->
+          <Button variant="outline" size="sm" aria-haspopup="dialog" onclick={() => (reviewOpen = true)}>Review updates</Button>
         </p>
       {/if}
     {/snippet}
@@ -393,7 +389,8 @@
           <!-- The shown version's state and the version new jobs get are two facts (W6, W7). -->
           <Fact label="Status">
             {#if current.status === 'Draft'}
-              <StatusBadge status="draft" label="Draft, unpublished changes" />
+              <!-- The longest status: on a phone's two-column facts it wraps rather than clipping its last word. -->
+              <StatusBadge status="draft" label="Draft, unpublished changes" class="h-auto min-h-6 max-w-full whitespace-normal" />
             {:else if live !== null && current.version !== live}
               <!-- An earlier version, read from Versions: the fact says which, since the live one is the next fact. -->
               <StatusBadge status="published" label={`Published, version ${current.version}`} />

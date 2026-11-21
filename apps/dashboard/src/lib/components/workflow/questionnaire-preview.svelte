@@ -122,7 +122,8 @@
     {/if}
     {#if last}
       <button type="button" class={primary} disabled aria-describedby="preview-nothing-sent">{followUp ? 'Send answers' : 'Send application'}</button>
-      <p id="preview-nothing-sent" class="text-candidate-muted-foreground">Nothing is sent from a preview.</p>
+      <!-- Preview adds no sentence about itself (A8): the reason the button does nothing is for screen readers only. -->
+      <p id="preview-nothing-sent" class="sr-only">Nothing is sent from a preview.</p>
     {:else}
       <button type="button" class={primary} onclick={() => go(at + 1)}>Next</button>
     {/if}
