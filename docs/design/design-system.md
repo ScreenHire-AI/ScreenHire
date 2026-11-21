@@ -46,6 +46,9 @@ sources:
   - resource: apps/dashboard/src/lib/components/bar-chart.svelte
   - resource: apps/dashboard/src/lib/components/chart-panel.svelte
   - resource: apps/dashboard/src/lib/components/week-chart.svelte
+  - resource: apps/dashboard/src/lib/components/expandable-row.svelte
+  - resource: apps/dashboard/src/lib/components/email-preview.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/latest-message-panel.svelte
   - resource: apps/dashboard/src/lib/components/report-stat.svelte
   - resource: apps/dashboard/src/lib/components/date-range-filter.svelte
   - resource: apps/dashboard/src/lib/report-range.ts
