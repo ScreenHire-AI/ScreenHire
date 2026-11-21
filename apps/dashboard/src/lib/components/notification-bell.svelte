@@ -129,7 +129,7 @@
   const unread = $derived(notifications.data?.data.unreadCount ?? 0);
   const count = $derived(setup.remaining.length + unread);
   const label = $derived(count > 0 ? `Notifications, ${count} need attention` : 'Notifications');
-  const unseen = $derived(tab === 'activity' ? 0 : (feed.first?.unseenCount ?? 0));
+  const unseen = $derived(tab === 'activity' ? 0 : (feed.fresh?.unseenCount ?? 0));
   const empty = $derived(notifications.isSuccess && items.length === 0 && setup.remaining.length === 0);
   // The step's place in the whole list, so a step keeps its number as the ones before it are done.
   const numbered = $derived((setup.steps ?? []).map((step, index) => ({ step, number: index + 1 })).filter(({ step }) => isOpen(step)));

@@ -454,16 +454,17 @@ describe('notification bell', () => {
       await fireEvent.keyDown(panel, { key: 'Escape' });
       await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull());
 
-      // Opened again: the last visit's page is still cached while the server is asked again.
+      // Opened again: the last visit's page is still cached while the server is asked again, and its 3 were seen.
       panel = await openBell();
-      await fireEvent.click(await within(panel).findByRole('tab', { name: /^Activity/ }));
-      await within(panel).findByRole('list', { name: 'Activity' });
-      expect(within(panel).queryByText(/Since you were last here/)).toBeNull();
-
-      answer(Response.json({ ...page, seenAt: '2026-11-21T10:00:00Z', unseenCount: 0 }));
       await waitFor(() => expect(calls).toBe(2));
+      expect(within(panel).getByRole('tab', { name: 'Activity' })).toBeInTheDocument();
+      await fireEvent.click(within(panel).getByRole('tab', { name: 'Activity' }));
+      await within(panel).findByRole('list', { name: 'Activity' });
       await tick();
       expect(within(panel).queryByText(/Since you were last here/)).toBeNull();
+
+      answer(Response.json({ ...page, seenAt: '2026-11-21T10:00:00Z', unseenCount: 1 }));
+      expect(await within(panel).findByText(/Since you were last here: 1 change/)).toBeInTheDocument();
     });
 
     it('opens straight at Activity when the A shortcut asks', async () => {
