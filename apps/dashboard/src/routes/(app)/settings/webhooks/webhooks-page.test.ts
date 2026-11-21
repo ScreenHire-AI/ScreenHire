@@ -2,6 +2,7 @@ import type { WebhookEndpointEntry } from '@screenhire/api-client';
 import { render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
+import { expectCountInPanelNotBand } from '../../../../test-support/list-template.js';
 import { apiStub, user } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
@@ -68,6 +69,7 @@ describe('webhooks page', () => {
     expect(screen.getAllByRole('link', { name: 'https://hooks.example.com/plain' })[0]).toHaveAttribute('href', '/settings/webhooks/e2');
     expect(screen.getAllByText('2 events').length).toBeGreaterThan(0);
     expect(screen.getAllByText('1 event').length).toBeGreaterThan(0);
+    expectCountInPanelNotBand('Endpoints', 2);
     await expectNoAxeViolations();
   });
 

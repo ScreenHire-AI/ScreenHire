@@ -172,7 +172,7 @@
   <title>Slack · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={settingsCrumbs('/settings/slack')} back />
+<TopBar crumbs={settingsCrumbs('/settings/slack')} />
 
 <main class="flex flex-col">
   <HeaderBand title="Slack" oneRow>

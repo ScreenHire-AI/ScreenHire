@@ -109,8 +109,6 @@
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
     title="Roles"
-    count={catalogue.isSuccess ? roles.length : undefined}
-    countLabel={roles.length === 1 ? 'role' : 'roles'}
     actions={sidebar.isMobile ? compareLink : bandActions}
     oneRow
   />
@@ -122,7 +120,7 @@
         <QueryError message={describeError(catalogue.error, 'Could not load the roles')} onretry={() => catalogue.refetch()} inset />
       </Panel>
     {:else}
-      <Panel title="Roles" flush>
+      <Panel title="Roles" count={catalogue.isSuccess ? roles.length : undefined} flush>
         {#if catalogue.isPending}
           <div aria-hidden="true" class="flex flex-col">
             {#each [0, 1, 2, 3] as row (row)}

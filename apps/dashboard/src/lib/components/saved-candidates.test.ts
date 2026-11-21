@@ -192,7 +192,8 @@ describe('saved candidates page', () => {
 
     await search('jordan');
     expect(nameLinks()).toEqual(['Jordan Lee']);
-    expect(within(screen.getByRole('region', { name: 'Saved candidates' }).querySelector('header')!).getByText('1', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
+    // The count of the list is on its tab, so the panel's header never repeats it (W7).
+    expect(screen.getByRole('region', { name: 'Saved candidates' }).querySelector('header [data-slot="badge"]')).toBeNull();
 
     await search('wrong timing');
     expect(nameLinks()).toEqual(['Casey Morgan']);
@@ -324,6 +325,21 @@ describe('saved candidates page', () => {
       const menu = await openRowMenu('Casey Morgan');
 
       expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit note', 'Remove from saved']);
+    });
+
+    it('keeps the Candidates page action in the header on this tab too, and offers it to nobody who may not add (List template)', async () => {
+      renderPage();
+      await screen.findByRole('table', { name: 'Saved candidates' });
+
+      const band = document.querySelector('[data-slot="header-band"]') as HTMLElement;
+      expect(within(band).getByRole('button', { name: 'Add candidate' })).toBeInTheDocument();
+    });
+
+    it('offers no Add candidate to a viewer', async () => {
+      renderPage({ as: userAs('Viewer') });
+      await screen.findByRole('table', { name: 'Saved candidates' });
+
+      expect(screen.queryByRole('button', { name: 'Add candidate' })).toBeNull();
     });
 
     it('gives a viewer the list and the links but no menu and no checkboxes that act', async () => {

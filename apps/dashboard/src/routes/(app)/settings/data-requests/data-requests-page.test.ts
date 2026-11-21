@@ -137,6 +137,8 @@ describe('Data requests page: the list', () => {
     await screen.findAllByText('Robin Ashby');
 
     expect(document.querySelector('[data-slot="header-band"]')).toHaveTextContent(/Data requests\s*2\s*open/);
+    // Words, not a count pill (List template, section 7): the open count is this queue's status.
+    expect(document.querySelector('[data-slot="header-band"] [data-slot="badge"]')).toBeNull();
     expect(screen.getAllByText(/^Overdue by 3 days/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Open').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Completed').length).toBeGreaterThan(0);

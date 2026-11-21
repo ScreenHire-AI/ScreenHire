@@ -138,7 +138,7 @@
   <title>MCP server · ScreenHire</title>
 </svelte:head>
 
-<TopBar crumbs={settingsCrumbs('/settings/mcp-server')} back />
+<TopBar crumbs={settingsCrumbs('/settings/mcp-server')} />
 
 <main>
   <HeaderBand title="MCP server" oneRow />

@@ -2,6 +2,7 @@ import type { PasskeySummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
+import { expectCountInPanelNotBand } from '../../../../test-support/list-template.js';
 import { apiStub, user } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import { cancelledPrompt, stubWebAuthn, unstubWebAuthn } from '../../../../test-support/webauthn.js';
@@ -60,6 +61,7 @@ describe('Passkeys page', () => {
     expect(within(header!).getAllByRole('columnheader').map((cell) => cell.textContent?.trim())).toEqual(['Name', 'Added', 'Last used', 'Actions']);
     // Most recently used first; one never used is last, and says so (a value, not a blank cell: design system L1).
     expect(rows).toHaveLength(2);
+    expectCountInPanelNotBand('Your passkeys', 2);
     expect(rows[0]).toHaveTextContent('Chrome on Windows');
     expect(rows[0]).toHaveTextContent('Oct 1, 2026');
     expect(rows[0]).toHaveTextContent('3 hours ago');
