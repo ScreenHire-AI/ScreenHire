@@ -168,7 +168,7 @@ public sealed class ScorecardTests(E2EFixture fixture) : BrowserTest(fixture)
         var email = ApiSession.NewEmail("e2e-scorecard");
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(email, Ct);
-        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Northgate Works", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Northgate Works", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
         var job = await ReadAsync(await session.PostAsync(
             "/v1/jobs",
             new

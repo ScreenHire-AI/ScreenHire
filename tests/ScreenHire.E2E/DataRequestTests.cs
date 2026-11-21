@@ -28,7 +28,7 @@ public sealed partial class DataRequestTests(E2EFixture fixture) : BrowserTest(f
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(owner, Ct);
         var slug = $"test-{Guid.NewGuid():N}";
-        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
         var jobId = await PublishedJobAsync(session);
         var candidate = ApiSession.NewEmail("candidate");
         await ApplyAsync(slug, jobId, candidate);
@@ -92,7 +92,7 @@ public sealed partial class DataRequestTests(E2EFixture fixture) : BrowserTest(f
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(owner, Ct);
         var slug = $"test-{Guid.NewGuid():N}";
-        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
 
         await WithoutJavaScriptAsync();
         var response = await OpenAsync("careers", $"/{slug}/data-request/{new string('a', 40)}");

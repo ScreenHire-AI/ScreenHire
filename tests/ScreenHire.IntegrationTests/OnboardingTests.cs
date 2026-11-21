@@ -15,7 +15,7 @@ public sealed class OnboardingTests(AppHostFixture fixture)
         var slug = $"acme-{Guid.NewGuid():N}"[..30];
 
         using var response = await session.PostAsync(
-            "/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "  Acme Hiring  ", slug }, cancellationToken);
+            "/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "  Acme Hiring  ", slug }, cancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var organization = (await session.CurrentUserAsync(cancellationToken))!.Value.GetProperty("organization");
@@ -75,7 +75,7 @@ public sealed class OnboardingTests(AppHostFixture fixture)
         await session.OnboardAsync(cancellationToken);
 
         using var again = await session.PostAsync(
-            "/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Second", slug = $"second-{Guid.NewGuid():N}"[..30] }, cancellationToken);
+            "/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Second", slug = $"second-{Guid.NewGuid():N}"[..30] }, cancellationToken);
 
         again.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
@@ -90,7 +90,7 @@ public sealed class OnboardingTests(AppHostFixture fixture)
         await session.CurrentUserAsync(cancellationToken); // the antiforgery token both requests share
 
         var attempts = await Task.WhenAll(Enumerable.Range(0, 2).Select(i => session.PostAsync(
-            "/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = $"Twice {i}", slug = $"twice-{i}-{Guid.NewGuid():N}" }, cancellationToken)));
+            "/v1/auth/onboarding", new { name = "Riley Harper", organizationName = $"Twice {i}", slug = $"twice-{i}-{Guid.NewGuid():N}" }, cancellationToken)));
 
         attempts.Select(r => r.StatusCode).Should().BeEquivalentTo([HttpStatusCode.OK, HttpStatusCode.Conflict]);
         await using var connection = new Npgsql.NpgsqlConnection(await fixture.GetOwnerConnectionStringAsync(cancellationToken));
@@ -114,7 +114,7 @@ public sealed class OnboardingTests(AppHostFixture fixture)
         await session.SignInWithMagicLinkAsync(ApiSession.NewEmail(), cancellationToken);
 
         using var response = await session.PostAsync(
-            "/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Impostor", slug = theirs.Slug }, cancellationToken);
+            "/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Impostor", slug = theirs.Slug }, cancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
@@ -134,7 +134,7 @@ public sealed class OnboardingTests(AppHostFixture fixture)
         using var session = new ApiSession(fixture);
         await session.SignInWithMagicLinkAsync(ApiSession.NewEmail(), cancellationToken);
 
-        using var response = await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName, slug }, cancellationToken);
+        using var response = await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName, slug }, cancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);

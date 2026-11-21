@@ -104,7 +104,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Set up your organization");
         await ExpectNoAccessibilityViolationsAsync();
         var name = $"Northwind {Guid.NewGuid().ToString("N")[..8]}";
-        await Page.GetByLabel("Your name").FillAsync("Casey Morgan");
+        await Page.GetByLabel("Your name").FillAsync("Riley Harper");
         await Page.GetByLabel("Organization name").FillAsync(name);
         await Expect(Page.GetByLabel("Careers page address")).ToHaveValueAsync(name.ToLowerInvariant().Replace(' ', '-'));
         await Page.GetByRole(AriaRole.Button, new() { Name = "Create organization" }).ClickAsync();
@@ -135,7 +135,7 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
         await Expect(bell).ToBeHiddenAsync();
 
         // The person's block shows the name they typed, not the address; the menu still names the account and signs out.
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Casey Morgan" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Riley Harper" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Menu)).ToContainTextAsync(email);
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Sign out" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/sign-in"));

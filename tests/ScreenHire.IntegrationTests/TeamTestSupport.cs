@@ -42,7 +42,7 @@ internal static class TeamTestSupport
     /// <summary>Accepts an invitation and expects 200 with the signed-in user.</summary>
     public static async Task<JsonElement> AcceptInvitationAsync(this ApiSession session, string token, CancellationToken cancellationToken)
     {
-        using var response = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = "Jordan Lee" }, cancellationToken);
+        using var response = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = ApiSession.NewName("Jordan") }, cancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(cancellationToken));
         return await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
     }

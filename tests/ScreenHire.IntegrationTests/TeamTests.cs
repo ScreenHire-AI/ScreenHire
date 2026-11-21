@@ -170,7 +170,7 @@ public sealed class TeamTests(AppHostFixture fixture)
         var email = ApiSession.NewEmail("named");
         using var invitee = new ApiSession(fixture);
         await invitee.SignInWithMagicLinkAsync(email, Ct);
-        await invitee.OnboardAsync(Ct); // their own organization first, which asks their name ("Casey Morgan")
+        await invitee.OnboardAsync(Ct); // their own organization first, which asks their name ("Riley Harper")
         (await owner.PostAsync("/v1/organization/invitations", Invite(email, "Viewer"))).Expect(HttpStatusCode.Created);
         var token = await fixture.Mailpit.WaitForInvitationTokenAsync(email, Ct);
 
@@ -182,7 +182,7 @@ public sealed class TeamTests(AppHostFixture fixture)
         // No name needed, and a posted one does not rename the account.
         using var accepted = await invitee.PostAsync("/v1/auth/invitations/accept", new { token, name = "Someone Else" }, Ct);
         accepted.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await accepted.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("name").GetString().Should().Be("Casey Morgan");
+        (await accepted.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("name").GetString().Should().Be("Riley Harper");
     }
 
     [Fact]

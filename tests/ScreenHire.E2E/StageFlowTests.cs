@@ -117,7 +117,7 @@ public sealed class StageFlowTests(E2EFixture fixture) : BrowserTest(fixture)
         var email = ApiSession.NewEmail("e2e-stage-flow");
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(email, Ct);
-        using var onboarded = await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct);
+        using var onboarded = await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct);
         onboarded.StatusCode.Should().Be(HttpStatusCode.OK);
         return email;
     }

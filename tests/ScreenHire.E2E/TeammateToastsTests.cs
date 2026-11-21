@@ -27,7 +27,7 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         using var ownerSession = new ApiSession(Fixture);
         var ownerEmail = ApiSession.NewEmail("owner");
         await ownerSession.SignInWithDevSsoAsync(ownerEmail, Ct);
-        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
         var job = await ReadAsync(await ownerSession.PostAsync(
             "/v1/jobs",
             new
@@ -122,7 +122,7 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         var ownerEmail = ApiSession.NewEmail("owner");
         await ownerSession.SignInWithDevSsoAsync(ownerEmail, Ct);
         var slug = $"test-{Guid.NewGuid():N}";
-        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug }, Ct), HttpStatusCode.OK);
         var quietJobId = await PublishJobAsync(ownerSession, "Data Engineer");
         var teamJobId = await PublishJobAsync(ownerSession, "Platform Engineer");
 
@@ -235,7 +235,7 @@ public sealed class TeammateToastsTests(E2EFixture fixture) : BrowserTest(fixtur
         var session = new ApiSession(Fixture);
         try
         {
-            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = "Jordan Lee" }, Ct);
+            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = ApiSession.NewName("Jordan") }, Ct);
             accepted.StatusCode.Should().Be(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync(Ct));
             return session;
         }

@@ -206,7 +206,7 @@ public abstract partial class ProofWalk(E2EFixture fixture) : BrowserTest(fixtur
         await SettleAsync();
         await check("/onboarding");
 
-        await Page.GetByLabel("Your name").FillAsync("Casey Morgan");
+        await Page.GetByLabel("Your name").FillAsync("Riley Harper");
         await Page.GetByLabel("Organization name").FillAsync("Harbour Lane Studio");
         await Page.GetByLabel("Careers page address").FillAsync($"test-{Guid.NewGuid():N}");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Create organization" }).ClickAsync();

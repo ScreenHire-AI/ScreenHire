@@ -170,7 +170,7 @@ public sealed class EmbedTests(E2EFixture fixture) : BrowserTest(fixture)
         await session.SignInWithDevSsoAsync(email, Ct);
         if (onboard)
         {
-            await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = Organization, slug = $"test-{Guid.NewGuid():N}" }, Ct));
+            await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = Organization, slug = $"test-{Guid.NewGuid():N}" }, Ct));
         }
 
         return session;

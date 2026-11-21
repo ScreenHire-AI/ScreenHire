@@ -161,11 +161,17 @@ public sealed class ApiSession : IDisposable
     public async Task<Guid> OnboardAsync(CancellationToken cancellationToken)
     {
         var slug = $"test-{Guid.NewGuid():N}";
-        using var response = await PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = $"Org {slug}", slug }, cancellationToken);
+        using var response = await PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = $"Org {slug}", slug }, cancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var user = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
         return user.GetProperty("organization").GetProperty("id").GetGuid();
     }
+
+    /// <summary>
+    /// A person's own name that no other call returns, for an accepted invitation, which asks for one. Tests that put two
+    /// people in one organization need them told apart by name, as a team does.
+    /// </summary>
+    public static string NewName(string first = "Riley") => $"{first} {Guid.NewGuid().ToString("N")[..6]}";
 
     /// <summary>A unique address at a reserved example domain, so tests never share an inbox or an account.</summary>
     public static string NewEmail(string label = "user") => $"{label}-{Guid.NewGuid():N}@example.com";

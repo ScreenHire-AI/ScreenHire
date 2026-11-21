@@ -154,7 +154,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         var token = await Fixture.Mailpit.WaitForInvitationTokenAsync(recruiter, Ct);
         using (var session = new ApiSession(Fixture))
         {
-            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = "Jordan Lee" }, Ct);
+            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = ApiSession.NewName("Jordan") }, Ct);
             accepted.StatusCode.Should().Be(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync(Ct));
         }
 

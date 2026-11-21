@@ -25,7 +25,7 @@ public sealed class CandidateNotesTests(E2EFixture fixture) : BrowserTest(fixtur
         using var ownerSession = new ApiSession(Fixture);
         var ownerEmail = ApiSession.NewEmail("owner");
         await ownerSession.SignInWithDevSsoAsync(ownerEmail, Ct);
-        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = Organization, slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await ownerSession.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = Organization, slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
         var job = await ReadAsync(await ownerSession.PostAsync(
             "/v1/jobs",
             new
@@ -45,8 +45,8 @@ public sealed class CandidateNotesTests(E2EFixture fixture) : BrowserTest(fixtur
 
         var recruiterEmail = ApiSession.NewEmail("recruiter");
         var adminEmail = ApiSession.NewEmail("admin");
-        using var recruiterSession = await InviteAsync(ownerSession, recruiterEmail, "Recruiter");
-        using var adminSession = await InviteAsync(ownerSession, adminEmail, "Admin");
+        using var recruiterSession = await InviteAsync(ownerSession, recruiterEmail, "Recruiter", "Recruiter Rowan");
+        using var adminSession = await InviteAsync(ownerSession, adminEmail, "Admin", "Admin Alex");
 
         // Names as the team sees them: the page and the emails use the account's display name.
         var members = await ReadAsync(await ownerSession.Client.GetAsync("/v1/organization/members", Ct), HttpStatusCode.OK);
@@ -164,7 +164,7 @@ public sealed class CandidateNotesTests(E2EFixture fixture) : BrowserTest(fixtur
 
     // The Owner invites an address; the invited person accepts the emailed link in a session of their own, which signs in
     // as them in the same organization.
-    private async Task<ApiSession> InviteAsync(ApiSession owner, string email, string role)
+    private async Task<ApiSession> InviteAsync(ApiSession owner, string email, string role, string name)
     {
         using (var invited = await owner.PostAsync("/v1/organization/invitations", new { email, role }, Ct))
         {
@@ -175,7 +175,7 @@ public sealed class CandidateNotesTests(E2EFixture fixture) : BrowserTest(fixtur
         var session = new ApiSession(Fixture);
         try
         {
-            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name = "Jordan Lee" }, Ct);
+            using var accepted = await session.PostAsync("/v1/auth/invitations/accept", new { token, name }, Ct);
             accepted.StatusCode.Should().Be(HttpStatusCode.OK, await accepted.Content.ReadAsStringAsync(Ct));
             return session;
         }

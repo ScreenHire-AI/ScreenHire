@@ -429,7 +429,7 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         using var session = new ApiSession(Fixture);
         await session.SignInWithDevSsoAsync(email, Ct);
         var slug = $"test-{Guid.NewGuid():N}";
-        using (var onboarded = await session.PostAsync("/v1/auth/onboarding", new { name = "Casey Morgan", organizationName = "Harbour Lane Studio", slug }, Ct))
+        using (var onboarded = await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug }, Ct))
         {
             onboarded.StatusCode.Should().Be(HttpStatusCode.OK);
         }
