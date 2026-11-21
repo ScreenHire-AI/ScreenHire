@@ -135,7 +135,7 @@ repeated, `?compare=off`), so a link or the trip back keeps them. Export CSV is 
 the report arrives and while it is empty.
 
 - **Headline cards** (`ReportStat`): five numbers, each with its change from the previous period in words and an arrow
-  ("18 more than before", "3 days faster"), always muted text, never a status colour. Compare off, or a previous period
+  ("18 more than the previous period", "3 days faster than the previous period"), always muted text, never a status colour. Compare off, or a previous period
   with nothing to compare, shows no change line.
 - **Panels** are `ChartPanel`s with a table view; the weekly chart is `WeekChart`. No sentence sits under a panel's title
   (design system W9); what a panel counts is read out to screen readers only. While new numbers load the panels keep the
