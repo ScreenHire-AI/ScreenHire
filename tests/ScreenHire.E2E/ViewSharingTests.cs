@@ -105,6 +105,8 @@ public sealed class ViewSharingTests(E2EFixture fixture) : BrowserTest(fixture)
         box.Should().NotBeNull();
         box!.Width.Should().BeGreaterThanOrEqualTo(24);
         box.Height.Should().BeGreaterThanOrEqualTo(24);
+        // Axe on the rail itself, before the sheet's overlay covers it: no Views icon may sit half under the fixed group.
+        await ExpectNoAccessibilityViolationsAsync();
 
         await railButton.ClickAsync();
         await Expect(row.GetByRole(AriaRole.Button, new() { Name = $"Add {ViewName} to your sidebar" })).ToBeVisibleAsync();
