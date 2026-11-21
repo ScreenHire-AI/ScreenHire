@@ -161,7 +161,7 @@ export const settingsSections: readonly SettingsSection[] = [
 /**
  * A page people look for in Settings because it is a setting to them, but that lives in an area of its own: the hiring
  * template's stages and questions, the scorecards, the AI model and its budget. Settings search finds each one by the
- * everyday words kept here and says which area it is in, so a search for "ai key" lands on the AI model tab instead of
+ * everyday words kept here and says which area it is in, so a search for "ai key" lands on the AI use tab instead of
  * a dead end. Only what the person's role may open is offered (A3).
  */
 export interface SettingsElsewhere {

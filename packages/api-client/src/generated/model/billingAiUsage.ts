@@ -7,7 +7,7 @@
 
 /**
  * This UTC month's use of ScreenHire's AI key (docs/architecture/billing.md, "AI usage"). `charge` is what the organization
- * pays for it in US dollars, the one amount for AI use that the Usage tab shows too, and it never names the provider's price or a
+ * pays for it in US dollars, the one amount for AI use that the AI use tab shows too, and it never names the provider's price or a
  * margin. A call whose cost is unknown (`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on
  * the organization's own key, never charged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what
  * it has already covered. `metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered

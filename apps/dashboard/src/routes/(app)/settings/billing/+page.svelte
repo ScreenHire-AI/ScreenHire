@@ -163,7 +163,7 @@
         </Panel>
 
         <!-- What the organization pays this month, each charge on its line and added up, then the next invoice (docs/architecture/billing.md,
-             "The Billing page"). The AI line is the one amount the Usage tab shows too, and links to it. -->
+             "The Billing page"). The AI line is the one amount the AI use tab shows too, and links to it. -->
         {#if month}
           <Panel title="This month so far">
             <div class="flex max-w-form flex-col gap-3">

@@ -9770,7 +9770,7 @@ export const GetBillingResponse = zod.object({
   "trialAllowance": zod.number(),
   "trialAllowanceUsed": zod.number(),
   "metered": zod.boolean()
-}).describe('This UTC month\'s use of ScreenHire\'s AI key (docs/architecture/billing.md, "AI usage"). `charge` is what the organization\npays for it in US dollars, the one amount for AI use that the Usage tab shows too, and it never names the provider\'s price or a\nmargin. A call whose cost is unknown (`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on\nthe organization\'s own key, never charged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what\nit has already covered. `metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered\nprice is set).')]),
+}).describe('This UTC month\'s use of ScreenHire\'s AI key (docs/architecture/billing.md, "AI usage"). `charge` is what the organization\npays for it in US dollars, the one amount for AI use that the AI use tab shows too, and it never names the provider\'s price or a\nmargin. A call whose cost is unknown (`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on\nthe organization\'s own key, never charged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what\nit has already covered. `metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered\nprice is set).')]),
   "thisMonth": zod.union([zod.null(),zod.object({
   "month": zod.string(),
   "currency": zod.string(),
@@ -9865,7 +9865,7 @@ export const GetAiUsageSummaryResponse = zod.object({
   "cost": zod.number(),
   "callsWithUnknownCost": zod.int(),
   "failedCalls": zod.int()
-}).describe('Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost. Each call counts at the\none amount a customer sees for it: on ScreenHire\'s key what it is billed, on an own key the provider\'s price, an estimate. So\n`cost` here sums both keys; `byKeySource` keeps them apart, which is how the Usage tab shows them.'),
+}).describe('Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost. Each call counts at the\none amount a customer sees for it: on ScreenHire\'s key what it is billed, on an own key the provider\'s price, an estimate. So\n`cost` here sums both keys; `byKeySource` keeps them apart, which is how the AI use tab shows them.'),
   "byDay": zod.array(zod.object({
   "date": zod.string(),
   "calls": zod.int(),
@@ -9876,7 +9876,7 @@ export const GetAiUsageSummaryResponse = zod.object({
   "ownKeyTokens": zod.int(),
   "builtInCost": zod.number(),
   "ownKeyCost": zod.number()
-}).describe('One day of use, by the date in the requested time zone (`yyyy-MM-dd`). The built-in and own-key fields split the day\'s\ntokens (in and out) and cost by whose key paid, so the Usage tab can chart the two side by side.')),
+}).describe('One day of use, by the date in the requested time zone (`yyyy-MM-dd`). The built-in and own-key fields split the day\'s\ntokens (in and out) and cost by whose key paid, so the AI use tab can chart the two side by side.')),
   "byModel": zod.array(zod.object({
   "provider": zod.string(),
   "model": zod.string(),

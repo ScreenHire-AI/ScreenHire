@@ -103,7 +103,7 @@ public static class RolePermissions
         new(Permission.ManageTeam, PermissionGroup.Organization, "Manage the team",
             "Invite people, change roles and remove members, except Owners, and make roles."),
         new(Permission.ViewAiUsage, PermissionGroup.Organization, "See AI usage and costs",
-            "The Usage tab in Verification and what each model call cost in the Activity log, with the budget and the usage alerts."),
+            "The AI use tab in Verification and what each model call cost in the Activity log, with the budget and the usage alerts."),
         new(Permission.ManageOwners, PermissionGroup.Organization, "Manage Owners",
             "Make someone an Owner, or change or remove an Owner.", OwnerOnly: true),
         new(Permission.GrantVerificationAccess, PermissionGroup.Organization, "Give a key verification access",

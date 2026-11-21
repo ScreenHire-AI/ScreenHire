@@ -127,9 +127,6 @@ export function groupStatusOf(group: CheckGroupView, findings: readonly Finding[
   return groupStatuses[group.state];
 }
 
-/** A group that did not run, or had nothing to read: a calm result names it so a quiet result is never read as a clean one. */
-export const groupDidNotRun = (group: CheckGroupView) => group.state === 'NotChecked' || group.state === 'TurnedOff';
-
 export type AssessmentKind = 'authenticity' | 'aiAssistance';
 
 /**

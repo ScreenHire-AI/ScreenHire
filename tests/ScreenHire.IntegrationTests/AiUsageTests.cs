@@ -179,7 +179,7 @@ public sealed class AiUsageTests(AppHostFixture fixture)
                 limit.GetProperty("unit").GetString().Should().Be("Money", $"{path} {name}");
                 limit.GetProperty("isDefault").GetBoolean().Should().BeTrue();
                 limit.GetProperty("amount").GetDecimal().Should().Be(AiUsageMix.LimitInDollars(2_000_000, perMillion));
-                limit.GetProperty("used").GetDecimal().Should().Be(1.50m, "the billed amount, the same the Usage tab shows");
+                limit.GetProperty("used").GetDecimal().Should().Be(1.50m, "the billed amount, the same the AI use tab shows");
                 limit.GetProperty("percent").GetInt32().Should().Be((int)Math.Floor(150m / AiUsageMix.LimitInDollars(2_000_000, perMillion)), "the share is of billed dollars");
             }
         }
