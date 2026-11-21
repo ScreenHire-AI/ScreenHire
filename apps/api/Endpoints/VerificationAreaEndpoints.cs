@@ -198,7 +198,7 @@ internal static class VerificationAreaHandlers
     /// The passes of the checks, newest first. A pass is every analyzer run the pipeline wrote for one application at one
     /// instant (VerificationPipeline stamps them with the same time); a re-check's later revision is a pass of its own. A filter
     /// keeps a pass when one of its checks matches it: the group, something found, or a check that did not look. "Nothing found"
-    /// keeps a pass in which nothing was found, and a key keeps a pass whose model calls used it.
+    /// keeps a pass that ended as Nothing found (nothing found and a check looked), and a key keeps a pass whose model calls used it.
     /// </summary>
     private static async Task<List<RunHead>> PassesAsync(
         ScreenHireDbContext db, DateTimeOffset? from, DateTimeOffset? to, CheckGroup? group, AiKeySource? keySource,
@@ -228,6 +228,7 @@ internal static class VerificationAreaHandlers
             {
                 g.Key.ApplicationId,
                 g.Key.CompletedAt,
+                Total = g.Count(),
                 Found = g.Count(r => r.SignalCount > 0),
                 NotRun = g.Count(r => r.SignalCount == 0 && r.Note != null && !trusted.Contains(r.Note)),
                 InGroup = g.Count(r => analyzers.Contains(r.Analyzer)),
@@ -241,7 +242,8 @@ internal static class VerificationAreaHandlers
         {
             VerificationActivityOutcome.Found => heads.Where(h => h.Found > 0),
             VerificationActivityOutcome.NotRun => heads.Where(h => h.NotRun > 0),
-            VerificationActivityOutcome.Completed => heads.Where(h => h.Found == 0),
+            // The rule of VerificationActivity.OutcomeOfPass: nothing found and at least one check looked.
+            VerificationActivityOutcome.Completed => heads.Where(h => h.Found == 0 && h.Total > h.NotRun),
             _ => heads,
         };
         if (keySource is { } source)

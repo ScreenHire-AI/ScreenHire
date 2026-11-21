@@ -164,7 +164,8 @@ public sealed class VerificationAreaTests(AppHostFixture fixture)
         Runs(await tenant.GetAsync($"{Area}/activity?keySource=OwnKey&limit=200")).Should().BeEmpty();
         Runs(await tenant.GetAsync($"{Area}/activity?outcome=Failed&limit=200")).Should().BeEmpty();
         Runs(await tenant.GetAsync($"{Area}/activity?outcome=Found&limit=200")).Should().OnlyContain(r => r.GetProperty("outcome").GetString() == "Found");
-        Runs(await tenant.GetAsync($"{Area}/activity?outcome=Completed&limit=200")).Should().OnlyContain(r => r.GetProperty("outcome").GetString() != "Found");
+        Runs(await tenant.GetAsync($"{Area}/activity?outcome=Completed&limit=200")).Should().NotBeEmpty()
+            .And.OnlyContain(r => r.GetProperty("outcome").GetString() == "Completed", "the filter's Nothing found is the run's own outcome");
         Runs(await tenant.GetAsync($"{Area}/activity?from=2099-01-01T00:00:00Z&limit=200")).Should().BeEmpty();
     }
 

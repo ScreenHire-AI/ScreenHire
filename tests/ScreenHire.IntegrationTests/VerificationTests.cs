@@ -239,7 +239,7 @@ public sealed class VerificationTests(AppHostFixture fixture)
         last.At("authenticity.dismissal").ValueKind.Should().Be(JsonValueKind.Null);
         var after = await ListedAsync(owner, jobId, bot);
         after.GetProperty("verification").GetRawText().Should().Be(before.GetProperty("verification").GetRawText());
-        after.GetProperty("verification").GetProperty("authenticityDismissed").GetBoolean().Should().BeFalse("only a dismissal takes a candidate out of To review");
+        after.GetProperty("verification").GetProperty("authenticityDismissed").GetBoolean().Should().BeFalse("only a dismissal takes a candidate out of To review or To verify");
         after.GetProperty("stage").GetRawText().Should().Be(before.GetProperty("stage").GetRawText());
 
         // Once dismissed, the explanations are part of the record: nothing more to explain or undo.
