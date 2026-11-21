@@ -6,7 +6,7 @@
  */
 
 /**
- * A person on a job's hiring team, or on a hiring template's default one (ADR-0015). `memberId` is their
+ * A person on a job's hiring team, or on a named team (ADR-0015). `memberId` is their
  * membership's id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only
  * jobs they're on sees this job through this list.
  */

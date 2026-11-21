@@ -215,6 +215,7 @@ internal static class AuthenticationSetup
         services.AddSingleton<IValidator<ChangeMemberRoleRequest>, ChangeMemberRoleRequestValidator>();
         services.AddSingleton<IValidator<ChangeMemberJobAccessRequest>, ChangeMemberJobAccessRequestValidator>();
         services.AddSingleton<IValidator<HiringTeamRequest>, HiringTeamRequestValidator>();
+        services.AddSingleton<IValidator<TeamRequest>, TeamRequestValidator>();
         services.AddSingleton<IValidator<CreateRoleRequest>, CreateRoleRequestValidator>();
         services.AddSingleton<IValidator<UpdateRoleRequest>, UpdateRoleRequestValidator>();
         services.AddSingleton<IValidator<UpdateOrganizationRequest>, UpdateOrganizationRequestValidator>();

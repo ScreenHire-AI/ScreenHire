@@ -104,6 +104,13 @@ public sealed class Job : ITenantOwned
         return change;
     }
 
+    /// <summary>
+    /// The named team (<see cref="Organizations.NamedTeam"/>) whose people the job started with, if one was chosen when it
+    /// was created. Only the next new job's suggestion reads it: the people were copied, so a later change to the team
+    /// changes nothing here. Null once the team is deleted.
+    /// </summary>
+    public Guid? StartedWithTeamId { get; init; }
+
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset? UpdatedAt { get; private set; }

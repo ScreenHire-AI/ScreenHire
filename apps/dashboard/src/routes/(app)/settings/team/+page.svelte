@@ -1,11 +1,12 @@
 <script lang="ts">
+  import PlusIcon from '~icons/lucide/plus';
   import SendIcon from '~icons/lucide/send';
   import ShieldUserIcon from '~icons/lucide/shield-user';
   import UserMinusIcon from '~icons/lucide/user-minus';
   import UserPlusIcon from '~icons/lucide/user-plus';
   import UsersRoundIcon from '~icons/lucide/users-round';
   import XIcon from '~icons/lucide/x';
-  import type { HttpValidationProblemDetails, JobAccess, OrganizationRole, PendingInvitation, RoleSummary, TeamMember } from '@screenhire/api-client';
+  import type { HttpValidationProblemDetails, JobAccess, OrganizationRole, PendingInvitation, RoleSummary, TeamDetail, TeamMember } from '@screenhire/api-client';
   import {
     ApiError,
     createCreateInvitation,
@@ -14,6 +15,7 @@
     createListInvitations,
     createListRoles,
     createListTeamMembers,
+    createListTeams,
     createRemoveMember,
     createRevokeApiKey,
     createRevokeInvitation,
@@ -41,12 +43,15 @@
   import HistoryFact from '#lib/components/history-fact.svelte';
   import MemberAccessSheet from '#lib/components/member-access-sheet.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
+  import NamedTeamsPanel from '#lib/components/named-teams-panel.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
+  import RecordTabs from '#lib/components/record-tabs.svelte';
   import SearchField from '#lib/components/search-field.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
+  import TeamSheet from '#lib/components/team-sheet.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
@@ -61,8 +66,10 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
+  import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { actorName } from '#lib/history.js';
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { can, seesAllJobs } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
@@ -78,7 +85,8 @@
   // owner. Invite opens a sheet with each role from the API's catalogue on one line, starting at Viewer, the least access,
   // and one Only some jobs switch (design system section 21). Each member also sees All jobs or Only jobs they're on (ADR-0015): Jobs says which, and
   // Edit access changes the role and the job access together in one sheet. The title's row has Last updated and History
-  // for every change to the team (design system T6, S8).
+  // for every change to the team (design system T6, S8). Teams, the second tab (`?tab=teams`), holds the named teams whose
+  // people a job's hiring team adds in one step; each tab carries its count (section 7, the List template).
   let { data }: PageProps = $props();
 
   const membersPath = '/v1/organization/members';
@@ -89,6 +97,15 @@
   const members = createListTeamMembers();
   const invitations = createListInvitations();
   const lastUpdate = createGetTeamLastUpdate();
+  const teams = createListTeams();
+
+  const tab = $derived(page.url.searchParams.get('tab') === 'teams' ? 'teams' : 'members');
+  function selectTab(value: string) {
+    const url = new URL(page.url.href);
+    if (value === 'teams') url.searchParams.set('tab', value);
+    else url.searchParams.delete('tab');
+    void goto(url, { replace: true, reset: false });
+  }
   // Every change here is also a line in the team's history (`/v1/organization/team`).
   const changed = (path: string) => Promise.all([invalidatePath(queryClient, path), invalidatePath(queryClient, teamPath)]);
   // The API disconnects the assistants the member connected in the same step, so MCP server's list changes too.
@@ -114,6 +131,19 @@
     return words ? memberList.filter((member) => [member.displayName, member.email, member.roleName].some((text) => text.toLowerCase().includes(words))) : memberList;
   });
   const invitationList = $derived(invitations.data?.data ?? []);
+  const teamList = $derived(teams.data?.data ?? []);
+  const tabsView = $derived([
+    { value: 'members', label: 'Members', count: members.isSuccess ? memberList.length : undefined },
+    { value: 'teams', label: 'Teams', count: teams.isSuccess ? teamList.length : undefined },
+  ]);
+
+  // New team and Edit team: one sheet.
+  let teamSheetOpen = $state(false);
+  let editingTeam = $state<TeamDetail | null>(null);
+  function openTeam(team: TeamDetail | null) {
+    editingTeam = team;
+    teamSheetOpen = true;
+  }
   const roleList = $derived<RoleSummary[]>(catalogue.data?.data.roles ?? []);
   const offered = $derived(assignableRoles(actor, roleList));
   // A role is one key everywhere on the page: `viewer`, or a custom role's id (roleKey).
@@ -328,174 +358,193 @@
 <TopBar crumbs={settingsCrumbs('/settings/team')} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
-  <HeaderBand
-    title="Team"
-    actions={bandActions}
-    oneRow
-  />
+  <Tabs.Root value={tab} onValueChange={selectTab}>
+    <HeaderBand title="Team" actions={bandActions} oneRow>
+      {#snippet tabs()}<RecordTabs tabs={tabsView} label="Team" />{/snippet}
+    </HeaderBand>
 
-  <SettingsMenu>
-    <p role="status" class="sr-only">{announcement}</p>
+    <SettingsMenu>
+      <p role="status" class="sr-only">{announcement}</p>
 
-    <Panel title="Members" count={members.isSuccess ? memberList.length : undefined} flush footer={memberFailure ? memberFooter : undefined}>
-      {#snippet tools()}
-        <!-- Past about ten, a list has a search, so adding one never changes the layout (S9). -->
-        {#if memberList.length > 10}<SearchField bind:value={search} label="Search members" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
-      {/snippet}
-      {#if members.isError}
-        <div class="p-4"><QueryError message={describeError(members.error, 'Could not load the team')} onretry={() => members.refetch()} inset /></div>
-      {:else if members.isPending}
-        <div aria-hidden="true" class="flex flex-col">
-          {#each [0, 1, 2] as row (row)}
-            <div class="flex h-12 items-center gap-4 border-b border-border-subtle px-4.5 last:border-0 max-md:px-4">
-              <Skeleton class="h-4 w-40" />
-              <Skeleton class="h-4 min-w-0 flex-1" />
-              <Skeleton class="h-4 w-24" />
-            </div>
-          {/each}
-        </div>
-        <p class="sr-only" role="status">Loading the team…</p>
-      {:else}
-        <!-- Phones get two-line items and the Sort chip (design system section 8, L2); wider screens the table. -->
-        <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu table={memberTable} /></div>
-        {#if visibleMembers.length === 0}
-          <p class="border-b border-border-subtle px-4.5 py-3 text-muted-foreground max-md:px-4">No member matches the search.</p>
-        {/if}
-        <ul class="md:hidden">
-          {#each sortedMembers as member (member.id)}
-            <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
-              <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-                <span class="flex min-w-0 flex-wrap items-center gap-2">
-                  <span class="min-w-0 font-semibold break-words">{member.displayName}</span>
-                  {#if member.userId === myId}<Badge variant="muted">You</Badge>{/if}
-                </span>
-                <span class="min-w-0 break-all text-muted-foreground">{member.email}</span>
-                <span class="flex flex-wrap gap-1.5"><Badge variant="muted">{member.roleName}</Badge><Badge variant="muted">{jobsText(member)}</Badge></span>
-                <!-- What the table's Last updated column says, so Sort's Last updated sorts by something shown; nothing when nobody has changed it. -->
-                {#if member.lastUpdated?.at}
-                  {@const name = actorName(member.lastUpdated, memberList, myId)}
-                  <span class="text-muted-foreground">Updated <DateText at={member.lastUpdated.at} />{#if name}{' '}by {name}{/if}</span>
-                {/if}
-              </div>
-              {#if manageable(member)}{@render memberMenu(member)}{/if}
-            </li>
-          {/each}
-        </ul>
-        <div class="overflow-x-auto max-md:hidden">
-          <Table.Root>
-            <Table.Header>
-              {#each memberTable.getHeaderGroups() as group (group.id)}
-                <Table.Row class="bg-muted hover:bg-muted">
-                  {#each group.headers as header (header.id)}
-                    <SortHeader {header} class={header.id === 'name' ? 'px-4.5' : undefined} />
-                  {/each}
-                  <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
-                </Table.Row>
+      <Tabs.Content value="members" class="flex min-w-0 flex-col gap-5">
+        <Panel title="Members" flush footer={memberFailure ? memberFooter : undefined}>
+          {#snippet tools()}
+            <!-- Past about ten, a list has a search, so adding one never changes the layout (S9). -->
+            {#if memberList.length > 10}<SearchField bind:value={search} label="Search members" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />{/if}
+          {/snippet}
+          {#if members.isError}
+            <div class="p-4"><QueryError message={describeError(members.error, 'Could not load the team')} onretry={() => members.refetch()} inset /></div>
+          {:else if members.isPending}
+            <div aria-hidden="true" class="flex flex-col">
+              {#each [0, 1, 2] as row (row)}
+                <div class="flex h-12 items-center gap-4 border-b border-border-subtle px-4.5 last:border-0 max-md:px-4">
+                  <Skeleton class="h-4 w-40" />
+                  <Skeleton class="h-4 min-w-0 flex-1" />
+                  <Skeleton class="h-4 w-24" />
+                </div>
               {/each}
-            </Table.Header>
-            <Table.Body>
+            </div>
+            <p class="sr-only" role="status">Loading the team…</p>
+          {:else}
+            <!-- Phones get two-line items and the Sort chip (design system section 8, L2); wider screens the table. -->
+            <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu table={memberTable} /></div>
+            {#if visibleMembers.length === 0}
+              <p class="border-b border-border-subtle px-4.5 py-3 text-muted-foreground max-md:px-4">No member matches the search.</p>
+            {/if}
+            <ul class="md:hidden">
               {#each sortedMembers as member (member.id)}
-                <Table.Row class="h-12">
-                  <Table.Cell class="max-w-64 px-4.5">
-                    <span class="flex min-w-0 items-center gap-2">
-                      <TruncatedText text={member.displayName} class="font-semibold" />
-                      {#if member.userId === myId}<Badge variant="muted" class="shrink-0">You</Badge>{/if}
+                <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
+                  <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <span class="flex min-w-0 flex-wrap items-center gap-2">
+                      <span class="min-w-0 font-semibold break-words">{member.displayName}</span>
+                      {#if member.userId === myId}<Badge variant="muted">You</Badge>{/if}
                     </span>
-                  </Table.Cell>
-                  <Table.Cell class="w-full max-w-0 min-w-48 text-muted-foreground"><TruncatedText text={member.email} /></Table.Cell>
-                  <Table.Cell class="max-w-48 pr-4"><TruncatedText text={member.roleName} /></Table.Cell>
-                  <Table.Cell class="whitespace-nowrap tabular-nums">{jobsText(member)}</Table.Cell>
-                  <Table.Cell class="text-muted-foreground"><DateText at={member.joinedAt} /></Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-muted-foreground">
+                    <span class="min-w-0 break-all text-muted-foreground">{member.email}</span>
+                    <span class="flex flex-wrap gap-1.5"><Badge variant="muted">{member.roleName}</Badge><Badge variant="muted">{jobsText(member)}</Badge></span>
+                    <!-- What the table's Last updated column says, so Sort's Last updated sorts by something shown; nothing when nobody has changed it. -->
                     {#if member.lastUpdated?.at}
                       {@const name = actorName(member.lastUpdated, memberList, myId)}
-                      <DateText at={member.lastUpdated.at} />{#if name}{' '}by {name}{/if}
-                    {:else}
-                      <span class="sr-only">Not changed since joining</span>
+                      <span class="text-muted-foreground">Updated <DateText at={member.lastUpdated.at} />{#if name}{' '}by {name}{/if}</span>
                     {/if}
-                  </Table.Cell>
-                  <Table.Cell class="pr-4.5 text-right">{#if manageable(member)}{@render memberMenu(member)}{/if}</Table.Cell>
-                </Table.Row>
+                  </div>
+                  {#if manageable(member)}{@render memberMenu(member)}{/if}
+                </li>
               {/each}
-            </Table.Body>
-          </Table.Root>
-        </div>
-      {/if}
-    </Panel>
-
-    <Panel title="Invitations" count={invitationList.length || undefined} flush>
-      {#if invitations.isError}
-        <div class="p-4">
-          <QueryError message={describeError(invitations.error, 'Could not load the invitations')} onretry={() => invitations.refetch()} inset />
-        </div>
-      {:else if invitations.isPending}
-        <div aria-hidden="true" class="flex h-12 items-center gap-4 px-4.5 max-md:px-4"><Skeleton class="h-4 w-48" /><Skeleton class="h-4 w-24" /></div>
-      {:else if invitationList.length === 0}
-        <Empty.Root>
-          <Empty.Header>
-            <Empty.Media variant="icon"><UsersRoundIcon /></Empty.Media>
-            <Empty.Description>No open invitations.</Empty.Description>
-          </Empty.Header>
-          <Empty.Content><Button variant="outline" size="lg" onclick={() => (inviting = true)}><UserPlusIcon aria-hidden="true" />Invite</Button></Empty.Content>
-        </Empty.Root>
-      {:else}
-        <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu table={invitationTable} /></div>
-        <ul class="md:hidden">
-          {#each sortedInvitations as invitation (invitation.id)}
-            <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
-              <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-                <span class="min-w-0 font-semibold break-all">{invitation.email}</span>
-                <span class="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="muted">{invitation.roleName}</Badge>
-                  <Badge variant="muted">Expires <DateText at={invitation.expiresAt} /></Badge>
-                </span>
-              </div>
-              {#if mayHandle(invitation)}{@render invitationMenu(invitation)}{/if}
-            </li>
-          {/each}
-        </ul>
-        <div class="overflow-x-auto max-md:hidden">
-          <Table.Root>
-            <Table.Header>
-              {#each invitationTable.getHeaderGroups() as group (group.id)}
-                <Table.Row class="bg-muted hover:bg-muted">
-                  {#each group.headers as header (header.id)}
-                    <SortHeader {header} class={header.id === 'email' ? 'px-4.5' : undefined} />
+            </ul>
+            <div class="overflow-x-auto max-md:hidden">
+              <Table.Root>
+                <Table.Header>
+                  {#each memberTable.getHeaderGroups() as group (group.id)}
+                    <Table.Row class="bg-muted hover:bg-muted">
+                      {#each group.headers as header (header.id)}
+                        <SortHeader {header} class={header.id === 'name' ? 'px-4.5' : undefined} />
+                      {/each}
+                      <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
+                    </Table.Row>
                   {/each}
-                  <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
-                </Table.Row>
-              {/each}
-            </Table.Header>
-            <Table.Body>
+                </Table.Header>
+                <Table.Body>
+                  {#each sortedMembers as member (member.id)}
+                    <Table.Row class="h-12">
+                      <Table.Cell class="max-w-64 px-4.5">
+                        <span class="flex min-w-0 items-center gap-2">
+                          <TruncatedText text={member.displayName} class="font-semibold" />
+                          {#if member.userId === myId}<Badge variant="muted" class="shrink-0">You</Badge>{/if}
+                        </span>
+                      </Table.Cell>
+                      <Table.Cell class="w-full max-w-0 min-w-48 text-muted-foreground"><TruncatedText text={member.email} /></Table.Cell>
+                      <Table.Cell class="max-w-48 pr-4"><TruncatedText text={member.roleName} /></Table.Cell>
+                      <Table.Cell class="whitespace-nowrap tabular-nums">{jobsText(member)}</Table.Cell>
+                      <Table.Cell class="text-muted-foreground"><DateText at={member.joinedAt} /></Table.Cell>
+                      <Table.Cell class="whitespace-nowrap text-muted-foreground">
+                        {#if member.lastUpdated?.at}
+                          {@const name = actorName(member.lastUpdated, memberList, myId)}
+                          <DateText at={member.lastUpdated.at} />{#if name}{' '}by {name}{/if}
+                        {:else}
+                          <span class="sr-only">Not changed since joining</span>
+                        {/if}
+                      </Table.Cell>
+                      <Table.Cell class="pr-4.5 text-right">{#if manageable(member)}{@render memberMenu(member)}{/if}</Table.Cell>
+                    </Table.Row>
+                  {/each}
+                </Table.Body>
+              </Table.Root>
+            </div>
+          {/if}
+        </Panel>
+
+        <Panel title="Invitations" count={invitationList.length || undefined} flush>
+          {#if invitations.isError}
+            <div class="p-4">
+              <QueryError message={describeError(invitations.error, 'Could not load the invitations')} onretry={() => invitations.refetch()} inset />
+            </div>
+          {:else if invitations.isPending}
+            <div aria-hidden="true" class="flex h-12 items-center gap-4 px-4.5 max-md:px-4"><Skeleton class="h-4 w-48" /><Skeleton class="h-4 w-24" /></div>
+          {:else if invitationList.length === 0}
+            <Empty.Root>
+              <Empty.Header>
+                <Empty.Media variant="icon"><UsersRoundIcon /></Empty.Media>
+                <Empty.Description>No open invitations.</Empty.Description>
+              </Empty.Header>
+              <Empty.Content><Button variant="outline" size="lg" onclick={() => (inviting = true)}><UserPlusIcon aria-hidden="true" />Invite</Button></Empty.Content>
+            </Empty.Root>
+          {:else}
+            <div class="flex justify-end border-b border-border-subtle px-4 py-2 md:hidden"><SortMenu table={invitationTable} /></div>
+            <ul class="md:hidden">
               {#each sortedInvitations as invitation (invitation.id)}
-                <Table.Row class="h-12">
-                  <Table.Cell class="w-full max-w-0 min-w-48 px-4.5"><TruncatedText text={invitation.email} class="font-semibold" /></Table.Cell>
-                  <Table.Cell class="max-w-48 pr-4"><TruncatedText text={invitation.roleName} /></Table.Cell>
-                  <Table.Cell class="text-muted-foreground"><DateText at={invitation.createdAt} /></Table.Cell>
-                  <Table.Cell class="text-muted-foreground"><DateText at={invitation.expiresAt} /></Table.Cell>
-                  <Table.Cell class="pr-4.5 text-right">{#if mayHandle(invitation)}{@render invitationMenu(invitation)}{/if}</Table.Cell>
-                </Table.Row>
+                <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle px-4 py-3 last:border-0">
+                  <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <span class="min-w-0 font-semibold break-all">{invitation.email}</span>
+                    <span class="flex flex-wrap items-center gap-1.5">
+                      <Badge variant="muted">{invitation.roleName}</Badge>
+                      <Badge variant="muted">Expires <DateText at={invitation.expiresAt} /></Badge>
+                    </span>
+                  </div>
+                  {#if mayHandle(invitation)}{@render invitationMenu(invitation)}{/if}
+                </li>
               {/each}
-            </Table.Body>
-          </Table.Root>
-        </div>
-      {/if}
-    </Panel>
-  </SettingsMenu>
+            </ul>
+            <div class="overflow-x-auto max-md:hidden">
+              <Table.Root>
+                <Table.Header>
+                  {#each invitationTable.getHeaderGroups() as group (group.id)}
+                    <Table.Row class="bg-muted hover:bg-muted">
+                      {#each group.headers as header (header.id)}
+                        <SortHeader {header} class={header.id === 'email' ? 'px-4.5' : undefined} />
+                      {/each}
+                      <Table.Head class="w-12 pr-4.5"><span class="sr-only">Actions</span></Table.Head>
+                    </Table.Row>
+                  {/each}
+                </Table.Header>
+                <Table.Body>
+                  {#each sortedInvitations as invitation (invitation.id)}
+                    <Table.Row class="h-12">
+                      <Table.Cell class="w-full max-w-0 min-w-48 px-4.5"><TruncatedText text={invitation.email} class="font-semibold" /></Table.Cell>
+                      <Table.Cell class="max-w-48 pr-4"><TruncatedText text={invitation.roleName} /></Table.Cell>
+                      <Table.Cell class="text-muted-foreground"><DateText at={invitation.createdAt} /></Table.Cell>
+                      <Table.Cell class="text-muted-foreground"><DateText at={invitation.expiresAt} /></Table.Cell>
+                      <Table.Cell class="pr-4.5 text-right">{#if mayHandle(invitation)}{@render invitationMenu(invitation)}{/if}</Table.Cell>
+                    </Table.Row>
+                  {/each}
+                </Table.Body>
+              </Table.Root>
+            </div>
+          {/if}
+        </Panel>
+      </Tabs.Content>
+
+      <Tabs.Content value="teams" class="flex min-w-0 flex-col gap-5">
+        <NamedTeamsPanel
+          teams={teamList}
+          pending={teams.isPending}
+          error={teams.isError ? describeError(teams.error, 'Could not load the teams') : undefined}
+          onretry={() => teams.refetch()}
+          onedit={openTeam}
+          oncreate={() => openTeam(null)}
+          onannounce={(message) => (announcement = message)}
+        />
+      </Tabs.Content>
+    </SettingsMenu>
+  </Tabs.Root>
 
   {#if sidebar.isMobile}
-    <ActionBar>{@render inviteButton()}</ActionBar>
+    <ActionBar>{@render primaryButton()}</ActionBar>
   {/if}
 </main>
 
-<!-- On a phone, Invite moves to the bar at the bottom and the title's row keeps Last updated (section 8). -->
+<!-- On a phone, the tab's action moves to the bar at the bottom and the title's row keeps Last updated (section 8). -->
 {#snippet bandActions()}
   {#if lastUpdate.data}<HistoryFact value={lastUpdate.data.data} name="Team" page={(before) => getGetTeamHistoryQueryOptions({ before })} />{/if}
-  {#if !sidebar.isMobile}{@render inviteButton()}{/if}
+  {#if !sidebar.isMobile}{@render primaryButton()}{/if}
 {/snippet}
 
-{#snippet inviteButton()}
-  <Button size="lg" onclick={() => (inviting = true)}><UserPlusIcon aria-hidden="true" />Invite</Button>
+<!-- Each tab's main action: Invite on Members, New team on Teams. -->
+{#snippet primaryButton()}
+  {#if tab === 'teams'}
+    <Button size="lg" onclick={() => openTeam(null)}><PlusIcon aria-hidden="true" />New team</Button>
+  {:else}
+    <Button size="lg" onclick={() => (inviting = true)}><UserPlusIcon aria-hidden="true" />Invite</Button>
+  {/if}
 {/snippet}
 
 {#snippet memberFooter()}
@@ -546,6 +595,8 @@
 >
   {#snippet icon()}<XIcon aria-hidden="true" />{/snippet}
 </ConfirmDialog>
+
+<TeamSheet bind:open={teamSheetOpen} team={editingTeam} onsaved={(message) => (announcement = message)} />
 
 <MemberAccessSheet
   bind:open={accessOpen}

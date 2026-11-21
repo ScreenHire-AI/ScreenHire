@@ -172,6 +172,7 @@ app.MapNotificationSettingsEndpoints();
 app.MapNotificationEndpoints();
 app.MapViewEndpoints();
 app.MapHiringTeamEndpoints();
+app.MapNamedTeamEndpoints();
 app.MapRoleEndpoints();
 app.MapApiKeyEndpoints();
 app.MapWorkflowEndpoints();

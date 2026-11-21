@@ -76,6 +76,8 @@ public sealed class ScreenHireDbContext
 
     public DbSet<CustomRole> CustomRoles => Set<CustomRole>();
 
+    public DbSet<NamedTeam> NamedTeams => Set<NamedTeam>();
+
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 
     public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();

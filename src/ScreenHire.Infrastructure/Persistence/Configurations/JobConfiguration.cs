@@ -40,6 +40,8 @@ internal sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property<uint>("Version").IsRowVersion();
 
         builder.HasOne<Organization>().WithMany().HasForeignKey(j => j.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        // Read only for the next new job's suggestion; deleting the team leaves the job and its copied people alone.
+        builder.HasOne<NamedTeam>().WithMany().HasForeignKey(j => j.StartedWithTeamId).OnDelete(DeleteBehavior.SetNull);
         // The target of the composite tenant foreign keys on job_versions and applications: a child row can only point at
         // a job of its own organization, whatever id a request carries (foreign key checks bypass row-level security).
         builder.HasAlternateKey(j => new { j.OrganizationId, j.Id });

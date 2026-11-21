@@ -57,6 +57,8 @@ public static class TrackedKinds
 
         // The Team page's one history. Its first member arrives with the organization, and that save creates the team.
         Track<OrganizationMember>(ChangeSubjectKind.Team, m => m.OrganizationId.ToString("D"), MemberAsync, creates: WithOrganization),
+        // The named teams in Teams belong to the same page's history. Adding one is not creating the organization's team.
+        Track<NamedTeam>(ChangeSubjectKind.Team, t => t.OrganizationId.ToString("D"), TeamChanges.Named),
         // Invitations and API keys hold a secret, so their describers see a view without it.
         Track<OrganizationInvitation, InvitationFacts>(ChangeSubjectKind.Team, i => i.OrganizationId.ToString("D"), InvitationFacts.Of, InvitationAsync),
         Track<ApiKey, ApiKeyFacts>(ChangeSubjectKind.ApiKeys, k => k.OrganizationId.ToString("D"), ApiKeyFacts.Of, ApiKeyChanges.Describe),

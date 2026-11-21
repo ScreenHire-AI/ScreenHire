@@ -9304,17 +9304,103 @@
         ]
       }
     },
-    "/v1/templates/{templateId}/hiring-team": {
+    "/v1/organization/teams": {
       "get": {
         "tags": [
-          "Hiring teams"
+          "Teams"
         ],
-        "operationId": "GetHiringTemplateTeam",
+        "operationId": "ListTeams",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamDetail"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Teams"
+        ],
+        "operationId": "CreateTeam",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/teams/suggested": {
+      "get": {
+        "tags": [
+          "Teams"
+        ],
+        "operationId": "GetSuggestedTeam",
         "parameters": [
           {
-            "name": "templateId",
-            "in": "path",
-            "required": true,
+            "name": "templateVersionId",
+            "in": "query",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -9327,16 +9413,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/HiringTeamMember"
-                  }
+                  "$ref": "#/components/schemas/TeamSuggestion"
                 }
               }
             }
-          },
-          "404": {
-            "description": "Not Found"
           },
           "401": {
             "description": "Unauthorized"
@@ -9347,15 +9427,17 @@
             "session": [ ]
           }
         ]
-      },
+      }
+    },
+    "/v1/organization/teams/{teamId}": {
       "put": {
         "tags": [
-          "Hiring teams"
+          "Teams"
         ],
-        "operationId": "SetHiringTemplateTeam",
+        "operationId": "UpdateTeam",
         "parameters": [
           {
-            "name": "templateId",
+            "name": "teamId",
             "in": "path",
             "required": true,
             "schema": {
@@ -9368,7 +9450,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HiringTeamRequest"
+                "$ref": "#/components/schemas/TeamRequest"
               }
             }
           },
@@ -9380,10 +9462,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/HiringTeamMember"
-                  }
+                  "$ref": "#/components/schemas/TeamDetail"
                 }
               }
             }
@@ -9400,6 +9479,49 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Teams"
+        ],
+        "operationId": "DeleteTeam",
+        "parameters": [
+          {
+            "name": "teamId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "403": {
             "description": "Forbidden",
@@ -19565,9 +19687,26 @@
               "null",
               "string"
             ]
+          },
+          "teamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "memberIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         },
-        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list. The summary is the plain-text\nline a careers card shows under the title, at most 160 characters; leave it out and the card uses the description's\nfirst sentence."
+        "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list. The summary is the plain-text\nline a careers card shows under the title, at most 160 characters; leave it out and the card uses the description's\nfirst sentence. Who's hiring: the job's hiring team starts with the person who creates it, the people of the named team\n`teamId` as they are now, and `memberIds`, the organization's member ids. They are copied, so a later change\nto the team changes no job. An API key sends neither, and its job starts with nobody on its team."
       },
       "CreateRoleRequest": {
         "required": [
@@ -20596,7 +20735,7 @@
             "type": "boolean"
           }
         },
-        "description": "A person on a job's hiring team, or on a hiring template's default one (ADR-0015). `memberId` is their\nmembership's id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they're on sees this job through this list."
+        "description": "A person on a job's hiring team, or on a named team (ADR-0015). `memberId` is their\nmembership's id, which the team stores. `seesAllJobs` says whether they see every job anyway; a member on Only\njobs they're on sees this job through this list."
       },
       "HiringTeamRequest": {
         "required": [
@@ -20622,7 +20761,7 @@
             "format": "uuid"
           }
         },
-        "description": "Sets a hiring team to `memberIds`, the organization's member ids. For a job, `copyFromJobId` also brings\nover another job's team, which the caller must be able to see."
+        "description": "Sets a job's hiring team to `memberIds`, the organization's member ids. `copyFromJobId` also brings over\nanother job's team, which the caller must be able to see. A named team is added by its people, which the dashboard\nputs in `memberIds`, so someone taken off before saving stays off."
       },
       "HiringTemplateDefinition": {
         "required": [
@@ -27723,6 +27862,43 @@
         ],
         "description": "Which tasks a list shows: the open ones, or the ones done."
       },
+      "TeamDetail": {
+        "required": [
+          "id",
+          "name",
+          "members",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HiringTeamMember"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "A named team in Settings, Team, Teams: its name and its people who are still members, each with their role, as a job's\nhiring team lists them. Adding it to a job copies these people."
+      },
       "TeamMember": {
         "required": [
           "id",
@@ -27792,6 +27968,48 @@
           }
         },
         "description": "A member of the signed-in user's organization. `id` is the membership's id, which the member routes take.\n`role` is a built-in role or Custom, with `customRoleId` naming which; `roleName` is its name either way.\n`jobAccess` is their stored choice and `seesAllJobs` what applies: Owners and Admins see all jobs whatever\nit says (ADR-0015). `jobCount` counts the jobs whose hiring team they are on, among the jobs the reader sees.\n`lastUpdated` is the newest change to their membership (a role or job access change) and who made it; null when\nnothing has changed since they joined, which `joinedAt` already says, and for a reader who cannot manage the team."
+      },
+      "TeamRequest": {
+        "required": [
+          "name",
+          "memberIds"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "memberIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "Makes a named team, or renames one and sets its people to `memberIds`, the organization's member ids."
+      },
+      "TeamSuggestion": {
+        "required": [
+          "teamId"
+        ],
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "The team a new job from a template is likely to want: the one the newest job from the same template, or with the same\ndepartment, started with, among the jobs the reader sees. Null when there is none."
       },
       "TelemetrySnapshotInput": {
         "required": [
@@ -29999,6 +30217,9 @@
     },
     {
       "name": "Hiring teams"
+    },
+    {
+      "name": "Teams"
     },
     {
       "name": "API keys"
