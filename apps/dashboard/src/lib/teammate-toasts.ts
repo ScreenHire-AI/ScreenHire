@@ -1,4 +1,4 @@
-import type { ApplicationDetail, ApplicationTaskEntry, MemberJob, MemberNotificationSettings, TeamMember } from '@screenhire/api-client';
+import type { ApplicationDetail, ApplicationTaskEntry, MemberJob, TeamMember } from '@screenhire/api-client';
 import type { RealtimeEvent } from '@screenhire/realtime';
 import {
   appliedGroupToastFor,
@@ -11,6 +11,7 @@ import {
   type TeammateChange,
   type TemplateType,
   type Toast,
+  type ToastSettings,
 } from '#lib/teammate-changes.js';
 
 /** What the toasts read through the API. Each may throw (a 404, the network); the toast is then dropped. */
@@ -18,7 +19,7 @@ export interface TeammateToastSources {
   userId(): string | undefined;
   members(): Promise<readonly TeamMember[]>;
   memberJobs(memberId: string): Promise<readonly MemberJob[]>;
-  settings(): Promise<MemberNotificationSettings>;
+  settings(): Promise<ToastSettings>;
   application(applicationId: string): Promise<ApplicationDetail>;
   tasks(applicationId: string): Promise<readonly ApplicationTaskEntry[]>;
   templateName(templateType: TemplateType, templateId: string): Promise<string>;

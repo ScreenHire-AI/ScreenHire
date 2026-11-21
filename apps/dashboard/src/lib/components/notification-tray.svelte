@@ -35,6 +35,9 @@
     Scorecards: eventIcons.ScorecardSubmitted,
     Tasks: eventIcons.TaskCreated,
     Templates: LayoutTemplateIcon,
+    // The cards' own kinds, for a toast about them: the same icons the cards carry.
+    Mentions: AtSignIcon,
+    Replies: ReplyIcon,
   };
 
   function focusout(event: FocusEvent) {

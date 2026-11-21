@@ -53,6 +53,7 @@ public sealed class CandidateErasure(IApplicantDirectory directory)
         var organizationId = candidate.OrganizationId;
         var applications = await db.Applications.AsNoTracking().Where(a => a.CandidateId == candidateId).ToListAsync(cancellationToken);
         var removal = await ReadAsync(db, organizationId, applications, new Dictionary<Guid, Candidate> { [candidateId] = candidate }, now, cancellationToken);
+        await ForgetNoticesAsync(db, [.. applications.Select(a => a.Id)], cancellationToken);
 
         // The candidate's requests are tracked here, so the foreign key's SET NULL and these changes are one save.
         var exportBlobs = new List<string>();
@@ -185,6 +186,7 @@ public sealed class CandidateErasure(IApplicantDirectory directory)
             var owners = applications.Select(a => a.CandidateId).Distinct().ToList();
             var candidates = await db.Candidates.AsNoTracking().Where(c => owners.Contains(c.Id)).ToDictionaryAsync(c => c.Id, cancellationToken);
             var removal = await ReadAsync(db, applications[0].OrganizationId, applications, candidates, now, cancellationToken);
+            await ForgetNoticesAsync(db, partlyRemoved, cancellationToken);
             db.Applications.RemoveRange(applications);
 
             if (removal.Files.Count > 0 || removal.ReplyAttachments.Count > 0)
@@ -225,6 +227,25 @@ public sealed class CandidateErasure(IApplicantDirectory directory)
         if (ids.Length > 0)
         {
             await db.Database.ExecuteSqlAsync($"SELECT 1 FROM candidates WHERE id = ANY({ids}) ORDER BY id FOR UPDATE", cancellationToken);
+        }
+    }
+
+    // What told people about these applications goes with them: the lines waiting for a daily digest, and the bell rows that
+    // link to an application (a mention, a reply, a task, an interview). Neither holds a name, but both name the record by id,
+    // and erasing leaves nothing that points at it (docs/architecture/notifications.md).
+    private static async Task ForgetNoticesAsync(ScreenHireDbContext db, List<Guid> applicationIds, CancellationToken cancellationToken)
+    {
+        if (applicationIds.Count == 0)
+        {
+            return;
+        }
+
+        await db.DigestItems.Where(i => i.ApplicationId != null && applicationIds.Contains(i.ApplicationId.Value)).ExecuteDeleteAsync(cancellationToken);
+        foreach (var applicationId in applicationIds)
+        {
+            var path = $"/applications/{applicationId}";
+            await db.Notifications.Where(n => n.Link == path || n.Link.StartsWith(path + "?") || n.Link.StartsWith(path + "#"))
+                .ExecuteDeleteAsync(cancellationToken);
         }
     }
 

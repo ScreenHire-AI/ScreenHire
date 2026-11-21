@@ -28,7 +28,9 @@ public sealed record NotificationSettings
 /// <summary>
 /// A kind of teammate's change a member can turn off. The first six are about a candidate on a job whose hiring team
 /// they are on; <see cref="Tasks"/> is a task assigned to them; <see cref="Templates"/> a hiring template they changed
-/// last, published by someone else. Stored and sent as text.
+/// last, published by someone else. <see cref="Mentions"/> and <see cref="Replies"/> are the tray's cards for a note that
+/// mentions them and a candidate's reply to their email (the bell keeps both either way). Stored and sent as text; new
+/// kinds are appended, and start on because <see cref="NotificationSettings.Off"/> lists the kinds turned off.
 /// </summary>
 public enum ToastKind
 {
@@ -40,4 +42,6 @@ public enum ToastKind
     Scorecards,
     Tasks,
     Templates,
+    Mentions,
+    Replies,
 }

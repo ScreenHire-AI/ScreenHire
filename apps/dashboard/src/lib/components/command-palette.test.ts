@@ -76,13 +76,22 @@ describe('command palette', () => {
     await waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates?list=saved'));
   });
 
-  it('opens the passkeys page from the actions', async () => {
+  it('opens Sign-in and security from the actions, found by passkey', async () => {
     const { palette, input } = renderPalette();
 
     await fireEvent.input(input, { target: { value: 'passkey' } });
-    await fireEvent.click(await within(palette).findByRole('option', { name: 'Manage passkeys' }));
+    await fireEvent.click(await within(palette).findByRole('option', { name: 'Sign-in and security' }));
 
-    await waitFor(() => expect(goto).toHaveBeenCalledWith('/account/passkeys'));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/account/security'));
+  });
+
+  it('opens Your account from the actions', async () => {
+    const { palette, input } = renderPalette();
+
+    await fireEvent.input(input, { target: { value: 'time zone' } });
+    await fireEvent.click(await within(palette).findByRole('option', { name: 'Your account' }));
+
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/account'));
   });
 
   const optionNames = (palette: HTMLElement) => within(palette).getAllByRole('option').map((option) => option.textContent?.trim() ?? '');

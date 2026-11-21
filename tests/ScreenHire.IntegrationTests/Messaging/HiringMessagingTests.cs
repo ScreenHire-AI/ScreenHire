@@ -57,7 +57,8 @@ public sealed class HiringMessagingTests(AppHostFixture fixture)
         (await recruiter.PostAsync($"/v1/applications/{application.Id()}/move", new JsonObject { ["toStageId"] = "screening" })).Expect(HttpStatusCode.OK);
         var movedEntryId = (await recruiter.StageEntriesAsync(application.Id())).Text("1.id");
 
-        await AssertHandledOnceAsync(movedEntryId, "the worker to handle ApplicationMoved");
+        // The worker's own follow-ups carry the same id (the webhook fan-out, the teammates' notice), so count the event alone.
+        await AssertHandledOnceAsync(movedEntryId, "the worker to handle ApplicationMoved", ".ApplicationMoved");
     }
 
     [Fact]

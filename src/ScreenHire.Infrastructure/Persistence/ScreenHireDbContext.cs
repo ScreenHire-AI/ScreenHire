@@ -174,6 +174,15 @@ public sealed class ScreenHireDbContext
 
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    /// <summary>Each member's own preferences from Your account, one row per membership once they save one.</summary>
+    public DbSet<MemberPreferences> MemberPreferences => Set<MemberPreferences>();
+
+    /// <summary>What waits for each person's daily digest email (docs/architecture/notifications.md).</summary>
+    public DbSet<DigestItem> DigestItems => Set<DigestItem>();
+
+    /// <summary>People's profile photos; global like users, so no row-level security.</summary>
+    public DbSet<UserPhoto> UserPhotos => Set<UserPhoto>();
+
     public DbSet<ScorecardTemplate> ScorecardTemplates => Set<ScorecardTemplate>();
 
     /// <summary>Every change to the configuration people edit (<c>ChangeHistoryInterceptor</c>); append-only.</summary>

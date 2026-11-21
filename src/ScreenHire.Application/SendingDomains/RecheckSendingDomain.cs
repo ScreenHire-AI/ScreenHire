@@ -257,7 +257,7 @@ public static partial class EmailSendingDomainFailingHandler
             return;
         }
 
-        await email.SendAsync(SendingDomainFailingEmail.Compose(to, organization, domain.Domain, link), cancellationToken);
+        await email.SendAsync(TeamEmail.WithFooter(SendingDomainFailingEmail.Compose(to, organization, domain.Domain, link), links.Value), cancellationToken);
         LogEmailed(logger, message.OrganizationId, message.UserId);
     }
 

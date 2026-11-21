@@ -10,6 +10,7 @@ using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine;
+using ScreenHire.Application.Notifications;
 
 namespace ScreenHire.Application.Applications;
 
@@ -66,6 +67,12 @@ public static partial class ApplicationMovedHandler
         if (SlackEvents.From(message, slack) is { } post)
         {
             outgoing.Add(post);
+        }
+
+        // A member's move, for the teammates who want those by email (docs/architecture/notifications.md).
+        if (message.ActorUserId is { } actor)
+        {
+            outgoing.Add(new NotifyTeammateChange(message.OrganizationId, message.ApplicationId, message.JobId, actor, "Moved", message.EventId));
         }
 
         return outgoing;

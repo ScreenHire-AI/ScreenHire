@@ -166,6 +166,7 @@ public static partial class EmailTrialEndingHandler
         PlanCatalogue catalogue,
         IOptions<BillingOptions> options,
         IOptions<DashboardLinkOptions> links,
+        TimeProvider time,
         ILogger<EmailTrialEnding> logger,
         CancellationToken cancellationToken)
     {
@@ -193,13 +194,28 @@ public static partial class EmailTrialEndingHandler
             return;
         }
 
+        // The Owner's own choice for AI use and billing on Your account: now, in the daily digest, or not at all.
+        var preferences = await PersonNotices.ForUserAsync(db, message.OrganizationId, message.UserId, cancellationToken);
+        var choice = PersonNotices.Email(preferences, NoticeKind.AiUseAndBilling, OrganizationAlertDefaults.None, handlesBilling: true);
         var plan = catalogue.Find(options.Value.Trial.Plan)?.Name;
-        await email.SendAsync(TrialEndingEmail.Compose(to, organization, plan, message.TrialEndsAt, message.DaysBefore, link), cancellationToken);
+        var notice = new Notice(message.OrganizationId, message.UserId, NoticeKind.AiUseAndBilling, $"trial:{message.TrialEndsAt:yyyyMMdd}:{message.DaysBefore}", Detail: "Trial");
+        var outcome = await NoticeDelivery.EmailAsync(
+            db, email, links.Value, notice, choice,
+            () => TrialEndingEmail.Compose(to, organization, plan, message.TrialEndsAt, message.DaysBefore, link), time.GetUtcNow(), cancellationToken);
+        if (outcome != NoticeOutcome.Emailed)
+        {
+            LogNotEmailedByChoice(logger, message.OrganizationId, choice);
+            return;
+        }
+
         LogEmailed(logger, message.OrganizationId, message.UserId, message.DaysBefore);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Organization {OrganizationId}: an Owner was not emailed about the trial ending: {Reason}")]
     private static partial void LogNotEmailed(ILogger logger, Guid organizationId, string reason);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Organization {OrganizationId}: an Owner's trial reminder was not emailed now, by their choice {Choice}")]
+    private static partial void LogNotEmailedByChoice(ILogger logger, Guid organizationId, EmailChoice choice);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Organization {OrganizationId}: emailed Owner {UserId} a trial reminder, {DaysBefore} days before the end")]
     private static partial void LogEmailed(ILogger logger, Guid organizationId, Guid userId, int daysBefore);

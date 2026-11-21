@@ -58,18 +58,18 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await Page.GotoAsync(applicationUrl);
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Riley Chen");
 
-        // The recruiter connects the sandbox calendar from the account menu, and comes back to this page with the sheet open.
+        // The recruiter connects the sandbox calendar on Your account > Connected accounts, and comes back to that page,
+        // which says how it went in its Calendar panel.
         await Page.Locator("[data-sidebar=footer]").GetByRole(AriaRole.Button).ClickAsync();
-        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Calendar" }).ClickAsync();
-        var calendar = Page.GetByRole(AriaRole.Dialog, new() { Name = "Calendar" });
-        await Expect(calendar).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Your account" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Connected accounts" }).ClickAsync();
+        var calendar = Page.GetByRole(AriaRole.Region, new() { Name = "Calendar" });
         await calendar.GetByRole(AriaRole.Button, new() { Name = "Connect Sandbox calendar" }).ClickAsync();
-        await Expect(Page).ToHaveURLAsync(applicationUrl);
+        await Expect(Page).ToHaveURLAsync(new Regex("/account/connected$"));
         await Expect(calendar).ToContainTextAsync("Connected");
         await Expect(calendar).ToContainTextAsync("Sandbox calendar");
         await ExpectNoAccessibilityViolationsAsync();
-        await Page.Keyboard.PressAsync("Escape");
-        await Expect(calendar).ToHaveCountAsync(0);
+        await Page.GotoAsync(applicationUrl);
 
         // Schedule interview sits beside Email. The sheet lists the people who see the job: the recruiter is ticked
         // and is the organizer, the teammate can be ticked, and the member with no calendar is shown, in words, as unavailable.

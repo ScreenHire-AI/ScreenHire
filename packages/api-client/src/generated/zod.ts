@@ -82,6 +82,13 @@ export const ListSandboxListingsResponseItem = zod.object({
 export const ListSandboxListingsResponse = zod.array(ListSandboxListingsResponseItem)
 
 
+export const GetUserPhotoParams = zod.object({
+  "userId": zod.uuid()
+})
+
+export const GetUserPhotoResponse = zod.void()
+
+
 export const ListAutomationIssuesResponseItem = zod.object({
   "runId": zod.uuid(),
   "applicationId": zod.uuid(),
@@ -179,8 +186,9 @@ export const GetCurrentUserResponse = zod.object({
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "photoUrl": zod.string().nullish()
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
 
 export const ListMyOrganizationsResponseItem = zod.object({
@@ -239,8 +247,9 @@ export const CompleteOnboardingResponse = zod.object({
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "photoUrl": zod.string().nullish()
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
 
 export const LookUpInvitationBody = zod.object({
@@ -273,8 +282,9 @@ export const AcceptInvitationResponse = zod.object({
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "photoUrl": zod.string().nullish()
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
 
 export const SwitchOrganizationBody = zod.object({
@@ -295,8 +305,9 @@ export const SwitchOrganizationResponse = zod.object({
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
   "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')])
-}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none.')
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "photoUrl": zod.string().nullish()
+}).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
 
 export const SignOutResponse = zod.void()
@@ -7829,24 +7840,155 @@ export const RevokeInvitationParams = zod.object({
 export const RevokeInvitationResponse = zod.void()
 
 
-export const GetNotificationSettingsResponse = zod.object({
-  "toasts": zod.boolean(),
-  "closeToasts": zod.boolean(),
-  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text.'))
-}).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\nthe kinds of change that do not toast. Everything starts on.')
+export const GetAccountResponse = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullable(),
+  "displayName": zod.string(),
+  "photoUrl": zod.string().nullable(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.'),
+  "shortcutsEnabled": zod.boolean().nullable(),
+  "confirmMoves": zod.boolean().nullable()
+}).describe('The signed-in person\'s own account in their current organization (docs/architecture/sign-in-and-tenancy.md, "Your\naccount"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser\'s.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser\'s\nearlier choice and saves it.')
 
 
-export const UpdateNotificationSettingsBody = zod.object({
-  "toasts": zod.boolean(),
+export const GetAccountNotificationsResponse = zod.object({
+  "scope": zod.enum(['MyJobs', 'Everything']).describe('Which jobs the job rows (new applications, teammates\' changes, verification suggested) cover: the jobs whose hiring\nteam the person is on, or every job they can see.'),
+  "pauseToasts": zod.boolean(),
   "closeToasts": zod.boolean(),
-  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text.'))
-}).describe('Replaces the signed-in member\'s notification settings; `off` names each kind at most once.')
+  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "rows": zod.array(zod.object({
+  "kind": zod.enum(['Mentions', 'Replies', 'Interviews', 'Tasks', 'NewApplications', 'TeammateChanges', 'VerificationSuggested', 'AiUseAndBilling']).describe('A row of the person\'s notification choices on Your account (docs/architecture/notifications.md, "Each person\'s\nchoices"): what they can be told about, by toast, email and Slack. Stored and sent as text; new rows are appended.'),
+  "toasts": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "email": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
+  "emailDefault": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
+  "slack": zod.boolean().nullable(),
+  "scoped": zod.boolean()
+}).describe('One row of the grid. `toasts` are the toast kinds its In the app switch covers (none: nothing toasts for it).\n`email` is the person\'s choice and `emailDefault` where it starts. `slack` is null for a row with no Slack\nmessage. `scoped` rows follow My jobs or Everything I can see.')),
+  "slackAvailable": zod.boolean(),
+  "slackLinked": zod.boolean()
+}).describe('The person\'s notification choices here (docs/architecture/notifications.md, "Each person\'s choices"). `pauseToasts`\nstops every toast; `closeToasts` closes each after a few seconds; `toastsOff` lists the kinds of toast turned\noff (the In the app column). `rows` are the grid\'s rows this person sees, in order. `slackLinked` says whether\ntheir Slack account is linked, which shows the Slack column; `slackAvailable` whether the workspace is connected.')
 
-export const UpdateNotificationSettingsResponse = zod.object({
-  "toasts": zod.boolean(),
+
+export const UpdateAccountNotificationsBody = zod.object({
+  "scope": zod.enum(['MyJobs', 'Everything']).describe('Which jobs the job rows (new applications, teammates\' changes, verification suggested) cover: the jobs whose hiring\nteam the person is on, or every job they can see.'),
+  "pauseToasts": zod.boolean(),
   "closeToasts": zod.boolean(),
-  "off": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. Stored and sent as text.'))
-}).describe('The signed-in member\'s settings for teammates\' changes as toasts, in their current organization. `toasts` turns\nthem on or off; `closeToasts` closes each after a few seconds, and off keeps it until dismissed; `off` lists\nthe kinds of change that do not toast. Everything starts on.')
+  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "rows": zod.array(zod.object({
+  "kind": zod.enum(['Mentions', 'Replies', 'Interviews', 'Tasks', 'NewApplications', 'TeammateChanges', 'VerificationSuggested', 'AiUseAndBilling']).describe('A row of the person\'s notification choices on Your account (docs/architecture/notifications.md, "Each person\'s\nchoices"): what they can be told about, by toast, email and Slack. Stored and sent as text; new rows are appended.'),
+  "email": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
+  "slack": zod.boolean().nullable()
+}))
+}).describe('Saves the whole grid. A row the person does not see is ignored; `slack` is ignored for a row without one.')
+
+export const UpdateAccountNotificationsResponse = zod.object({
+  "scope": zod.enum(['MyJobs', 'Everything']).describe('Which jobs the job rows (new applications, teammates\' changes, verification suggested) cover: the jobs whose hiring\nteam the person is on, or every job they can see.'),
+  "pauseToasts": zod.boolean(),
+  "closeToasts": zod.boolean(),
+  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "rows": zod.array(zod.object({
+  "kind": zod.enum(['Mentions', 'Replies', 'Interviews', 'Tasks', 'NewApplications', 'TeammateChanges', 'VerificationSuggested', 'AiUseAndBilling']).describe('A row of the person\'s notification choices on Your account (docs/architecture/notifications.md, "Each person\'s\nchoices"): what they can be told about, by toast, email and Slack. Stored and sent as text; new rows are appended.'),
+  "toasts": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "email": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
+  "emailDefault": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
+  "slack": zod.boolean().nullable(),
+  "scoped": zod.boolean()
+}).describe('One row of the grid. `toasts` are the toast kinds its In the app switch covers (none: nothing toasts for it).\n`email` is the person\'s choice and `emailDefault` where it starts. `slack` is null for a row with no Slack\nmessage. `scoped` rows follow My jobs or Everything I can see.')),
+  "slackAvailable": zod.boolean(),
+  "slackLinked": zod.boolean()
+}).describe('The person\'s notification choices here (docs/architecture/notifications.md, "Each person\'s choices"). `pauseToasts`\nstops every toast; `closeToasts` closes each after a few seconds; `toastsOff` lists the kinds of toast turned\noff (the In the app column). `rows` are the grid\'s rows this person sees, in order. `slackLinked` says whether\ntheir Slack account is linked, which shows the Slack column; `slackAvailable` whether the workspace is connected.')
+
+
+export const GetAccountSignInResponse = zod.object({
+  "email": zod.string(),
+  "emailLinks": zod.boolean(),
+  "providers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+})),
+  "passkeys": zod.int(),
+  "passkeyLimit": zod.int()
+}).describe('How the person signs in: the email link to `email` (when this ScreenHire sends them), the providers they have\nsigned in with, and how many passkeys they have of `passkeyLimit`.')
+
+
+export const UpdateProfileBody = zod.object({
+  "name": zod.string(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.')
+}).describe('The person\'s name (global, the same in every organization), and their time zone, language and date format here.')
+
+export const UpdateProfileResponse = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullable(),
+  "displayName": zod.string(),
+  "photoUrl": zod.string().nullable(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.'),
+  "shortcutsEnabled": zod.boolean().nullable(),
+  "confirmMoves": zod.boolean().nullable()
+}).describe('The signed-in person\'s own account in their current organization (docs/architecture/sign-in-and-tenancy.md, "Your\naccount"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser\'s.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser\'s\nearlier choice and saves it.')
+
+
+export const FillTimeZoneBody = zod.object({
+  "timeZone": zod.string()
+}).describe('The browser\'s time zone, saved only while the person has none, so digests arrive at 08:00 their time.')
+
+export const FillTimeZoneResponse = zod.void()
+
+
+export const UpdateAccountPreferencesBody = zod.object({
+  "shortcutsEnabled": zod.boolean(),
+  "confirmMoves": zod.boolean()
+}).describe('The person\'s working habits here: single-key shortcuts, and whether a move that sends emails or creates tasks asks first.')
+
+export const UpdateAccountPreferencesResponse = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullable(),
+  "displayName": zod.string(),
+  "photoUrl": zod.string().nullable(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.'),
+  "shortcutsEnabled": zod.boolean().nullable(),
+  "confirmMoves": zod.boolean().nullable()
+}).describe('The signed-in person\'s own account in their current organization (docs/architecture/sign-in-and-tenancy.md, "Your\naccount"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser\'s.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser\'s\nearlier choice and saves it.')
+
+
+export const UploadPhotoBody = zod.object({
+  "data": zod.string()
+}).describe('A profile photo as base64, at most 512 KB once decoded, PNG, JPEG or WebP (read from the bytes, not the name). The\ndashboard crops and scales it to 256 pixels first, which also drops what the camera wrote into it. The server checks\nonly the type and the size and keeps the bytes as sent, so a caller that skips the crop keeps its metadata.')
+
+export const UploadPhotoResponse = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullable(),
+  "displayName": zod.string(),
+  "photoUrl": zod.string().nullable(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.'),
+  "shortcutsEnabled": zod.boolean().nullable(),
+  "confirmMoves": zod.boolean().nullable()
+}).describe('The signed-in person\'s own account in their current organization (docs/architecture/sign-in-and-tenancy.md, "Your\naccount"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser\'s.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser\'s\nearlier choice and saves it.')
+
+
+export const RemovePhotoResponse = zod.object({
+  "email": zod.string(),
+  "name": zod.string().nullable(),
+  "displayName": zod.string(),
+  "photoUrl": zod.string().nullable(),
+  "timeZone": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "dateFormat": zod.enum(['Browser', 'DayMonthYear', 'MonthDayYear', 'Iso']).describe('How the dashboard writes a date: the browser\'s way for the language, or one fixed order.'),
+  "shortcutsEnabled": zod.boolean().nullable(),
+  "confirmMoves": zod.boolean().nullable()
+}).describe('The signed-in person\'s own account in their current organization (docs/architecture/sign-in-and-tenancy.md, "Your\naccount"). `email` is the address they sign in with, shown read only. `name` is null while they have none.\n`timeZone` (IANA) and `language` (BCP 47) are null until set, and the dashboard then uses the browser\'s.\n`shortcutsEnabled` and `confirmMoves` are null until saved here, and the dashboard then keeps the browser\'s\nearlier choice and saves it.')
+
+
+export const SignOutEverywhereResponse = zod.void()
 
 
 export const ListNotificationsResponse = zod.object({

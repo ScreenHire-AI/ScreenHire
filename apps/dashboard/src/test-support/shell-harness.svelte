@@ -49,11 +49,10 @@
   const views = $derived(sidebarViews({ saved, hiddenBuiltIns, sidebarOrder: saved.filter((view) => view.inSidebar && !view.mine).map((view) => view.id), jobTitles: {} }));
 
   let shortcutsOpen = $state(false);
-  let notificationsOpen = $state(false);
   setShell({
     openPalette: () => {},
     openShortcuts: () => (shortcutsOpen = true),
-    openNotifications: () => (notificationsOpen = true),
+    openNotifications: () => {},
     openCalendar: () => {},
     live: () => 'connected',
     user: () => user,
@@ -74,5 +73,4 @@
   </Sidebar.Provider>
   <ShortcutsDialog bind:open={shortcutsOpen} />
   <!-- The sheet itself needs the query cache; the harness shows only that the menu opens it. -->
-  {#if notificationsOpen}<p>Teammate changes sheet open</p>{/if}
 </Tooltip.Provider>

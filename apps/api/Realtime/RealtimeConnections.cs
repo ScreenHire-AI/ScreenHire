@@ -33,6 +33,15 @@ internal sealed class RealtimeConnections(IHubContext<EventsHub, IEventsClient> 
         }
     }
 
+    /// <summary>Closes every connection <paramref name="userId"/> opened, in any organization: Sign out everywhere.</summary>
+    public void CloseUser(Guid userId)
+    {
+        foreach (var entry in connections.Values.Where(e => e.UserId == userId))
+        {
+            entry.Context.Abort();
+        }
+    }
+
     /// <summary>
     /// Adds <paramref name="jobId"/>'s team group to every connection <paramref name="userId"/> opened into
     /// <paramref name="organizationId"/> on Only jobs they're on, after they joined its hiring team, so its events reach
