@@ -34,8 +34,8 @@
 
   // A horizontal bar chart drawn in HTML (design system section 11, Bar chart): each row's name, its bars growing from one
   // baseline with the value at each tip in text colours, and an optional muted note. Bars are at most 24px thick, square
-  // at the baseline and rounded at the end; a zero draws nothing. Two series sit in pairs with a 2px gap and a legend
-  // above; one series needs none, because the panel's title names it. Every value is written out, so the soft colour's
+  // at the baseline and rounded at the end; a zero draws no bar but keeps its value on the bar's line. Two series sit in
+  // pairs with a 2px gap and a legend above; one series needs none, because the panel's title names it. Every value is written out, so the soft colour's
   // low contrast loses nothing, and the panel's table view holds the same numbers. The bars and note are one image that
   // reads out the row's summary on hover, focus and tap (F4); the name beside it is a link when the row has an `href`,
   // which an image would hide from screen readers. In a narrow container the name goes above the bars.
@@ -56,7 +56,7 @@
   const tones = { 'chart-1': 'bg-chart-1', 'chart-2': 'bg-chart-2' } as const;
 
   // The bar's share of its line, leaving room at the end for the value written at its tip.
-  const width = (value: number) => (max > 0 && value > 0 ? `max(2px, calc((100% - 5.5rem) * ${value / max}))` : '0');
+  const width = (value: number) => (max > 0 && value > 0 ? `max(2px, calc((100% - 5.5rem) * ${value / max}))` : '2px');
 </script>
 
 <figure class={cn('@container/chart flex min-w-0 flex-col gap-3', className)} data-slot="bar-chart">
@@ -85,13 +85,14 @@
                 <span aria-hidden="true" class="flex min-w-0 flex-1 flex-col gap-0.5">
                   {#each row.values as value, index (index)}
                     <span class="flex min-w-0 items-center gap-2">
-                      <!-- A zero draws no bar and leaves no gap, so its value starts at the baseline. -->
+                      <!-- A zero draws no bar but keeps the bar's line: an invisible 2px stub, as wide as the smallest bar can
+                           be, so its value starts just past the baseline and the row is as tall as the others. -->
                       <span
                         class={cn(
                           'shrink-0 rounded-r-sm group-hover/row:opacity-85',
                           series.length > 1 ? 'h-3.5' : 'h-5',
                           tones[series[index]?.tone ?? 'chart-1'],
-                          !(max > 0 && value > 0) && 'hidden',
+                          !(max > 0 && value > 0) && 'bg-transparent',
                         )}
                         style:width={width(value)}
                       ></span>

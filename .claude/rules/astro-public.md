@@ -18,9 +18,10 @@ rank fast pages, so both ship about zero kilobytes of JavaScript. The procedures
   site, section 22 (bands, type, space, the product frame, what never decorates a page).
 - **No client JavaScript by default.** Astro components and native HTML (`<details>`, `<dialog>`, forms that post).
   A Svelte island (`client:visible`, `client:idle`) only where the page needs behaviour HTML cannot give, and the
-  PR says why. The one island today is the apply form's `FileField.svelte` (direct-to-storage upload, from
-  `@screenhire/ui/questions`), drawn by the shared `DropArea.svelte`, and the page works without it: without script
-  the area is a plain named file input. The other shared question components render on the server only, with no client
+  PR says why. The islands today are the apply form's `FileField.svelte` (direct-to-storage upload, from
+  `@screenhire/ui/questions`) and the candidate page's reply `FilesField.svelte` (several files, each with Remove), both
+  drawn by the shared `DropArea.svelte`, and the pages work without them: without script the area is a plain named file
+  input. The other shared question components render on the server only, with no client
   directive. The apply page also runs the telemetry module (`packages/telemetry`,
   framework-free, under 5 KB) from a processed `<script>`; the server starts it only with the assistive-technology
   switch off. Inside the embeddable widget (embed mode only, `docs/architecture/careers-widget.md`) a page also runs

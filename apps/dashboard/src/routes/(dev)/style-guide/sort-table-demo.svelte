@@ -8,7 +8,8 @@
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
   // A sortable table (L1, L2) of hiring templates, as the Templates page lists them: the name with Built in after it, then
-  // plain text. It opens newest first by Last updated and remembers the person's sort under `style-guide`.
+  // plain text, and Last updated right-aligned with its sort icon before the text. It opens newest first by Last updated
+  // and remembers the person's sort under `style-guide`.
   type Template = { id: string; name: string; builtIn: boolean; jobs: number; updatedAt: string };
 
   const now = Date.now();
@@ -48,7 +49,7 @@
         {#each table.getHeaderGroups() as group (group.id)}
           <tr>
             {#each group.headers as header (header.id)}
-              <SortHeader {header} class={header.id === 'name' ? 'px-4.5' : undefined} />
+              <SortHeader {header} class={header.id === 'name' ? 'px-4.5' : header.id === 'updatedAt' ? 'text-right' : undefined} />
             {/each}
           </tr>
         {/each}
@@ -57,7 +58,7 @@
         {#each table.getRowModel().rows as row (row.id)}
           <tr class="h-12 border-b border-border-subtle last:border-b-0">
             {#each row.getAllCells() as cell (cell.id)}
-              <td class={['px-3 whitespace-nowrap', cell.column.id === 'name' && 'px-4.5']}><FlexRender {cell} /></td>
+              <td class={['px-3 whitespace-nowrap', cell.column.id === 'name' && 'px-4.5', cell.column.id === 'updatedAt' && 'text-right tabular-nums']}><FlexRender {cell} /></td>
             {/each}
           </tr>
         {/each}

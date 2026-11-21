@@ -22,6 +22,11 @@
       "types": "./src/questions/FileField.svelte",
       "svelte": "./src/questions/FileField.svelte",
       "default": "./src/questions/FileField.svelte"
+    },
+    "./questions/FilesField.svelte": {
+      "types": "./src/questions/FilesField.svelte",
+      "svelte": "./src/questions/FilesField.svelte",
+      "default": "./src/questions/FilesField.svelte"
     }
   },
   "dependencies": {
