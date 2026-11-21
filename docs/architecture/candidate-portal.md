@@ -148,7 +148,7 @@ the same sent email.
   server takes 12 MB from a form), PDF, Word, PNG or JPEG. With JavaScript the input is the Drop area in its `multiple` mode
   (`FilesField`, the page's one island): each file is a row with its name, size and Remove, the area refuses a file of the wrong type
   or one over the count or the total in its own line in the field's error, and it keeps the named input holding exactly the rows,
-  so the form posts what is shown. Without it the input posts as the browser draws it, and the server checks the same limits. The careers server posts them to the API as base64 in JSON, and the
+  so the form posts what is shown. Without it the input posts as the browser draws it, and the server checks the same limits. Either way the careers server posts the files to the API as base64 in JSON, and the
   existing `AttachmentFiles` checks (extension and first bytes) and malware scan apply.
 - **Idempotency.** The form carries its own random id (32 hex digits, made when the page renders). The reply is stored under
   the `Message-ID` `<portal-{application}-{id}@portal.invalid>`, so sending the same form twice, or a retry after a lost answer, stores one
