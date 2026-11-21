@@ -25,7 +25,9 @@ public static partial class CandidateLanguage
             StringComparer.OrdinalIgnoreCase),
         LazyThreadSafetyMode.PublicationOnly);
 
-    [GeneratedRegex("^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8}){0,3}$")]
+    // A language, then up to three script, region or variant subtags. A one-letter subtag starts an extension ("-u-ca-hebrew"
+    // would change the calendar) or a private use, so it is not one. Keep in step with TAG in apps/careers/src/lib/locale.ts.
+    [GeneratedRegex("^[A-Za-z]{2,8}(-[A-Za-z0-9]{2,8}){0,3}$")]
     private static partial Regex TagShape();
 
     [GeneratedRegex(@"[,\s]*d{3,4}[,\s]*")]

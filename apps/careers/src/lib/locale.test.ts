@@ -17,6 +17,7 @@ describe('pickLocale', () => {
 
   it('skips a tag the runtime does not know and moves on', () => {
     expect(pickLocale('xx-ZZ-bogus, de')).toBe('de');
+    expect(pickLocale('en-u-ca-hebrew, en-GB')).toBe('en-GB');
   });
 
   it('reads as en-GB when nothing usable is named', () => {
@@ -47,6 +48,7 @@ describe('firstTag', () => {
     expect(firstTag('')).toBeNull();
     expect(firstTag('*')).toBeNull();
     expect(firstTag('<script>')).toBeNull();
+    expect(firstTag('en-u-ca-hebrew')).toBeNull();
   });
 });
 

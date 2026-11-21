@@ -235,3 +235,46 @@ describe('the job board that sent the candidate', () => {
     expect(sent(fetch).source).toBeNull();
   });
 });
+
+describe("the language of the candidate's browser", () => {
+  const listed = { ...applicationForm, organization: { embedOrigins: [] } } as unknown as PublicApplicationForm;
+  const send = () =>
+    form({
+      organization: 'acme',
+      job: 'barista',
+      step: 'review',
+      state: JSON.stringify({ firstName: 'Sam', email: 'sam@example.com' }),
+    });
+  const saveFirst = () =>
+    form({
+      organization: 'acme',
+      job: 'barista',
+      step: 'page-1',
+      pageQuestions: 'start',
+      'q:start': 'Monday',
+      intent: 'save',
+      state: JSON.stringify({ firstName: 'Sam', email: 'sam@example.com' }),
+    });
+  const sent = (fetch: ReturnType<typeof vi.fn>) => JSON.parse((fetch.mock.calls[1]![1] as RequestInit).body as string);
+
+  it('goes with the application and with the first save, as the first tag of the header, so their emails write dates in it', async () => {
+    const submit = vi.fn().mockResolvedValueOnce(json(200, listed)).mockResolvedValueOnce(json(201, { applicationId: 'x' }));
+    vi.stubGlobal('fetch', submit);
+    await applyStep(send(), undefined, null, new Date(), null, null, 'de-DE,de;q=0.9,en;q=0.8');
+    expect(sent(submit).language).toBe('de-DE');
+
+    const save = vi.fn().mockResolvedValueOnce(json(200, applicationForm)).mockResolvedValueOnce(json(201, { token, expiresAt }));
+    vi.stubGlobal('fetch', save);
+    await applyStep(saveFirst(), undefined, null, new Date(), null, null, 'en-US,en;q=0.9');
+    expect(sent(save).language).toBe('en-US');
+  });
+
+  it('is null when the browser names none', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json(200, listed)).mockResolvedValueOnce(json(201, { applicationId: 'x' }));
+    vi.stubGlobal('fetch', fetch);
+
+    await applyStep(send(), undefined, null, new Date(), null, null, null);
+
+    expect(sent(fetch).language).toBeNull();
+  });
+});

@@ -275,7 +275,8 @@ Authors check their screens against this list, and the `design-review` agent rep
   tab, a filter chip, a button, a sidebar item) the count sits in the grey count badge after its label; in a table it
   is plain text. Steps are square markers on a line. Counts and steps never share a shape. The
   stage rail is a line of those markers in a header, because where a person stands is a header's main fact.
-- **T5** Times follow section 13: time ago in text, dates in tables, the browser's locale, the exact time on hover.
+- **T5** Times follow section 13: time ago in text, dates in tables, the reader's locale (the browser's on the dashboard,
+  the request's `Accept-Language` on careers pages), the exact time on hover.
 - **T6** Anything people edit says who updated it last and how long ago: the last fact in its header ("2 hours ago by
   Avery Quinn") with History beside it, and a Last updated column in its list. ScreenHire's own templates and roles say
   "by ScreenHire". Something nothing has changed since it was created says so: the fact is Created, "2 hours ago by
@@ -923,7 +924,7 @@ Always the reader's locale. The dashboard uses the browser's (US English by defa
 writes every date and time of day with one helper (`apps/careers/src/lib/locale.ts`) from the request's `Accept-Language`,
 the first language `Intl` supports, else en-GB. A candidate's emails use the language recorded with the application (the
 same tag, sent when it was submitted), else en-GB, through one .NET helper (`CandidateLanguage`). Times keep the zone they
-state. The API never sends formatted dates (`.claude/rules/utc-timestamps.md`).
+state, and the zone's name and the words around a date ("to", "Saved until") stay English. The API never sends formatted dates (`.claude/rules/utc-timestamps.md`).
 
 ## 14. Icons
 

@@ -27,6 +27,8 @@ public sealed class CandidateLanguageTests
     [InlineData("<script>alert(1)</script>")]
     [InlineData("en-US, de;q=0.9")]
     [InlineData("x")]
+    [InlineData("en-u-ca-hebrew")]
+    [InlineData("en-x-private")]
     public void Anything_else_is_dropped(string? sent) => CandidateLanguage.Normalize(sent).Should().BeNull();
 
     [Fact]
