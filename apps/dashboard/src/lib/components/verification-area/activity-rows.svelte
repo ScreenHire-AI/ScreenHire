@@ -11,7 +11,8 @@
   import * as Table from '#lib/components/ui/table/index.js';
   import { activityCheckLabel, activityGroupLabels, activityOutcomeLabels, activityOutcomeStatuses, callOutcomeLabels, runLabel } from '#lib/activity-log.js';
   import { formatCost, formatTokens, keySourceLabels, pageSize } from '#lib/ai-usage.js';
-  import { formatDateTime } from '#lib/dates.js';
+  import { formatDate, formatDateTime, formatTime } from '#lib/dates.js';
+  import type { SvelteSet } from 'svelte/reactivity';
   import { describeError } from '#lib/query.js';
   import { cn } from '#lib/utils.js';
 
@@ -20,14 +21,23 @@
   // ones before it. Rendered inside the table, one tbody per page. A row's Outcome is its status and nothing else; the row opens
   // (A9) to its checks: why one did not run, what one found in the candidate tab's words, and for the AI check, with `usage`, the
   // model, key, tokens, cost and the provider's request id (the API sends those only to who can see AI usage). Thresholds,
-  // weights and rules never appear.
-  let { filters, before }: { filters: ListVerificationActivityParams; before?: string } = $props();
+  // weights and rules never appear. Which runs are open is the page's (`open`), so Expand all reaches every page shown; each
+  // page adds its runs to `loaded` for it.
+  let {
+    filters,
+    before,
+    open,
+    loaded,
+  }: { filters: ListVerificationActivityParams; before?: string; open: SvelteSet<string>; loaded: SvelteSet<string> } = $props();
 
   const activity = createListVerificationActivity(() => ({ ...filters, before, limit: pageSize }));
   const page = $derived(activity.data?.data);
   const columns = 3;
   let more = $state(false);
-  let open = $state<Record<string, boolean>>({});
+  $effect(() => {
+    for (const run of page?.runs ?? []) loaded.add(run.id);
+  });
+  const toggle = (id: string) => (open.has(id) ? open.delete(id) : open.add(id));
 
   const detailId = (run: VerificationActivityRun) => `activity-run-${run.id.replace(/[^a-z0-9]/gi, '-')}`;
   const outcomeLabel = (check: VerificationActivityCheck) =>
@@ -56,18 +66,21 @@
 {:else}
   <Table.Body>
     {#each page.runs as run (run.id)}
-      {@const expanded = open[run.id] ?? false}
+      {@const expanded = open.has(run.id)}
       <Table.Row data-run={run.id} data-row-opens class="hover:bg-secondary/60" onclick={(event) => {
         // The whole row opens it; the button inside is the control for keyboards and screen readers.
-        if (!(event.target as HTMLElement).closest('button, a')) open = { ...open, [run.id]: !expanded };
+        if (!(event.target as HTMLElement).closest('button, a')) toggle(run.id);
       }}>
-        <Table.Cell class="whitespace-nowrap tabular-nums"><time datetime={run.at} title={formatDateTime(run.at)}>{formatDateTime(run.at)}</time></Table.Cell>
-        <Table.Cell>
+        <!-- On a phone the time and the run's words wrap, so Outcome stays in view and an opened run fits the panel (F1). -->
+        <Table.Cell class="whitespace-normal tabular-nums">
+          <time datetime={run.at} title={formatDateTime(run.at)}><span class="whitespace-nowrap">{formatDate(run.at)},</span> <span class="whitespace-nowrap">{formatTime(run.at)}</span></time>
+        </Table.Cell>
+        <Table.Cell class="whitespace-normal">
           <button
             type="button"
             aria-expanded={expanded}
             aria-controls={expanded ? detailId(run) : undefined}
-            onclick={() => (open = { ...open, [run.id]: !expanded })}
+            onclick={() => toggle(run.id)}
             class="-mx-1 inline-flex min-h-6 items-center gap-1.5 rounded-sm px-1 text-left focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
           >
             <span>{runLabel(run)}</span>
@@ -139,7 +152,7 @@
   </Table.Body>
   {#if page.nextBefore}
     {#if more}
-      <Self {filters} before={page.nextBefore} />
+      <Self {filters} before={page.nextBefore} {open} {loaded} />
     {:else}
       <tbody>
         <tr>

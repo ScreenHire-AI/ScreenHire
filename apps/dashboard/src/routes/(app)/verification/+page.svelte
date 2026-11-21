@@ -121,7 +121,7 @@
       <Panel title="Monthly limits">
         <div class="flex flex-col gap-4">
           <LimitsSummary {limits} cap={false} />
-          <p><a href="/verification/ai-use" class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">See usage</a></p>
+          <p><a href="/verification/ai-use" class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">See AI use</a></p>
         </div>
       </Panel>
     {/if}

@@ -200,4 +200,38 @@ describe('the Activity log tab', () => {
     expect(requests).toContain('/v1/verification/activity?before=cursor-1&limit=50');
     expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument();
   });
+
+  it('opens and closes every run shown, across pages, with Expand all and Collapse all, and starts closed again on a new filter (A9)', async () => {
+    renderPage(
+      {
+        'limit=50': { runs: [withoutCallDetails(run)], nextBefore: 'cursor-1', usageVisible: false },
+        'before=cursor-1&limit=50': { runs: [quiet], nextBefore: null, usageVisible: false },
+        'outcome=Found&limit=50': { runs: [withoutCallDetails(run)], nextBefore: null, usageVisible: false },
+      },
+      userAs('Recruiter'),
+    );
+    await runButton(/Frontend Engineer/);
+    // One run has nothing to expand all of.
+    expect(screen.queryByRole('button', { name: 'Expand all' })).not.toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+    const second = await runButton(/Support Engineer/);
+    const first = screen.getByRole('button', { name: /Frontend Engineer/ });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));
+    expect(first).toHaveAttribute('aria-expanded', 'true');
+    expect(second).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.queryByRole('button', { name: 'Expand all' })).not.toBeInTheDocument();
+
+    await fireEvent.click(second);
+    expect(screen.getByRole('button', { name: 'Expand all' })).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }));
+    expect(first).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: 'Collapse all' })).not.toBeInTheDocument();
+
+    await fireEvent.click(first);
+    await fireEvent.change(screen.getByRole('combobox', { name: 'Filter by outcome' }), { target: { value: 'Found' } });
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument());
+    expect(await runButton(/Frontend Engineer/)).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: /Expand all|Collapse all/ })).not.toBeInTheDocument();
+  });
 });

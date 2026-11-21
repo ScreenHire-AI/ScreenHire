@@ -10,10 +10,14 @@ export const day = 24 * hour;
 
 const date = new Intl.DateTimeFormat(locales, { dateStyle: 'medium' });
 const dateTime = new Intl.DateTimeFormat(locales, { dateStyle: 'medium', timeStyle: 'short' });
+const time = new Intl.DateTimeFormat(locales, { timeStyle: 'short' });
 const relative = new Intl.RelativeTimeFormat(locales, { numeric: 'auto' });
 
 /** The date, for tables and old events: `Oct 20, 2026`. */
 export const formatDate = (iso: string) => date.format(new Date(iso));
+
+/** The time alone, beside a `formatDate` where a narrow column may put it on a line of its own: `2:30 PM`. */
+export const formatTime = (iso: string) => time.format(new Date(iso));
 
 /** The exact date and time, for the `title` of a `<time>`: `Oct 20, 2026, 2:30 PM`. */
 export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));

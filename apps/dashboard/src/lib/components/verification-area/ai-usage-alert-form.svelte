@@ -65,7 +65,7 @@
   <div class="flex flex-wrap items-center justify-end gap-2">
     <FailureText message={$errors._errors?.[0]} class="mr-auto" />
     <p role="status" class="mr-auto text-muted-foreground empty:hidden">{$errors._errors ? '' : saved}</p>
-    <Button type="submit" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save</Button>
+    <Button type="submit" variant="outline" size="lg" disabled={$submitting}><SaveIcon aria-hidden="true" />Save alert</Button>
   </div>
 {/snippet}
 

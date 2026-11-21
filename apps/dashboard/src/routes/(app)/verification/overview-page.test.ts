@@ -125,7 +125,7 @@ describe('the Overview tab', () => {
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
     expect(screen.getAllByText('420 tokens of 2,000,000 tokens').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'See usage' })).toHaveAttribute('href', '/verification/ai-use');
+    expect(screen.getByRole('link', { name: 'See AI use' })).toHaveAttribute('href', '/verification/ai-use');
   });
 
   it('shows the budget in billed dollars where the deployment prices its model, with no estimate to explain', async () => {
@@ -143,7 +143,7 @@ describe('the Overview tab', () => {
 
       expect(await screen.findByText('Applications checked')).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'Monthly limits' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('link', { name: 'See usage' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'See AI use' })).not.toBeInTheDocument();
     });
   });
 

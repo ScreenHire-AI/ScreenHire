@@ -88,6 +88,10 @@ describe('the AI use tab', () => {
     ]);
     // The consistency check is a Checks setting now; nothing here turns a group of checks on or off.
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    // Three forms save on their own, so each Save names what it saves and only the key's is filled (A1).
+    const saves = screen.getAllByRole('button', { name: /^Save/ });
+    expect(saves.map((button) => button.textContent?.trim())).toEqual(['Save limits', 'Save alert', 'Save']);
+    expect(saves.filter((button) => /\bbg-primary(?!\/)/.test(button.className))).toHaveLength(1);
     await expectNoAxeViolations();
   });
 
@@ -302,7 +306,7 @@ describe('the AI usage alert', () => {
     expect(within(form).getByText(/Always\./)).toBeInTheDocument();
 
     await fireEvent.click(within(form).getByRole('checkbox', { name: 'AI usage on Slack, as a direct message' }));
-    await fireEvent.click(within(form).getByRole('button', { name: 'Save' }));
+    await fireEvent.click(within(form).getByRole('button', { name: 'Save alert' }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
     expect(bodies[0]).toMatchObject({ alerts: { suggestedEmail: true, suggestedSlack: false, budgetEmail: false, budgetSlack: true } });
@@ -313,7 +317,7 @@ describe('the AI usage alert', () => {
 
     const form = await screen.findByRole('form', { name: 'AI usage alert' });
     expect(within(form).queryByRole('checkbox')).not.toBeInTheDocument();
-    expect(within(form).queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    expect(within(form).queryByRole('button', { name: 'Save alert' })).not.toBeInTheDocument();
     expect(form).not.toHaveTextContent(/slack/i);
   });
 });

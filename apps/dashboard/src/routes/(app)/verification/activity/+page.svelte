@@ -1,5 +1,6 @@
 <script lang="ts">
   import DownloadIcon from '~icons/lucide/download';
+  import { SvelteSet } from 'svelte/reactivity';
   import type { AiKeySource, CheckGroup, ListVerificationActivityParams, VerificationActivityOutcome } from '@screenhire/api-client';
   import { getExportVerificationActivityUrl } from '@screenhire/api-client/svelte-query';
   import Panel from '#lib/components/panel.svelte';
@@ -47,6 +48,12 @@
     ...(outcome ? { outcome } : {}),
   });
   const exportUrl = $derived(getExportVerificationActivityUrl(filters));
+  // Which runs are open, and every run the pages below have loaded, for Expand all (A9). Both start again with the filters,
+  // as the rows do.
+  const runs = $derived.by(() => {
+    void JSON.stringify(filters);
+    return { open: new SvelteSet<string>(), loaded: new SvelteSet<string>() };
+  });
   const groups = Object.keys(activityGroupLabels) as CheckGroup[];
   const outcomes = activityOutcomeFilters;
 </script>
@@ -57,6 +64,11 @@
 
 <Panel label="Activity" flush>
   {#snippet actions()}
+    <!-- Each shows only while it would change something, never disabled (A3). -->
+    {#if runs.loaded.size > 1}
+      {#if runs.open.size < runs.loaded.size}<Button variant="outline" onclick={() => runs.loaded.forEach((id) => runs.open.add(id))}>Expand all</Button>{/if}
+      {#if runs.open.size > 0}<Button variant="outline" onclick={() => runs.open.clear()}>Collapse all</Button>{/if}
+    {/if}
     {#if usage}
       <Button href={exportUrl} download variant="outline" size="default"><DownloadIcon aria-hidden="true" />Export CSV</Button>
     {/if}
@@ -91,7 +103,7 @@
       </Table.Row>
     </Table.Header>
     {#key JSON.stringify(filters)}
-      <ActivityRows {filters} />
+      <ActivityRows {filters} open={runs.open} loaded={runs.loaded} />
     {/key}
   </Table.Root>
 </Panel>
