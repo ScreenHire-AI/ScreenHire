@@ -115,7 +115,7 @@ The file holds passwords. Keep it out of backups and delete it when the deployme
 | `calendar-google-client-id`, `calendar-microsoft-client-id` | Calendar apps | no |
 | `turnstile-site-key` | Cloudflare Turnstile | no |
 | `google-indexing-mode` | `Off` (default) or `Google` | no |
-| `verification-llm-provider`, `verification-llm-extraction-model`, `verification-llm-consistency-model` | `None` (default) or `Anthropic` and the model ids. Model ids live here and nowhere else. | no |
+| `verification-llm-provider`, `verification-llm-extraction-model`, `verification-llm-consistency-model` | `None` (default) or `Anthropic` and the model ids, for the API and the worker. Model ids live here and nowhere else. | no |
 
 These secrets are required, and the deployment writes them into the Key Vault under the name shown:
 
@@ -333,7 +333,9 @@ done
 - **Google Indexing.** A Google service account that owns the careers domain in Search Console, `google-indexing-mode` set to
   `Google`, its key JSON in the vault. The real client has never run.
 - **The consistency check.** `verification-llm-provider` to `Anthropic`, the two model ids, and the key in the vault. Add the
-  provider to the sub-processor list and the DPA first.
+  provider to the sub-processor list and the DPA first. Price each model in the vault too
+  (`ScreenHire--Verification--Llm--Prices--<modelId>--Input` and `--Output`, US dollars per million tokens): the usage ledger shows
+  costs, and the default budget and cap show in dollars instead of tokens ([AI usage](../architecture/ai-usage.md#settings)).
 
 ### 9. Proxies and client addresses
 

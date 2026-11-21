@@ -158,7 +158,7 @@ Authors check their screens against this list, and the `design-review` agent rep
   tabs. A description is one plain sentence. On anything people edit, Last updated is the last fact, with History
   beside it (T6).
 - **S3** Every section is a panel with its title inside a fixed-height header. Nothing readable sits on the page
-  background.
+  background, except a record page's closing audit line (W10).
 - **S4** Panels in a row share a top edge. No card inside a card.
 - **S5** Insets only inside a surface. Panels and cards take the soft surface shadow; raised and overlay layers take
   theirs (section 6). Nothing else casts a shadow.
@@ -263,8 +263,10 @@ Authors check their screens against this list, and the `design-review` agent rep
   A page that starts work outside ScreenHire, such as adding DNS records, says what will happen before anyone starts, in a
   How it works panel with its steps.
 - **W10** What to do comes first; audit details come last. When something was assessed, under which ruleset, a code
-  or an id goes on a panel's last line in caption size, never above the next step. A calm result is shorter than a
-  concern: one quiet line, not the full layout.
+  or an id goes on a panel's last line in caption size, never above the next step. Where a page's audit line speaks for
+  the whole page, such as the Verification tab's "No automated decision has been made" and its ruleset, it is the page's
+  last line instead, under every panel and in none of them (section 16). A calm result is shorter than a concern: one
+  quiet line, not the full layout.
 - **T1** Status is a badge: its icon, colour and label, always all three (section 3.2). The icon alone tells statuses
   apart. Status colours mean status only.
 - **T2** Status comes first in its group: beside the title, or first in the row.
@@ -979,7 +981,7 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   badge's tooltip and screen-reader text. It never changes, sorts, filters or counts toward the level, and it has no
   Dismiss.
 - A map of the six groups follows, one tile per group, each a link to its panel with one state in icon, colour and words:
-  "2 found" (counts toward the level, the review status at any level), "1 note, information only" (AI help and context
+  "2 found" (counts toward the level, the review status at any level), "1 note" (AI help and context
   that never counts; the sparkles only when every note is AI help, otherwise the grey `info` mark), "Nothing
   found", "Not checked" (a candidate a recruiter added by hand came through no careers form, so Network and Form use had
   nothing to look at; it goes by the application's source alone, so a careers applicant who turned telemetry off with

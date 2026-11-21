@@ -81,8 +81,8 @@ subsystem.
   the API and worker alike; see [`docs/architecture/job-distribution.md`](docs/architecture/job-distribution.md) §5.
   `ScreenHire:Verification:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
   `anthropic-api-key` secret; `Prices:<modelId>:Input|Output` in US dollars per million tokens, `DefaultMonthlyTokenBudget` and
-  `DefaultMonthlyTokenCap`) goes to the worker, and to the API, which reads `Provider` to test an organization's own key (Anthropic, OpenAI, OpenRouter,
-  Azure OpenAI, Google Gemini or any OpenAI-compatible address). `ScreenHire:AiUsage:*` (the spike rule and the resume batch) goes to the API and worker alike; see
+  `DefaultMonthlyTokenCap`) goes to the worker and the API alike: the API reads `Provider` to test an organization's own key (Anthropic, OpenAI, OpenRouter,
+  Azure OpenAI, Google Gemini or any OpenAI-compatible address), and the prices, model ids and defaults to show the default budget and cap in dollars. `ScreenHire:AiUsage:*` (the spike rule and the resume batch) goes to the API and worker alike; see
   [`docs/architecture/ai-usage.md`](docs/architecture/ai-usage.md). `ScreenHire:Slack:*` (real Slack with `ClientId` and the
   `slack-client-secret` parameter, or `Sandbox:Enabled` for the local sandbox workspace; off in `pnpm dev`, on in the
   test stacks) goes to the API and worker alike; see [`docs/architecture/slack.md`](docs/architecture/slack.md).

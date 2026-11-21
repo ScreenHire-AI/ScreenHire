@@ -112,12 +112,15 @@ rest of Verification cannot change spend controls. The month is the UTC calendar
   dollars: the Overview's AI budget panel, the Usage tab and the Notifications tab all read the same figure. The API prices it at the
   model that answers on ScreenHire's key (`LlmOptions.ConfiguredPrice`: the comparison model for Anthropic, the fake model for Fake)
   and a fixed mix of 80% input and 20% output tokens (`AiUsageMix.InputShare`: the consistency check reads long sources and answers
-  briefly). At 1.00 in and 4.00 out per million tokens that is 1.60 dollars per million, so 2,000,000 tokens show as $3.20, and what
-  was used is the month's tokens at the same price. It is a display estimate: the default is still enforced in tokens, and the share
-  (`percent`, the alerts at 50%, 80% and 100%, the cap) is the token one, so the figure can differ from the month's actual cost on
-  the Usage tab. Where the model has no input and output price in `Llm:Prices`, the default stays in tokens. Each limit counts in
-  its own unit: once an Owner sets a budget, that budget keeps the unit they chose, and a cap they left alone is still the default in
-  dollars. The API reads `Llm:Prices`, the model ids and the defaults, which the AppHost forwards to it as to the worker.
+  briefly). At 1.00 in and 4.00 out per million tokens that is 1.60 dollars per million, so 2,000,000 tokens show as $3.20. What was
+  used against it is the month's actual cost, the same figure as the Usage tab's Cost, so one page never shows two costs for one
+  month. The dollar default is an estimate: it is still enforced in tokens, and the share (`percent`, the alerts at 50%, 80% and
+  100%, the cap) is the token one, so near a threshold the dollars and the share can disagree by the gap between the usual mix and
+  the month's real one. Where the model has no input and output price in `Llm:Prices`, the default stays in tokens. Each limit counts
+  in its own unit: once an Owner sets a budget, that budget keeps the unit they chose, and a cap they left alone is still the default
+  in dollars. With no limit of its own, the Owner's limits form starts in the default's unit and names its figure ("$3.20 a month"),
+  so a number typed after reading the Overview is dollars too. The API reads `Llm:Prices`, the model ids and the defaults, which the
+  AppHost forwards to it as to the worker, and which a deployment gives both (below).
 - **Resuming.** Raising or removing the cap, and a daily run at 05:12 UTC, ask again for the paused checks of an organization whose
   cap now allows it, `ResumeBatchSize` (200) at a time: a full batch sends the next one, after the last check it asked again. The asked-again check runs, and the pipeline reads it again, so the tab stops saying the AI
   checks were paused.
@@ -167,8 +170,10 @@ billing. With no retention set, nothing is deleted.
 
 `ScreenHire:Verification:Llm:*` (the prices, the default budget and cap) goes to the worker and the API, `ScreenHire:AiUsage:*`
 to the API and the worker, and `ScreenHire:Billing:Ai:*` to the API and the worker; the header of `apps/apphost/AppHost.cs` lists them. The
-worker's Development settings price the fake model so the local demo and the tests show costs. Prices for the deployed models are
-the owner's to set.
+worker's and the API's Development settings price the fake model, so the local demo and the tests show costs and the default in
+dollars. In a deployment the API and the worker both get the provider and the model ids (`verification-llm-*` parameters,
+`AzurePublish.cs`), and both load the Key Vault into configuration at start, so the owner prices a deployed model once, as vault
+secrets `ScreenHire--Verification--Llm--Prices--<modelId>--Input` and `--Output`. Until then the default shows in tokens.
 
 ## Not recorded
 
