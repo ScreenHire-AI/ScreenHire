@@ -15,7 +15,7 @@
       "color": "#8b5cf6",
       "autoSpawn": true,
       "permissionMode": "plan",
-      "modelOverride": "sonnet",
+      "modelOverride": "opus",
       "effortOverride": "high",
       "planApproval": "automatic",
       "automations": {
@@ -39,7 +39,7 @@
       "icon": "square-terminal",
       "autoSpawn": true,
       "permissionMode": "auto",
-      "modelOverride": "sonnet",
+      "modelOverride": "opus",
       "effortOverride": "high",
       "automations": {
         "onTurnEnd": [

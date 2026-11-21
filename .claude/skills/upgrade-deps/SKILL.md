@@ -196,8 +196,8 @@ Attach the briefs rather than copy them into the description, because the attach
 prompt anyway. Keep the description to the plan a person reads on the card, and under 25,000 characters, which leaves
 room for the briefs' paths. The field allows 27,500, and the paths ride the same command line.
 
-The `Upgrade` Board Profile runs Executing and Testing on Opus at high effort. This board runs both on Sonnet, and on an
-upgrade task Executing is where the migration happens, and Testing is where `/pull-request` fixes code when CI fails.
+The `Upgrade` Board Profile runs Executing and Testing on Opus at high effort. This board runs Executing on Opus and Testing
+on Sonnet, and on an upgrade task Testing is where `/pull-request` fixes code when CI fails.
 If the board has no such profile, file without one and say so in the report.
 
 **Set no `autoCommand`, `modelOverride`, `effortOverride`, `agentOverride` or `permissionMode`.** The columns and the

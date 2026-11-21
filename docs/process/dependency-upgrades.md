@@ -164,8 +164,8 @@ full run mocked one up inside an upgrade and the mockup read as finished work.
 | Research, `aspire`, `wolverine`, and the majors of the EF Core providers, Svelte, SvelteKit, Astro and Vite | Opus |
 | Executing and Testing on an upgrade task | Opus at high effort, through the `Upgrade` Board Profile |
 
-This board runs Executing and Testing on Sonnet. On an upgrade task, Executing is where the migration happens, and
-Testing is where `/pull-request` fixes code when CI fails, so the profile lifts both. Kangentic measured that Haiku is
+This board runs Executing on Opus and Testing on Sonnet. On an upgrade task, Testing is where `/pull-request` fixes
+code when CI fails, so the profile lifts it to Opus as well. Kangentic measured that Haiku is
 fine at reading but over-flags and misjudges reach, which is why its briefs are escalated before planning.
 
 ## Commands that behave differently here
