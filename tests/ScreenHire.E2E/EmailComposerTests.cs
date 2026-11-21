@@ -72,6 +72,9 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
         var messages = Page.GetByRole(AriaRole.Region, new() { Name = "Messages", Exact = true });
         var row = messages.GetByRole(AriaRole.List, new() { Name = "Emails" }).GetByRole(AriaRole.Button).Filter(new() { HasText = $"Interview {marker}" });
         await Expect(row).ToBeVisibleAsync(new() { Timeout = 30_000 });
+        // A compact row to scan: who sent it and the email's first line that says something (not "Hi Casey,"), before it opens.
+        await Expect(row).ToContainTextAsync("Sent by you");
+        await Expect(row.Locator("[data-email-snippet]")).ToHaveTextAsync($"Your portfolio stood out {marker}.");
         await row.ClickAsync();
         await Expect(row).ToHaveAttributeAsync("aria-expanded", "true");
         // The row names the subject; the opened email does not repeat it (W4).
@@ -79,6 +82,12 @@ public sealed class EmailComposerTests(E2EFixture fixture) : BrowserTest(fixture
         await Expect(messages.FrameLocator("iframe[title='Email preview']").Locator("body")).ToContainTextAsync($"Your portfolio stood out {marker}.");
         await Expect(messages).Not.ToContainTextAsync("repl", new() { IgnoreCase = true });
         await ExpectNoAccessibilityViolationsAsync();
+
+        // Email and Plain text sit on the opened email's own line, beside who it went to, and switch it to the text part.
+        var opened = messages.Locator("[data-email-preview]");
+        await Expect(opened.GetByText($"To {scene.CaseyEmail}")).ToBeVisibleAsync();
+        await opened.GetByRole(AriaRole.Button, new() { Name = "Plain text" }).ClickAsync();
+        await Expect(opened.Locator("[data-email-text]")).ToContainTextAsync($"Your portfolio stood out {marker}.");
     }
 
     [Fact]

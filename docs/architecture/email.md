@@ -35,6 +35,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/email-composer.svelte
   - resource: apps/dashboard/src/lib/components/email-composer-sheet.svelte
   - resource: apps/dashboard/src/lib/components/candidate/messages-tab.svelte
+  - resource: apps/dashboard/src/lib/email-history.ts
+  - resource: apps/api/Email/EmailSnippet.cs
   - resource: src/ScreenHire.Application/Applications/ApplicationNotes.cs
   - resource: apps/api/Applications/ApplicationDrafts.cs
   - resource: src/ScreenHire.Domain/Applications/CandidateLanguage.cs
@@ -63,6 +65,7 @@ sources:
   - resource: apps/api/Contracts/SendingDomainContracts.cs
   - resource: apps/dashboard/src/routes/(app)/settings/sending-domain/+page.svelte
   - resource: apps/dashboard/src/lib/components/candidate/received-email.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/sent-email.svelte
   - resource: apps/dashboard/src/lib/email-issue.ts
   - resource: apps/dashboard/src/lib/received-email.ts
   - resource: apps/dashboard/src/lib/sending-domain.ts
@@ -195,7 +198,11 @@ the reason.
 ## Messages
 
 `GET /v1/candidates/{candidateId}/emails` lists every email to the candidate, about any of their applications, newest
-first: the subject, who or which automation sent it, when, the job, and `kept`. `GET /v1/emails/{emailId}` returns one
+first: the subject, who or which automation sent it, when, the job, `kept`, and `snippet`. The snippet is the first line
+of the text part that says something: not a lone greeting such as "Hi Casey,", and never the quoted email under a reply.
+`EmailSnippet` cuts it at a word to 140 characters and reads only the first 400 characters of the text from the
+database. A reply also has `inReplyTo`, the id of the sent email it answers
+(the send its reply address named), so the tab shows it under that email. `GET /v1/emails/{emailId}` returns one
 email as it went: the address, the subject, the HTML part and the plain-text part. Emails sent before copies were kept
 have only their subject (`kept` is false), and Messages says so. A copy is never changed: the application role cannot
 update `application_emails`, and a copy goes with its application. Every member reads them, viewers included.

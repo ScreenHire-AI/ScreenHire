@@ -10485,7 +10485,9 @@ export const ListCandidateEmailsResponseItem = zod.object({
   "kept": zod.boolean(),
   "direction": zod.enum(['Sent', 'Received']).default(listCandidateEmailsResponseDirectionDefault).describe('Which way an email in Messages went.'),
   "fromAddress": zod.string().nullish(),
-  "attachmentCount": zod.int().default(listCandidateEmailsResponseAttachmentCountDefault)
+  "attachmentCount": zod.int().default(listCandidateEmailsResponseAttachmentCountDefault),
+  "snippet": zod.string().nullish(),
+  "inReplyTo": zod.uuid().nullish()
 }).describe('One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\nfor an email sent before ScreenHire kept each email\'s copy: only its subject is known.')
 export const ListCandidateEmailsResponse = zod.array(ListCandidateEmailsResponseItem)
 

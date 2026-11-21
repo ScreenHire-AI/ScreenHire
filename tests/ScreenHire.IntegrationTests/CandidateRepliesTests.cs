@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using ScreenHire.IntegrationTests.Automations;
 using ScreenHire.IntegrationTests.Messaging;
@@ -30,7 +31,15 @@ public sealed class CandidateRepliesTests(AppHostFixture fixture)
             html: "<p>Yes, <b>Thursday</b> works.</p><script>alert(1)</script>");
         outcome.Should().Be("Stored");
 
-        var received = (await owner.MessagesAsync(sent.CandidateId)).Received().Should().ContainSingle().Subject;
+        var messages = await owner.MessagesAsync(sent.CandidateId);
+        var received = messages.Received().Should().ContainSingle().Subject;
+        // Each row has the first line of its text, and the reply names the email it answers, so Messages shows it under that one.
+        received.GetProperty("inReplyTo").GetGuid().Should().Be(sent.SendId);
+        received.GetProperty("snippet").GetString().Should().Be("Yes, Thursday works for me. Zebra-quartz-77.");
+        var original = messages.Should().ContainSingle(m => m.GetProperty("direction").GetString() == "Sent").Subject;
+        original.GetProperty("id").GetGuid().Should().Be(sent.SendId);
+        original.GetProperty("snippet").GetString().Should().Be("Hello, can we talk?");
+        original.GetProperty("inReplyTo").ValueKind.Should().Be(JsonValueKind.Null);
         received.GetProperty("fromAddress").GetString().Should().Be(sent.Address);
         received.GetProperty("subject").GetString().Should().Be("Re: Next steps");
         received.GetProperty("attachmentCount").GetInt32().Should().Be(0);
