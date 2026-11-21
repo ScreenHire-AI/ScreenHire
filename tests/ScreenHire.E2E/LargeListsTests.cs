@@ -24,7 +24,8 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
         _ = await SignedInAsync(width, height);
 
         await GoToPageAsync("/", "Jobs");
-        await ExpectCountAsync("26 jobs");
+        // The count is on the All pill, as on every list page; the title has none.
+        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "Status" }).GetByRole(AriaRole.Button, new() { NameRegex = new("^All") })).ToContainTextAsync("26");
         await ExpectFitsAsync($"jobs-{width}");
         await SearchAsync("Kitchen Manager 01", "Kitchen Manager 01", "Kitchen Manager 08");
 
@@ -89,10 +90,10 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await GoToPageAsync("/candidates", "Candidates");
         // Every application is counted, the busy job's and the other job's, though a phone lists a page of them.
-        // The count is on the List choice in the header band; the table panel is titled Candidates and carries none (W7).
-        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "List", Exact = true }))
+        // The count is on the list's tab under the title; the table panel is named after the list and carries none (W7).
+        await Expect(Page.GetByRole(AriaRole.Tablist, new() { Name = "Candidate lists", Exact = true }))
             .ToContainTextAsync(BusyOrganization.Number(BusyOrganization.Applications + BusyOrganization.OtherApplications));
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Candidates", Exact = true }).Locator("header [data-slot='badge']")).ToHaveCountAsync(0);
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Current candidates", Exact = true }).Locator("header [data-slot='badge']")).ToHaveCountAsync(0);
         await ExpectFitsAsync($"candidates-{width}");
         if (width < 768)
         {
@@ -109,7 +110,7 @@ public sealed class LargeListsTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await GoToPageAsync("/tasks", "My tasks");
         // The tasks have no assignee, so they are the team's, and the toggle counts them.
-        await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^For the team") })).ToContainTextAsync(BusyOrganization.Number(BusyOrganization.Count));
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^For the team") })).ToContainTextAsync(BusyOrganization.Number(BusyOrganization.Count));
         await ExpectFitsAsync($"tasks-{width}");
 
         await GoToPageAsync("/settings/team", "Team");

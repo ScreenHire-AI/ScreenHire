@@ -20045,7 +20045,10 @@
           "timeToHire",
           "sources",
           "openJobs",
-          "lastApplicationAt"
+          "lastApplicationAt",
+          "lastInterviewAt",
+          "lastOfferAt",
+          "lastHireAt"
         ],
         "type": "object",
         "properties": {
@@ -20098,6 +20101,27 @@
             }
           },
           "lastApplicationAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastInterviewAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastOfferAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastHireAt": {
             "type": [
               "null",
               "string"

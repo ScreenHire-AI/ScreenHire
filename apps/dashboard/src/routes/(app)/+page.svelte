@@ -273,8 +273,6 @@
   <!-- The page's primary action; a phone has it in the action bar (section 8). -->
   <HeaderBand
     title="Jobs"
-    count={jobs.isSuccess ? all.length : undefined}
-    countLabel={all.length === 1 ? 'job' : 'jobs'}
     actions={sidebar.isMobile ? undefined : newJob}
   />
 
@@ -287,7 +285,7 @@
     {#if refused}<PlanProblemNotice problem={refused} />{/if}
     <Panel title={panelTitle} flush footer={failure ? failureFooter : undefined}>
       {#snippet tools()}
-        <SearchField bind:value={search} label="Search jobs" class="ml-auto flex-[0_1_15rem]" />
+        <SearchField bind:value={search} label="Search jobs" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
       {/snippet}
 
       <!-- The status filter: one line that scrolls inside the panel rather than wrapping (F5). On a phone the Sort chip
@@ -295,8 +293,11 @@
       <div class="flex items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
         <div class="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]">
           <div role="group" aria-label="Status" class="flex w-max gap-1">
-            <!-- All's count is the header's (W4). -->
-            <Toggle size="lg" bind:pressed={() => statusFilter === null, () => chooseStatus(null)}>All</Toggle>
+            <!-- Every pill carries its count, All included, as on every list page (section 11); the title has none. -->
+            <Toggle size="lg" bind:pressed={() => statusFilter === null, () => chooseStatus(null)}>
+              All
+              {#if jobs.isSuccess}<Badge variant="count">{all.length}</Badge>{/if}
+            </Toggle>
             {#each statuses as status (status)}
               <Toggle size="lg" bind:pressed={() => statusFilter === status, () => chooseStatus(status)}>
                 {jobStatus[status].label}

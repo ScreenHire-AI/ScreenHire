@@ -65,6 +65,7 @@
       </Hint>
     {/if}
     {#if share}<p class="basis-full text-caption text-muted-foreground">{share}</p>{/if}
-    {#if footnote}<p class="basis-full text-caption text-muted-foreground">{@render footnote()}</p>{/if}
   </Card.Content>
+  <!-- On the card's bottom edge, so the lines of a row of cards line up whichever value wrapped above them. -->
+  {#if footnote}<Card.Content class="mt-auto"><p class="text-caption text-muted-foreground">{@render footnote()}</p></Card.Content>{/if}
 </Card.Root>

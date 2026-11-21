@@ -28,4 +28,10 @@ export interface HiringReport {
   openJobs: ReportOpenJob[];
   /** @nullable */
   lastApplicationAt: string | null;
+  /** @nullable */
+  lastInterviewAt: string | null;
+  /** @nullable */
+  lastOfferAt: string | null;
+  /** @nullable */
+  lastHireAt: string | null;
 }

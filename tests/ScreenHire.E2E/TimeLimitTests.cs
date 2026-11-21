@@ -35,7 +35,7 @@ public sealed class TimeLimitTests(E2EFixture fixture) : BrowserTest(fixture)
         // the Overdue column that follows it.
         await Page.GotoAsync(DashboardUrl("/candidates?view=overdue"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Overdue");
-        var applications = Page.GetByRole(AriaRole.Region, new() { Name = "Candidates", Exact = true });
+        var applications = Page.GetByRole(AriaRole.Region, new() { Name = "Current candidates", Exact = true });
         var row = applications.GetByRole(AriaRole.Row).Filter(new() { Has = Page.GetByRole(AriaRole.Link, new() { Name = Waiting, Exact = true }) });
         await Expect(applications.GetByRole(AriaRole.Columnheader, new() { Name = "Overdue", Exact = true })).ToBeVisibleAsync();
         await Expect(row.GetByRole(AriaRole.Cell, new() { Name = "Screening", Exact = true })).ToBeVisibleAsync();

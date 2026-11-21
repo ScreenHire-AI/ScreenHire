@@ -4,6 +4,16 @@ import { isTerminal } from './workflow.js';
 /** The Candidates page's three lists (docs/architecture/talent-pool.md): who is in play, who was saved, and everyone. */
 export type CandidateList = 'current' | 'saved' | 'all';
 
+/** The three lists in their order, as the tabs under the Candidates title name them. */
+export const candidateLists: readonly { value: CandidateList; label: string }[] = [
+  { value: 'current', label: 'Current' },
+  { value: 'saved', label: 'Saved' },
+  { value: 'all', label: 'All' },
+];
+
+/** A list's address: Current has none, so a link to Candidates is the Current list, and nothing else rides along. */
+export const candidateListHref = (list: CandidateList) => (list === 'current' ? '/candidates' : `/candidates?list=${list}`);
+
 /** The list an address asks for: `?list=saved` or `?list=all`, and Current otherwise. */
 export function listOf(params: Pick<URLSearchParams, 'get'>): CandidateList {
   const list = params.get('list');
@@ -27,7 +37,7 @@ export const isCurrentApplication = (
 /** How many people each list holds; a list whose query has not answered yet has no count. */
 export type ListCounts = Partial<Record<CandidateList, number>>;
 
-/** The switch's counts from the application list and the saved people's count, as the two queries answer. */
+/** The tabs' counts from the application list and the saved people's count, as the two queries answer. */
 export const listCounts = (
   applications: readonly ApplicationSummary[] | undefined,
   saved: number | undefined,

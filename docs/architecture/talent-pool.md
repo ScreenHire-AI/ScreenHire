@@ -17,7 +17,7 @@ sources:
   - resource: apps/careers/src/pages/[organization]/talent-pool/[token].astro
   - resource: apps/careers/src/lib/talent-pool.ts
   - resource: apps/dashboard/src/lib/components/saved-candidates.svelte
-  - resource: apps/dashboard/src/lib/components/candidates-list-switch.svelte
+  - resource: apps/dashboard/src/lib/components/candidates-list-tabs.svelte
   - resource: apps/dashboard/src/lib/talent-pool.ts
   - resource: apps/dashboard/src/lib/components/save-candidate-sheet.svelte
   - resource: apps/dashboard/src/lib/components/edit-saved-note-sheet.svelte
@@ -117,8 +117,8 @@ The entry belongs to its application (`IApplicationScoped`), so it has the restr
 Only jobs they're on sees the people saved from their own jobs (ADR-0015). It cascades with the application and the
 candidate.
 
-`GET /v1/talent-pool` lists everyone saved whose permission still holds. **Saved candidates** is the Saved choice on the
-Candidates page, beside its title (G then S goes to `/candidates?list=saved`; `/saved` and `/talent-pool` redirect there).
+`GET /v1/talent-pool` lists everyone saved whose permission still holds. **Saved candidates** is the Saved tab on the
+Candidates page, under its title (G then S goes to `/candidates?list=saved`; `/saved` and `/talent-pool` redirect there).
 The page's other two lists are Current, the people in a hiring process now (an application on a job that is not closed,
 neither saved nor at an end stage), and All, every application (`?list=all`). A saved person shows only under Saved and All.
 It is the list template: search over name, email, job

@@ -117,7 +117,7 @@ public sealed class ScorecardRequestTests(E2EFixture fixture) : BrowserTest(fixt
         await recruiterPage.SetViewportSizeAsync(1440, 1000);
 
         await recruiterPage.GotoAsync(DashboardUrl("/tasks"));
-        var tasks = recruiterPage.GetByRole(AriaRole.Region, new() { Name = "Tasks", Exact = true });
+        var tasks = recruiterPage.GetByRole(AriaRole.Region, new() { Name = "Open tasks", Exact = true });
         var row = tasks.GetByRole(AriaRole.Row, new() { NameRegex = new(Candidate) }).GetByRole(AriaRole.Link, new() { Name = "Fill in the Interview scorecard." });
         await Expect(row).ToBeVisibleAsync();
         await Expect(tasks.GetByRole(AriaRole.Checkbox)).ToHaveCountAsync(0);

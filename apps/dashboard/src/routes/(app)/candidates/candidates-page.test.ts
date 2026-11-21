@@ -41,19 +41,18 @@ const render_ = (rows: ApplicationSummary[] = applications, reachedIds: string[]
 };
 
 describe('candidates page', () => {
-  it('counts each list on its choice and what the filters show in the table panel, and puts no count beside the title (S8)', async () => {
+  it('counts each list on its tab under the title, as every list page does, and puts no count beside the title', async () => {
     render_();
 
     const heading = await screen.findByRole('heading', { level: 1, name: 'Candidates' });
     const band = heading.closest<HTMLElement>('[data-slot="header-band"]')!;
-    const list = within(band).getByRole('group', { name: 'List' });
-    await waitFor(() => expect(within(list).getByRole('link', { name: `Current ${applications.length}` })).toBeInTheDocument());
-    expect(within(list).getByRole('link', { name: 'Saved 0' })).toBeInTheDocument();
-    expect(within(list).getByRole('link', { name: `All ${applications.length}` })).toBeInTheDocument();
-    // A count beside the title changed width between the lists and slid the switch, so the band has none.
+    const list = within(band).getByRole('tablist', { name: 'Candidate lists' });
+    await waitFor(() => expect(within(list).getByRole('tab', { name: `Current ${applications.length}` })).toBeInTheDocument());
+    expect(within(list).getByRole('tab', { name: 'Saved 0' })).toBeInTheDocument();
+    expect(within(list).getByRole('tab', { name: `All ${applications.length}` })).toBeInTheDocument();
     expect([...heading.parentElement!.querySelectorAll('[data-slot="badge"]')].every((badge) => list.contains(badge))).toBe(true);
-    // The panel is titled Candidates and says no count: the list switch and the filters already give it (W7).
-    const panel = screen.getByRole('region', { name: 'Candidates' });
+    // The panel is named after the list and says no count: the tab and the filters already give it (W7).
+    const panel = screen.getByRole('region', { name: 'Current candidates' });
     expect(within(panel.querySelector('header')!).queryByText(`${applications.length}`, { selector: '[data-slot="badge"]' })).toBeNull();
   });
 
@@ -64,10 +63,10 @@ describe('candidates page', () => {
     render_([...applications, saved, hired, closed]);
     await screen.findByRole('link', { name: 'Casey Morgan' });
 
-    const list = screen.getByRole('group', { name: 'List' });
-    await waitFor(() => expect(within(list).getByRole('link', { name: `Current ${applications.length}` })).toBeInTheDocument());
+    const list = screen.getByRole('tablist', { name: 'Candidate lists' });
+    await waitFor(() => expect(within(list).getByRole('tab', { name: `Current ${applications.length}` })).toBeInTheDocument());
     for (const name of ['Grace Adeyemi', 'Ruth Mwangi', 'Noor Haddad']) expect(screen.queryByRole('link', { name })).toBeNull();
-    expect(within(list).getByRole('link', { name: `All ${applications.length + 3}` })).toHaveAttribute('href', '/candidates?list=all');
+    expect(within(list).getByRole('tab', { name: `All ${applications.length + 3}` })).toBeInTheDocument();
   });
 
   it('shows every application under All', async () => {
@@ -76,12 +75,13 @@ describe('candidates page', () => {
     render_([...applications, saved]);
 
     expect(await screen.findByRole('link', { name: 'Grace Adeyemi' })).toBeInTheDocument();
-    expect(within(screen.getByRole('group', { name: 'List' })).getByRole('link', { name: /^All/ })).toHaveAttribute('aria-current', 'page');
+    expect(within(screen.getByRole('tablist', { name: 'Candidate lists' })).getByRole('tab', { name: /^All/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('region', { name: 'All candidates' })).toBeInTheDocument();
   });
 
   it('holds the search in the table panel header and the filters in a row under it, and the search narrows the rows and the count', async () => {
     render_();
-    const panel = await screen.findByRole('region', { name: 'Candidates' });
+    const panel = await screen.findByRole('region', { name: 'Current candidates' });
     const header = panel.querySelector('header')!;
     await screen.findByRole('link', { name: 'Casey Morgan' });
 
@@ -92,12 +92,12 @@ describe('candidates page', () => {
     await fireEvent.input(within(header).getByRole('searchbox', { name: 'Search candidates' }), { target: { value: 'jordan' } });
 
     expect(screen.getAllByRole('link', { name: /^(Casey Morgan|Jordan Lee|Sam Taylor)$/ }).map((link) => link.textContent)).toEqual(['Jordan Lee']);
-    expect(within(screen.getByRole('region', { name: 'Candidates' }).querySelector('header')!).queryByText('1', { selector: '[data-slot="badge"]' })).toBeNull();
+    expect(within(screen.getByRole('region', { name: 'Current candidates' }).querySelector('header')!).queryByText('1', { selector: '[data-slot="badge"]' })).toBeNull();
   });
 
   it('filters by a tag the listed applications carry, from the filter row', async () => {
     render_();
-    const panel = await screen.findByRole('region', { name: 'Candidates' });
+    const panel = await screen.findByRole('region', { name: 'Current candidates' });
     await screen.findByRole('link', { name: 'Casey Morgan' });
 
     const trigger = within(panel.querySelector<HTMLElement>('[data-filters]')!).getByRole('button', { name: /^Tag: All/ });
@@ -126,7 +126,7 @@ describe('candidates page', () => {
       },
     ];
     render_(rows);
-    const panel = await screen.findByRole('region', { name: 'Candidates' });
+    const panel = await screen.findByRole('region', { name: 'Current candidates' });
     const filters = panel.querySelector<HTMLElement>('[data-filters]')!;
     await screen.findByRole('link', { name: 'Casey Morgan' });
     const names = () => screen.getAllByRole('link', { name: /^(Casey Morgan|Jordan Lee|Sam Taylor|Riley Shaw|Avery Stone)$/ }).map((link) => link.textContent).toSorted();
@@ -166,7 +166,7 @@ describe('candidates page', () => {
     const selected = document.querySelector<HTMLElement>('[data-selected-count]')!;
     expect(selected).toHaveTextContent('Selected 1');
     expect(selected.querySelector('[data-slot="badge"]')).toHaveClass('min-w-7');
-    expect(screen.getByRole('region', { name: 'Candidates' }).querySelector('header')).toContainElement(selected);
+    expect(screen.getByRole('region', { name: 'Current candidates' }).querySelector('header')).toContainElement(selected);
   });
 
   it('makes Add candidate the primary action for a role that adds candidates, and opens its sheet with a job picker', async () => {
@@ -211,7 +211,7 @@ describe('candidates page', () => {
     }));
     const { unmount } = render_(flagged);
     await fireEvent.click(await screen.findByRole('checkbox', { name: `Select ${applications[0]!.candidateName}` }));
-    const header = screen.getByRole('region', { name: 'Candidates' }).querySelector('header')!;
+    const header = screen.getByRole('region', { name: 'Current candidates' }).querySelector('header')!;
     expect(await within(header).findByRole('button', { name: 'Email 1 selected' })).toBeInTheDocument();
     unmount();
 
@@ -232,7 +232,7 @@ describe('candidates page', () => {
 
     expect(await screen.findByRole('link', { name: jordan!.candidateName })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: casey!.candidateName })).toBeNull();
-    expect(within(screen.getByRole('region', { name: 'Candidates' }).querySelector('header')!).queryByText('1', { selector: '[data-slot="badge"]' })).toBeNull();
+    expect(within(screen.getByRole('region', { name: 'Current candidates' }).querySelector('header')!).queryByText('1', { selector: '[data-slot="badge"]' })).toBeNull();
 
     await fireEvent.click(screen.getByRole('button', { name: /^Clear filter: Reached Interview, / }));
     const [url] = vi.mocked(goto).mock.calls.at(-1)!;
@@ -285,7 +285,7 @@ describe('candidates page views', () => {
   it('keeps Save view at the end of the filter row, working only once the filters differ from the view it is on', async () => {
     stubViews([]);
     render(WithQueryClient, { props: { component: Page, props: {} } });
-    const panel = await screen.findByRole('region', { name: 'Candidates' });
+    const panel = await screen.findByRole('region', { name: 'Current candidates' });
     await screen.findByRole('link', { name: 'Casey Morgan' });
     expect(filterRow(panel).getByRole('button', { name: 'Save view' })).toBeDisabled();
 
@@ -346,7 +346,7 @@ describe('candidates page views', () => {
     const created = savedView({ id: '01a157d4-0000-7000-8000-0000000003bb', name: 'Warm referrals', shared: true });
     const fetchStub = stubViews([], { 'POST /v1/views': () => Response.json(created, { status: 201 }) });
     render(WithQueryClient, { props: { component: Page, props: {} } });
-    const panel = await screen.findByRole('region', { name: 'Candidates' });
+    const panel = await screen.findByRole('region', { name: 'Current candidates' });
     await screen.findByRole('link', { name: 'Casey Morgan' });
     await pickTag(panel);
 
@@ -386,7 +386,7 @@ describe('candidates page views', () => {
       'POST /v1/views': () => Response.json({ errors: { name: ['You already have a view with this name here.'] } }, { status: 400 }),
     });
     render(WithQueryClient, { props: { component: Page, props: {} } });
-    const panel = await screen.findByRole('region', { name: 'Candidates' });
+    const panel = await screen.findByRole('region', { name: 'Current candidates' });
     await screen.findByRole('link', { name: 'Casey Morgan' });
     await pickTag(panel);
 
@@ -405,7 +405,7 @@ describe('candidates page views', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Referrals in screening' })).toBeInTheDocument();
     await waitFor(() => expect(names()).toEqual(['Jordan Lee']));
-    const panel = screen.getByRole('region', { name: 'Candidates' });
+    const panel = screen.getByRole('region', { name: 'Current candidates' });
     expect(filterRow(panel).getByRole('button', { name: /^Tag: Referral/ })).toBeInTheDocument();
     expect(within(panel).getByRole('columnheader', { name: /Candidate/ })).toHaveAttribute('aria-sort', 'ascending');
     expect(filterRow(panel).getByRole('button', { name: 'Save view' })).toBeDisabled();
@@ -431,18 +431,19 @@ describe('candidates page views', () => {
 
 // Saved candidates are the Saved choice on this page (docs/architecture/talent-pool.md), kept in the address.
 describe('candidates page, Current and Saved', () => {
-  const choice = (name: 'Current' | 'Saved') => within(screen.getByRole('group', { name: 'List' })).getByRole('link', { name: new RegExp(`^${name}`) });
+  const choice = (name: 'Current' | 'Saved' | 'All') => within(screen.getByRole('tablist', { name: 'Candidate lists' })).getByRole('tab', { name: new RegExp(`^${name}`) });
 
-  it('shows the switch beside the title with Current the current one, each choice a link to its address', async () => {
+  it('shows the lists as tabs under the title with Current selected, and a tab goes to its list address', async () => {
     render_();
     await screen.findByRole('link', { name: 'Casey Morgan' });
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Candidates' }).closest('[data-slot="header-band"]')).toContainElement(screen.getByRole('group', { name: 'List' }));
-    expect(choice('Current')).toHaveAttribute('aria-current', 'page');
-    expect(choice('Saved')).not.toHaveAttribute('aria-current');
-    // A link starts the other list clean: nothing of this list's view or filters is carried over (A5).
-    expect(choice('Current')).toHaveAttribute('href', '/candidates');
-    expect(choice('Saved')).toHaveAttribute('href', '/candidates?list=saved');
+    expect(screen.getByRole('heading', { level: 1, name: 'Candidates' }).closest('[data-slot="header-band"]')).toContainElement(screen.getByRole('tablist', { name: 'Candidate lists' }));
+    expect(choice('Current')).toHaveAttribute('aria-selected', 'true');
+    expect(choice('Saved')).toHaveAttribute('aria-selected', 'false');
+    // A tab starts the other list clean: nothing of this list's view or filters is carried over.
+    await fireEvent.mouseDown(choice('Saved'));
+    await fireEvent.click(choice('Saved'));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates?list=saved'));
   });
 
   it('shows the saved people under the same header when the address says so, and links back to Current from there', async () => {
@@ -462,8 +463,11 @@ describe('candidates page, Current and Saved', () => {
 
     expect(await screen.findByText(/Nobody saved yet/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Candidates' })).toBeInTheDocument();
-    expect(choice('Saved')).toHaveAttribute('aria-current', 'page');
-    expect(choice('Current')).not.toHaveAttribute('aria-current');
-    expect(choice('Current')).toHaveAttribute('href', '/candidates');
+    expect(choice('Saved')).toHaveAttribute('aria-selected', 'true');
+    expect(choice('Current')).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('region', { name: 'Saved candidates' })).toBeInTheDocument();
+    await fireEvent.mouseDown(choice('Current'));
+    await fireEvent.click(choice('Current'));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/candidates'));
   });
 });

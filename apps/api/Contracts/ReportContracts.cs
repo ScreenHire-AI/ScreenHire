@@ -19,6 +19,8 @@ namespace ScreenHire.Api.Contracts;
 /// <c>openJobs</c>: Each open job the person can see.
 /// <c>lastApplicationAt</c>: When the newest application to those jobs was submitted, whatever the range, so the page can say how
 /// recent its numbers are (design system T7); null before the first.
+/// <c>lastInterviewAt</c>, <c>lastOfferAt</c>, <c>lastHireAt</c>: When an application to those jobs last moved into an
+/// interview, offer or hired stage, whatever the range, so each headline number says when it last moved; null before the first.
 /// </remarks>
 public sealed record HiringReport(
     DateTimeOffset From,
@@ -30,7 +32,10 @@ public sealed record HiringReport(
     TimeToHire TimeToHire,
     IReadOnlyList<SourceCount> Sources,
     IReadOnlyList<ReportOpenJob> OpenJobs,
-    DateTimeOffset? LastApplicationAt);
+    DateTimeOffset? LastApplicationAt,
+    DateTimeOffset? LastInterviewAt,
+    DateTimeOffset? LastOfferAt,
+    DateTimeOffset? LastHireAt);
 
 /// <summary>The headline numbers of one range.</summary>
 /// <remarks>

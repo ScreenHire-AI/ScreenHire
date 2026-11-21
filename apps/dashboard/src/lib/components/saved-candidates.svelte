@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import BookmarkIcon from '~icons/lucide/bookmark';
   import BookmarkXIcon from '~icons/lucide/bookmark-x';
   import MailIcon from '~icons/lucide/mail';
@@ -18,8 +19,9 @@
   import { mergeProps } from 'bits-ui';
   import { page } from '$app/state';
   import AddToJobSheet from '#lib/components/add-to-job-sheet.svelte';
-  import { closedJobIds, listCounts } from '#lib/candidate-lists.js';
-  import CandidatesListSwitch from '#lib/components/candidates-list-switch.svelte';
+  import { candidateListHref, closedJobIds, listCounts, type CandidateList } from '#lib/candidate-lists.js';
+  import CandidatesListTabs from '#lib/components/candidates-list-tabs.svelte';
+  import * as Tabs from '#lib/components/ui/tabs/index.js';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import EditSavedNoteSheet from '#lib/components/edit-saved-note-sheet.svelte';
@@ -221,15 +223,20 @@
 <TopBar crumbs={[{ label: 'Candidates' }]} />
 
 <main class="flex min-w-0 flex-col">
-  <HeaderBand title="Candidates" status={listSwitch} />
+  <Tabs.Root value="saved" onValueChange={(value) => value !== 'saved' && void goto(candidateListHref(value as CandidateList))}>
+  <HeaderBand title="Candidates">
+    {#snippet tabs()}
+      <CandidatesListTabs counts={listCounts(applications.data?.data, saved.data?.data.people.length, closedJobIds(jobList.data?.data))} />
+    {/snippet}
+  </HeaderBand>
 
-  <div class="@container w-full px-4 py-6 md:px-6">
+  <Tabs.Content value="saved" class="@container w-full px-4 py-6 md:px-6">
     <p role="status" class="sr-only">{announcement}</p>
     <!-- Titled like the Current list's panel. The size of the list is on its choice beside the page title (T4), so the panel counts
          only when a search or filter leaves fewer than that (W7). -->
-    <Panel title="Candidates" count={saved.isSuccess && filtering ? shown.length : undefined} flush>
+    <Panel title="Saved candidates" count={saved.isSuccess && filtering ? shown.length : undefined} flush>
       {#snippet tools()}
-        <SearchField bind:value={search} label="Search saved candidates" placeholder="Search" class="flex-[0_1_15rem] @max-3xl/panel:flex-1" />
+        <SearchField bind:value={search} label="Search saved candidates" placeholder="Search" class="ml-auto flex-[0_1_15rem] max-md:ml-0 max-md:flex-1" />
       {/snippet}
       {#if jobOptions.length > 0}
         <div data-filters class="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border-subtle px-4.5 py-2 max-md:px-4">
@@ -387,12 +394,10 @@
         </div>
       {/if}
     </Panel>
-  </div>
+  </Tabs.Content>
+  </Tabs.Root>
 </main>
 
-{#snippet listSwitch()}
-  <CandidatesListSwitch list="saved" counts={listCounts(applications.data?.data, saved.data?.data.people.length, closedJobIds(jobList.data?.data))} />
-{/snippet}
 
 {#snippet personMenu(person: TalentPoolMember)}
   <MoreMenu label={`Actions for ${person.candidateName}`} size="icon" quiet onclosed={onMenuClosed}>

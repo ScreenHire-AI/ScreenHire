@@ -69,7 +69,7 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // The candidates list, filtered by the tag, shows only the tagged candidate.
         await Page.GotoAsync(DashboardUrl("/candidates"));
-        var applications = Region("Candidates");
+        var applications = Region("Current candidates");
         await Expect(applications.GetByRole(AriaRole.Link, new() { Name = Untagged, Exact = true })).ToBeVisibleAsync();
         await applications.GetByRole(AriaRole.Button, new() { Name = "Tag: all" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitemradio, new() { Name = "Referral" }).ClickAsync();
@@ -100,8 +100,8 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         // for 10 seconds, then the task is done, and it leaves My tasks' open list for Done.
         await Page.GotoAsync(DashboardUrl("/tasks"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("My tasks");
-        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^For the team") }).ClickAsync();
-        var open = Region("Tasks");
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^For the team") }).ClickAsync();
+        var open = Region("Open tasks");
         await Expect(open.GetByRole(AriaRole.Link, new() { Name = "Call the references.", Exact = true })).ToBeVisibleAsync();
         await Expect(open).ToContainTextAsync(Tagged);
         // For the team already says whose they are, so the table has no For column there.
@@ -121,10 +121,10 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(steps.GetByRole(AriaRole.Button, new() { Name = "Undo, Call the references." })).ToHaveCountAsync(0, new() { Timeout = 20_000 });
         await Expect(steps).ToContainTextAsync("by you");
         await Page.GotoAsync(DashboardUrl("/tasks"));
-        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^For the team") }).ClickAsync();
-        await Expect(Region("Tasks").GetByText("Nothing to do")).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^For the team") }).ClickAsync();
+        await Expect(Region("Open tasks").GetByText("Nothing to do")).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();
-        await Expect(Region("Tasks").GetByRole(AriaRole.Cell, new() { Name = "You", Exact = true })).ToBeVisibleAsync();
+        await Expect(Region("Done tasks").GetByRole(AriaRole.Cell, new() { Name = "You", Exact = true })).ToBeVisibleAsync();
     }
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
