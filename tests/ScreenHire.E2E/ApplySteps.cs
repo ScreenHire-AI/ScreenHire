@@ -21,6 +21,8 @@ internal static class ApplySteps
         // The notice comes before anything is asked for.
         var notice = frame.GetByRole(AriaRole.Region, new() { Name = "How we review applications" });
         await Expect(notice).ToBeVisibleAsync();
+        // The built page keeps the space before the link: HTML compression once ran them together ("cookies.What we collect").
+        await Expect(notice).ToContainTextAsync("cookies. What we collect and why");
         (await notice.BoundingBoxAsync())!.Y.Should().BeLessThan((await frame.GetByLabel("First name").BoundingBoxAsync())!.Y);
         await checkAccessibility();
 

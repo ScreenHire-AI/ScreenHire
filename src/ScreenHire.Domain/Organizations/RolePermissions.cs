@@ -140,18 +140,21 @@ public static class RolePermissions
         Permission.ManageIntegrations, Permission.ManageTeam, Permission.EraseCandidates, Permission.EditAnyView, Permission.ViewAiUsage,
     ];
 
-    /// <summary>The built-in roles, most access first.</summary>
+    /// <summary>
+    /// The built-in roles, most access first. Each line fits beside its name on one line of the invite sheet; Compare
+    /// roles has every permission (the owner's walk-through, 2026-11-21).
+    /// </summary>
     public static IReadOnlyList<RoleDefinition> Roles { get; } =
     [
-        new(OrganizationRole.Owner, "Everything, including making and removing other Owners.",
+        new(OrganizationRole.Owner, "Everything, including other Owners.",
             new HashSet<Permission>([.. Reading, .. HiringWrites, .. Administration, Permission.ManageOwners, Permission.GrantVerificationAccess, Permission.ManageBilling])),
         new(OrganizationRole.Admin,
-            "Everything a Recruiter does, plus settings, email templates, API keys, webhooks, Slack and the team.",
+            "Recruiter, plus settings and the team.",
             new HashSet<Permission>([.. Reading, .. HiringWrites, .. Administration])),
         new(OrganizationRole.Recruiter,
-            "Works the jobs: moves candidates, writes notes and emails, fills in scorecards, edits jobs and hiring templates.",
+            "Moves candidates and edits jobs.",
             new HashSet<Permission>([.. Reading, .. HiringWrites])),
-        new(OrganizationRole.Viewer, "Sees jobs and candidates and changes nothing.", new HashSet<Permission>(Reading)),
+        new(OrganizationRole.Viewer, "Sees everything, changes nothing.", new HashSet<Permission>(Reading)),
     ];
 
     /// <summary>The permissions a custom role may hold: all but the Owner-only ones.</summary>
@@ -183,20 +186,22 @@ public static class RolePermissions
         Roles.Any(definition => string.Equals(definition.Role.ToString(), name.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
-    /// One line on what a custom role can do, from its permission names in catalogue order: "See jobs and candidates,
-    /// add notes and tags and fill in scorecards." Generated, so it always says what the role allows.
+    /// One line on what a custom role can do, from its permission names in catalogue order: "Can see jobs and
+    /// candidates, add notes and tags and fill in scorecards." Generated, so it always says what the role allows. It
+    /// starts "Can" so it reads like the built-in roles' lines ("Sees jobs and candidates and changes nothing"), which a
+    /// bare "See" beside them did not (the owner's walk-through, 2026-11-21).
     /// </summary>
     public static string Summarize(IEnumerable<Permission> permissions)
     {
         var held = permissions.ToHashSet();
         var phrases = Permissions.Where(p => held.Contains(p.Permission))
-            .Select((p, index) => index == 0 ? p.Name : char.ToLowerInvariant(p.Name[0]) + p.Name[1..])
+            .Select(p => char.ToLowerInvariant(p.Name[0]) + p.Name[1..])
             .ToList();
         return phrases.Count switch
         {
             0 => "Nothing yet.",
-            1 => phrases[0] + ".",
-            _ => string.Join(", ", phrases[..^1]) + " and " + phrases[^1] + ".",
+            1 => "Can " + phrases[0] + ".",
+            _ => "Can " + string.Join(", ", phrases[..^1]) + " and " + phrases[^1] + ".",
         };
     }
 }

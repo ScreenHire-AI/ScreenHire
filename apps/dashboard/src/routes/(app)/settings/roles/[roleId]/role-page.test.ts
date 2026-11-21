@@ -13,7 +13,7 @@ vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await import
 const detail: CustomRoleDetail = {
   id: interviewerRoleId,
   name: 'Interviewer',
-  description: 'See jobs and candidates and fill in scorecards.',
+  description: 'Can see jobs and candidates and fill in scorecards.',
   permissions: ['ViewHiring', 'FillInScorecards'],
   people: 1,
   copiedFrom: 'Viewer',

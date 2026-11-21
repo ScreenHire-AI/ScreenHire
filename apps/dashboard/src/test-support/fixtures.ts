@@ -77,15 +77,15 @@ const byScreenHire = { at: null, by: 'ScreenHire' } as const;
 /** Part of the API's permission catalogue (GET /v1/organization/roles): every built-in role, the Interviewer, five permissions. */
 export const roleCatalogue: RoleCatalogue = {
   roles: [
-    { role: 'Owner', customRoleId: null, name: 'Owner', description: 'Everything, including making and removing other Owners.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards', 'ManageTeam', 'ManageOwners', 'GrantVerificationAccess'], people: 2, lastUpdated: byScreenHire },
-    { role: 'Admin', customRoleId: null, name: 'Admin', description: 'Everything a Recruiter does, plus settings and the team.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards', 'ManageTeam'], people: 1, lastUpdated: byScreenHire },
-    { role: 'Recruiter', customRoleId: null, name: 'Recruiter', description: 'Works the jobs.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards'], people: 1, lastUpdated: byScreenHire },
-    { role: 'Viewer', customRoleId: null, name: 'Viewer', description: 'Sees jobs and candidates and changes nothing.', permissions: ['ViewHiring'], people: 0, lastUpdated: byScreenHire },
+    { role: 'Owner', customRoleId: null, name: 'Owner', description: 'Everything, including other Owners.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards', 'ManageTeam', 'ManageOwners', 'GrantVerificationAccess'], people: 2, lastUpdated: byScreenHire },
+    { role: 'Admin', customRoleId: null, name: 'Admin', description: 'Recruiter, plus settings and the team.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards', 'ManageTeam'], people: 1, lastUpdated: byScreenHire },
+    { role: 'Recruiter', customRoleId: null, name: 'Recruiter', description: 'Moves candidates and edits jobs.', permissions: ['ViewHiring', 'MoveCandidates', 'FillInScorecards'], people: 1, lastUpdated: byScreenHire },
+    { role: 'Viewer', customRoleId: null, name: 'Viewer', description: 'Sees everything, changes nothing.', permissions: ['ViewHiring'], people: 0, lastUpdated: byScreenHire },
     {
       role: 'Custom',
       customRoleId: interviewerRoleId,
       name: 'Interviewer',
-      description: 'See jobs and candidates and fill in scorecards.',
+      description: 'Can see jobs and candidates and fill in scorecards.',
       permissions: ['ViewHiring', 'FillInScorecards'],
       people: 1,
       lastUpdated: { at: '2026-10-25T09:00:00Z', by: 'Member', userId: user.id, apiKeyId: null },

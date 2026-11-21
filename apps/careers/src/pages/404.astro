@@ -5,6 +5,7 @@
 // organization, so it says nothing about whether one exists. It carries no branding, no link into a board and no
 // script. Endpoints (`.ts` routes) keep their own bare 404, and an existing organization's unknown or closed job keeps
 // its `JobUnavailable` page.
+import PoweredBy from '../components/PoweredBy.astro';
 import '../styles/global.css';
 ---
 
@@ -25,7 +26,7 @@ import '../styles/global.css';
       </p>
     </main>
     <footer class="px-5 py-6 text-center text-candidate-hint text-candidate-muted-foreground">
-      <p>Powered by ScreenHire</p>
+      <PoweredBy />
     </footer>
   </body>
 </html>

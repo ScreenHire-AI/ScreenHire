@@ -229,7 +229,16 @@
 {/snippet}
 
 {#snippet changeFooter()}
-  <p class="text-muted-foreground">To change your card or cancel, use Manage billing.</p>
+  <!-- The words that name Manage billing are the control too, so nobody has to look for the header's button (the owner's
+       walk-through, 2026-11-21): it opens the same payment portal. -->
+  <p class="text-muted-foreground">
+    To change your card or cancel, open <button
+      type="button"
+      class="inline font-semibold text-foreground underline underline-offset-2 disabled:opacity-50"
+      disabled={leaving !== null}
+      onclick={() => leave('portal')}>Manage billing</button
+    >.
+  </p>
 {/snippet}
 
 {#snippet switchedFooter()}

@@ -79,7 +79,7 @@ describe('the Activity log tab', () => {
     expect(within(rows[2]).getByText('req_01ABC')).toBeInTheDocument();
     expect(within(rows[2]).getByText('claude-test')).toBeInTheDocument();
     expect(within(rows[2]).getByText("ScreenHire's key")).toBeInTheDocument();
-    expect(within(rows[2]).getByText('$0.0123')).toBeInTheDocument();
+    expect(within(rows[2]).getByText('$0.01')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute('href', '/v1/verification/activity/export');
     await expectNoAxeViolations();
   });

@@ -284,7 +284,7 @@ describe('team page', () => {
       renderPage('Owner');
       const sheet = await openInviteSheet();
 
-      expect(await within(sheet).findByRole('radio', { name: 'Viewer Sees jobs and candidates and changes nothing.' })).toBeInTheDocument();
+      expect(await within(sheet).findByRole('radio', { name: 'Viewer Sees everything, changes nothing.' })).toBeInTheDocument();
       expect(within(sheet).getByRole('link', { name: 'Compare roles' })).toHaveAttribute('href', '/settings/roles/compare');
     });
 
@@ -340,7 +340,7 @@ describe('team page', () => {
       const row = viewer.closest('label')!;
       expect(row.children).toHaveLength(2);
       expect(row).toHaveTextContent('Viewer');
-      expect(row).toHaveTextContent('Sees jobs and candidates and changes nothing.');
+      expect(row).toHaveTextContent('Sees everything, changes nothing.');
     });
 
     it('offers no switch to someone who sees only their own jobs, and sends Only jobs they are on', async () => {

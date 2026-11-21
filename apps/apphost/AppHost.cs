@@ -490,15 +490,18 @@ if (frontends != FrontendMode.None)
         .WaitFor(api);
 
     // Tenant careers hosts (ADR-0003): {tenant}.{CareersDomain}, the careers endpoint locally, so a board is also at
-    // http://brightwater.localhost:<port>/ (browsers resolve *.localhost to this machine). Path-based URLs keep working.
-    // The careers server, the API and the worker read the same ScreenHire:Domains settings, so the canonical, sitemap,
-    // feed, job-board API and Google URLs the API builds, and the follow-up questionnaire links the worker emails, are
-    // these tenant hosts.
+    // http://brightwater.localhost:<port>/ in the test stacks (Built and None frontends), which exercise tenant-host
+    // routing and embedding. The local preview (Dev frontends) keeps the organization in the path instead,
+    // http://localhost:<port>/brightwater: a browser on secure DNS, a VPN or a proxy may not resolve *.localhost, and
+    // then every careers link the dashboard and the emails gave led nowhere (the owner's walk-through, 2026-11-21). The
+    // careers server, the API and the worker read the same ScreenHire:Domains settings, so the canonical, sitemap, feed,
+    // job-board API and Google URLs the API builds, and the links the worker emails, follow the pattern.
     var careersDomain = careers.GetEndpoint("http").Property(EndpointProperty.HostAndPort);
+    var careersHostPattern = frontends == FrontendMode.Dev ? "{CareersDomain}/{tenant}" : "{tenant}.{CareersDomain}";
     foreach (var resource in new IResourceBuilder<IResourceWithEnvironment>[] { careers, api, worker })
     {
         resource.WithEnvironment("ScreenHire__Domains__CareersDomain", careersDomain)
-            .WithEnvironment("ScreenHire__Domains__CareersHostPattern", "{tenant}.{CareersDomain}");
+            .WithEnvironment("ScreenHire__Domains__CareersHostPattern", careersHostPattern);
     }
 
     if (built)

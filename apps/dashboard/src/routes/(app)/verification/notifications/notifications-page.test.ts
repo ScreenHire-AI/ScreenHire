@@ -95,7 +95,7 @@ describe('the Notifications tab', () => {
     renderPage(settingsWith({ limits: dollarLimits }), {}, userAs('Admin'));
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
-    expect(screen.getAllByText('$0.0569 of $3.20')).toHaveLength(2);
+    expect(screen.getAllByText('$0.06 of $3.20')).toHaveLength(2);
     expect(screen.getByText(/In dollars it is an estimate/)).toBeInTheDocument();
     expect(screen.queryByText(/tokens of/)).not.toBeInTheDocument();
   });

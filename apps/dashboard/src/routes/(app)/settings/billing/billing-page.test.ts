@@ -170,7 +170,7 @@ describe('billing page', () => {
       expect(within(panel()).getByText("AI checks on ScreenHire's key are billed at the provider's price plus 20%.")).toBeInTheDocument();
       expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('41 AI calls');
       expect(within(panel()).getByText("Provider's price", { selector: 'dt' }).nextElementSibling).toHaveTextContent('$3.12');
-      expect(within(panel()).getByText('Cost so far', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$3.744');
+      expect(within(panel()).getByText('Cost so far', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$3.74');
       await expectNoAxeViolations();
     });
 
@@ -340,16 +340,21 @@ describe('billing page', () => {
     expect(screen.getByText('Next payment', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$49 on Dec 5, 2026');
     expect(screen.getByText('Open jobs', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^3 of 5$/);
     expect(within(plans()).queryByText('Current plan')).toBeNull();
-    expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Switch to Growth', 'Switch to Unlimited']);
-    expect(screen.getByText('To change your card or cancel, use Manage billing.')).toBeInTheDocument();
+    expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Switch to Growth', 'Switch to Unlimited', 'Manage billing']);
+    // The footer's words are the control: Manage billing opens the payment portal from there too.
+    expect(within(plans()).getByRole('button', { name: 'Manage billing' }).closest('p')).toHaveTextContent('To change your card or cancel, open Manage billing.');
     expect(primaryButtons().map((button) => button.textContent?.trim())).toEqual(['Manage billing']);
     await expectNoAxeViolations();
   });
 
-  it('opens the payment portal from Manage billing', async () => {
+  it.each([
+    ['the header', 0],
+    ['the plans footer', 1],
+  ])('opens the payment portal from Manage billing in %s', async (_where, index) => {
     renderPage(active);
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Manage billing' }));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Manage billing' })).toHaveLength(2));
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Manage billing' })[index]!);
 
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/v1/billing/sandbox/portal?state=abc'));
     expect(posted).toEqual([{ path: 'portal', body: null }]);
@@ -450,7 +455,8 @@ describe('billing page', () => {
 
     expect(await screen.findByText('Your last payment failed. Update your payment details to keep publishing.')).toBeInTheDocument();
     expect(screen.getByText('Payment failed', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
-    expect(within(plans()).queryByRole('button')).toBeNull();
+    // No plan switches while a payment has failed; the footer's Manage billing is the way to new payment details.
+    expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Manage billing']);
     await expectNoAxeViolations();
   });
 

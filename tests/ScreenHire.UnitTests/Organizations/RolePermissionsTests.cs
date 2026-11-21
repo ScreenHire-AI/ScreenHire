@@ -261,9 +261,9 @@ public sealed partial class RolePermissionsTests
     public void A_custom_role_is_summarized_from_its_permissions_in_catalogue_order()
     {
         RolePermissions.Summarize([Permission.FillInScorecards, Permission.ViewHiring, Permission.AddNotesAndTags])
-            .Should().Be("See jobs and candidates, add notes and tags and fill in scorecards.");
-        RolePermissions.Summarize([Permission.ViewHiring]).Should().Be("See jobs and candidates.");
-        RolePermissions.Summarize([Permission.ViewHiring, Permission.ManageApiKeys]).Should().Be("See jobs and candidates and manage API keys.");
+            .Should().Be("Can see jobs and candidates, add notes and tags and fill in scorecards.");
+        RolePermissions.Summarize([Permission.ViewHiring]).Should().Be("Can see jobs and candidates.");
+        RolePermissions.Summarize([Permission.ViewHiring, Permission.ManageApiKeys]).Should().Be("Can see jobs and candidates and manage API keys.");
     }
 
     // Each fluent route statement in the API's sources that names an operation and requires a permission, wherever the
