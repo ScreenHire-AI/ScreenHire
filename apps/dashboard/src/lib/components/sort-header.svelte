@@ -22,7 +22,21 @@
   const column = $derived(header.column as unknown as Partial<Column_RowSorting<TFeatures, TData>>);
   const canSort = $derived(column.getCanSort?.() ?? false);
   const sorted = $derived(canSort ? column.getIsSorted!() : false);
+  // A right-aligned column (`text-right` on the header) puts the icon before the text, so the text ends where the column's
+  // values do and the icon does not push it left.
+  const end = $derived(cn(className).split(' ').includes('text-right'));
 </script>
+
+{#snippet icon()}
+  {#if sorted === 'desc'}
+    <ArrowDownIcon aria-hidden="true" class="size-3 shrink-0" />
+  {:else if sorted === 'asc'}
+    <ArrowUpIcon aria-hidden="true" class="size-3 shrink-0" />
+  {:else}
+    <!-- A faint colour, not opacity: opacity makes a stacking context, which paints the icon over a sticky column's header. -->
+    <ChevronsUpDownIcon aria-hidden="true" class="size-3 shrink-0 text-current/60" />
+  {/if}
+{/snippet}
 
 <th
   scope="col"
@@ -38,15 +52,9 @@
         sorted && 'text-foreground',
       ]}
     >
+      {#if end}{@render icon()}{/if}
       <span class="min-w-0 truncate"><FlexRender {header} /></span>
-      {#if sorted === 'desc'}
-        <ArrowDownIcon aria-hidden="true" class="size-3 shrink-0" />
-      {:else if sorted === 'asc'}
-        <ArrowUpIcon aria-hidden="true" class="size-3 shrink-0" />
-      {:else}
-        <!-- A faint colour, not opacity: opacity makes a stacking context, which paints the icon over a sticky column's header. -->
-        <ChevronsUpDownIcon aria-hidden="true" class="size-3 shrink-0 text-current/60" />
-      {/if}
+      {#if !end}{@render icon()}{/if}
     </button>
   {:else}
     <FlexRender {header} />

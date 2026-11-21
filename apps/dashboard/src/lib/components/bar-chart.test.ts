@@ -19,16 +19,19 @@ function renderChart(props: { series: { label: string; tone: 'chart-1' | 'chart-
 }
 
 describe('bar chart', () => {
-  it('scales each bar to the largest value, writes every value, and draws nothing for zero', async () => {
+  it('scales each bar to the largest value, writes every value, and draws no bar for zero, whose value keeps its line', async () => {
     const list = renderChart({ series: [{ label: 'Applications', tone: 'chart-1' }], rows: [row('Applied', [8], '63% moved on'), row('Hired', [0], null)] });
 
     const [applied, hired] = within(list).getAllByRole('img');
     expect(applied).toHaveAccessibleName('Applied: 8');
     expect(applied).toHaveTextContent('63% moved on');
     const bars = list.querySelectorAll<HTMLElement>('.bg-chart-1');
+    expect(bars).toHaveLength(1);
     expect(bars[0]!.style.width).toBe('max(2px, 1 * (100% - 5.5rem))');
-    expect(bars[1]!.style.width).toBe('0px');
-    expect(hired).toHaveTextContent('0');
+    // The zero keeps the bar's line, so its value sits on it as a one's would: an invisible stub, no drawn bar.
+    const stub = hired!.querySelector<HTMLElement>('.bg-transparent')!;
+    expect(stub.style.width).toBe('2px');
+    expect(stub.nextElementSibling).toHaveTextContent('0');
     // One series needs no legend: the panel's title names it.
     expect(screen.queryByRole('list', { name: 'Legend' })).toBeNull();
     await expectNoAxeViolations();

@@ -112,11 +112,11 @@ describe('reports page', () => {
       return card;
     });
     expect(cards.map((card) => card.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      'Applications 8 3 3 more than before Last application 3 hours ago',
-      'Reached interview 3 1 1 fewer than before Last reached interview 5 hours ago',
+      'Applications 8 3 3 more than the previous period Last application 3 hours ago',
+      'Reached interview 3 1 1 fewer than the previous period Last reached interview 5 hours ago',
       'Offers 1 No change No offers yet',
       'Hires 3 No change Last hire 2 days ago',
-      'Median time to hire 21 days 3 days 3 days faster Last hire 2 days ago',
+      'Median time to hire 21 days 3 days 3 days faster than the previous period Last hire 2 days ago',
     ]);
     // The change is muted text with an arrow: a report states how far a number moved, it does not judge it.
     expect(stats.querySelectorAll('[class*="text-status-"]')).toHaveLength(0);
