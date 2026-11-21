@@ -218,8 +218,10 @@
   {#if sidebar.isMobile && !bare}
     <div class="flex border-b border-border-subtle px-4 py-2">{@render searchField('flex-1')}</div>
   {/if}
-  {#if !pending && !error && !bare}
-    {#if !sidebar.isMobile}
+  {#if !pending && !error}
+    <!-- The filters wait for a first application (design system section 7); the line saying a view is gone does not, since
+         a link can name a view on a job nobody has applied to yet. -->
+    {#if !bare && !sidebar.isMobile}
       <!-- The filters: one line that scrolls inside the panel rather than wrapping (F5), with Save view in view at its end.
            The board's columns are the stages, so only the table has the Stage filter. -->
       <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 py-2">
@@ -229,7 +231,7 @@
         </div>
         {@render saveView()}
       </div>
-    {:else if view === 'board'}
+    {:else if !bare && view === 'board'}
       <div data-filters class="flex shrink-0 items-center gap-2 border-b border-border-subtle px-4 py-2">
         <div class="-my-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">
           <AuthenticityFilter {applications} filter={verificationFilter} onchange={setVerificationFilter} menu />

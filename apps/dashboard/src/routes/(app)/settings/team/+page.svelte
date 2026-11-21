@@ -75,8 +75,8 @@
   // the invitations nobody has answered yet, on the list template. A role shows by its name alone, with no Custom label
   // (W6). Someone whose role has Manage the team gives only roles that hold nothing their own does not (TeamPolicy), so
   // Owners manage everyone and Admins everyone but Owners. Your own row has no actions: handing over is done by another
-  // owner. Invite opens a sheet that describes each role from the API's catalogue and starts at Viewer, the least access
-  // (design system section 21). Each member also sees All jobs or Only jobs they're on (ADR-0015): Jobs says which, and
+  // owner. Invite opens a sheet with each role from the API's catalogue on one line, starting at Viewer, the least access,
+  // and one Only some jobs switch (design system section 21). Each member also sees All jobs or Only jobs they're on (ADR-0015): Jobs says which, and
   // Edit access changes the role and the job access together in one sheet. The title's row has Last updated and History
   // for every change to the team (design system T6, S8).
   let { data }: PageProps = $props();
@@ -273,8 +273,8 @@
     role: z.string().min(1, 'Choose a role.'),
     jobAccess: z.enum(['All', 'HiringTeamOnly']),
   });
-  // A new invitation starts at All jobs, with Only jobs they're on one click away; someone who sees only their own jobs
-  // can offer only that (TeamPolicy.MayGiveJobAccess).
+  // A new invitation starts at All jobs, with the Only some jobs switch off; someone who sees only their own jobs can
+  // offer only Only jobs they're on, and gets no switch (TeamPolicy.MayGiveJobAccess).
   const startingAccess = (): JobAccess => (actorSeesAllJobs ? 'All' : 'HiringTeamOnly');
   const { form, errors, enhance, submitting, reset } = superForm(defaults({ email: '', role: 'viewer', jobAccess: 'All' as JobAccess }, zod4(schema)), {
     SPA: true,
@@ -585,14 +585,16 @@
           <span id="invite-role-label" class="text-body font-medium">Role</span>
           <a href="/settings/roles/compare" class="text-caption underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">Compare roles</a>
         </div>
-        <!-- One line per role: its name and a one-line summary, cut to the sheet's width with the whole text in a tooltip (F5). -->
+        <!-- One line per role: its name and a one-line summary, cut to the sheet's width with the whole text in a tooltip (F5).
+             The radio is the row's one tab stop, so the summary's tooltip takes none; the whole summary is still in the
+             radio's name for a screen reader, and Compare roles above has every role in full. -->
         <div role="radiogroup" aria-labelledby="invite-role-label" class="flex flex-col divide-y divide-input overflow-hidden rounded-lg border border-input">
           {#each offered as role (roleKey(role))}
-            <label class="flex items-center gap-3 px-3 py-2.5 has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-inset">
+            <label class="flex items-center gap-3 px-3 py-2.5 has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-inset pointer-coarse:min-h-11">
               <input type="radio" name="role" value={roleKey(role)} bind:group={$form.role} class="size-4 shrink-0 accent-primary" />
               <span class="flex min-w-0 flex-1 items-baseline gap-2">
                 <span class="shrink-0 font-semibold">{role.name}</span>
-                <TruncatedText text={role.description} class="text-muted-foreground" />
+                <TruncatedText text={role.description} tabindex={-1} class="text-muted-foreground" />
               </span>
             </label>
           {/each}
