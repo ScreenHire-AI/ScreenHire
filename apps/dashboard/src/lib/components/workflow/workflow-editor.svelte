@@ -164,9 +164,10 @@
   // A stage card's or the stage sheet's line names one automation: it opens on the Automations tab, as a sentence. The
   // link's own address (`?tab=automations&show=<id>`) does the same when it is opened in a new tab or loaded.
   function automationHref(id: string): string {
-    const url = new URL(hrefOf('automations'), 'http://screenhire.invalid');
-    url.searchParams.set('show', id);
-    return `${url.pathname}${url.search}`;
+    const [path, query = ''] = hrefOf('automations').split('?');
+    const params = new URLSearchParams(query);
+    params.set('show', id);
+    return `${path}?${params}`;
   }
 
   function showAutomation(id: string) {
