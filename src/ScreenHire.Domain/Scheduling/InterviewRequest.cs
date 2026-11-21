@@ -1,4 +1,5 @@
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Organizations;
 
 namespace ScreenHire.Domain.Scheduling;
@@ -107,11 +108,20 @@ public sealed class InterviewRequest : IApplicationScoped
     /// <summary>The workflow action's key (run, action index), so running the action again finds this request.</summary>
     public string? SourceKey { get; init; }
 
+    /// <summary>
+    /// What the meeting is called, copied from the application's stage when the request was made (<see cref="WorkflowStage.MeetingName"/>),
+    /// so a candidate who moves on keeps the name they were invited under. Null reads as "interview", which is every request made before stages could name one.
+    /// </summary>
+    public string? MeetingName { get; init; }
+
     public DateTimeOffset CreatedAt { get; init; }
 
     public DateTimeOffset? CancelledAt { get; private set; }
 
     public bool CancelledByCandidate { get; private set; }
+
+    /// <summary>What the meeting is called in words: <see cref="MeetingName"/>, or "interview".</summary>
+    public string MeetingNameOrDefault() => string.IsNullOrWhiteSpace(MeetingName) ? WorkflowStage.DefaultMeetingName : MeetingName;
 
     public TimeSpan Duration => TimeSpan.FromMinutes(DurationMinutes);
 
@@ -189,7 +199,8 @@ public sealed class InterviewRequest : IApplicationScoped
         DateTimeOffset now,
         TimeOnly? dayStart = null,
         TimeOnly? dayEnd = null,
-        string? sourceKey = null)
+        string? sourceKey = null,
+        string? meetingName = null)
     {
         ArgumentNullException.ThrowIfNull(application);
         var start = dayStart ?? DefaultDayStart;
@@ -202,6 +213,11 @@ public sealed class InterviewRequest : IApplicationScoped
         if (sourceKey is { Length: > MaxSourceKeyLength })
         {
             throw new ArgumentException("The source key is too long.", nameof(sourceKey));
+        }
+
+        if (meetingName is { Length: > WorkflowStage.MaxMeetingNameLength })
+        {
+            throw new ArgumentException("The meeting name is too long.", nameof(meetingName));
         }
 
         return new InterviewRequest
@@ -220,6 +236,7 @@ public sealed class InterviewRequest : IApplicationScoped
             Status = InterviewStatus.Open,
             CreatedByUserId = createdByUserId,
             SourceKey = sourceKey,
+            MeetingName = string.IsNullOrWhiteSpace(meetingName) ? null : meetingName.Trim(),
             CreatedAt = now,
         };
     }

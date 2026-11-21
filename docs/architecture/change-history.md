@@ -143,7 +143,7 @@ The describers in `src/ScreenHire.Domain/History` are pure functions from the en
 - Bookkeeping makes no line: `updated_at`, workflow and publish counters, the row version.
 
 Examples: "added **Did they finish the exercise in the time?**", "made **Notes on the exercise** optional", "changed
-**Years of experience** from Short text to Number", "added the stage **Technical interview**", "renamed the
+**Years of experience** from Short text to Number", "added the stage **Technical interview**", "changed what the meeting in **Trial shift** is called, from interview to trial shift", "renamed the
 template from Tech interview to **Technical interview**", "created the template from **Software engineer**",
 "published version **2**", "changed the subject".
 

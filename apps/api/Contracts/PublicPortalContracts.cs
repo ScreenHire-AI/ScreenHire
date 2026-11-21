@@ -29,9 +29,9 @@ public enum PublicPortalWaitingKind
 /// <summary>
 /// Something the candidate can act on, with the token of the existing careers page for it
 /// (<c>/questionnaires/{token}</c> or <c>/interviews/{token}</c>). The name of a questionnaire is the team's wording for it
-/// and is not sent.
+/// and is not sent. <c>meetingName</c> is on an interview only: what the team calls the meeting, such as "trial shift".
 /// </summary>
-public sealed record PublicPortalWaiting(PublicPortalWaitingKind Kind, string Token);
+public sealed record PublicPortalWaiting(PublicPortalWaitingKind Kind, string Token, string? MeetingName = null);
 
 /// <summary>
 /// Where an application stands on the four fixed steps every job shares. <c>current</c> is an index into <c>steps</c>, or

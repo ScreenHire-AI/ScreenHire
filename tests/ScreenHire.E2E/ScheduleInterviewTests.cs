@@ -118,7 +118,7 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
             await candidatePage.GotoAsync(link.Value);
             await Expect(candidatePage.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Pick a time for your interview");
             await candidatePage.GetByRole(AriaRole.Radio).First.CheckAsync();
-            await candidatePage.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+            await candidatePage.GetByRole(AriaRole.Button, new() { Name = "Book your interview" }).ClickAsync();
             await Expect(candidatePage.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
         }
 
@@ -161,7 +161,7 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await Expect(panel).ToContainTextAsync("The booked time stays until Riley Chen picks one.");
         await Expect(booked).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
-        await WaitForEmailAsync(candidate, "New times to talk");
+        await WaitForEmailAsync(candidate, "New times for your interview");
         await Page.GotoAsync($"{applicationUrl}?tab=activity");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity", Exact = true })).ToContainTextAsync("Offered new times for the interview on", new() { Timeout = 30_000 });
         await Page.GotoAsync(applicationUrl);

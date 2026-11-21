@@ -45,6 +45,74 @@ public sealed class DefinitionValidatorTests
             .Should().BeFalse("the next save drops the key");
     }
 
+    [Theory]
+    [InlineData("", "an empty name")]
+    [InlineData("   ", "only spaces")]
+    [InlineData("trial <b>shift</b>", "markup")]
+    [InlineData("trial\nshift", "a line break")]
+    [InlineData("trial\u2028shift", "a Unicode line separator")]
+    [InlineData("trial\u202Eshift", "a right-to-left override")]
+    [InlineData("trial\u200Bshift", "a zero-width space")]
+    public void A_meeting_name_must_be_plain_words(string name, string because)
+    {
+        var errors = DefinitionValidator.Validate(WorkflowWithMeetingName(name));
+
+        errors.Should().ContainSingle(e => e.Path == "stages[1].meetingName", because);
+    }
+
+    [Fact]
+    public void A_meeting_name_over_forty_characters_is_refused_and_forty_is_not()
+    {
+        var tooLong = DefinitionValidator.Validate(WorkflowWithMeetingName(new string('a', 41)));
+        var longest = DefinitionValidator.Validate(WorkflowWithMeetingName(new string('a', 40)));
+
+        tooLong.Should().ContainSingle(e => e.Path == "stages[1].meetingName").Which.Message.Should().Contain("40 characters");
+        longest.Should().NotContain(e => e.Path == "stages[1].meetingName");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("trial shift")]
+    [InlineData("phone screen")]
+    public void A_stage_with_no_meeting_name_or_a_plain_one_has_no_meeting_name_error(string? name)
+    {
+        DefinitionValidator.Validate(WorkflowWithMeetingName(name)).Should().NotContain(e => e.Path.EndsWith("meetingName", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_meeting_name_errors_name_the_stage_by_its_index_in_a_template_definition()
+    {
+        var definition = HiringTemplateDefinition.Default with { Workflow = WorkflowWithMeetingName("<script>") };
+
+        DefinitionValidator.Validate(definition).Should().ContainSingle(e => e.Path == "workflow.stages[1].meetingName");
+    }
+
+    [Fact]
+    public void A_stage_without_a_meeting_name_writes_no_meeting_name_key_and_a_named_one_reads_back()
+    {
+        var plain = new WorkflowStage("interview", "Interview", StageKind.Interview);
+        var named = plain with { MeetingName = "trial shift" };
+
+        var plainJson = JsonSerializer.SerializeToNode(plain, JsonColumns.SerializerOptions)!.AsObject();
+        var namedJson = JsonSerializer.SerializeToNode(named, JsonColumns.SerializerOptions)!.AsObject();
+
+        plainJson.ContainsKey("meetingName").Should().BeFalse("every stored definition from before the field stays byte for byte what it was");
+        namedJson["meetingName"]!.GetValue<string>().Should().Be("trial shift");
+        namedJson.Deserialize<WorkflowStage>(JsonColumns.SerializerOptions)!.MeetingName.Should().Be("trial shift");
+        plainJson.Deserialize<WorkflowStage>(JsonColumns.SerializerOptions)!.MeetingName.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(null, "interview")]
+    [InlineData("", "interview")]
+    [InlineData("  ", "interview")]
+    [InlineData("trial shift", "trial shift")]
+    [InlineData("  trial shift ", "trial shift")]
+    public void A_stage_calls_its_meeting_by_its_name_or_interview(string? name, string expected)
+    {
+        new WorkflowStage("s", "Stage", StageKind.Custom, MeetingName: name).MeetingNameOrDefault().Should().Be(expected);
+    }
+
     [Fact]
     public void Applications_start_in_the_one_applied_stage_which_comes_first()
     {
@@ -892,6 +960,10 @@ public sealed class DefinitionValidatorTests
         new PostingDefaults(EmploymentType: (EmploymentType)99, WorkplaceType: (WorkplaceType)99, SalaryPeriod: (SalaryPeriod)99, SalaryCurrency: "pounds", ValidForDays: 400, Department: " "));
 
     private static IEnumerable<string> Paths(HiringWorkflow workflow) => DefinitionValidator.Validate(workflow).Select(e => e.Path);
+
+    // The default workflow with the meeting name on its second stage, so the error path is stages[1].meetingName.
+    private static HiringWorkflow WorkflowWithMeetingName(string? name) =>
+        HiringWorkflow.Default with { Stages = [.. HiringWorkflow.Default.Stages.Select((s, i) => i == 1 ? s with { MeetingName = name } : s)] };
 
     private static HiringWorkflow Workflow(
         IReadOnlyList<WorkflowStage>? stages = null, IReadOnlyList<Question>? questions = null, IReadOnlyList<Automation>? automations = null) =>

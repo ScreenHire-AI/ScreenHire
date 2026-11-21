@@ -256,8 +256,22 @@ export interface OutcomeNotice {
   message: string;
 }
 
-/** The words for an outcome, or null when the page itself says it all. */
-export function noticeFor(outcome: InterviewOutcome | null): OutcomeNotice | null {
+/** What a stage with no meeting name calls its meeting. */
+export const defaultMeetingName = 'interview';
+
+/** The meeting's name as the API sends it, or "interview" when it sends none (a plain-words name, lower case, such as "trial shift"). */
+export function meetingNameOf(name: string | null | undefined): string {
+  const trimmed = name?.trim();
+  return trimmed ? trimmed : defaultMeetingName;
+}
+
+/** The name starting a sentence or a title: "Trial shift". */
+export function sentenceCase(text: string): string {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+/** The words for an outcome, or null when the page itself says it all. `meeting` is what the stage calls the meeting. */
+export function noticeFor(outcome: InterviewOutcome | null, meeting: string = defaultMeetingName): OutcomeNotice | null {
   switch (outcome) {
     case 'booked':
       return { kind: 'success', message: 'We are sending a confirmation to your email.' };
@@ -266,7 +280,7 @@ export function noticeFor(outcome: InterviewOutcome | null): OutcomeNotice | nul
     case 'slot-taken':
       return { kind: 'problem', message: 'That time was just taken. Choose another.' };
     case 'too-late':
-      return { kind: 'problem', message: 'The interview is too close to change here. Reply to the email to reach the hiring team.' };
+      return { kind: 'problem', message: `The ${meeting} is too close to change here. Reply to the email to reach the hiring team.` };
     case 'already-booked':
       return { kind: 'info', message: 'A time is already booked. Use Pick another time to move it.' };
     case 'not-booked':

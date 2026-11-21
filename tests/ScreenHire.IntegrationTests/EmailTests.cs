@@ -44,8 +44,8 @@ public sealed class EmailTests(AppHostFixture fixture)
         }
 
         list.Text("templates.5.name").Should().Be("Pick an interview time");
-        list.Body.GetProperty("variables").EnumerateArray().Where(v => v.GetProperty("name").GetString() is "bookingLink" or "manageLink" or "meetingLink")
-            .Should().OnlyContain(v => v.GetProperty("invitationOnly").GetBoolean());
+        list.Body.GetProperty("variables").EnumerateArray().Where(v => v.GetProperty("name").GetString() is "bookingLink" or "manageLink" or "meetingLink" or "meeting.name")
+            .Should().HaveCount(4).And.OnlyContain(v => v.GetProperty("invitationOnly").GetBoolean());
         list.Body.GetProperty("variables").EnumerateArray().Select(v => v.GetProperty("name").GetString())
             .Should().Contain(["candidateName", "jobTitle", "organizationName", "stageName", "reason", "questionnaireLink"]);
 

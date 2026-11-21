@@ -307,7 +307,7 @@ public static partial class ExecuteAutomationActionHandler
 
         var interview = InterviewRequest.Create(
             application, action.InterviewMinutes!.Value, context.Now, windowEnd, action.InterviewTimeZone!,
-            createdByUserId: null, context.Now, sourceKey: sourceKey);
+            createdByUserId: null, context.Now, sourceKey: sourceKey, meetingName: CurrentStage(context)?.MeetingName);
         context.Db.InterviewRequests.Add(interview);
         context.Db.InterviewAttendees.AddRange(
             chosen.Select((userId, index) => InterviewAttendee.Create(interview, userId, isOrganizer: index == 0, usable[userId])));

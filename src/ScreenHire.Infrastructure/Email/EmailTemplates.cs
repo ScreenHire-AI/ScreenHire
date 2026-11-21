@@ -23,7 +23,8 @@ namespace ScreenHire.Infrastructure.Email;
 /// candidate gave none. <c>questionnaireLink</c>: the signed link to a follow-up questionnaire, for the questionnaire
 /// request email only. <c>jobLink</c> and <c>removeLink</c>: the invitation to apply's links, to the job's careers
 /// page and to the page where the candidate stops being kept; in that email <c>jobTitle</c> is the job they are invited
-/// to.
+/// to. <c>meeting.name</c>: what the stage calls the meeting, such as "trial shift", in lower case; "interview" when
+/// the stage names none. Only in the interview emails.
 /// </remarks>
 public sealed record EmailTemplateModel(
     string CandidateName,
@@ -40,7 +41,8 @@ public sealed record EmailTemplateModel(
     string? ManageLink = null,
     string? MeetingLink = null,
     string? InterviewTime = null,
-    string? InterviewLength = null)
+    string? InterviewLength = null,
+    string? MeetingName = null)
 {
     /// <summary>The made-up candidate a template's preview and test send use.</summary>
     public static EmailTemplateModel Sample(string organizationName) =>
@@ -48,7 +50,7 @@ public sealed record EmailTemplateModel(
             "https://careers.example.com/questionnaires/sample", "Jordan", "Lee",
             "https://careers.example.com/jobs/product-designer", "https://careers.example.com/talent-pool/sample",
             "https://careers.example.com/interviews/sample", "https://careers.example.com/interviews/sample", "https://meet.example.org/sample",
-            "Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)", "30 minutes");
+            "Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)", "30 minutes", "interview");
 }
 
 /// <summary>
@@ -114,17 +116,20 @@ public sealed partial class EmailTemplates
     /// <summary>The interview's length in words, such as "30 minutes".</summary>
     public static EmailTemplateVariable InterviewLength { get; } = new("interviewLength", "Interview length");
 
+    /// <summary>What the stage calls the meeting, in lower case: "interview", "trial shift". Written <c>{{ meeting.name }}</c>.</summary>
+    public static EmailTemplateVariable MeetingName { get; } = new("meeting.name", "Meeting name");
+
     /// <summary>The variables <paramref name="templateId"/> may use: every template's, plus its own required ones.</summary>
     public static IReadOnlyList<EmailTemplateVariable> VariablesFor(string? templateId) => templateId switch
     {
         EmailTemplateIds.ApplicationRejected => [.. Variables, Reason],
         EmailTemplateIds.QuestionnaireRequest => [.. Variables, QuestionnaireLink],
         EmailTemplateIds.TalentPoolInvitation => [.. Variables, JobLink, RemoveLink],
-        EmailTemplateIds.InterviewInvitation => [.. Variables, BookingLink, InterviewLength],
-        EmailTemplateIds.InterviewConfirmation => [.. Variables, InterviewTime, InterviewLength, ManageLink, MeetingLink],
-        EmailTemplateIds.InterviewCancelled => [.. Variables, InterviewTime],
-        EmailTemplateIds.InterviewNewTimes => [.. Variables, BookingLink, InterviewTime, InterviewLength],
-        EmailTemplateIds.InterviewReminder => [.. Variables, InterviewTime, ManageLink, MeetingLink],
+        EmailTemplateIds.InterviewInvitation => [.. Variables, BookingLink, InterviewLength, MeetingName],
+        EmailTemplateIds.InterviewConfirmation => [.. Variables, InterviewTime, InterviewLength, ManageLink, MeetingLink, MeetingName],
+        EmailTemplateIds.InterviewCancelled => [.. Variables, InterviewTime, MeetingName],
+        EmailTemplateIds.InterviewNewTimes => [.. Variables, BookingLink, InterviewTime, InterviewLength, MeetingName],
+        EmailTemplateIds.InterviewReminder => [.. Variables, InterviewTime, ManageLink, MeetingLink, MeetingName],
         _ => Variables,
     };
 
@@ -300,6 +305,8 @@ public sealed partial class EmailTemplates
         context.SetValue("meetingLink", model.MeetingLink ?? "");
         context.SetValue("interviewTime", model.InterviewTime ?? "");
         context.SetValue("interviewLength", model.InterviewLength ?? "");
+        // Fluid reads {{ meeting.name }} from a dictionary. Every other variable is flat, so this is the one object.
+        context.SetValue("meeting", new Dictionary<string, object> { ["name"] = model.MeetingName ?? WorkflowStage.DefaultMeetingName });
 
         // A subject is one line of plain text: no line breaks a header could carry. Variables can make it far longer than
         // its wording, so it is cut to what a kept copy holds, and the candidate gets the same subject the copy keeps.
@@ -491,8 +498,11 @@ public sealed partial class EmailTemplates
 
         protected override Expression VisitMemberExpression(MemberExpression memberExpression)
         {
+            // A variable is one name, or "meeting.name": the segments joined by a dot are what the list holds.
             var segments = memberExpression.Segments;
-            if (segments.Count != 1 || segments[0] is not IdentifierSegment { Identifier: var name })
+            var name = segments.All(s => s is IdentifierSegment) ? string.Join('.', segments.Cast<IdentifierSegment>().Select(s => s.Identifier)) : "";
+            // Any other member access, on a variable or on the meeting, is still refused with the same words as before.
+            if (segments.Count is < 1 or > 2 || name.Length == 0 || (segments.Count == 2 && name != MeetingName.Name))
             {
                 Problems.Add($"Use a variable on its own, such as {{{{ {Variables[0].Name} }}}}.");
             }

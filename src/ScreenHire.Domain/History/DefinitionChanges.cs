@@ -75,6 +75,11 @@ public static class DefinitionChanges
                 break;
         }
 
+        if (a.MeetingNameOrDefault() != b.MeetingNameOrDefault())
+        {
+            lines.Add(ChangeLine.Of("changed what the meeting in ", b.Name, $" is called, from {a.MeetingNameOrDefault()} to {b.MeetingNameOrDefault()}"));
+        }
+
         switch (a.HasScorecard(), b.HasScorecard())
         {
             case (false, true):
@@ -109,6 +114,11 @@ public static class DefinitionChanges
         if (stage.HasScorecard())
         {
             details.Add(new("Scorecard", null, ScorecardName(stage)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(stage.MeetingName))
+        {
+            details.Add(new("Meeting", null, stage.MeetingNameOrDefault()));
         }
 
         return details;

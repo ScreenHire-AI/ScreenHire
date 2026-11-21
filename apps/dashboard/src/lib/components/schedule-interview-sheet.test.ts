@@ -62,6 +62,11 @@ async function fillWindow(sheet: HTMLElement, first: string, last: string, zone 
 }
 
 describe('Schedule interview sheet', () => {
+  it('is named for the meeting of the candidate stage: Schedule trial shift, and Schedule interview when the stage names none', async () => {
+    renderSheet({}, { meetingName: 'trial shift' });
+    expect(await screen.findByRole('dialog', { name: 'Schedule trial shift' })).toBeInTheDocument();
+  });
+
   it('lists who sees the job, disables anyone with no calendar in words, and starts with the person scheduling ticked', async () => {
     const { sheet } = renderSheet();
 

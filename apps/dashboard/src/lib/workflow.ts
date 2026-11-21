@@ -41,6 +41,22 @@ export const stageKinds = Object.keys(stageKindLabels) as StageKind[];
 
 export const isTerminal = (kind: StageKind): boolean => kind === 'Hired' || kind === 'Rejected' || kind === 'Withdrawn';
 
+/** The longest a stage's meeting name can be: the API refuses more. */
+export const maxMeetingNameLength = 40;
+
+/** What a meeting is called when its stage names none. */
+export const defaultMeetingName = 'interview';
+
+/** What the stage calls its meeting ("trial shift"), or "interview" when it names none or there is no stage. */
+export const meetingNameOf = (stage: WorkflowStage | undefined): string => stage?.meetingName?.trim() || defaultMeetingName;
+
+/**
+ * Whether the stage sheet asks what the stage's meeting is called: a stage where a team meets a candidate. Not Applied, Offer
+ * or a stage that ends the application; a stage that already has a name always shows it, so it can be changed or cleared.
+ */
+export const offersMeetings = (stage: WorkflowStage): boolean =>
+  Boolean(stage.meetingName) || !(isTerminal(stage.kind) || stage.kind === 'Applied' || stage.kind === 'Offer');
+
 /** Triggers v1 runs. VerificationCompleted and CandidateReplied are refused at save, so not offered. */
 export const triggerLabels: Partial<Record<TriggerType, string>> = {
   ApplicationSubmitted: 'An application arrives',

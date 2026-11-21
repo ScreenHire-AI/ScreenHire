@@ -9,9 +9,11 @@ import type { PublicPortalWaitingKind } from './publicPortalWaitingKind.ts';
 /**
  * Something the candidate can act on, with the token of the existing careers page for it
  * (`/questionnaires/{token}` or `/interviews/{token}`). The name of a questionnaire is the team's wording for it
- * and is not sent.
+ * and is not sent. `meetingName` is on an interview only: what the team calls the meeting, such as "trial shift".
  */
 export interface PublicPortalWaiting {
   kind: PublicPortalWaitingKind;
   token: string;
+  /** @nullable */
+  meetingName?: string | null;
 }

@@ -13,10 +13,14 @@
   import { automationsAt } from '#lib/journey-text.js';
   import {
     canRemindIn,
+    defaultMeetingName,
     emailTemplateNames,
+    errorsAt,
     errorsUnder,
     isTerminal,
     kindFromName,
+    maxMeetingNameLength,
+    offersMeetings,
     stageKindLabels,
     stageKinds,
     syncReminder,
@@ -58,7 +62,13 @@
   const index = $derived(workflow.stages.findIndex((stage) => stage.id === stageId));
   const stage = $derived(index >= 0 ? workflow.stages[index] : undefined);
   const first = $derived(index === 0);
-  const stageErrors = $derived(errorsUnder(errors, `stages[${index}]`).map((error) => error.message));
+  // The meeting name's refusals show under its own field; every other error about the stage shows under its name.
+  const meetingNameErrors = $derived(errorsAt(errors, `stages[${index}].meetingName`));
+  const stageErrors = $derived(
+    errorsUnder(errors, `stages[${index}]`)
+      .filter((error) => error.path !== `stages[${index}].meetingName`)
+      .map((error) => error.message),
+  );
 
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
@@ -122,6 +132,12 @@
   const reminderSaid = $derived(
     stage && stage.slaDays && !isTerminal(stage.kind) && canRemindIn(workflow, stage.id) ? `The team gets a reminder after ${timeLimitLabel(stage.slaDays)}.` : null,
   );
+  // The meeting's name is optional: an empty box removes it, and the meeting is called "interview" again.
+  function setMeetingName(raw: string) {
+    if (!stage) return;
+    stage.meetingName = raw.trim() ? raw : undefined;
+  }
+
   const hasScorecard = $derived(Boolean(stage?.scorecard || stage?.scorecardTemplateId));
 </script>
 
@@ -180,6 +196,23 @@
               <Button variant="outline" onclick={() => onscorecard(index)}>{hasScorecard ? 'Change' : 'Choose'}{' '}<span class="sr-only">scorecard for {stage.name}</span></Button>
             </div>
           </div>
+        {/if}
+
+        {#if offersMeetings(stage)}
+          <label class={labelClass}>
+            What the meeting is called
+            <Input
+              value={stage.meetingName ?? ''}
+              maxlength={maxMeetingNameLength}
+              placeholder={defaultMeetingName}
+              data-stage-meeting-name
+              aria-invalid={meetingNameErrors.length > 0 || undefined}
+              aria-describedby={meetingNameErrors.length > 0 ? 'stage-meeting-name-hint stage-meeting-name-errors' : 'stage-meeting-name-hint'}
+              oninput={(event) => setMeetingName(event.currentTarget.value)}
+            />
+          </label>
+          <p id="stage-meeting-name-hint" class="-mt-3 text-muted-foreground">Candidates see it in emails and on the page where they book, as in "Book your trial shift".</p>
+          <FieldErrors id="stage-meeting-name-errors" messages={meetingNameErrors} />
         {/if}
 
         <div class="flex flex-col gap-2">

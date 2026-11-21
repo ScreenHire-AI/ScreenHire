@@ -83,6 +83,41 @@ public sealed class DefinitionChangesTests
     }
 
     [Fact]
+    public void Renaming_a_stages_meeting_is_one_line_naming_the_stage_and_both_names()
+    {
+        var before = HiringWorkflow.Default;
+        var after = before with { Stages = [.. before.Stages.Select(s => s.Id == "interview" ? s with { MeetingName = "trial shift" } : s)] };
+
+        var lines = DefinitionChanges.Describe(before, after);
+
+        Sentences(lines).Should().Equal("changed what the meeting in Interview is called, from interview to trial shift");
+        lines[0].Parts.Should().Contain(new ChangeText("Interview", Strong: true));
+    }
+
+    [Theory]
+    [InlineData(null, "interview")]
+    [InlineData("interview", null)]
+    [InlineData(null, "  ")]
+    public void A_meeting_name_that_reads_the_same_says_nothing(string? from, string? to)
+    {
+        var before = HiringWorkflow.Default with { Stages = [.. HiringWorkflow.Default.Stages.Select(s => s.Id == "interview" ? s with { MeetingName = from } : s)] };
+        var after = HiringWorkflow.Default with { Stages = [.. HiringWorkflow.Default.Stages.Select(s => s.Id == "interview" ? s with { MeetingName = to } : s)] };
+
+        DefinitionChanges.Describe(before, after).Should().BeEmpty("a missing name and \"interview\" are the same meeting");
+    }
+
+    [Fact]
+    public void An_added_stage_with_a_meeting_name_lists_it_in_the_details()
+    {
+        var before = HiringWorkflow.Default;
+        var after = before with { Stages = [.. before.Stages.Take(2), new("trial", "Trial shift", StageKind.Interview, MeetingName: "trial shift"), .. before.Stages.Skip(2)] };
+
+        var lines = DefinitionChanges.Describe(before, after);
+
+        lines.Should().ContainSingle().Which.Details.Should().Contain(new ChangeDetail("Meeting", null, "trial shift"));
+    }
+
+    [Fact]
     public void An_added_stage_is_named_with_its_kind()
     {
         var before = HiringWorkflow.Default;

@@ -19,4 +19,6 @@ export interface WorkflowStage {
   scorecard?: null | Scorecard;
   /** @nullable */
   scorecardTemplateId?: string | null;
+  /** @nullable */
+  meetingName?: string | null;
 }

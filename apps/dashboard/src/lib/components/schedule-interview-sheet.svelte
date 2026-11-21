@@ -35,6 +35,7 @@
   } from '#lib/schedule-interview.js';
   import { getShell } from '#lib/shell.js';
   import { cn } from '#lib/utils.js';
+  import { defaultMeetingName } from '#lib/workflow.js';
 
   // Schedule interview (docs/architecture/interview-scheduling.md), in a sheet (design system section 9): who interviews,
   // how long, which days the candidate may choose from and the working hours inside them. It emails the candidate a link to
@@ -46,6 +47,7 @@
     applicationId,
     jobId,
     candidateName,
+    meetingName = defaultMeetingName,
     currentUserId,
     ondone,
   }: {
@@ -53,6 +55,8 @@
     applicationId: string;
     jobId: string;
     candidateName: string;
+    /** What the candidate's stage calls the meeting (its `meetingName`), such as "trial shift". */
+    meetingName?: string;
     currentUserId: string | undefined;
     /** After the interview was offered: a sentence for the page's status line. */
     ondone?: (message: string) => void;
@@ -118,7 +122,7 @@
           submitted.errors._errors = ['Scheduling is not set up here, so the candidate could not be sent a link.'];
         } else {
           // 409 carries its own words: an interview already open or booked ("Cancel it first"), or an application that ended.
-          submitted.errors._errors = [describeError(error, 'Could not offer the interview')];
+          submitted.errors._errors = [describeError(error, `Could not offer the ${meetingName}`)];
         }
       }
     },
@@ -156,7 +160,7 @@
 <Sheet.Root bind:open>
   <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-xl">
     <Sheet.Header>
-      <Sheet.Title>Schedule interview</Sheet.Title>
+      <Sheet.Title>Schedule {meetingName}</Sheet.Title>
       <Sheet.Description>{candidateName} gets a link to pick a time.</Sheet.Description>
     </Sheet.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-5 px-4 pb-4" data-schedule-interview>

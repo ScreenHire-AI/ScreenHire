@@ -35,7 +35,7 @@ const renderSheet = (props: { stageId?: string; errors?: DefinitionError[]; flow
 };
 
 const sheet = () => screen.findByRole('dialog');
-const stages = () => JSON.parse(screen.getByTestId('stages').textContent!) as { id: string; name: string; kind: string; slaDays: number | null }[];
+const stages = () => JSON.parse(screen.getByTestId('stages').textContent!) as { id: string; name: string; kind: string; slaDays: number | null; meetingName?: string }[];
 const interview = () => stages().find((stage) => stage.id === 'interview')!;
 const automationIds = () => screen.getByTestId('automations').textContent!.split(',').filter(Boolean);
 const limit = (dialog: HTMLElement, name: string) => within(dialog).getByRole('radio', { name });
@@ -344,6 +344,56 @@ describe('the name and the kind', () => {
     await fireEvent.input(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Offer desk' } });
 
     expect(stages()[0]).toMatchObject({ name: 'Offer desk', kind: 'Applied' });
+  });
+});
+
+describe('the meeting name', () => {
+  const meetingBox = (dialog: HTMLElement) => within(dialog).getByRole('textbox', { name: 'What the meeting is called' });
+
+  it('asks what the meeting is called on a stage where the team meets a candidate, with interview as the placeholder', async () => {
+    renderSheet();
+    const dialog = await sheet();
+
+    expect(meetingBox(dialog)).toHaveValue('');
+    expect(meetingBox(dialog)).toHaveAttribute('placeholder', 'interview');
+    expect(meetingBox(dialog)).toHaveAttribute('maxlength', '40');
+  });
+
+  it('sets the name as it is typed, and clears it to nothing so the meeting is an interview again', async () => {
+    renderSheet();
+    const dialog = await sheet();
+
+    await fireEvent.input(meetingBox(dialog), { target: { value: 'trial shift' } });
+    expect(interview().meetingName).toBe('trial shift');
+    await fireEvent.input(meetingBox(dialog), { target: { value: '  ' } });
+
+    expect(interview().meetingName).toBeUndefined();
+  });
+
+  it('is not asked on Applied, an Offer or a stage that ends the application', async () => {
+    renderSheet({ stageId: 'applied' });
+    const dialog = await sheet();
+
+    expect(within(dialog).queryByRole('textbox', { name: 'What the meeting is called' })).toBeNull();
+  });
+
+  it('is asked again on a stage that has a name already, whatever its kind, so it can be cleared', async () => {
+    const flow: HiringWorkflow = { ...workflow, stages: workflow.stages.map((stage) => (stage.id === 'hired' ? { ...stage, meetingName: 'start day' } : stage)) };
+    renderSheet({ stageId: 'hired', flow });
+    const dialog = await sheet();
+
+    expect(meetingBox(dialog)).toHaveValue('start day');
+  });
+
+  it('shows the API refusal under the meeting field and marks that field, not the stage name', async () => {
+    renderSheet({ errors: [{ path: 'stages[1].meetingName', message: 'The meeting name of "Interview" is too long. Keep it to 40 characters or fewer.' }] });
+    const dialog = await sheet();
+
+    expect(meetingBox(dialog)).toHaveAttribute('aria-invalid', 'true');
+    expect(meetingBox(dialog)).toHaveAccessibleDescription(expect.stringContaining('is too long'));
+    expect(within(dialog).getByRole('textbox', { name: 'Name' })).not.toHaveAttribute('aria-invalid');
+    expect(dialog.querySelector('#stage-meeting-name-errors')).toHaveTextContent(/meeting name of "Interview" is too long/);
+    expect(dialog.querySelector('#stage-sheet-errors')).toBeNull();
   });
 });
 
