@@ -160,7 +160,7 @@ Authors check their screens against this list, and the `design-review` agent rep
   tabs. A description is one plain sentence. On anything people edit, Last updated is the last fact, with History
   beside it (T6).
 - **S3** Every section is a panel with its title inside a fixed-height header. Nothing readable sits on the page
-  background.
+  background, except a record page's closing audit line (W10).
 - **S4** Panels in a row share a top edge. No card inside a card.
 - **S5** Insets only inside a surface. Panels and cards take the soft surface shadow; raised and overlay layers take
   theirs (section 6). Nothing else casts a shadow.
@@ -264,8 +264,10 @@ Authors check their screens against this list, and the `design-review` agent rep
   A page that starts work outside ScreenHire, such as adding DNS records, says what will happen before anyone starts, in a
   How it works panel with its steps.
 - **W10** What to do comes first; audit details come last. When something was assessed, under which ruleset, a code
-  or an id goes on a panel's last line in caption size, never above the next step. A calm result is shorter than a
-  concern: one quiet line, not the full layout.
+  or an id goes on a panel's last line in caption size, never above the next step. Where a page's audit line speaks for
+  the whole page, such as the Verification tab's "No automated decision has been made" and its ruleset, it is the page's
+  last line instead, under every panel and in none of them (section 16). A calm result is shorter than a concern: one
+  quiet line, not the full layout.
 - **T1** Status is a badge: its icon, colour and label, always all three (section 3.2). The icon alone tells statuses
   apart. Status colours mean status only.
 - **T2** Status comes first in its group: beside the title, or first in the row.
@@ -426,8 +428,8 @@ Each status has its own Lucide icon. The icon alone tells statuses apart, so col
 | Clear | Clear, a verification state with nothing to look at (`circle-check`, quiet beside a calm name); Delivering, Done; Hired, a candidate who got the job; Delivered, a webhook delivery; Active, an API key; Connected, the live updates connection and a Slack workspace; Verified, a sending domain, and Found, one of its DNS records; Explained, a Verification reason a person marked explained (`circle-check`); Nothing found, a group of verification checks that ran and found nothing (`circle-check`). Booked, an interview the candidate picked a time for (`calendar-check`). Completed, a data request the team answered (`circle-check`). Open, a job taking applications; Live, a job showing on a board (`door-open`) | `status-clear` | `#0B5D4F` | `#E3F1EC` | `#0F766E` |
 | Review | Review, a verification state that needs a look, with the status's own icon, `eye` (screen readers hear "Review suggested"); the same icon marks a review-coloured badge that is not a verification state, such as the sign-in screen's note about an assistant on your computer. Overdue by 2 days (`clock-alert`). Found, a group of verification checks with findings that count toward the level, at any level (`eye`). The level's own icon would read as a check of its own, and the header already shows the level | `status-review` | `#7A4205` | `#FBEFD3` | `#C77700` |
 | Verify | Broken, a setting that needs fixing (`circle-x`, a bare mark in the Settings menu); Verify, a verification state that needs a closer look, with the status's own icon, `id-card` (screen readers hear "Verification suggested"). Needs fixes, for a refused posting or a workflow with problems, and for a posting a board did not answer (Error), a webhook Turned off after failures, a delivery that Failed, a Slack workspace that is Not posting or Disconnected, a sending domain with Records to add and a record that is Not found or has a Different value, and a candidate whose address Email bounced or was Marked as spam (`wrench`). Unsafe file, flagged by the malware scan (`shield-x`) | `status-verify` | `#9A2F17` | `#F9E0D6` | `#B4461F` |
-| AI (information) | Some signs or Strong signs of AI help: a bare `sparkles` mark with a tooltip, never in a badge. No signs shows nothing. On the Verification tab, Information only for a group of checks whose notes are all AI help, and an AI finding's "Information only" tag. The sparkles mean AI help and nothing else | `status-ai` | `#2B2788` | `#ECEBFA` | `#2B2788` |
-| Grey: waiting or not started | Sent, Queued, Submitted, Removing and Removal requested, waiting on a board; Pending, a webhook delivery waiting for its next try; Waiting for the candidate, an interview offered and not yet booked, and Waiting for a new time, a booked interview whose new times the team offered (`clock-4`). Scanning and Pending, a candidate whose verification checks have not finished, ScreenHire at work; Preparing copy, a data request's file being built; Connecting, the live updates connection (`loader-circle`). Closed (`door-closed`). Draft (`file-pen-line`). Archived, a template out of the pickers until someone restores it (`archive`). Saved, a candidate who left the job without a rejection, kept for future roles (`bookmark`). Not in effect: Not posted, a board the job is not on; Removed, a board that took the job down; Off, a webhook someone turned off; Skipped, a delivery not sent; Revoked, an API key; Rejected and Withdrawn, how a candidate left a job; Offline, the live updates connection; Cancelled and Expired, an interview that ended; Declined, a data request the team turned down; Dismissed, a verification state a person set aside, its tooltip saying who and why (`circle-minus`); Turned off and Trusted, a group of verification checks the organization turned off and a domain or network it trusts, both listed under Not checked on the candidate's verification (`circle-minus`); Not checked, a group of verification checks a candidate added by hand gave nothing to read (`circle-minus`). Information only, a group of verification checks whose notes never count and are not all AI help (a VPN alone), and such a finding's tag (`info`) | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
+| AI (information) | Some signs or Strong signs of AI help: a bare `sparkles` mark with a tooltip, never in a badge. No signs shows nothing. On the Verification tab, the sparkles tile of a group of checks whose notes are all AI help ("1 note") and the sparkles mark on an AI finding's row, which says "Information only" to screen readers only. The sparkles mean AI help and nothing else | `status-ai` | `#2B2788` | `#ECEBFA` | `#2B2788` |
+| Grey: waiting or not started | Sent, Queued, Submitted, Removing and Removal requested, waiting on a board; Pending, a webhook delivery waiting for its next try; Waiting for the candidate, an interview offered and not yet booked, and Waiting for a new time, a booked interview whose new times the team offered (`clock-4`). Scanning and Pending, a candidate whose verification checks have not finished, ScreenHire at work; Preparing copy, a data request's file being built; Connecting, the live updates connection (`loader-circle`). Closed (`door-closed`). Draft (`file-pen-line`). Archived, a template out of the pickers until someone restores it (`archive`). Saved, a candidate who left the job without a rejection, kept for future roles (`bookmark`). Not in effect: Not posted, a board the job is not on; Removed, a board that took the job down; Off, a webhook someone turned off; Skipped, a delivery not sent; Revoked, an API key; Rejected and Withdrawn, how a candidate left a job; Offline, the live updates connection; Cancelled and Expired, an interview that ended; Declined, a data request the team turned down; Dismissed, a verification state a person set aside, its tooltip saying who and why (`circle-minus`); Turned off and Trusted, a group of verification checks the organization turned off and a domain or network it trusts, both listed under Not checked on the candidate's verification (`circle-minus`); Not checked, a group of verification checks a candidate added by hand gave nothing to read (`circle-minus`). Information only, a group of verification checks whose notes never count and are not all AI help (a VPN alone), with the tile's words "1 note", and such a finding's bare mark (`info`, "Information only" for screen readers) | `muted-foreground` on `secondary` | `#5F5A52` | `#F4F1EB` | `#5F5A52` |
 
 Status colours are never used for brand, decoration or facts. No status uses the warning triangle: it marks only the
 verification cards that fed a level (section 16). Counts use tabular figures.
@@ -981,7 +983,7 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   badge's tooltip and screen-reader text. It never changes, sorts, filters or counts toward the level, and it has no
   Dismiss.
 - A map of the six groups follows, one tile per group, each a link to its panel with one state in icon, colour and words:
-  "2 found" (counts toward the level, the review status at any level), "1 note, information only" (AI help and context
+  "2 found" (counts toward the level, the review status at any level), "1 note" (AI help and context
   that never counts; the sparkles only when every note is AI help, otherwise the grey `info` mark), "Nothing
   found", "Not checked" (a candidate a recruiter added by hand came through no careers form, so Network and Form use had
   nothing to look at; it goes by the application's source alone, so a careers applicant who turned telemetry off with
@@ -992,8 +994,9 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   "Nothing found" is a tile state and appears nowhere as a line. A finding is its plain sentence, short ("The resume and
   the answer give different dates for Lumen Health. Ask the candidate."), opening (A9) to its evidence as a facts row,
   any quote or comparison, the counter-evidence in its own card and its code. Only the exception is marked: a finding
-  that never counts says "Information only", with the sparkles mark for AI help and the grey `info` mark for context (a
-  VPN with nothing beside it); there is no "Counts toward the level" tag. Expand all and Collapse all
+  that never counts carries the sparkles mark for AI help or the grey `info` mark for context (a
+  VPN with nothing beside it), a mark alone with no words, and "Information only" is said once on screen, in the AI row's tooltip
+  (neither a tile nor a finding repeats it); there is no "Counts toward the level" tag. Expand all and Collapse all
   show only where a group has more than one finding.
 - One review action per finding: Mark explained, an outline button on the row of its code (F6), offered only on a
   finding that counts toward the level while the level needs a look, the result is not dismissed and the role reviews
@@ -1008,8 +1011,9 @@ Evidence, not verdicts (ADR-0004, CLAUDE.md non-negotiables 1 and 2):
   the AI row, then one line for each group that is Turned off, Not checked or AI-checks-paused, so a quiet result is never read as a clean
   one, then a collapsed "What was checked" naming the groups that ran and their checks. It has no map and no "nothing
   found" lines (W10).
-- The panel's last line is the audit line, caption size: "Assessed 2 hours ago" and "Ruleset", after "No automated
-  decision has been made. Every action is logged." (W10). A code or an id never sits above the next step.
+- The page's last line is the audit line, caption size, under every panel and in none of them (not the footer of the Form use
+  panel or the calm panel): "No automated decision has been made. Every action is logged.", then "Assessed 2 hours ago" and
+  "Ruleset" (W10). A code or an id never sits above the next step.
 - There is no Review log panel and no Add review note button. Every review action is an entry in the candidate's
   Activity, under the Verification filter: a dismissal, an explanation, its undo, a note, evidence that a re-check added
   or took away, and each read through an API key (one line for a run of reads by one key, with the key and who made

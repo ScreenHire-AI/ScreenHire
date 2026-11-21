@@ -239,10 +239,17 @@ internal static class AzurePublish
         }
 
         // The consistency check's model (verification-engine.md section 10.10). Provider None records "unavailable".
-        // Model ids come from here and nowhere else.
-        worker.WithEnvironment("ScreenHire__Verification__Llm__Provider", Optional("verification-llm-provider", "None"))
-            .WithEnvironment("ScreenHire__Verification__Llm__ExtractionModel", Optional("verification-llm-extraction-model"))
-            .WithEnvironment("ScreenHire__Verification__Llm__ConsistencyModel", Optional("verification-llm-consistency-model"));
+        // Model ids come from here and nowhere else. The API reads them too, to show the default budget and cap in dollars at the
+        // answering model's price (ai-usage.md, "Defaults in dollars").
+        var llmProvider = Optional("verification-llm-provider", "None");
+        var extractionModel = Optional("verification-llm-extraction-model");
+        var consistencyModel = Optional("verification-llm-consistency-model");
+        foreach (IResourceBuilder<IResourceWithEnvironment> app in new IResourceBuilder<IResourceWithEnvironment>[] { api, worker })
+        {
+            app.WithEnvironment("ScreenHire__Verification__Llm__Provider", llmProvider)
+                .WithEnvironment("ScreenHire__Verification__Llm__ExtractionModel", extractionModel)
+                .WithEnvironment("ScreenHire__Verification__Llm__ConsistencyModel", consistencyModel);
+        }
     }
 
     // The value of a parameter when configuration has none. AddParameter's string overload would not do: it sets the value

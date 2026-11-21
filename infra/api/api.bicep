@@ -54,6 +54,12 @@ param calendar_microsoft_client_id_value string
 
 param google_indexing_mode_value string
 
+param verification_llm_provider_value string
+
+param verification_llm_extraction_model_value string
+
+param verification_llm_consistency_model_value string
+
 param api_identity_outputs_clientid string
 
 param aca_outputs_azure_container_registry_endpoint string
@@ -235,6 +241,18 @@ resource api 'Microsoft.App/containerApps@2025-10-02-preview' = {
             {
               name: 'ScreenHire__Distribution__GoogleIndexing__Mode'
               value: google_indexing_mode_value
+            }
+            {
+              name: 'ScreenHire__Verification__Llm__Provider'
+              value: verification_llm_provider_value
+            }
+            {
+              name: 'ScreenHire__Verification__Llm__ExtractionModel'
+              value: verification_llm_extraction_model_value
+            }
+            {
+              name: 'ScreenHire__Verification__Llm__ConsistencyModel'
+              value: verification_llm_consistency_model_value
             }
             {
               name: 'AZURE_CLIENT_ID'

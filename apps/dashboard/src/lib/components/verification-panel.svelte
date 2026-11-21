@@ -83,7 +83,6 @@
     ai: 'border-status-ai-mark',
     neutral: 'border-border',
   };
-  const lastPanel = $derived(panels.at(-1)?.group);
   const audited = $derived(authenticity ?? aiAssistance);
 
   const canExplain = (finding: Finding) => reviewer && concern && finding.kind === 'authenticity' && finding.signal.countsTowardLevel && !finding.signal.explained;
@@ -135,16 +134,6 @@
   const groupName = (group: CheckGroup) => groups.find((candidate) => candidate.group === group)?.label ?? group;
 </script>
 
-{#snippet decisions()}
-  <p class="text-caption text-muted-foreground">No automated decision has been made. Every action is logged.</p>
-  {#if audited}
-    <!-- When it was assessed and under which rules: audit details, so last (W10). Two facts with their own gap (W3). -->
-    <p class="flex flex-wrap gap-x-4 text-caption text-muted-foreground" data-audit>
-      <span>Assessed <RelativeTime at={audited.assessedAt} class="inline" /></span><span>Ruleset {audited.rulesetVersion}</span>
-    </p>
-  {/if}
-{/snippet}
-
 <!-- AI help is information: its badge and the job's policy, and for Some and Strong signs its summary and next step. It has no
      action and never changes the level. For No signs the summary and next step are for screen readers, since the badge says it. -->
 {#snippet aiRow()}
@@ -189,14 +178,14 @@
       </Panel>
     {/if}
   {:else if detail.status === 'Pending' || (!authenticity && !aiAssistance)}
-    <Panel title="Verification" footer={decisions}>
+    <Panel title="Verification">
       <div class="flex flex-wrap items-center gap-2 text-muted-foreground">
         <StatusBadge status="working" label="Checks pending" />
         <p>Checks are still running. This tab updates on its own when they finish.</p>
       </div>
     </Panel>
   {:else}
-    <Panel title="Verification" data-verification-summary footer={calm ? decisions : undefined}>
+    <Panel title="Verification" data-verification-summary>
       <div class="flex flex-col gap-5">
         <!-- The suggested next step every result carries (CLAUDE.md non-negotiable 1). It leads, in a callout in the level's colour,
              when the level needs a look; otherwise it is one quiet line, the summary then its next step (W10). -->
@@ -274,7 +263,6 @@
         title={groupName(group.group)}
         data-check-group={group.group}
         class="scroll-mt-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        footer={group.group === lastPanel ? decisions : undefined}
       >
         {#snippet actions()}
           <!-- Expand all is for a group with more than one finding; one finding opens on its own. -->
@@ -305,6 +293,19 @@
         </div>
       </Panel>
     {/each}
+  {/if}
+
+  <!-- The page's last line (W10), under every panel and part of none: what was decided, and when it was assessed and under which
+       rules. Audit details come last. Two facts with their own gap (W3). -->
+  {#if detail}
+    <div class="flex flex-col gap-1 px-1" data-decisions>
+      <p class="text-caption text-muted-foreground">No automated decision has been made. Every action is logged.</p>
+      {#if audited}
+        <p class="flex flex-wrap gap-x-4 text-caption text-muted-foreground" data-audit>
+          <span>Assessed <RelativeTime at={audited.assessedAt} class="inline" /></span><span>Ruleset {audited.rulesetVersion}</span>
+        </p>
+      {/if}
+    </div>
   {/if}
 </div>
 
