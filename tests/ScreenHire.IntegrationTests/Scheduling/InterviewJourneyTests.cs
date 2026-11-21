@@ -328,7 +328,10 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
         var ownerEmail = await world.Owner.EmailOfAsync();
         var secondEmail = await world.Second.EmailOfAsync();
         await world.WaitForEmailAsync(ownerEmail, "Interview cancelled");
-        await fixture.WaitHandledAsync(booked.ToString("N"), ".NotifyMember", 4);
+        // The cancellation's own notices (one per interviewer, keyed by the interview and its revision) have both been handled.
+        // The booking's notice may have run before or after the cancel and tells nobody once it is out of date, so it is not counted.
+        var cancelledRevision = (await world.StoredAsync(booked)).Revision;
+        await fixture.WaitHandledAsync($"{booked:N}:{cancelledRevision}", ".NotifyMember", 2);
         (await fixture.Mailpit.MessagesAsync(secondEmail, Ct)).Should().NotContain(m => m.Subject.StartsWith("Interview cancelled", StringComparison.Ordinal));
         await world.WaitForSyncAsync(booked, "Synced");
         var entry = (await world.Owner.GetAsync($"/v1/applications/{world.ApplicationId}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
