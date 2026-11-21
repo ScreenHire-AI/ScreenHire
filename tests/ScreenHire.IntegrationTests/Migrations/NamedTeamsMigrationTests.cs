@@ -10,7 +10,7 @@ namespace ScreenHire.IntegrationTests.Migrations;
 /// </summary>
 public sealed class NamedTeamsMigrationTests(AppHostFixture fixture)
 {
-    private const string Before = "AddOrganizationSetupChoices";
+    private const string Before = "AddMemberPreferences";
     private const string After = "AddNamedTeams";
 
     [Fact]
