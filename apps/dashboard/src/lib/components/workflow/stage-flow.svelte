@@ -1,35 +1,25 @@
 <script lang="ts">
-  import type { HiringWorkflow, WorkflowStage } from '@screenhire/api-client';
-  import ClipboardListIcon from '~icons/lucide/clipboard-list';
-  import ClockIcon from '~icons/lucide/clock';
-  import ZapIcon from '~icons/lucide/zap';
+  import type { HiringWorkflow } from '@screenhire/api-client';
   import StepMarker from '#lib/components/step-marker.svelte';
-  import { laneOf } from '#lib/workflow.js';
-  import ScorecardName from './scorecard-name.svelte';
+  import { stageFacts } from '#lib/stage-facts.js';
+  import { emailTemplateNames, isTerminal } from '#lib/workflow.js';
+  import StageFactList from './stage-fact-list.svelte';
 
-  // A workflow's stages in order (design system section 11, Stage flow): a row of columns where every stage fits, and the
-  // vertical list where they do not, so 5 stages and 20 stages both read (S9). Each stage is its name, then what is
-  // attached to it as short facts, in one order: scorecard, time limit, automations. A stage with nothing attached shows
-  // only its name. The stages that end a candidacy are not here; the page lists them in the panel's footer.
+  // A pipeline's open stages in order, where it only reads (design system section 11, Stage flow): a row of columns where
+  // every stage fits, and the vertical list where they do not, so 5 stages and 20 stages both read (S9). Each stage is its
+  // name, then its short facts as the Stage cards say them (#lib/stage-facts.ts), as text. A stage with nothing attached
+  // shows only its name. The stages that end a candidacy are not here; the page lists them under Ends.
   let {
-    stages,
-    automations,
+    workflow,
     label = 'Stages in order',
+    templateNames = emailTemplateNames(undefined),
   }: {
-    stages: readonly WorkflowStage[];
-    /** Every automation of the workflow: a stage counts the ones that fire on it. */
-    automations: HiringWorkflow['automations'];
+    workflow: HiringWorkflow;
     label?: string;
+    /** The organization's email template names, for "Sends ..."; the built-in ones when left out. */
+    templateNames?: ReadonlyMap<string, string>;
   } = $props();
-
-  // One style for every fact: its icon, then a short muted line that wraps rather than cuts. The line can shrink below
-  // its longest word (min-w-0), or a long unbroken name would run across the next column.
-  const factClass = 'flex items-start gap-1.5 text-muted-foreground break-words';
-  const iconClass = 'mt-0.5 shrink-0';
-  const lineClass = 'min-w-0';
-
-  // An automation that is off fires on nothing, so its stage does not count it.
-  const automationsOn = (stage: WorkflowStage) => automations.filter((automation) => automation.enabled !== false && laneOf(automation) === stage.id).length;
+  const stages = $derived(workflow.stages.filter((stage) => !isTerminal(stage.kind)));
 </script>
 
 <!-- The wrapper is the size container (F2). A container query's condition cannot read how many stages there are, and
@@ -39,25 +29,12 @@
 <div class="stage-flow">
   <ol aria-label={label} style:--n={stages.length}>
     {#each stages as stage, index (stage.id)}
-      {@const cards = automationsOn(stage)}
       <li class="border-border-subtle">
         <!-- The line down to the next stage, drawn only in the vertical list. -->
         {#if index < stages.length - 1}<span aria-hidden="true" class="line-down bg-border"></span>{/if}
         <StepMarker>{index + 1}</StepMarker>
         <span class="pt-1 font-semibold break-words">{stage.name}</span>
-        {#if stage.scorecard || stage.scorecardTemplateId || stage.slaDays || cards > 0}
-          <ul class="facts mt-1.5 flex flex-col gap-1">
-            {#if stage.scorecard || stage.scorecardTemplateId}
-              <li class={factClass}><ClipboardListIcon aria-hidden="true" class={iconClass} /><span class={lineClass}><span class="sr-only">Scorecard:</span>{' '}<ScorecardName {stage} /></span></li>
-            {/if}
-            {#if stage.slaDays}
-              <li class={factClass}><ClockIcon aria-hidden="true" class={iconClass} /><span class={[lineClass, 'tabular-nums']}>{stage.slaDays}-day limit</span></li>
-            {/if}
-            {#if cards > 0}
-              <li class={factClass}><ZapIcon aria-hidden="true" class={iconClass} /><span class={lineClass}>{cards} {cards === 1 ? 'automation' : 'automations'}</span></li>
-            {/if}
-          </ul>
-        {/if}
+        <div class="facts mt-1.5"><StageFactList facts={stageFacts(workflow, stage, templateNames)} {stage} /></div>
       </li>
     {/each}
   </ol>

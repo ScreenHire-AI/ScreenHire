@@ -2938,6 +2938,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(7)")
                         .HasColumnName("second_color");
 
+                    b.Property<bool>("SetupHidden")
+                        .HasColumnType("boolean")
+                        .HasColumnName("setup_hidden");
+
                     b.Property<Guid?>("SharingImageId")
                         .HasColumnType("uuid")
                         .HasColumnName("sharing_image_id");
@@ -2945,6 +2949,13 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<bool>("SignalNetworkOptIn")
                         .HasColumnType("boolean")
                         .HasColumnName("signal_network_opt_in");
+
+                    b.PrimitiveCollection<string[]>("SkippedSetupSteps")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("skipped_setup_steps")
+                        .HasDefaultValueSql("'{}'::text[]");
 
                     b.Property<string>("Slug")
                         .IsRequired()

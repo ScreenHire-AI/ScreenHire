@@ -60,13 +60,14 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { actorName } from '#lib/history.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
-  import { filterCounts, matchesFilter, templateFilters, templateKindViews, usedByLabel, type TemplateFilter, type TemplateKind } from '#lib/templates.js';
+  import { filterCounts, filtersFor, matchesFilter, templateKindViews, templateStatus, usedByWords, type TemplateFilter, type TemplateKind } from '#lib/templates.js';
 
   // One tab of the Templates page (design system section 21): the list template's table panel (section 7). Its header
   // is its title and the search, with no sentence about the tab (W9); under it the filters with their counts (T4), then
   // a table that sorts every column (L2) and opens on Last updated, newest first, with the person's sort remembered per
-  // kind. The name is semibold with Built in after it for ScreenHire's own (W6, L1); Version and Draft are their own
-  // columns; Used by is a count; Last updated says who. Phones get list items with the Sort chip (section 8) and the row
+  // kind. The name is semibold with Built in after it for ScreenHire's own (W6, L1); a hiring template's Status says
+  // Published, Draft or Published, draft open, never a version number; Used by is a count, with the jobs left on an older
+  // version (3 jobs, 1 on an older version); Last updated says who. Drafts is a filter for hiring templates only. Phones get list items with the Sort chip (section 8) and the row
   // menu. Archived templates show only under Archived. The row menu is the page's: `menu` renders a row's items, and
   // `hasMenu` says whether it has any.
   let {
@@ -112,6 +113,7 @@
   let filter = $state<TemplateFilter>('all');
   let search = $state('');
   const counts = $derived(filterCounts(rows));
+  const filters = $derived(filtersFor(kind));
   const shown = $derived.by(() => {
     const words = search.trim().toLocaleLowerCase();
     return rows.filter(
@@ -137,6 +139,10 @@
   };
   const columns: Column[] = [
     column.accessor('name', { header: 'Name', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(nameCell, row.original) }),
+    // Status first after the name (T2), for the one kind with versions.
+    ...(kindOf === 'hiring'
+      ? [column.accessor((row) => templateStatus(row).label, { id: 'status', header: 'Status', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(statusCell, row.original) })]
+      : []),
     ...middle[kindOf],
     // Used by sorts on its count: while usage loads every row is undefined, which sorts last.
     column.accessor((row) => row.usage?.usedBy.length, { id: 'usedBy', header: 'Used by', sortFn: 'basic', sortUndefined: 'last', cell: ({ row }) => renderSnippet(usedByCell, row.original) }),
@@ -148,13 +154,6 @@
       sortUndefined: 'last',
       cell: ({ row }) => renderSnippet(lastUsedCell, row.original),
     }),
-    ...(kindOf === 'hiring'
-      ? [
-          column.accessor((row) => row.published ?? undefined, { id: 'version', header: 'Version', sortFn: 'basic', sortUndefined: 'last', cell: ({ row }) => renderSnippet(versionCell, row.original) }),
-          // A draft in progress is its own column, not a badge squeezed beside the version.
-          column.accessor((row) => row.draft ?? undefined, { id: 'draft', header: 'Draft', sortFn: 'basic', sortUndefined: 'last', cell: ({ row }) => renderSnippet(draftCell, row.original) }),
-        ]
-      : []),
     column.accessor((row) => row.lastUpdated.at ?? undefined, {
       id: 'updatedAt',
       header: 'Last updated',
@@ -209,10 +208,10 @@
   <div class="flex items-center gap-2 border-b border-border-subtle px-4.5 py-2 max-md:px-4">
     <div class="min-w-0 flex-1 overflow-x-auto [scrollbar-width:thin]">
       <div role="group" aria-label="Show" class="flex w-max gap-1">
-        {#each templateFilters as option (option.value)}
+        {#each filters as option (option.value)}
           <Toggle size="lg" bind:pressed={() => filter === option.value, () => (filter = option.value)}>
             {option.label}
-            {#if !pending && (!usagePending || option.value === 'all' || option.value === 'archived')}<Badge variant="count">{counts[option.value]}</Badge>{/if}
+            {#if !pending && (!usagePending || option.value !== 'in-use')}<Badge variant="count">{counts[option.value]}</Badge>{/if}
           </Toggle>
         {/each}
       </div>
@@ -260,8 +259,8 @@
           {#snippet meta()}{#if row.lastUpdated.at}<DateText at={row.lastUpdated.at} />{/if}{/snippet}
           {#snippet facts()}
             {#if row.builtIn}<BuiltInBadge />{/if}
-            {#if row.usage?.usedBy.length}<Badge variant="muted">Used by {usedByLabel(kind, row.usage.usedBy.length).toLocaleLowerCase()}</Badge>{/if}
-            {#if row.draft}<StatusBadge status="draft" label={`Draft ${row.draft}`} quiet />{/if}
+            {#if kind === 'hiring' && !row.archived}{@const state = templateStatus(row)}<StatusBadge status={state.status} label={state.label} quiet />{/if}
+            {#if row.usage?.usedBy.length}<Badge variant="muted">Used by {usedByWords(kind, row.usage.usedBy, row.published)}</Badge>{/if}
           {/snippet}
           <!-- Duplicate and Archive live only on the row, so a phone gets the row's menu too (section 11, Table, list item). -->
           {#snippet actions()}{#if hasMenu(row)}{@render menu(row)}{/if}{/snippet}
@@ -307,7 +306,7 @@
                     (cell.column.id === 'description' || cell.column.id === 'subject') && 'w-full max-w-0 min-w-40',
                     cell.column.id !== 'name' && 'text-muted-foreground',
                     (cell.column.id === 'updatedAt' || cell.column.id === 'lastUsed') && 'text-right tabular-nums',
-                    (cell.column.id === 'questions' || cell.column.id === 'version') && 'tabular-nums',
+                    cell.column.id === 'questions' && 'tabular-nums',
                     cell.column.id === 'actions' && 'px-4 text-right',
                   ]}
                 >
@@ -346,7 +345,7 @@
 {#snippet usedByCell(row: TemplateRow)}
   {#if row.usage}
     <!-- Nothing uses it: the cell is blank and only a screen reader hears it (L1). -->
-    {#if row.usage.usedBy.length > 0}<span class="text-foreground">{usedByLabel(kind, row.usage.usedBy.length)}</span>{:else}<span class="sr-only">Not used</span>{/if}
+    {#if row.usage.usedBy.length > 0}<span class="text-foreground">{usedByWords(kind, row.usage.usedBy, row.published)}</span>{:else}<span class="sr-only">Not used</span>{/if}
   {:else if usagePending}
     <Skeleton class="h-4 w-16" />
   {/if}
@@ -362,15 +361,10 @@
   {/if}
 {/snippet}
 
-{#snippet versionCell(row: TemplateRow)}
-  <!-- The newest published version; a template that was never published has none. -->
-  {#if row.published}<span class="text-foreground">{row.published}</span>{:else}<span class="sr-only">Not published</span>{/if}
-{/snippet}
-
-{#snippet draftCell(row: TemplateRow)}
-  <!-- The version being drafted, as plain text in its own column; most rows have none, so their cell is blank and only
-       a screen reader hears "No draft" (L1). -->
-  {#if row.draft}<span class="text-foreground">Version {row.draft}</span>{:else}<span class="sr-only">No draft</span>{/if}
+{#snippet statusCell(row: TemplateRow)}
+  {@const state = templateStatus(row)}
+  <!-- Calm states in a table are quiet badges (T3). -->
+  <StatusBadge status={state.status} label={state.label} quiet />
 {/snippet}
 
 {#snippet updatedCell(row: TemplateRow)}

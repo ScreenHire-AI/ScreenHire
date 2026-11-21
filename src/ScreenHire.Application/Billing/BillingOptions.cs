@@ -54,6 +54,20 @@ public sealed class BillingOptions
         !string.IsNullOrWhiteSpace(SecretKey) && !string.IsNullOrWhiteSpace(WebhookSecret) ? BillingMode.Stripe
         : Sandbox.Enabled ? BillingMode.Sandbox
         : BillingMode.Off;
+
+    /// <summary>
+    /// Whether AI use on ScreenHire's key is billed: always in the sandbox, and with Stripe once the metered price
+    /// (<see cref="BillingAiOptions.StripePriceId"/>) is set, which is when the worker reports it.
+    /// </summary>
+    public bool AiMetered => Mode == BillingMode.Sandbox || Mode == BillingMode.Stripe && !string.IsNullOrWhiteSpace(Ai.StripePriceId);
+
+    /// <summary>
+    /// The margin on AI use that a customer pays: <see cref="BillingAiOptions.Margin"/> while AI use is billed (<see cref="AiMetered"/>),
+    /// and 0 otherwise, because then nobody is billed for it and the amount shown is the provider's price. Every figure for AI use goes
+    /// through it, so the Usage tab, the budget and cap, and the Billing page show the one amount the meter is sent
+    /// (docs/architecture/ai-usage.md).
+    /// </summary>
+    public decimal AiMarginInForce => AiMetered ? Ai.Margin : 0m;
 }
 
 /// <summary>

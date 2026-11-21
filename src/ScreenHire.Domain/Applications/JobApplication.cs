@@ -328,6 +328,27 @@ public sealed class JobApplication : IJobScoped
     }
 
     /// <summary>
+    /// Renames the tag <paramref name="from"/> to <paramref name="to"/>, or merges it into <paramref name="to"/> when the
+    /// application has that one already (both compared ignoring case), and returns the timeline events: the old tag
+    /// removed, then the new one added unless it was there. Automations read tags by replaying those two events
+    /// (<c>AutomationFacts.FromTimeline</c>), so a rename is recorded as them and never as a silent edit of the list. It
+    /// removes first, so a rename that changes only the case ("senior" to "Senior") works. Without the old tag it
+    /// changes nothing and returns no events.
+    /// </summary>
+    public IReadOnlyList<ApplicationEvent> RenameTag(string from, string to, DateTimeOffset now, Guid? actorUserId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(to);
+        if (RemoveTag(from, now, actorUserId) is not { } removed)
+        {
+            return [];
+        }
+
+        // The timeline sorts by time, then id, and two version 7 ids made in one millisecond can sort either way. The add
+        // comes a microsecond (the database's precision) after the removal, so a case-only rename replays as written.
+        return AddTag(to, now.AddTicks(TimeSpan.TicksPerMicrosecond), actorUserId) is { } added ? [removed, added] : [removed];
+    }
+
+    /// <summary>
     /// A note from the hiring team (<paramref name="text"/>, trimmed) and the timeline entry that records it with its
     /// author and time. The entry names the note and never holds its text, so deleting the note erases it
     /// (<see cref="ApplicationNote"/>). It changes nothing else about the application, and no automation reads it.

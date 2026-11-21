@@ -134,7 +134,8 @@ internal static class ApplicationChanges
     }
 
     /// <summary>
-    /// A person or an API key tags an application. A tag it already has (ignoring case) changes nothing. The worker's
+    /// A person or an API key tags an application. A tag the organization already has in another case is added as the
+    /// organization spells it (<see cref="OrganizationTags.SpellingOfAsync"/>). A tag it already has (ignoring case) changes nothing. The worker's
     /// AddTag action writes the same row, so a clash is a 409, as a move is.
     /// </summary>
     public static async Task<Results<Ok<ApplicationDetail>, NotFound, ValidationProblem, ProblemHttpResult>> AddTagAsync(
@@ -152,8 +153,10 @@ internal static class ApplicationChanges
             return TypedResults.ValidationProblem(problems);
         }
 
+        // Tags are the organization's: one that differs only by case is the existing one, spelled as the team spells it.
+        var tag = await OrganizationTags.SpellingOfAsync(outbox.DbContext, request.Tag, cancellationToken);
         return await ChangeTagsAsync(
-            applicationId, outbox, tenant, time, (application, now) => application.AddTag(request.Tag, now, tenant.UserId, actorApiKeyId: user.ApiKeyId()),
+            applicationId, outbox, tenant, time, (application, now) => application.AddTag(tag, now, tenant.UserId, actorApiKeyId: user.ApiKeyId()),
             cancellationToken);
     }
 

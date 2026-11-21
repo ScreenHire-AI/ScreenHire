@@ -175,7 +175,7 @@
       failure =
         error instanceof ApiError && error.status === 400
           ? {
-              message: 'Fix the problems in this workflow first: it cannot be tested until it is valid.',
+              message: 'Fix the problems in this pipeline first: it cannot be tested until it is valid.',
               problems: problemErrors(error.body).map((problem) => problem.message),
             }
           : { message: describeError(error, 'Could not run the test'), problems: [] };
@@ -198,7 +198,7 @@
     <Empty.Header>
       <Empty.Media variant="icon"><FlaskConicalIcon /></Empty.Media>
       <Empty.Title>Nothing to test yet</Empty.Title>
-      <Empty.Description>This workflow has no automations.</Empty.Description>
+      <Empty.Description>This pipeline has no automations.</Empty.Description>
     </Empty.Header>
     {#if onadd}<Empty.Content><Button variant="outline" size="lg" onclick={onadd}>Add an automation</Button></Empty.Content>{/if}
   </Empty.Root>
@@ -218,7 +218,7 @@
     <div class="flex flex-col gap-1">
       <h3 bind:this={headingElement} tabindex="-1" class="text-heading focus-visible:outline-none">{heading}</h3>
       {#if shown === 'moment'}
-        <p class="max-w-[72ch] text-muted-foreground">The test runs on this workflow as it is on screen. It never touches a real candidate or sends anything.</p>
+        <p class="max-w-[72ch] text-muted-foreground">The test runs on this pipeline as it is on screen. It never touches a real candidate or sends anything.</p>
       {/if}
     </div>
 
@@ -404,7 +404,7 @@
               </ul>
             </div>
           {/if}
-          {#if outdated}<p class="text-muted-foreground">The workflow changed after this test.</p>{/if}
+          {#if outdated}<p class="text-muted-foreground">The pipeline changed after this test.</p>{/if}
         {/if}
       </div>
       {#if !pending}

@@ -1,5 +1,5 @@
-// One stage's sheet: its name, a time limit in plain choices with a reminder that follows it, its scorecard and
-// automations, and the stage's kind under More options.
+// One stage's sheet: its name, Respond within in plain choices with a reminder that follows it and what runs when it
+// passes, its scorecard and automations, and the stage's kind under More options.
 import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -42,7 +42,10 @@ const limit = (dialog: HTMLElement, name: string) => within(dialog).getByRole('r
 // The button's name is its word and the stage: "Choose scorecard for Interview".
 const scorecardButton = (dialog: HTMLElement, word: 'Choose' | 'Change') =>
   within(dialog).getByRole('button', { name: `${word} scorecard for Interview` });
-const reminder = 'The team gets a reminder after';
+const reminder = 'When overdue';
+const overdue = (dialog: HTMLElement) => dialog.querySelector<HTMLElement>('[data-when-overdue]');
+const tellsTeam = /When overdue\s*Tell the team/;
+const help = 'How long a candidate should wait here before your team moves them on. After that they show as Overdue. Nothing happens to the candidate.';
 
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/email-templates': () => Response.json({ templates: [], sendingEnabled: false }) })));
@@ -73,24 +76,30 @@ describe('stage sheet', () => {
     expect(within(dialog).getByRole('button', { name: 'Choose scorecard for Interview' })).toBeInTheDocument();
   });
 
-  it('lists the automations at the stage in the journey\'s words, never naming the person a step asks', async () => {
+  it('lists the automations at the stage in the pipeline\'s words, never naming the person a step asks', async () => {
     renderSheet();
     const dialog = await sheet();
 
-    expect(within(dialog).getByText('Asks the team to review')).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Team reviews' })).toHaveAttribute('href', '?tab=automations&show=ask-review');
     expect(dialog).not.toHaveTextContent('01a157d4');
-    expect(within(dialog).queryByText(/Welcome|Tells the team/)).toBeNull();
+    expect(within(dialog).queryByText(/Welcome|Tell the team/)).toBeNull();
   });
 
-  it('does not list the reminder its own time limit made, which the sentence under the limit already says', async () => {
+  it('lists the reminder its own time limit made under When overdue, not again with the automations', async () => {
     renderSheet();
     const dialog = await sheet();
     await fireEvent.click(limit(dialog, '3 days'));
 
     expect(automationIds()).toContain('reminder-interview');
-    expect(dialog).toHaveTextContent('The team gets a reminder after 3 days.');
-    expect(within(dialog).getAllByRole('listitem')).toHaveLength(1);
-    expect(dialog).not.toHaveTextContent('when the time limit passes');
+    expect(overdue(dialog)).toHaveTextContent(tellsTeam);
+    expect(within(dialog).getAllByRole('link', { name: 'Tell the team' })).toHaveLength(1);
+  });
+
+  it('says under Respond within what the limit means, and that nothing happens to the candidate', async () => {
+    renderSheet();
+    const dialog = await sheet();
+
+    expect(within(dialog).getByRole('group', { name: 'Respond within' })).toHaveAccessibleDescription(help);
   });
 
   it('closes the sheet when Open in Automations is pressed', async () => {
@@ -109,7 +118,7 @@ describe('stage sheet', () => {
     renderSheet({ stageId: 'hired' });
     const dialog = await sheet();
 
-    expect(within(dialog).queryByText('Time limit')).toBeNull();
+    expect(within(dialog).queryByText('Respond within')).toBeNull();
     expect(within(dialog).queryByRole('radio')).toBeNull();
     expect(within(dialog).queryByText('Scorecard')).toBeNull();
     expect(within(dialog).getByRole('button', { name: 'Add an automation' })).toBeInTheDocument();
@@ -164,7 +173,7 @@ describe('the time limit', () => {
 
     expect(interview().slaDays).toBe(5);
     expect(limit(dialog, '5 days')).toBeChecked();
-    expect(dialog).toHaveTextContent('The team gets a reminder after 5 days.');
+    expect(overdue(dialog)).toHaveTextContent(tellsTeam);
     expect(automationIds()).toEqual(['welcome', 'ask-review', 'reminder-interview']);
   });
 
@@ -175,7 +184,7 @@ describe('the time limit', () => {
     await fireEvent.click(limit(dialog, '1 week'));
 
     expect(interview().slaDays).toBe(7);
-    expect(dialog).toHaveTextContent('The team gets a reminder after 1 week.');
+    expect(limit(dialog, '1 week')).toBeChecked();
   });
 
   it('removes the reminder, and only the reminder, when the limit is set to None', async () => {
@@ -205,7 +214,7 @@ describe('the time limit', () => {
     await fireEvent.click(limit(dialog, '2 days'));
 
     expect(automationIds()).toEqual(['welcome', 'ask-review', 'mine']);
-    expect(dialog).toHaveTextContent('The team gets a reminder after 2 days.');
+    expect(overdue(dialog)).toHaveTextContent(tellsTeam);
 
     // Taking the limit away leaves the person's own automation alone.
     await fireEvent.click(limit(dialog, 'None'));
@@ -227,7 +236,19 @@ describe('the time limit', () => {
 
     expect(interview().slaDays).toBe(3);
     expect(dialog).not.toHaveTextContent(reminder);
+    expect(within(dialog).queryByRole('button', { name: 'Add a reminder' })).toBeNull();
     expect(automationIds()).not.toContain('reminder-interview');
+  });
+
+  it('says Nothing yet and offers Add a reminder when nothing runs once the limit passes', async () => {
+    const onreminder = vi.fn();
+    const quiet: HiringWorkflow = { ...workflow, stages: workflow.stages.map((stage) => (stage.id === 'interview' ? { ...stage, slaDays: 3 } : stage)) };
+    render(WithQueryClient, { props: { component: StageSheetHarness, props: { workflow: structuredClone(quiet), stageId: 'interview', onreminder } } });
+    const dialog = await sheet();
+
+    expect(overdue(dialog)).toHaveTextContent('When overdue: Nothing yet.');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add a reminder' }));
+    expect(onreminder).toHaveBeenCalledWith('interview');
   });
 
   it('opens with a stored limit already chosen', async () => {
@@ -249,7 +270,7 @@ describe('the time limit', () => {
 
     expect(interview().slaDays).toBe(10);
     expect(limit(dialog, 'Other')).toBeChecked();
-    expect(dialog).toHaveTextContent('The team gets a reminder after 10 days.');
+    expect(overdue(dialog)).toHaveTextContent(tellsTeam);
     expect(automationIds()).toContain('reminder-interview');
   });
 

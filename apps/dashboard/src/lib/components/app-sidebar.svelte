@@ -27,11 +27,10 @@
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { formatDayMonth } from '#lib/dates.js';
   import { initials } from '#lib/format.js';
-  import { can } from '#lib/permissions.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import type { SidebarView } from '#lib/sidebar-views.js';
   import { signOutAndRedirect } from '#lib/session.js';
-  import { featureOn, settingsHome, visibleSettingsSections } from '#lib/settings.js';
+  import { settingsHome, visibleSettingsSections } from '#lib/settings.js';
   import { calendarFailure, isCalendarOutcome } from '#lib/calendar.js';
   import { getShell, sectionsFor } from '#lib/shell.js';
   import type { ViewActions } from '#lib/views.svelte.js';
@@ -47,6 +46,7 @@
     calendarOpen = $bindable(false),
     openTasks,
     trialEndsAt,
+    billing = false,
   }: {
     user: CurrentUser | null;
     /**
@@ -72,6 +72,8 @@
      * Missing for everyone else, and once a plan is paid or billing is off (docs/architecture/billing.md).
      */
     trialEndsAt?: string | null;
+    /** Billing is set up and the person may see it (Manage billing): the account menu then links to it, as Settings does. */
+    billing?: boolean;
   } = $props();
 
   let teamViewsOpen = $state(false);
@@ -101,9 +103,6 @@
   const settingsShown = $derived(visibleSettingsSections(user, shell.features()).length > 0);
   const navSections = $derived(sectionsFor(user).filter((section) => section.sidebar !== false));
   const settingsActive = $derived(page.url.pathname === settingsHome || page.url.pathname.startsWith(`${settingsHome}/`));
-
-  // Billing in the person's menu, for an Owner where a payment provider is set up (A3).
-  const billingShown = $derived(can(user, 'ManageBilling') && featureOn(shell.features(), 'billing'));
 
   // Each person's own calendar, once this ScreenHire has a calendar to connect (docs/architecture/interview-scheduling.md). Your
   // account > Connected accounts shows it; this sheet is for a page that needs it connected (scheduling an interview).
@@ -383,7 +382,7 @@
                 Keyboard shortcuts
                 {#if preferences.shortcutsEnabled}<DropdownMenu.Shortcut><Kbd>?</Kbd></DropdownMenu.Shortcut>{/if}
               </DropdownMenu.Item>
-              {#if billingShown}
+              {#if billing}
                 <DropdownMenu.Item>
                   {#snippet child({ props })}<a {...props} href="/settings/billing" onclick={(event) => closeMenuAndSheet(props, event)}>Billing</a>{/snippet}
                 </DropdownMenu.Item>

@@ -3,10 +3,20 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../../test-support/axe.js';
 import { apiStub, user } from '../../../../../test-support/fixtures.js';
+import { stubViewport } from '../../../../../test-support/viewport.js';
 import WithQueryClient from '../../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
-vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/settings/webhooks/e1') }, navigating: { to: null } }));
+const location = vi.hoisted(() => ({ url: new URL('http://dashboard.test/settings/webhooks/e1') }));
+vi.mock('$app/state', () => ({
+  page: {
+    data: { user },
+    get url() {
+      return location.url;
+    },
+  },
+  navigating: { to: null },
+}));
 const navigation = vi.hoisted(() => ({ goto: vi.fn(async () => {}) }));
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: navigation.goto }));
 
@@ -76,7 +86,15 @@ async function openMoreActions() {
 afterEach(() => {
   vi.unstubAllGlobals();
   navigation.goto.mockClear();
+  location.url = new URL('http://dashboard.test/settings/webhooks/e1');
 });
+
+const eventTypes = { 'GET /v1/webhooks/event-types': () => Response.json(['application.submitted', 'job.stage_changed', 'job.published']) };
+
+async function openEditSheet() {
+  await fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+  return screen.findByRole('dialog', { name: 'Edit endpoint' });
+}
 
 /** Opens the row menu of the first delivery of an event, by the event's words. */
 async function openReplayMenu(label: string) {
@@ -316,5 +334,96 @@ describe('webhook endpoint page', () => {
 
     expect(await screen.findByText('It was deleted, or it belongs to another organization.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to webhooks' })).toHaveAttribute('href', '/settings/webhooks');
+  });
+});
+
+describe('edit endpoint sheet', () => {
+  it('opens over the page from Edit, filled with the endpoint, and says nothing about its state while it is on', async () => {
+    renderPage(endpoint(), eventTypes);
+
+    const sheet = await openEditSheet();
+
+    expect(within(sheet).getByLabelText('URL')).toHaveValue('https://hooks.example.com/applicants');
+    expect(within(sheet).getByLabelText(/Description/)).toHaveValue('Applicant sync');
+    expect(await within(sheet).findByRole('checkbox', { name: /Application submitted/ })).toBeChecked();
+    expect(within(sheet).getByRole('checkbox', { name: /Job published/ })).not.toBeChecked();
+    expect(within(sheet).queryByText(/This endpoint is off/)).not.toBeInTheDocument();
+    await expectNoAxeViolations();
+  });
+
+  it('says that saving does not turn an endpoint on while it is off, with no link to the page behind it (A5)', async () => {
+    renderPage(endpoint({ enabled: false, disabledReason: 'Ten deliveries in a row failed.', disabledAt: '2026-10-19T09:00:00Z' }), eventTypes);
+
+    const sheet = await openEditSheet();
+
+    expect(within(sheet).getByText('This endpoint is off. Saving does not turn it on.')).toBeInTheDocument();
+    expect(within(sheet).queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('opens from Edit in the More menu on a phone, where the band has no Edit button', async () => {
+    stubViewport(360);
+    renderPage(endpoint(), eventTypes);
+
+    const menu = await openMoreActions();
+    const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;
+    expect(within(band).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Edit' }));
+
+    const sheet = await screen.findByRole('dialog', { name: 'Edit endpoint' });
+    expect(within(sheet).getByLabelText('URL')).toHaveValue('https://hooks.example.com/applicants');
+  });
+
+  it('saves with a PUT that leaves the endpoint on or off as it is, then closes', async () => {
+    const bodies: unknown[] = [];
+    renderPage(endpoint(), {
+      ...eventTypes,
+      [`PUT /v1/webhooks/${endpointId}`]: (init) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return Response.json(endpoint({ description: 'Payroll sync' }));
+      },
+    });
+    const sheet = await openEditSheet();
+
+    await fireEvent.input(within(sheet).getByLabelText(/Description/), { target: { value: 'Payroll sync' } });
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(bodies).toEqual([{ url: 'https://hooks.example.com/applicants', description: 'Payroll sync', events: ['application.submitted', 'job.stage_changed'] }]),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Edit endpoint' })).not.toBeInTheDocument());
+    expect(navigation.goto).not.toHaveBeenCalled();
+  });
+
+  it('starts again from the endpoint when it is opened again after a cancel', async () => {
+    renderPage(endpoint(), eventTypes);
+    let sheet = await openEditSheet();
+    await fireEvent.input(within(sheet).getByLabelText(/Description/), { target: { value: 'Half typed' } });
+
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Edit endpoint' })).not.toBeInTheDocument());
+    sheet = await openEditSheet();
+
+    expect(within(sheet).getByLabelText(/Description/)).toHaveValue('Applicant sync');
+  });
+
+  it('opens on arrival from the old edit address (?edit) once the endpoint has loaded, and takes the parameter out of the address', async () => {
+    location.url = new URL('http://dashboard.test/settings/webhooks/e1?edit=endpoint');
+    renderPage(endpoint(), eventTypes);
+
+    const sheet = await screen.findByRole('dialog', { name: 'Edit endpoint' });
+    expect(within(sheet).getByLabelText('URL')).toHaveValue('https://hooks.example.com/applicants');
+    await waitFor(() => expect(navigation.goto).toHaveBeenCalledWith(new URL('http://dashboard.test/settings/webhooks/e1'), { replace: true, reset: false }));
+  });
+
+  it('opens nothing for an endpoint that is gone, and still takes ?edit out of the address', async () => {
+    location.url = new URL('http://dashboard.test/settings/webhooks/e1?edit=endpoint');
+    renderPage(endpoint(), {
+      [`GET /v1/webhooks/${endpointId}`]: () => new Response(null, { status: 404 }),
+      [`GET /v1/webhooks/${endpointId}/deliveries`]: () => new Response(null, { status: 404 }),
+    });
+
+    expect(await screen.findByText('It was deleted, or it belongs to another organization.')).toBeInTheDocument();
+    await waitFor(() => expect(navigation.goto).toHaveBeenCalledWith(new URL('http://dashboard.test/settings/webhooks/e1'), { replace: true, reset: false }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

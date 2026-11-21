@@ -3,10 +3,13 @@
   export interface GraphActions {
     /** Opens the automation's form at the part `path` names (its trigger, conditions or an action). */
     edit: (automation: number, path: string) => void;
-    /** Opens the drawer of a stage's automations, or the whole workflow's (null). */
+    /** Opens the drawer of a stage's automations, or Any stage's (null). */
     openLane: (stageId: string | null) => void;
-    /** Adds an automation to a stage's lane, or the whole workflow's (null), and opens its form. */
-    add: (stageId: string | null) => void;
+    /**
+     * Opens the recipes for a stage's band, or every recipe (null). `anyStage` is the Any stage band's own plus, whose
+     * Write your own stays in that band; the empty map's button passes neither.
+     */
+    add: (stageId: string | null, anyStage?: boolean) => void;
     /** Adds a first condition to the automation `automationId` and opens its form there. */
     addCondition: (automationId: string) => void;
     /** Adds an action to the end of the automation `automationId` and opens its form there. */
@@ -23,7 +26,7 @@
   import ProblemIcon from '#lib/components/problem-icon.svelte';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import TruncatedText from '#lib/components/truncated-text.svelte';
-  import { isAdd, type StepNode } from '#lib/workflow-graph.js';
+  import { LANE_BAND, isAdd, type StepNode } from '#lib/workflow-graph.js';
   import { usePathLight } from './graph-light.svelte.js';
 
   // One node of the workflow graph. Each kind has its own look and its word, so what it is reads before its text does:
@@ -59,7 +62,7 @@
   function press() {
     if (!actions) return;
     if (data.kind === 'lane' || data.kind === 'stage') actions.openLane(data.lane);
-    else if (data.kind === 'add-automation') actions.add(data.lane);
+    else if (data.kind === 'add-automation') actions.add(data.lane, data.band === LANE_BAND);
     else if (data.kind === 'add-condition') actions.addCondition(data.automationId!);
     else if (data.kind === 'add-action') actions.addAction(data.automationId!);
     else if (data.automation !== null) actions.edit(data.automation, data.path);

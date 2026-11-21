@@ -49,6 +49,7 @@ sources:
   - resource: apps/api/Endpoints/TemplateEndpoints.cs
   - resource: apps/api/Endpoints/TemplateUsageEndpoints.cs
   - resource: apps/api/Hiring/TemplateUsage.cs
+  - resource: apps/api/Contracts/TemplateUsageContracts.cs
   - resource: apps/dashboard/src/routes/(app)/templates/+page.svelte
   - resource: apps/dashboard/src/lib/components/template-list.svelte
   - resource: apps/dashboard/src/routes/(app)/templates/scorecards/[templateId]/+page.svelte
@@ -88,7 +89,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/interview-fields.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-cards.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-sheet.svelte
-  - resource: apps/dashboard/src/lib/components/workflow/journey-overview.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/stage-fact-list.svelte
   - resource: apps/dashboard/src/lib/components/workflow/test-drive.svelte
   - resource: apps/dashboard/src/lib/components/workflow/problem-notice.svelte
   - resource: apps/dashboard/src/lib/components/workflow/problems-panel.svelte
@@ -96,7 +97,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/workflow-tabs.svelte
   - resource: apps/dashboard/src/lib/components/starting-point-card.svelte
   - resource: apps/dashboard/src/routes/(app)/templates/new/+page.svelte
-  - resource: apps/dashboard/src/lib/journey-text.ts
+  - resource: apps/dashboard/src/lib/stage-facts.ts
+  - resource: apps/dashboard/src/lib/action-words.ts
   - resource: apps/dashboard/src/lib/test-drive.ts
   - resource: apps/dashboard/src/lib/starting-points.ts
   - resource: apps/dashboard/src/lib/workflow-tabs.ts
@@ -109,7 +111,9 @@ sources:
   - resource: apps/api/Contracts/TemplateContracts.cs
   - resource: apps/dashboard/src/routes/(app)/templates/[templateId]/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/jobs/[jobId]/workflow/+page.svelte
+  - resource: apps/dashboard/src/lib/components/template-update-dialog.svelte
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/questionnaire-preview.svelte
   - resource: apps/dashboard/src/lib/components/workflow/question-settings.svelte
   - resource: apps/dashboard/src/lib/components/form-builder.svelte
   - resource: apps/dashboard/src/lib/components/answer-menu.svelte
@@ -175,7 +179,9 @@ Organization
   and it reads only until restored (409 on an edit). Jobs keep the copy they took, and stages that name an archived
   scorecard keep it. System templates and built-in scorecards are never archived.
 - **Where a template is used.** `GET /v1/template-usage` (`apps/api/Hiring/TemplateUsage.cs`) gives the Templates
-  page each template's users and when it was last used: the jobs that are not closed for a hiring template, the hiring
+  page each template's users and when it was last used: the jobs that are not closed for a hiring template, each with
+  `templateVersion` (the version its pipeline came from) and `workflowVersion` (its pipeline's own, which applying an
+  update expects), so the page can say "3 jobs, 1 on an older version" and update each one; the hiring
   templates whose current versions (the newest published and the draft) name a scorecard, and the automations that
   send an email, a Reject action counting for the rejection email and SendQuestionnaire for the follow-up questions
   email. "Not used in 6 months" is `TemplateUses.NotUsedRecently`: nothing used it in 180 days, and the team has had it
@@ -243,10 +249,9 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
 
 ## 4. Builder UX (dashboard)
 
-- **Overview** (default, SMB-friendly): the template read back as what happens to an applicant, a column per stage
-  with its time limit, scorecard and automations in plain sentences ("When a candidate enters *Screening* → send
-  *Questionnaire A*" reads "Sends the *Questionnaire A* form"), and the end stages on one line.
-- **Pipeline view**: the stages as cards, each opening a sheet for its name, time limit, scorecard and automations.
+- **Pipeline** (first, SMB-friendly): the stages as cards, each read back as short facts (how soon to respond, the emails
+  it sends, each automation as a short label, the questions), each opening a sheet for its name, time limit, scorecard
+  and automations, with the automations that belong to no stage and the end stages in a row each under them.
 - **Automations** (the map and the list): the map is the overview, showing triggers → conditions → actions across
   stages in short plain words; a phone gets the list. Pressing an automation edits it as one sentence with blanks, and
   Add automation opens ready-made recipes. Same underlying model; the map is a projection, not a separate format.
@@ -260,54 +265,58 @@ Templates page has a tab each for hiring templates, library scorecards (`/templa
 with its preview beside it, or behind an Edit / Preview switch where both do not fit) and email templates
 ([email.md](email.md)), each listed by `template-list.svelte` with where it is used, from `GET /v1/template-usage`. The
 workflow builder is one editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own
-copy, with five tabs on the page's header band (Overview, Pipeline, Questions, Automations, Test; `#lib/workflow-tabs.ts`,
-kept in the address as `?tab=`). A workflow that cannot be edited there (a ScreenHire template, a
+copy, with four tabs on the page's header band (Pipeline, Questions, Automations, Test; `#lib/workflow-tabs.ts`,
+kept in the address as `?tab=`; an address saved with the old Overview tab opens Pipeline). In what people read it is the
+pipeline (design system W13): the job's Edit pipeline, Save pipeline. A workflow that cannot be edited there (a ScreenHire template, a
 published version, a closed job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no
 form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (design system section 11, Stage flow). The validation result is a Needs fixes badge beside the page title, shown only when there is a problem, with a Fix button beside it on every tab but Test.
 
-- **Overview:** `journey-overview.svelte`, words from `#lib/journey-text.ts`. A column per open stage (up to five, else the
-  vertical list) with its number, time limit, scorecard and automations; only automations carry an icon. An automation
-  with no stage (the checks finishing, a manual run) is under "Any time"; an arriving application belongs to the first
-  stage. Generated text never names a person: a reviewer is "the team". A stage's header opens its sheet.
-- **Pipeline:** `stage-cards.svelte`, the stages as cards (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`), with a plus between cards to insert one. A card opens `stage-sheet.svelte`: name, time limit as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other), scorecard, "What the meeting is called" (on every stage where a team meets a candidate: not Applied, Offer or a terminal stage), the automations that run there and More options with the stage's kind. A stage's kind follows its name (`kindFromName`) until it is set by hand. The name is matched by the words it contains, the first match winning: withdraw is Withdrawn; reject, not selected, declined, not hired or turned down is Rejected; hired, started or onboard is Hired; offer is Offer; interview is Interview; verif, background or reference is Verification; trial, test, task, assessment, skills, shift, group session or exercise is Assessment; phone, call, screen or review is Screening; anything else, and a stage still named New stage, is Custom. The first stage is always Applied, and setting a kind that ends the application removes the stage's reminder. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
+- **Pipeline:** `stage-cards.svelte`, the open stages as cards joined by a line (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`; the end stages keep their place after them), with a plus on the line between cards to insert one. Each card's facts come from `#lib/stage-facts.ts` (`stageFacts`, drawn by `stage-fact-list.svelte`), one a line: "Respond within 3 days" (`respondWithin`, through `timeLimitLabel`), the meeting when its name is not the stage's, each email sent, each other automation that is on as a short label (`automationLabel`: the condition in short from `ruleShort`, then the steps, "Right to work: No, team looks first"), "Asks 6 questions" on the first stage, and the scorecard. The stage's own reminder is the Respond within line. An automation's line links to `?tab=automations&show=<id>`, which the editor reads to open that automation as a sentence. Under the cards, `anyStageFacts` is the Any stage row and the end stages are the Ends row. The read-only `stage-flow.svelte` draws the same facts as text. The stage's name is a button with a pencil and the tooltip "Edit <stage>", and opens `stage-sheet.svelte`: name, Respond within as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other) with what it means under it ("After that they show as Overdue. Nothing happens to the candidate."), then "When overdue" with the labels of what runs when it passes (`whenOverdue`), or "Nothing yet." with Add a reminder, which adds a `SlaBreached` automation for the stage that tells the team and opens it on the Automations tab (never on a stage a check moves candidates into), scorecard, "What the meeting is called" (on every stage where a team meets a candidate: not Applied, Offer or a terminal stage), the automations that run there and More options with the stage's kind. A stage's kind follows its name (`kindFromName`) until it is set by hand. The name is matched by the words it contains, the first match winning: withdraw is Withdrawn; reject, not selected, declined, not hired or turned down is Rejected; hired, started or onboard is Hired; offer is Offer; interview is Interview; verif, background or reference is Verification; trial, test, task, assessment, skills, shift, group session or exercise is Assessment; phone, call, screen or review is Screening; anything else, and a stage still named New stage, is Custom. The first stage is always Applied, and setting a kind that ends the application removes the stage's reminder. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
   team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, never in
   the workflow: on the Templates page's Scorecards tab (`/templates/scorecards/{id}`), in the form builder
   (`scorecard-builder.svelte`), or through `/v1/scorecard-templates`. An archived scorecard leaves the picker unless the
   stage already names it. A stage that ends the application offers no
-  scorecard. Automations whose trigger
-  has no stage (an arriving application, the verification checks, a manual run, any stage's time limit) are listed in the Automations tab. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
+  scorecard. Automations hang under the stage they belong to (`placeOf` in `#lib/workflow.ts`): an arriving application and the
+  verification checks under the first stage, a trigger that names a stage under it, and the rest (a manual run, any stage's
+  time limit, a form answered, an interview booked, or a stage that is gone) under Any stage. "A stage's time limit passes" offers the stages that have one, and only the four reminder actions. The drawer's forms offer only the triggers and actions v1 runs, and the facts
   and operators `FactSchema` allows.
 - **Graph:** @xyflow/svelte, rebuilt from the workflow on every change by `toGraph` (`#lib/workflow-graph.ts`). The
-  stages run left to right as the backbone, after a "Whole workflow" lane that is not part of the pipeline (no line
-  joins it to Stage 1). Each lane or stage has its automations beneath it, one column each, read down as When (the
-  trigger), If (its conditions, when it has any) and Then (one node per action). It stays a projection: no position is
+  stages run left to right as the backbone, each with its automations beneath it (`placeOf`), one column each, read down
+  as When (the trigger), If (its conditions, when it has any) and Then (one node per action). What no stage holds hangs
+  in a thin "Any stage" band below the deepest stage chain, joined to no stage and left out while it is empty. Its
+  columns stand on the stages' columns, left to right, then carry on past the last, so a move out of it rises through a
+  gap the stages already keep clear; its columns are numbered after the end stages', so Up and Down never leave a stage's
+  column for it, and it is last in reading and Tab order. It stays a projection: no position is
   stored, because a stored layout would change the definition and every save of a job's workflow is a new version.
   - **Layout.** Computed in `toGraph` with no layout library, because it is a grid of bands and columns rather than a
     general graph: a band is as wide as its automations' columns, every node has a fixed size, so every position and
     every line is exact, and nothing is measured. The lines are orthogonal and carry their own path in the edge's
     `data.points`, drawn by `routed-edge.svelte` with rounded corners and an arrowhead in a token colour, so the flow
     runs one way (down an automation, right along the stages). The unit tests check that no two nodes overlap and that
-    no line runs through a node, at 20 stages and 50 automations as at 3.
-  - **Lines.** A stage links to the next with a line to the right. A lane or stage links to each of its automations
+    no line runs through a node, at 20 stages and 50 automations as at 3, the Any stage band and its moves included.
+  - **Lines.** A stage links to the next with a line to the right. The Any stage band or a stage links to each of its automations
     through a trunk under it. A move to a stage has a path of its own: out of the action's right side, up the gap beside
     its column, along a lane above the stages (lanes are shared by moves that do not overlap) and down into the target
     stage, labelled "Moves to", the only words a line carries. A line crosses another where it must, never a node.
-  - **Nodes.** Each kind has its own look and its word (When, If, Then, and the lane and stage headers), and no icon. A
+  - **Nodes.** Each kind has its own look and its word (When, If, Then, and the Any stage band's and stages' headers), and no icon. A
     When node's title is what starts the automation in a few words (`triggerTitle`: "Someone applies", "Moves into Phone
     call") with the automation's name under it, an If node's is its conditions (`ruleTitle`: "Right to work is No",
     "Verification is Review or Verify") and a Then node's the step. A node's accessible name keeps the automation's name
     right after the word, so "When Fast-track referrals" names the trigger node. With the editor the whole node is one
     button, so it is the node's only tab stop: an automation's node opens the automation as a sentence
-    (`automation-sentence.svelte`) at the node's part (its trigger, its conditions or that action); a lane or stage
+    (`automation-sentence.svelte`) at the node's part (its trigger, its conditions or that action); the Any stage band or a stage
     opens its automations as rows. A version that cannot be edited draws the same nodes as a focusable box with no
     buttons. A phone does not draw the map: the Automations tab is the list there (see **List and sheets**).
   - **Plus buttons.** Where a thing would go there is a plus, only while editing and once the workflow has an
-    automation: under each lane or stage for a new automation (`addAutomation`), on the line between a trigger and its
+    automation: under each stage and the Any stage band for a new automation (`addAutomation`), on the line between a trigger and its
     first action for a first condition (`addCondition`), and under the last action for another action (`addAction`).
-    The plus for a new automation opens the recipes for that lane; the other two open the sentence at what they added. A
+    The plus for a new automation opens the recipes for that stage (Applied's include those for an arriving application
+    and the checks), or every recipe under Any stage, where Write your own starts a run by hand so the new automation
+    stays in that band (Add automation's starts one for an arriving application, under Applied); the other two open the
+    sentence at what they added. A
     workflow with no automations says what an automation is and offers one button, "Add an automation", which opens the
-    recipes for the whole workflow.
+    every recipe.
   - **Paths.** Hovering or focusing a node lights its path (`pathOf`): an automation's chain with the stage it fires on
     and the stage it moves into, or a stage's automations and the moves into it. The rest quietens by its edge and its
     line alone, so text keeps its contrast, and nothing moves for someone who prefers reduced motion. Simulate's
@@ -316,7 +325,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     change to the workflow.
   - **View.** The first view (`firstView`) is always at full size, because node text is 12px there and 12px is the
     floor (design system W1). A workflow narrower than the canvas is centred. A wider one starts at the top left, where
-    the lane and the first stage are, and pans and zooms from there (the wheel or trackpad pans, the controls zoom and
+    the first stage is, and pans and zooms from there (the wheel or trackpad pans, the controls zoom and
     fit). The toolbar, at the canvas's top left, has Fit, which shows everything as an overview: text shrinks with the
     canvas there, because the person asked for it.
   - **End stages.** Hired, Rejected and Withdrawn stand after the open stages, whatever their order in the definition,
@@ -331,8 +340,9 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   - A validation message shows on the node its path names, an automation's own messages on its trigger node, as it does
     under the sentence. Removing an automation is the Remove on its rules form (Edit as rules).
   - **List and sheets.** The panel header has a List | Map switch and Add automation (`automations-panel.svelte`); the
-    list (`automation-list.svelte`) groups the automations by stage with each one's sentence, and a phone shows only it.
-    One sheet in `workflow-editor.svelte` has three views: a lane's automations as rows, the recipes, and one automation.
+    list (`automation-list.svelte`) groups the automations as the map does, by stage and then Any stage, with each one's
+    sentence, and a phone shows only it. One sheet in `workflow-editor.svelte` has three views: a stage's or Any stage's
+    automations as rows, the recipes, and one automation.
   - **The sentence.** `automation-sentence.svelte` reads one automation as "When [someone applies] and [their answer to
     Right to work is No], [ask the team to review] and [add the tag ...]", from `sentenceOf` in
     `#lib/automation-sentence.ts`, which returns text and blanks; each blank holds its choices and an `apply` that returns
@@ -372,7 +382,8 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   the email automation for you." `removeForm` takes a form with the automations that exist to send it, those that run when
   it is answered, and the answer rules that read it, and the dashboard lists them before it removes the form; an automation
   that does more than send it keeps its other steps. The chosen form edits in the form builder
-  (`#lib/components/form-builder.svelte`) below: a row per question that opens to edit, with its answer kind from the answer
+  (`#lib/components/form-builder.svelte`) below: a row per question that opens to edit, and closes from Done, its chevron, a click
+  on its header or Escape, with its answer kind from the answer
   menu, Required (a badge on a required row, none on an optional one), a row menu holding Duplicate and Delete, and a grip to
   reorder. The apply form ends in a locked AI-use row (`ai-use-row.svelte`): "AI use. Asked by ScreenHire. Policy: Allowed
   with disclosure." with a Change policy link, because the policy is not the template's. The kinds a question takes
@@ -389,9 +400,9 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   sections, in order. A scorecard has no sections. The preview, behind the one Edit / Preview switch, shows the candidate's form at phone, tablet or desktop width, rendered by the shared components in
   `packages/ui/src/questions` that the careers pages render, and its window icon opens it at `/preview/form`, a window
   that follows each edit. The apply form's preview starts with the candidate's details and the resume and ends with the
-  AI-use question; a follow-up's is its questions alone, as its page shows them. The preview stacks the pages the candidate meets (each named section, or
-  pages of the organization's questions per page), each opening with the step line the candidate sees ("Step 2 of 4",
-  "9 of 24 answered"), so every section shows while editing. Marking a yes/no question as a knockout shows what a knockout may be (an
+  AI-use question; a follow-up's is its questions alone, as its page shows them. The preview pages as the candidate does (each named section, or
+  pages of the organization's questions per page), one step at a time with Back and Next, each opening with the step line the
+  candidate sees ("Step 2 of 4", "9 of 24 answered"); the last step's send button is off, because nothing is sent from a preview. Marking a yes/no question as a knockout shows what a knockout may be (an
   objective eligibility check, never AI use or an accommodation), and, while no automation's condition reads its answer, that nothing happens to it yet, with a link to the Automations tab (A11). The automation form offers "Send a questionnaire" and
   the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
@@ -604,7 +615,13 @@ The data model and API from the jobs and templates task, and the engine that run
   keep it and show "update available".
 - **Jobs** copy a published template version's workflow and keep `sourceTemplateVersionId`. `JobSummary` shows
   `templateUpdateAvailable`, and `GET /v1/jobs/{id}/workflow/template-diff` compares the job's workflow with the
-  template's newest published version, matching list elements by id.
+  template's newest published version, matching list elements by id. The job's header shows the update as its own
+  fact, Update available, with See what changes, which opens the job's pipeline page with the differences
+  (`?review=update`). Publishing says what it does before it happens ("Publishing makes version 2 the version new jobs
+  get. Your 1 job stays on version 1 until you update it.", `publishWords` in `#lib/templates.ts`), and while any job is
+  on an older version the template's page says so with Review updates: each such job with See what changes and Update,
+  which asks with the same differences (`template-update-dialog.svelte`, shared with the job's pipeline page) before it
+  calls apply-template-update.
 - **Tailoring a job:** `PUT /v1/jobs/{id}/workflow` replaces the job's copy with an edited one, and
   `POST /v1/jobs/{id}/workflow/apply-template-update` replaces it with a published version of its source template
   (which replaces the job's own edits too; the diff lists them). Both validate like a template save, refuse a closed

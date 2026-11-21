@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import StarIcon from '~icons/lucide/star';
-import { applyFormKinds, duplicateId, followUpKinds, insertAt, kindIn, scorecardKinds } from './form-builder.js';
+import { applyFormKinds, choicesSummary, duplicateId, followUpKinds, insertAt, kindIn, scorecardKinds } from './form-builder.js';
 
 describe('answer kinds', () => {
   it('offers every question type on the apply form, General first, and no File in a follow-up', () => {
@@ -45,5 +45,18 @@ describe('duplicateId', () => {
     const long = 'a'.repeat(40);
     expect(duplicateId(long, [long]).length).toBeLessThanOrEqual(40);
     expect(duplicateId(long, [long, `${'a'.repeat(30)}_copy`]).length).toBeLessThanOrEqual(40);
+  });
+});
+
+describe('choicesSummary', () => {
+  it('says how many choices a closed row has, then each one, on one line', () => {
+    const options = ['Less than 3', '3 to 5', '6 to 10', 'More than 10'].map((label, index) => ({ id: `o${index}`, label }));
+    expect(choicesSummary(options)).toBe('4 choices: Less than 3, 3 to 5, 6 to 10, More than 10');
+    expect(choicesSummary(options.slice(0, 1))).toBe('1 choice: Less than 3');
+  });
+
+  it('names a blank option and says when there are none', () => {
+    expect(choicesSummary([{ id: 'a', label: '  ' }, { id: 'b', label: 'Yes' }])).toBe('2 choices: Untitled option, Yes');
+    expect(choicesSummary([])).toBe('No choices yet');
   });
 });

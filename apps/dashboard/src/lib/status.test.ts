@@ -11,6 +11,7 @@ describe('status catalogue', () => {
       done: 'clear circle-check',
       booked: 'clear calendar-check',
       open: 'clear door-open',
+      published: 'clear badge-check',
       review: 'review eye',
       overdue: 'review clock-alert',
       verification: 'verify id-card',

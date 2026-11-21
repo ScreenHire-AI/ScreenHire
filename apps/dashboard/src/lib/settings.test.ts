@@ -115,8 +115,8 @@ describe('visibleSettingsSections', () => {
 
   it('shows Owners and Admins every page, with email templates on the Templates page and Verification in the sidebar instead', () => {
     const withSlack = (user: CurrentUser) => visibleSettingsSections(user, { slack: true });
-    expect(withSlack(userAs('Owner'))).toHaveLength(11);
-    expect(withSlack(userAs('Admin'))).toHaveLength(11);
+    expect(withSlack(userAs('Owner'))).toHaveLength(12);
+    expect(withSlack(userAs('Admin'))).toHaveLength(12);
     expect(labels(userAs('Owner'))).not.toContain('Email templates');
     expect(labels(userAs('Owner'))).not.toContain('Verification');
   });
@@ -125,7 +125,7 @@ describe('visibleSettingsSections', () => {
     const owner = userAs('Owner');
 
     expect(labels(owner)).not.toContain('Slack');
-    expect(labels(owner)).toHaveLength(10);
+    expect(labels(owner)).toHaveLength(11);
     expect(visibleSettingsSections(owner, { slack: false }).map((section) => section.label)).not.toContain('Slack');
     expect(visibleSettingsSections(owner, { slack: true }).map((section) => section.label)).toContain('Slack');
   });
@@ -166,7 +166,7 @@ describe('settings groups', () => {
 
   it('gives an Owner three groups, with Email domain under Organization and Branding under Careers site', () => {
     expect(groups(userAs('Owner'))).toEqual([
-      ['Organization', ['General', 'Team', 'Roles', 'Email domain', 'Data requests']],
+      ['Organization', ['General', 'Team', 'Roles', 'Tags', 'Email domain', 'Data requests']],
       ['Careers site', ['Careers page', 'Branding']],
       ['Integrations', ['Slack', 'MCP server', 'Webhooks', 'API keys']],
     ]);
@@ -176,7 +176,7 @@ describe('settings groups', () => {
     expect(groups(holding('ManageWebhooks'))).toEqual([['Integrations', ['Webhooks']]]);
     expect(groups(holding('ManageTeam'))).toEqual([['Organization', ['Team', 'Roles']]]);
     expect(groups(holding('EditSettings'))).toEqual([
-      ['Organization', ['General', 'Email domain']],
+      ['Organization', ['General', 'Tags', 'Email domain']],
       ['Careers site', ['Careers page', 'Branding']],
     ]);
     expect(groups(userAs('Recruiter'))).toEqual([]);
@@ -193,7 +193,7 @@ describe('settings groups', () => {
     expect(settingsGroupOf('/settings/roles/compare')).toBe('Organization');
     expect(settingsGroupOf('/settings/sending-domain')).toBe('Organization');
     expect(settingsGroupOf('/settings/branding')).toBe('Careers site');
-    expect(settingsGroupOf('/settings/webhooks/new')).toBe('Integrations');
+    expect(settingsGroupOf('/settings/webhooks/e1')).toBe('Integrations');
     expect(settingsGroupOf(settingsHome)).toBeUndefined();
     expect(settingsGroupOf('/settings/integrations')).toBeUndefined();
   });
@@ -299,9 +299,10 @@ describe('job access', () => {
     const scoped: CurrentUser = { ...owner, organization: { ...owner.organization!, seesAllJobs: false } };
     const organization = (user: CurrentUser) => visibleSettingsSections(user).filter((section) => section.group === 'Organization').map((section) => section.label);
 
-    expect(organization(owner)).toEqual(['General', 'Team', 'Roles', 'Email domain', 'Data requests']);
+    expect(organization(owner)).toEqual(['General', 'Team', 'Roles', 'Tags', 'Email domain', 'Data requests']);
     expect(organization(userAs('Admin'))).toContain('Data requests');
     expect(organization(scoped)).not.toContain('Data requests');
+    expect(organization(scoped)).not.toContain('Tags');
     expect(organization(userAs('Recruiter'))).toEqual([]);
     expect(organization(userAs('Viewer'))).toEqual([]);
     expect(settingsSectionOf('/settings/data-requests')).toMatchObject({ label: 'Data requests', permission: 'EraseCandidates', allJobs: true });
@@ -314,7 +315,7 @@ describe('Billing', () => {
     visibleSettingsSections(user, features).filter((section) => section.group === 'Organization').map((section) => section.label);
 
   it('ends the Organization pages for an Owner once the shell has heard that billing is set up, and for no one else', () => {
-    expect(organization(userAs('Owner'), { billing: true })).toEqual(['General', 'Team', 'Roles', 'Email domain', 'Data requests', 'Billing']);
+    expect(organization(userAs('Owner'), { billing: true })).toEqual(['General', 'Team', 'Roles', 'Tags', 'Email domain', 'Data requests', 'Billing']);
     expect(organization(userAs('Admin'), { billing: true })).not.toContain('Billing');
     expect(organization(userAs('Recruiter'), { billing: true })).toEqual([]);
     expect(settingsSectionOf('/settings/billing')).toMatchObject({ label: 'Billing', permission: 'ManageBilling', group: 'Organization', feature: 'billing' });

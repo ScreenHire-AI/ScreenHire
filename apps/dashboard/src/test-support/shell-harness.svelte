@@ -8,7 +8,6 @@
   import TopBar from '#lib/components/top-bar.svelte';
   import * as Sidebar from '#lib/components/ui/sidebar/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import type { SettingsFeatures } from '#lib/settings.js';
   import { setShell } from '#lib/shell.js';
   import { sidebarViews } from '#lib/sidebar-views.js';
   import type { ViewActions } from '#lib/views.svelte.js';
@@ -21,11 +20,11 @@
     back,
     openTasks,
     trialEndsAt,
+    billing = false,
     saved = [],
     hiddenBuiltIns = [],
     viewActions,
     teamViews,
-    features = { slack: true },
   }: {
     user: CurrentUser;
     crumbs?: readonly { label: string; href?: string }[];
@@ -40,8 +39,8 @@
     openTasks?: number;
     /** When the trial ends, as the layout works it out for an Owner; missing for everyone else. */
     trialEndsAt?: string | null;
-    /** Which optional features the shell has heard are on. */
-    features?: SettingsFeatures;
+    /** Billing is set up and the person may see it, as the layout works it out. */
+    billing?: boolean;
   } = $props();
 
   // The top bar's notification bell reads the notifications and the setup answers. No retries, so a request nobody stubbed fails at once.
@@ -57,7 +56,7 @@
     openCalendar: () => {},
     live: () => 'connected',
     user: () => user,
-    features: () => features,
+    features: () => ({ slack: true }),
     sendingDomainMark: () => undefined,
   });
   const laptop = new MediaQuery('min-width: 1024px');
@@ -66,7 +65,7 @@
 <!-- The root layout's tooltip provider. -->
 <Tooltip.Provider>
   <Sidebar.Provider open={laptop.current}>
-    <AppSidebar {user} {views} {viewActions} {teamViews} {openTasks} {trialEndsAt} />
+    <AppSidebar {user} {views} {viewActions} {teamViews} {openTasks} {trialEndsAt} {billing} />
     <Sidebar.Inset>
       <TopBar {crumbs} {back} />
       <main><h1>Page</h1></main>

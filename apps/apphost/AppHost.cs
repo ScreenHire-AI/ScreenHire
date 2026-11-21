@@ -50,6 +50,8 @@
 //                               RepliesPerDay.
 //   Retention:*                 the daily record retention run (ScreenHire.Application RecordRetentionOptions), forwarded to
 //                               the API and the worker: BatchSize. Each organization's period is its own setting, off by default.
+//   Tags:*                      Settings, Tags (ScreenHire.Application TagOptions, docs/architecture/tags.md), forwarded to the
+//                               API and the worker: BatchSize (200), the applications one rename or delete changes at a time.
 //   Notifications:*             how long the bell keeps notifications (ScreenHire.Application NotificationOptions,
 //                               docs/architecture/notifications.md), forwarded to the API and the worker: RetentionDays (30).
 //   SendingDomainRecheck:*      the daily re-check of each organization's sending domain (ScreenHire.Application
@@ -275,10 +277,10 @@ foreach (var (key, value) in settings.GetSection("Webhooks").AsEnumerable(makePa
     }
 }
 
-// Data requests, record retention, the candidate portal, notifications, the sending domain re-check and the AI usage sweeps
+// Data requests, record retention, Settings' Tags, the candidate portal, notifications, the sending domain re-check and the AI usage sweeps
 // (docs/architecture/data-requests.md, docs/architecture/candidate-portal.md, docs/architecture/notifications.md,
 // docs/architecture/ai-usage.md): plain settings, no secrets, read by both hosts.
-foreach (var section in new[] { "DataRequests", "Portal", "Retention", "Notifications", "SendingDomainRecheck", "AiUsage" })
+foreach (var section in new[] { "DataRequests", "Portal", "Retention", "Tags", "Notifications", "SendingDomainRecheck", "AiUsage" })
 {
     foreach (var (key, value) in settings.GetSection(section).AsEnumerable(makePathsRelative: true))
     {

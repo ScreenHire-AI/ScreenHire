@@ -1,7 +1,8 @@
 <script lang="ts" module>
   // A line that is only a greeting ("Hi Taylor,", "Dear Ms Quinn", "Hello all"): it says who the email is to, not what
   // it says. After the salutation come at most three names (capitalised) or a word for a group, and nothing else, so a
-  // short reply that opens with one ("Hi Avery, I can do Friday", "Hey, accepting the offer") is never skipped.
+  // short reply that opens with one ("Hi Avery, I can do Friday", "Hey, accepting the offer") is never skipped. The API's
+  // snippet for a row in Messages uses the same rule (`Greeting` in apps/api/Email/EmailSnippet.cs); change both together.
   const greeting =
     /^(?:[Hh]i|[Hh]ello|[Hh]ey|[Dd]ear|[Gg]ood (?:morning|afternoon|evening))(?:\s+(?:\p{Lu}[\p{L}.'-]*|there|all|team|everyone|folks)){0,3}\s*[,!]?$/u;
 

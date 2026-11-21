@@ -10,7 +10,7 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The form builder on a job's own workflow (design system section 11, A7, A8): adding, duplicating, requiring and
-/// reordering questions, the preview at phone width and in its own window, and a File question a candidate then answers
+/// reordering and closing questions, the preview a step at a time at phone width and in its own window, and a File question a candidate then answers
 /// on the careers apply page. Each test signs in as a new person with a new organization and a published job.
 /// </summary>
 public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -52,6 +52,15 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await OpenText(2).FillAsync(Start);
         await AddQuestionAsync("Yes or no");
         await OpenText(3).FillAsync(RightToWork);
+
+        // The open question closes from Close question, beside its row menu, and from Done at its foot.
+        var third = questions.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Edit question 3: ") });
+        await questions.GetByRole(AriaRole.Button, new() { Name = "Close question" }).ClickAsync();
+        await Expect(questions.Locator("[data-open]")).ToHaveCountAsync(0);
+        await Expect(third).ToBeFocusedAsync();
+        await third.ClickAsync();
+        await questions.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();
+        await Expect(questions.Locator("[data-open]")).ToHaveCountAsync(0);
         await Expect(questions.GetByRole(AriaRole.Button, new() { Name = $"Edit question 1: {Notice}" })).ToContainTextAsync("Required");
         await ExpectOrderAsync(Notice, Start, RightToWork);
         await ExpectNoAccessibilityViolationsAsync();
@@ -73,6 +82,8 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(questions).ToHaveCountAsync(0);
         await Page.GetByRole(AriaRole.Group, new() { Name = "Screen size" }).GetByRole(AriaRole.Button, new() { Name = "Phone" }).ClickAsync();
         var phone = Page.Locator("[data-preview-device=phone]");
+        // The preview pages as the candidate's form does: the details first, the questions after Next.
+        await phone.GetByRole(AriaRole.Button, new() { Name = "Next" }).ClickAsync();
         await Expect(phone.GetByRole(AriaRole.Textbox, new() { Name = Start })).ToBeVisibleAsync();
         (await phone.BoundingBoxAsync())!.Width.Should().BeApproximately(390, 2);
         await ExpectNoAccessibilityViolationsAsync();
@@ -80,6 +91,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // The window icon opens the preview in a second window, which follows each edit.
         var popup = await Page.RunAndWaitForPopupAsync(() => Page.GetByRole(AriaRole.Button, new() { Name = "Open in a new window" }).ClickAsync());
+        await popup.GetByRole(AriaRole.Button, new() { Name = "Next" }).ClickAsync();
         await Expect(popup.GetByRole(AriaRole.Textbox, new() { Name = Start })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Edit", Exact = true }).ClickAsync();
         await questions.GetByRole(AriaRole.Button, new() { Name = $"Edit question 2: {Start}" }).ClickAsync();
@@ -100,8 +112,8 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await AddQuestionAsync("File");
         await OpenText(1).FillAsync("A work sample");
         await Region("Questions").GetByRole(AriaRole.Switch, new() { Name = "Required" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Save workflow" }).ClickAsync();
-        await Expect(Page.GetByText("Saved. The job's workflow is now version 2.")).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save pipeline" }).ClickAsync();
+        await Expect(Page.GetByText(new Regex(@"is now version 2\.$"))).ToBeVisibleAsync();
 
         await GoToAsync("careers", $"/{job.OrganizationSlug}/jobs/{job.JobSlug}/apply");
         await Page.GetByLabel("First name").FillAsync("Casey");
@@ -158,16 +170,22 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await SaveScreenshotAsync(Page, "dashboard-form-builder-sections");
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Preview", Exact = true }).ClickAsync();
-        var pages = Page.Locator("[data-preview-page]");
-        await Expect(pages).ToHaveCountAsync(2);
-        await Expect(pages.Nth(0).GetByRole(AriaRole.Heading)).ToHaveTextAsync("About you");
-        await Expect(pages.Nth(1).GetByRole(AriaRole.Heading)).ToHaveTextAsync("Eligibility");
-        await Expect(pages.Nth(1)).ToContainTextAsync("Step 3 of 4");
+        // One step at a time, as the candidate meets them: the details, each section, then the review.
+        var preview = Page.Locator("[data-preview-device]");
+        var page = preview.Locator("[data-preview-page]");
+        var next = preview.GetByRole(AriaRole.Button, new() { Name = "Next" });
+        await next.ClickAsync();
+        await Expect(page.GetByRole(AriaRole.Heading)).ToHaveTextAsync("About you");
+        await next.ClickAsync();
+        await Expect(page.GetByRole(AriaRole.Heading)).ToHaveTextAsync("Eligibility");
+        await Expect(page).ToContainTextAsync("Step 3 of 4");
+        await preview.GetByRole(AriaRole.Button, new() { Name = "Back" }).ClickAsync();
+        await Expect(page.GetByRole(AriaRole.Heading)).ToHaveTextAsync("About you");
         await ExpectNoAccessibilityViolationsAsync();
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Edit", Exact = true }).ClickAsync();
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Save workflow" }).ClickAsync();
-        await Expect(Page.GetByText("Saved. The job's workflow is now version 2.")).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save pipeline" }).ClickAsync();
+        await Expect(Page.GetByText(new Regex(@"is now version 2\.$"))).ToBeVisibleAsync();
 
         await GoToAsync("careers", $"/{job.OrganizationSlug}/jobs/{job.JobSlug}/apply");
         await Page.GetByLabel("First name").FillAsync("Casey");
@@ -205,7 +223,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
     private async Task OpenQuestionnaireAsync(Guid jobId)
     {
         await Page.GotoAsync(new Uri(Fixture.GetEndpoint("dashboard"), $"/jobs/{jobId}/workflow").ToString());
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync(" workflow");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync(" pipeline");
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Questions" }).ClickAsync();
         await Expect(Region("Questions")).ToContainTextAsync("No questions yet.");
     }

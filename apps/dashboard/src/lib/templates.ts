@@ -1,7 +1,7 @@
 import type { TemplateUse, UsageItem } from '@screenhire/api-client';
 
 // The Templates page (design system section 21): one tab per kind of template, each listing its templates with where
-// they are used, filtered by All, In use and Archived. Stale templates are found by sorting Last used: a "Not used in 6
+// they are used, filtered by All, In use, Drafts (hiring templates only) and Archived. Stale templates are found by sorting Last used: a "Not used in 6
 // months" pill counted 0 beside rows that said Never (a template younger than that never counted), so it went (the owner's
 // walk-through, 2026-11-21).
 
@@ -38,28 +38,35 @@ export function copyName(name: string, max: number): string {
   return `${name.length > room ? name.slice(0, room).trimEnd() : name}${suffix}`;
 }
 
-export type TemplateFilter = 'all' | 'in-use' | 'archived';
+export type TemplateFilter = 'all' | 'in-use' | 'drafts' | 'archived';
 
 export const templateFilters: readonly { value: TemplateFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'in-use', label: 'In use' },
+  { value: 'drafts', label: 'Drafts' },
   { value: 'archived', label: 'Archived' },
 ];
+
+/** The filters a kind's tab offers: only hiring templates have versions, so only they have Drafts. */
+export const filtersFor = (kind: TemplateKind) => templateFilters.filter((filter) => filter.value !== 'drafts' || kind === 'hiring');
 
 /** What a filter needs to know of a template. */
 export interface FilterableTemplate {
   archived: boolean;
   usage: TemplateUse | undefined;
+  /** A hiring template's draft version, when it has one. */
+  draft?: number | null;
 }
 
 /**
- * Whether a template shows under a filter. All and In use leave archived templates out; Archived shows only them. In use:
- * something uses it now.
+ * Whether a template shows under a filter. All, In use and Drafts leave archived templates out; Archived shows only them.
+ * In use: something uses it now. Drafts: a hiring template with a draft version.
  */
 export function matchesFilter(template: FilterableTemplate, filter: TemplateFilter): boolean {
   if (filter === 'archived') return template.archived;
   if (template.archived) return false;
   if (filter === 'in-use') return (template.usage?.usedBy.length ?? 0) > 0;
+  if (filter === 'drafts') return template.draft != null;
   return true;
 }
 
@@ -69,6 +76,16 @@ export function filterCounts(templates: readonly FilterableTemplate[]): Record<T
     TemplateFilter,
     number
   >;
+}
+
+/** What a hiring template's Status says: its icon and colour (`#lib/status.ts`) and the words. */
+export function templateStatus(template: { archived: boolean; published?: number | null; draft?: number | null }): {
+  status: 'published' | 'draft' | 'archived';
+  label: string;
+} {
+  if (template.archived) return { status: 'archived', label: 'Archived' };
+  if (template.published == null) return { status: 'draft', label: 'Draft' };
+  return template.draft == null ? { status: 'published', label: 'Published' } : { status: 'published', label: 'Published, draft open' };
 }
 
 /** What Used by counts for each kind. */
@@ -83,6 +100,39 @@ export function usedByLabel(kind: TemplateKind, count: number): string {
   if (count === 0) return 'None';
   const nouns = usedByNouns[kind];
   return `${count} ${count === 1 ? nouns.one : nouns.other}`;
+}
+
+/** The jobs a hiring template's newest published version is newer than: they have an update to review. */
+export function olderJobs(usedBy: readonly UsageItem[], liveVersion: number | null | undefined): UsageItem[] {
+  if (liveVersion == null) return [];
+  return usedBy.filter((item) => item.kind === 'Job' && item.templateVersion != null && item.templateVersion < liveVersion);
+}
+
+/** Used by with the jobs left on an older version: "3 jobs, 1 on an older version". Other kinds say the count. */
+export function usedByWords(kind: TemplateKind, usedBy: readonly UsageItem[], liveVersion?: number | null): string {
+  const count = usedByLabel(kind, usedBy.length);
+  const older = kind === 'hiring' ? olderJobs(usedBy, liveVersion).length : 0;
+  if (older === 0) return count;
+  return `${count}, ${older} on ${older === 1 ? 'an older version' : 'older versions'}`;
+}
+
+/** The notice above a hiring template's tabs while jobs are on an older version: "1 job uses an older version." */
+export const olderJobsWords = (count: number): string => (count === 1 ? '1 job uses an older version.' : `${count} jobs use an older version.`);
+
+/**
+ * What publishing does, beside Publish: the version new jobs get, and that the template's jobs keep theirs until someone
+ * updates them. A template no job uses says only the first sentence.
+ */
+export function publishWords(version: number, jobs: readonly Pick<UsageItem, 'kind' | 'templateVersion'>[]): string {
+  const first = `Publishing makes version ${version} the version new jobs get.`;
+  const own = jobs.filter((item) => item.kind === 'Job');
+  if (own.length === 0) return first;
+  const versions = new Set(own.map((item) => item.templateVersion));
+  const [only] = versions;
+  // A job started before versions were recorded has none to name.
+  if (own.length === 1) return `${first} Your 1 job stays on ${only != null ? `version ${only}` : 'the version it has'} until you update it.`;
+  if (versions.size === 1 && only != null) return `${first} Your ${own.length} jobs stay on version ${only} until you update them.`;
+  return `${first} Your ${own.length} jobs stay on the versions they have until you update them.`;
 }
 
 /** Where a thing that uses a template lives: a job, its workflow, or a hiring template. */

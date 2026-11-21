@@ -75,11 +75,12 @@ describe('the recipes', () => {
     });
   });
 
-  it('put a stage\'s recipe in that stage\'s lane, and the rest in the whole workflow\'s', () => {
+  it('put a stage\'s recipe under that stage, and one for an arriving application under Applied', () => {
     const recipes = allRecipes(workflow());
 
     expect(recipes.find((recipe) => recipe.key === 'reaches-trial')!.lane).toBe('trial');
-    expect(recipes.find((recipe) => recipe.key === 'thanks')!.lane).toBeNull();
+    expect(recipes.find((recipe) => recipe.key === 'thanks')!.lane).toBe('applied');
+    expect(recipesFor(workflow(), 'applied').map((recipe) => recipe.key)).toContain('thanks');
     expect(recipesFor(workflow(), 'trial').map((recipe) => recipe.key)).toEqual(['reaches-trial', 'review-trial']);
     expect(recipesFor(workflow(), null).length).toBe(recipesFor(workflow()).length);
   });

@@ -29,7 +29,9 @@ import type {
   ApplyTemplateUpdateRequest,
   AutomationIssue,
   AutomationRunEntry,
+  BillingInvoiceList,
   BillingOverview,
+  BillingPaymentMethodView,
   BillingPlanChangePreview,
   BillingRedirect,
   BoardSummary,
@@ -64,6 +66,7 @@ import type {
   CustomizePostingRequest,
   DataRequestList,
   DeclineDataRequestRequest,
+  DeleteTagParams,
   DismissVerificationAssessmentRequest,
   EditApplicationNoteRequest,
   EditSavedNoteRequest,
@@ -138,6 +141,7 @@ import type {
   ManualAutomationQueued,
   MemberJob,
   MembershipLogEntry,
+  MergeTagRequest,
   MoveApplicationRequest,
   MyOrganization,
   NotificationList,
@@ -147,10 +151,12 @@ import type {
   OAuthConnectionSummary,
   OfferNewInterviewTimesRequest,
   OnboardingRequest,
+  OpenBillingPortalParams,
   OrganizationBranding,
   OrganizationProfile,
   OrganizationRetention,
   OrganizationSendingDomain,
+  OrganizationSetup,
   OrganizationVerificationSettings,
   PasskeyList,
   PasskeyOptions,
@@ -192,6 +198,7 @@ import type {
   RegisterPasskeyRequest,
   RemoveApplicationTagParams,
   RemoveFromTalentPoolRequest,
+  RenameTagRequest,
   RequestScorecardRequest,
   RetentionPreview,
   RoleCatalogue,
@@ -210,6 +217,7 @@ import type {
   SetSendingDomainRequest,
   SignInMethods,
   SimulateWorkflowRequest,
+  SkipSetupStepRequest,
   SlackAccount,
   SlackAuthorization,
   SlackChannelOption,
@@ -221,6 +229,8 @@ import type {
   StartSlackLinkRequest,
   SubmitScorecardRequest,
   SwitchOrganizationRequest,
+  TagChangeResult,
+  TagList,
   TalentPoolList,
   TaskListItem,
   TeamMember,
@@ -7694,6 +7704,220 @@ return apiFetch<updateCareersEmbeddingResponse>(getUpdateCareersEmbeddingUrl(),
 
 
 
+export type getOrganizationSetupResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type getOrganizationSetupResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getOrganizationSetupResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getOrganizationSetupResponseSuccess = (getOrganizationSetupResponse200) & {
+  headers: Headers;
+};
+export type getOrganizationSetupResponseError = (getOrganizationSetupResponse401 | getOrganizationSetupResponse404) & {
+  headers: Headers;
+};
+
+export type getOrganizationSetupResponse = (getOrganizationSetupResponseSuccess | getOrganizationSetupResponseError)
+
+export const getGetOrganizationSetupUrl = () => {
+
+
+
+
+  return `/v1/organization/setup`
+}
+
+export const getOrganizationSetup = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getOrganizationSetupResponse> => {
+
+  return apiFetch<getOrganizationSetupResponse>(getGetOrganizationSetupUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type skipSetupStepResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type skipSetupStepResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type skipSetupStepResponse401 = {
+  data: void
+  status: 401
+}
+
+export type skipSetupStepResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type skipSetupStepResponse404 = {
+  data: void
+  status: 404
+}
+
+export type skipSetupStepResponseSuccess = (skipSetupStepResponse200) & {
+  headers: Headers;
+};
+export type skipSetupStepResponseError = (skipSetupStepResponse400 | skipSetupStepResponse401 | skipSetupStepResponse403 | skipSetupStepResponse404) & {
+  headers: Headers;
+};
+
+export type skipSetupStepResponse = (skipSetupStepResponseSuccess | skipSetupStepResponseError)
+
+export const getSkipSetupStepUrl = () => {
+
+
+
+
+  return `/v1/organization/setup/skip`
+}
+
+export const skipSetupStep = async (skipSetupStepRequest: SkipSetupStepRequest, options?: Parameters<typeof apiFetch>[1]): Promise<skipSetupStepResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<skipSetupStepResponse>(getSkipSetupStepUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(skipSetupStepRequest)
+  }
+);}
+
+
+
+export type hideSetupResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type hideSetupResponse401 = {
+  data: void
+  status: 401
+}
+
+export type hideSetupResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type hideSetupResponse404 = {
+  data: void
+  status: 404
+}
+
+export type hideSetupResponseSuccess = (hideSetupResponse200) & {
+  headers: Headers;
+};
+export type hideSetupResponseError = (hideSetupResponse401 | hideSetupResponse403 | hideSetupResponse404) & {
+  headers: Headers;
+};
+
+export type hideSetupResponse = (hideSetupResponseSuccess | hideSetupResponseError)
+
+export const getHideSetupUrl = () => {
+
+
+
+
+  return `/v1/organization/setup/hide`
+}
+
+export const hideSetup = async ( options?: Parameters<typeof apiFetch>[1]): Promise<hideSetupResponse> => {
+
+  return apiFetch<hideSetupResponse>(getHideSetupUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type showSetupAgainResponse200 = {
+  data: OrganizationSetup
+  status: 200
+}
+
+export type showSetupAgainResponse401 = {
+  data: void
+  status: 401
+}
+
+export type showSetupAgainResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type showSetupAgainResponse404 = {
+  data: void
+  status: 404
+}
+
+export type showSetupAgainResponseSuccess = (showSetupAgainResponse200) & {
+  headers: Headers;
+};
+export type showSetupAgainResponseError = (showSetupAgainResponse401 | showSetupAgainResponse403 | showSetupAgainResponse404) & {
+  headers: Headers;
+};
+
+export type showSetupAgainResponse = (showSetupAgainResponseSuccess | showSetupAgainResponseError)
+
+export const getShowSetupAgainUrl = () => {
+
+
+
+
+  return `/v1/organization/setup/show`
+}
+
+export const showSetupAgain = async ( options?: Parameters<typeof apiFetch>[1]): Promise<showSetupAgainResponse> => {
+
+  return apiFetch<showSetupAgainResponse>(getShowSetupAgainUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
 export type getOrganizationBrandingResponse200 = {
   data: OrganizationBranding
   status: 200
@@ -11306,6 +11530,261 @@ export const reopenTask = async (taskId: string, options?: Parameters<typeof api
 
 
 
+export type listTagsResponse200 = {
+  data: TagList
+  status: 200
+}
+
+export type listTagsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listTagsResponse429 = {
+  data: void
+  status: 429
+}
+
+export type listTagsResponseSuccess = (listTagsResponse200) & {
+  headers: Headers;
+};
+export type listTagsResponseError = (listTagsResponse401 | listTagsResponse429) & {
+  headers: Headers;
+};
+
+export type listTagsResponse = (listTagsResponseSuccess | listTagsResponseError)
+
+export const getListTagsUrl = () => {
+
+
+
+
+  return `/v1/tags`
+}
+
+export const listTags = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listTagsResponse> => {
+
+  return apiFetch<listTagsResponse>(getListTagsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type deleteTagResponse200 = {
+  data: TagChangeResult
+  status: 200
+}
+
+export type deleteTagResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type deleteTagResponse401 = {
+  data: void
+  status: 401
+}
+
+export type deleteTagResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type deleteTagResponse404 = {
+  data: void
+  status: 404
+}
+
+export type deleteTagResponseSuccess = (deleteTagResponse200) & {
+  headers: Headers;
+};
+export type deleteTagResponseError = (deleteTagResponse400 | deleteTagResponse401 | deleteTagResponse403 | deleteTagResponse404) & {
+  headers: Headers;
+};
+
+export type deleteTagResponse = (deleteTagResponseSuccess | deleteTagResponseError)
+
+export const getDeleteTagUrl = (params?: DeleteTagParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/tags?${stringifiedParams}` : `/v1/tags`
+}
+
+export const deleteTag = async (params?: DeleteTagParams, options?: Parameters<typeof apiFetch>[1]): Promise<deleteTagResponse> => {
+
+  return apiFetch<deleteTagResponse>(getDeleteTagUrl(params),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+export type renameTagResponse200 = {
+  data: TagChangeResult
+  status: 200
+}
+
+export type renameTagResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type renameTagResponse401 = {
+  data: void
+  status: 401
+}
+
+export type renameTagResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type renameTagResponse404 = {
+  data: void
+  status: 404
+}
+
+export type renameTagResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type renameTagResponseSuccess = (renameTagResponse200) & {
+  headers: Headers;
+};
+export type renameTagResponseError = (renameTagResponse400 | renameTagResponse401 | renameTagResponse403 | renameTagResponse404 | renameTagResponse409) & {
+  headers: Headers;
+};
+
+export type renameTagResponse = (renameTagResponseSuccess | renameTagResponseError)
+
+export const getRenameTagUrl = () => {
+
+
+
+
+  return `/v1/tags/rename`
+}
+
+export const renameTag = async (renameTagRequest: RenameTagRequest, options?: Parameters<typeof apiFetch>[1]): Promise<renameTagResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<renameTagResponse>(getRenameTagUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(renameTagRequest)
+  }
+);}
+
+
+
+export type mergeTagResponse200 = {
+  data: TagChangeResult
+  status: 200
+}
+
+export type mergeTagResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type mergeTagResponse401 = {
+  data: void
+  status: 401
+}
+
+export type mergeTagResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type mergeTagResponse404 = {
+  data: void
+  status: 404
+}
+
+export type mergeTagResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type mergeTagResponseSuccess = (mergeTagResponse200) & {
+  headers: Headers;
+};
+export type mergeTagResponseError = (mergeTagResponse400 | mergeTagResponse401 | mergeTagResponse403 | mergeTagResponse404 | mergeTagResponse409) & {
+  headers: Headers;
+};
+
+export type mergeTagResponse = (mergeTagResponseSuccess | mergeTagResponseError)
+
+export const getMergeTagUrl = () => {
+
+
+
+
+  return `/v1/tags/merge`
+}
+
+export const mergeTag = async (mergeTagRequest: MergeTagRequest, options?: Parameters<typeof apiFetch>[1]): Promise<mergeTagResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<mergeTagResponse>(getMergeTagUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(mergeTagRequest)
+  }
+);}
+
+
+
 export type getHiringReportResponse200 = {
   data: HiringReport
   status: 200
@@ -13433,20 +13912,137 @@ export type openBillingPortalResponseError = (openBillingPortalResponse401 | ope
 
 export type openBillingPortalResponse = (openBillingPortalResponseSuccess | openBillingPortalResponseError)
 
-export const getOpenBillingPortalUrl = () => {
+export const getOpenBillingPortalUrl = (params?: OpenBillingPortalParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/v1/organization/billing/portal`
+  return stringifiedParams.length > 0 ? `/v1/organization/billing/portal?${stringifiedParams}` : `/v1/organization/billing/portal`
 }
 
-export const openBillingPortal = async ( options?: Parameters<typeof apiFetch>[1]): Promise<openBillingPortalResponse> => {
+export const openBillingPortal = async (params?: OpenBillingPortalParams, options?: Parameters<typeof apiFetch>[1]): Promise<openBillingPortalResponse> => {
 
-  return apiFetch<openBillingPortalResponse>(getOpenBillingPortalUrl(),
+  return apiFetch<openBillingPortalResponse>(getOpenBillingPortalUrl(params),
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type listBillingInvoicesResponse200 = {
+  data: BillingInvoiceList
+  status: 200
+}
+
+export type listBillingInvoicesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listBillingInvoicesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listBillingInvoicesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listBillingInvoicesResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type listBillingInvoicesResponseSuccess = (listBillingInvoicesResponse200) & {
+  headers: Headers;
+};
+export type listBillingInvoicesResponseError = (listBillingInvoicesResponse401 | listBillingInvoicesResponse403 | listBillingInvoicesResponse404 | listBillingInvoicesResponse502) & {
+  headers: Headers;
+};
+
+export type listBillingInvoicesResponse = (listBillingInvoicesResponseSuccess | listBillingInvoicesResponseError)
+
+export const getListBillingInvoicesUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/invoices`
+}
+
+export const listBillingInvoices = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listBillingInvoicesResponse> => {
+
+  return apiFetch<listBillingInvoicesResponse>(getListBillingInvoicesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getBillingPaymentMethodResponse200 = {
+  data: BillingPaymentMethodView
+  status: 200
+}
+
+export type getBillingPaymentMethodResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getBillingPaymentMethodResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getBillingPaymentMethodResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getBillingPaymentMethodResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type getBillingPaymentMethodResponseSuccess = (getBillingPaymentMethodResponse200) & {
+  headers: Headers;
+};
+export type getBillingPaymentMethodResponseError = (getBillingPaymentMethodResponse401 | getBillingPaymentMethodResponse403 | getBillingPaymentMethodResponse404 | getBillingPaymentMethodResponse502) & {
+  headers: Headers;
+};
+
+export type getBillingPaymentMethodResponse = (getBillingPaymentMethodResponseSuccess | getBillingPaymentMethodResponseError)
+
+export const getGetBillingPaymentMethodUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/payment-method`
+}
+
+export const getBillingPaymentMethod = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getBillingPaymentMethodResponse> => {
+
+  return apiFetch<getBillingPaymentMethodResponse>(getGetBillingPaymentMethodUrl(),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

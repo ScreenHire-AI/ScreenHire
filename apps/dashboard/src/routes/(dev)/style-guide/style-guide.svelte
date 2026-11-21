@@ -49,6 +49,7 @@
   import FileRow from '#lib/components/file-row.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import HistorySheet from '#lib/components/history-sheet.svelte';
+  import VersionsSheet, { type VersionsTab } from '#lib/components/versions-sheet.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import InterviewDetails from '#lib/components/candidate/interview-details.svelte';
   import MetaItem from '#lib/components/meta-item.svelte';
@@ -446,6 +447,13 @@
 
   // Tags change in place here; nothing is saved.
   let sampleTags = $state(['Referral', 'Relocating to Leeds']);
+  // The organization's tags the field suggests (GET /v1/tags), most used first.
+  const sampleKnownTags = [
+    { name: 'Senior', applications: 12 },
+    { name: 'Referral', applications: 9 },
+    { name: 'Senior engineer', applications: 4 },
+    { name: 'Needs visa', applications: 2 },
+  ];
   let jobsChoice = $state<'All' | 'HiringTeamOnly'>('All');
   let countriesChoice = $state(['GB', 'IE']);
   const sampleTeam = [
@@ -535,6 +543,13 @@
   ]);
   let sheetOpen = $state(false);
   let historyOpen = $state(false);
+  let versionsOpen = $state(false);
+  let versionsTab = $state<VersionsTab>('versions');
+  const sampleVersions = [
+    { id: 'sv-1', version: 1, status: 'Published' as const, publishedAt: '2026-09-02T10:00:00Z' },
+    { id: 'sv-2', version: 2, status: 'Published' as const, publishedAt: '2026-10-14T10:00:00Z' },
+    { id: 'sv-3', version: 3, status: 'Draft' as const, publishedAt: null },
+  ];
   const part = (text: string, strong = false) => ({ text, strong });
   const sampleHistory: HistoryEntry[] = [
     {
@@ -637,7 +652,7 @@
 {/snippet}
 
 <ShortcutsDialog bind:open={shortcutsOpen} />
-<SecretDialog bind:open={secretOpen} title="Your new API key" label="API key" value="shk_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
+<SecretDialog bind:open={secretOpen} title="Your signing secret" label="Signing secret" value="whsec_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
 
 <PublishCheckDialog
   bind:open={publishCheckOpen}
@@ -956,15 +971,15 @@
         <div class="flex flex-col gap-5">
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">At the width of the panel: side by side where every stage fits</figcaption>
-            <StageFlow stages={flowStages} automations={flowAutomations} />
+            <StageFlow workflow={{ stages: flowStages, automations: flowAutomations, questionnaire: { questions: [] } }} />
           </figure>
           <figure class="flex max-w-80 flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Where they do not fit, the same stages stack</figcaption>
-            <StageFlow stages={flowStages} automations={flowAutomations} label="Stages in order, stacked" />
+            <StageFlow workflow={{ stages: flowStages, automations: flowAutomations, questionnaire: { questions: [] } }} label="Stages in order, stacked" />
           </figure>
           <figure class="flex flex-col gap-2">
             <figcaption class="text-caption text-muted-foreground">Twenty stages stack in the same way, and the page never scrolls sideways</figcaption>
-            <StageFlow stages={manyStages} automations={[]} label="Twenty stages in order" />
+            <StageFlow workflow={{ stages: manyStages, automations: [], questionnaire: { questions: [] } }} label="Twenty stages in order" />
           </figure>
         </div>
       </Panel>
@@ -1063,7 +1078,7 @@
           <Button variant="outline" onclick={() => (publishCheckOpen = true)}>Publish a draft</Button>
         </Panel>
         <Panel title="Secret dialog" class="flex-[1_1_320px]">
-          <Button variant="outline" onclick={() => (secretOpen = true)}>Show a new key</Button>
+          <Button variant="outline" onclick={() => (secretOpen = true)}>Show a signing secret</Button>
         </Panel>
         <Panel title="Email composer" class="flex-[1_1_320px]">
           <EmailComposerDemo />
@@ -1232,6 +1247,7 @@
         <Panel title="Tag list" class="flex-[1_1_320px]">
           <TagList
             tags={sampleTags}
+            suggestions={sampleKnownTags}
             onadd={async (tag) => ((sampleTags = [...sampleTags, tag]), true)}
             onremove={(tag) => (sampleTags = sampleTags.filter((other) => other !== tag))}
           />
@@ -1312,6 +1328,44 @@
             note="Jobs keep the copy they started with; a change here reaches jobs created after it."
           />
         </Panel>
+        <Panel title="Versions sheet" class="flex-[1_1_320px]">
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">A hiring template's versions and its history in one sheet: Versions opens the first tab, History the second</figcaption>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                aria-haspopup="dialog"
+                onclick={() => {
+                  versionsTab = 'versions';
+                  versionsOpen = true;
+                }}>Versions</Button
+              >
+              <Button
+                variant="outline"
+                size="lg"
+                aria-haspopup="dialog"
+                onclick={() => {
+                  versionsTab = 'changes';
+                  versionsOpen = true;
+                }}>All changes</Button
+              >
+            </div>
+          </figure>
+          <VersionsSheet
+            bind:open={versionsOpen}
+            bind:tab={versionsTab}
+            name="Brightwater engineering"
+            versions={sampleVersions}
+            shown={3}
+            live={2}
+            hrefOf={(version) => `#version-${version}`}
+            entries={sampleHistory}
+            members={sampleTeam}
+            currentUserId="u1"
+            note="Jobs keep the copy they started with; a change here reaches jobs created after it."
+          />
+        </Panel>
       </div>
 
       <Panel title="Action bar">
@@ -1346,7 +1400,7 @@
 
       <Panel title="Expandable row">
         <ol aria-label="Emails" class="flex flex-col divide-y divide-border-subtle">
-          <li class="flex flex-col gap-3 py-2 first:pt-0 last:pb-0">
+          <li class="flex flex-col py-2 first:pt-0 last:pb-0">
             <ExpandableRow id="style-guide-email-1" bind:expanded={emailOpen}>
               {#snippet icon()}<SendIcon />{/snippet}
               {#snippet summary()}
@@ -1356,7 +1410,7 @@
               <p>Hi Priya, thank you for your time on Thursday. We would like to invite you to a second interview.</p>
             </ExpandableRow>
           </li>
-          <li class="flex flex-col gap-3 py-2 first:pt-0 last:pb-0">
+          <li class="flex flex-col py-2 first:pt-0 last:pb-0">
             <ExpandableRow id="style-guide-email-2">
               {#snippet icon()}<SendIcon />{/snippet}
               {#snippet summary()}

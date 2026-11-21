@@ -110,8 +110,10 @@ export const GetTemplateUsageResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "automationId": zod.string().nullish(),
-  "automationName": zod.string().nullish()
-}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+  "automationName": zod.string().nullish(),
+  "templateVersion": zod.int().nullish(),
+  "workflowVersion": zod.int().nullish()
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation. A job\nusing a hiring template carries `templateVersion`, the template version its pipeline came from (below the\ntemplate\'s newest published version, it is on an older one), and `workflowVersion`, its pipeline\'s own version,\nwhich applying an update expects; both are null on every other kind.')),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "notUsedRecently": zod.boolean()
 }).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.')),
@@ -122,8 +124,10 @@ export const GetTemplateUsageResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "automationId": zod.string().nullish(),
-  "automationName": zod.string().nullish()
-}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+  "automationName": zod.string().nullish(),
+  "templateVersion": zod.int().nullish(),
+  "workflowVersion": zod.int().nullish()
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation. A job\nusing a hiring template carries `templateVersion`, the template version its pipeline came from (below the\ntemplate\'s newest published version, it is on an older one), and `workflowVersion`, its pipeline\'s own version,\nwhich applying an update expects; both are null on every other kind.')),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "notUsedRecently": zod.boolean()
 }).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.')),
@@ -134,8 +138,10 @@ export const GetTemplateUsageResponse = zod.object({
   "id": zod.uuid(),
   "name": zod.string(),
   "automationId": zod.string().nullish(),
-  "automationName": zod.string().nullish()
-}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation.')),
+  "automationName": zod.string().nullish(),
+  "templateVersion": zod.int().nullish(),
+  "workflowVersion": zod.int().nullish()
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation. A job\nusing a hiring template carries `templateVersion`, the template version its pipeline came from (below the\ntemplate\'s newest published version, it is on an older one), and `workflowVersion`, its pipeline\'s own version,\nwhich applying an update expects; both are null on every other kind.')),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "notUsedRecently": zod.boolean()
 }).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.'))
@@ -7175,6 +7181,34 @@ export const UpdateCareersEmbeddingResponse = zod.object({
 }).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\nto the name, the questions per page or the sites, or when the organization was made; its history is\n`/v1/organization/history`.')
 
 
+export const GetOrganizationSetupResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
+export const SkipSetupStepBody = zod.object({
+  "step": zod.union([zod.null(),zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')])
+}).describe('Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing. Nullable\nonly so a body without it is refused rather than read as the first step.')
+
+export const SkipSetupStepResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
+export const HideSetupResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
+export const ShowSetupAgainResponse = zod.object({
+  "hidden": zod.boolean(),
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+
+
 export const getOrganizationBrandingResponseLastUpdatedCreatedDefault = false;
 
 export const GetOrganizationBrandingResponse = zod.object({
@@ -7409,15 +7443,16 @@ export const GetOrganizationVerificationSettingsResponse = zod.object({
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
   "effectiveCap": zod.union([zod.null(),zod.object({
   "amount": zod.number(),
   "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "priced": zod.boolean()
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).')]),
   "presets": zod.array(zod.object({
   "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)]),
   "baseUrl": zod.string().nullable(),
@@ -7525,15 +7560,16 @@ export const UpdateOrganizationVerificationSettingsResponse = zod.object({
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
   "effectiveCap": zod.union([zod.null(),zod.object({
   "amount": zod.number(),
   "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "priced": zod.boolean()
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).')]),
   "presets": zod.array(zod.object({
   "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)]),
   "baseUrl": zod.string().nullable(),
@@ -8965,6 +9001,69 @@ export const ReopenTaskResponse = zod.object({
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
+export const ListTagsResponse = zod.object({
+  "tags": zod.array(zod.object({
+  "name": zod.string(),
+  "applications": zod.int(),
+  "templates": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('One tag, as it is spelled where it is used most. `applications` counts the applications that have it (on the jobs\nthe reader sees); a tag only an automation names has none. `templates` lists the hiring templates whose newest\npublished version names it: a published version never changes, so they keep naming it after a rename until a new\nversion is published.'))
+}).describe('The organization\'s tags (`GET /v1/tags`), most used first: every tag on an application the reader can see, and\nevery tag an automation names in a job that is not closed or in a hiring template\'s draft or newest published version.')
+
+
+export const DeleteTagQueryParams = zod.object({
+  "tag": zod.string().optional()
+})
+
+export const DeleteTagResponse = zod.object({
+  "jobs": zod.int(),
+  "drafts": zod.int(),
+  "views": zod.int(),
+  "stillNamedBy": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates\'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag.')
+
+
+export const RenameTagBody = zod.object({
+  "tag": zod.string(),
+  "newName": zod.string()
+}).describe('Renames a tag everywhere. `newName` must not be another tag already: merge into that one instead.')
+
+export const RenameTagResponse = zod.object({
+  "jobs": zod.int(),
+  "drafts": zod.int(),
+  "views": zod.int(),
+  "stillNamedBy": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates\'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag.')
+
+
+export const MergeTagBody = zod.object({
+  "tag": zod.string(),
+  "into": zod.string()
+}).describe('Merges a tag into another existing tag: every application with `tag` gets `into` instead.')
+
+export const MergeTagResponse = zod.object({
+  "jobs": zod.int(),
+  "drafts": zod.int(),
+  "views": zod.int(),
+  "stillNamedBy": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "name": zod.string(),
+  "version": zod.int()
+}).describe('A hiring template whose newest published version names a tag.'))
+}).describe('What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates\'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag.')
+
+
 export const getHiringReportQueryTimeZoneDefault = `UTC`;
 
 export const GetHiringReportQueryParams = zod.object({
@@ -9807,17 +9906,26 @@ export const GetBillingResponse = zod.object({
   "aiUsage": zod.union([zod.null(),zod.object({
   "month": zod.string(),
   "builtInCalls": zod.int(),
-  "tokens": zod.int(),
-  "providerCost": zod.number(),
   "charge": zod.number(),
-  "marginPercent": zod.number(),
   "callsWithUnknownCost": zod.int(),
   "ownKeyCalls": zod.int(),
   "trialAllowance": zod.number(),
   "trialAllowanceUsed": zod.number(),
   "metered": zod.boolean()
-}).describe('This UTC month\'s use of ScreenHire\'s AI key, in US dollars (docs/architecture/billing.md, "AI usage"). `providerCost` is what\nthe provider charged ScreenHire for the calls and `charge` is what the organization pays: each call\'s cost plus\n`marginPercent` (20 is "plus 20%"), rounded to a micro-dollar per call. A call whose cost is unknown\n(`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on the organization\'s own key, never\ncharged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what it has already covered.\n`metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered price is set).')])
-}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".\n`aiUsage`: this month\'s use of ScreenHire\'s AI key and what it costs (null while billing is off).')
+}).describe('This UTC month\'s use of ScreenHire\'s AI key (docs/architecture/billing.md, "AI usage"). `charge` is what the organization\npays for it in US dollars, the one amount for AI use that the Usage tab shows too, and it never names the provider\'s price or a\nmargin. A call whose cost is unknown (`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on\nthe organization\'s own key, never charged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what\nit has already covered. `metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered\nprice is set).')]),
+  "thisMonth": zod.union([zod.null(),zod.object({
+  "month": zod.string(),
+  "currency": zod.string(),
+  "planName": zod.string().nullable(),
+  "planAmount": zod.number().nullable(),
+  "aiCalls": zod.int(),
+  "aiAmount": zod.number().nullable(),
+  "trialCredit": zod.number(),
+  "total": zod.number(),
+  "nextInvoiceAmount": zod.number().nullable(),
+  "nextInvoiceAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('This UTC month so far, added up (docs/architecture/billing.md, "The Billing page"), in `currency`. `planName` and\n`planAmount` are the plan\'s line: its monthly price while subscribed, 0 on the free trial, and null with no plan (ended).\n`aiCalls` and `aiAmount` are AI use on ScreenHire\'s key, null where it is not billed here. `trialCredit` is what the\ntrial\'s allowance covers of that use, 0 or more. `total` is the plan, plus AI use, less the credit, each to the cent first, so\nthe lines shown add up to it. `nextInvoiceAmount`\nand `nextInvoiceAt` estimate the next invoice while a subscription runs: the next plan payment (none when it is set to end)\nplus this month\'s AI use, so the page says "about"; null when no invoice is coming.')])
+}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".\n`aiUsage`: this month\'s use of ScreenHire\'s AI key and what it costs (null while billing is off). `thisMonth`: what the\norganization pays this month so far, each charge on its line and added up, and the next invoice (null while billing is off).')
 
 
 export const StartBillingCheckoutBody = zod.object({
@@ -9851,9 +9959,34 @@ export const ChangeBillingPlanBody = zod.object({
 export const ChangeBillingPlanResponse = zod.void()
 
 
+export const OpenBillingPortalQueryParams = zod.object({
+  "intent": zod.enum(['Manage', 'ChangeCard', 'Cancel']).optional()
+})
+
 export const OpenBillingPortalResponse = zod.object({
   "url": zod.string()
 }).describe('Where to send the browser next: the payment provider\'s page, or the sandbox\'s.')
+
+
+export const ListBillingInvoicesResponse = zod.object({
+  "invoices": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.iso.datetime({"offset":true}),
+  "amount": zod.number(),
+  "currency": zod.string(),
+  "status": zod.enum(['Paid', 'Due', 'Void']).describe('Where an invoice stands, in words a customer uses.'),
+  "pdfUrl": zod.string().nullable()
+}).describe('One invoice: `date` it was made, its `amount` (tax included) in `currency`, where it stands, and `pdfUrl`, the\naddress of its PDF (absolute for the payment provider, a path of this site for the local sandbox), null when there is none.'))
+}).describe('The organization\'s invoices, newest first. Empty before it has chosen a plan.')
+
+
+export const GetBillingPaymentMethodResponse = zod.object({
+  "method": zod.union([zod.null(),zod.object({
+  "type": zod.string(),
+  "brand": zod.string().nullable(),
+  "last4": zod.string().nullable()
+}).describe('A payment method on file: its type as the provider names it (`card` for a card), and for a card its network and last four digits.')])
+}).describe('The payment method the plan is charged to, or `method` null when there is none on file yet. A card has its network\n(`brand`, such as `visa`) and its last four digits; another method has only its `type`.')
 
 
 export const getAiUsageSummaryQueryTimeZoneDefault = `UTC`;
@@ -9874,7 +10007,7 @@ export const GetAiUsageSummaryResponse = zod.object({
   "cost": zod.number(),
   "callsWithUnknownCost": zod.int(),
   "failedCalls": zod.int()
-}).describe('Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost.'),
+}).describe('Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost. Each call counts at the\none amount a customer sees for it: on ScreenHire\'s key what it is billed, on an own key the provider\'s price, an estimate. So\n`cost` here sums both keys; `byKeySource` keeps them apart, which is how the Usage tab shows them.'),
   "byDay": zod.array(zod.object({
   "date": zod.string(),
   "calls": zod.int(),
@@ -9916,15 +10049,16 @@ export const GetAiUsageSummaryResponse = zod.object({
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
   "effectiveCap": zod.union([zod.null(),zod.object({
   "amount": zod.number(),
   "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.'),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "priced": zod.boolean()
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).'),
   "lastCallAt": zod.iso.datetime({"offset":true}).nullable()
 }).describe('This organization\'s AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester\'s days (`timeZone`). `limits` is\nthe month\'s position against the budget and cap, whatever range was asked for. `lastCallAt` is when the newest model call\nhappened, whatever the range, so the page can say how recent its numbers are (design system T7); null before the first.')
 
@@ -9959,7 +10093,7 @@ export const ListAiUsageCallsResponse = zod.object({
   "durationMs": zod.int(),
   "outcome": zod.enum(['Ok', 'Error', 'TimedOut']),
   "errorKind": zod.string().nullable()
-}).describe('One model call, as it happened. `providerRequestId` is the provider\'s id for the response, which finds the call in the\nprovider\'s own logs. Tokens are null when the provider reported none. `cost` is null when `costBasis` is\n`Unknown`. `check` names the check (for example `consistency.extraction`). Holds nothing that was sent or received.')),
+}).describe('One model call, as it happened. `providerRequestId` is the provider\'s id for the response, which finds the call in the\nprovider\'s own logs. Tokens are null when the provider reported none. `cost` is null when `costBasis` is\n`Unknown`, and is the billed amount on ScreenHire\'s key and the provider\'s price on an own key. `check` names the check (for example `consistency.extraction`). Holds nothing that was sent or received.')),
   "nextBefore": zod.uuid().nullable()
 }).describe('A page of calls, newest first. `nextBefore` is the id to pass as `before` for the next page, null on the last.')
 
@@ -9979,10 +10113,9 @@ export const ExportAiUsageCallsResponse = zod.unknown()
 
 
 export const UpdateAiUsageLimitsBody = zod.object({
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
   "budget": zod.number().nullish(),
   "cap": zod.number().nullish()
-}).describe('Sets the monthly budget and cap. Both are in `unit` (whole tokens, or dollars to the cent); null removes one. With\n`Money` and an own key, the own key\'s prices must be set, since a call with no known cost counts as nothing.')
+}).describe('Sets the monthly budget and cap, in US dollars to the cent, counted against the amount billed for AI use; null removes one.\nSetting one needs a price for the key in use (an own key\'s two prices), since a call with no known cost counts as nothing.')
 
 export const UpdateAiUsageLimitsResponse = zod.object({
   "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
@@ -9994,15 +10127,16 @@ export const UpdateAiUsageLimitsResponse = zod.object({
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
   "effectiveCap": zod.union([zod.null(),zod.object({
   "amount": zod.number(),
   "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
   "isDefault": zod.boolean(),
   "used": zod.number(),
   "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment\'s default for\nScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit; `percent` is how far\nthat is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')])
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), in\none `unit`. `budget` and `cap` are what the organization set; `effectiveBudget` and `effectiveCap` are\nwhat applies, which for ScreenHire\'s key falls back to the deployment\'s defaults, in tokens. An own key has no default.')
+}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
+  "priced": zod.boolean()
+}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).')
 
 
 export const GetVerificationOverviewResponse = zod.object({
@@ -10599,7 +10733,9 @@ export const ListCandidateEmailsResponseItem = zod.object({
   "kept": zod.boolean(),
   "direction": zod.enum(['Sent', 'Received']).default(listCandidateEmailsResponseDirectionDefault).describe('Which way an email in Messages went.'),
   "fromAddress": zod.string().nullish(),
-  "attachmentCount": zod.int().default(listCandidateEmailsResponseAttachmentCountDefault)
+  "attachmentCount": zod.int().default(listCandidateEmailsResponseAttachmentCountDefault),
+  "snippet": zod.string().nullish(),
+  "inReplyTo": zod.uuid().nullish()
 }).describe('One email to the candidate, for Messages: what went, when, and who or which automation sent it. `kept` is false\nfor an email sent before ScreenHire kept each email\'s copy: only its subject is known.')
 export const ListCandidateEmailsResponse = zod.array(ListCandidateEmailsResponseItem)
 

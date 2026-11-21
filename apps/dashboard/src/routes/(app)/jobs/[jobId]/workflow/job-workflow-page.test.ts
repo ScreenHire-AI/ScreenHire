@@ -25,7 +25,7 @@ const workflow: HiringWorkflow = {
 };
 
 // Only what the page reads from the job.
-const jobIn = (status: JobStatus) =>
+const jobIn = (status: JobStatus, overrides: Partial<JobDetail> = {}) =>
   ({
     id: jobId,
     title: 'Senior .NET Engineer',
@@ -35,12 +35,14 @@ const jobIn = (status: JobStatus) =>
     aiUse: { policy: 'NotAllowed', override: 'NotAllowed', organizationDefault: 'AllowedWithDisclosure' },
     template: null,
     lastUpdated: { at: '2026-10-18T12:00:00Z', by: 'Avery Quinn', userId: user.id, apiKeyId: null },
+    ...overrides,
   }) as unknown as JobDetail;
 
-function stubApi(status: JobStatus) {
+function stubApi(status: JobStatus, overrides: Partial<JobDetail> = {}, routes: Parameters<typeof apiStub>[0] = {}) {
   const fetchMock = vi.fn(
     apiStub({
-      [`GET /v1/jobs/${jobId}`]: () => Response.json(jobIn(status)),
+      [`GET /v1/jobs/${jobId}`]: () => Response.json(jobIn(status, overrides)),
+      ...routes,
       'POST /v1/workflows/validate': () => Response.json({ errors: [] }),
       'GET /v1/organization/members': () => Response.json([]),
     }),
@@ -51,10 +53,11 @@ function stubApi(status: JobStatus) {
 
 const renderPage = () => render(WithQueryClient, { props: { component: Page, props: { params: { jobId } } } });
 
-// The tab is in the address (?tab=), which the page reads and a test sets; no tab is the first, Overview.
-const atTab = (tab?: string) => {
+// The tab is in the address (?tab=), which the page reads and a test sets; no tab is the first, Pipeline.
+const atTab = (tab?: string, query = '') => {
   pageState.data = { user };
-  pageState.url = new URL(tab ? `http://dashboard.test/?tab=${tab}` : 'http://dashboard.test/');
+  const search = [tab ? `tab=${tab}` : '', query].filter(Boolean).join('&');
+  pageState.url = new URL(`http://dashboard.test/${search ? `?${search}` : ''}`);
 };
 
 beforeEach(() => {
@@ -76,19 +79,19 @@ describe('job workflow page', () => {
     expect(within(pane).getByRole('region', { name: 'Stages' })).toBeInTheDocument();
     expect(pane.querySelectorAll('input, select, textarea')).toHaveLength(0);
     expect(container.querySelectorAll(':disabled')).toHaveLength(0);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Senior .NET Engineer workflow');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Senior .NET Engineer pipeline');
     expect(screen.getByText('Closed')).toHaveAttribute('data-slot', 'badge');
-    expect(screen.queryByRole('button', { name: 'Save workflow' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save pipeline' })).toBeNull();
   });
 
-  it('opens on Overview, the first tab, where a closed job has its stages as text and nothing opens', async () => {
+  it('opens on Pipeline, the first tab, and sends an old Overview address there', async () => {
+    atTab('overview');
     stubApi('Closed');
     renderPage();
 
-    const pane = await screen.findByRole('tabpanel', { name: 'Overview' });
-    expect(within(pane).getByRole('region', { name: 'Candidate journey' })).toBeInTheDocument();
-    expect(within(pane).getByRole('list', { name: 'Stages in order' })).toHaveTextContent('Phone screen');
-    expect(within(pane).queryByRole('button')).toBeNull();
+    const pane = await screen.findByRole('tabpanel', { name: 'Pipeline' });
+    expect(within(pane).getByRole('region', { name: 'Stages' })).toHaveTextContent('Phone screen');
+    expect(screen.queryByRole('tab', { name: 'Overview' })).toBeNull();
   });
 
   it('shows the builder with a Save button for an open job, whose status is the first badge beside the title', async () => {
@@ -98,19 +101,54 @@ describe('job workflow page', () => {
 
     const stages = await screen.findByRole('region', { name: 'Stages' });
     // The stages are cards; the time limit is in the stage's sheet.
-    expect(within(stages).getByRole('group', { name: 'Stage 2: Phone screen' })).toHaveTextContent('3-day limit');
+    expect(within(stages).getByRole('group', { name: 'Stage 2: Phone screen' })).toHaveTextContent('Respond within 3 days');
     expect(within(stages).queryByRole('spinbutton')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Save workflow' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save pipeline' })).toBeEnabled();
     expect(screen.getByText('Open')).toHaveAttribute('data-slot', 'badge');
     expect(screen.queryByText('Closed')).toBeNull();
   });
 
-  it('puts Save workflow in the action bar on a phone (section 8)', async () => {
+  // The job header's "See what changes" and the template's Review updates link here with ?review=update.
+  it("opens the update to review when the address asks for it, and applies it with the job's pipeline version", async () => {
+    atTab('pipeline', 'review=update');
+    const template = { templateId: 't-1', templateName: 'Retail assistant', versionId: 'v-1', version: 1, latestPublishedVersion: 2, updateAvailable: true };
+    const applied: unknown[] = [];
+    stubApi(
+      'Open',
+      { template },
+      {
+        [`GET /v1/jobs/${jobId}/workflow/template-diff`]: () =>
+          Response.json({
+            templateId: 't-1',
+            sourceVersionId: 'v-1',
+            sourceVersion: 1,
+            latestVersionId: 'v-2',
+            latestVersion: 2,
+            updateAvailable: true,
+            changes: [{ path: 'stages[phone-screen].slaDays', kind: 'Changed', before: '3', after: '2' }],
+          }),
+        [`POST /v1/jobs/${jobId}/workflow/apply-template-update`]: (init) => {
+          applied.push(JSON.parse(String(init?.body)));
+          return Response.json(jobIn('Open', { template: { ...template, version: 2, updateAvailable: false }, workflowVersion: 4 }));
+        },
+      },
+    );
+    renderPage();
+
+    const dialog = await screen.findByRole('dialog', { name: 'Apply version 2 of Retail assistant?' });
+    expect(await within(dialog).findByRole('list', { name: 'Differences' })).toHaveTextContent('stages[phone-screen].slaDays');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Apply update' }));
+
+    await waitFor(() => expect(applied).toEqual([{ templateVersionId: 'v-2', expectedWorkflowVersion: 3 }]));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Applied version 2 of Retail assistant.'));
+  });
+
+  it('puts Save pipeline in the action bar on a phone (section 8)', async () => {
     stubViewport(360);
     stubApi('Open');
     renderPage();
 
-    const save = await screen.findByRole('button', { name: 'Save workflow' });
+    const save = await screen.findByRole('button', { name: 'Save pipeline' });
     expect(save.closest('[data-slot=action-bar]')).not.toBeNull();
     expect(document.querySelector('[data-slot=header-band]')).not.toContainElement(save);
   });
@@ -122,12 +160,12 @@ describe('job workflow page', () => {
     await screen.findByRole('region', { name: 'Stages' });
     await waitFor(() => expect(screen.getByRole('region', { name: 'Validation' })).toHaveAttribute('aria-busy', 'false'));
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Save workflow' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Save pipeline' }));
 
     // The message sits in the band's line under the title, so it never pushes the actions onto a second row (S8).
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('No changes to save.'));
     expect(screen.getByRole('status').closest('[data-slot=header-band]')).not.toBeNull();
-    expect(screen.getByRole('button', { name: 'Save workflow' }).parentElement).not.toContainElement(screen.getByRole('status'));
+    expect(screen.getByRole('button', { name: 'Save pipeline' }).parentElement).not.toContainElement(screen.getByRole('status'));
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(0);
   });
 
@@ -147,7 +185,7 @@ describe('job workflow page', () => {
   it('keeps the tab in the address: pressing Questions goes to ?tab=questions', async () => {
     stubApi('Open');
     renderPage();
-    await screen.findByRole('tabpanel', { name: 'Overview' });
+    await screen.findByRole('tabpanel', { name: 'Pipeline' });
 
     await fireEvent.mouseDown(screen.getByRole('tab', { name: 'Questions' }), { button: 0 });
     await fireEvent.focus(screen.getByRole('tab', { name: 'Questions' }));

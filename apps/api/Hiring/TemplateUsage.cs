@@ -12,8 +12,8 @@ namespace ScreenHire.Api.Hiring;
 /// then works out the uses in memory with <see cref="TemplateUses"/>.
 /// </summary>
 /// <remarks>
-/// Used by: jobs that are not closed for a hiring template; hiring templates that are not archived, by their current
-/// versions (the newest published one and the draft), for a scorecard; automations in jobs that are not closed and in
+/// Used by: jobs that are not closed for a hiring template, each with its template and pipeline versions; hiring
+/// templates that are not archived, by their current versions (the newest published one and the draft), for a scorecard; automations in jobs that are not closed and in
 /// those current versions for an email. Last used: the newest job started from a hiring template; the newest job with a
 /// stage naming a scorecard, or scorecard given at such a stage; the newest email sent from an email template.
 /// </remarks>
@@ -32,7 +32,7 @@ internal static class TemplateUsage
             .Select(v => new { v.TemplateId, v.Definition })
             .ToListAsync(cancellationToken);
         var jobs = await db.Jobs.AsNoTracking()
-            .Select(j => new JobRow(j.Id, j.Title, j.Status, j.CreatedAt, j.SourceTemplateId, j.Workflow))
+            .Select(j => new JobRow(j.Id, j.Title, j.Status, j.CreatedAt, j.SourceTemplateId, j.SourceTemplateVersion, j.WorkflowVersion, j.Workflow))
             .ToListAsync(cancellationToken);
         var given = await db.ApplicationScorecards.AsNoTracking()
             .GroupBy(s => new { s.JobId, s.StageId })
@@ -66,7 +66,7 @@ internal static class TemplateUsage
             var since = t.IsSystem ? Later(t.CreatedAt, joined) : t.CreatedAt;
             return new TemplateUse(
                 t.Id.ToString("D"),
-                [.. live.Where(j => j.SourceTemplateId == t.Id).OrderBy(j => j.Title, StringComparer.CurrentCulture).Select(j => new UsageItem(UsageKind.Job, j.Id, j.Title))],
+                [.. live.Where(j => j.SourceTemplateId == t.Id).OrderBy(j => j.Title, StringComparer.CurrentCulture).Select(j => new UsageItem(UsageKind.Job, j.Id, j.Title, TemplateVersion: j.SourceTemplateVersion, WorkflowVersion: j.WorkflowVersion))],
                 lastUsed,
                 !t.Archived && TemplateUses.NotUsedRecently(lastUsed, since, now));
         });
@@ -149,7 +149,8 @@ internal static class TemplateUsage
 
     private sealed record HiringRow(Guid Id, string Name, bool IsSystem, DateTimeOffset CreatedAt, bool Archived);
 
-    private sealed record JobRow(Guid Id, string Title, JobStatus Status, DateTimeOffset CreatedAt, Guid? SourceTemplateId, HiringWorkflow Workflow);
+    private sealed record JobRow(
+        Guid Id, string Title, JobStatus Status, DateTimeOffset CreatedAt, Guid? SourceTemplateId, int? SourceTemplateVersion, int WorkflowVersion, HiringWorkflow Workflow);
 
     private sealed record OwnRow(Guid Id, DateTimeOffset CreatedAt, bool Archived);
 

@@ -1,7 +1,7 @@
 /**
  * Preferences the dashboard reads everywhere. Those about the device stay in this browser: the colour theme, reduced
  * motion, each table's sort, whether the setup checklist was dismissed for an organization and whether the bell has opened
- * itself after onboarding. Those about the person, single-key shortcuts and whether a move asks first, live on the server
+ * itself after onboarding. (Skipping a setup step or hiding the checklist is the organization's, saved on the server.) Those about the person, single-key shortcuts and whether a move asks first, live on the server
  * per organization (Your account, docs/architecture/sign-in-and-tenancy.md): the shell applies the saved values
  * (`applyHabits`) and saves each change (`saveHabitsWith`), and this browser's copy stands in until the server answers. The
  * browser's copy lives in localStorage, which can be missing or refuse writes (private windows, blocked site data), so every
@@ -30,7 +30,6 @@ const shortcutsKey = 'screenhire:shortcuts';
 const confirmMovesKey = 'screenhire:confirm-moves';
 const reduceMotionKey = 'screenhire:reduce-motion';
 const sortKey = (table: string) => `screenhire:sort:${table}`;
-const setupKey = (organizationId: string) => `screenhire:setup-dismissed:${organizationId}`;
 const setupTourKey = (userId: string) => `screenhire:setup-tour:${userId}`;
 const pipelineViewKey = 'screenhire:pipeline-view';
 
@@ -175,18 +174,6 @@ class Preferences {
   setPipelineView(view: PipelineView): void {
     this.pipelineView = view;
     write(pipelineViewKey, view);
-  }
-
-  #setupDismissed = $state<Record<string, boolean>>({});
-
-  /** Whether this browser dismissed the Set up your organization panel for an organization (it does not follow the person). */
-  isSetupDismissed(organizationId: string): boolean {
-    return this.#setupDismissed[organizationId] ?? read(setupKey(organizationId)) === 'on';
-  }
-
-  dismissSetup(organizationId: string): void {
-    this.#setupDismissed[organizationId] = true;
-    write(setupKey(organizationId), 'on');
   }
 
   /**

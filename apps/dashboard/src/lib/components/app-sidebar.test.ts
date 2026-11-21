@@ -113,13 +113,18 @@ describe("the person's block at the foot of the sidebar", () => {
     expect(within(menu).getByRole('menuitem', { name: 'Your account' })).toHaveAttribute('href', '/account');
   });
 
-  it('adds Billing for an Owner where a payment provider is set up', async () => {
+  it("links to Billing from the person's menu for who may see it, and not for anyone else", async () => {
     stubViewport(1280);
-    render(ShellHarness, { props: { user, features: { slack: true, billing: true } } });
+    const { unmount } = render(ShellHarness, { props: { user, billing: true } });
 
     await fireEvent.pointerDown(screen.getByRole('button', { name: /^Avery Quinn/ }), { button: 0, pointerType: 'mouse' });
     const menu = await screen.findByRole('menu');
     expect(within(menu).getByRole('menuitem', { name: 'Billing' })).toHaveAttribute('href', '/settings/billing');
+    unmount();
+
+    render(ShellHarness, { props: { user } });
+    await fireEvent.pointerDown(screen.getByRole('button', { name: /^Avery Quinn/ }), { button: 0, pointerType: 'mouse' });
+    expect(within(await screen.findByRole('menu')).queryByRole('menuitem', { name: 'Billing' })).toBeNull();
   });
 
   it('shows the photo in the person\'s block once they have one', () => {

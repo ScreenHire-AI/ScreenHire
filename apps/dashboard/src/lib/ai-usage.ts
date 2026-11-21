@@ -3,7 +3,11 @@ import { locales } from '#lib/dates.js';
 import type { StatusName } from '#lib/status.js';
 
 // The words and numbers of the Usage tab and the Activity log (docs/architecture/ai-usage.md). Costs are US dollars; a cost that nothing could
-// price is "Unknown", never zero.
+// price is "Unknown", never zero. Every cost is the one amount a customer sees for AI use: on ScreenHire's key what it is billed, on the
+// organization's own key the provider's price, which that provider charges and ScreenHire never bills.
+
+/** What an own key's amount is called wherever it shows: it is the provider's price, and only an estimate of the provider's bill. */
+export const ownKeyCostLabel = 'Charged by your provider (estimate)';
 
 const tokenFormat = new Intl.NumberFormat(locales);
 const moneyFormat = new Intl.NumberFormat(locales, { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -30,8 +34,6 @@ export const formatCost = (cost: number | null | undefined): string => (cost ===
 
 /** An amount in the unit it is counted in: "1,000,000 tokens" or "$50.00". */
 export const formatAmount = (amount: number, unit: UsageUnit): string => (unit === 'Money' ? money(amount) : `${tokenFormat.format(amount)} tokens`);
-
-export const unitLabels: Record<UsageUnit, string> = { Tokens: 'Tokens', Money: 'Dollars' };
 
 export const keySourceLabels: Record<AiKeySource, string> = { BuiltIn: "ScreenHire's key", OwnKey: 'Your own key' };
 

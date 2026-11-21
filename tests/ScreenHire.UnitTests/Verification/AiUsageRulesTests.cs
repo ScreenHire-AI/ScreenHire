@@ -1,4 +1,5 @@
 using ScreenHire.Application.Verification;
+using ScreenHire.Domain.Billing;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Verification;
 using ScreenHire.Infrastructure.Verification.Llm;
@@ -102,7 +103,7 @@ public sealed class AiUsageRulesTests
     public void An_own_key_has_no_default_budget_or_cap_but_its_own_still_apply()
     {
         var ownKey = new VerificationSettings { LlmSource = LlmSource.OwnKey };
-        var capped = new VerificationSettings { LlmSource = LlmSource.OwnKey, MonthlyCap = 500_000m, MonthlyBudget = 250_000m };
+        var capped = new VerificationSettings { LlmSource = LlmSource.OwnKey, BudgetUnit = UsageUnit.Tokens, MonthlyCap = 500_000m, MonthlyBudget = 250_000m };
 
         AiUsageLimits.EffectiveCap(ownKey, 2_000_000).Cap.Should().BeNull();
         AiUsageLimits.EffectiveBudget(ownKey, 2_000_000).Budget.Should().BeNull();
@@ -206,26 +207,37 @@ public sealed class AiUsageRulesTests
     }
 
     [Fact]
-    public void A_token_default_is_priced_at_the_usual_mix_of_input_and_output()
+    public void A_limit_in_tokens_is_priced_at_the_usual_mix_and_never_reads_as_nothing()
     {
         AiUsageMix.BlendedPerMillion(1m, 4m).Should().Be(1.6m, "80% input at 1.00 and 20% output at 4.00");
         AiUsageMix.Dollars(2_000_000, 1.6m).Should().Be(3.2m);
         AiUsageMix.Dollars(0, 1.6m).Should().Be(0m);
-        AiUsageMix.DefaultInDollars(2_000_000, 1.6m).Should().Be(3.2m);
-        AiUsageMix.DefaultInDollars(1, 1.6m).Should().Be(0.01m, "a default that is not zero never reads as $0.00");
-        AiUsageMix.EstimateInDollars(35_535, 1.6m).Should().Be(0.0569m, "what was used is an estimate to four places, like a call's cost");
-        AiUsageMix.EstimateInDollars(400, 1.6m).Should().Be(0.0006m, "one small check never reads as $0.00");
-        AiUsageMix.EstimateInDollars(0, 1.6m).Should().Be(0m);
+        AiUsageMix.LimitInDollars(2_000_000, 1.92m).Should().Be(3.84m);
+        AiUsageMix.LimitInDollars(1, 1.6m).Should().Be(0.01m, "a limit that is not zero never reads as $0.00");
     }
 
     [Fact]
-    public void Only_the_deployments_default_is_shown_in_dollars_and_only_where_its_model_has_a_price()
+    public void A_token_limit_converts_at_the_billed_price_of_the_key_in_use_and_stays_in_tokens_without_one()
     {
-        AiUsageMix.DollarPriceFor(isDefault: true, UsageUnit.Tokens, 1.6m).Should().Be(1.6m);
-        AiUsageMix.DollarPriceFor(isDefault: true, UsageUnit.Tokens, null).Should().BeNull("with no price the default stays in tokens");
-        AiUsageMix.DollarPriceFor(isDefault: true, UsageUnit.Tokens, 0m).Should().BeNull("a free model gives no dollar figure to show");
-        AiUsageMix.DollarPriceFor(isDefault: false, UsageUnit.Tokens, 1.6m).Should().BeNull("an Owner's limit in tokens keeps its unit");
-        AiUsageMix.DollarPriceFor(isDefault: false, UsageUnit.Money, 1.6m).Should().BeNull("an Owner's limit in dollars is not converted again");
+        var builtIn = new VerificationSettings { OrganizationId = Guid.NewGuid() };
+        AiUsageMix.BilledPerMillion(builtIn, (1m, 4m), 0.2m).Should().Be(1.92m, "ScreenHire's key at its price plus the margin");
+        AiUsageMix.BilledPerMillion(null, (1m, 4m), 0m).Should().Be(1.6m, "with billing off there is no margin");
+        AiUsageMix.BilledPerMillion(builtIn, null, 0.2m).Should().BeNull("a model with no price leaves a limit in tokens");
+        AiUsageMix.BilledPerMillion(builtIn, (0m, 0m), 0.2m).Should().BeNull("a free model gives no dollar figure");
+
+        var own = new VerificationSettings { OrganizationId = Guid.NewGuid(), LlmSource = LlmSource.OwnKey, OwnKeyInputPrice = 2m, OwnKeyOutputPrice = 10m };
+        AiUsageMix.BilledPerMillion(own, (1m, 4m), 0.2m).Should().Be(3.6m, "an own key at its own prices, with no margin: ScreenHire never bills it");
+        own.OwnKeyOutputPrice = null;
+        AiUsageMix.BilledPerMillion(own, (1m, 4m), 0.2m).Should().BeNull("an own key needs both its prices");
+    }
+
+    [Fact]
+    public void The_one_amount_for_a_call_is_billed_on_ScreenHires_key_and_the_providers_price_on_an_own_key()
+    {
+        AiCharge.Billed(0.0001234m, AiKeySource.BuiltIn, 0.2m).Should().Be(0.000148m, "the cost plus 20%, to the micro-dollar the meter is sent");
+        AiCharge.Billed(0.0001234m, AiKeySource.OwnKey, 0.2m).Should().Be(0.0001234m, "an own key is never billed: its amount is the provider's price");
+        AiCharge.Billed(null, AiKeySource.BuiltIn, 0.2m).Should().BeNull("an unknown cost stays unknown");
+        AiCharge.Billed(1m, AiKeySource.BuiltIn, 0m).Should().Be(1m);
     }
 
     [Fact]

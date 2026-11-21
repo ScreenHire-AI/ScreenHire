@@ -284,7 +284,7 @@
 
 <!-- The full sidebar from lg, the icon rail at md, and a sheet behind the menu button on phones (design system section 8). -->
 <Sidebar.Provider open={laptop.current}>
-  <AppSidebar user={data.user} {views} {viewActions} {teamViews} calendar={calendar.data?.data} {openTasks} {trialEndsAt} bind:calendarOpen />
+  <AppSidebar user={data.user} {views} {viewActions} {teamViews} calendar={calendar.data?.data} {openTasks} {trialEndsAt} billing={Boolean(billing.data?.data.available)} bind:calendarOpen />
   <Sidebar.Inset class="min-w-0">
     {@render children()}
   </Sidebar.Inset>

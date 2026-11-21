@@ -44,6 +44,21 @@ internal static class OrganizationEndpoints
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditSettings)
             .Produces(StatusCodes.Status401Unauthorized);
+        // The setup checklist's organization-wide choices (docs/architecture/notifications.md): small writes, each one change
+        // under a row lock, so two Owners skipping different steps at once both keep theirs.
+        group.MapGet("/setup", GetSetup).WithName("GetOrganizationSetup").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/setup/skip", SkipSetupStep).WithName("SkipSetupStep")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditSettings)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/setup/hide", HideSetup).WithName("HideSetup")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditSettings)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/setup/show", ShowSetupAgain).WithName("ShowSetupAgain")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditSettings)
+            .Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/branding", GetBranding).WithName("GetOrganizationBranding").Produces(StatusCodes.Status401Unauthorized);
         group.MapPut("/branding", UpdateBranding).WithName("UpdateOrganizationBranding")
             .RequireAntiforgeryToken()
@@ -151,6 +166,58 @@ internal static class OrganizationEndpoints
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await ToProfileAsync(db, organization, domains.Value, cancellationToken));
     }
+
+    private static async Task<Results<Ok<OrganizationSetup>, NotFound>> GetSetup(
+        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
+    {
+        var organization = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
+        return organization is null ? TypedResults.NotFound() : TypedResults.Ok(ToSetup(organization));
+    }
+
+    private static async Task<Results<Ok<OrganizationSetup>, NotFound, ValidationProblem>> SkipSetupStep(
+        SkipSetupStepRequest request, ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
+    {
+        if (request.Step is not { } step || !Enum.IsDefined(step))
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("step", "Choose one of the setup steps."));
+        }
+
+        return await ChangeSetupAsync(db, tenant, o => o.SkipSetupStep(step), cancellationToken) switch
+        {
+            { } setup => TypedResults.Ok(setup),
+            null => TypedResults.NotFound(),
+        };
+    }
+
+    private static async Task<Results<Ok<OrganizationSetup>, NotFound>> HideSetup(
+        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        await ChangeSetupAsync(db, tenant, o => o.HideSetup(), cancellationToken) is { } setup ? TypedResults.Ok(setup) : TypedResults.NotFound();
+
+    private static async Task<Results<Ok<OrganizationSetup>, NotFound>> ShowSetupAgain(
+        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken) =>
+        await ChangeSetupAsync(db, tenant, o => o.ShowSetupAgain(), cancellationToken) is { } setup ? TypedResults.Ok(setup) : TypedResults.NotFound();
+
+    // Through the change tracker, because the organization row is a tracked kind (its history describers ignore these
+    // columns, so a skip never moves General's Last updated). The skipped steps are one array column that a save writes
+    // whole, so the row lock makes a second skip wait and read the first one's list rather than overwrite it.
+    private static async Task<OrganizationSetup?> ChangeSetupAsync(
+        ScreenHireDbContext db, ITenantContext tenant, Action<Organization> change, CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await db.Database.ExecuteSqlAsync($"SELECT 1 FROM organizations WHERE id = {tenant.OrganizationId} FOR UPDATE", cancellationToken);
+        var organization = await db.Organizations.SingleOrDefaultAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
+        if (organization is null)
+        {
+            return null;
+        }
+
+        change(organization);
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return ToSetup(organization);
+    }
+
+    private static OrganizationSetup ToSetup(Organization organization) => new(organization.SetupHidden, organization.SkippedSetupSteps);
 
     private static async Task<OrganizationProfile> ToProfileAsync(
         ScreenHireDbContext db, Organization organization, DomainOptions domains, CancellationToken cancellationToken)

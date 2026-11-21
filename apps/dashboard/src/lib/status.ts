@@ -1,4 +1,5 @@
 import ArchiveIcon from '~icons/lucide/archive';
+import BadgeCheckIcon from '~icons/lucide/badge-check';
 import BookmarkIcon from '~icons/lucide/bookmark';
 import CalendarCheckIcon from '~icons/lucide/calendar-check';
 import CircleCheckIcon from '~icons/lucide/circle-check';
@@ -45,6 +46,8 @@ export const statuses = {
   booked: view('clear', 'calendar-check', CalendarCheckIcon),
   /** Open, a job taking applications; Live, a job showing on a board. */
   open: view('clear', 'door-open', DoorOpenIcon),
+  /** Published, a hiring template version new jobs can start from. */
+  published: view('clear', 'badge-check', BadgeCheckIcon),
   /** Review suggested. */
   review: view('review', 'eye', EyeIcon),
   /** Overdue: the hiring team is late, never the candidate. */

@@ -10,12 +10,15 @@
 
 <script lang="ts" generics="T, K extends string">
   import ChevronDownIcon from '~icons/lucide/chevron-down';
+  import ChevronUpIcon from '~icons/lucide/chevron-up';
   import CopyIcon from '~icons/lucide/copy';
   import PlusIcon from '~icons/lucide/plus';
   import Rows3Icon from '~icons/lucide/rows-3';
   import Trash2Icon from '~icons/lucide/trash-2';
   import XIcon from '~icons/lucide/x';
   import { tick, type Snippet } from 'svelte';
+  import { prefersReducedMotion } from 'svelte/motion';
+  import { slide } from 'svelte/transition';
   import AnswerMenu from '#lib/components/answer-menu.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -29,14 +32,17 @@
   import { Switch } from '#lib/components/ui/switch/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import FieldErrors from '#lib/components/workflow/field-errors.svelte';
-  import { insertAt, kindIn, type AnswerKind, type AnswerKindGroup, type AnswerOption } from '#lib/form-builder.js';
+  import { choicesSummary, insertAt, kindIn, type AnswerKind, type AnswerKindGroup, type AnswerOption } from '#lib/form-builder.js';
   import { addSection, fromRows, removeSection, rowsOf, syncSections, type BuilderRow, type SectionDraft } from '#lib/form-sections.js';
   import { idFrom } from '#lib/workflow.js';
 
   // The form builder (design system section 11), modelled on Google Forms: one panel of questions, each a row that reads
   // as text until it is opened. Only one question is open at a time, marked by an accent bar; it edits its text, its
   // answer kind (the answer menu, top right), its help line (beside the Required switch where the pane is wide) and its options. A row's
-  // Duplicate and Delete are in its row menu (L3), open or closed. A required question wears a Required badge and an
+  // Duplicate and Delete are in its row menu (L3), open or closed. Open and closed rows share one header row, so the answer
+  // kind and the row menu stand in the same place either way; the open row closes from Close question (the chevron beside
+  // the row menu), Done at its foot, a click on its header outside a control, or Escape, and slides open and shut (none
+  // under reduced motion). A closed choice question reads its options on one line, "4 choices: ...". A required question wears a Required badge and an
   // optional one nothing (W6). Questions and options reorder with a grip (A7). Removing a question changes nothing until the editor saves,
   // so it is not destructive (section 10).
   //
@@ -219,6 +225,33 @@
     if (event.key === 'Enter' && !event.isComposing) event.preventDefault();
   }
 
+  // The fields slide open and shut. While they slide shut they are already closed: inert and hidden from assistive
+  // technology, so a question being closed never shows a second Required switch beside the one that just opened.
+  const motion = () => ({ duration: prefersReducedMotion.current ? 0 : 180 });
+  // Opening again while it still slides shut reuses the same fields, so opening gives them back.
+  function slideOpen(node: HTMLElement) {
+    node.inert = false;
+    node.removeAttribute('aria-hidden');
+    return slide(node, motion());
+  }
+  function slideShut(node: HTMLElement) {
+    node.inert = true;
+    node.setAttribute('aria-hidden', 'true');
+    return slide(node, motion());
+  }
+
+  // A click on the open row's header closes it, unless it lands in a field or on a control (the text, the answer menu,
+  // the row menu, the grip), which keep their own clicks. A press that began in one counts too: selecting the question's
+  // text and letting go past the field's edge fires the click on the header, and must not close the row.
+  const keepsItsClick = 'input, textarea, select, button, a, [role="switch"], [role="menuitem"]';
+  let pressedOn: Element | null = null;
+  function onheaderclick(event: MouseEvent, id: string) {
+    const pressed = pressedOn;
+    pressedOn = null;
+    if ((event.target as Element | null)?.closest(keepsItsClick) || pressed?.closest(keepsItsClick)) return;
+    void close(id);
+  }
+
   function onrowkeydown(event: KeyboardEvent, id: string) {
     // Escape closes the open question. The answer menu and a picked-up item take their own Escape: the menu sits in a
     // portal and a keyboard drag focuses the list item, both outside this row.
@@ -278,13 +311,22 @@
         {@const kind = kindOfItem(question)}
         {@const errors = errorsFor?.(question, index) ?? []}
         {@const errorsId = `${uid}-errors-${index}`}
-        {#if openId === id}
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div data-question-row={id} data-open class="relative flex min-w-0 gap-2 bg-card py-3 pr-4 pl-2.5" onkeydown={(event) => onrowkeydown(event, id)}>
-            <span aria-hidden="true" class="absolute inset-y-0 left-0 w-1 bg-primary"></span>
-            <span class="pt-0.5">{@render grip()}</span>
-            <div class="flex min-w-0 flex-1 flex-col gap-3">
-              <div class="flex min-w-0 flex-wrap items-start gap-2">
+        {@const isOpen = openId === id}
+        <!-- One header row, open or closed: the grip, the question, then the answer kind, the row menu and the chevron in
+             one cluster on the right, so the kind and the menu never move when the row opens or closes. -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          data-question-row={id}
+          data-open={isOpen || undefined}
+          class="relative flex min-w-0 flex-col bg-card py-2 pr-2 pl-2.5"
+          onkeydown={isOpen ? (event) => onrowkeydown(event, id) : undefined}
+        >
+          {#if isOpen}<span aria-hidden="true" class="absolute inset-y-0 left-0 w-1 bg-primary"></span>{/if}
+          <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+          <div data-question-header class="relative flex min-w-0 items-start gap-2 rounded-lg has-[[data-question-edit]:hover]:bg-muted/40" onpointerdown={isOpen ? (event) => (pressedOn = event.target as Element | null) : undefined} onclick={isOpen ? (event) => onheaderclick(event, id) : undefined}>
+            <span class="relative z-10 pt-1">{@render grip()}</span>
+            {#if isOpen}
+              <div class="flex min-w-0 flex-1 py-0.5">
                 <Textarea
                   data-question-text={id}
                   aria-label={`Question ${index + 1}`}
@@ -295,18 +337,62 @@
                   maxlength={300}
                   aria-invalid={errors.length > 0 || undefined}
                   aria-describedby={errors.length > 0 ? errorsId : undefined}
-                  class={[lineClass, 'flex-[1_1_14rem] font-semibold']}
+                  class={[lineClass, 'font-semibold']}
                 />
-                <AnswerMenu {groups} value={kind.value} onselect={(next) => changeKind(index, next)}>
-                  {#snippet trigger(props)}
-                    {@const Icon = kind.icon}
-                    <Button {...props} variant="outline" aria-label={`Answer: ${kind.label}`} class="shrink-0">
-                      {#if Icon}<Icon aria-hidden="true" />{/if}{kind.label}<ChevronDownIcon aria-hidden="true" />
-                    </Button>
-                  {/snippet}
-                </AnswerMenu>
-                {@render rowMenu(nameOf(question), index)}
               </div>
+            {:else}
+              <!-- The row is one button that opens it: its box stretches over the header, under the cluster's controls (A9). -->
+              <button
+                type="button"
+                data-question-edit={id}
+                aria-expanded="false"
+                aria-describedby={errors.length > 0 ? errorsId : undefined}
+                onclick={() => open(id)}
+                class="flex min-w-0 flex-1 flex-col gap-1 px-2 py-2 text-left after:absolute after:inset-0 after:rounded-lg pointer-coarse:min-h-11 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ring"
+              >
+                <span class="min-w-0 font-semibold break-words">
+                  <span class="sr-only">Edit question {index + 1}:</span>{' '}{nameOf(question)}{#if requiredOf(question)}{' '}<Badge variant="muted" class="align-middle">Required</Badge>{/if}{' '}<span class="sr-only">{kind.label}</span>
+                </span>
+                {#if help?.get(question)}<span class="block text-muted-foreground">{help.get(question)}</span>{/if}
+                {#if kind.options}
+                  <span data-question-choices class="flex min-w-0 items-center gap-2 text-muted-foreground">
+                    {@render markOf(kind.options)}<span class="min-w-0 truncate">{choicesSummary(optionsOf(question))}</span>
+                  </span>
+                {/if}
+              </button>
+            {/if}
+            <span data-question-cluster class="flex shrink-0 items-center gap-1">
+              {#if isOpen}
+                <span class="relative z-10">
+                  <AnswerMenu {groups} value={kind.value} onselect={(next) => changeKind(index, next)}>
+                    {#snippet trigger(props)}
+                      {@const Icon = kind.icon}
+                      <Button {...props} variant="outline" aria-label={`Answer: ${kind.label}`} class="shrink-0">
+                        {#if Icon}<Icon aria-hidden="true" />{/if}{kind.label}<ChevronDownIcon aria-hidden="true" />
+                      </Button>
+                    {/snippet}
+                  </AnswerMenu>
+                </span>
+              {:else}
+                <!-- The kind in the box the open row's answer menu takes, so nothing moves. The name gives way to its icon
+                     in a narrow list, so the question keeps the room (F5). -->
+                <span aria-hidden="true" class="inline-flex h-9 items-center gap-2 border border-transparent px-3 text-muted-foreground">
+                  {#if kind.icon}{@const Icon = kind.icon}<Icon />{/if}<span class="hidden @md:inline">{kind.label}</span>
+                </span>
+              {/if}
+              <span class="relative z-10">{@render rowMenu(nameOf(question), index)}</span>
+              {#if isOpen}
+                <span class="relative z-10">
+                  <IconButton label="Close question" onclick={() => close(id)}><ChevronUpIcon /></IconButton>
+                </span>
+              {:else}
+                <!-- The row opens in place and says so (A9), where the open row's Close question stands. -->
+                <span aria-hidden="true" data-question-chevron class="grid size-9 place-items-center text-muted-foreground"><ChevronDownIcon /></span>
+              {/if}
+            </span>
+          </div>
+          {#if isOpen}
+            <div class="flex min-w-0 flex-col gap-3 pt-3 pr-2 pl-10 pointer-coarse:pl-13" in:slideOpen out:slideShut>
               <!-- The help line and the Required switch share a row where the pane is wide, and stack where it is not. -->
               <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
                 {#if help}
@@ -375,43 +461,14 @@
               {/if}
               {@render settings?.(question, index)}
               <FieldErrors id={errorsId} messages={errors} />
+              <div class="flex justify-end">
+                <Button variant="outline" onclick={() => close(id)}>Done</Button>
+              </div>
             </div>
-          </div>
-        {:else}
-          <div data-question-row={id} class="flex min-w-0 items-start gap-2 bg-card py-2 pr-2 pl-2.5">
-            <span class="pt-1">{@render grip()}</span>
-            <div class="flex min-w-0 flex-1 flex-col gap-1">
-              <button
-                type="button"
-                data-question-edit={id}
-                aria-expanded="false"
-                aria-describedby={errors.length > 0 ? errorsId : undefined}
-                onclick={() => open(id)}
-                class="flex min-w-0 flex-col gap-1 rounded-lg px-2 py-2 text-left hover:bg-muted pointer-coarse:min-h-11 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              >
-                <span class="flex min-w-0 items-baseline gap-3">
-                  <span class="min-w-0 flex-1 font-semibold break-words">
-                    <span class="sr-only">Edit question {index + 1}:</span>{' '}{nameOf(question)}{#if requiredOf(question)}{' '}<Badge variant="muted" class="align-middle">Required</Badge>{/if}
-                  </span>
-                  <span class="flex shrink-0 items-center gap-1.5 self-start text-muted-foreground">
-                    {#if kind.icon}{@const Icon = kind.icon}<Icon aria-hidden="true" />{/if}<!-- The name gives way to its icon in a narrow list, so the question keeps the room (F5). -->
-                    <span class="sr-only @md:not-sr-only">{kind.label}</span>
-                    <!-- The row opens in place, so it says so (A9). An open question is the editor below, which needs no chevron. -->
-                    <ChevronDownIcon aria-hidden="true" />
-                  </span>
-                </span>
-                {#if help?.get(question)}<span class="block text-muted-foreground">{help.get(question)}</span>{/if}
-                {#if kind.options}
-                  {#each optionsOf(question) as option (option.id)}
-                    {' '}<span class="flex min-w-0 items-center gap-2">{@render markOf(kind.options)}<span class="min-w-0 truncate">{option.label}</span></span>
-                  {/each}
-                {/if}
-              </button>
-              {#if errors.length > 0}<div class="px-2"><FieldErrors id={errorsId} messages={errors} /></div>{/if}
-            </div>
-            <span class="pt-0.5">{@render rowMenu(nameOf(question), index)}</span>
-          </div>
-        {/if}
+          {:else if errors.length > 0}
+            <div class="pl-10"><FieldErrors id={errorsId} messages={errors} /></div>
+          {/if}
+        </div>
         {/if}
       {/snippet}
     </ReorderList>

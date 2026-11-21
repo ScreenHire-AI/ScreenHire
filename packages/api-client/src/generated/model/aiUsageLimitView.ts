@@ -7,9 +7,10 @@
 import type { UsageUnit } from './usageUnit.ts';
 
 /**
- * One monthly limit in force. `amount` is in `unit`; `isDefault` says it is the deployment's default for
- * ScreenHire's key, not one the organization set; `used` is this month's use in the same unit; `percent` is how far
- * that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).
+ * One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),
+ * or `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the
+ * deployment's default for ScreenHire's key, not one the organization set; `used` is this month's use in the same unit;
+ * `percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).
  */
 export interface AiUsageLimitView {
   amount: number;

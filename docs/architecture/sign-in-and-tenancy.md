@@ -419,7 +419,7 @@ settings page lists every setting the role may use in three groups, with a searc
 short list of everyday words. The
 search also finds the Templates and Verification pages people look for there (`settingsElsewhere`), each only for a role
 that may open it. Under
-`/settings/*`, Organization holds General, Team, Roles, Email domain, Data requests and Billing; Careers site holds Careers page and
+`/settings/*`, Organization holds General, Team, Roles, Tags, Email domain, Data requests and Billing; Careers site holds Careers page and
 Branding; Integrations holds Slack, MCP server, Webhooks and API keys. Email templates are on the Templates page, and their old
 `/settings/email-templates` addresses redirect there; the old Integrations directory (`/settings/integrations`) redirects to the home.
 Verification is a sidebar item of its own at `/verification`, for every member: its Overview, Activity log, Checks and Policy tabs

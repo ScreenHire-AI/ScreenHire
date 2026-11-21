@@ -11,9 +11,19 @@ public enum UsageKind
 
 /// <summary>
 /// One thing that uses a template. <c>id</c> is the job's or the hiring template's id; for an automation it is the job
-/// or template the automation belongs to, and <c>automationId</c> and <c>automationName</c> name the automation.
+/// or template the automation belongs to, and <c>automationId</c> and <c>automationName</c> name the automation. A job
+/// using a hiring template carries <c>templateVersion</c>, the template version its pipeline came from (below the
+/// template's newest published version, it is on an older one), and <c>workflowVersion</c>, its pipeline's own version,
+/// which applying an update expects; both are null on every other kind.
 /// </summary>
-public sealed record UsageItem(UsageKind Kind, Guid Id, string Name, string? AutomationId = null, string? AutomationName = null);
+public sealed record UsageItem(
+    UsageKind Kind,
+    Guid Id,
+    string Name,
+    string? AutomationId = null,
+    string? AutomationName = null,
+    int? TemplateVersion = null,
+    int? WorkflowVersion = null);
 
 /// <summary>
 /// Where one template is used and when it was last used. <c>templateId</c> is the id its own list gives it.

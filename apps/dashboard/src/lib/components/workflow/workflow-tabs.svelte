@@ -8,4 +8,4 @@
   const tabs: readonly RecordTab[] = workflowTabs;
 </script>
 
-<RecordTabs label="Workflow views" {tabs} />
+<RecordTabs label="Pipeline views" {tabs} />

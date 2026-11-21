@@ -25,6 +25,7 @@ import {
   newStage,
   newStageName,
   operatorsFor,
+  placeOf,
   problemErrors,
   reminderId,
   ruleOperand,
@@ -188,16 +189,38 @@ describe('elements', () => {
     expect(asChoice.knockout).toBeUndefined();
   });
 
-  it('starts an automation on its lane: a stage entry, or an arriving application', () => {
+  it('starts an automation on its lane: a stage entry, an arriving application, or a run by hand from Any stage', () => {
     expect(newAutomation(workflow, 'screening').trigger).toEqual({ type: 'StageEntered', stageId: 'screening' });
     expect(newAutomation(workflow, null).trigger).toEqual({ type: 'ApplicationSubmitted' });
+    // Written from the Any stage band, it stays there rather than landing under Applied.
+    expect(placeOf(workflow, newAutomation(workflow, null, true))).toBe('any');
+    expect(placeOf(workflow, newAutomation(workflow, null))).toBe(workflow.stages[0]!.id);
     expect(newAutomation(workflow, null).id).toBe('automation');
     // Complete from the start, and valid under every trigger, so "Write your own" never opens as a problem.
     expect(newAutomation(workflow, 'screening').actions).toEqual([{ type: 'AssignReviewer' }]);
   });
 
-  it('puts stage triggers in their stage lane and the rest in the whole-workflow lane', () => {
+  it('names the stage a trigger names, and none for the rest', () => {
     expect(workflow.automations.map(laneOf)).toEqual(['screening', null]);
+  });
+
+  it('places an arriving application and the checks under Applied, a named stage under it, and the rest in Any stage', () => {
+    const at = (trigger: HiringWorkflow['automations'][number]['trigger']) =>
+      placeOf(workflow, { id: 'a', name: 'A', trigger, conditions: null, actions: [{ type: 'AddTag', tag: 'x' }] });
+
+    expect(at({ type: 'ApplicationSubmitted' })).toBe('applied');
+    expect(at({ type: 'VerificationAssessed' })).toBe('applied');
+    expect(at({ type: 'VerificationCompleted' })).toBe('applied');
+    expect(at({ type: 'StageEntered', stageId: 'screening' })).toBe('screening');
+    expect(at({ type: 'SlaBreached', stageId: 'screening' })).toBe('screening');
+    expect(at({ type: 'ReviewerDecision', stageId: 'screening' })).toBe('screening');
+    expect(at({ type: 'SlaBreached' })).toBe('any');
+    expect(at({ type: 'ReviewerDecision' })).toBe('any');
+    expect(at({ type: 'Manual' })).toBe('any');
+    expect(at({ type: 'QuestionnaireCompleted', questionnaireId: 'q' })).toBe('any');
+    expect(at({ type: 'InterviewScheduled' })).toBe('any');
+    // A stage that is gone holds nothing: the automation shows in Any stage, where its problem is named.
+    expect(at({ type: 'StageEntered', stageId: 'deleted' })).toBe('any');
   });
 });
 
@@ -229,7 +252,7 @@ describe('validator paths', () => {
     expect(describePath(workflow, 'stages[1].name')).toBe('The stage "Screening"');
     expect(describePath(workflow, 'stages')).toBe('The stages');
     expect(describePath(workflow, 'questionnaire')).toBe('The questions');
-    expect(describePath(workflow, 'anythingElse')).toBe('The workflow');
+    expect(describePath(workflow, 'anythingElse')).toBe('The pipeline');
   });
 
   it('names the reviewer an AssignReviewer action asks, or the team', () => {
@@ -264,9 +287,9 @@ describe('stage time limits', () => {
     expect(actionsFor('StageEntered')).toContain('QueueForRejectionReview');
   });
 
-  it("puts a stage's time limit in its lane and any stage's in the whole workflow's", () => {
-    expect(laneOf(timed.automations[0]!)).toBeNull();
-    expect(laneOf(timed.automations[1]!)).toBe('screening');
+  it("puts a stage's time limit under its stage and any stage's in Any stage", () => {
+    expect(placeOf(timed, timed.automations[0]!)).toBe('any');
+    expect(placeOf(timed, timed.automations[1]!)).toBe('screening');
     expect(summarize(timed.automations[0]!, timed)).toBe("When a stage's time limit passes: create a task.");
     expect(summarize(timed.automations[1]!, timed)).toBe('When the time limit in Screening passes: add the tag "overdue".');
   });
@@ -290,9 +313,9 @@ describe('scorecards and the reviewer decision', () => {
     expect(operatorsFor(recommendation!.type)).toEqual(['EqualTo', 'In', 'Exists']);
   });
 
-  it("puts a stage's reviewer decisions in its lane and the rest in the whole workflow's", () => {
-    expect(laneOf(reviewed.automations[0]!)).toBeNull();
-    expect(laneOf(reviewed.automations[1]!)).toBe('screening');
+  it("puts a stage's reviewer decisions under its stage and the rest in Any stage", () => {
+    expect(placeOf(reviewed, reviewed.automations[0]!)).toBe('any');
+    expect(placeOf(reviewed, reviewed.automations[1]!)).toBe('screening');
     expect(summarize(reviewed.automations[1]!, reviewed)).toBe('When a reviewer records a decision on Screening: add the tag "screened".');
     expect(summarize(reviewed.automations[0]!, reviewed)).toBe('When a reviewer records a decision: add the tag "reviewed".');
   });

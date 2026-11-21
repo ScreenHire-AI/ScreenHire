@@ -53,16 +53,16 @@ describe('form builder', () => {
     const first = edit(/^Edit question 1: /);
     expect(first).toHaveAccessibleName('Edit question 1: Do you have the right to work here? Required Yes or no');
     expect(first).toHaveAttribute('aria-expanded', 'false');
-    // A row that opens in place has a chevron saying so (A9).
-    expect(first.querySelector('svg[data-icon="chevron-down"]')).toBeInTheDocument();
+    // A row that opens in place has a chevron saying so (A9), where the open row's Close question stands.
+    expect(first.closest('[data-question-row]')!.querySelector('[data-question-chevron]')).toBeInTheDocument();
     expect(first).toHaveTextContent('Do you have the right to work here? Required');
     expect(within(first).getByText('Required')).toHaveAttribute('data-slot', 'badge');
     expect(first).toHaveTextContent('Yes or no');
-    // A choice question lists its options with the mark the candidate sees, and its help line.
+    // A choice question reads its options on one line, after the mark the candidate sees, and its help line.
     const second = edit(/^Edit question 2: /);
     expect(second).toHaveTextContent('Paid work only.');
-    expect(second).toHaveTextContent('Less than 3');
-    expect(second.querySelectorAll('.rounded-full')).toHaveLength(2);
+    expect(second.querySelector('[data-question-choices]')).toHaveTextContent('2 choices: Less than 3, 3 or more');
+    expect(second.querySelectorAll('.rounded-full')).toHaveLength(1);
     expect(edit(/^Edit question 3: /)).not.toHaveTextContent('Required');
     await expectNoAxeViolations(container);
   });
@@ -123,6 +123,57 @@ describe('form builder', () => {
 
     expect(openRow()).toBeNull();
     await waitFor(() => expect(edit(/^Edit question 3: /)).toHaveFocus());
+  });
+
+  it('closes the open question from Close question beside its row menu, and from Done at its foot', async () => {
+    const { container } = setup();
+    await fireEvent.click(edit(/^Edit question 2: /));
+
+    const close = within(openRow()!).getByRole('button', { name: 'Close question' });
+    await expectNoAxeViolations(container);
+    await fireEvent.click(close);
+    expect(openRow()).toBeNull();
+    await waitFor(() => expect(edit(/^Edit question 2: /)).toHaveFocus());
+
+    await fireEvent.click(edit(/^Edit question 2: /));
+    await fireEvent.click(within(openRow()!).getByRole('button', { name: 'Done' }));
+    expect(openRow()).toBeNull();
+  });
+
+  it("closes the open question on a click on its header outside a control, and keeps it open for a click in a field", async () => {
+    setup();
+    await fireEvent.click(edit(/^Edit question 3: /));
+    const row = openRow()!;
+
+    await fireEvent.click(within(row).getByRole('textbox', { name: 'Question 3' }));
+    await fireEvent.click(within(row).getByRole('textbox', { name: 'Help text' }));
+    expect(openRow()).not.toBeNull();
+
+    // Selecting the question's text and letting go past the field fires the click on the header: the row stays open.
+    const header = row.querySelector('[data-question-header]')!;
+    await fireEvent.pointerDown(within(row).getByRole('textbox', { name: 'Question 3' }));
+    await fireEvent.click(header);
+    expect(openRow()).not.toBeNull();
+
+    await fireEvent.pointerDown(header);
+    await fireEvent.click(header);
+    expect(openRow()).toBeNull();
+  });
+
+  it('keeps the answer kind and the row menu in one cluster on the right, open or closed', async () => {
+    setup();
+    const cluster = () => panel().querySelector('[data-question-row="notice"] [data-question-cluster]')!;
+    const menu = () => within(cluster() as HTMLElement).getByRole('button', { name: 'Actions for What is your notice period?' });
+    expect(cluster()).toHaveTextContent('Short text');
+    expect(menu()).toBeInTheDocument();
+
+    await fireEvent.click(edit(/^Edit question 3: /));
+
+    expect(within(cluster() as HTMLElement).getByRole('button', { name: 'Answer: Short text' })).toBeInTheDocument();
+    expect(menu()).toBeInTheDocument();
+    // The order stays: the kind, the row menu, then the chevron.
+    const order = [...cluster().querySelectorAll('button, [data-question-chevron]')].map((element) => element.getAttribute('aria-label'));
+    expect(order).toEqual(['Answer: Short text', 'Actions for What is your notice period?', 'Close question']);
   });
 
   it('changes the answer kind from the answer menu, ticking the current one and keeping the text', async () => {

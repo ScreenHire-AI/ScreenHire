@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { EmailPreview } from '@screenhire/api-client';
+  import type { Snippet } from 'svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
@@ -10,16 +11,20 @@
   // The frame takes the email's own height, so a short email leaves no empty space under it. Reading that height needs
   // `allow-same-origin`; scripts, forms, popups and navigation stay off. Nothing in the frame can run or fetch anything
   // but the organization's logo: the API builds the layout, and cleans the template's or reply's text to text elements
-  // and links (RichText.cs).
+  // and links (RichText.cs). The Email and Plain text toggle shares a line with the subject, or with `header` where an
+  // email opened in Messages names who it went to or came from, so it never takes a row of its own.
   let {
     preview,
     failure,
     subject = true,
+    header,
   }: {
     preview: EmailPreview | undefined;
     failure?: string;
     /** The subject line; false where the row that opened the email already shows it (W4). */
     subject?: boolean;
+    /** The email's own line, such as who it is from, in place of the subject, with the toggle at its end. */
+    header?: Snippet;
   } = $props();
 
   let part = $state<'html' | 'text'>('html');
@@ -56,7 +61,9 @@
     <p class="sr-only" role="status">Loading the preview…</p>
   {:else}
     <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
-      {#if subject}
+      {#if header}
+        {@render header()}
+      {:else if subject}
         <p class="min-w-0 break-words"><span class="text-muted-foreground">Subject</span> <span data-email-subject class="font-semibold">{preview.subject}</span></p>
       {/if}
       <div role="group" aria-label="Part" class="ml-auto flex shrink-0 gap-1">

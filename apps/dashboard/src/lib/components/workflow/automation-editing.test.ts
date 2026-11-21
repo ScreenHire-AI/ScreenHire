@@ -406,7 +406,7 @@ describe('the list', () => {
     stubViewport(390);
     renderEditor([tagOnApply, { ...tagOnApply, id: 'trial', name: 'Mail at trial', trigger: { type: 'StageEntered', stageId: 'trial' }, actions: [{ type: 'SendEmail', emailTemplate: 'stage-change' }] }]);
 
-    expect(within(panel()).getByRole('region', { name: 'Whole workflow' })).toHaveTextContent('Tag new people');
+    expect(within(panel()).getByRole('region', { name: 'Applied' })).toHaveTextContent('Tag new people');
     expect(within(panel()).getByRole('region', { name: 'Trial shift' })).toHaveTextContent('Mail at trial');
     expect(within(panel()).queryByRole('group', { name: 'View' })).toBeNull();
     await fireEvent.click(within(panel()).getByRole('button', { name: /Mail at trial/ }));

@@ -95,6 +95,24 @@ public sealed class SavedFilterView : ITenantOwned
         return true;
     }
 
+    /// <summary>
+    /// Follows a tag's rename or merge in Settings, Tags: a view filtering on <paramref name="from"/> (ignoring case)
+    /// filters on <paramref name="to"/>. Returns whether it changed. Its owner made no change, so <see cref="UpdatedAt"/>
+    /// stays as it was.
+    /// </summary>
+    public bool RenameTag(string from, string to)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(from);
+        ArgumentException.ThrowIfNullOrWhiteSpace(to);
+        if (Definition.Tag is not { } tag || !string.Equals(tag.Trim(), from.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        Definition = Definition with { Tag = to.Trim() };
+        return true;
+    }
+
     /// <summary>Shares it with the team, or makes it private. Returns whether it changed.</summary>
     public bool SetShared(bool shared, DateTimeOffset now)
     {

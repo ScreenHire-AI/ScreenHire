@@ -14,6 +14,7 @@
     onscorecard,
     onautomations,
     onremove,
+    onreminder,
   }: {
     workflow: HiringWorkflow;
     stageId?: string | null;
@@ -21,6 +22,7 @@
     onscorecard?: (index: number) => void;
     onautomations?: (stageId: string) => void;
     onremove?: (index: number) => void;
+    onreminder?: (stageId: string) => void;
   } = $props();
 
   let edited = $state(untrack(() => workflow));
@@ -35,6 +37,8 @@
   onscorecard={(index) => onscorecard?.(index)}
   onautomations={(id) => onautomations?.(id)}
   onremove={(index) => onremove?.(index)}
+  onreminder={onreminder ? (id) => onreminder(id) : undefined}
+  automationHref={(id) => `?tab=automations&show=${id}`}
 />
 <button type="button" onclick={() => (open = edited.stages[1]?.id ?? null)}>Open the second stage</button>
 <p data-testid="open">{open ?? 'none'}</p>
