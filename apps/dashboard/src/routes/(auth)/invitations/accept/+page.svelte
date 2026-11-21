@@ -53,6 +53,9 @@
   // invitation up, and says so under the field.
   let name = $state('');
   let nameProblem = $state<string>();
+  // The lookup says whether to ask. If it never answered, the server's refusal asks instead, so the field still appears.
+  let refusedWithoutName = $state(false);
+  const askName = $derived(Boolean(details?.needsName) || refusedWithoutName);
   // The Accept button disappears when the invitation fails, so focus moves to the page's new title (WCAG 2.4.3).
   let heading = $state<HTMLHeadingElement>();
   const broken = $derived(!token || failed);
@@ -65,7 +68,7 @@
 
     submitting = true;
     nameProblem = undefined;
-    const response = await acceptInvitation({ token, name: details?.needsName ? name : undefined });
+    const response = await acceptInvitation({ token, name: askName ? name : undefined });
     submitting = false;
     if (response.status === 200) {
       // `joined` makes the Jobs list say, once, which team this person is now on.
@@ -73,6 +76,7 @@
     } else if (response.status === 400 && response.data?.errors?.name?.[0]) {
       // The invitation is still good: stay on the form so the name can be given.
       nameProblem = response.data.errors.name[0];
+      refusedWithoutName = true;
       await tick();
       document.getElementById('name')?.focus();
     } else {
@@ -103,26 +107,26 @@
             <p>
               You're joining {details.organizationName} as {details.roleName}. This signs you in on this device with the address the invitation was sent to.
             </p>
-            {#if details.needsName}
-              <Field.Field class="mt-4" data-invalid={nameProblem ? true : undefined}>
-                <Field.Label for="name">Your name</Field.Label>
-                <Input
-                  id="name"
-                  name="name"
-                  autocomplete="name"
-                  required
-                  bind:value={name}
-                  aria-invalid={nameProblem ? 'true' : undefined}
-                  aria-describedby={nameProblem ? 'name-error' : undefined}
-                />
-                <Field.Error id="name-error" errors={nameProblem ? [{ message: nameProblem }] : undefined} />
-              </Field.Field>
-            {/if}
           {:else if !looked}
             <Skeleton class="h-5 w-full max-w-measure" />
             <span class="sr-only">Checking the invitation</span>
           {:else}
             <p>This signs you in on this device with the address the invitation was sent to.</p>
+          {/if}
+          {#if askName}
+            <Field.Field class="mt-4" data-invalid={nameProblem ? true : undefined}>
+              <Field.Label for="name">Your name</Field.Label>
+              <Input
+                id="name"
+                name="name"
+                autocomplete="name"
+                required
+                bind:value={name}
+                aria-invalid={nameProblem ? 'true' : undefined}
+                aria-describedby={nameProblem ? 'name-error' : undefined}
+              />
+              <Field.Error id="name-error" errors={nameProblem ? [{ message: nameProblem }] : undefined} />
+            </Field.Field>
           {/if}
         </Panel>
       </form>

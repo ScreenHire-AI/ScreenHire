@@ -119,6 +119,33 @@ describe('invitation accept page', () => {
     expect(navigation.goto).not.toHaveBeenCalled();
   });
 
+  it('asks for the name the server wants when the lookup never answered, then sends it', async () => {
+    state.hash = '#invitation=abc';
+    let accepts = 0;
+    const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
+      if (String(input).includes('/invitations/lookup')) throw new Error('offline');
+      accepts += 1;
+      return accepts === 1
+        ? Response.json({ errors: { name: ['Enter your name.'] } }, { status: 400 })
+        : Response.json({ id: 'u', email: 'e', displayName: 'e', name: 'Jordan Lee', organization: null });
+    });
+    vi.stubGlobal('fetch', fetch);
+    show();
+
+    await vi.waitFor(() => expect(screen.getByRole('region', { name: 'Invitation' })).toHaveTextContent('This signs you in on this device'));
+    expect(screen.queryByLabelText('Your name')).not.toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+
+    expect(await screen.findByText('Enter your name.')).toBeInTheDocument();
+    await vi.waitFor(() => expect(screen.getByLabelText('Your name')).toHaveFocus());
+    await fireEvent.input(screen.getByLabelText('Your name'), { target: { value: 'Jordan Lee' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+
+    await vi.waitFor(() => expect(navigation.goto).toHaveBeenCalledWith('/?joined=1', { invalidateAll: true, replaceState: true }));
+    const [, init] = fetch.mock.calls.filter(([url]) => String(url).includes('/invitations/accept'))[1]!;
+    expect(JSON.parse(String(init?.body))).toEqual({ token: 'abc', name: 'Jordan Lee' });
+  });
+
   it('explains a link without a token', () => {
     state.hash = '#token=abc';
     show();

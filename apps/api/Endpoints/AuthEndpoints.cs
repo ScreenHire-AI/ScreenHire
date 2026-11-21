@@ -559,12 +559,16 @@ internal static class AuthEndpoints
     }
 
     // A name worth keeping: trimmed, and not blank. Some providers fill the name claim with the address (the Dev SSO "any
-    // email" login does), which is not a name, so the forms ask for one.
+    // email" login does), which is not a name, so the forms ask for one. A provider's name longer than the column holds
+    // (users.display_name, 200) would fail the save and the sign-in with it, so it counts as none and the forms ask too.
     internal static string? UsableName(string? name, string? email)
     {
         var trimmed = name?.Trim();
-        return string.IsNullOrEmpty(trimmed) || string.Equals(trimmed, email?.Trim(), StringComparison.OrdinalIgnoreCase) ? null : trimmed;
+        return string.IsNullOrEmpty(trimmed) || trimmed.Length > MaxNameLength
+            || string.Equals(trimmed, email?.Trim(), StringComparison.OrdinalIgnoreCase) ? null : trimmed;
     }
+
+    private const int MaxNameLength = 200;
 
     private static bool IsUniqueViolation(DbUpdateException exception) =>
         exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
