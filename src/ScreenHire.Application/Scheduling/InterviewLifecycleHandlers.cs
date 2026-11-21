@@ -52,7 +52,10 @@ public static partial class EndApplicationInterviewsHandler
                 outgoing.Add(new CancelInterviewEvents(application.OrganizationId, application.Id, interviewId, interview.Revision, TellCandidate: false));
             }
 
-            outgoing.Add(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interviewId, interview.Status.ToString()));
+            // ScreenHire cancelled it, with the application: what happened, and no actor, so it toasts nobody.
+            outgoing.Add(new InterviewChanged(
+                application.OrganizationId, application.Id, application.JobId, interviewId, interview.Status.ToString(), InterviewChanges.Cancelled,
+                StartsAt: interview.StartsAt));
             LogEnded(logger, interviewId, message.ApplicationId);
         }
 
@@ -124,7 +127,10 @@ public static partial class RemoveInterviewerFromInterviewsHandler
                 remaining[0].MakeOrganizer(); // Open: the booking has not made anyone's event yet
             }
 
-            outgoing.Add(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interviewId, interview.Status.ToString()));
+            // Cancelled by ScreenHire when nobody is left to hold it; otherwise only the organizer changed.
+            outgoing.Add(new InterviewChanged(
+                application.OrganizationId, application.Id, application.JobId, interviewId, interview.Status.ToString(), cancel ? InterviewChanges.Cancelled : null,
+                StartsAt: interview.StartsAt));
             LogLeft(logger, interviewId, cancel);
         }
 

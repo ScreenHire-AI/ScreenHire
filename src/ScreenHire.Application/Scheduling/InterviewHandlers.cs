@@ -25,8 +25,8 @@ namespace ScreenHire.Application.Scheduling;
 /// </summary>
 /// <remarks>
 /// Who made the change and what it was, for the hiring team's toasts (docs/architecture/realtime.md): <see cref="Change"/>
-/// is one of <see cref="InterviewChanges"/>, null for a calendar write or a change ScreenHire made when the application
-/// ended or an interviewer left. <see cref="ActorUserId"/> is the member who made it; <see cref="ByCandidate"/> says the
+/// is one of <see cref="InterviewChanges"/>, null for a calendar write or an organizer handed on when an interviewer left
+/// (ScreenHire's own cancellation is Cancelled with no actor). <see cref="ActorUserId"/> is the member who made it; <see cref="ByCandidate"/> says the
 /// candidate did, from their booking page. Neither for an automation or ScreenHire. <see cref="StartsAt"/> is the time the
 /// change is about: the booked or new time, or the time a cancelled booking had. Added last with defaults, as every field
 /// an event gains is.

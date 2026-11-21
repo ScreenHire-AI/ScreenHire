@@ -159,7 +159,8 @@ own address, from the API, with `[Test]` before the subject.
 ## The composer
 
 The email composer (`EmailComposer`, design system section 11) opens in a sheet from a list's selection and the
-candidate's header, and sits under the emails on the candidate's Messages tab. Start from offers a blank email and every
+candidate's header, and sits under the emails on the candidate's Messages tab. A link to one email (`?tab=messages#email-<id>`,
+from Activity or a toast) opens its row and brings it into view. Start from offers a blank email and every
 template but the rejection and follow-up questions emails. Picking a template fills the subject and the message with its
 wording; changing them changes this email only, and the template stays as it was. A blank email has no template, and
 nothing turns it into one. Insert variable puts a variable at the caret: a chip in the message, `{{ name }}` in the subject. Preview asks the API for the first candidate's

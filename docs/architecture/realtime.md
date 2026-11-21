@@ -183,9 +183,10 @@ everything else in an event. Each was added last with a null default, so an enve
 deserializes, and the Zod side reads a missing one as no member.
 
 `InterviewChanged` says what happened and who did it: `Change` (`InterviewChanges`: Invited, Booked, Rescheduled, Cancelled,
-NewTimesOffered; null for a calendar write, and for a cancellation ScreenHire made when the application ended or an interviewer
-left), `ActorUserId` (the member), `ByCandidate` (the candidate, from their booking page) and `StartsAt` (the booked or new time,
-or the time a cancelled booking had). An automation's offer has a `Change` and neither actor.
+NewTimesOffered; null for a calendar write, or when only the organizer changed because an interviewer left), `ActorUserId` (the
+member), `ByCandidate` (the candidate, from their booking page) and `StartsAt` (the booked or new time, or the time a cancelled
+booking had). An automation's offer, and ScreenHire's own cancellation when the application ended or the last interviewer
+left, have a `Change` and neither actor, so they toast nobody.
 
 ## Teammates' changes as toasts
 

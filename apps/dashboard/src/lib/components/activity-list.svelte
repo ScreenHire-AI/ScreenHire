@@ -7,7 +7,7 @@
     icon: Component;
     /** What happened: "Moved to Screening". */
     event: string;
-    /** Where the change is, when it is somewhere else (`activityHref`): the event is then a link to it. */
+    /** Where the change is (`activityHref`): the event is then a link to it. */
     href?: string;
     /** Who did it, shown muted after the event. */
     actor?: string;
@@ -26,7 +26,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
 
   // Events on a record, newest first (design system section 11): an icon in a circle, the event, who did it and time
-  // ago. An event whose change is somewhere else (the email, the scorecard, the interview) links to it. A team note draws its own text and menu through `body` and `actions`, and is the anchor `#note-{id}` that a
+  // ago. An event with an `href` links to where its change is (the email, the scorecard, the interview, the stage). A team note draws its own text and menu through `body` and `actions`, and is the anchor `#note-{id}` that a
   // mention email links to. While `items` is undefined (still loading) it shows skeleton rows of the same shape (E1).
   let {
     items,

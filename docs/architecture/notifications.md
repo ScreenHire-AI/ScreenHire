@@ -133,8 +133,8 @@ the reader may read that scorecard (`RatingReads.WithheldAmongAsync`, ADR-0013),
 Every link goes to exactly where the change is (`activityHref` in `#lib/activity.ts`): a note to `?tab=activity#note-<id>`, an
 email to `?tab=messages#email-<id>` (the row opens), a scorecard to `?tab=scorecards#scorecard-<id>` (its sheet opens), a
 follow-up form to `?tab=application#follow-up-<id>`, an interview to `#interview`, a check to `?tab=verification`, a move or a
-tag to the candidate, a job's change to the job. `#lib/linked.svelte.ts` scrolls to or opens the thing once its data has loaded.
-The candidate's own Activity tab links the same way, except what is already on the page (a move, a tag, the note itself).
+tag to the candidate's Overview (under the stage rail), a job's change to the job. `#lib/linked.svelte.ts` scrolls to or opens
+the thing once its data has loaded. The candidate's own Activity tab links every entry the same way.
 
 Filters: My jobs or Everything I can see (starting from the person's own scope on Your account) and any of the kinds, kept in
 the browser (`screenhire:activity-filters`). Pages are 50 entries (`limit` up to 100), cursor `before` (the `nextBefore` of the

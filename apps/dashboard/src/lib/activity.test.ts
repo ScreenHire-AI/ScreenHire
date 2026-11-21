@@ -142,24 +142,18 @@ describe('activity', () => {
 
 describe('where an entry links', () => {
   const app = '/applications/a1';
-  it('opens exactly where the change is, from the feed', () => {
-    expect(activityHref(entry('n', { type: 'NoteAdded', noteId: 'n1' }), 'a1', 'feed')).toBe(`${app}?tab=activity#note-n1`);
-    expect(activityHref(entry('m', { type: 'EmailSent', emailId: 'm1' }), 'a1', 'feed')).toBe(`${app}?tab=messages#email-m1`);
-    expect(activityHref(entry('r', { type: 'EmailReceived', emailId: 'm2' }), 'a1', 'feed')).toBe(`${app}?tab=messages#email-m2`);
-    expect(activityHref(entry('s', { type: 'ScorecardSubmitted', scorecardId: 's1' }), 'a1', 'feed')).toBe(`${app}?tab=scorecards#scorecard-s1`);
+  it('opens exactly where the change is, the same from the feed and from the candidate', () => {
+    expect(activityHref(entry('n', { type: 'NoteAdded', noteId: 'n1' }), 'a1')).toBe(`${app}?tab=activity#note-n1`);
+    expect(activityHref(entry('m', { type: 'EmailSent', emailId: 'm1' }), 'a1')).toBe(`${app}?tab=messages#email-m1`);
+    expect(activityHref(entry('r', { type: 'EmailReceived', emailId: 'm2' }), 'a1')).toBe(`${app}?tab=messages#email-m2`);
+    expect(activityHref(entry('s', { type: 'ScorecardSubmitted', scorecardId: 's1' }), 'a1')).toBe(`${app}?tab=scorecards#scorecard-s1`);
     // A scorecard the reader may not read yet comes with no id (ADR-0013): the tab, not the sheet.
-    expect(activityHref(entry('s', { type: 'ScorecardSubmitted' }), 'a1', 'feed')).toBe(`${app}?tab=scorecards`);
-    expect(activityHref(entry('q', { type: 'QuestionnaireCompleted', questionnaireRequestId: 'q1' }), 'a1', 'feed')).toBe(`${app}?tab=application#follow-up-q1`);
-    expect(activityHref(entry('i', { type: 'InterviewBooked' }), 'a1', 'feed')).toBe(`${app}#interview`);
-    expect(activityHref(entry('v', { type: 'VerificationAssessed' }), 'a1', 'feed')).toBe(`${app}?tab=verification`);
-    expect(activityHref(entry('x', { type: 'StageChanged' }), 'a1', 'feed')).toBe(app);
-  });
-
-  it("links only what is elsewhere from the candidate's own Activity", () => {
-    expect(activityHref(entry('x', { type: 'StageChanged' }), 'a1', 'application')).toBeUndefined();
-    expect(activityHref(entry('t', { type: 'TagAdded', tag: 'referral' }), 'a1', 'application')).toBeUndefined();
-    expect(activityHref(entry('n', { type: 'NoteAdded', noteId: 'n1' }), 'a1', 'application')).toBeUndefined();
-    expect(activityHref(entry('m', { type: 'EmailSent', emailId: 'm1' }), 'a1', 'application')).toBe(`${app}?tab=messages#email-m1`);
-    expect(activityHref(entry('i', { type: 'InterviewCancelled' }), 'a1', 'application')).toBe(`${app}#interview`);
+    expect(activityHref(entry('s', { type: 'ScorecardSubmitted' }), 'a1')).toBe(`${app}?tab=scorecards`);
+    expect(activityHref(entry('q', { type: 'QuestionnaireCompleted', questionnaireRequestId: 'q1' }), 'a1')).toBe(`${app}?tab=application#follow-up-q1`);
+    expect(activityHref(entry('i', { type: 'InterviewBooked' }), 'a1')).toBe(`${app}#interview`);
+    expect(activityHref(entry('v', { type: 'VerificationAssessed' }), 'a1')).toBe(`${app}?tab=verification`);
+    // A move or a tag opens the candidate's Overview, under the stage rail.
+    expect(activityHref(entry('x', { type: 'StageChanged' }), 'a1')).toBe(app);
+    expect(activityHref(entry('t', { type: 'TagAdded', tag: 'referral' }), 'a1')).toBe(app);
   });
 });

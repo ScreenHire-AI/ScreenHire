@@ -77,7 +77,7 @@
       id: entry.id,
       icon: eventIcons[entry.type],
       event: describeEvent(entry, names),
-      href: activityHref(entry, applicationId, 'application'),
+      href: activityHref(entry, applicationId),
       actor: actorText(entry, members, currentUserId),
       note: entry.type === 'NoteAdded' ? undefined : (entry.note ?? undefined),
       noteId: entry.type === 'NoteAdded' ? (entry.noteId ?? undefined) : undefined,

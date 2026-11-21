@@ -204,16 +204,15 @@ type Linkable = Pick<ApplicationTimelineEntry, 'type'> &
 
 /**
  * Where an entry's change is (design system section 11, Activity): the note on Activity, the email on Messages, the
- * scorecard's sheet, the follow-up form's answers, the interview, the verification. The Activity feed in the bell links
- * every entry (`place: 'feed'`); the candidate's own Activity tab links only what is somewhere else on the page, so a
- * move, a tag or the application itself, which the page already is, has no link there.
+ * scorecard's sheet, the follow-up form's answers, the interview, the verification, and for a move, a tag or the
+ * application itself the candidate's Overview, under the stage rail. The Activity feed in the bell and the candidate's own
+ * Activity tab link every entry this way.
  */
-export function activityHref(entry: Linkable, applicationId: string, place: 'feed' | 'application'): string | undefined {
+export function activityHref(entry: Linkable, applicationId: string): string {
   const candidate = `/applications/${applicationId}`;
-  const here = place === 'feed' ? candidate : undefined;
   switch (entry.type) {
     case 'NoteAdded':
-      return place === 'feed' && entry.noteId ? `${candidate}?tab=activity#note-${entry.noteId}` : undefined;
+      return entry.noteId ? `${candidate}?tab=activity#note-${entry.noteId}` : `${candidate}?tab=activity`;
     case 'EmailSent':
     case 'EmailReceived':
       return entry.emailId ? `${candidate}?tab=messages#email-${entry.emailId}` : `${candidate}?tab=messages`;
@@ -232,9 +231,9 @@ export function activityHref(entry: Linkable, applicationId: string, place: 'fee
     case 'VerificationAssessed':
       return `${candidate}?tab=verification`;
     case 'InvitedToApply':
-      return entry.otherApplicationId ? `/applications/${entry.otherApplicationId}` : here;
+      return entry.otherApplicationId ? `/applications/${entry.otherApplicationId}` : candidate;
     default:
-      return here;
+      return candidate;
   }
 }
 
@@ -272,7 +271,7 @@ export function feedLine(entry: ActivityEntry, members: readonly TeamMember[] | 
   }
 
   const name = entry.candidateName ?? 'a candidate';
-  const href = activityHref(event, entry.applicationId, 'feed') ?? `/applications/${entry.applicationId}`;
+  const href = activityHref(event, entry.applicationId);
   const candidate = (after: string): FeedLine => ({ before: '', link: name, href, after });
   const at = (word: string) => (event.startsAt ? ` ${word} ${formatDateTime(event.startsAt)}` : '');
   switch (event.type) {
