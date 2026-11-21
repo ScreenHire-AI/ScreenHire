@@ -69,13 +69,13 @@ who accepts an invitation (S), and the small readability fixes in Reports and Jo
 
 #### Real people
 
-1. **Budgets in dollars by default.** The AI budget shows tokens until someone opens the Usage tab, and a token count
-   means little to a small team. Default the budget and cap to a dollar figure priced from the deployment's
-   `DefaultMonthlyTokenBudget`. Size S. (#147)
-2. **Say "Information only" once on the Verification tab.** It appears in the map tile and again in the finding row;
-   the redesign says once, in the tooltip. Size S. (#148)
-3. **Make the audit line the page's last line.** "No automated decision has been made..." sits inside the Form use
-   panel and reads as its footer; design system W10 wants it last on the page. Size S. (#148)
+1. **Budgets in dollars by default.** Built: an organization with no limit of its own sees the deployment's default budget
+   and cap as dollars, priced at the answering model and the usual input/output mix, and in tokens where there is no price
+   ([AI usage](architecture/ai-usage.md#budget-alerts-and-the-cap)). Kept here so the numbers hold. (#147)
+2. **Say "Information only" once on the Verification tab.** Built: the tile says "1 note" and the finding row carries its
+   mark alone; the words are in the AI row's tooltip. Kept here so the numbers hold. (#148)
+3. **Make the audit line the page's last line.** Built: the decision line and the audit line sit under every panel and in
+   none of them ([design system](design/design-system.md), W10). Kept here so the numbers hold. (#148)
 
 #### Never guessing
 
@@ -117,16 +117,17 @@ connector are still untested by hand ([MVP status](status.md#known-gaps)).
 7. **Fix the careers page setup step.** It ticks only when someone embeds the page or changes questions per page, so
    a team that keeps the defaults can only dismiss the whole checklist. Drop the step or merge it into Branding; the
    count goes from five to four, and the tests and docs that say five change with it. Size S. (#149)
-8. **Check the scorecard's 1 to 5 buttons on a phone.** They looked about 36 px, and design system F4 wants 44 px under
-   `pointer: coarse`. A check first, then a fix if it fails. Size S. (#148)
+8. **Check the scorecard's 1 to 5 buttons on a phone.** Built: `ScorecardTests` measures each 1 to 5 button at 390 px
+   under a coarse pointer (design system F4 wants 44 px). The 1 to 10 scale cannot be 44 px wide at that width; the test holds it
+   to 24 px wide and 44 px high. Kept here so the numbers hold. (#171)
 9. **Ask for a name at onboarding.** A member with no name shows as a truncated email address in Team, and the Email
    column repeats it. Ask on the onboarding form, prefilled from the identity provider when it has one. Size S to M. (#149)
 10. **Quieter empty states.** Built: a list with no rows shows its title and empty state with no search, filters or Save
    view, and the Invite sheet has one line per role and a single "Only some jobs" switch ([design system](design/design-system.md)).
    Kept here so the numbers hold. (#149)
-11. **Starting points for a cafe.** The Trial shift scorecard is not on the Trade role template's stage, and the
-    template's example line is "Plumber, electrician, driver". Wiring the scorecard in and adding a Hospitality
-    starting point each need a data migration. Size S to M. (#147)
+11. **Starting points for a cafe.** Built: a Hospitality starting point ("Barista, line cook, server") and a second version
+    of Trade role with the Trial shift scorecard on its trial stage ([workflow engine](architecture/workflow-engine.md)).
+    Kept here so the numbers hold. (#171)
 12. **A guided first job.** The first job spans New job, Edit details and the job page, with a different hint at each.
     One flow from "pick a starting point" through the role's real details to Publish, on the first job only. It would
     absorb number 2. Size L. (#149)

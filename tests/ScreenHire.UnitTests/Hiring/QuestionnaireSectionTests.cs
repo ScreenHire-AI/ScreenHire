@@ -165,11 +165,27 @@ public sealed class QuestionnaireSectionTests
     {
         var link = new Uri("https://acme.careers.example.com/jobs/engineer/apply?draft=token-123");
 
-        var email = ApplicationDrafts.Compose("casey@example.com", "Acme <Labs>", "Engineer", link, new DateTimeOffset(2026, 11, 29, 9, 0, 0, TimeSpan.Zero));
+        var expires = new DateTimeOffset(2026, 11, 29, 9, 0, 0, TimeSpan.Zero);
+
+        var email = ApplicationDrafts.Compose("casey@example.com", "Acme <Labs>", "Engineer", link, expires, CandidateLanguage.Culture("en-GB"));
 
         email.Subject.Should().Be("Finish your application for Engineer at Acme <Labs>");
         email.TextBody.Should().Contain(link.ToString()).And.Contain("29 November 2026").And.Contain("Files are not kept");
         email.HtmlBody.Should().Contain("Acme &lt;Labs&gt;").And.Contain($"href=\"{link}\"");
+    }
+
+    [Fact]
+    public void The_draft_email_writes_the_date_in_the_language_of_the_browser_that_saved_it()
+    {
+        var link = new Uri("https://acme.careers.example.com/jobs/engineer/apply?draft=token-123");
+        var expires = new DateTimeOffset(2026, 11, 29, 9, 0, 0, TimeSpan.Zero);
+
+        ApplicationDrafts.Compose("casey@example.com", "Acme", "Engineer", link, expires, CandidateLanguage.Culture("en-US")).TextBody
+            .Should().Contain("November 29, 2026");
+        ApplicationDrafts.Compose("casey@example.com", "Acme", "Engineer", link, expires, CandidateLanguage.Culture("de-DE")).TextBody
+            .Should().Contain("29. November 2026");
+        ApplicationDrafts.Compose("casey@example.com", "Acme", "Engineer", link, expires, CandidateLanguage.Culture(null)).TextBody
+            .Should().Contain("29 November 2026", "no language recorded reads as en-GB");
     }
 
     [Fact]

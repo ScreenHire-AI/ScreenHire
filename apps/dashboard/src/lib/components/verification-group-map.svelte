@@ -35,7 +35,7 @@
   }
 </script>
 
-<!-- 22rem holds the longest name beside the longest state ("Documents", "1 note, information only") on one line (F5): three
+<!-- 22rem holds the longest name beside the longest state ("Documents", "1 note") on one line (F5): three
      tiles a row on a desktop, one below that. -->
 <ul aria-label="Check groups" data-group-map class="grid grid-cols-[repeat(auto-fill,minmax(min(22rem,100%),1fr))] gap-2">
   {#each groups as group (group.group)}

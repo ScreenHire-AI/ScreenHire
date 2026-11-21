@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ScreenHire.Domain.Scheduling;
@@ -118,6 +119,32 @@ public sealed class InterviewJourneyTests(AppHostFixture fixture)
         (await world.BookAsync(token, chosen)).Expect(HttpStatusCode.Conflict).Text("type").Should().Be("already_booked");
         theirEvents.ReceivedAnythingAbout(interviewId).Should().BeFalse("another organization never hears about our interviews");
         theirEvents.ReceivedAnythingAbout(world.ApplicationId).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task The_confirmation_writes_the_day_in_the_language_recorded_with_the_application_and_en_GB_when_none_was()
+    {
+        using var world = await InterviewWorld.CreateAsync(fixture);
+        var (second, secondEmail) = await world.AddApplicationAsync();
+        await world.SetLanguageAsync(world.ApplicationId, "de-DE");
+        var (_, germanToken) = await world.ScheduledAsync();
+        var (_, plainToken) = await world.ScheduledAsync(second, secondEmail);
+        var germanSlot = FarSlot(InterviewWorld.SlotsOf((await world.PublicGetAsync(germanToken)).Expect(HttpStatusCode.OK)));
+        (await world.BookAsync(germanToken, germanSlot)).Expect(HttpStatusCode.NoContent);
+        var plainSlot = FarSlot(InterviewWorld.SlotsOf((await world.PublicGetAsync(plainToken)).Expect(HttpStatusCode.OK)));
+        (await world.BookAsync(plainToken, plainSlot)).Expect(HttpStatusCode.NoContent);
+
+        var german = (await world.WaitForEmailAsync(world.CandidateEmail, "is set")).Text;
+        var plain = (await world.WaitForEmailAsync(secondEmail, "is set")).Text;
+
+        // The interview's zone is UTC, so the day in the email is the slot's UTC day.
+        var (g, p) = (germanSlot.UtcDateTime, plainSlot.UtcDateTime);
+        var de = CultureInfo.GetCultureInfo("de-DE").DateTimeFormat;
+        german.Should().Contain(de.GetDayName(g.DayOfWeek))
+            .And.Contain(string.Create(CultureInfo.InvariantCulture, $"{g.Day}. {de.GetMonthName(g.Month)} {g.Year}"), "the day is written in German");
+        var gb = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat;
+        plain.Should().Contain(gb.GetDayName(p.DayOfWeek))
+            .And.Contain(string.Create(CultureInfo.InvariantCulture, $"{p.Day} {gb.GetMonthName(p.Month)} {p.Year}"), "no language recorded reads as en-GB");
     }
 
     [Fact]

@@ -9,12 +9,13 @@ import PortalLinkProblem from '../../../../components/PortalLinkProblem.astro';
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
 import { getPublicOrganization, getPublicPortal } from '../../../../lib/api';
 import { forwardedFor } from '../../../../lib/apply-server';
-import { longDate } from '../../../../lib/drafts';
+import { localeOf, longDate } from '../../../../lib/locale';
 import { basePath } from '../../../../lib/host';
 import { ENDED, isToken, stepStates } from '../../../../lib/portal';
 
 const { organization, token } = Astro.params;
 const base = basePath(Astro.request, organization!);
+const locale = localeOf(Astro.request);
 
 Astro.response.headers.set('Cache-Control', 'no-store');
 
@@ -69,7 +70,7 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
               <div>
                 <p class="font-semibold">{draft.jobTitle}</p>
                 <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">
-                  Saved until {longDate(draft.expiresAt)}. Your files are attached again when you finish.
+                  Saved until {longDate(draft.expiresAt, locale)}. Your files are attached again when you finish.
                 </p>
                 <a href={`${base}/jobs/${draft.jobSlug}/apply?draft=${draft.token}`} class="button-secondary mt-3">Finish this application</a>
               </div>
@@ -126,7 +127,7 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
                 </ol>
               )}
 
-              <p class="mt-4 text-candidate-hint text-candidate-muted-foreground">Applied {longDate(application.appliedAt)}</p>
+              <p class="mt-4 text-candidate-hint text-candidate-muted-foreground">Applied {longDate(application.appliedAt, locale)}</p>
 
               {application.waiting.length > 0 && (
                 <ul class="mt-4 flex flex-col gap-2">

@@ -37,6 +37,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/candidate/messages-tab.svelte
   - resource: src/ScreenHire.Application/Applications/ApplicationNotes.cs
   - resource: apps/api/Applications/ApplicationDrafts.cs
+  - resource: src/ScreenHire.Domain/Applications/CandidateLanguage.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewText.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailHeader.cs
   - resource: src/ScreenHire.Infrastructure/Email/IEmailSender.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailOptions.cs
@@ -133,9 +135,10 @@ carries, and a template cannot add one. The rendered subject is one line, cut at
   is empty when the offer was withdrawn before a time was booked. `interview-new-times` must use `{{ bookingLink }}` and may use
   `{{ interviewTime }}` (the time that stays until the candidate picks) and `{{ interviewLength }}`. `interview-reminder` is sent
   a day and an hour before a booked interview and must use `{{ interviewTime }}` and `{{ manageLink }}`; it may use
-  `{{ meetingLink }}`. The worker writes `interviewTime` from the instant and
-  the interview's time zone (`Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)`); the API never sends formatted
-  dates. The copy the team keeps hides the candidate's own link, as the follow-up questions email does.
+  `{{ meetingLink }}`. The worker writes `interviewTime` from the instant, the interview's time zone and the candidate's
+  language (`Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)` for en-US, `Tuesday 3 November 2026, 10:00 to
+  10:30 (Europe/London)` for en-GB); the API never sends formatted dates. See "Dates in the candidate's language" below.
+  The copy the team keeps hides the candidate's own link, as the follow-up questions email does.
 
 The template preview (`POST /v1/email-templates/preview`) renders unsaved wording with a made-up candidate, Jordan Lee.
 The dashboard shows the HTML part in a sandboxed frame (no scripts, forms or popups; `allow-same-origin` only so the frame
@@ -243,12 +246,26 @@ reason or evidence. The AI usage alerts ("AI usage is at 80% of this month's bud
 Nothing is sent when the host has no email sender or no dashboard address, and a Slack direct message can go beside either
 ([slack.md](slack.md), [verification engine](verification-engine.md) section 10.11).
 
+## Dates in the candidate's language
+
+Every date in an email to a candidate is written in the language of the browser the candidate applied from. The careers
+server sends the first tag of its `Accept-Language` with the submission (`language`), and the API records it as
+`JobApplication.Language` when it has the shape of a language tag, and drops it otherwise. `CandidateLanguage.Culture`
+turns the recorded tag into a .NET culture and reads as en-GB for an application with none (added by a recruiter, or made
+before this was recorded), for a language the host has no data for and for a host without globalization data. The interview
+emails (`InterviewText.Time`, called with that culture) and the link to finish a saved application (`CandidateLanguage.LongDate`)
+write through that one helper, so no template has a format of its own. Words, zone names and the word "to" stay English, and
+a time keeps the zone it states. The language is a display preference: no check reads it, and no screen shows it to the team.
+Emails to the hiring team (the trial's reminders, the interviewers' reminder) are not candidate emails and keep their
+fixed formats.
+
 ## The link to finish a saved application
 
 A candidate who saves the apply form to finish later gets one email with the link back to it ([apply-flow.md](apply-flow.md)
 §7). It is ScreenHire's own wording (`ApplicationDrafts.Compose`), not an organization template: there is no
 application to name yet, and nothing in it is the hiring team's to word. It names the job and the organization, links to
-the job's apply page with the draft's token, says the date the answers are deleted and that files are attached again.
+the job's apply page with the draft's token, says the date the answers are deleted (in the language the save request
+named, since no application records one yet) and that files are attached again.
 Like a sign-in link it goes out inside the request, because its token lets whoever holds it read the draft and must not
 sit in the outbox's message table, and it is never kept as a copy or shown in Messages. An address gets at most 5 a day
 in one organization. With no `IEmailSender`, saving is hidden on the careers page.

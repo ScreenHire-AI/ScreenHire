@@ -33,6 +33,7 @@ sources:
   - resource: packages/ui/src/questions/FileField.svelte
   - resource: packages/ui/src/questions/DropArea.svelte
   - resource: apps/api/Applications/ApplicationDrafts.cs
+  - resource: apps/careers/src/lib/locale.ts
   - resource: apps/api/Endpoints/PublicApplicationDraftEndpoints.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationDraft.cs
   - resource: src/ScreenHire.Application/Applications/DraftRetention.cs
@@ -113,6 +114,14 @@ and drops anything else without refusing the application. Nothing is read or sto
 recorded with the application, after the notice. A saved draft's link does not carry `src`, so an application finished from
 a draft counts as the careers page. The automation fact `application.source` and the verification checks do not read it.
 
+`Language` is how the candidate's emails write dates, not a signal. The apply action sends the first tag of the request's
+`Accept-Language` as `language` with the submission and with the first save of a draft; `SubmitPublicApplication` keeps it as
+`JobApplication.Language` when it has the shape of a language tag (`CandidateLanguage.Normalize`) and drops anything else without
+refusing the application. A save's email uses the language the save request named, because no application exists yet. Nothing is
+stored at browsing time, and no check reads it ([email](email.md), "Dates in the candidate's language"). The pages write dates
+the same way from the request itself: every careers page reads `Accept-Language` on the server (`localeOf`, `apps/careers/src/lib/locale.ts`:
+the first language `Intl` supports, else en-GB), so a date and a time of day follow the reader and the pages still ship no script.
+
 
 Neither refuses a submission (CLAUDE.md non-negotiable 2), and knockout answers are stored like any other.
 
@@ -129,7 +138,7 @@ off the form is issued no telemetry session): where that is `Consent`
 fingerprint is kept only when it is ticked. The observation and the telemetry are deleted after 30 days. The notice and
 the privacy page say all of this, and that the employer may email a follow-up questionnaire whose page keeps the
 answers only, that a saved draft keeps the details and answers only, for 30 days, and that an application through
-the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-09.1`, bumped when the notice on the job and apply pages was reworded to say why applications are checked (so real applicants are not crowded out) instead of how thorough the checks are, and the privacy page began to say that an eligibility question can end an application at once when the employer chose that, and stopped promising that a person reads the answer about AI tools. Before that it was `2026-11-07.3`, bumped when the privacy page stopped saying what the checks look at and what the AI model compares. Before that it was `2026-11-07.2`, bumped when the privacy page said the AI model can come from a provider the employer chose, under the employer's own terms ([what an organization controls](verification-engine.md#1011-what-an-organization-controls)). Before that it was `2026-11-07.1`, bumped when the privacy page gained "Your page" ([candidate portal](candidate-portal.md#notice)), and before that `2026-11-05.2`, bumped when the notice on the job and apply pages and the privacy page were cut to say that applications are checked and what is collected, not how a check works. The owner wants them only as descriptive as the law requires, so a check's rules stay out of anything a candidate reads.
+the form on the employer's own website notes which website. `NOTICE_VERSION` is `2026-11-21.1`, bumped when the privacy page began to list the language the browser asks for, which an application keeps to write the dates in its candidate's emails. Before that it was `2026-11-09.1`, bumped when the notice on the job and apply pages was reworded to say why applications are checked (so real applicants are not crowded out) instead of how thorough the checks are, and the privacy page began to say that an eligibility question can end an application at once when the employer chose that, and stopped promising that a person reads the answer about AI tools. Before that it was `2026-11-07.3`, bumped when the privacy page stopped saying what the checks look at and what the AI model compares. Before that it was `2026-11-07.2`, bumped when the privacy page said the AI model can come from a provider the employer chose, under the employer's own terms ([what an organization controls](verification-engine.md#1011-what-an-organization-controls)). Before that it was `2026-11-07.1`, bumped when the privacy page gained "Your page" ([candidate portal](candidate-portal.md#notice)), and before that `2026-11-05.2`, bumped when the notice on the job and apply pages and the privacy page were cut to say that applications are checked and what is collected, not how a check works. The owner wants them only as descriptive as the law requires, so a check's rules stay out of anything a candidate reads.
 
 The review step also asks, optionally and unticked, "Keep my details for future roles", with one line saying the
 employer keeps their details until they ask, or the employer removes them, and may invite them to apply for other

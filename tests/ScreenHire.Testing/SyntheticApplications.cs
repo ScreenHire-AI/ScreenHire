@@ -16,7 +16,7 @@ namespace ScreenHire.Testing;
 public static class SyntheticApplications
 {
     /// <summary>The careers notice version the submissions say the applicant saw (NOTICE_VERSION in apps/careers/src/lib/apply.ts).</summary>
-    public const string PrivacyNoticeVersion = "2026-11-09.1";
+    public const string PrivacyNoticeVersion = "2026-11-21.1";
 
     /// <summary>
     /// Applies to a published job of the organization with this slug and returns the application's id: the applicant's
@@ -37,7 +37,8 @@ public static class SyntheticApplications
         IReadOnlyList<(string QuestionId, string FileName, byte[] Content)>? files = null,
         bool keepForFutureRoles = false,
         string? embedOrigin = null,
-        string? source = null)
+        string? source = null,
+        string? language = null)
     {
         using var client = fixture.CreateHttpClient("api");
         var prefix = $"/v1/public/organizations/{slug}/jobs/{jobId}";
@@ -73,6 +74,7 @@ public static class SyntheticApplications
             ["keepForFutureRoles"] = keepForFutureRoles,
             ["embedOrigin"] = embedOrigin,
             ["source"] = source,
+            ["language"] = language,
         };
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{prefix}/applications") { Content = JsonContent.Create(body) };
         request.Headers.Add("X-Forwarded-For", applicant.IpAddress);

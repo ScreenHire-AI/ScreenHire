@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -106,6 +107,39 @@ public sealed partial class InterviewBookingTests(E2EFixture fixture) : BrowserT
 
         // The recruiter sees the cancellation too.
         (await scene.Interview(Ct)).GetProperty("status").GetString().Should().Be("Cancelled");
+    }
+
+    // The browser's Accept-Language decides how the page writes the day and the clock, on the server and with no script. Both
+    // browsers read the same booking, so the only difference between the two texts is the language.
+    [Fact]
+    public async Task The_booked_time_is_written_in_the_language_of_the_candidates_browser()
+    {
+        using var scene = await SceneAsync();
+        await WithoutJavaScriptAsync();
+        await Page.GotoAsync(scene.Link);
+        await Page.GetByRole(AriaRole.Radio).First.CheckAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Book this time" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
+
+        // The interview is in UTC, so the day on the page is the start's UTC day.
+        var start = (await scene.Interview(Ct)).GetProperty("startsAt").GetDateTimeOffset().UtcDateTime;
+        var us = CultureInfo.GetCultureInfo("en-US");
+        var gb = CultureInfo.GetCultureInfo("en-GB");
+        var americanDay = string.Create(CultureInfo.InvariantCulture, $"{us.DateTimeFormat.GetDayName(start.DayOfWeek)}, {us.DateTimeFormat.GetMonthName(start.Month)} {start.Day}, {start.Year}");
+        var britishDay = string.Create(CultureInfo.InvariantCulture, $"{start.Day} {gb.DateTimeFormat.GetMonthName(start.Month)} {start.Year}");
+        var end = start.AddMinutes(30);
+
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Your time" })).ToContainTextAsync(americanDay);
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Your time" })).ToContainTextAsync(
+            $"{start.ToString("h:mm tt", us)} to {end.ToString("h:mm tt", us)}");
+
+        await using var british = await Fixture.Browser.NewContextAsync(new() { JavaScriptEnabled = false, Locale = "en-GB" });
+        var page = await british.NewPageAsync();
+        await page.GotoAsync(scene.Link);
+        var booked = page.GetByRole(AriaRole.Region, new() { Name = "Your time" });
+        await Expect(booked).ToContainTextAsync(britishDay);
+        await Expect(booked).ToContainTextAsync($"{start.ToString("HH:mm", gb)} to {end.ToString("HH:mm", gb)}");
+        await Expect(booked).Not.ToContainTextAsync(americanDay);
     }
 
     [Fact]

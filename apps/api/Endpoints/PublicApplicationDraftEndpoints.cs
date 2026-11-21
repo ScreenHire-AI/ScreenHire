@@ -99,7 +99,7 @@ internal static class PublicApplicationDraftEndpoints
             return TypedResults.ValidationProblem(errors);
         }
 
-        var saved = await drafts.CreateAsync(db, organization, job, request.Candidate.Email, Content(request), cancellationToken);
+        var saved = await drafts.CreateAsync(db, organization, job, request.Candidate.Email, Content(request), CandidateLanguage.Culture(request.Language), cancellationToken);
         if (saved is not { } created)
         {
             return TypedResults.Problem(

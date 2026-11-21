@@ -110,6 +110,25 @@ public sealed class CareersEmbeddingTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task An_application_keeps_the_language_of_the_browser_and_a_value_that_is_no_language_tag_is_dropped()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, owner);
+
+        var german = await fixture.ApplyAsync(slug, jobId, SyntheticApplicants.GenuineHuman, Ct, language: "de-DE");
+        var junk = await fixture.ApplyAsync(slug, jobId, SyntheticApplicants.Bot, Ct, language: "<script>alert(1)</script>");
+        var none = await fixture.ApplyAsync(slug, jobId, SyntheticApplicants.ApplicationFarm[0], Ct);
+
+        var tenant = new TenantContext();
+        tenant.SetOrganization(owner.OrganizationId);
+        await using var db = await fixture.CreateDbContextAsync(tenant, Ct);
+        var languages = await db.Applications.AsNoTracking().Where(a => a.JobId == jobId).ToDictionaryAsync(a => a.Id, a => a.Language, Ct);
+        languages[german].Should().Be("de-DE");
+        languages[junk].Should().BeNull("a value of any other shape is dropped and never refuses the application");
+        languages[none].Should().BeNull("an application with none reads as en-GB in its emails");
+    }
+
+    [Fact]
     public async Task An_application_from_a_boards_link_keeps_the_board_and_an_unknown_one_is_dropped()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

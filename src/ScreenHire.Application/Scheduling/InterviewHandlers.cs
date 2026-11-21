@@ -245,7 +245,7 @@ internal static partial class InterviewCalendarSync
             {
                 ManageLink = manageLink,
                 MeetingLink = interview.MeetingUrl,
-                InterviewTime = InterviewText.Time(start, end, interview.TimeZone),
+                InterviewTime = InterviewText.Time(start, end, interview.TimeZone, CandidateLanguage.Culture(application.Language)),
                 InterviewLength = InterviewText.Length(interview.DurationMinutes),
             };
             await SendAsync(db, email, renderer, headers, routing, organization, application, candidate, template, EmailTemplateIds.InterviewConfirmation, model, sendId, now, cancellationToken);
@@ -334,7 +334,9 @@ internal static partial class InterviewCalendarSync
         {
             var model = ApplicationEmails.ModelFor(candidate, job.Title, organization.Name, stageName: null) with
             {
-                InterviewTime = interview.StartsAt is { } start ? InterviewText.Time(start, start + interview.Duration, interview.TimeZone) : null,
+                InterviewTime = interview.StartsAt is { } start
+                    ? InterviewText.Time(start, start + interview.Duration, interview.TimeZone, CandidateLanguage.Culture(application.Language))
+                    : null,
             };
             await SendAsync(db, email, renderer, headers, routing, organization, application, candidate, template, EmailTemplateIds.InterviewCancelled, model, sendId, now, cancellationToken);
             outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, sendId, now));

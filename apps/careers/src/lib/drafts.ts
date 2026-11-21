@@ -26,7 +26,3 @@ export function fromDraft(draft: PublicApplicationDraft, token: string, telemetr
     draft: { token, email: draft.email },
   };
 }
-
-/** A date as the candidate reads it, such as "November 29, 2026", in UTC so it matches the email. */
-export const longDate = (iso: string): string =>
-  new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });

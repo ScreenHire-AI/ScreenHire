@@ -65,6 +65,13 @@ public sealed class JobApplication : IJobScoped
     /// </summary>
     public string? SourceBoard { get; init; }
 
+    /// <summary>
+    /// The first language tag of the browser the candidate applied from (<c>de-DE</c>), which their emails write dates in
+    /// (<see cref="CandidateLanguage"/>), or null for an application a recruiter added or one made before this was recorded.
+    /// A display preference only, never a signal.
+    /// </summary>
+    public string? Language { get; init; }
+
     /// <summary>The candidate's answers to the job's questions (<see cref="ApplicationForm"/>), empty ones left out.</summary>
     public IReadOnlyList<ApplicationAnswer> Answers { get; init; } = [];
 
@@ -140,6 +147,7 @@ public sealed class JobApplication : IJobScoped
             Source = intake.Source,
             SourceSite = intake.SourceSite,
             SourceBoard = intake.SourceBoard,
+            Language = CandidateLanguage.Normalize(intake.Language),
             Answers = ApplicationForm.Normalize(intake.Answers),
             PrivacyNoticeVersion = intake.PrivacyNoticeVersion,
             HoneypotFilled = intake.HoneypotFilled,
@@ -616,6 +624,7 @@ public enum TalentPoolExit
 /// <c>FutureRoles</c>: the candidate's permission to keep their details for future roles, if they gave it.
 /// <c>SourceSite</c>: the organization's own site the careers page was embedded in, if it was (<see cref="JobApplication.SourceSite"/>).
 /// <c>SourceBoard</c>: the job board whose link the candidate followed, if it was a known one (<see cref="JobApplication.SourceBoard"/>).
+/// <c>Language</c>: the language of the candidate's browser, for the dates in their emails (<see cref="JobApplication.Language"/>).
 /// </remarks>
 public sealed record ApplicationIntake(
     ApplicationSource Source,
@@ -625,7 +634,8 @@ public sealed record ApplicationIntake(
     BotCheckResult BotCheck = BotCheckResult.NotChecked,
     FutureRolesConsent? FutureRoles = null,
     string? SourceSite = null,
-    string? SourceBoard = null)
+    string? SourceBoard = null,
+    string? Language = null)
 {
     /// <summary>A recruiter added the application by hand: no answers and no careers-form checks.</summary>
     public static ApplicationIntake Recruiter { get; } = new(ApplicationSource.Recruiter, []);
