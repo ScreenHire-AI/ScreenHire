@@ -205,7 +205,9 @@ describe('start from page', () => {
   it('is read only without the right to edit templates: a line to ask an owner, and no cards or buttons', async () => {
     renderPage(userAs('Viewer'));
 
-    expect(await screen.findByText('Ask an owner or admin to make hiring templates.')).toBeInTheDocument();
+    // The reason is in the header band's line under the title, as on the New email template page, not loose on the page (S3).
+    const reason = await screen.findByText('Ask an owner or admin to make hiring templates.');
+    expect(reason.closest('[data-slot="header-band"]')).not.toBeNull();
     expect(screen.queryByRole('radio')).toBeNull();
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Use this starting point' })).toBeNull();

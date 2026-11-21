@@ -68,15 +68,20 @@
   {@render useIt()}
 {/snippet}
 
+{#snippet readOnlyReason()}
+  <!-- Read only says why and what to do (E3), in one line under the title, as on the New email template page. -->
+  <p>Ask an owner or admin to make hiring templates.</p>
+{/snippet}
+
 {#snippet useIt()}
   <Button size="lg" disabled={create.isPending || !chosenName} onclick={() => start(chosen)}>Use this starting point</Button>
 {/snippet}
 
 <main class={['flex flex-col', sidebar.isMobile && mayEdit && 'pb-28']}>
-  <HeaderBand title="New hiring template" actions={sidebar.isMobile || !mayEdit ? undefined : actions} />
+  <HeaderBand title="New hiring template" details={mayEdit ? undefined : readOnlyReason} actions={sidebar.isMobile || !mayEdit ? undefined : actions} />
   <div class="flex w-full flex-col gap-5 px-4 py-6 md:px-6">
     {#if !mayEdit}
-      <p class="text-muted-foreground">Ask an owner or admin to make hiring templates.</p>
+      <!-- The header band says why there is nothing to fill in (E3). -->
     {:else}
       <Panel label="Name" class="max-w-form">
         <label class="flex flex-col gap-1 text-body font-semibold text-secondary-foreground">

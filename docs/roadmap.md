@@ -258,8 +258,8 @@ size in the same terms as the section above. Nothing here is built. The owner pi
 13. **A role's page is a form, a webhook endpoint's is a detail.** Both are records in Settings. A role sits in the 688px
     column and an endpoint fills the window with a facts row. Say which in section 7, then match one to the other. The owner's
     call. Size S.
-14. **The New hiring template page.** Its read-only reason is a bare sentence on the page background (S3) and its name field
-    is a hand-written label instead of `Field`. The New email template page puts the same reason in the band. Size S.
+14. **The New hiring template page's name field.** It is a hand-written label around an `Input` instead of `Field`, as on
+    every other form. Its read-only reason now sits in the band, as the New email template page's does. Size S.
 
 The walk measured every dashboard route at 1440 px and all but two settings pages at 390 px, in the light theme, and the
 seven list routes in the dark theme too. It found no sideways scroll, no text under 12 px and no nested panel anywhere, and
