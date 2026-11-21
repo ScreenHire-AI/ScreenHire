@@ -184,6 +184,29 @@ describe('jobs page', () => {
     expect(await screen.findByText('No jobs yet')).toBeInTheDocument();
   });
 
+  it('draws no search or status pills over an empty list, and brings them back with the first job (design system section 7)', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([]) })));
+    renderPage();
+
+    await screen.findByText('No jobs yet');
+    // The panel keeps its title; the controls that act on rows wait for a row.
+    expect(screen.getByRole('region', { name: 'All jobs' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Search jobs')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Status' })).toBeNull();
+  });
+
+  it('keeps the search and pills when a filter hides every job', async () => {
+    vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
+    renderPage();
+    await dataRows();
+
+    await fireEvent.input(screen.getByLabelText('Search jobs'), { target: { value: 'nothing like this' } });
+
+    expect(screen.getByText('No jobs match these filters.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Search jobs')).toBeInTheDocument();
+    expect(statusFilter()).toBeInTheDocument();
+  });
+
   it('says what comes next, and leaves the four numbers out until there is a first job', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json([]) })));
     renderPage();

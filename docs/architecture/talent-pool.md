@@ -123,7 +123,8 @@ The page's other two lists are Current, the people in a hiring process now (an a
 neither saved nor at an end stage), and All, every application (`?list=all`). A saved person shows only under Saved and All.
 It is the list template: search over name, email, job
 and note; Saved from and Tag filters; columns Candidate, Rating, Note, Tags, Saved from, Saved and Last contacted; and a
-row menu with Invite to apply, Add to a job, Message, Edit note and Remove from saved. There is no Verification
+row menu with Invite to apply, Add to a job, Message, Edit note and Remove from saved. With nobody saved the panel shows only its title and
+empty state; the search and filters appear with the first saved person. There is no Verification
 column or filter, so the list never becomes one picked by level for bulk invitations (ADR-0004).
 
 **Rating** is the saved-from application's rating, read by the same code as the candidate page (`RatingReads`). A

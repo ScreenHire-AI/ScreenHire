@@ -306,6 +306,20 @@ describe('candidate table', () => {
     expect(header('Job')).not.toHaveClass('sticky');
   });
 
+  it('draws no Sort chip row on a phone for a table with no rows and no filters to show, and keeps it for a filtered one', () => {
+    stubViewport(390);
+    const bare = render(WithTooltips, { props: { component: ApplicationTable, props: { applications: [], emptyTitle: 'No candidates yet' } } });
+
+    expect(screen.getByText('No candidates yet')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Sort/ })).toBeNull();
+    bare.unmount();
+
+    const filters = createRawSnippet(() => ({ render: () => '<button type="button">Job</button>' }));
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications: [], filters } } });
+    expect(screen.getByRole('button', { name: 'Job' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Sort/ })).toBeInTheDocument();
+  });
+
   it('turns rows into two-line list items on a phone, status first and facts as pills (section 8)', () => {
     stubViewport(390);
     const rows = [
@@ -364,13 +378,13 @@ describe('candidate table', () => {
     expect(screen.queryByText(/\d+ candidates?\b/)).toBeNull();
   });
 
-  it('says why it is empty below the headers, outside the scroller, with Clear filters while filtered (E1, F1)', async () => {
+  it('says why it is empty on its own, with no column headers over nothing, and Clear filters while filtered (E1)', async () => {
     const onclearfilters = vi.fn();
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications: [], emptyText: 'No candidates in this stage.', onclearfilters } } });
 
-    const message = screen.getByText('No candidates in this stage.');
-    expect(screen.getByRole('table').parentElement).not.toContainElement(message);
-    expect(screen.queryAllByRole('cell')).toHaveLength(0);
+    expect(screen.getByText('No candidates in this stage.')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryAllByRole('columnheader')).toHaveLength(0);
     await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(onclearfilters).toHaveBeenCalledOnce();
   });

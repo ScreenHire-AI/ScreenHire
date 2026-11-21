@@ -243,6 +243,9 @@ describe('saved candidates page', () => {
     expect(await screen.findByText('Nobody saved yet')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Saved from/ })).toBeNull();
+    // Nothing to search either (design system section 7); the panel keeps its title.
+    expect(screen.queryByLabelText('Search saved candidates')).toBeNull();
+    expect(screen.getByRole('region', { name: 'Saved candidates' })).toBeInTheDocument();
   });
 
   it('says nobody matches when a search or filter hides everyone, and Clear filters brings them back', async () => {

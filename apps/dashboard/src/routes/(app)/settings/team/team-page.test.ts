@@ -40,7 +40,13 @@ const teamUpdated = { at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(
 const as = (role: Exclude<OrganizationRole, 'Custom'>): { data: { user: CurrentUser } } => ({ data: { user: userAs(role) } });
 
 // The signed-in person is the owner by default; pass the team to put them elsewhere.
-function renderPage(role: Exclude<OrganizationRole, 'Custom'>, routes: Parameters<typeof apiStub>[0] = {}, team: TeamMember[] = [owner, otherOwner, admin, recruiter]) {
+function renderPage(
+  role: Exclude<OrganizationRole, 'Custom'>,
+  routes: Parameters<typeof apiStub>[0] = {},
+  team: TeamMember[] = [owner, otherOwner, admin, recruiter],
+  // False for someone who sees only the jobs they are on.
+  seesAllJobs = true,
+) {
   const fetchMock = vi.fn(
     apiStub({
       'GET /v1/organization/members': () => Response.json(team),
@@ -53,7 +59,9 @@ function renderPage(role: Exclude<OrganizationRole, 'Custom'>, routes: Parameter
     }),
   );
   vi.stubGlobal('fetch', fetchMock);
-  render(WithQueryClient, { props: { component: Page, props: as(role) } });
+  const signedIn = as(role);
+  signedIn.data.user.organization!.seesAllJobs = seesAllJobs;
+  render(WithQueryClient, { props: { component: Page, props: signedIn } });
   return fetchMock;
 }
 
@@ -300,19 +308,63 @@ describe('team page', () => {
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
 
-    it('starts an invitation at All jobs, with Only jobs they are on one click away', async () => {
+    it('starts an invitation at every job, with one switch for Only some jobs and no two-line cards', async () => {
       const bodies: unknown[] = [];
       renderPage('Owner', {
         'POST /v1/organization/invitations': (init) => (bodies.push(JSON.parse(String(init?.body))), Response.json(invitations[0], { status: 201 })),
       });
       const sheet = await openInviteSheet();
 
-      expect(within(sheet).getByRole('radio', { name: /^All jobs/ })).toBeChecked();
+      const onlySome = within(sheet).getByRole('switch', { name: 'Only some jobs' });
+      expect(onlySome).not.toBeChecked();
+      expect(within(sheet).getByText('They see every job, including jobs added later.')).toBeInTheDocument();
+      expect(sheet.querySelector('input[name="jobAccess"]')).toBeNull();
       await fireEvent.input(within(sheet).getByLabelText('Email'), { target: { value: 'taylor@example.com' } });
-      await fireEvent.click(within(sheet).getByRole('radio', { name: /^Only jobs they're on/ }));
+      await fireEvent.click(onlySome);
+      expect(onlySome).toBeChecked();
+      expect(within(sheet).getByText(/Add them to each one after they join/)).toBeInTheDocument();
       await fireEvent.click(within(sheet).getByRole('button', { name: 'Send invitation' }));
 
       await waitFor(() => expect(bodies).toEqual([{ email: 'taylor@example.com', role: 'Viewer', customRoleId: null, jobAccess: 'HiringTeamOnly' }]));
+    });
+
+    it('lists each role on one line, with its summary cut to the width and no card around it', async () => {
+      renderPage('Owner');
+      const sheet = await openInviteSheet();
+
+      const viewer = await within(sheet).findByRole('radio', { name: /^Viewer/ });
+      const row = viewer.closest('label')!;
+      expect(row.children).toHaveLength(2);
+      expect(row).toHaveTextContent('Viewer');
+      expect(row).toHaveTextContent('Sees jobs and candidates and changes nothing.');
+    });
+
+    it('offers no switch to someone who sees only their own jobs, and sends Only jobs they are on', async () => {
+      const bodies: unknown[] = [];
+      renderPage(
+        'Admin',
+        { 'POST /v1/organization/invitations': (init) => (bodies.push(JSON.parse(String(init?.body))), Response.json(invitations[0], { status: 201 })) },
+        undefined,
+        false,
+      );
+      const sheet = await openInviteSheet();
+
+      expect(within(sheet).queryByRole('switch')).not.toBeInTheDocument();
+      expect(within(sheet).getByText(/You see only the jobs you're on/)).toBeInTheDocument();
+      await fireEvent.input(within(sheet).getByLabelText('Email'), { target: { value: 'taylor@example.com' } });
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Send invitation' }));
+
+      await waitFor(() => expect(bodies).toEqual([{ email: 'taylor@example.com', role: 'Viewer', customRoleId: null, jobAccess: 'HiringTeamOnly' }]));
+    });
+
+    it('leaves the switch out for a role that sees every job anyway', async () => {
+      renderPage('Owner');
+      const sheet = await openInviteSheet();
+
+      await fireEvent.click(within(sheet).getByRole('radio', { name: /^Admin/ }));
+
+      expect(within(sheet).getByText('Owners and Admins see all jobs.')).toBeInTheDocument();
+      expect(within(sheet).queryByRole('switch')).not.toBeInTheDocument();
     });
 
     it('asks for an email address before sending anything', async () => {
