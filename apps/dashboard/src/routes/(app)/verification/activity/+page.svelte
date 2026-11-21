@@ -8,14 +8,15 @@
   import ActivityRows from '#lib/components/verification-area/activity-rows.svelte';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { cn } from '#lib/utils.js';
-  import { activityGroupLabels, activityOutcomeLabels } from '#lib/activity-log.js';
+  import { activityGroupLabels, activityOutcomeFilters, activityOutcomeLabels } from '#lib/activity-log.js';
   import { keySourceLabels } from '#lib/ai-usage.js';
   import { canSeeUsage } from '#lib/verification-area.js';
   import type { PageProps } from './$types';
 
-  // The Activity log tab: every check that ran and every model call the AI checks made, newest first, with the provider's own
-  // request id on each call so a bill can be compared with the provider's dashboard. Everyone who sees verification reads
-  // what ran; a call's model, cost and request id, and the CSV, are for who can see AI usage. Never about a candidate.
+  // The Activity log tab: every run of the checks, newest first, one row per application per run, each opening to its checks
+  // and the model calls the AI check made, with the provider's own request id so a bill can be compared with the provider's
+  // dashboard. Everyone who sees verification reads what ran; a call's model, cost and request id, the key filter and the CSV
+  // (one line per check, every column) are for who can see AI usage. Never about a candidate.
   let { data }: PageProps = $props();
 
   const usage = $derived(canSeeUsage(data.user));
@@ -47,7 +48,7 @@
   });
   const exportUrl = $derived(getExportVerificationActivityUrl(filters));
   const groups = Object.keys(activityGroupLabels) as CheckGroup[];
-  const outcomes = Object.keys(activityOutcomeLabels) as VerificationActivityOutcome[];
+  const outcomes = activityOutcomeFilters;
 </script>
 
 <svelte:head>
@@ -85,22 +86,12 @@
     <Table.Header>
       <Table.Row>
         <Table.Head>When</Table.Head>
-        <Table.Head>Check</Table.Head>
-        <Table.Head>Group</Table.Head>
+        <Table.Head>Run</Table.Head>
         <Table.Head>Outcome</Table.Head>
-        <Table.Head>Application</Table.Head>
-        {#if usage}
-          <Table.Head>Model</Table.Head>
-          <Table.Head>Key</Table.Head>
-          <Table.Head>Provider request id</Table.Head>
-          <Table.Head class="text-right">In</Table.Head>
-          <Table.Head class="text-right">Out</Table.Head>
-          <Table.Head class="text-right">Cost</Table.Head>
-        {/if}
       </Table.Row>
     </Table.Header>
     {#key JSON.stringify(filters)}
-      <ActivityRows {filters} {usage} />
+      <ActivityRows {filters} />
     {/key}
   </Table.Root>
 </Panel>

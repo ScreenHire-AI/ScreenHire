@@ -18,7 +18,8 @@
   import { verificationStateOf, type VerificationState } from '#lib/verification.js';
   import type { PageProps } from './$types';
 
-  // The Overview tab: this month's applications by what the checks found, which groups of checks found something most, and,
+  // The Overview tab: this month's applications by what the checks found, what each of the six groups of checks found (a group
+  // that is off says Off and links to Checks, so a quiet bar is never read as a clean one), and,
   // for who can see AI usage, the month against the budget. Counts of applications only: no score, no percentage, no AI
   // assistance level, and nothing about a person (ADR-0004, design system section 16).
   let { data }: PageProps = $props();
@@ -38,18 +39,24 @@
   const verify = verificationStateOf('VerificationRecommended', false);
   const month = $derived(result ? new Intl.DateTimeFormat(locales, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(result.from)) : '');
 
+  const applicationsText = (group: VerificationGroupCount) => (group.on ? count.format(group.applications) : 'Off');
   const groupRows = $derived<BarRow[]>(
     (result?.groups ?? []).map((group) => ({
       key: group.group,
       label: group.label,
-      values: [group.applications],
-      texts: [count.format(group.applications)],
-      summary: `${group.label}: ${group.applications} ${group.applications === 1 ? 'application' : 'applications'}`,
+      values: [group.on ? group.applications : 0],
+      texts: [applicationsText(group)],
+      href: group.on ? undefined : '/verification/checks',
+      summary: group.on
+        ? `${group.label}: ${group.applications} ${group.applications === 1 ? 'application' : 'applications'}`
+        : `${group.label}: off. Turn it on in Checks.`,
     })),
   );
+  // Every group is listed; the chart has nothing to draw only when every group is on and found nothing.
+  const anything = $derived((result?.groups ?? []).some((group) => group.applications > 0 || !group.on));
   const groupColumns: ChartColumn<VerificationGroupCount>[] = [
     { id: 'group', header: 'Group of checks', text: (group) => group.label, sortBy: (group) => group.label },
-    { id: 'applications', header: 'Applications', text: (group) => count.format(group.applications), sortBy: (group) => group.applications },
+    { id: 'applications', header: 'Applications', text: applicationsText, sortBy: (group) => (group.on ? group.applications : -1), csv: applicationsText },
   ];
 </script>
 
@@ -96,10 +103,10 @@
   <div class="grid gap-5 @7xl:grid-cols-2">
     <ChartPanel
       title={`Findings by group, ${month}`}
-      basis="Applications this month in which a group of checks counted a signal towards the level."
+      basis="Applications this month in which a group of checks counted a signal towards the level. A group that is off says Off."
       tableId="verification-groups"
       columns={groupColumns}
-      rows={result.groups}
+      rows={anything ? result.groups : []}
       rowKey={(group) => group.group}
     >
       {#snippet chart()}
@@ -114,7 +121,7 @@
       <Panel title="Monthly limits">
         <div class="flex flex-col gap-4">
           <LimitsSummary {limits} cap={false} />
-          <p><a href="/verification/usage" class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">See usage</a></p>
+          <p><a href="/verification/ai-use" class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">See usage</a></p>
         </div>
       </Panel>
     {/if}

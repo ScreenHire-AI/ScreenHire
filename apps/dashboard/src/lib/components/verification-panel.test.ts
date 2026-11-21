@@ -107,11 +107,11 @@ describe('verification tab', () => {
     expect(callout).toHaveTextContent('3 observations from network and form use checks back each other up.');
     expect(callout).toHaveClass('border-status-verify-mark');
     // A panel for each group that has findings, in the groups' order, titled by the group and nothing else.
-    expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent?.trim())).toEqual(['Verification', 'Network', 'Documents', 'Answers', 'Form use']);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent?.trim())).toEqual(['Verification', 'Network', 'Documents', 'Answers', 'Form activity']);
     expect(group('Network').querySelectorAll('svg[data-icon="globe"]')).toHaveLength(0);
     const codes = (name: string) => [...group(name).querySelectorAll('[data-signal]')].map((item) => item.getAttribute('data-signal'));
     expect(codes('Network')).toEqual(['NET_DATACENTER_IP', 'NET_ANON_PROXY']);
-    expect(codes('Form use')).toEqual(['AUTO_SUBMIT_VELOCITY', 'AUTO_WEBDRIVER']);
+    expect(codes('Form activity')).toEqual(['AUTO_SUBMIT_VELOCITY', 'AUTO_WEBDRIVER']);
     expect(codes('Documents')).toEqual(['CNT_PROMPT_INJECTION']);
     expect(codes('Answers')).toEqual(['CNT_NEAR_DUPLICATE_ANSWER']);
     // No tag on a finding that counts, and nothing that says "nothing found" outside a tile.
@@ -139,7 +139,7 @@ describe('verification tab', () => {
     expect(tile('Documents')).toHaveTextContent('Documents 1 note');
     expect(tile('Answers')).toHaveTextContent('Answers 1 note');
     expect(tile('Duplicates')).toHaveTextContent('Duplicates Nothing found');
-    expect(tile('FormUse')).toHaveTextContent('Form use 2 found');
+    expect(tile('FormUse')).toHaveTextContent('Form activity 2 found');
     // A group that found nothing is a tile and not a link; one that found something links to its panel.
     expect(tile('Contact').querySelector('a')).toBeNull();
     expect(tile('Network').querySelector('a')).toHaveAttribute('href', '#verification-group-network');
@@ -213,31 +213,26 @@ describe('verification tab', () => {
     expect(row.querySelector('.sr-only')).toHaveTextContent('No indicators. No action needed.');
   });
 
-  it('is one line when nothing was found, with the checks one click away and no empty lines for the groups', async () => {
+  it('says a clear result with a check and "Nothing unusual found", and shows the six groups as the same tiles a flagged result gets', async () => {
     serve(genuineVerification());
     renderPanel();
 
     const summary = await assessed();
-    // A calm result is the summary then its next step, quiet, with no map and no panel for any group.
-    const line = summary.querySelector('[data-summary]')!;
-    expect(line.tagName).toBe('P');
-    expect(line).toHaveClass('text-muted-foreground');
-    expect(line).toHaveTextContent('Nothing unusual in the checks that ran. No action needed.');
-    expect(line.querySelector('[data-next-step]')).toHaveTextContent('No action needed.');
-    expect(screen.queryByRole('list', { name: 'Check groups' })).toBeNull();
+    const clear = summary.querySelector<HTMLElement>('[data-clear]')!;
+    expect(clear).toHaveTextContent('Nothing unusual found');
+    expect(clear.querySelector('svg')).toBeInTheDocument();
+    expect(clear.querySelector('[data-next-step]')).toHaveTextContent('No action needed.');
+    // Reassuring, never a verdict on the person.
+    expect(summary).not.toHaveTextContent(/verified|genuine/i);
+    // Every group is a tile, each saying what it found; no panel for any group, and no hidden list of what was checked.
+    const tiles = [...screen.getByRole('list', { name: 'Check groups' }).querySelectorAll<HTMLElement>('[data-group]')];
+    expect(tiles.map((item) => item.getAttribute('data-group'))).toEqual(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']);
+    expect(tiles.every((item) => item.textContent?.includes('Nothing found'))).toBe(true);
+    expect(tile('FormUse')).toHaveTextContent('Form activity');
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(1);
-    expect(summary).not.toHaveTextContent(/nothing found/i);
-    // What was checked is collapsed and names the groups with their checks, and says nothing about what they mean.
-    const checked = summary.querySelector<HTMLDetailsElement>('[data-checked]')!;
-    expect(checked.open).toBe(false);
-    expect(checked.querySelector('summary')).toHaveTextContent('What was checked');
-    const names = [...checked.querySelectorAll('li')].map((item) => item.querySelector('span')?.textContent);
-    expect(names).toEqual(['Network:', 'Contact details:', 'Documents:', 'Answers:', 'Duplicates:', 'Form use:']);
-    // Nothing to dismiss, and the audit lines are the page's last, outside the panel.
+    expect(summary.querySelector('[data-checked]')).toBeNull();
+    expect(screen.queryByText('What was checked')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
-    expect(summary.querySelector('[data-audit]')).toBeNull();
-    expect(decisions().querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
-    expect(decisions()).toHaveTextContent('No automated decision has been made. Every action is logged.');
   });
 
   it('says the AI checks were paused at the cap, in words that put nothing on the candidate', async () => {
@@ -245,36 +240,27 @@ describe('verification tab', () => {
     serve({ ...genuineVerification(), checkGroups: checkGroups({ Answers: { state: 'Paused', note } }) });
     renderPanel();
 
-    const summary = await assessed();
-    const line = summary.querySelector<HTMLElement>('[data-not-run] li[data-group="Answers"]');
-    expect(line).toHaveTextContent('Answers AI checks paused');
-    expect(line).toHaveTextContent(note);
-    expect(line!.querySelector('[data-status-icon]')).toBeInTheDocument();
-    expect(summary).not.toHaveTextContent(/%|score/i);
+    await assessed();
+    expect(tile('Answers')).toHaveTextContent('Answers AI checks paused');
+    expect(tile('Answers').querySelector('[data-status-icon]')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Check groups' })).not.toHaveTextContent(/%|score/i);
   });
 
-  it('says outright which groups did not run, so a quiet result is never read as a clean one', async () => {
+  it('says on its tile which group was off or did not run, so a quiet result is never read as a clean one', async () => {
     serve({
       ...genuineVerification(),
       checkGroups: checkGroups({
         Duplicates: { state: 'TurnedOff', note: "Duplicates checks are turned off in this organization's settings." },
         Network: { state: 'NotChecked', note: 'Added by hand, so there was no careers form for these checks to read.' },
-        Contact: { note: 'A shared email address was not counted because its domain is on the organization\'s trusted list.' },
       }),
     });
     renderPanel();
 
-    const summary = await assessed();
-    const lines = [...summary.querySelectorAll<HTMLElement>('[data-not-run] li')];
-    expect(lines.map((item) => item.getAttribute('data-group'))).toEqual(['Network', 'Contact', 'Duplicates']);
-    expect(lines[0]).toHaveTextContent('Network Not checked Added by hand, so there was no careers form for these checks to read.');
-    expect(lines[1]).toHaveTextContent('Contact details Not counted');
-    expect(lines[1]).toHaveTextContent('trusted list');
-    expect(lines[2]).toHaveTextContent("Duplicates Turned off Duplicates checks are turned off in this organization's settings.");
-    expect(lines[0]!.querySelector('[data-status-icon]')).toBeInTheDocument();
-    // What was checked names only the groups that ran.
-    const names = [...summary.querySelectorAll('[data-checked] li')].map((item) => item.querySelector('span')?.textContent);
-    expect(names).toEqual(['Contact details:', 'Documents:', 'Answers:', 'Form use:']);
+    await assessed();
+    expect(tile('Network')).toHaveTextContent('Network Did not run');
+    expect(tile('Duplicates')).toHaveTextContent('Duplicates Off');
+    expect(tile('Contact')).toHaveTextContent('Contact details Nothing found');
+    expect(tile('Network').querySelector('[data-status-icon]')).toBeInTheDocument();
   });
 
   it('shows the map for a calm level that still has notes, with the next step as one quiet line', async () => {
@@ -321,25 +307,30 @@ describe('verification tab', () => {
     await assessed();
     expect(within(group('Documents')).queryByRole('button', { name: /Expand all|Collapse all/ })).not.toBeInTheDocument();
     expect(within(group('Answers')).queryByRole('button', { name: /Expand all|Collapse all/ })).not.toBeInTheDocument();
-    const open = () => [...group('Form use').querySelectorAll<HTMLDetailsElement>('[data-signal] details')];
+    const open = () => [...group('Form activity').querySelectorAll<HTMLDetailsElement>('[data-signal] details')];
     expect(open().some((details) => details.open)).toBe(false);
-    await fireEvent.click(within(group('Form use')).getByRole('button', { name: 'Expand all' }));
+    await fireEvent.click(within(group('Form activity')).getByRole('button', { name: 'Expand all' }));
     await waitFor(() => expect(open().every((details) => details.open)).toBe(true));
-    await fireEvent.click(within(group('Form use')).getByRole('button', { name: 'Collapse all' }));
+    await fireEvent.click(within(group('Form activity')).getByRole('button', { name: 'Collapse all' }));
     await waitFor(() => expect(open().some((details) => details.open)).toBe(false));
   });
 
-  it('puts the decision line and the audit line last on the page, under every panel and in none of them (W10)', async () => {
+  it('says when it was checked in the panel header, with the ruleset in its tooltip, and closes the panel on the decision line (W10)', async () => {
     serve(botVerification());
     renderPanel();
 
-    await assessed();
+    const summary = await assessed();
     expect(document.querySelectorAll('[data-audit]')).toHaveLength(1);
-    expect(decisions().querySelector('[data-audit]')).toHaveTextContent(/^Assessed .+Ruleset \S+$/);
+    const checked = summary.querySelector<HTMLElement>('[data-audit]')!;
+    expect(checked).toHaveTextContent(/^Checked .+/);
+    // The ruleset is one hover or focus away, never a line of its own on the page.
+    expect(screen.queryByText(/^Ruleset /)).not.toBeInTheDocument();
+    await fireEvent.focus(within(checked).getByText('Checked'));
+    expect(await screen.findByText(`Ruleset ${botVerification().authenticity!.rulesetVersion}`)).toBeInTheDocument();
+    // The decision line is the panel's last, inside it, and in no group's panel.
     expect(decisions()).toHaveTextContent('No automated decision has been made. Every action is logged.');
-    expect(decisions().closest('section, [role="region"]')).toBeNull();
-    expect(group('Form use')).not.toHaveTextContent('No automated decision');
-    expect(decisions()).toBe(document.querySelector('[data-verification]')!.lastElementChild);
+    expect(decisions().closest('[data-verification-summary]')).toBe(summary);
+    expect(group('Form activity')).not.toHaveTextContent('No automated decision');
   });
 
   it('shows a trusted-domain or network note in the group it concerns', async () => {
@@ -349,7 +340,7 @@ describe('verification tab', () => {
 
     await assessed();
     expect(group('Network')).toHaveTextContent('network the organization trusts');
-    expect(group('Form use')).not.toHaveTextContent('trusts');
+    expect(group('Form activity')).not.toHaveTextContent('trusts');
   });
 
   it('offers no reject control, no score and no percentage, no review log and no review note', async () => {
@@ -618,9 +609,9 @@ describe('verification tab', () => {
 
     expect(await screen.findByText(/Checks are still running/)).toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Check groups' })).not.toBeInTheDocument();
-    // The decision line is still the page's last, outside the panel.
+    // The decision line closes the panel here too.
     expect(decisions()).toHaveTextContent('No automated decision has been made. Every action is logged.');
-    expect(summaryPanel()).not.toHaveTextContent('No automated decision');
+    expect(summaryPanel()).toContainElement(decisions());
   });
 
   it('tolerates an API that sends no check groups', async () => {
@@ -628,6 +619,6 @@ describe('verification tab', () => {
     renderPanel();
 
     const summary = await assessed();
-    expect(summary.querySelector('[data-summary]')).toHaveTextContent('Nothing unusual in the checks that ran. No action needed.');
+    expect(summary.querySelector('[data-summary]')).toHaveTextContent('Nothing unusual found');
   });
 });

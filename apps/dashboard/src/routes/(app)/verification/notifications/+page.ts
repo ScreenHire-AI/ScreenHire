@@ -1,7 +1,5 @@
-import { guardTab } from '../tab-guard.js';
+import { moveTab } from '../tab-guard.js';
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = async ({ parent }) => {
-  const { user } = await parent();
-  guardTab('notifications', user);
-};
+// This tab merged into another (movedTabs in #lib/verification-area.ts); old links land on the tab that holds its settings now.
+export const load: PageLoad = ({ url }) => moveTab('/verification/notifications', url);

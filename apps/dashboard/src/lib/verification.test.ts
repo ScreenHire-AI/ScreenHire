@@ -109,14 +109,18 @@ describe('the Verification column sort order', () => {
 });
 
 describe('verification saved views', () => {
-  it('"Needs review" holds authenticity above its lowest level, until a reviewer dismisses it', () => {
-    expect([clear, review, verify, pending, dismissed].filter(needsReview)).toEqual([review, verify]);
-    expect([clear, review, verify, pending, dismissed].filter((a) => findSavedView('needs-review')!.matches(a, now))).toEqual([review, verify]);
+  it('"To review" holds Review only, until a reviewer dismisses it', () => {
+    expect([clear, review, verify, pending, dismissed].filter(needsReview)).toEqual([review]);
+    expect([clear, review, verify, pending, dismissed].filter((a) => findSavedView('needs-review')!.matches(a, now))).toEqual([review]);
+    expect(findSavedView('needs-review')!.authenticity).toBe('ReviewSuggested');
   });
 
-  it('"Verification suggested" holds the highest level only', () => {
-    expect([clear, review, verify, pending, dismissed].filter(verificationRecommended)).toEqual([verify]);
+  it('"To verify" holds Verify only, so the two views never overlap', () => {
+    const all = [clear, review, verify, pending, dismissed];
+    expect(all.filter(verificationRecommended)).toEqual([verify]);
     expect(findSavedView('verification-recommended')!.status).toBe('verification');
+    expect(findSavedView('verification-recommended')!.authenticity).toBe('VerificationRecommended');
+    expect(all.filter((a) => needsReview(a) && verificationRecommended(a))).toEqual([]);
   });
 
   it('ignores AI assistance, which is information rather than a queue', () => {
@@ -164,8 +168,8 @@ describe('check groups', () => {
     expect(groupStateText(group({ state: 'InformationOnly', notes: 1 }))).toBe('1 note');
     expect(groupStateText(group({ state: 'InformationOnly', notes: 3 }))).toBe('3 notes');
     expect(groupStateText(group({ state: 'NothingFound' }))).toBe('Nothing found');
-    expect(groupStateText(group({ state: 'NotChecked' }))).toBe('Not checked');
-    expect(groupStateText(group({ state: 'TurnedOff' }))).toBe('Turned off');
+    expect(groupStateText(group({ state: 'NotChecked' }))).toBe('Did not run');
+    expect(groupStateText(group({ state: 'TurnedOff' }))).toBe('Off');
     expect(groupStateText(group({ state: 'Paused' }))).toBe('AI checks paused');
   });
 

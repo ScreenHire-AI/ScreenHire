@@ -212,7 +212,7 @@ describe('billing page', () => {
       await screen.findByText('Active');
       expect(within(panel()).getByText(/Bring your own key and this charge goes away\./)).toBeInTheDocument();
       expect(within(panel()).getByRole('link', { name: 'See every call' })).toHaveAttribute('href', '/verification/activity');
-      expect(within(panel()).getByRole('link', { name: 'Use your own key' })).toHaveAttribute('href', '/verification');
+      expect(within(panel()).getByRole('link', { name: 'Use your own key' })).toHaveAttribute('href', '/verification/ai-use');
     });
 
     it('tells a trial what it includes and that the rest comes on its first invoice', async () => {
@@ -318,7 +318,7 @@ describe('billing page', () => {
 
       await screen.findByText('Active');
       expect(charges()).toEqual(['Starter $49.00', 'AI use, 41 AI calls $3.74', 'Total so far $52.74']);
-      expect(within(panel()).getByRole('link', { name: '41 AI calls' })).toHaveAttribute('href', '/verification/usage');
+      expect(within(panel()).getByRole('link', { name: '41 AI calls' })).toHaveAttribute('href', '/verification/ai-use');
       expect(within(panel()).getByText(/Next invoice about/)).toHaveTextContent('Next invoice about $52.74 on Dec 5, 2026.');
       // The next payment is said once, here, not again under the plan (W7).
       expect(screen.queryByText('Next payment', { selector: 'dt' })).toBeNull();

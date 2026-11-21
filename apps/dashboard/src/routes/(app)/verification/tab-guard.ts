@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { verificationTab, type VerificationTabValue } from '#lib/verification-area.js';
+import { movedTabs, verificationTab, type VerificationTabValue } from '#lib/verification-area.js';
 import type { CurrentUser } from '@screenhire/api-client';
 
 /**
@@ -8,4 +8,12 @@ import type { CurrentUser } from '@screenhire/api-client';
  */
 export function guardTab(value: VerificationTabValue, user: CurrentUser | null | undefined) {
   if (!verificationTab(value).allowed(user)) redirect(307, '/verification');
+}
+
+/**
+ * The address of a tab that merged into another sends people to the tab that holds its settings now, with the query string;
+ * that tab's own guard decides whether their role may open it. A load cannot read the hash.
+ */
+export function moveTab(from: keyof typeof movedTabs, url: URL): never {
+  redirect(307, `${movedTabs[from]}${url.search}`);
 }

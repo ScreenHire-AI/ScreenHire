@@ -96,9 +96,9 @@ export function groupStateText(group: CheckGroupView): string {
     case 'NothingFound':
       return 'Nothing found';
     case 'NotChecked':
-      return 'Not checked';
+      return 'Did not run';
     case 'TurnedOff':
-      return 'Turned off';
+      return 'Off';
     case 'Paused':
       return 'AI checks paused';
   }
@@ -206,12 +206,13 @@ export function overviewStepOf(state: VerificationState): string | undefined {
   return undefined;
 }
 
-/** Authenticity above its lowest level and not dismissed by a reviewer: the "Needs review" queue. */
+/** Review, not dismissed by a reviewer: the "To review" queue. Verify is "To verify"; the two never overlap. */
 export function needsReview(application: ApplicationSummary): boolean {
   const verification = application.verification;
-  return Boolean(verification && verification.authenticity !== 'NoConcerns' && !verification.authenticityDismissed);
+  return Boolean(verification && verification.authenticity === 'ReviewSuggested' && !verification.authenticityDismissed);
 }
 
+/** Verify, not dismissed by a reviewer: the "To verify" queue. */
 export function verificationRecommended(application: ApplicationSummary): boolean {
   const verification = application.verification;
   return Boolean(verification && verification.authenticity === 'VerificationRecommended' && !verification.authenticityDismissed);
