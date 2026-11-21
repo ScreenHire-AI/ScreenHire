@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
 using ScreenHire.IntegrationTests.Messaging;
@@ -79,6 +80,31 @@ internal static class VerificationSupport
             "every analyzer to run, content forensics included",
             Ct);
         return await AssessedAsync(tenant, applicationId);
+    }
+
+    /// <summary>
+    /// Records one call on ScreenHire's key that cost <paramref name="cost"/> dollars this month, so a budget or cap in dollars is passed
+    /// by a known amount rather than by what the fake model's answers happen to cost (well under a cent a check).
+    /// </summary>
+    public static async Task SpendAsync(AppHostFixture fixture, Guid organizationId, decimal cost)
+    {
+        await using var db = await TenantDbAsync(fixture, organizationId);
+        db.AiUsageCalls.Add(new AiUsageCall
+        {
+            OrganizationId = organizationId,
+            OccurredAt = DateTimeOffset.UtcNow,
+            CheckName = AiUsageChecks.ConsistencyComparison,
+            Provider = "Fake",
+            Model = ScreenHire.Infrastructure.Verification.Llm.FakeConsistencyChatClient.ModelId,
+            KeySource = AiKeySource.BuiltIn,
+            ProviderRequestId = $"seed-{Guid.NewGuid():N}",
+            InputTokens = 1000,
+            OutputTokens = 0,
+            CostBasis = AiCostBasis.Priced,
+            Cost = cost,
+            Outcome = AiCallOutcome.Ok,
+        });
+        await db.SaveChangesAsync(Ct);
     }
 
     public static async Task<ScreenHireDbContext> TenantDbAsync(AppHostFixture fixture, Guid organizationId)

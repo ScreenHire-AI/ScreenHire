@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Application.Verification;
 using ScreenHire.Application.Verification.Content;
+using ScreenHire.Domain.Billing;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Privacy;
 using ScreenHire.Domain.Verification;
@@ -41,6 +43,9 @@ public sealed class AiUsageTests(AppHostFixture fixture)
 
     // The fake model's prices in the API's Development settings (1.00 in, 4.00 out per million tokens) at the usual mix.
     private static readonly decimal FakeBlendedPerMillion = AiUsageMix.BlendedPerMillion(1.00m, 4.00m);
+
+    // The shared stack runs the billing sandbox, so ScreenHire's key is billed at the shipped margin.
+    private static readonly decimal Margin = AiDefaults.Shipped.Margin;
 
     [Fact]
     public async Task Every_call_of_a_check_is_one_row_with_the_providers_id_tokens_cost_and_key_and_the_rows_add_up_to_the_check()
@@ -86,21 +91,26 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         var summary = (await tenant.GetAsync($"{Usage}/summary")).Expect(HttpStatusCode.OK);
         summary.At("totals.calls").GetInt32().Should().Be(rows.Count);
         summary.At("totals.inputTokens").GetInt64().Should().Be(rows.Sum(r => r.InputTokens!.Value));
-        summary.At("totals.cost").GetDecimal().Should().Be(rows.Sum(r => r.Cost!.Value));
+        var billed = rows.Sum(r => AiCharge.Billed(r.Cost, r.KeySource, Margin)!.Value);
+        billed.Should().BeGreaterThan(rows.Sum(r => r.Cost!.Value), "ScreenHire's key shows the amount billed, never the provider's price");
+        summary.At("totals.cost").GetDecimal().Should().Be(billed);
+        summary.At("byModel.0.cost").GetDecimal().Should().Be(billed);
+        summary.At("byDay").EnumerateArray().Sum(d => d.GetProperty("builtInCost").GetDecimal()).Should().Be(billed);
         summary.At("totals.callsWithUnknownCost").GetInt32().Should().Be(0);
         summary.At("byModel").GetArrayLength().Should().Be(1);
         summary.Text("byModel.0.keySource").Should().Be("BuiltIn");
         summary.Text("byKeySource.0.keySource").Should().Be("BuiltIn");
         summary.At("byDay").GetArrayLength().Should().BeGreaterThanOrEqualTo(1);
-        // The default budget is in dollars, so what was used is too: the tokens at the fake model's price and the usual mix.
+        // The budget counts the same billed dollars, and the Billing page's AI line is the same amount: one amount everywhere.
         summary.Text("limits.effectiveBudget.unit").Should().Be("Money");
-        summary.At("limits.effectiveBudget.used").GetDecimal().Should().Be(
-            AiUsageMix.EstimateInDollars(rows.Sum(r => r.InputTokens!.Value + r.OutputTokens!.Value), FakeBlendedPerMillion));
+        summary.At("limits.effectiveBudget.used").GetDecimal().Should().Be(billed);
+        (await tenant.GetAsync("/v1/organization/billing")).Expect(HttpStatusCode.OK).At("aiUsage.charge").GetDecimal().Should().Be(billed);
 
         var first = (await tenant.GetAsync($"{Usage}/calls?limit=1")).Expect(HttpStatusCode.OK);
         first.Count("calls").Should().Be(1);
         first.Id("calls.0.id").Should().Be(rows[0].Id, "newest first");
         first.Text("calls.0.providerRequestId").Should().Be(rows[0].ProviderRequestId);
+        first.At("calls.0.cost").GetDecimal().Should().Be(AiCharge.Billed(rows[0].Cost, AiKeySource.BuiltIn, Margin)!.Value);
         var cursor = first.Id("nextBefore");
         var second = (await tenant.GetAsync($"{Usage}/calls?limit=1&before={cursor}")).Expect(HttpStatusCode.OK);
         second.Id("calls.0.id").Should().Be(rows[1].Id);
@@ -121,6 +131,8 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         lines[0].Should().Be("id,occurred_at,check,application_id,provider,model,key_source,provider_request_id,input_tokens,output_tokens,cost_usd,cost_basis,duration_ms,outcome,error_kind");
         lines.Length.Should().Be(rows.Count + 1);
         csv.Should().Contain(rows[0].ProviderRequestId!);
+        var newest = lines[1].Split(',');
+        decimal.Parse(newest[10], System.Globalization.CultureInfo.InvariantCulture).Should().Be(AiCharge.Billed(rows[0].Cost, AiKeySource.BuiltIn, Margin)!.Value);
     }
 
     [Fact]
@@ -149,36 +161,86 @@ public sealed class AiUsageTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task The_default_budget_and_cap_are_dollars_at_the_models_price_and_the_organizations_own_unit_stands_once_it_sets_one()
+    public async Task Limits_count_billed_dollars_and_a_limit_stored_in_tokens_shows_converted_or_in_tokens_where_the_key_has_no_price()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
-        // The deployment's default is 2,000,000 tokens each. The fake model costs 1.00 in and 4.00 out per million tokens, so at the
-        // usual 80/20 mix a million tokens cost 1.60 dollars.
-        FakeBlendedPerMillion.Should().Be(1.6m);
-        // A million tokens that cost 1.25 at their own mix: what was used is the tokens at the usual mix, so it agrees with the share.
+        // A million tokens that cost 1.25 at the provider's price, billed at 1.50 on ScreenHire's key.
         await SeedAsync(tenant.OrganizationId, DateTimeOffset.UtcNow, 1_000_000, cost: 1.25m);
+        var perMillion = FakeBlendedPerMillion * (1m + Margin);
 
+        // The deployment's default is 2,000,000 tokens each: converted once at the billed price of the usual mix, then counted in billed dollars.
         foreach (var path in new[] { $"{Usage}/summary", Settings })
         {
             var limits = (await tenant.GetAsync(path)).Expect(HttpStatusCode.OK).At("limits");
+            limits.GetProperty("priced").GetBoolean().Should().BeTrue();
             foreach (var name in new[] { "effectiveBudget", "effectiveCap" })
             {
                 var limit = limits.GetProperty(name);
                 limit.GetProperty("unit").GetString().Should().Be("Money", $"{path} {name}");
                 limit.GetProperty("isDefault").GetBoolean().Should().BeTrue();
-                limit.GetProperty("amount").GetDecimal().Should().Be(3.2m, "2,000,000 tokens at 1.60 dollars per million");
-                limit.GetProperty("used").GetDecimal().Should().Be(1.6m, "a million tokens at 1.60, half of $3.20 as the share is half");
-                limit.GetProperty("percent").GetInt32().Should().Be(50, "the cap is still counted in tokens, so the share is the token one");
+                limit.GetProperty("amount").GetDecimal().Should().Be(AiUsageMix.LimitInDollars(2_000_000, perMillion));
+                limit.GetProperty("used").GetDecimal().Should().Be(1.50m, "the billed amount, the same the Usage tab shows");
+                limit.GetProperty("percent").GetInt32().Should().Be((int)Math.Floor(150m / AiUsageMix.LimitInDollars(2_000_000, perMillion)), "the share is of billed dollars");
             }
         }
 
-        // Once an Owner sets a budget, their unit stands; the cap they left alone is still the default, in dollars.
-        var saved = (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 4_000_000 })).Expect(HttpStatusCode.OK);
-        saved.Text("effectiveBudget.unit").Should().Be("Tokens");
-        saved.At("effectiveBudget.amount").GetDecimal().Should().Be(4_000_000m);
+        // A budget is set in dollars; the cap left alone is still the default.
+        var saved = (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["budget"] = 4 })).Expect(HttpStatusCode.OK);
+        saved.Text("unit").Should().Be("Money");
+        saved.At("effectiveBudget.amount").GetDecimal().Should().Be(4m);
         saved.At("effectiveBudget.isDefault").GetBoolean().Should().BeFalse();
-        saved.Text("effectiveCap.unit").Should().Be("Money");
+        saved.At("effectiveBudget.percent").GetInt32().Should().Be(37);
         saved.At("effectiveCap.isDefault").GetBoolean().Should().BeTrue();
+
+        // A budget stored in tokens before limits were in dollars stays valid, and shows converted at the key's billed price.
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId))
+        {
+            var settings = await db.VerificationSettings.SingleAsync(Ct);
+            settings.BudgetUnit = UsageUnit.Tokens;
+            settings.MonthlyBudget = 1_000_000;
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var legacy = (await tenant.GetAsync($"{Usage}/summary")).Expect(HttpStatusCode.OK).At("limits");
+        legacy.GetProperty("unit").GetString().Should().Be("Tokens", "the stored row is untouched");
+        legacy.GetProperty("effectiveBudget").GetProperty("unit").GetString().Should().Be("Money");
+        legacy.GetProperty("effectiveBudget").GetProperty("amount").GetDecimal().Should().Be(AiUsageMix.LimitInDollars(1_000_000, perMillion));
+        legacy.GetProperty("effectiveBudget").GetProperty("isDefault").GetBoolean().Should().BeFalse();
+
+        // An own key with no prices has nothing to convert at, so the stored token budget shows in tokens and counts tokens.
+        var ownKey = new JsonObject { ["llmConsistencyCheck"] = true, ["modelSource"] = "OwnKey", ["provider"] = "OpenRouter", ["model"] = "vendor/model", ["apiKey"] = "own-key-limits-test" };
+        (await tenant.PutAsync(Settings, ownKey)).Expect(HttpStatusCode.OK);
+        var unpriced = (await tenant.GetAsync($"{Usage}/summary")).Expect(HttpStatusCode.OK).At("limits");
+        unpriced.GetProperty("priced").GetBoolean().Should().BeFalse();
+        unpriced.GetProperty("effectiveBudget").GetProperty("unit").GetString().Should().Be("Tokens");
+        unpriced.GetProperty("effectiveBudget").GetProperty("amount").GetDecimal().Should().Be(1_000_000m);
+        unpriced.GetProperty("effectiveBudget").GetProperty("used").GetDecimal().Should().Be(1_000_000m);
+    }
+
+    [Fact]
+    public async Task An_own_keys_calls_show_the_providers_price_and_ScreenHires_key_the_billed_amount()
+    {
+        using var tenant = await fixture.SignedInWithOrganizationAsync();
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId))
+        {
+            var own = Row(tenant.OrganizationId, DateTimeOffset.UtcNow, 1000, cost: 0.40m);
+            db.AiUsageCalls.AddRange(Row(tenant.OrganizationId, DateTimeOffset.UtcNow, 1000, cost: 0.40m), new AiUsageCall
+            {
+                OrganizationId = own.OrganizationId, OccurredAt = own.OccurredAt, CheckName = own.CheckName, Provider = "OpenRouter", Model = "vendor/model",
+                KeySource = AiKeySource.OwnKey, ProviderRequestId = own.ProviderRequestId, InputTokens = 1000, OutputTokens = 0,
+                CostBasis = AiCostBasis.Priced, Cost = 0.40m, Outcome = AiCallOutcome.Ok,
+            });
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var summary = (await tenant.GetAsync($"{Usage}/summary")).Expect(HttpStatusCode.OK);
+        var byKey = summary.At("byKeySource").EnumerateArray().ToDictionary(k => k.GetProperty("keySource").GetString()!, k => k.GetProperty("cost").GetDecimal());
+        byKey["BuiltIn"].Should().Be(0.48m, "billed: the provider's price plus the margin");
+        byKey["OwnKey"].Should().Be(0.40m, "the provider's price, which the own key's provider charges and ScreenHire never bills");
+        summary.At("totals.cost").GetDecimal().Should().Be(0.88m);
+        var billing = (await tenant.GetAsync("/v1/organization/billing")).Expect(HttpStatusCode.OK);
+        billing.At("aiUsage.charge").GetDecimal().Should().Be(0.48m, "the Billing page charges ScreenHire's key only");
+        billing.At("aiUsage.ownKeyCalls").GetInt32().Should().Be(1);
     }
 
     [Fact]
@@ -188,7 +250,7 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         using var admin = await fixture.InviteAndJoinAsync(owner, "Admin");
         using var recruiter = await fixture.InviteAndJoinAsync(owner, "Recruiter");
         using var viewer = await fixture.InviteAndJoinAsync(owner, "Viewer");
-        var limits = new JsonObject { ["unit"] = "Tokens", ["budget"] = 1000 };
+        var limits = new JsonObject { ["budget"] = 1000 };
 
         foreach (var reader in new[] { owner, admin })
         {
@@ -224,25 +286,27 @@ public sealed class AiUsageTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task The_limits_are_validated_in_their_unit_and_dollars_with_an_own_key_need_its_prices()
+    public async Task The_limits_are_dollars_to_the_cent_and_with_an_own_key_need_its_prices()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
 
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 12.5m })).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("budget");
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["cap"] = 2_000_000_000L })).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("cap");
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Money", ["budget"] = 10.005m })).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("budget");
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Money", ["budget"] = 50, ["cap"] = 120.5m })).Expect(HttpStatusCode.OK)
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["budget"] = 10.005m })).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("budget");
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 0 })).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("cap");
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 2_000_000 })).Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("cap");
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["budget"] = 50, ["cap"] = 120.5m })).Expect(HttpStatusCode.OK)
             .At("effectiveCap.amount").GetDecimal().Should().Be(120.5m);
 
         var ownKey = new JsonObject { ["llmConsistencyCheck"] = true, ["modelSource"] = "OwnKey", ["provider"] = "OpenRouter", ["model"] = "vendor/model", ["apiKey"] = "own-key-usage-test" };
         (await tenant.PutAsync(Settings, ownKey)).Expect(HttpStatusCode.OK).Text("provider").Should().Be("OpenRouter");
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Money", ["cap"] = 5 })).Expect(HttpStatusCode.BadRequest)
-            .ProblemKeys().Should().Equal("unit");
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 5 })).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Equal("cap");
+        // Removing both needs no price.
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject())).Expect(HttpStatusCode.OK);
         ownKey["ownKeyInputPrice"] = 1m;
         ownKey["ownKeyOutputPrice"] = 2m;
         ownKey["apiKey"] = null;
         (await tenant.PutAsync(Settings, ownKey)).Expect(HttpStatusCode.OK);
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Money", ["cap"] = 5 })).Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 5 })).Expect(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -275,12 +339,13 @@ public sealed class AiUsageTests(AppHostFixture fixture)
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
         (await tenant.PutAsync(Settings, new JsonObject { ["llmConsistencyCheck"] = true })).Expect(HttpStatusCode.OK);
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["cap"] = 1 })).Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 0.01m })).Expect(HttpStatusCode.OK);
         var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, tenant, SystemTemplates.SoftwareEngineerVersion2);
-        // The cap is read before a check starts, so the first application runs and uses the cap up.
+        // The cap is read before a check starts, so the first application runs. A dollar of use then passes the cent's cap.
         var first = SyntheticApplicants.GenuineHuman;
         (await VerificationSupport.SettledAsync(fixture, tenant, await VerificationSupport.ApplyAsync(fixture, slug, jobId, first, answers: first.Answers)))
             .Text("consistencyCheck.status").Should().Be("Completed");
+        await VerificationSupport.SpendAsync(fixture, tenant.OrganizationId, 1m);
         int callsBefore;
         await using (var before = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId))
         {
@@ -300,7 +365,7 @@ public sealed class AiUsageTests(AppHostFixture fixture)
             (await db.AiUsageCalls.CountAsync(Ct)).Should().Be(callsBefore, "a paused check calls no model");
         }
 
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["cap"] = 100_000_000L })).Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 100_000 })).Expect(HttpStatusCode.OK);
 
         ApiResult? resumed = null;
         await WolverineStore.WaitUntilAsync(
@@ -323,8 +388,9 @@ public sealed class AiUsageTests(AppHostFixture fixture)
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
         (await tenant.PutAsync(Settings, new JsonObject { ["llmConsistencyCheck"] = true })).Expect(HttpStatusCode.OK);
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["cap"] = 1 })).Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 0.01m })).Expect(HttpStatusCode.OK);
         var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, tenant, SystemTemplates.SoftwareEngineerVersion2);
+        await VerificationSupport.SpendAsync(fixture, tenant.OrganizationId, 1m);
         foreach (var applicant in new[] { SyntheticApplicants.GenuineHuman, SyntheticApplicants.HonestAiAssisted })
         {
             await VerificationSupport.SettledAsync(fixture, tenant, await VerificationSupport.ApplyAsync(fixture, slug, jobId, applicant, answers: applicant.Answers));
@@ -334,7 +400,7 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         bell.Text("items.0.kind").Should().Be("ai-usage-cap");
         bell.Text("items.0.link").Should().Be("/verification/usage");
 
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["cap"] = 100_000_000L })).Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 100_000 })).Expect(HttpStatusCode.OK);
         await WolverineStore.WaitUntilAsync(
             async () => (await tenant.NotificationsAsync()).Count("items") == 0, "the cap notification to be cleared when the cap was raised", Ct);
     }
@@ -390,7 +456,8 @@ public sealed class AiUsageTests(AppHostFixture fixture)
             await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);
             var outgoing = await ResumeOrganizationAiChecksHandler.Handle(
                 message, db, Microsoft.Extensions.Options.Options.Create(new VerificationOptions()),
-                Microsoft.Extensions.Options.Options.Create(new AiUsageOptions { ResumeBatchSize = 2 }), TimeProvider.System,
+                Microsoft.Extensions.Options.Options.Create(new AiUsageOptions { ResumeBatchSize = 2 }),
+                Microsoft.Extensions.Options.Options.Create(new BillingOptions()), TimeProvider.System,
                 NullLogger<ResumeOrganizationAiChecks>.Instance, Ct);
             return [.. outgoing];
         }
@@ -400,7 +467,7 @@ public sealed class AiUsageTests(AppHostFixture fixture)
     public async Task A_new_budget_lets_its_alerts_go_out_again_and_saving_the_same_budget_keeps_the_ones_already_sent()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 1_000 })).Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["budget"] = 10 })).Expect(HttpStatusCode.OK);
         var month = AiUsageQueries.Month(TimeProvider.System.GetUtcNow());
         var sent = AiUsageAlertKeys.Budget(month, 50);
         var cap = AiUsageAlertKeys.Cap(month);
@@ -412,11 +479,25 @@ public sealed class AiUsageTests(AppHostFixture fixture)
             await db.SaveChangesAsync(Ct);
         }
 
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 1_000 })).Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["budget"] = 10 })).Expect(HttpStatusCode.OK);
         (await AlertKeysAsync()).Should().BeEquivalentTo([sent, cap], "the same budget and cap are no new decision");
 
-        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["budget"] = 5_000 })).Expect(HttpStatusCode.OK);
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["budget"] = 50 })).Expect(HttpStatusCode.OK);
         (await AlertKeysAsync()).Should().BeEquivalentTo([cap], "a new budget is measured afresh, and the unchanged cap keeps its alert");
+
+        // A row left on the column's default unit (tokens) with no limits of its own, saved with none, changes no limit: the month's
+        // alerts stay sent, so they do not go out a second time.
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId))
+        {
+            var settings = await db.VerificationSettings.SingleAsync(Ct);
+            settings.BudgetUnit = UsageUnit.Tokens;
+            settings.MonthlyBudget = null;
+            db.AiUsageAlerts.Add(new AiUsageAlert { OrganizationId = tenant.OrganizationId, Key = sent, RaisedAt = TimeProvider.System.GetUtcNow() });
+            await db.SaveChangesAsync(Ct);
+        }
+
+        (await tenant.PutAsync($"{Usage}/limits", new JsonObject())).Expect(HttpStatusCode.OK);
+        (await AlertKeysAsync()).Should().BeEquivalentTo([sent, cap], "only a limit set in tokens changes with the unit");
 
         async Task<List<string>> AlertKeysAsync()
         {
@@ -509,7 +590,7 @@ public sealed class AiUsageTests(AppHostFixture fixture)
         using var export = await theirs.Session.Client.GetAsync($"{Usage}/calls/export?applicationId={applicationId}", Ct);
         var csv = (await export.Content.ReadAsStringAsync(Ct)).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
         csv.Should().ContainSingle("only the header row").Which.Should().StartWith("id,occurred_at");
-        (await theirs.PutAsync($"{Usage}/limits", new JsonObject { ["unit"] = "Tokens", ["cap"] = 1 })).Expect(HttpStatusCode.OK);
+        (await theirs.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 0.01m })).Expect(HttpStatusCode.OK);
         (await ours.GetAsync(Settings)).Expect(HttpStatusCode.OK).At("limits.cap").ValueKind.Should().Be(System.Text.Json.JsonValueKind.Null, "their cap is theirs");
     }
 

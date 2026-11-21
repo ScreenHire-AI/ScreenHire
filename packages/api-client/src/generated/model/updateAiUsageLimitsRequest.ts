@@ -4,14 +4,12 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
-import type { UsageUnit } from './usageUnit.ts';
 
 /**
- * Sets the monthly budget and cap. Both are in `unit` (whole tokens, or dollars to the cent); null removes one. With
- * `Money` and an own key, the own key's prices must be set, since a call with no known cost counts as nothing.
+ * Sets the monthly budget and cap, in US dollars to the cent, counted against the amount billed for AI use; null removes one.
+ * Setting one needs a price for the key in use (an own key's two prices), since a call with no known cost counts as nothing.
  */
 export interface UpdateAiUsageLimitsRequest {
-  unit: UsageUnit;
   /** @nullable */
   budget?: number | null;
   /** @nullable */

@@ -8,8 +8,9 @@ namespace ScreenHire.E2E;
 /// Settings > Billing in a real browser, against the local sandbox payment provider and the plans the catalogue ships
 /// (docs/architecture/billing.md, ADR-0029, read through <see cref="ShippedPlans"/>): Starter, Growth (the trial's plan)
 /// and Unlimited. An Owner sees the free trial and the three plans, chooses one through the sandbox's checkout and comes
-/// back subscribed; a publish past the plan's limit is refused with a notice that links to Billing; a Recruiter cannot open the
-/// page. Each test signs in as a new person with a new organization, which starts on its own 14-day trial.
+/// back subscribed, with the month added up, the card and the sandbox's invoices, and reaches Billing from their own menu; a
+/// publish past the plan's limit is refused with a notice that links to Billing; a Recruiter cannot open the page and has no
+/// Billing in their menu. Each test signs in as a new person with a new organization, which starts on its own 14-day trial.
 /// </summary>
 public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -48,7 +49,6 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         // A new organization is on the free trial, on the trial plan, with nothing open yet.
         var band = Page.Locator("[data-slot=header-band]");
         await Expect(band).ToContainTextAsync("Free trial");
-        await Expect(band.GetByRole(AriaRole.Button, new() { Name = "Manage billing" })).ToHaveCountAsync(0);
         var plan = Page.GetByRole(AriaRole.Region, new() { Name = "Plan", Exact = true });
         await Expect(plan).ToContainTextAsync("Growth");
         await Expect(plan).ToContainTextAsync("Trial ends");
@@ -56,13 +56,13 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
 
         var plans = Page.GetByRole(AriaRole.Region, new() { Name = "Plans", Exact = true });
         await Expect(plans).ToContainTextAsync("Starter");
-        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Starter.MonthlyPrice:0.##} a month");
+        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Starter.MonthlyPrice:0.00} a month");
         await Expect(plans).ToContainTextAsync($"Up to {Jobs(ShippedPlans.Starter.RequiredLimit)}");
         await Expect(plans).ToContainTextAsync("Growth");
-        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Growth.MonthlyPrice:0.##} a month");
+        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Growth.MonthlyPrice:0.00} a month");
         await Expect(plans).ToContainTextAsync($"Up to {Jobs(ShippedPlans.Growth.RequiredLimit)}");
         await Expect(plans).ToContainTextAsync("Unlimited");
-        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Unlimited.MonthlyPrice:0.##} a month");
+        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Unlimited.MonthlyPrice:0.00} a month");
         await Expect(plans).ToContainTextAsync("Unlimited open jobs");
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(3);
         await ExpectNoAccessibilityViolationsAsync();
@@ -71,15 +71,42 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         // Choosing a plan leaves for the sandbox's checkout, which activates it and sends the browser back here.
         await plans.GetByRole(AriaRole.Button, new() { Name = "Choose Starter" }).ClickAsync();
         await Expect(band).ToContainTextAsync("Active");
-        await Expect(band.GetByRole(AriaRole.Button, new() { Name = "Manage billing" })).ToBeVisibleAsync();
         await Expect(plan).ToContainTextAsync("Starter");
-        await Expect(plan).ToContainTextAsync("Next payment");
         await Expect(plan).ToContainTextAsync($"0 of {ShippedPlans.Starter.RequiredLimit}");
+
+        // This month, added up: the plan's line and the total, then the next invoice. No AI use yet, so the plan is the whole of it.
+        var month = Page.GetByRole(AriaRole.Region, new() { Name = "This month so far", Exact = true });
+        var price = $"${ShippedPlans.Starter.MonthlyPrice:0.00}";
+        await Expect(month).ToContainTextAsync(new System.Text.RegularExpressions.Regex($@"Starter\s*{System.Text.RegularExpressions.Regex.Escape(price)}"));
+        await Expect(month.Locator("[data-total]")).ToHaveTextAsync(price);
+        await Expect(month.GetByRole(AriaRole.Link, new() { NameRegex = new("AI call") })).ToHaveAttributeAsync("href", "/verification/usage");
+        await Expect(month.Locator("[data-next-invoice]")).ToContainTextAsync($"Next invoice about {price} on");
+
+        // The card and the sandbox's sample invoices, newest first, each with its PDF.
+        var payment = Page.GetByRole(AriaRole.Region, new() { Name = "Payment method", Exact = true });
+        await Expect(payment).ToContainTextAsync("Visa ending in 4242");
+        await Expect(payment.GetByRole(AriaRole.Button, new() { Name = "Change card" })).ToBeVisibleAsync();
+        await Expect(payment.GetByRole(AriaRole.Button, new() { Name = "Cancel plan" })).ToBeVisibleAsync();
+        var invoices = Page.GetByRole(AriaRole.Region, new() { Name = "Invoices", Exact = true });
+        await Expect(invoices.GetByRole(AriaRole.Row)).ToHaveCountAsync(4);
+        await Expect(invoices.GetByRole(AriaRole.Row).Nth(1)).ToContainTextAsync(new System.Text.RegularExpressions.Regex($@"{System.Text.RegularExpressions.Regex.Escape(price)}\s*Paid"));
+        await Expect(invoices.GetByRole(AriaRole.Link, new() { NameRegex = new("^PDF") })).ToHaveCountAsync(3);
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(0);
         // Nothing is left to say once a plan is paid for.
         await Expect(trialEnds).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-1440");
+
+        // Changing the card opens the payment page, which in the sandbox changes nothing and comes back still subscribed.
+        await payment.GetByRole(AriaRole.Button, new() { Name = "Change card" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing"));
+        await Expect(band).ToContainTextAsync("Active");
+
+        // Billing is one click from the Owner's own menu too.
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Settings", Exact = true }).GetByRole(AriaRole.Link, new() { Name = "General" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new("Owner$") }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Billing" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing"));
     }
 
     [Fact]
@@ -163,11 +190,15 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         var main = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
         await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Settings", Exact = true })).ToHaveCountAsync(0);
         await Expect(main.GetByRole(AriaRole.Link, new() { Name = "Billing" })).ToHaveCountAsync(0);
+        await Page.GetByRole(AriaRole.Button, new() { NameRegex = new("Recruiter$") }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Menu)).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Billing" })).ToHaveCountAsync(0);
+        await Page.Keyboard.PressAsync("Escape");
 
         await GoToAsync("dashboard", "/settings/billing");
         await Expect(Page.GetByText("Not in your role")).ToBeVisibleAsync();
         await Expect(Page.GetByText("Only an owner of your organization can change billing.")).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Manage billing" })).ToHaveCountAsync(0);
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Change card" })).ToHaveCountAsync(0);
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(0);
     }
 

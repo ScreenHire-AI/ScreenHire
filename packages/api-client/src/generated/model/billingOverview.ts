@@ -7,6 +7,7 @@
 import type { BillingAiUsage } from './billingAiUsage.ts';
 import type { BillingPlan } from './billingPlan.ts';
 import type { BillingState } from './billingState.ts';
+import type { BillingThisMonth } from './billingThisMonth.ts';
 
 /**
  * An organization's billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire
@@ -17,7 +18,8 @@ import type { BillingState } from './billingState.ts';
  * `openJobs` counts the jobs open now and `activeJobLimit` is the plan's limit, null when it has none.
  * `canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.
  * `taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".
- * `aiUsage`: this month's use of ScreenHire's AI key and what it costs (null while billing is off).
+ * `aiUsage`: this month's use of ScreenHire's AI key and what it costs (null while billing is off). `thisMonth`: what the
+ * organization pays this month so far, each charge on its line and added up, and the next invoice (null while billing is off).
  */
 export interface BillingOverview {
   available: boolean;
@@ -38,4 +40,5 @@ export interface BillingOverview {
   taxAtCheckout: boolean;
   plans: BillingPlan[];
   aiUsage: null | BillingAiUsage;
+  thisMonth: null | BillingThisMonth;
 }

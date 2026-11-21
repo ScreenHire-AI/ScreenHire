@@ -774,7 +774,7 @@ privacy notice (version `2026-10-20.3`) tells candidates their files and answers
 allowed to train on them.
 
 **Usage, budget and cap.** Every model call the check makes is a row in the usage ledger (`ai_usage_calls`), saved with the
-check's outcome, and the month's use is the ledger's sum in tokens or dollars (`AiUsageQueries`). A budget alerts at 50%, 80%
+check's outcome, and the month's use is the ledger's sum in billed dollars, the one amount a customer sees for AI use (`AiUsageQueries`, [AI usage](ai-usage.md#the-amount-shown)). A budget alerts at 50%, 80%
 and 100%; a cap pauses the check (`Paused`, never a mark against the candidate), and the rule-based checks keep running. Both are
 soft: the cap is read before a check starts, so checks that start together all pass the test and the last can overshoot by a
 few checks' worth. The rules, the ledger and the alerts are in [ai-usage.md](ai-usage.md).

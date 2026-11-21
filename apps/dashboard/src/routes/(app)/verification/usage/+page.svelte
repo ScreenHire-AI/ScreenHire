@@ -16,11 +16,13 @@
   import LimitsSummary from '#lib/components/verification-area/limits-summary.svelte';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { cn } from '#lib/utils.js';
-  import { formatCost, formatDay, formatTokens, keySourceLabels } from '#lib/ai-usage.js';
+  import { formatCost, formatDay, formatTokens, keySourceLabels, ownKeyCostLabel } from '#lib/ai-usage.js';
   import { describeError } from '#lib/query.js';
 
   // The Usage tab (docs/architecture/ai-usage.md): tokens and cost by day and model, ScreenHire's key against the organization's
-  // own, and the month against the budget and cap. For who can see AI usage (the tab's +page.ts). Never about a candidate.
+  // own, and the month against the budget and cap. For who can see AI usage (the tab's +page.ts). Never about a candidate. Cost is
+  // the one amount for AI use the Billing page charges too; an own key's is the provider's price, labelled as an estimate, and the
+  // two are never added together.
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const ranges = [
     { value: 'month', label: 'This month', days: null },
@@ -43,6 +45,18 @@
   const summary = createGetAiUsageSummary(() => ({ timeZone, ...(from ? { from } : {}), ...(to ? { to } : {}) }));
   const data = $derived(summary.data?.data);
   const period = $derived(ranges.find((r) => r.value === range)?.label.toLowerCase() ?? '');
+  const builtIn = $derived(data?.byKeySource.find((key) => key.keySource === 'BuiltIn'));
+  const ownKey = $derived(data?.byKeySource.find((key) => key.keySource === 'OwnKey'));
+  // The Cost tile is what ScreenHire bills. With only the own key in the range it is that key's estimate instead, under its own name.
+  const ownKeyOnly = $derived(Boolean(ownKey && !builtIn));
+  const costNotes = $derived(
+    [
+      ownKey && builtIn ? `${formatCost(ownKey.cost)} more ${ownKeyCostLabel.charAt(0).toLowerCase()}${ownKeyCostLabel.slice(1)}` : null,
+      data && data.totals.callsWithUnknownCost > 0
+        ? `${data.totals.callsWithUnknownCost} ${data.totals.callsWithUnknownCost === 1 ? 'call has' : 'calls have'} no known cost, counted as nothing`
+        : null,
+    ].filter((note) => note !== null),
+  );
 
   const dayRows = $derived<BarRow[]>(
     (data?.byDay ?? []).map((day) => ({
@@ -50,7 +64,7 @@
       label: formatDay(day.date),
       values: [day.builtInTokens, day.ownKeyTokens],
       texts: [formatTokens(day.builtInTokens), formatTokens(day.ownKeyTokens)],
-      summary: `${formatDay(day.date)}: ${day.calls} calls, ${formatTokens(day.builtInTokens)} tokens on ScreenHire's key, ${formatTokens(day.ownKeyTokens)} on your own key, ${formatCost(day.cost)}`,
+      summary: `${formatDay(day.date)}: ${day.calls} calls, ${formatTokens(day.builtInTokens)} tokens on ScreenHire's key costing ${formatCost(day.builtInCost)}, ${formatTokens(day.ownKeyTokens)} on your own key`,
     })),
   );
   const dayColumns: ChartColumn<AiUsageDay>[] = [
@@ -58,8 +72,12 @@
     { id: 'calls', header: 'Calls', text: (day) => formatTokens(day.calls), sortBy: (day) => day.calls },
     { id: 'builtIn', header: "ScreenHire's key tokens", text: (day) => formatTokens(day.builtInTokens), sortBy: (day) => day.builtInTokens },
     { id: 'ownKey', header: 'Your own key tokens', text: (day) => formatTokens(day.ownKeyTokens), sortBy: (day) => day.ownKeyTokens },
-    { id: 'cost', header: 'Cost', text: (day) => formatCost(day.cost), sortBy: (day) => day.cost, csv: (day) => day.cost },
+    { id: 'cost', header: 'Cost', text: (day) => formatCost(day.builtInCost), sortBy: (day) => day.builtInCost, csv: (day) => day.builtInCost },
   ];
+  // An own key's amount has a column of its own, under its own name, only when the range has any.
+  const ownKeyColumn: ChartColumn<AiUsageDay> = {
+    id: 'ownKeyCost', header: ownKeyCostLabel, text: (day) => formatCost(day.ownKeyCost), sortBy: (day) => day.ownKeyCost, csv: (day) => day.ownKeyCost,
+  };
 </script>
 
 <svelte:head>
@@ -96,11 +114,9 @@
     />
     <ReportStat
       icon={DollarSignIcon}
-      title="Cost"
-      value={formatCost(data.totals.cost)}
-      share={data.totals.callsWithUnknownCost > 0
-        ? `${data.totals.callsWithUnknownCost} ${data.totals.callsWithUnknownCost === 1 ? 'call has' : 'calls have'} no known cost, counted as nothing`
-        : null}
+      title={ownKeyOnly ? ownKeyCostLabel : 'Cost'}
+      value={formatCost(ownKeyOnly ? ownKey!.cost : (builtIn?.cost ?? 0))}
+      share={costNotes.length > 0 ? costNotes.join('. ') : null}
     />
   </div>
 
@@ -112,7 +128,7 @@
     title={`Use by day, ${period}`}
     basis="Tokens in and out of each day's model calls, on ScreenHire's key and on your own."
     tableId="verification-usage-days"
-    columns={dayColumns}
+    columns={ownKey ? [...dayColumns, ownKeyColumn] : dayColumns}
     rows={data.byDay.length > 1 ? data.byDay : []}
     rowKey={(day) => day.date}
   >
@@ -158,7 +174,12 @@
             <Table.Cell class="text-right tabular-nums">{formatTokens(group.calls)}</Table.Cell>
             <Table.Cell class="text-right tabular-nums">{formatTokens(group.inputTokens)}</Table.Cell>
             <Table.Cell class="text-right tabular-nums">{formatTokens(group.outputTokens)}</Table.Cell>
-            <Table.Cell class="text-right tabular-nums">{group.callsWithUnknownCost > 0 && group.cost === 0 ? 'Unknown' : formatCost(group.cost)}</Table.Cell>
+            <Table.Cell class="text-right tabular-nums">
+              <!-- An own key's amount is the provider's price, which that provider charges: an estimate, and never billed here. -->
+              {group.callsWithUnknownCost > 0 && group.cost === 0 ? 'Unknown' : formatCost(group.cost)}{#if group.keySource === 'OwnKey'}{' '}<span
+                  class="text-muted-foreground">estimate</span
+                >{/if}
+            </Table.Cell>
           </Table.Row>
         {:else}
           <Table.Row><Table.Cell colspan={7} class="text-muted-foreground">No model calls in this range.</Table.Cell></Table.Row>

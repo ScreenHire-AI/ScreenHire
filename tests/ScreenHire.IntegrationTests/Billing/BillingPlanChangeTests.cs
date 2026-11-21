@@ -122,7 +122,7 @@ public sealed class BillingPlanChangeTests(AppHostFixture fixture)
         var preview = (await owner.PostAsync(Preview, Plan("growth"))).Expect(HttpStatusCode.Conflict);
         (await owner.PostAsync(Change, new JsonObject { ["plan"] = "growth", ["prorationDate"] = DateTimeOffset.UtcNow.ToString("O") })).Expect(HttpStatusCode.Conflict);
 
-        preview.Text("detail").Should().Contain("set to end").And.Contain("Manage billing");
+        preview.Text("detail").Should().Contain("set to end").And.Contain("Change card");
         (await owner.BillingAsync()).Text("currentPlan.key").Should().Be("starter");
     }
 

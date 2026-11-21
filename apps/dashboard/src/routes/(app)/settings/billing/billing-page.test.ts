@@ -1,4 +1,4 @@
-import type { BillingAiUsage, BillingOverview, BillingPlan } from '@screenhire/api-client';
+import type { BillingAiUsage, BillingInvoice, BillingOverview, BillingPlan, BillingThisMonth } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
@@ -36,16 +36,40 @@ const unlimited = plan('unlimited', 'Unlimited', { unlimited: true });
 const aiUsage: BillingAiUsage = {
   month: '2026-11',
   builtInCalls: 41,
-  tokens: 120000,
-  providerCost: 3.12,
   charge: 3.744,
-  marginPercent: 20,
   callsWithUnknownCost: 0,
   ownKeyCalls: 0,
   trialAllowance: 5,
   trialAllowanceUsed: 0,
   metered: true,
 };
+
+const trialMonth: BillingThisMonth = {
+  month: '2026-11',
+  currency: 'USD',
+  planName: 'Growth',
+  planAmount: 0,
+  aiCalls: 41,
+  aiAmount: 3.744,
+  trialCredit: 3.744,
+  total: 0,
+  nextInvoiceAmount: null,
+  nextInvoiceAt: null,
+};
+const activeMonth: BillingThisMonth = {
+  ...trialMonth,
+  planName: 'Starter',
+  planAmount: 49,
+  trialCredit: 0,
+  total: 52.744,
+  nextInvoiceAmount: 52.744,
+  nextInvoiceAt: '2026-12-05T12:00:00Z',
+};
+
+const invoices: BillingInvoice[] = [
+  { id: 'in_2', date: '2026-11-05T12:00:00Z', amount: 49, currency: 'USD', status: 'Paid', pdfUrl: '/v1/billing/sandbox/invoices/in_2' },
+  { id: 'in_1', date: '2026-10-05T12:00:00Z', amount: 52.5, currency: 'USD', status: 'Due', pdfUrl: null },
+];
 
 const trial: BillingOverview = {
   available: true,
@@ -62,6 +86,7 @@ const trial: BillingOverview = {
   taxAtCheckout: false,
   plans: [starter, growth, unlimited],
   aiUsage,
+  thisMonth: trialMonth,
 };
 const active: BillingOverview = {
   ...trial,
@@ -72,6 +97,7 @@ const active: BillingOverview = {
   nextPaymentAmount: 49,
   activeJobLimit: 5,
   canManage: true,
+  thisMonth: activeMonth,
 };
 
 // What the API answers for a switch from Starter: an upgrade owes the difference for the rest of the period, a downgrade owes nothing.
@@ -102,10 +128,17 @@ function renderPage(overview: BillingOverview | (() => Response) = trial, routes
           posted.push({ path: 'change', body: JSON.parse(String(init?.body)) });
           return new Response(null, { status: 204 });
         },
-        'POST /v1/organization/billing/portal': () => {
-          posted.push({ path: 'portal', body: null });
-          return Response.json({ url: '/v1/billing/sandbox/portal?state=abc' });
-        },
+        ...Object.fromEntries(
+          ['ChangeCard', 'Cancel'].map((intent) => [
+            `POST /v1/organization/billing/portal?intent=${intent}`,
+            () => {
+              posted.push({ path: 'portal', body: intent });
+              return Response.json({ url: '/v1/billing/sandbox/portal?state=abc' });
+            },
+          ]),
+        ),
+        'GET /v1/organization/billing/invoices': () => Response.json({ invoices }),
+        'GET /v1/organization/billing/payment-method': () => Response.json({ method: { type: 'card', brand: 'visa', last4: '4242' } }),
         ...routes,
       }),
     ),
@@ -136,9 +169,9 @@ describe('billing page', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Billing' })).toBeInTheDocument();
     expect(screen.getByText('Trial ends', { selector: 'dt' }).nextElementSibling).toHaveTextContent('Nov 20, 2026');
     expect(screen.getByText('Open jobs', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^3 of 25$/);
-    expect(within(plans()).getByText('$49 a month')).toBeInTheDocument();
+    expect(within(plans()).getByText('$49.00 a month')).toBeInTheDocument();
     expect(within(plans()).getByText('Up to 5 open jobs')).toBeInTheDocument();
-    expect(within(plans()).getByText('$99 a month')).toBeInTheDocument();
+    expect(within(plans()).getByText('$99.00 a month')).toBeInTheDocument();
     expect(within(plans()).getByText('Price not set')).toBeInTheDocument();
     expect(within(plans()).getByText('Unlimited open jobs')).toBeInTheDocument();
     expect(within(plans()).queryByText(/plus tax/)).not.toBeInTheDocument();
@@ -163,22 +196,14 @@ describe('billing page', () => {
   describe('AI usage', () => {
     const panel = () => screen.getByRole('region', { name: 'AI usage' });
 
-    it('states the margin plainly and shows this month: the calls, the provider\'s price and what the organization pays', async () => {
+    it('shows this month as the calls and the one amount for them, and never the provider\'s price or a margin', async () => {
       renderPage(active);
 
       await screen.findByText('Active');
-      expect(within(panel()).getByText("AI checks on ScreenHire's key are billed at the provider's price plus 20%.")).toBeInTheDocument();
-      expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('41 AI calls');
-      expect(within(panel()).getByText("Provider's price", { selector: 'dt' }).nextElementSibling).toHaveTextContent('$3.12');
-      expect(within(panel()).getByText('Cost so far', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$3.74');
+      expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^41 AI calls, \$3\.74$/);
+      expect(within(panel()).queryByText(/provider's price|plus 20%|margin/i)).toBeNull();
+      expect(screen.queryByText(/Provider's price|Cost so far/)).toBeNull();
       await expectNoAxeViolations();
-    });
-
-    it('takes the margin from the API, so a different setting reads as it is', async () => {
-      renderPage({ ...active, aiUsage: { ...aiUsage, marginPercent: 17.5 } });
-
-      await screen.findByText('Active');
-      expect(within(panel()).getByText(/provider's price plus 17\.5%\./)).toBeInTheDocument();
     });
 
     it('links to the call-by-call detail on Verification and says that bringing your own key removes the charge', async () => {
@@ -255,18 +280,17 @@ describe('billing page', () => {
     });
 
     it('shows no calls and no charge for a month with no use', async () => {
-      renderPage({ ...active, aiUsage: { ...aiUsage, builtInCalls: 0, tokens: 0, providerCost: 0, charge: 0 } });
+      renderPage({ ...active, aiUsage: { ...aiUsage, builtInCalls: 0, charge: 0 } });
 
       await screen.findByText('Active');
-      expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('0 AI calls');
-      expect(within(panel()).getByText('Cost so far', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$0.00');
+      expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('0 AI calls, $0.00');
     });
 
     it('says "call" in the singular for one', async () => {
       renderPage({ ...active, aiUsage: { ...aiUsage, builtInCalls: 1, callsWithUnknownCost: 1 } });
 
       await screen.findByText('Active');
-      expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('1 AI call');
+      expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^1 AI call, /);
       expect(within(panel()).getByText('1 call has no known price, so it is not charged.')).toBeInTheDocument();
     });
 
@@ -281,7 +305,106 @@ describe('billing page', () => {
       renderPage(active);
 
       await screen.findByText('Active');
-      expect(primaryButtons().map((button) => button.textContent?.trim())).toEqual(['Manage billing']);
+      expect(primaryButtons()).toEqual([]);
+    });
+  });
+
+  describe('this month so far', () => {
+    const panel = () => screen.getByRole('region', { name: 'This month so far' });
+    const charges = () => within(panel()).getAllByRole('listitem').map((item) => item.textContent?.replace(/\s+/g, ' ').trim());
+
+    it('adds up the plan and AI use, links the AI line to the usage, and gives the next invoice', async () => {
+      renderPage(active);
+
+      await screen.findByText('Active');
+      expect(charges()).toEqual(['Starter $49.00', 'AI use, 41 AI calls $3.74', 'Total so far $52.74']);
+      expect(within(panel()).getByRole('link', { name: '41 AI calls' })).toHaveAttribute('href', '/verification/usage');
+      expect(within(panel()).getByText(/Next invoice about/)).toHaveTextContent('Next invoice about $52.74 on Dec 5, 2026.');
+      // The next payment is said once, here, not again under the plan (W7).
+      expect(screen.queryByText('Next payment', { selector: 'dt' })).toBeNull();
+      await expectNoAxeViolations();
+    });
+
+    it('takes what the trial covers off the total, and says nothing is charged before a plan', async () => {
+      renderPage(trial);
+
+      await screen.findByText('Free trial');
+      expect(charges()).toEqual(['Growth, free trial $0.00', 'AI use, 41 AI calls $3.74', 'Included in your trial -$3.74', 'Total so far $0.00']);
+      expect(within(panel()).getByText('Nothing is charged until you choose a plan.')).toBeInTheDocument();
+      expect(within(panel()).queryByText(/Next invoice/)).toBeNull();
+    });
+
+    it('says the next invoice is before tax when Checkout adds tax', async () => {
+      renderPage({ ...active, taxAtCheckout: true });
+
+      await screen.findByText('Active');
+      expect(within(panel()).getByText(/Next invoice about/)).toHaveTextContent('Next invoice about $52.74 plus tax where it applies on Dec 5, 2026.');
+    });
+
+    it('shows use under a cent as the AI panel does, and no credit line that rounds to nothing', async () => {
+      renderPage({ ...trial, aiUsage: { ...aiUsage, charge: 0.0042 }, thisMonth: { ...trialMonth, aiAmount: 0.0042, trialCredit: 0.0042, total: 0 } });
+
+      await screen.findByText('Free trial');
+      expect(charges()).toEqual(['Growth, free trial $0.00', 'AI use, 41 AI calls Under $0.01', 'Total so far $0.00']);
+      expect(screen.getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent('41 AI calls, Under $0.01');
+    });
+
+    it('leaves out a line for AI use that is not billed here and a plan that ended', async () => {
+      renderPage({ ...trial, state: 'Ended', currentPlan: null, trialEndsAt: null, thisMonth: { ...trialMonth, planName: null, planAmount: null, aiAmount: null, trialCredit: 0 } });
+
+      await screen.findByText('Ended');
+      expect(charges()).toEqual(['Total so far $0.00']);
+    });
+  });
+
+  describe('payment method and invoices', () => {
+    it('shows the card with Change card and Cancel plan, each opening the payment page for what it says', async () => {
+      renderPage(active);
+
+      const panel = await screen.findByRole('region', { name: 'Payment method' });
+      expect(await within(panel).findByText('Visa ending in 4242')).toBeInTheDocument();
+      await fireEvent.click(within(panel).getByRole('button', { name: 'Change card' }));
+      await waitFor(() => expect(assign).toHaveBeenCalledWith('/v1/billing/sandbox/portal?state=abc'));
+      expect(posted).toEqual([{ path: 'portal', body: 'ChangeCard' }]);
+      expect(screen.queryByText(/To change your card or cancel/)).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Manage billing' })).toBeNull();
+      await expectNoAxeViolations();
+    });
+
+    it('opens the payment page to cancel from Cancel plan', async () => {
+      renderPage(active);
+
+      await fireEvent.click(await screen.findByRole('button', { name: 'Cancel plan' }));
+
+      await waitFor(() => expect(posted).toEqual([{ path: 'portal', body: 'Cancel' }]));
+    });
+
+    it('lists the invoices newest first with their amount, status and PDF', async () => {
+      renderPage(active);
+
+      const panel = await screen.findByRole('region', { name: 'Invoices' });
+      const rows = await within(panel).findAllByRole('row');
+      expect(rows.slice(1).map((row) => row.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
+        'Nov 5, 2026 $49.00 Paid PDF, invoice of Nov 5, 2026 (opens in a new tab)',
+        'Oct 5, 2026 $52.50 Due No PDF',
+      ]);
+      expect(within(panel).getByRole('link', { name: /PDF, invoice of Nov 5, 2026/ })).toHaveAttribute('href', '/v1/billing/sandbox/invoices/in_2');
+      await expectNoAxeViolations();
+    });
+
+    it('has neither before there is a payment customer', async () => {
+      renderPage(trial);
+
+      await screen.findByText('Free trial');
+      expect(screen.queryByRole('region', { name: 'Payment method' })).toBeNull();
+      expect(screen.queryByRole('region', { name: 'Invoices' })).toBeNull();
+    });
+
+    it('offers no Cancel plan for a plan already set to end', async () => {
+      renderPage({ ...active, cancelsAtPeriodEnd: true, nextPaymentAmount: null });
+
+      expect(await screen.findByRole('button', { name: 'Change card' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Cancel plan' })).toBeNull();
     });
   });
 
@@ -289,8 +412,8 @@ describe('billing page', () => {
     renderPage({ ...trial, taxAtCheckout: true });
 
     await screen.findByText('Free trial');
-    expect(within(plans()).getByText('$49 a month plus tax where it applies')).toBeInTheDocument();
-    expect(within(plans()).getByText('$99 a month plus tax where it applies')).toBeInTheDocument();
+    expect(within(plans()).getByText('$49.00 a month plus tax where it applies')).toBeInTheDocument();
+    expect(within(plans()).getByText('$99.00 a month plus tax where it applies')).toBeInTheDocument();
     expect(within(plans()).getByText('Price not set')).toBeInTheDocument();
     expect(within(plans()).getAllByText(/plus tax where it applies/)).toHaveLength(2);
     await expectNoAxeViolations();
@@ -301,15 +424,14 @@ describe('billing page', () => {
 
     await screen.findByText('Free trial');
     expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Choose Starter', 'Choose Growth']);
-    expect(screen.queryByRole('button', { name: 'Manage billing' })).toBeNull();
     expect(primaryButtons()).toEqual([]);
   });
 
-  it('shows an ended organization with a payment customer the plans to choose and no Manage billing, so there is still no primary (A1)', async () => {
+  it('shows an ended organization with a payment customer the plans to choose and no Cancel plan, so there is still no primary (A1)', async () => {
     renderPage({ ...trial, state: 'Ended', trialEndsAt: null, currentPlan: null, canManage: true });
 
     await screen.findByText('Ended');
-    expect(screen.queryByRole('button', { name: 'Manage billing' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Cancel plan' })).toBeNull();
     expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Choose Starter', 'Choose Growth', 'Choose Unlimited']);
     expect(primaryButtons()).toEqual([]);
   });
@@ -333,31 +455,15 @@ describe('billing page', () => {
     expect(screen.getByRole('button', { name: 'Choose Growth' })).toBeEnabled();
   });
 
-  it('shows a paying organization its plan and next payment, with Manage billing as the one primary action and Switch on the other plans', async () => {
+  it('shows a paying organization its plan with Switch on the other plans and no primary action (A1)', async () => {
     renderPage(active);
 
     expect(await screen.findByText('Active', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
-    expect(screen.getByText('Next payment', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$49 on Dec 5, 2026');
     expect(screen.getByText('Open jobs', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^3 of 5$/);
     expect(within(plans()).queryByText('Current plan')).toBeNull();
-    expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Switch to Growth', 'Switch to Unlimited', 'Manage billing']);
-    // The footer's words are the control: Manage billing opens the payment portal from there too.
-    expect(within(plans()).getByRole('button', { name: 'Manage billing' }).closest('p')).toHaveTextContent('To change your card or cancel, open Manage billing.');
-    expect(primaryButtons().map((button) => button.textContent?.trim())).toEqual(['Manage billing']);
+    expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Switch to Growth', 'Switch to Unlimited']);
+    expect(primaryButtons()).toEqual([]);
     await expectNoAxeViolations();
-  });
-
-  it.each([
-    ['the header', 0],
-    ['the plans footer', 1],
-  ])('opens the payment portal from Manage billing in %s', async (_where, index) => {
-    renderPage(active);
-
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Manage billing' })).toHaveLength(2));
-    await fireEvent.click(screen.getAllByRole('button', { name: 'Manage billing' })[index]!);
-
-    await waitFor(() => expect(assign).toHaveBeenCalledWith('/v1/billing/sandbox/portal?state=abc'));
-    expect(posted).toEqual([{ path: 'portal', body: null }]);
   });
 
   it('shows what a switch costs before it is made: the amount now, then the monthly price from its date', async () => {
@@ -366,7 +472,7 @@ describe('billing page', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
-    await waitFor(() => expect(dialog).toHaveTextContent('$35.50 now, then $99 a month from Dec 5, 2026'));
+    await waitFor(() => expect(dialog).toHaveTextContent('$35.50 now, then $99.00 a month from Dec 5, 2026'));
     expect(posted).toEqual([{ path: 'preview', body: { plan: 'growth' } }]);
     expect(within(dialog).getByRole('button', { name: 'Confirm change' })).toBeEnabled();
     expect(within(dialog).getByRole('button', { name: 'Keep my plan' })).toBeInTheDocument();
@@ -390,7 +496,7 @@ describe('billing page', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Starter' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Change to Starter?' });
-    await waitFor(() => expect(dialog).toHaveTextContent('Nothing now, then $49 a month from Dec 5, 2026'));
+    await waitFor(() => expect(dialog).toHaveTextContent('Nothing now, then $49.00 a month from Dec 5, 2026'));
     expect(dialog).toHaveTextContent('The unused time on your current plan is credited toward your next payment.');
   });
 
@@ -455,8 +561,9 @@ describe('billing page', () => {
 
     expect(await screen.findByText('Your last payment failed. Update your payment details to keep publishing.')).toBeInTheDocument();
     expect(screen.getByText('Payment failed', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
-    // No plan switches while a payment has failed; the footer's Manage billing is the way to new payment details.
-    expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Manage billing']);
+    // No plan switches while a payment has failed; Change card is the way to new payment details.
+    expect(within(plans()).queryAllByRole('button')).toEqual([]);
+    expect(await screen.findByRole('button', { name: 'Change card' })).toBeInTheDocument();
     await expectNoAxeViolations();
   });
 

@@ -121,12 +121,12 @@ describe('the Overview tab', () => {
     expect(screen.getByRole('link', { name: 'See usage' })).toHaveAttribute('href', '/verification/usage');
   });
 
-  it('shows the default budget in dollars where the deployment prices its model, and says the dollars are an estimate', async () => {
+  it('shows the budget in billed dollars where the deployment prices its model, with no estimate to explain', async () => {
     renderPage(overview, user, true, dollarLimits);
 
     expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
-    expect((await screen.findAllByText('$0.06 of $3.20')).length).toBeGreaterThan(0);
-    expect(screen.getByText(/In dollars it is an estimate/)).toBeInTheDocument();
+    expect((await screen.findAllByText('$0.07 of $3.84')).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/estimate/)).not.toBeInTheDocument();
     expect(screen.queryByText(/tokens of/)).not.toBeInTheDocument();
   });
 

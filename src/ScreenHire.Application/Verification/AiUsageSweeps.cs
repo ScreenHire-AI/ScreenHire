@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Application.Verification.Content;
 using ScreenHire.Domain.Verification;
@@ -230,6 +231,7 @@ public static partial class ResumeOrganizationAiChecksHandler
         ScreenHireDbContext db,
         IOptions<VerificationOptions> verification,
         IOptions<AiUsageOptions> options,
+        IOptions<BillingOptions> billing,
         TimeProvider time,
         ILogger<ResumeOrganizationAiChecks> logger,
         CancellationToken cancellationToken)
@@ -256,8 +258,9 @@ public static partial class ResumeOrganizationAiChecksHandler
 
         // Only when the cap no longer stops them. A check asked again while the cap still holds would pause again and send nothing new.
         var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        var (cap, unit) = AiUsageLimits.EffectiveCap(settings, verification.Value.Llm.DefaultMonthlyTokenCap);
-        if (cap is not null && AiUsageLimits.CapReached(await db.UsedThisMonthAsync(unit, time.GetUtcNow(), cancellationToken), cap))
+        var (_, cap) = await AiUsageLimitsInForce.ResolveAsync(
+            db, settings, verification.Value.Llm, billing.Value.AiMarginInForce, time.GetUtcNow(), cancellationToken);
+        if (cap is { Reached: true })
         {
             return outgoing;
         }
