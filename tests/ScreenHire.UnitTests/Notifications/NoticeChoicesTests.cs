@@ -73,6 +73,24 @@ public sealed class NoticeChoicesTests
         kept.Choices.Should().Equal(new NoticeChoice(NoticeKind.Tasks, EmailChoice.Instantly));
     }
 
+    [Theory]
+    [InlineData(EmailChoice.Instantly)]
+    [InlineData(EmailChoice.Off)]
+    public void Someone_who_handles_billing_keeps_any_AI_use_choice_while_the_trial_and_the_AI_alerts_start_apart(EmailChoice choice)
+    {
+        // The organization's AI usage email is off: the trial's reminders start at Instantly and the AI alerts at Off, so a
+        // choice equal to either default would leave the other reader on its own default.
+        var kept = PersonNotices.Normalize(
+            [new NoticeChoice(NoticeKind.AiUseAndBilling, choice)],
+            kind => NoticeDefaults.SharedEmail(kind, OrganizationAlertDefaults.None, handlesBilling: true),
+            kind => NoticeDefaults.Slack(kind, OrganizationAlertDefaults.None));
+
+        var mine = Preferences();
+        mine.SetNotices(NoticeScope.MyJobs, kept, DateTimeOffset.UnixEpoch);
+        PersonNotices.Email(mine, NoticeKind.AiUseAndBilling, OrganizationAlertDefaults.None).Should().Be(choice, "the AI alerts read it");
+        PersonNotices.Email(mine, NoticeKind.AiUseAndBilling, OrganizationAlertDefaults.None, handlesBilling: true).Should().Be(choice, "the trial's reminders read it");
+    }
+
     [Fact]
     public void Every_notification_email_ends_with_a_link_to_change_what_we_email()
     {

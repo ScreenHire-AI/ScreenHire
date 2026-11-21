@@ -293,7 +293,7 @@ internal static class AccountEndpoints
 
         var kept = PersonNotices.Normalize(
             choices.Where(c => visible.Contains(c.Kind)),
-            kind => NoticeDefaults.Email(kind, alerts, handlesBilling),
+            kind => NoticeDefaults.SharedEmail(kind, alerts, handlesBilling),
             kind => NoticeDefaults.Slack(kind, alerts));
         var hidden = choices.Where(c => !visible.Contains(c.Kind));
         preferences.SetNotices(request.Scope, new NoticeChoices { Choices = [.. kept.Choices, .. hidden] }, time.GetUtcNow());

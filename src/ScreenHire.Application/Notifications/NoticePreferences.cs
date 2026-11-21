@@ -85,6 +85,17 @@ public static class NoticeDefaults
     }
 
     /// <summary>
+    /// The email default every reader of the row agrees on, or null when they differ. They differ only on AI use and billing
+    /// for someone who handles billing while the organization's AI usage email is off: the trial's reminders start at
+    /// Instantly and the AI alerts at Off, so whatever the person saves there is kept, and both read it.
+    /// </summary>
+    public static EmailChoice? SharedEmail(NoticeKind kind, OrganizationAlertDefaults alerts, bool handlesBilling)
+    {
+        var own = Email(kind, alerts, handlesBilling);
+        return own == Email(kind, alerts) ? own : null;
+    }
+
+    /// <summary>
     /// The Slack default for the rows that have one. Mentions and tasks are on (the Slack link keeps that choice); the
     /// verification and AI use messages follow the organization's alert settings.
     /// </summary>
@@ -132,10 +143,11 @@ public static class PersonNotices
 
     /// <summary>
     /// Keeps only what differs from this person's defaults, so a choice set back to its default follows a later change to the
-    /// organization's alert settings. Rows are kept in the grid's order.
+    /// organization's alert settings. A row whose readers start from different defaults (<see cref="NoticeDefaults.SharedEmail"/>
+    /// is null) keeps whatever was chosen. Rows are kept in the grid's order.
     /// </summary>
     public static Domain.Notifications.NoticeChoices Normalize(
-        IEnumerable<NoticeChoice> choices, Func<NoticeKind, EmailChoice> emailDefault, Func<NoticeKind, bool> slackDefault)
+        IEnumerable<NoticeChoice> choices, Func<NoticeKind, EmailChoice?> emailDefault, Func<NoticeKind, bool> slackDefault)
     {
         ArgumentNullException.ThrowIfNull(choices);
         ArgumentNullException.ThrowIfNull(emailDefault);

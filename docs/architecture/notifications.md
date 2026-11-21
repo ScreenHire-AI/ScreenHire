@@ -144,7 +144,7 @@ The rows are one list on each side, `NoticeRows` in `NoticePreferences.cs` and `
 | New applications on your jobs | `NewCandidates` | Daily digest | none | everyone |
 | Teammates' moves and notes | `Moves`, `Notes`, `Tags`, `Emails`, `Scorecards`, `Templates` (one switch; Choose kinds opens each) | Off | none | everyone |
 | Verification suggested | none: never a toast (ADR-0004) | the organization's verification email alert | the organization's verification Slack alert | holders of Review verification |
-| AI use and billing | none: the bell keeps them | the organization's AI usage email alert; Instantly for whoever handles billing, whose trial reminders start there. Off or Daily digest, once chosen, covers both, while someone who handles billing and never chose gets the AI alerts only when the organization's switch is on | the organization's AI usage Slack alert | holders of View AI usage or Manage billing |
+| AI use and billing | none: the bell keeps them | the organization's AI usage email alert; Instantly for whoever handles billing, whose trial reminders start there. While the organization's switch is off, whatever such a person saves for the row is kept and covers both; until they save, they get the trial's reminders and no AI alerts | the organization's AI usage Slack alert | holders of View AI usage or Manage billing |
 
 - **In the app** switches the toast or card in the tray; the bell keeps what is addressed to the person either way. It is the
   `Off` list of `NotificationSettings` on the membership, the same column the Teammate changes sheet saved, so nobody's

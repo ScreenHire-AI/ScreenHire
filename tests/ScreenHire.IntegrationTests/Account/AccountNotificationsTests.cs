@@ -1,6 +1,9 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ScreenHire.Application.Notifications;
+using ScreenHire.Domain.Notifications;
+using ScreenHire.IntegrationTests.Scheduling;
 
 namespace ScreenHire.IntegrationTests.Account;
 
@@ -75,6 +78,13 @@ public sealed class AccountNotificationsTests(AppHostFixture fixture)
 
         Emails(saved)["AiUseAndBilling"].Should().Be("Off");
         Emails((await owner.GetAsync(Path)).Expect(HttpStatusCode.OK))["AiUseAndBilling"].Should().Be("Off");
+
+        // Instantly, the row's default for them, is kept too: the AI alerts (NotifyAiUsage) start from the organization's Off and
+        // read only what is saved.
+        (await owner.PutAsync(Path, Save(grid, rows: new() { ["AiUseAndBilling"] = "Instantly" }))).Expect(HttpStatusCode.OK);
+        await using var db = await fixture.ContextAsync(owner.OrganizationId, Ct);
+        var mine = await PersonNotices.ForUserAsync(db, owner.OrganizationId, owner.UserId, Ct);
+        PersonNotices.Email(mine, NoticeKind.AiUseAndBilling, OrganizationAlertDefaults.None).Should().Be(EmailChoice.Instantly);
     }
 
     [Fact]
