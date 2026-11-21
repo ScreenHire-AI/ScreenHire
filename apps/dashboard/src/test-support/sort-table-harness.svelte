@@ -4,7 +4,7 @@
   import SortMenu from '#lib/components/sort-menu.svelte';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
-  // A small sortable table: Name and Last updated, opening newest first, remembered under `sortId`.
+  // A small sortable table: Name and Last updated (right-aligned, as a date column is), opening newest first, remembered under `sortId`.
   let { sortId }: { sortId?: string } = $props();
 
   type Row = { id: string; name: string; updatedAt: string };
@@ -29,7 +29,7 @@
   <thead>
     {#each table.getHeaderGroups() as group (group.id)}
       <tr>
-        {#each group.headers as header (header.id)}<SortHeader {header} />{/each}
+        {#each group.headers as header (header.id)}<SortHeader {header} class={header.id === 'updatedAt' ? 'text-right' : undefined} />{/each}
       </tr>
     {/each}
   </thead>
