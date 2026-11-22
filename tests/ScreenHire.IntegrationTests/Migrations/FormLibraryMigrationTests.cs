@@ -12,7 +12,7 @@ namespace ScreenHire.IntegrationTests.Migrations;
 /// </summary>
 public sealed class FormLibraryMigrationTests(AppHostFixture fixture)
 {
-    private const string Before = "AddManualPostings";
+    private const string Before = "HostAnyHeadingFont";
     private const string After = "AddFormLibrary";
 
     [Fact]

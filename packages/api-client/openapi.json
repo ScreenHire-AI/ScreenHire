@@ -11865,6 +11865,86 @@
         ]
       }
     },
+    "/v1/reports/equality": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "operationId": "GetEqualityReport",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EqualityReport"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications/{applicationId}/scorecards": {
       "get": {
         "tags": [
@@ -12544,6 +12624,871 @@
           },
           {
             "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/form-templates": {
+      "get": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "ListFormTemplates",
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "CreateFormTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFormTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/form-templates/{formId}": {
+      "get": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "GetFormTemplate",
+        "parameters": [
+          {
+            "name": "formId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/form-templates/{formId}/history": {
+      "get": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "GetFormTemplateHistory",
+        "parameters": [
+          {
+            "name": "formId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/form-templates/{formId}/versions": {
+      "post": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "CreateFormTemplateVersion",
+        "parameters": [
+          {
+            "name": "formId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFormTemplateVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateVersionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/form-templates/{formId}/versions/{version}": {
+      "get": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "GetFormTemplateVersion",
+        "parameters": [
+          {
+            "name": "formId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateVersionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "UpdateFormTemplateVersion",
+        "parameters": [
+          {
+            "name": "formId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFormTemplateVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateVersionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/form-templates/{formId}/versions/{version}/publish": {
+      "post": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "PublishFormTemplateVersion",
+        "parameters": [
+          {
+            "name": "formId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateVersionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/form-templates/{formId}/versions/{version}/apply-to-templates": {
+      "post": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "ApplyFormToTemplates",
+        "parameters": [
+          {
+            "name": "formId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyFormToTemplatesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyFormToTemplatesResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/form-templates/{formId}/archive": {
+      "post": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "ArchiveFormTemplate",
+        "parameters": [
+          {
+            "name": "formId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/form-templates/{formId}/unarchive": {
+      "post": {
+        "tags": [
+          "Form templates"
+        ],
+        "operationId": "UnarchiveFormTemplate",
+        "parameters": [
+          {
+            "name": "formId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormTemplateDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/applications/{applicationId}/forms/{questionnaireId}/send": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "SendApplicationForm",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "questionnaireId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationFollowUp"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
           }
         ]
       }
@@ -18238,9 +19183,12 @@
             "items": {
               "$ref": "#/components/schemas/ApplicationAnswer"
             }
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FormKind"
           }
         },
-        "description": "A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes."
+        "description": "A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes. `kind` is the form's kind when it was sent: an equality monitoring form's `questions` and\n`answers` are always empty, because its answers only count toward totals in Reports (workflow-engine.md section\n7, Forms)."
       },
       "ApplicationInterview": {
         "required": [
@@ -18928,6 +19876,36 @@
           }
         },
         "description": "An application's verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person's, and every action is in\n`reviewLog`, the audit trail the dashboard shows in the candidate's Activity."
+      },
+      "ApplyFormToTemplatesRequest": {
+        "required": [
+          "templateIds"
+        ],
+        "type": "object",
+        "properties": {
+          "templateIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "The hiring templates to update to this published version of the form."
+      },
+      "ApplyFormToTemplatesResult": {
+        "required": [
+          "templates"
+        ],
+        "type": "object",
+        "properties": {
+          "templates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormTemplateUpdate"
+            }
+          }
+        }
       },
       "ApplyTemplateUpdateRequest": {
         "required": [
@@ -21094,6 +22072,55 @@
         },
         "description": "A new template of the organization's own: its name, a Liquid subject and a Liquid plain-text body."
       },
+      "CreateFormTemplateRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FormContent"
+              }
+            ]
+          },
+          "kind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FormKind"
+              }
+            ]
+          },
+          "copyFromFormId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "A new library form. Its first version starts as a draft holding `content`, or a copy of\n`copyFromFormId`'s newest version. `kind` defaults to Standard; EqualityMonitoring only where this deployment\noffers it. A copy keeps its source's kind."
+      },
+      "CreateFormTemplateVersionRequest": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FormContent"
+              }
+            ]
+          }
+        },
+        "description": "The next version as a draft: `content`, or a copy of the newest version's when it is left out."
+      },
       "CreateHiringTemplateRequest": {
         "required": [
           "name"
@@ -22027,6 +23054,105 @@
           "Internship"
         ]
       },
+      "EqualityAnswerCount": {
+        "required": [
+          "value",
+          "label",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "count": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "How many gave this answer, or null where the count is hidden."
+      },
+      "EqualityForm": {
+        "required": [
+          "formTemplateId",
+          "name",
+          "responses",
+          "questions"
+        ],
+        "type": "object",
+        "properties": {
+          "formTemplateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "responses": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EqualityQuestion"
+            }
+          }
+        },
+        "description": "One form's totals. `responses` is how many candidates answered it in the range, null when that is under the\nminimum, and then `questions` is empty."
+      },
+      "EqualityQuestion": {
+        "required": [
+          "questionId",
+          "label",
+          "answers"
+        ],
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "answers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EqualityAnswerCount"
+            }
+          }
+        },
+        "description": "One question's totals, a count per answer and one for no answer (`value` empty)."
+      },
+      "EqualityReport": {
+        "required": [
+          "forms",
+          "minimumCount"
+        ],
+        "type": "object",
+        "properties": {
+          "forms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EqualityForm"
+            }
+          },
+          "minimumCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Equality monitoring totals for the range (docs/architecture/reports.md, Equality monitoring): one entry per equality\nmonitoring form in the library. Nothing here names a candidate. A count under `minimumCount` is null, and so is the\nnext smallest when only one count of a question would be hidden, so no hidden count can be worked out from the rest."
+      },
       "EraseCandidateRequest": {
         "required": [
           "confirmation"
@@ -22183,6 +23309,30 @@
             "items": {
               "$ref": "#/components/schemas/QuestionSection"
             }
+          },
+          "formTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "formVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "kind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FormKind"
+              }
+            ]
           }
         },
         "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads."
@@ -22193,6 +23343,285 @@
           "Apache"
         ],
         "description": "The licences a hosted font may be under. Any other licence is refused (ADR-0031)."
+      },
+      "FormContent": {
+        "required": [
+          "name",
+          "questions"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            }
+          },
+          "sections": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/QuestionSection"
+            }
+          }
+        },
+        "description": "A library form version's content: what a hiring template copies into its follow-up questionnaire."
+      },
+      "FormKind": {
+        "enum": [
+          "Standard",
+          "EqualityMonitoring",
+          null
+        ]
+      },
+      "FormTemplateDetail": {
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "copiedFromFormId",
+          "latestPublishedVersion",
+          "versions",
+          "lastUpdated",
+          "archived"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FormKind"
+          },
+          "copiedFromFormId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "latestPublishedVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormTemplateVersionSummary"
+            }
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        },
+        "description": "A library form with its versions, newest last. `copiedFromFormId`: the form it was copied from, if any."
+      },
+      "FormTemplateList": {
+        "required": [
+          "forms",
+          "equalityMonitoringEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "forms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormTemplateSummary"
+            }
+          },
+          "equalityMonitoringEnabled": {
+            "type": "boolean"
+          }
+        },
+        "description": "The form library: the organization's forms by name, and whether this deployment offers equality monitoring forms\n(`ScreenHire:Forms:EqualityMonitoring:Enabled`, off until a legal review)."
+      },
+      "FormTemplateSummary": {
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "questions",
+          "latestPublishedVersion",
+          "draftVersion",
+          "lastUpdated",
+          "archived"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FormKind"
+          },
+          "questions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latestPublishedVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "draftVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "lastUpdated": {
+            "$ref": "#/components/schemas/LastUpdate"
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        },
+        "description": "One library form in the list (workflow-engine.md section 7, Forms). `name` and `questions` are the newest\nversion's; `latestPublishedVersion` is the version a hiring template can use, null until one is published, and\n`draftVersion` the draft's number while there is one."
+      },
+      "FormTemplateUpdate": {
+        "required": [
+          "templateId",
+          "templateName",
+          "outcome"
+        ],
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateName": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/FormUpdateOutcome"
+          },
+          "version": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "problem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "FormTemplateVersionDetail": {
+        "required": [
+          "formTemplateId",
+          "version",
+          "status",
+          "kind",
+          "content",
+          "createdAt",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "formTemplateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TemplateVersionStatus"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FormKind"
+          },
+          "content": {
+            "$ref": "#/components/schemas/FormContent"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One version of a library form with its content, which a hiring template copies into a follow-up questionnaire. The\ncontent's JSON Schema is the follow-up questionnaire's questions and sections."
+      },
+      "FormTemplateVersionSummary": {
+        "required": [
+          "version",
+          "status",
+          "name",
+          "questions",
+          "createdAt",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TemplateVersionStatus"
+          },
+          "name": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One version of a library form, without its content."
+      },
+      "FormUpdateOutcome": {
+        "enum": [
+          "Published",
+          "UpdatedDraft",
+          "NotUpdated"
+        ],
+        "description": "What updating one hiring template did. `Published`: it had no draft, so the update is its new published version\n`version`, which new jobs get; its jobs stay on theirs until someone updates them. `UpdatedDraft`: its draft\n`version` now holds the form, waiting to be published with the rest of the draft. `NotUpdated`: nothing changed,\nand `problem` says why."
       },
       "FunnelEnd": {
         "enum": [
@@ -27265,9 +28694,13 @@
             "items": {
               "$ref": "#/components/schemas/ApplicationAnswer"
             }
+          },
+          "equalityMonitoring": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\n`draft` holds the answers the candidate saved to finish later, empty when there are none."
+        "description": "A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\n`draft` holds the answers the candidate saved to finish later, empty when there are none.\n`equalityMonitoring`: an equality monitoring form, whose page says its answers are optional and only ever counted."
       },
       "PublicQuestionnaireAnswers": {
         "required": [
@@ -30008,7 +31441,8 @@
         "required": [
           "hiring",
           "scorecards",
-          "emails"
+          "emails",
+          "forms"
         ],
         "type": "object",
         "properties": {
@@ -30029,9 +31463,15 @@
             "items": {
               "$ref": "#/components/schemas/TemplateUse"
             }
+          },
+          "forms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateUse"
+            }
           }
         },
-        "description": "Every template's use, by kind, as the Templates page lists them."
+        "description": "Every template's use, by kind, as the Templates page lists them. A library form's users are hiring templates, each with\n`templateVersion`, the version of the form its current versions hold (below the form's newest published version,\nit is on an older one)."
       },
       "TemplateUse": {
         "required": [
@@ -30291,6 +31731,18 @@
           }
         },
         "description": "New wording for a template. `name` renames the organization's own template; leave it out for a built-in,\nwhose name is ScreenHire's."
+      },
+      "UpdateFormTemplateVersionRequest": {
+        "required": [
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/FormContent"
+          }
+        },
+        "description": "A draft's new content."
       },
       "UpdateHiddenViewsRequest": {
         "required": [
@@ -32361,6 +33813,9 @@
     },
     {
       "name": "Scorecard templates"
+    },
+    {
+      "name": "Form templates"
     },
     {
       "name": "Webhooks"
