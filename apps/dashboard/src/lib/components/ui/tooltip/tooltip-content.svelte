@@ -11,6 +11,9 @@
 		class: className,
 		sideOffset = 4,
 		side = "top",
+		// Fixed, so a tooltip is placed against the window and never widens the page: placed absolutely, one opening near a
+		// phone-width window's edge was laid out past it before it moved inside, and the page scrolled sideways (F1).
+		strategy = "fixed",
 		children,
 		portalProps,
 		...restProps
@@ -25,6 +28,7 @@
 		data-slot="tooltip-content"
 		{sideOffset}
 		{side}
+		{strategy}
 		class={cn(
 			"data-[state=instant-open]:animate-in data-[state=instant-open]:fade-in-0 data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 motion-reduce:animate-none duration-150 inline-flex items-center gap-1.5 rounded-md border border-border bg-popover px-2.5 py-1.5 text-body text-popover-foreground shadow-overlay z-50 w-fit max-w-xs break-words origin-(--bits-tooltip-content-transform-origin)",
 			className
