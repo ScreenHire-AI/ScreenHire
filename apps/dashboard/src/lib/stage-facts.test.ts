@@ -163,6 +163,20 @@ describe('stageChips', () => {
     expect(chips.automations).toEqual([{ id: 'unnamed', name: 'Tag vip' }]);
   });
 
+  it('counts an automation that sends a form no longer in the workflow by its name, so the stage never says nothing happens', () => {
+    const orphan: HiringWorkflow = {
+      ...workflow,
+      followUpQuestionnaires: [],
+      automations: [automation('send-gone', { type: 'StageEntered', stageId: 'screen' }, [{ type: 'SendQuestionnaire', questionnaireId: 'gone' }], { name: 'Send the old form' })],
+    };
+
+    const chips = stageChips(orphan, stage('screen'), names);
+
+    expect(chips.forms).toEqual([]);
+    expect(chips.automations).toEqual([{ id: 'send-gone', name: 'Send the old form' }]);
+    expect(chipsEmpty({ ...chips, limitDays: undefined, scorecard: false })).toBe(false);
+  });
+
   it('gives a stage that ends a candidacy no time limit or scorecard, only what it sends', () => {
     const chips = stageChips({ ...workflow, stages: workflow.stages.map((s) => (s.id === 'rejected' ? { ...s, slaDays: 2, scorecardTemplateId: 'x' } : s)) }, stage('rejected'), names);
 

@@ -447,6 +447,27 @@ describe('workflow builder', () => {
     expect(within(within(pane).getByRole('group', { name: 'Forms' })).getByRole('button', { name: /References/ })).toHaveTextContent('By hand only');
   });
 
+  it("opens a stage's form on the Forms tab with its card chosen, from the stage's questions list", async () => {
+    const sent: HiringWorkflow = {
+      ...structuredClone(workflow),
+      followUpQuestionnaires: [{ id: 'availability', name: 'Availability', questions: [{ id: 'start', type: 'ShortText', label: 'When could you start?' }] }],
+      automations: [
+        ...structuredClone(workflow.automations),
+        { id: 'send-availability', name: '', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'SendQuestionnaire', questionnaireId: 'availability' }] },
+      ],
+    };
+    render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: sent, errors: [], mode: 'editor', tab: 'pipeline' } } });
+
+    const card = within(screen.getByRole('region', { name: 'Stages' })).getByRole('group', { name: 'Stage 2: Phone screen' });
+    await fireEvent.click(within(card).getByRole('button', { name: '1 question at Phone screen' }));
+    await fireEvent.click(within(await screen.findByRole('dialog', { name: '1 question at Phone screen' })).getByRole('link', { name: 'Availability' }));
+
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Forms' })).toHaveAttribute('aria-selected', 'true'));
+    const forms = within(screen.getByRole('tabpanel', { name: 'Forms' })).getByRole('group', { name: 'Forms' });
+    expect(within(forms).getByRole('button', { name: /^Availability/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(forms).getByRole('button', { name: /^Application form/ })).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('offers Send a form and the form trigger only with a follow-up to name', async () => {
     const followUp: HiringWorkflow = {
       ...workflow,

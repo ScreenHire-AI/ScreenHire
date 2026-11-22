@@ -166,8 +166,17 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
             var id = old.GetProperty("id").GetString()!;
             renamed.GetProperty("name").GetString().Should().Be(shortNames.GetValueOrDefault(id, old.GetProperty("name").GetString()!));
             if (shortNames.TryGetValue(id, out var shortName)) old.GetProperty("name").GetString().Should().NotBe(shortName, "a published version never changes");
+            // What it does stays: the trigger, the conditions and the actions (a verification review still only asks a person).
+            JsonNode.DeepEquals(WithoutName(old), WithoutName(renamed)).Should().BeTrue($"only the name of {id} changes");
         }
         newer.At("definition.workflow.stages").GetRawText().Should().Be(older.At("definition.workflow.stages").GetRawText());
+    }
+
+    private static JsonObject WithoutName(JsonElement automation)
+    {
+        var copy = JsonNode.Parse(automation.GetRawText())!.AsObject();
+        copy.Remove("name");
+        return copy;
     }
 
     private static JsonElement StageOf(JsonElement stages, string id) => stages.EnumerateArray().Single(s => s.GetProperty("id").GetString() == id);
