@@ -1,6 +1,7 @@
 ---
 import integrationsPhone from '../../assets/product/integrations-phone.png';
 import integrationsPicture from '../../assets/product/integrations.png';
+import AssistantAsks from '../../components/shell/AssistantAsks.astro';
 import ClosingBand from '../../components/shell/ClosingBand.astro';
 import PageHero from '../../components/shell/PageHero.astro';
 import ProductFrame from '../../components/shell/ProductFrame.astro';
@@ -21,28 +22,24 @@ const point = sellingPoints.find((item) => item.id === 'integrations')!;
 const each = [
   {
     term: 'Email',
-    detail:
-      'Send from ScreenHire with your own templates, to one candidate or a selection. Replies land on the candidate, attachments included. An Owner or Admin can add your own sending domain.',
+    detail: 'Send from ScreenHire with your own templates. Replies land on the candidate, attachments included, and you can send from your own domain.',
   },
   {
     term: 'Calendars',
     detail:
-      'Each interviewer connects their own Google or Outlook calendar. Candidates pick a time that is free for everyone on the panel, you get one calendar event each with a Meet or Teams link, and nobody is double-booked.',
+      "Each interviewer connects Google or Outlook, or just sets their hours. Candidates pick from your times, tell you when they are free, or take a time you suggest. Every booking sends an invite.",
   },
   {
     term: 'Slack',
-    detail:
-      'Pick a channel and what it hears about: a new application, a candidate moved, an automation that failed, a job published. Each person links their own account to get mentions and tasks as direct messages.',
+    detail: 'New applications, moves, failed automations and published jobs in the channel you pick. Mentions and tasks as direct messages.',
   },
   {
     term: 'API and webhooks',
-    detail:
-      'Read and change jobs, applications, candidates, templates and reports with an API key you can limit to read-only. Webhooks send a signed message when something happens, and retry if your server is down.',
+    detail: 'Read and change jobs, applications, candidates, scorecards, templates and reports. Webhooks send a signed message when something happens.',
   },
   {
     term: 'AI assistants',
-    detail:
-      'Connect an assistant such as Claude through MCP. It can find jobs and candidates, read an application, add notes, tags and tasks, move a candidate and read a hiring report.',
+    detail: 'Connect an assistant such as Claude through MCP to find candidates, read an application, add notes and move people along.',
   },
   {
     term: 'Your own AI key',
@@ -50,15 +47,18 @@ const each = [
   },
 ];
 
+// The MCP server asks the person before these (docs/architecture/mcp-server.md, "Confirmation").
+const asksFirst = ['Send an email', 'Invite a candidate to an interview', 'Publish or close a job', 'Move a candidate to a rejected stage'];
+
 const api = [
-  'Keys are shown once, can be read-only or read and write, have a rate limit of their own, and can be revoked',
-  'Jobs, applications, candidates, templates and reports are in the API',
-  'Each key page says how to call the API and links the reference',
+  'Keys are shown once, can be read-only or read and write, and can be revoked',
+  'Jobs, applications, candidates, scorecards, templates and reports are in the API',
+  'The reference lists every route a key can call',
 ];
 const webhooks = [
   'Each endpoint has its own secret, shown once and rotatable',
-  'Deliveries are signed, retried with a growing delay and kept in a log you can read',
-  'A delivery can be replayed, and an endpoint that keeps failing is switched off for you',
+  'Deliveries are signed, retried and kept in a log you can replay from',
+  'An endpoint that keeps failing is switched off for you',
 ];
 
 const faqs: Faq[] = [
@@ -104,12 +104,23 @@ const faqs: Faq[] = [
     <RuledList class="flex-[3_1_36rem]" items={each} />
   </Section>
 
-  <Section tone="band" labelledby="build-title" class="flex flex-col gap-10">
-    <div class="flex max-w-measure flex-col gap-4">
+  <Section tone="band" labelledby="asks-title" class="flex flex-wrap items-start gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_20rem] flex-col gap-4">
+      <h2 id="asks-title" class="font-display text-section text-balance">Your assistant asks before it acts.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">Reading and notes just happen. These wait for your yes:</p>
+      <ProofList items={asksFirst} />
+    </div>
+    <figure class="flex min-w-0 flex-[1_1_28rem] flex-col gap-3">
+      <AssistantAsks />
+      <figcaption class="text-sm text-muted-foreground">Sample request. The people here are fictional.</figcaption>
+    </figure>
+  </Section>
+
+  <Section labelledby="build-title" class="flex flex-col gap-10">
+    <div class="flex max-w-measure flex-col items-start gap-4">
       <h2 id="build-title" class="font-display text-section text-balance">Build on ScreenHire.</h2>
-      <p class="text-pretty text-secondary-foreground">
-        If a tool does not have an integration, the API and webhooks are on every plan, with no extra fee.
-      </p>
+      <p class="text-pretty text-secondary-foreground">The API and webhooks are on every plan, with no extra fee.</p>
+      <a href={pages.developers.path} class="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 hover:decoration-2">Read the developer docs</a>
     </div>
     <div class="grid grid-cols-[repeat(auto-fit,minmax(20rem,1fr))] gap-x-16 gap-y-10">
       <div>
@@ -123,7 +134,7 @@ const faqs: Faq[] = [
     </div>
   </Section>
 
-  <QuestionsList faqs={faqs} />
+  <QuestionsList faqs={faqs} tone="band" />
 
   <ClosingBand title="Keep the tools you already use." />
 </BaseLayout>

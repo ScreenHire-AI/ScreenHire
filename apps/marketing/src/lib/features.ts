@@ -76,11 +76,11 @@ export const sellingPoints: SellingPointData[] = [
   {
     id: 'real-people',
     title: "Know it's a real person before you book the interview.",
-    pain: 'Auto-apply tools and fake identities fill your inbox, and every one of them costs your team time.',
-    promise: 'ScreenHire checks every application as it arrives and shows you what does not add up, what speaks for the candidate, and what to do next.',
+    pain: 'Auto-apply tools and fake identities fill your inbox. Each one costs your team time it never gets back.',
+    promise: 'Every application is checked as it arrives. You see what does not add up, what speaks for the candidate, and what to do next.',
     proof: [
-      'A check on every application',
-      'A level for every applicant, with the evidence behind it and what speaks for them',
+      'A check on every application, on every plan',
+      'Clear, Review or Verify on every applicant, with the evidence behind it',
       'A suggested next step',
       'A person on your team decides. Nothing is rejected on a check.',
     ],
@@ -94,13 +94,12 @@ export const sellingPoints: SellingPointData[] = [
   {
     id: 'never-guessing',
     title: 'Nobody has to ask where things stand.',
-    pain: 'Nobody knows who spoke to a candidate last, and candidates are left without an answer.',
-    promise: 'Your team always knows where each candidate is and what was said last, and so does the candidate.',
+    pain: 'Nobody knows who spoke to a candidate last, and the candidate hears nothing.',
+    promise: 'Every change lands in one feed your team reads in a minute. Every candidate gets a page that says where they stand.',
     proof: [
-      'The pipeline, and on each candidate their activity and when they were last contacted',
-      'Email you send and the replies you get, kept on the application',
-      'Notes and tasks on the candidate, with mentions',
-      'The candidate\'s own page: four steps (Applied, In review, Interview, Offer) and your messages',
+      "The team's activity in one feed, with what changed since you last looked",
+      'Email, replies and notes kept on the candidate',
+      "The candidate's own page: four steps (Applied, In review, Interview, Offer) and your messages",
       'Reports on your funnel, time to hire and sources',
     ],
     figures: [
@@ -112,12 +111,11 @@ export const sellingPoints: SellingPointData[] = [
     id: 'automate-anything',
     title: 'If your team does it by hand, ScreenHire can do it for you.',
     pain: 'The same follow-ups by hand, or automation kept for the top plan.',
-    promise: 'Whatever you do the same way every time, ScreenHire can run it, from one reminder to a whole process.',
+    promise: 'Whatever you do the same way every time, ScreenHire runs it, from one reminder to a whole hiring process.',
     proof: [
       'Automations on every stage and on the whole workflow, on every plan',
-      'Triggers such as a candidate reaching a stage, a time limit passing, a scorecard coming in or an interview being booked',
-      'Actions such as emailing the candidate, moving them, asking a teammate to review, reminding the team, sending follow-up questions or offering interview times',
-      'Test an automation on a sample application before it goes live',
+      'Interviews booked three ways: from your times, from the times they are free, or a time you suggest',
+      'Try it: walk a made-up candidate through your process, one stage at a time, before anyone applies',
       'Guardrails: a check never rejects anyone',
     ],
     figures: [],
@@ -127,13 +125,12 @@ export const sellingPoints: SellingPointData[] = [
     id: 'integrations',
     title: 'Works with the tools you already use.',
     pain: 'Tools that do not talk to each other, or no API at all.',
-    promise: 'No copying between tabs. If you want to build on ScreenHire, the API and webhooks are on every plan.',
+    promise: 'No copying between tabs. The API, webhooks and AI assistants are on every plan, and an assistant asks you before it sends anything.',
     proof: [
       'Email, with replies kept on the candidate',
-      'Google and Outlook calendars',
-      'Slack',
-      'The API and webhooks',
-      'AI assistants through MCP',
+      'Google and Outlook calendars, and Slack',
+      'The API and signed webhooks',
+      'AI assistants through MCP, which ask before they act',
     ],
     figures: [],
     pagePath: '/product/integrations/',
@@ -142,14 +139,12 @@ export const sellingPoints: SellingPointData[] = [
     id: 'built-your-way',
     title: 'Set it up the way your team hires.',
     pain: 'Rigid software built for big recruiting teams.',
-    promise: 'ScreenHire bends to yours: your stages, your questions, your scorecards, your emails, your colours, and who sees which jobs.',
+    promise: 'Your stages, your forms, your emails, your colours and your teams. Change any of it later, even on a job that is already open.',
     proof: [
-      'Stages and hiring templates, ours or your own',
-      'Questionnaires and scorecards',
-      'Email templates',
-      'Your branding and careers site',
-      'Roles and access to each job',
-      'Your own AI key and model for the consistency check',
+      'Hiring templates, ours or your own',
+      'A library of forms and scorecards, used again on every job',
+      'Your branding, with any heading font from Google Fonts',
+      'Roles, named teams and access to each job',
     ],
     figures: [],
     pagePath: '/product/built-your-way/',
@@ -164,12 +159,12 @@ export const careersSite: SellingPointData = {
   id: 'careers-site',
   title: 'Post once. Take it down once.',
   pain: 'A job goes on your site, then on each board by hand, and coming down means doing it all again.',
-  promise: 'Publish to your careers site, Google for Jobs and the job boards in one step, and close it the same way. Candidates are told what is checked before they apply.',
+  promise: 'Publish to your careers site, Google for Jobs and the job boards in one step, and close it the same way. Anywhere else, copy the text and we track the link.',
   proof: [
     'A careers site with your branding, and the apply form on your own site from one line of embed code',
     'Google for Jobs and job-board feeds, each board showing its own status',
-    'Edit a posting for one board without changing the job or any other board',
-    'A notice before an application starts, and a switch for assistive technology that is never held against anyone',
+    'Post it yourself on any other board, with a tracked link and the posting in the same list',
+    'A short apply form with one progress bar, and a notice before it starts',
   ],
   figures: [],
   pagePath: '/product/careers-site/',
@@ -177,14 +172,17 @@ export const careersSite: SellingPointData = {
 
 /** The integrations as a plain list of what each does (the integrations section). */
 export const integrations: { name: string; does: string }[] = [
-  { name: 'Email', does: "Send from ScreenHire. Replies land on the candidate's record." },
-  { name: 'Calendars', does: 'Google and Outlook. Candidates pick a time your panel is free.' },
+  { name: 'Email', does: 'Send from ScreenHire. Replies land on the candidate.' },
+  { name: 'Calendars', does: 'Google and Outlook. Candidates pick from your times, tell you when they are free, or take a time you suggest.' },
   { name: 'Slack', does: 'New applicants in a channel, mentions and tasks to the right person.' },
-  { name: 'API and webhooks', does: 'Read and change jobs, applications and candidates, and get a signed webhook when something happens.' },
-  { name: 'AI assistants', does: 'Ask an assistant such as Claude about your pipeline through MCP.' },
+  { name: 'API and webhooks', does: 'Read and change jobs, applications, candidates and scorecards, and get a signed webhook when something happens.' },
+  { name: 'AI assistants', does: 'Ask an assistant such as Claude about your pipeline through MCP. It asks you before it sends, publishes or rejects.' },
 ];
 
-/** An automation written out as When, If, Then, then three examples from one step to a whole process. */
+/**
+ * An automation written out as When, If, Then, three examples from one step to a whole process, and the line on Try it
+ * (the workflow's Try it tab, docs/architecture/workflow-engine.md), which walks a made-up candidate through the stages.
+ */
 export const automation = {
   sentence:
     'When a candidate reaches Interview, if they said yes to right to work, offer them interview times and ask Jordan to review.',
@@ -193,26 +191,33 @@ export const automation = {
     { scope: 'A few steps', text: 'Remind the team when a candidate has waited three days in Screening.' },
     {
       scope: 'Your whole process',
-      text: 'Send follow-up questions, move people who meet your must-haves to Screening, offer interview times, and ask your reviewers for a scorecard.',
+      text: 'Send a form, move people who meet your must-haves to Screening, offer interview times, and ask your reviewers for a scorecard.',
     },
   ],
+  tryIt: 'Then press Try it and walk a made-up candidate through every stage, one at a time, before a real one applies.',
 };
 
-/** What the dashboard calls each level, with the status tone that draws it. The site shows nothing else about a check. */
+/**
+ * The authenticity levels as the dashboard shows them (design system section 3.2, `verificationStateOf` in the dashboard):
+ * one word on screen and the long name for screen readers. Clear is quiet, an icon and a muted word, as a calm state is
+ * (T3). The site shows nothing else about a check.
+ */
 export const levels = {
-  noConcerns: { label: 'No concerns', status: 'done' },
-  reviewSuggested: { label: 'Review suggested', status: 'review' },
-  verificationSuggested: { label: 'Verification suggested', status: 'verification' },
-  someSignsOfAiHelp: { label: 'Some signs of AI help', status: 'ai' },
+  clear: { word: 'Clear', label: 'No concerns', status: 'done', quiet: true },
+  review: { word: 'Review', label: 'Review suggested', status: 'review', quiet: false },
+  verify: { word: 'Verify', label: 'Verification suggested', status: 'verification', quiet: false },
 } as const;
 
 export type LevelKey = keyof typeof levels;
+
+/** AI help is a separate assessment and only information, never a level of concern, so it is not in `levels`. */
+export const aiHelp = { word: 'Some signs of AI help', label: 'Some signs of AI help', status: 'ai', quiet: false } as const;
 
 /** The home hero. */
 export const hero = {
   headline: 'Interview real people, not bots.',
   subline:
-    'ScreenHire is the hiring tool for small teams. It checks every applicant, keeps your team and your candidates up to date, and does the busywork for you. One price, everything included.',
+    'The hiring tool for small teams. It checks every applicant, keeps your team and your candidates up to date, and does the busywork. One price, everything included.',
 };
 
 /** What every plan includes, grouped by the five selling points and the candidate's side. Each line is a built feature (docs/status.md). */
@@ -222,7 +227,8 @@ export const includedByTopic: { id: string; title: string; items: string[] }[] =
     title: 'Real people',
     items: [
       'A check on every application',
-      'A level for every applicant, with the evidence, what speaks for them and a suggested next step',
+      'Clear, Review or Verify on every applicant, with the evidence, what speaks for them and a suggested next step',
+      'A log of every run of the checks, and a switch for each group of checks',
       `The AI consistency check, on our AI key at the provider's price plus ${aiMarginPercent}%, or on your own AI key at no charge from us`,
     ],
   },
@@ -230,7 +236,7 @@ export const includedByTopic: { id: string; title: string; items: string[] }[] =
     id: 'never-guessing',
     title: 'Never guessing',
     items: [
-      "The pipeline, with each candidate's activity and when they were last contacted",
+      "The team's activity in one feed, and each person's own choice of alerts and a daily digest",
       'Email you send and the replies you get, kept on the application',
       'Notes and tasks with mentions, and reports on your funnel',
       'A page of their own for every candidate',
@@ -240,19 +246,24 @@ export const includedByTopic: { id: string; title: string; items: string[] }[] =
     id: 'automate-anything',
     title: 'Automate anything',
     items: [
-      'Automations on every stage and on the whole workflow, tested on a sample application before they go live',
-      'Follow-up questions and interview scheduling',
+      'Automations on every stage and on the whole workflow',
+      'Try it: click through your hiring process before anyone applies',
+      "Interview scheduling three ways, within each interviewer's own hours",
     ],
   },
   {
     id: 'integrations',
     title: 'Integrations',
-    items: ['Google and Outlook calendars, and Slack', 'The API and webhooks', 'AI assistants through MCP'],
+    items: ['Google and Outlook calendars, and Slack', 'The API and signed webhooks', 'AI assistants through MCP, which ask before they act'],
   },
   {
     id: 'built-your-way',
     title: 'Built your way',
-    items: ['Hiring templates, questionnaires and scorecards', 'Email templates and your branding', 'Roles, and access to each job'],
+    items: [
+      'Hiring templates, and a library of forms and scorecards',
+      'Email templates and your branding, with any heading font from Google Fonts',
+      'Roles, named teams and access to each job',
+    ],
   },
   {
     id: 'careers-site',
@@ -261,6 +272,7 @@ export const includedByTopic: { id: string; title: string; items: string[] }[] =
       'A careers site for your company, with the notice before any candidate applies',
       'The apply form on your own site, from one line of embed code',
       'Posting to Google for Jobs and job-board feeds, and taking a job down everywhere in one click',
+      'Post it yourself anywhere else, with a tracked link',
     ],
   },
 ];

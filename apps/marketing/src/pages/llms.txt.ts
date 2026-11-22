@@ -20,13 +20,17 @@ ScreenHire is in development. This file and the site describe the product as des
   unique person?) and AI assistance (are there signs of AI help?). Each is a level with its evidence, counter-evidence
   and a suggested next step, never a numeric score.
 - A pipeline that shows where each candidate is and who spoke to them last, with two-way email kept on the application,
-  notes, tasks, reports, and a page where each candidate sees their own steps and messages.
-- Automations on every stage and on a whole workflow, tested on a sample application first, and interview scheduling
-  against members' calendars.
-- One-click posting to a careers page, Google for Jobs and job boards, and one-click removal with per-board status.
-- A public API and webhooks, Slack, Google and Outlook calendars, and an MCP server for AI assistants.
-- Stages, questionnaires, scorecards, email templates and branding that a team sets up its own way, with roles and
-  access to each job.
+  notes, tasks, reports, a team activity feed, each person's own notification choices, and a page where each candidate
+  sees their own steps and messages.
+- Automations on every stage and on a whole workflow, a Try it mode that walks a made-up candidate through the process,
+  forms sent at the stage you choose, and interview scheduling three ways (pick from our times, tell us when you're
+  free, or we suggest a time) within each interviewer's own hours.
+- One-click posting to a careers page, Google for Jobs and job boards, one-click removal with per-board status, and
+  manual postings with tracked links for boards with no feed.
+- A public API and webhooks, Slack, Google and Outlook calendars, and an MCP server for AI assistants that asks the
+  person before it sends an email, publishes or closes a job, or rejects a candidate.
+- Stages, a library of forms and scorecards, email templates and branding that a team sets up its own way, with roles,
+  named teams and access to each job.
 - Pricing by how many jobs are open at once, with unlimited users and every feature on every plan.
 
 ## Principles

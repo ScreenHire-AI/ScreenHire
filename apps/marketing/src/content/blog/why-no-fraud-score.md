@@ -10,7 +10,7 @@ Most applicant fraud tools end in a number: a fraud risk out of 100, or a percen
 
 When a tool says an applicant is risky, the useful questions are what it saw and whether there is an innocent explanation. A score answers neither. It folds several unrelated details into one figure, and drops the one fact that might clear the person.
 
-So ScreenHire shows a level instead: **No concerns**, **Review suggested** or **Verification suggested**. Each level comes with the evidence behind it, anything that counts in the applicant's favour, a short summary and a suggested next step. A reviewer can read it in a few seconds and disagree with it.
+So ScreenHire shows a level instead: **Clear**, **Review** or **Verify**, short for no concerns, review suggested and verification suggested. Each level comes with the evidence behind it, anything that counts in the applicant's favour, a short summary and a suggested next step. A reviewer can read it in a few seconds and disagree with it.
 
 ## Two questions, kept apart
 

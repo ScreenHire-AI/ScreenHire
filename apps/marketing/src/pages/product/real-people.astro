@@ -22,14 +22,15 @@ const { title, description, path, label } = pages.realPeople;
 const point = sellingPoints.find((item) => item.id === 'real-people')!;
 const fraudSoldApart = marketPains.find((pain) => pain.id === 'fraud-sold-apart')!;
 
-const levels: { level: LevelKey; meaning: string }[] = [
-  { level: 'noConcerns', meaning: 'Nothing unusual in the checks that ran. No action needed.' },
-  { level: 'reviewSuggested', meaning: 'Something is worth a second look. Read the evidence before you decide.' },
-  { level: 'verificationSuggested', meaning: 'Confirm the candidate is who they say they are before you spend interview time, for example on a short video call.' },
-  { level: 'someSignsOfAiHelp', meaning: 'Parts of the application look written with AI help. This is information, judged against the AI policy you set for the job.' },
+// The three levels, then AI help, which is a separate result and only information.
+const levels: { level: LevelKey | 'aiHelp'; meaning: string }[] = [
+  { level: 'clear', meaning: 'Nothing unusual found. No action needed.' },
+  { level: 'review', meaning: 'Something is worth a second look. Read the evidence before you decide.' },
+  { level: 'verify', meaning: 'Confirm they are who they say they are before you spend interview time, for example on a short video call.' },
+  { level: 'aiHelp', meaning: 'A separate note, never a level of concern, judged against the AI policy you set for the job.' },
 ];
 
-const youSee = ['A level for every applicant', 'The evidence behind it', 'What speaks for the candidate', 'A suggested next step'];
+const youSee = ['Clear, Review or Verify for every applicant', 'The evidence behind it', 'What speaks for the candidate', 'A suggested next step'];
 const never = [
   'Reject anyone because of a check',
   'Give a score, or a percentage of AI',
@@ -106,7 +107,7 @@ const faqs: Faq[] = [
       {
         levels.map((item) => (
           <div class="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-t border-border py-4 last:border-b">
-            <dt class="flex-[0_0_14rem]"><LevelChip level={item.level} /></dt>
+            <dt class="flex-[0_0_12rem]"><LevelChip level={item.level} /></dt>
             <dd class="min-w-0 flex-[1_1_16rem] text-pretty text-secondary-foreground">{item.meaning}</dd>
           </div>
         ))
@@ -118,12 +119,12 @@ const faqs: Faq[] = [
     <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
       <h2 id="decides-title" class="font-display text-section text-balance">A level is not a verdict. A person decides.</h2>
       <p class="max-w-measure text-pretty text-secondary-foreground">
-        Each level comes with its evidence and its counter-evidence, what speaks for the candidate, so you can see both sides
-        before you spend an hour.
-        Then your team decides what to do. Nothing is ever rejected on a check.
+        Each level comes with its evidence and what speaks for the candidate, so you see both sides before you spend an hour.
+        Nothing is ever rejected on a check.
       </p>
       <p class="max-w-measure text-pretty text-secondary-foreground">
-        Fraud checks are not an add-on or an enterprise contract here. They are on every plan.
+        Every run of the checks is in one log, and you can turn off any group of checks you do not want. They are on every plan,
+        not an add-on.
       </p>
     </div>
     <div class="grid min-w-0 flex-[1_1_28rem] grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] content-start gap-x-12 gap-y-8">

@@ -1,0 +1,29 @@
+---
+// An AI assistant asking before it emails a candidate, through ScreenHire's MCP server (docs/architecture/mcp-server.md,
+// "Confirmation"). The question is the server's own words (apps/api/Mcp/McpConfirmation.cs: "Your assistant wants to
+// {action}. Go ahead?", with the send_email action from EmailTools.cs). The assistant's app draws the question its own
+// way, so this shows the words and no controls. The people are fictional.
+import ProductFrame from './ProductFrame.astro';
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<ProductFrame class={className}>
+  <div class="flex flex-col gap-5 px-5 py-5">
+    <p class="max-w-sm self-end rounded-panel bg-secondary px-4 py-3 text-pretty text-secondary-foreground">
+      Send Hannah the interview times for Thursday.
+    </p>
+    <div class="flex flex-col gap-2 rounded-panel border border-border px-4 py-4">
+      <p class="font-bold">ScreenHire asks first</p>
+      <p class="text-pretty">
+        Your assistant wants to email the candidate for "Product Designer" with the subject "Interview on Thursday" and this text: "Hi
+        Hannah, here are three times on Thursday that work for the team." Go ahead?
+      </p>
+    </div>
+    <p class="text-muted-foreground">Nothing is sent until you say yes.</p>
+  </div>
+</ProductFrame>

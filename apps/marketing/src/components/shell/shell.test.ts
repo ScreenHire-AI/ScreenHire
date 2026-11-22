@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { PUBLIC_APP_URL } from 'astro:env/server';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -7,7 +8,9 @@ import { pages, productNav } from '../../lib/pages';
 import { buildPlans } from '../../lib/pricing';
 import portal from '../../assets/product/candidate-portal.png';
 import portalPhone from '../../assets/product/candidate-portal-phone.png';
+import ActivityFeed from './ActivityFeed.astro';
 import ApplicantPair from './ApplicantPair.astro';
+import AssistantAsks from './AssistantAsks.astro';
 import ClosingBand from './ClosingBand.astro';
 import CtaLink from './CtaLink.astro';
 import LevelChip from './LevelChip.astro';
@@ -30,13 +33,47 @@ const render = (component: Parameters<AstroContainer['renderToString']>[0], prop
   container.renderToString(component, { props, request: new Request('http://localhost/pricing/') });
 
 describe('LevelChip', () => {
-  it('draws every level with the dashboard label, its icon and a text label', async () => {
+  it("draws each level as the dashboard does: its one word, the long name for screen readers, and its icon", async () => {
     for (const [key, level] of Object.entries(levels)) {
       const html = await render(LevelChip, { level: key });
-      expect(html).toContain(level.label);
+      expect(html).toContain(`<span aria-hidden="true">${level.word}</span>`);
+      expect(html).toContain(`<span class="sr-only">${level.label}</span>`);
       expect(html).toContain(`data-status-icon="${level.status}"`);
     }
-    expect(Object.values(levels).map((level) => level.label)).toEqual(['No concerns', 'Review suggested', 'Verification suggested', 'Some signs of AI help']);
+    expect(Object.values(levels).map((level) => level.word)).toEqual(['Clear', 'Review', 'Verify']);
+    expect(Object.values(levels).map((level) => level.label)).toEqual(['No concerns', 'Review suggested', 'Verification suggested']);
+  });
+
+  it('keeps Clear quiet and fills the levels that need a look (T3)', async () => {
+    expect(await render(LevelChip, { level: 'clear' })).not.toContain('bg-status-');
+    expect(await render(LevelChip, { level: 'verify' })).toContain('bg-status-verify-soft');
+  });
+
+  it('shows AI help apart from the levels, as information', async () => {
+    const html = await render(LevelChip, { level: 'aiHelp' });
+    expect(html).toContain('Some signs of AI help');
+    expect(html).toContain('data-status-icon="ai"');
+    expect(Object.keys(levels)).not.toContain('aiHelp');
+  });
+});
+
+describe('ActivityFeed', () => {
+  it('reads as the bell feed does, and never shows a level or anything about the checks', async () => {
+    const html = await render(ActivityFeed);
+    for (const text of ['Since you were last here: 3 changes', 'Seen before', ' to Interview', '5 minutes ago']) expect(html).toContain(text);
+    expect(html).not.toMatch(/\b(?:Clear|Review|Verify|checks?|verification)\b/i);
+  });
+});
+
+describe('AssistantAsks', () => {
+  it("asks in the MCP server's own words before an email goes", async () => {
+    const server = readFileSync(new URL('../../../../api/Mcp/McpConfirmation.cs', import.meta.url), 'utf8');
+    const email = readFileSync(new URL('../../../../api/Mcp/EmailTools.cs', import.meta.url), 'utf8');
+    expect(server).toContain('$"Your assistant wants to {action}. Go ahead?"');
+    expect(email).toContain('$"email the candidate for \\"{jobTitle}\\" with the subject \\"{content.Subject}\\" and this text: ');
+    const html = (await render(AssistantAsks)).replace(/\s+/g, ' ');
+    expect(html).toMatch(/Your assistant wants to email the candidate for "[^"]+" with the subject "[^"]+" and this text: "[^"]+" Go ahead\?/);
+    expect(html).toContain('Nothing is sent until you say yes.');
   });
 });
 
@@ -105,7 +142,7 @@ describe('CtaLink', () => {
 describe('ApplicantPair', () => {
   it('shows the real and the flagged applicant with why, but also and next step, and no codes', async () => {
     const html = await render(ApplicantPair);
-    for (const text of ['No concerns', 'Verification suggested', 'Why', 'But also', 'Next step', 'A person on your team decides']) {
+    for (const text of ['Clear', 'Verify', 'Verification suggested', 'Why', 'But also', 'Next step', 'A person on your team decides']) {
       expect(html).toContain(text);
     }
     expect(html).not.toMatch(/\b[A-Z]{2,}(?:_[A-Z]+)+\b/);

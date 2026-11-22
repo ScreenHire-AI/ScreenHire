@@ -333,7 +333,7 @@ default hiring team; Clear, Review and Verify stay, and To review holds Review o
   ([verification engine](architecture/verification-engine.md) §9).
 - **Verification phase 3:** interview verification.
 - **Signal Network:** built and off until a legal review and DPIA (ADR-0005).
-- **Marketing site:** a character pass after the app is complete. The owner found the rebuilt site a good base without soul (2026-11-09); the second-pass mockup and `docs/design/marketing-site.md` are its starting point.
+- **Marketing site:** the owner's review of the character pass. The owner found the rebuilt site a good base without soul (2026-11-09). The refresh of 2026-11-22 caught its words up with the app and replaced lists with product moments (the levels, the activity feed, an assistant asking first, new pictures); the owner judges whether it now has the character they want, against the second-pass mockup and `docs/design/marketing-site.md`.
 
 ## Before real customers
 

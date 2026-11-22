@@ -383,9 +383,10 @@ The careers and candidate pages are not in the dark walk: they have no dark them
 
 The marketing site shows the real product, so its pictures are captured, not drawn. `MarketingScreenshotsTests` boots a
 stack of its own with the demo's data on (`MarketingDemoFixture`, `ScreenHire:Demo=true`, the production builds), signs in
-as Avery Quinn and takes each screen: both verification panels, a job's pipeline in light and dark, a candidate's activity
-with its emails and the reply, the candidates list, the candidate's own page, a workflow's stages and automations, the interview booking
-page, Integrations, a template's stages, the branding editor, Reports and the branded careers page. Each screen has a full
+as Avery Quinn and takes each screen: a job's pipeline, a candidate's activity with its emails and the reply, the team's
+Activity feed in the bell, the candidate's own page, a workflow's stages and automations, Try it with the good-fit applicant,
+the Schedule interview sheet, Integrations, a template's stages and its forms, a job's postings, the branding editor,
+Reports and the branded careers page. Each screen has a full
 picture (`name.png`) and a picture of the same screen laid out at phone width (`name-phone.png`), for a page to show on a phone.
 
 - **Run it after changing a screen the marketing site shows**, with `UPDATE_MARKETING_SCREENSHOTS=1` as above, then open
@@ -394,19 +395,21 @@ picture (`name.png`) and a picture of the same screen laid out at phone width (`
 - **Without the variable** the test still opens every screen and takes every picture, into `TestResults/marketing-screenshots`
   beside the test assembly, and fails if a committed image is missing or over 600 KB. It compares no pixels: dates and
   "x minutes ago" differ on every run.
-- **Same picture every run:** a 1440 by 900 window (1980 wide for the pipeline, 1600 for the candidates list, taller for the activity, template, workflow, booking page and reports; 430 wide for the phone picture) at twice the pixels, reduced motion, the fonts loaded, `en-US` and
+- **Same picture every run:** a 1440 by 900 window (1980 wide for the pipeline, taller for the activity, template, workflow, Try it, postings and reports; 430 wide for the phone picture) at twice the pixels, reduced motion, the fonts loaded, `en-US` and
   `Europe/London`, no hover, focus ring, toast or caret, and no strip reserved for a scrollbar at the right (the test
   fails if the page keeps one, scrolls sideways, or the pipeline's board scrolls sideways in its own box). There are no pictures
   of the verification panels: they name the kind of network, the details two applications share and the ruleset version,
   which the public site never says, and the repository is public. The site shows the evidence with the `ApplicantPair`
-  markup instead (`docs/design/marketing-site.md`, "What is never said"). The workflow picture is the product designer job's,
-  with automations the test adds, because the engineer job's queues an answer for rejection review.
+  markup instead (`docs/design/marketing-site.md`, "What is never said"). The workflow, Try it and postings pictures are the
+  product designer job's, with automations the test adds, because the engineer job's queues an answer for rejection review;
+  Try it takes the good-fit applicant, never the one the checks flag.
 - **Pictures end between elements.** Where the window as it opens would cut a screen, its picture runs from one element
-  to another in a tall window: the pipeline's phone picture shows one stage and its cards, the activity runs from the reply to the first note, the
-  candidates list ends after the last row the window shows whole, the booking page at its Book button, and the
+  to another in a tall window: the pipeline's phone picture shows one stage and its cards, the activity runs from the reply to the first note, Try it
+  ends at the button that moves the candidate on, the bell, the sheet and the postings are taken as the element alone, and the
   reports phone picture leaves out the table of open jobs between the cards and the trend.
 - **Data:** Brightwater Studio and its fictional people. The test adds what the demo lacks for one candidate (an email
-  answered, an interview offered and booked) and moves three applicants so the pipeline has people in several stages.
+  answered, an interview offered and booked), a board posted by hand on the product designer job, and moves three
+  applicants so the pipeline has people in several stages.
 
 ## Marketing site checks
 
