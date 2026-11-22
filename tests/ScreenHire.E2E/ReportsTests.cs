@@ -70,7 +70,17 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         }
 
         await SaveScreenshotAsync(Page, "dashboard-reports-2560");
+
+        // Below the threshold, one column, main then side, at the same window width as Billing and the Verification overview.
+        await Page.SetViewportSizeAsync(1200, 1000);
+        var narrowWeekly = (await Region("Applications and hires by week").BoundingBoxAsync())!;
+        (await funnel.BoundingBoxAsync())!.Y.Should().BeGreaterThan(narrowWeekly.Y + narrowWeekly.Height, "the funnel follows the main column below the threshold");
         await Page.SetViewportSizeAsync(1440, 1000);
+
+        // The weekly chart draws its columns in a panel stacked in the main column, whose height is its content's.
+        var tallest = await Region("Applications and hires by week").Locator("[data-week] span")
+            .EvaluateAllAsync<double>("bars => Math.max(...bars.map(bar => bar.getBoundingClientRect().height))");
+        tallest.Should().BeGreaterThan(50, "the busiest week's column reaches up the chart");
 
         // Compare is on by default and off on request.
         var compare = Page.GetByRole(AriaRole.Switch, new() { Name = "Compare periods" });
