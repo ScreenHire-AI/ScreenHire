@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Web;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Hiring;
 
@@ -150,6 +151,40 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // The tab is in the address, so a reload keeps it.
         await Page.ReloadAsync();
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Job postings") })).ToHaveAttributeAsync("aria-selected", "true");
+    }
+
+    [Fact]
+    public async Task A_posting_saved_by_hand_shows_in_Job_postings_and_counts_the_application_its_link_brings()
+    {
+        var scene = await SceneAsync(FullDescription);
+        await Page.SetViewportSizeAsync(1440, 1040);
+        await SignInAsync(Page, scene.Email);
+        await Page.GotoAsync(DashboardUrl($"/jobs/{scene.JobId}?tab=postings"));
+        var postings = Page.GetByRole(AriaRole.Region, new() { Name = "Job postings" });
+
+        await postings.GetByRole(AriaRole.Button, new() { Name = "Post it yourself" }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Post it yourself" });
+        await Expect(sheet.GetByRole(AriaRole.Button, new() { Name = "Copy the description formatted" })).ToBeVisibleAsync();
+        await sheet.GetByLabel("Board", new() { Exact = true }).FillAsync("Riverside Jobs Weekly");
+        // The link the person pastes on the board, read as they see it.
+        var link = await sheet.GetByLabel("Apply link for this board").InputValueAsync();
+        link.Should().EndWith("?src=riverside-jobs-weekly");
+        await sheet.GetByLabel("Listing address (optional)").FillAsync("https://jobs.example.org/listing/42");
+        await ExpectNoAccessibilityViolationsAsync();
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Save posting" }).ClickAsync();
+        await Expect(sheet).ToBeHiddenAsync();
+
+        var row = postings.Locator("[data-manual-posting]");
+        await Expect(row.Locator("[data-posting-state]")).ToHaveTextAsync("Posted by you");
+        await Expect(row.GetByRole(AriaRole.Link, new() { NameRegex = new("^Riverside Jobs Weekly") })).ToHaveAttributeAsync("href", "https://jobs.example.org/listing/42");
+        await Expect(row.Locator("[data-applications]")).ToHaveTextAsync("0");
+
+        // A candidate applies through that link; the row counts them as it arrives (ApplicationSubmitted).
+        var source = HttpUtility.ParseQueryString(new Uri(link).Query)["src"];
+        await Fixture.ApplyAsync(scene.Slug, scene.JobId, SyntheticApplicants.GenuineHuman, Ct, source: source);
+
+        await Expect(row.Locator("[data-applications]")).ToHaveTextAsync("1");
         await Expect(Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Job postings") })).ToHaveAttributeAsync("aria-selected", "true");
     }
 

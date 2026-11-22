@@ -109,7 +109,8 @@ link brought the candidate (below; like `SourceSite` it tags the link they follo
 `SourceBoard` is a hint for the Reports page's Sources panel, not a signal. A feed or sandbox board links to a job as
 `/{slug}/jobs/{job}?src={boardId}` (`BoardUrls.Tag`); the job page's Apply link and the apply form's address keep `src`
 (`withSource` in `apps/careers/src/lib/source.ts`, which checks only its shape), and the apply action sends it as
-`source`. `SubmitPublicApplication` stores it as `JobApplication.SourceBoard` only when it is one of `BoardUrls.TaggedBoards`,
+`source`. `SubmitPublicApplication` stores it as `JobApplication.SourceBoard` only when it is one of `BoardUrls.TaggedBoards`
+or the source key of a posting the team made of that job by hand ([job distribution](job-distribution.md#posted-by-you)),
 and drops anything else without refusing the application. Nothing is read or stored at browsing time: the value is
 recorded with the application, after the notice. A saved draft's link does not carry `src`, so an application finished from
 a draft counts as the careers page. The automation fact `application.source` and the verification checks do not read it.

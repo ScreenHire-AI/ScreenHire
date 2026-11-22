@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Job Distribution Engine: In-House One-Click Post & Teardown"
-description: "One-click publish and honest teardown: what teardown can mean per board, the posting states, worker reconciliation, the five XML feeds, the public job-board API, Google for Jobs JSON-LD and the Indexing API queue, the sandbox board, and the distribution settings."
+description: "One-click publish and honest teardown: what teardown can mean per board, the posting states, worker reconciliation, the five XML feeds, the public job-board API, Google for Jobs JSON-LD and the Indexing API queue, the sandbox board, postings the team makes by hand with tracked links, and the distribution settings."
 tags: [distribution, job-boards, feeds, google-for-jobs]
 sources:
   - resource: apps/api/Contracts/DistributionContracts.cs
@@ -39,6 +39,14 @@ sources:
   - resource: src/ScreenHire.Domain/Distribution/JobPosting.cs
   - resource: src/ScreenHire.Domain/Distribution/SandboxListing.cs
   - resource: apps/api/Endpoints/DistributionEndpoints.cs
+  - resource: apps/api/Endpoints/ManualPostingEndpoints.cs
+  - resource: apps/api/Contracts/ManualPostingContracts.cs
+  - resource: src/ScreenHire.Domain/Distribution/ManualPosting.cs
+  - resource: apps/dashboard/src/lib/manual-postings.ts
+  - resource: apps/dashboard/src/lib/components/post-it-yourself-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/manual-posting-form.svelte
+  - resource: apps/dashboard/src/lib/components/posting-text-copy.svelte
+  - resource: apps/dashboard/src/lib/components/close-job-dialog.svelte
   - resource: apps/api/Endpoints/PublicDistributionEndpoints.cs
   - resource: apps/careers/src/lib/job-posting.ts
   - resource: apps/careers/src/pages/[organization]/sitemap.xml.ts
@@ -234,6 +242,54 @@ Customize changes what one board receives and posts to that board only. No other
 - **History:** a `JobPosting` is a tracked kind under the job's subject (`JobPostingChanges`): "customized the title
   for Adzuna", "went back to the job's description for Adzuna", with before and after. State changes make no line.
 
+### Posted by you
+
+Some boards take no feed and no API from us: LinkedIn until partner status, Indeed's free listings, a local or niche board.
+The team posts there by hand, and the posting still belongs in the job's list. A `ManualPosting`
+(`src/ScreenHire.Domain/Distribution/ManualPosting.cs`, table `manual_postings`, tenant and `job_scope` row-level security)
+is one job on one such board.
+
+- **What is stored:** the board's name as the team typed it, a source key, the listing's address (optional), the day it was
+  posted and the day it ends (optional, both `date`), the job's `JobSnapshot` as it was posted (`posted_content`), and when
+  the team said it was taken down. Nothing fetches or reads the listing's address: it is stored and shown as a link
+  (CLAUDE.md non-negotiable 5), and the API takes only an absolute `http` or `https` address.
+- **The tracked link:** the job's careers page with `src={sourceKey}` (`BoardUrls.WithSource`). The key is the board's name
+  in lower case with every other run of characters a hyphen (`LinkedIn` is `linkedin`). The dashboard's `sourceKeyFor` and
+  `ManualPosting.SourceKeyFor` follow the same rule, and the dashboard sends the key with the save, so the link the person
+  copied before saving is the one that counts. The key never changes after the save: renaming the board renames the row
+  only. A key is refused when it is an automatic board's id (`Boards.All`, configured or not), and the same key twice on a
+  job is a 409 while the first posting is up. Posting a board again after it was taken down reuses its row, so the old link
+  and the new one count together.
+- **Applications:** `SubmitPublicApplication` keeps `src` as `JobApplication.SourceBoard` when it is a tagged board or the
+  key of a posting of that job, taken down or not, since a listing can linger on its board. An application through the
+  link before the posting is saved counts as the careers page. Source shows the board's name (`sourceBoardName` on an
+  application, as the team named it last), and Reports names the source the same way.
+  `GET /v1/jobs/{jobId}/source-applications` counts a job's applications by link: `careers` for the careers page with no
+  tag, an automatic board's id, or a posting's key. Google for Jobs and the public job-board API send candidates to the
+  careers page's own address, so their applications are in the careers page's count.
+- **The job changed since:** `changedFields` compares the posted snapshot with the live job, field by field, for what a
+  person copies: the title, the location (workplace type, locations and the countries a remote job takes), the type, the
+  salary and the description, plus the slug as `Link`, because the apply link holds it. It reads the live job, not a
+  published version, because Post it yourself copies the job as the careers page shows it. Mark as updated
+  (`POST .../manual-postings/{id}/updated`) takes the job as it is now.
+- **Taking it down:** closing the job cannot take a manual posting down. The close dialog names each one still up, and the
+  row reads Still posted by you until Mark as taken down (`POST .../manual-postings/{id}/taken-down`). A passed end date
+  does the same while the job is open. The dashboard decides that against the person's own calendar day, because the
+  organization keeps no time zone. Edit and Mark as taken down work on a closed job. A new posting needs an open job,
+  because its link leads to a careers page that takes applications.
+- **Routes** (`ManualPostingEndpoints`; `EditJobs` to change, any signed-in member reads; the dashboard only, no API key):
+  `GET /v1/jobs/{jobId}/manual-postings` (the postings and `jobUrl`, the address every tracked link extends),
+  `POST /v1/jobs/{jobId}/manual-postings`, `PUT .../manual-postings/{id}`, the two marks above, and
+  `GET /v1/jobs/{jobId}/source-applications`. Every change raises `JobPostingsChanged`, so open dashboards refetch.
+- **Dashboard:** Post it yourself, in the Job postings panel's header on an open job, opens a sheet
+  (`PostItYourselfSheet`): copy buttons for the title, location, type, salary and the description, formatted (the HTML,
+  with plain text beside it) or as plain text (`plainText`: headings and paragraphs as lines, `- ` bullets, `1. ` numbers),
+  then the board (common names offered while typing), its apply link with Copy link, the listing's address and the dates.
+  Saved, the posting is a row under the automatic boards: Posted by you, the board's name linking to the listing, the badge
+  Job changed since you posted while `changedFields` has anything (its tooltip names the fields), and a menu with Edit, Open
+  the listing, Copy the updated text (the same sheet, each changed field marked), Mark as updated and Mark as taken down.
+  Every row has an Applications column. The Job postings tab's count includes the postings still up.
+
 ### Check before publishing
 
 A new Owner can publish a template's fill-in prompt to the public careers page, and some boards refuse an on-site job
@@ -405,5 +461,9 @@ secrets locally, the secret store in a deployment) and passes it to both as `Goo
 | `FeedFormatTests` (unit) | every feed validates against its board's schema; CDATA, `]]>` and control characters; per-board field mapping; validation issues |
 | `DistributionTests` (integration) | publish puts the job in every feed, the job-board API, the Indexing queue and the sandbox; close serves 410, drops it from the feeds, queues `URL_DELETED`, and the sandbox reports Closed only after its delay; per-board teardown; new versions; cache headers and 304; tenant isolation; the dispatcher sends queued notifications and Google never reaches Closed; a duplicate board command leaves one claim for its key and changes nothing |
 | `BoardAnswerRaceTests` (integration) | a changed publish and a close that arrive while a board answer is being saved (the test holds the posting's lock, as the worker does) wait for it and succeed, where both were a 409 |
+| `ManualPostingTests` (unit) | the source key a board name makes (the same cases as `manual-postings.test.ts`), which copied fields count as changed, marking updated, taking down twice and posting again |
+| `ManualPostingTests` (integration) | a saved posting's link names its board in Source and Reports after a rename, every link of a job is counted and an unknown key is dropped, the stale flag and Mark as updated, a closed job's posting stays up until it is marked taken down and a board can be posted again, the refusals (an automatic board's name or id, a `javascript:` address, an end before the start, a draft), and isolation between organizations |
+| `manual-postings.test.ts`, `distribution-panel.test.ts`, `close-job-dialog.test.ts` (Vitest) | the key, the plain text, the salary line and the row's status; the team's rows and counts in the panel, the stale badge and its marks, the sheet's link and save, and the close dialog's Still posted by you |
+| `JobPageTests` (end-to-end) | a posting saved from the sheet shows as its row, and an application through its link is counted as it arrives |
 | `CareersDistributionTests` (end-to-end) | the published job's page carries complete JSON-LD and a canonical link and is in the sitemap; closed, it serves 410 with a past `validThrough` and leaves the sitemap |
 | `job-posting.test.ts` (Vitest) | the JSON-LD builder and the sitemap |
