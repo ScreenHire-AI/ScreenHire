@@ -391,11 +391,12 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **L5** A click anywhere on a table row opens its record, on every table (the owner's walk-through, 2026-11-21). The
   record's own control stays in the name cell and is the row's one tab stop: a link to its page, or the button that opens
   its sheet (a team, a tag's Rename, a member's Edit access, a scorecard, a board's Customize), marked `data-row-link`.
+  A name that is a button is `TruncatedText` with `onclick`, so a cut name keeps its tooltip (F5).
   `rowLink` (`#lib/row-link.ts`, `{@attach rowLink}` on the `<tr>`) follows it from the rest of the row and leaves alone
   a click on a button, a menu, a checkbox, a text field or another link, a click that ends a text selection or closes a
-  menu, and a tap on cut text, which opens its tooltip (F4); text that fits opens the record on a tap. Ctrl, Cmd, Shift or a middle click opens a link's record in a
-  new tab. The row has a hover background and the hand cursor, which the theme gives a `data-row-click` row while it
-  holds the control. The checkbox's cell is the whole target for selecting: its label fills the cell (`selectCellLabel`),
+  menu, and a tap on cut text, which opens its tooltip (F4); text that fits opens the record on a tap. Ctrl, Cmd, Shift
+  or a middle click opens a link's record in a new tab. The row has a hover background, and the theme gives a
+  `data-row-click` row the hand cursor while it holds the control. The checkbox's cell is the whole target for selecting: its label fills the cell (`selectCellLabel`),
   at least 48px tall and 70px wide on touch. A row with nothing to open (an API key, an invitation, a scorecard still
   hidden from the reader) has no control, no hand and no row click. A row that opens in place keeps A9 and expands.
 
@@ -804,7 +805,7 @@ Checked at 360, 768, 1024, 1440 and 1920px.
 | Move | How |
 |---|---|
 | Across areas | The sidebar. It is the only app navigation. Switching areas fades. |
-| Forward | From a list to a record. The whole row is the link. Filters and scroll position survive the trip back. |
+| Forward | From a list to a record. A click anywhere on the row opens it (L5). Filters and scroll position survive the trip back. |
 | Back | The breadcrumb goes up a level. Browser Back goes where you came from. |
 | In place | A sheet for quick work: add a note, quick edit, filters, History, the items behind a count, Invite, an email. The record stays behind it. |
 | Preview | An editor's Edit / Preview switch swaps the view in place; the window icon opens it in a second window that follows the edits (A8). |
