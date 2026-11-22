@@ -16,7 +16,10 @@ sources:
   - resource: apps/marketing/src/content.config.ts
   - resource: apps/marketing/src/pages/compare/[slug].astro
   - resource: apps/marketing/src/content/comparisons/gohire-alternative.yaml
+  - resource: apps/marketing/src/components/shell/ActivityFeed.astro
   - resource: apps/marketing/src/components/shell/ApplicantPair.astro
+  - resource: apps/marketing/src/components/shell/AssistantAsks.astro
+  - resource: apps/marketing/src/components/shell/LevelChip.astro
   - resource: apps/marketing/src/components/shell/ProductFrame.astro
   - resource: apps/marketing/src/pages/index.astro
   - resource: apps/marketing/src/lib/home-page.test.ts
