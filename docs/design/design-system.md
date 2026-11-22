@@ -689,8 +689,8 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   `clock` icon and hint text), then one muted line about the checks with the privacy link. It has no notice panel: the
   notice is on the form, where collection starts.
 - The page after Send is a warm finish: a check mark in a soft circle above "Application sent", one line of thanks,
-  then "What happens next" as three steps each led by when (Now, Next, Any time), the last linking the candidate's own
-  page. It names no date and never says who reads the application.
+  then "What happens next" as two steps each led by when (Next, Any time), the last linking the candidate's own page.
+  The heading and the thanks already say the employer has the application, so no step repeats it (W7). It names no date and never says who reads the application.
 - A candidate's own page shows an application's four steps as square markers on a line (T4), in one row at 390px, each
   with its name under it: a step done is filled with a tick, the step it is at is outlined with a filled centre and a bold
   name, and the steps to come are empty. A done or current marker is in `candidate-brand-text`, an empty one and the line
@@ -1152,7 +1152,8 @@ lead to the tab that holds their settings now, with their query string.
   `motion-reduce` and `motion-safe` variants read as well as the system setting (`app.css`).
 - Careers pages move from page to page with cross-document view transitions and no script: a form step leaves in 160ms
   and the next slides in from 16px to the right in 220ms while the header holds still. The rule lives inside
-  `prefers-reduced-motion: no-preference`, so reduced motion gets a plain page load.
+  `prefers-reduced-motion: no-preference` and `scripting: enabled`, so reduced motion and JavaScript off get a plain
+  page load.
 - axe runs in component tests and Playwright; manual NVDA and VoiceOver passes per release; an external audit before
   general availability.
 

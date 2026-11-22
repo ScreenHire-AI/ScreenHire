@@ -204,7 +204,7 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         // A warm finish: what happens next, each led by when, and the candidate's own page.
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Application sent");
         var next = Page.GetByRole(AriaRole.Region, new() { Name = "What happens next" });
-        await Expect(next.Locator("li")).ToHaveTextAsync([new Regex("^Now"), new Regex("^Next"), new Regex("^Any time")]);
+        await Expect(next.Locator("li")).ToHaveTextAsync([new Regex("^Next"), new Regex("^Any time")]);
         await Expect(next.GetByRole(AriaRole.Link, new() { Name = "your page" })).ToHaveAttributeAsync("href", $"/{organization.Slug}/my-applications");
         await ExpectNoAccessibilityViolationsAsync();
     }
