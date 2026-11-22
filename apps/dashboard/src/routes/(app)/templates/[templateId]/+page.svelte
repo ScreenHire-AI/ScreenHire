@@ -447,6 +447,7 @@
             bind:tab={workflowTab.value}
             hrefOf={(tab) => workflowTab.href(tab)}
             {aiUse}
+            templateId={params.templateId}
           />
         {:else}
           <WorkflowSummary workflow={draft.workflow} errors={draft.errors} tab={workflowTab.value} hrefOf={(tab) => workflowTab.href(tab)} {aiUse} />

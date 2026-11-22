@@ -109,3 +109,18 @@ describe('whenOverdue', () => {
     expect(whenOverdue(workflow, 'trial', names).map((fact) => fact.automationId)).toEqual(['any-late']);
   });
 });
+
+describe('stageFacts, a stage that sends a form', () => {
+  it('says "Sends" with the form\'s name, as its own fact that links to the automation behind it', () => {
+    const withForm: HiringWorkflow = {
+      ...workflow,
+      followUpQuestionnaires: [{ id: 'screening', name: 'Screening questionnaire', questions: [{ id: 'q_a', label: 'A?', type: 'ShortText', required: false }] }],
+      automations: [automation('send-screening', { type: 'StageEntered', stageId: 'screen' }, [{ type: 'SendQuestionnaire', questionnaireId: 'screening' }])],
+    };
+
+    expect(stageFacts(withForm, stage('screen'), names)).toEqual([
+      { kind: 'limit', text: 'Respond within 3 days' },
+      { kind: 'form', text: 'Sends "Screening questionnaire"', automationId: 'send-screening' },
+    ]);
+  });
+});
