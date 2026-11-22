@@ -494,7 +494,7 @@ The icon colour is the `status-*-mark` token (`status-ai-mark` for AI), and grey
 lists and tables only the review and verify statuses get a filled badge (T3). AI assistance is a bare sparkles mark with a
 tooltip, shown only for Some and Strong signs, because it is information: it never sorts, filters or counts.
 
-**A setting's mark** (`SettingMark`) is the one bare status icon outside a badge besides the AI mark: in the Settings menu, a green `circle-check` (Done) once a setting works and a red `circle-x` (Broken) while it needs fixing, with its words for screen readers and on hover. An optional setting nobody set up shows no mark, so nothing waits to be looked at for ever.
+**A setting's mark** (`SettingMark`) is the one bare status icon outside a badge besides the AI mark and a status view's sidebar icon (I2): in the Settings menu, a green `circle-check` (Done) once a setting works and a red `circle-x` (Broken) while it needs fixing, with its words for screen readers and on hover. An optional setting nobody set up shows no mark, so nothing waits to be looked at for ever.
 
 **Verification states** are one word everywhere a level shows (the candidate header, tables, the board, filters, views):
 Clear, Review, Verify, then the muted Pending and Dismissed. The long names ("Review suggested", "Verification suggested")
@@ -1002,7 +1002,7 @@ and the icon rail. Size 16 is the default from the icon customizer in `apps/dash
 is set on `svg[data-icon]` in `app.css`, where the shapes inherit it, so a `fill-*` or `stroke-[...]` class on the icon
 reaches them. Navigation and main buttons pair an icon with a label; decorative icons are `aria-hidden`. Status icons (section 3.2) appear only in status badges, and no other control or
 decoration uses them, except a built-in view of a status in the sidebar, which shows its status's icon uncoloured (I2, section 21). The level icons (`eye` for Review, `id-card` for Verify,
-through `LevelMark`) draw only inside a verification state (section 3.2). The warning triangle marks only
+through `LevelMark`) draw only inside a verification state (section 3.2), and as the sidebar icons of To review and To verify. The warning triangle marks only
 the verification cards that fed a level (section 16). A problem in words (a failed action, a form error, a builder's
 problem to fix) starts with `circle-alert` in the verify icon colour (`ProblemIcon`). It is not a status icon, so it
 never stands in for a badge.
