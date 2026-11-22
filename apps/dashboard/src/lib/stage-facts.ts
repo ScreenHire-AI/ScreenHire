@@ -5,7 +5,7 @@ import type { Automation, AutomationAction, HiringWorkflow, WorkflowStage } from
 import { ruleShort } from '#lib/automation-sentence.js';
 import { emailTemplateNames, followUpName, isTerminal, placeOf, reminderId, timeLimitLabel } from '#lib/workflow.js';
 
-export type StageFactKind = 'limit' | 'meeting' | 'email' | 'automation' | 'questions';
+export type StageFactKind = 'limit' | 'meeting' | 'email' | 'form' | 'automation' | 'questions';
 
 export type StageFact = {
   kind: StageFactKind;
@@ -107,16 +107,18 @@ export function automationLabel(
 
 const isOn = (automation: Automation) => automation.enabled !== false;
 const onlyEmails = (automation: Automation) => automation.actions.length > 0 && automation.actions.every((action) => action.type === 'SendEmail');
+// A form's own sender, written by the form's "When it's sent" (workflow-engine.md section 7, Forms).
+const onlyForms = (automation: Automation) => automation.actions.length > 0 && automation.actions.every((action) => action.type === 'SendQuestionnaire');
 
 /** The automations that are on and placed at the stage, in the workflow's order. */
 const placedAt = (workflow: HiringWorkflow, place: string): Automation[] =>
   workflow.automations.filter((automation) => isOn(automation) && placeOf(workflow, automation) === place);
 
 /**
- * A stage's facts, one a line, in one order: the time limit, the meeting when its name is not the stage's, each email it
- * sends, each other automation as a short label, then (on the first stage) how many questions the apply form asks. The
- * stage's own reminder is the time limit's line, so it is not listed again (W7); an automation that only sends emails is
- * its email lines.
+ * A stage's facts, one a line, in one order: the time limit, the meeting when its name is not the stage's, each email and
+ * form it sends, each other automation as a short label, then (on the first stage) how many questions the apply form
+ * asks. The stage's own reminder is the time limit's line, so it is not listed again (W7); an automation that only sends
+ * emails is its email lines, and one that only sends forms its form lines ("Sends "Screening questionnaire"").
  */
 export function stageFacts(
   workflow: HiringWorkflow,
@@ -131,8 +133,10 @@ export function stageFacts(
 
   const here = placedAt(workflow, stage.id).filter((automation) => automation.id !== reminderId(stage.id));
   for (const automation of here) {
-    if (onlyEmails(automation) && (automation.conditions?.rules.length ?? 0) === 0 && triggerPrefix(automation, workflow) === null) {
-      for (const action of automation.actions) facts.push({ kind: 'email', text: upperFirst(actionShort(action, workflow, templateNames)), automationId: automation.id });
+    const plain = (automation.conditions?.rules.length ?? 0) === 0 && triggerPrefix(automation, workflow) === null;
+    if (plain && (onlyEmails(automation) || onlyForms(automation))) {
+      const kind = onlyEmails(automation) ? 'email' : 'form';
+      for (const action of automation.actions) facts.push({ kind, text: upperFirst(actionShort(action, workflow, templateNames)), automationId: automation.id });
     } else {
       facts.push({ kind: 'automation', text: automationLabel(automation, workflow, templateNames), automationId: automation.id });
     }

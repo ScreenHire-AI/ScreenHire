@@ -109,6 +109,7 @@ builder.Services.AddScreenHirePortal();
 builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(CareersEmbeddingOptions.Section);
 // The addresses of our Terms, Privacy Policy and DPA, which the sign-in page's agreement line links to.
 builder.Services.AddOptions<LegalOptions>().BindConfiguration(LegalOptions.Section);
+builder.Services.AddOptions<FormsOptions>().BindConfiguration(FormsOptions.Section);
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
 builder.Services.AddScreenHireSlack();
 builder.Services.AddOrganizationModels();
@@ -191,6 +192,8 @@ app.MapTagEndpoints();
 app.MapReportEndpoints();
 app.MapScorecardEndpoints();
 app.MapScorecardTemplateEndpoints();
+app.MapFormTemplateEndpoints();
+app.MapApplicationFormEndpoints();
 app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapSlackEndpoints();

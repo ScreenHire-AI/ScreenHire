@@ -10,6 +10,7 @@ sources:
   - resource: src/ScreenHire.Domain/History/HiringTemplateChanges.cs
   - resource: src/ScreenHire.Domain/History/EmailTemplateChanges.cs
   - resource: src/ScreenHire.Domain/History/ScorecardTemplateChanges.cs
+  - resource: src/ScreenHire.Domain/History/FormTemplateChanges.cs
   - resource: src/ScreenHire.Domain/History/SettingsChanges.cs
   - resource: src/ScreenHire.Domain/History/JobChanges.cs
   - resource: src/ScreenHire.Domain/History/JobPostingChanges.cs
@@ -58,7 +59,7 @@ One `change_records` row (`ChangeRecord`) per object per save:
 
 | Column | Holds |
 |---|---|
-| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `RetentionSettings`, `SendingDomain`, `Team`, `ApiKeys`, `WebhookEndpoint` or `TalentPoolEntry` (and the retired `TalentPoolSettings`), and its id (the organization's id for the settings kinds, the sending domain, the team and the keys; the saved entry's own id for `TalentPoolEntry`; the endpoint's id for `WebhookEndpoint`). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template |
+| `subject_kind`, `subject_id` | The object: `HiringTemplate`, `EmailTemplate`, `ScorecardTemplate`, `FormTemplate`, `Job`, `Role`, `Organization`, `Branding`, `VerificationSettings`, `RetentionSettings`, `SendingDomain`, `Team`, `ApiKeys`, `WebhookEndpoint` or `TalentPoolEntry` (and the retired `TalentPoolSettings`), and its id (the organization's id for the settings kinds, the sending domain, the team and the keys; the saved entry's own id for `TalentPoolEntry`; the endpoint's id for `WebhookEndpoint`). A built-in email template's id is its built-in id (`stage-change`), because restoring deletes its row and the next edit adds a new one. A template version belongs to its template, and a library form's version to its form |
 | `actor_user_id`, `actor_api_key_id` | The member who made it, or the organization API key. Neither means ScreenHire: the worker, an automation, the demo's setup |
 | `occurred_at` | From `TimeProvider`, when the save ran |
 | `created` | Whether the save created the object: its first line says so, and Last updated says Created until a later change |

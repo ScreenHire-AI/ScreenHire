@@ -14,8 +14,9 @@ namespace ScreenHire.Api.Hiring;
 /// <remarks>
 /// Used by: jobs that are not closed for a hiring template, each with its template and pipeline versions; hiring
 /// templates that are not archived, by their current versions (the newest published one and the draft), for a scorecard; automations in jobs that are not closed and in
-/// those current versions for an email. Last used: the newest job started from a hiring template; the newest job with a
-/// stage naming a scorecard, or scorecard given at such a stage; the newest email sent from an email template.
+/// those current versions for an email, and the same current versions for a library form. Last used: the newest job started
+/// from a hiring template; the newest job with a stage naming a scorecard, or scorecard given at such a stage; the newest
+/// email sent from an email template; the newest send of a form copied from a library form.
 /// </remarks>
 internal static class TemplateUsage
 {
@@ -41,6 +42,14 @@ internal static class TemplateUsage
         var scorecards = await db.ScorecardTemplates.AsNoTracking()
             .Select(t => new OwnRow(t.Id, t.CreatedAt, t.ArchivedAt != null))
             .ToListAsync(cancellationToken);
+        var forms = await db.FormTemplates.AsNoTracking()
+            .Select(t => new OwnRow(t.Id, t.CreatedAt, t.ArchivedAt != null))
+            .ToListAsync(cancellationToken);
+        var formsSent = await db.QuestionnaireRequests.AsNoTracking()
+            .Where(r => r.FormTemplateId != null)
+            .GroupBy(r => r.FormTemplateId!.Value)
+            .Select(g => new { FormId = g.Key, Last = g.Max(r => r.LastSentAt) })
+            .ToDictionaryAsync(g => g.FormId, g => g.Last, cancellationToken);
         var emails = await db.EmailTemplates.AsNoTracking()
             .Where(t => t.BuiltInId == null)
             .Select(t => new OwnRow(t.Id, t.CreatedAt, t.ArchivedAt != null))
@@ -104,6 +113,25 @@ internal static class TemplateUsage
                 !archived && TemplateUses.NotUsedRecently(lastUsed, since, now));
         }
 
+        // Forms: which hiring templates copy each one, with the newest version of it their current versions hold, and when a
+        // copy of it was last sent to a candidate.
+        var copiedBy = versions
+            .SelectMany(g => g.SelectMany(v => v.Definition.Workflow.FollowUpQuestionnaires ?? [])
+                .Where(f => f?.FormTemplateId is not null && f.FormVersion is not null)
+                .GroupBy(f => f.FormTemplateId!.Value)
+                .Select(byForm => (Form: byForm.Key, Template: shown[g.Key], Version: byForm.Max(f => f.FormVersion!.Value))))
+            .ToLookup(use => use.Form);
+        TemplateUse Form(OwnRow form)
+        {
+            DateTimeOffset? lastUsed = formsSent.TryGetValue(form.Id, out var at) ? at : null;
+            return new(
+                form.Id.ToString("D"),
+                [.. copiedBy[form.Id].OrderBy(u => u.Template.Name, StringComparer.CurrentCulture)
+                    .Select(u => new UsageItem(UsageKind.HiringTemplate, u.Template.Id, u.Template.Name, TemplateVersion: u.Version))],
+                lastUsed,
+                !form.Archived && TemplateUses.NotUsedRecently(lastUsed, form.CreatedAt, now));
+        }
+
         // Emails: the automations that send each one, in live jobs and in the current versions of the templates shown.
         var automations = new List<(string Key, UsageItem Item)>();
         foreach (var job in live)
@@ -142,7 +170,8 @@ internal static class TemplateUsage
             [
                 .. EmailTemplateIds.BuiltIn.Select(id => Email(id, joined, archived: false)),
                 .. emails.Select(e => Email(e.Id.ToString("D"), e.CreatedAt, e.Archived)),
-            ]);
+            ],
+            [.. forms.Select(Form)]);
     }
 
     private static DateTimeOffset Later(DateTimeOffset left, DateTimeOffset right) => left > right ? left : right;

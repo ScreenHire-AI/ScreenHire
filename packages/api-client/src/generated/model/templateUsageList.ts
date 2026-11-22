@@ -7,10 +7,13 @@
 import type { TemplateUse } from './templateUse.ts';
 
 /**
- * Every template's use, by kind, as the Templates page lists them.
+ * Every template's use, by kind, as the Templates page lists them. A library form's users are hiring templates, each with
+ * `templateVersion`, the version of the form its current versions hold (below the form's newest published version,
+ * it is on an older one).
  */
 export interface TemplateUsageList {
   hiring: TemplateUse[];
   scorecards: TemplateUse[];
   emails: TemplateUse[];
+  forms: TemplateUse[];
 }

@@ -134,6 +134,7 @@ public sealed record PublicApplicationReceipt(Guid ApplicationId, DateTimeOffset
 /// <c>questions</c>, <c>sections</c> and <c>draft</c> are listed only while the link is <c>Open</c>; knockout settings stay
 /// on the server. <c>sections</c> are its named pages, or null to split it into pages of <c>questionsPerPage</c>.
 /// <c>draft</c> holds the answers the candidate saved to finish later, empty when there are none.
+/// <c>equalityMonitoring</c>: an equality monitoring form, whose page says its answers are optional and only ever counted.
 /// </summary>
 public sealed record PublicQuestionnaire(
     PublicOrganization Organization,
@@ -143,7 +144,8 @@ public sealed record PublicQuestionnaire(
     IReadOnlyList<PublicQuestion> Questions,
     IReadOnlyList<QuestionSection>? Sections,
     int QuestionsPerPage,
-    IReadOnlyList<ApplicationAnswer> Draft);
+    IReadOnlyList<ApplicationAnswer> Draft,
+    bool EqualityMonitoring = false);
 
 /// <summary>
 /// Whether a follow-up questionnaire's link can still be answered: <c>Answered</c> once the candidate sent their answers,

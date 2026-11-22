@@ -9,7 +9,7 @@ import {
 import type { QueryClient } from '@tanstack/svelte-query';
 import { emailTemplatesPath } from '#lib/email.js';
 import { invalidatePath } from '#lib/query.js';
-import { scorecardTemplatesPath, templateUsagePath } from '#lib/templates.js';
+import { formTemplatesPath, scorecardTemplatesPath, templateUsagePath } from '#lib/templates.js';
 
 /** API paths whose queries live events make stale; `invalidatePath` covers every query under each. */
 export const jobsPath = '/v1/jobs';
@@ -72,7 +72,7 @@ export const invalidations: InvalidationMap = {
   // Any template edit, of the three kinds: the Templates page, the pickers on a new job, the email composer and an
   // application's scorecard library read them, and the usage list shows where each is used. Events are mapped by
   // type, not by kind, so all of them refetch.
-  TemplateChanged: [templatesPath, emailTemplatesPath, scorecardTemplatesPath, templateUsagePath, tagsPath],
+  TemplateChanged: [templatesPath, emailTemplatesPath, scorecardTemplatesPath, formTemplatesPath, templateUsagePath, tagsPath],
   ApplicationSubmitted: [jobsPath, applicationsPath, candidatesPath, reportsPath, activityPath],
   ApplicationMoved: [jobsPath, applicationsPath, candidatesPath, reportsPath, activityPath],
   // The application's Activity, the candidate's Messages (every email to them) and every list's last activity.

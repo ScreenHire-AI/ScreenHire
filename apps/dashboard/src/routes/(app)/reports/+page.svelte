@@ -13,6 +13,7 @@
   import { page } from '$app/state';
   import BarChart, { type BarRow } from '#lib/components/bar-chart.svelte';
   import ChartPanel, { type ChartColumn } from '#lib/components/chart-panel.svelte';
+  import EqualityReportPanel from '#lib/components/equality-report-panel.svelte';
   import DateRangeFilter from '#lib/components/date-range-filter.svelte';
   import type { FilterOption } from '#lib/components/filter-menu.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -493,6 +494,8 @@
           </div>
         </div>
       {/if}
+      <!-- Equality monitoring totals, where this deployment offers them, for someone who may see them. -->
+      <EqualityReportPanel from={instants.from} to={instants.to} {jobIds} />
     </div>
   </div>
 </main>

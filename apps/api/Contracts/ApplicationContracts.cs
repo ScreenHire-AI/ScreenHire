@@ -166,7 +166,9 @@ public sealed record ApplicationDetail(
 /// <summary>
 /// A follow-up questionnaire sent to the candidate. Until it is answered, <c>questions</c> and <c>answers</c> are empty;
 /// once it is, <c>questions</c> are the questions as the candidate saw them, so the answers read the same after the
-/// workflow changes.
+/// workflow changes. <c>kind</c> is the form's kind when it was sent: an equality monitoring form's <c>questions</c> and
+/// <c>answers</c> are always empty, because its answers only count toward totals in Reports (workflow-engine.md section
+/// 7, Forms).
 /// </summary>
 public sealed record ApplicationFollowUp(
     Guid Id,
@@ -178,7 +180,8 @@ public sealed record ApplicationFollowUp(
     int TimesSent,
     DateTimeOffset? CompletedAt,
     IReadOnlyList<Question> Questions,
-    IReadOnlyList<ApplicationAnswer> Answers);
+    IReadOnlyList<ApplicationAnswer> Answers,
+    FormKind Kind = FormKind.Standard);
 
 /// <summary>A file the candidate uploaded. <c>scanStatus</c> is the malware scan's result; <c>NotScanned</c> means no scanner is configured.</summary>
 public sealed record ApplicationFileSummary(
@@ -343,9 +346,12 @@ internal static class ApplicationMappings
             application.FutureRolesConsentGivenAt, inTalentPool, application.SourceSite, application.SourceBoard,
             application.SourceBoard is null ? null : sourceBoardName ?? application.SourceBoard);
 
+    // An equality monitoring form's answers never leave the server with the application: not to the dashboard, an API key or
+    // the MCP server, which all read this.
     public static ApplicationFollowUp ToFollowUp(this QuestionnaireRequest request) =>
         new(request.Id, request.QuestionnaireId, request.QuestionnaireName, request.FirstSentAt, request.LastSentAt, request.ExpiresAt,
-            request.TimesSent, request.CompletedAt, request.Questions, request.Answers);
+            request.TimesSent, request.CompletedAt, request.IsEqualityMonitoring ? [] : request.Questions,
+            request.IsEqualityMonitoring ? [] : request.Answers, request.Kind);
 
     public static ApplicationFileSummary ToSummary(this ApplicationFile file) =>
         new(file.Id, file.QuestionId, file.UploadId, file.FileName, file.ContentType, file.SizeBytes, file.ScanStatus, file.UploadedAt);

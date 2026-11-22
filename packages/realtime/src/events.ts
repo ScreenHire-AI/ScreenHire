@@ -144,7 +144,7 @@ export const realtimeEventSchemas = {
   // scorecard has a name for an id, not a Guid.
   TemplateChanged: z.object({
     organizationId: id,
-    kind: z.enum(['HiringTemplate', 'EmailTemplate', 'ScorecardTemplate']),
+    kind: z.enum(['HiringTemplate', 'EmailTemplate', 'ScorecardTemplate', 'FormTemplate']),
     templateId: z.string(),
     changedAt: instant,
     actorUserId: actor,

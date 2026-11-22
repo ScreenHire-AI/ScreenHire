@@ -186,6 +186,11 @@
   // it takes the same permission and a deployment that can send. It is hidden once the application has ended (rejected,
   // hired, withdrawn or kept in mind) and while an interview is open or booked, because the API refuses both and a button
   // that can only fail is not offered (A3). It waits for the interviews to load, so it never appears and then goes.
+  // Send a form (workflow-engine.md section 8) takes the same permission and a deployment that can send, and is hidden once
+  // the application has ended or the job is closed, which the API refuses (A3).
+  const canSendForm = $derived(
+    canEmail && Boolean(detail) && !isTerminal(detail!.stage.kind) && !detail!.keptInMindAt && job.data?.data.status !== 'Closed',
+  );
   const canSchedule = $derived(
     canEmail &&
       Boolean(detail) &&
@@ -557,7 +562,7 @@
           </Tabs.Content>
           <Tabs.Content value="application" class="flex min-w-0 flex-col gap-5">
             {#if tab === 'application'}
-              <ApplicationTab {detail} {questions} />
+              <ApplicationTab {detail} {questions} forms={workflow?.followUpQuestionnaires ?? []} canSend={canSendForm} />
             {/if}
           </Tabs.Content>
           <Tabs.Content value="files" class="flex min-w-0 flex-col gap-5">

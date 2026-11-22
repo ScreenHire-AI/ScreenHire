@@ -193,6 +193,11 @@ public sealed class ScreenHireDbContext
 
     public DbSet<ScorecardTemplate> ScorecardTemplates => Set<ScorecardTemplate>();
 
+    /// <summary>The organization's library forms (docs/architecture/workflow-engine.md section 7, Forms).</summary>
+    public DbSet<FormTemplate> FormTemplates => Set<FormTemplate>();
+
+    public DbSet<FormTemplateVersion> FormTemplateVersions => Set<FormTemplateVersion>();
+
     /// <summary>Every change to the configuration people edit (<c>ChangeHistoryInterceptor</c>); append-only.</summary>
     public DbSet<ChangeRecord> ChangeRecords => Set<ChangeRecord>();
 

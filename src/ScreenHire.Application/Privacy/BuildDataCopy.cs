@@ -146,6 +146,8 @@ internal static class DataExportLoader
         var attachments = await db.InboundEmailAttachments.AsNoTracking().Where(a => ids.Contains(a.ApplicationId)).ToListAsync(cancellationToken);
         var notes = await db.ApplicationNotes.AsNoTracking().IgnoreAutoIncludes().Where(n => ids.Contains(n.ApplicationId)).OrderBy(n => n.CreatedAt).ToListAsync(cancellationToken);
         var files = await db.ApplicationFiles.AsNoTracking().Where(f => ids.Contains(f.ApplicationId)).OrderBy(f => f.UploadedAt).ToListAsync(cancellationToken);
+        var forms = await db.QuestionnaireRequests.AsNoTracking()
+            .Where(r => ids.Contains(r.ApplicationId) && r.CompletedAt != null).OrderBy(r => r.CompletedAt).ToListAsync(cancellationToken);
         var savedNote = await db.TalentPoolEntries.AsNoTracking().Where(e => e.CandidateId == candidate.Id).Select(e => e.Note).FirstOrDefaultAsync(cancellationToken);
 
         var items = applications.Select(application =>
@@ -166,7 +168,9 @@ internal static class DataExportLoader
                     [.. attachments.Where(a => a.InboundEmailId == r.Id).Select(a => a.FileName)]))],
                 [.. notes.Where(n => n.ApplicationId == application.Id).Select(n => new DataExportNote(n.Text, n.CreatedAt))],
                 [.. files.Where(f => f.ApplicationId == application.Id)
-                    .Select(f => new DataExportFile(questions.FirstOrDefault(q => q.Id == f.QuestionId)?.Label, f.FileName))]);
+                    .Select(f => new DataExportFile(questions.FirstOrDefault(q => q.Id == f.QuestionId)?.Label, f.FileName))],
+                [.. forms.Where(r => r.ApplicationId == application.Id)
+                    .Select(r => new DataExportForm(r.QuestionnaireName, r.CompletedAt!.Value, r.Questions, r.Answers))]);
         });
 
         return new DataExportSource(candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt, [.. items], savedNote);

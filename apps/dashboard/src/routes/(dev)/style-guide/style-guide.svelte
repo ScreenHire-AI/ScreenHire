@@ -143,7 +143,7 @@
   import EmailComposerDemo, { demoEmail } from './email-composer-demo.svelte';
   import NotificationBellDemo from './notification-bell-demo.svelte';
   import FormBuilderDemo from './form-builder-demo.svelte';
-  import FormTimelineDemo from './form-timeline-demo.svelte';
+  import FormCardsDemo from './form-cards-demo.svelte';
   import ReorderDemo from './reorder-demo.svelte';
   import SortTableDemo from './sort-table-demo.svelte';
   import SaveViewDemo from './save-view-demo.svelte';
@@ -1601,9 +1601,9 @@
         </div>
       </section>
 
-      <section aria-label="Form timeline" class="flex min-w-0 flex-col gap-5">
-        <FormTimelineDemo />
-        <section aria-label="Locked question row"><AiUseRow policy="AllowedWithDisclosure" href="#form-timeline" /></section>
+      <section aria-label="Form cards" class="flex min-w-0 flex-col gap-5">
+        <FormCardsDemo />
+        <section aria-label="Locked question row"><AiUseRow policy="AllowedWithDisclosure" href="#form-cards" /></section>
       </section>
 
       <div class="flex flex-wrap items-start gap-5">

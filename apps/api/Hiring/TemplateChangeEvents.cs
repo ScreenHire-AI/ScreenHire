@@ -38,6 +38,7 @@ internal static class TemplateChangeEvents
         {
             TemplateKind.EmailTemplate => ChangeSubjectKind.EmailTemplate,
             TemplateKind.ScorecardTemplate => ChangeSubjectKind.ScorecardTemplate,
+            TemplateKind.FormTemplate => ChangeSubjectKind.FormTemplate,
             _ => null,
         };
         if (subject is not { } subjectKind)

@@ -32,6 +32,7 @@
     tab = $bindable(),
     hrefOf,
     aiUse,
+    templateId,
   }: {
     workflow: HiringWorkflow;
     errors: readonly DefinitionError[];
@@ -42,6 +43,8 @@
     hrefOf: (tab: WorkflowTab) => string;
     /** The AI-use policy in force and where to change it, if the person may. Undefined while it loads. */
     aiUse?: { policy?: AiUsePolicy; href?: string };
+    /** The hiring template being edited, so a new library form made from its Forms tab comes back to it; a job has none. */
+    templateId?: string;
   } = $props();
 
   // The stage whose sheet is open, by id, so reordering the stages behind it keeps the same one.
@@ -264,7 +267,7 @@
       stageId = workflow.stages[Number(stage[1])]!.id;
       return;
     }
-    tab = /^(questionnaire|followUpQuestionnaires)/.test(path) ? 'questions' : 'pipeline';
+    tab = /^(questionnaire|followUpQuestionnaires)/.test(path) ? 'forms' : 'pipeline';
     await tick();
     const field = document.querySelector<HTMLElement>('[role="tabpanel"][data-state="active"] [aria-invalid="true"]');
     field?.scrollIntoView({ block: 'center' });
@@ -298,7 +301,7 @@
     onscorecard={openScorecard}
     onautomations={openRecipes}
     {automationHref}
-    questionsHref={hrefOf('questions')}
+    questionsHref={hrefOf('forms')}
     onshow={showAutomation}
   />
 </Tabs.Content>
@@ -317,8 +320,8 @@
     />
   {/if}
 </Tabs.Content>
-<Tabs.Content value="questions">
-  <QuestionnaireBuilder bind:workflow {errors} {aiUse} automationsHref={hrefOf('automations')} />
+<Tabs.Content value="forms">
+  <QuestionnaireBuilder bind:workflow {errors} {aiUse} automationsHref={hrefOf('automations')} {automationHref} {templateId} />
 </Tabs.Content>
 <Tabs.Content value="test">
   <TestDrive bind:workflow {errors} {checking} onshow={showTested} onadd={() => openRecipes(null)} onfix={fix} automationsHref={hrefOf('automations')} />

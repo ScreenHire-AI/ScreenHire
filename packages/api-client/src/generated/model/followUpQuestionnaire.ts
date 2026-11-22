@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { FormKind } from './formKind.ts';
 import type { Question } from './question.ts';
 import type { QuestionSection } from './questionSection.ts';
 
@@ -19,4 +20,9 @@ export interface FollowUpQuestionnaire {
   questions: Question[];
   /** @nullable */
   sections?: QuestionSection[] | null;
+  /** @nullable */
+  formTemplateId?: string | null;
+  /** @nullable */
+  formVersion?: number | null;
+  kind?: null | FormKind;
 }

@@ -147,7 +147,10 @@ public sealed record AutomationFacts(
 /// </summary>
 public sealed record FactSources(string Source, IReadOnlyList<ApplicationAnswer> ApplyAnswers, IReadOnlyList<FollowUpAnswers> FollowUps)
 {
-    /// <summary>The sources of <paramref name="application"/> and its answered <paramref name="requests"/>.</summary>
+    /// <summary>
+    /// The sources of <paramref name="application"/> and its answered <paramref name="requests"/>. An equality monitoring
+    /// form's answers are never a fact: they only count toward totals in Reports (workflow-engine.md §7, Forms).
+    /// </summary>
     public static FactSources Of(JobApplication application, IEnumerable<QuestionnaireRequest> requests)
     {
         ArgumentNullException.ThrowIfNull(application);
@@ -155,7 +158,9 @@ public sealed record FactSources(string Source, IReadOnlyList<ApplicationAnswer>
         return new(
             application.Source.ToString(),
             application.Answers,
-            [.. requests.Where(r => r.CompletedEventId is not null).Select(r => new FollowUpAnswers(r.CompletedEventId!.Value, r.Answers))]);
+            [.. requests
+                .Where(r => r.CompletedEventId is not null && !r.IsEqualityMonitoring)
+                .Select(r => new FollowUpAnswers(r.CompletedEventId!.Value, r.Answers))]);
     }
 }
 

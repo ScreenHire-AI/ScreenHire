@@ -99,6 +99,14 @@ const message = {
           <p class="text-candidate-body text-candidate-muted-foreground">
             {employer.name} has a few more questions about your application for {questionnaire.jobTitle}.
           </p>
+          {
+            questionnaire.equalityMonitoring && (
+              <p class="text-candidate-body text-candidate-muted-foreground">
+                Every question is optional. Your answers are only counted together with other candidates' answers, and are never
+                shown with your application.
+              </p>
+            )
+          }
           {steps.length > 1 && (
             <nav aria-label="Question pages">
               <PageProgress step={index + 1} steps={steps.length} answered={answeredCount(questionnaire.questions, answers)} total={questionnaire.questions.length} />

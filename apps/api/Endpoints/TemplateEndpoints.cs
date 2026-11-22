@@ -155,8 +155,12 @@ internal static class TemplateEndpoints
             return TypedResults.ValidationProblem(definitionProblems);
         }
 
+        // A new template's forms are library forms: the ones it copies are refreshed from the library, and its own (a
+        // ScreenHire template's above all) become library forms of the organization (workflow-engine.md section 7, Forms).
+        var now = time.GetUtcNow();
+        definition = FormReferences.Adopt(db, await FormReferences.RefreshAsync(db, definition, cancellationToken), tenant.OrganizationId!.Value, now, tenant.UserId);
         var template = HiringTemplate.Create(
-            tenant.OrganizationId!.Value, request.Name.Trim(), Text.NullIfBlank(request.Description), Sanitize(definition), time.GetUtcNow(), tenant.UserId,
+            tenant.OrganizationId!.Value, request.Name.Trim(), Text.NullIfBlank(request.Description), Sanitize(definition), now, tenant.UserId,
             copiedFrom);
         db.HiringTemplates.Add(template);
         await outbox.SaveTemplateChangeAsync(TemplateKind.HiringTemplate, SubjectId(template.Id), tenant, time, cancellationToken);
@@ -236,6 +240,7 @@ internal static class TemplateEndpoints
             return TypedResults.ValidationProblem(problems);
         }
 
+        definition = await FormReferences.RefreshAsync(db, definition, cancellationToken);
         var draft = template.CreateDraft(Sanitize(definition), time.GetUtcNow(), tenant.UserId);
         // Added explicitly: found through the tracked template's collection, a new row with a client-generated key
         // would be taken for an existing one and saved as an UPDATE.
@@ -297,9 +302,11 @@ internal static class TemplateEndpoints
             return TypedResults.ValidationProblem(shape);
         }
 
-        // The draft saves whatever else is wrong with it and the problems come back with it; publishing waits for them.
-        var problems = await TemplateReferences.ValidateAsync(db, request.Definition, cancellationToken);
-        found.Revise(Sanitize(request.Definition));
+        // The draft saves whatever else is wrong with it and the problems come back with it; publishing waits for them. A
+        // follow-up that copies a library form takes that version's questions, whatever the request held.
+        var definition = await FormReferences.RefreshAsync(db, request.Definition, cancellationToken);
+        var problems = await TemplateReferences.ValidateAsync(db, definition, cancellationToken);
+        found.Revise(Sanitize(definition));
         try
         {
             await outbox.SaveTemplateChangeAsync(TemplateKind.HiringTemplate, SubjectId(templateId), tenant, time, cancellationToken);
@@ -342,20 +349,11 @@ internal static class TemplateEndpoints
 
         if (found.Status == TemplateVersionStatus.Draft)
         {
-            if ((await TemplateReferences.ValidateAsync(outbox.DbContext, found.Definition, cancellationToken)).ToProblems("definition") is { } problems)
+            if ((await PublishDraftAsync(outbox, template, found, tenant, time, cancellationToken)).ToProblems("definition") is { } problems)
             {
                 return TypedResults.ValidationProblem(problems);
             }
 
-            // Read before the save writes this publish's own change: the member who changed the template last, when that
-            // is someone other than the publisher. A later change by the publisher, a key or ScreenHire means nobody else
-            // was the last to change it.
-            var lastChange = await ChangeHistoryQueries.LastAsync(
-                outbox.DbContext, ChangeSubjectKind.HiringTemplate, SubjectId(template.Id), cancellationToken);
-            var previousEditor = lastChange?.UserId is { } lastEditor && lastEditor != tenant.UserId ? lastEditor : (Guid?)null;
-            template.Publish(found, time.GetUtcNow(), tenant.UserId);
-            await outbox.PublishAsync(new HiringTemplateVersionPublished(
-                template.OrganizationId!.Value, template.Id, found.Id, found.Version, found.PublishedAt!.Value, tenant.UserId, previousEditor));
             try
             {
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
@@ -373,6 +371,32 @@ internal static class TemplateEndpoints
         }
 
         return TypedResults.Ok(found.ToDetail());
+    }
+
+    /// <summary>
+    /// Publishes the draft <paramref name="draft"/> of <paramref name="template"/> once it passes the validator and every
+    /// reference check, and queues <see cref="HiringTemplateVersionPublished"/>; the caller saves. Returns the problems when
+    /// it does not publish. The one publish path, for the Publish button and for a library form's update of its templates.
+    /// </summary>
+    internal static async Task<IReadOnlyList<DefinitionError>> PublishDraftAsync(
+        IDbContextOutbox<ScreenHireDbContext> outbox, HiringTemplate template, HiringTemplateVersion draft, ITenantContext tenant, TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (await TemplateReferences.ValidateAsync(outbox.DbContext, draft.Definition, cancellationToken) is { Count: > 0 } problems)
+        {
+            return problems;
+        }
+
+        // Read before the save writes this publish's own change: the member who changed the template last, when that
+        // is someone other than the publisher. A later change by the publisher, a key or ScreenHire means nobody else
+        // was the last to change it.
+        var lastChange = await ChangeHistoryQueries.LastAsync(
+            outbox.DbContext, ChangeSubjectKind.HiringTemplate, SubjectId(template.Id), cancellationToken);
+        var previousEditor = lastChange?.UserId is { } lastEditor && lastEditor != tenant.UserId ? lastEditor : (Guid?)null;
+        template.Publish(draft, time.GetUtcNow(), tenant.UserId);
+        await outbox.PublishAsync(new HiringTemplateVersionPublished(
+            template.OrganizationId!.Value, template.Id, draft.Id, draft.Version, draft.PublishedAt!.Value, tenant.UserId, previousEditor));
+        return [];
     }
 
     // Archiving takes the template out of the pickers: no new job starts from it, and the jobs that did keep their copy.
@@ -422,7 +446,7 @@ internal static class TemplateEndpoints
 
     private static string SubjectId(Guid templateId) => templateId.ToString("D");
 
-    private static Task<HiringTemplate?> LoadAsync(ScreenHireDbContext db, Guid templateId, bool tracking, CancellationToken cancellationToken)
+    internal static Task<HiringTemplate?> LoadAsync(ScreenHireDbContext db, Guid templateId, bool tracking, CancellationToken cancellationToken)
     {
         var query = db.HiringTemplates.Include(t => t.Versions).Where(t => t.Id == templateId);
         return (tracking ? query : query.AsNoTracking()).SingleOrDefaultAsync(cancellationToken);
@@ -430,7 +454,7 @@ internal static class TemplateEndpoints
 
     // Rich text is sanitized on the way in, wherever it arrives: a job created from the template copies it, and careers
     // pages and feeds render it as HTML.
-    private static HiringTemplateDefinition Sanitize(HiringTemplateDefinition definition) =>
+    internal static HiringTemplateDefinition Sanitize(HiringTemplateDefinition definition) =>
         definition.PostingDefaults.Description is { } description
             ? definition with { PostingDefaults = definition.PostingDefaults with { Description = RichText.Sanitize(description) } }
             : definition;

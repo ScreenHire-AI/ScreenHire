@@ -5,12 +5,15 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ApplicationAnswer } from './applicationAnswer.ts';
+import type { FormKind } from './formKind.ts';
 import type { Question } from './question.ts';
 
 /**
  * A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;
  * once it is, `questions` are the questions as the candidate saw them, so the answers read the same after the
- * workflow changes.
+ * workflow changes. `kind` is the form's kind when it was sent: an equality monitoring form's `questions` and
+ * `answers` are always empty, because its answers only count toward totals in Reports (workflow-engine.md section
+ * 7, Forms).
  */
 export interface ApplicationFollowUp {
   id: string;
@@ -24,4 +27,5 @@ export interface ApplicationFollowUp {
   completedAt: string | null;
   questions: Question[];
   answers: ApplicationAnswer[];
+  kind?: FormKind;
 }

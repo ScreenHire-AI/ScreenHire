@@ -199,7 +199,7 @@ feeds every event to `TeammateToasts` (`apps/dashboard/src/lib/teammate-toasts.t
 |---|---|---|
 | Moves, New candidates, Notes, Tags, Emails, Scorecards | `ApplicationMoved`, `ApplicationSubmitted`, `ApplicationNoteAdded`, `ApplicationTagsChanged`, `ApplicationEmailed`, `ScorecardSubmitted` | the job is one whose hiring team they are on (`GET /v1/organization/members/{memberId}/jobs`), or any job they see when their scope is Everything I can see (the hub sends a job's events only to people who see it, ADR-0015) |
 | Tasks | `ApplicationTaskCreated`, `ApplicationTaskCompleted`, `ApplicationTaskReopened` | the task is assigned to them |
-| Templates | `HiringTemplateVersionPublished`; `TemplateChanged` of an email template or a scorecard | they are its `PreviousEditorUserId` |
+| Templates | `HiringTemplateVersionPublished`; `TemplateChanged` of an email template, a scorecard or a form | they are its `PreviousEditorUserId` |
 | Interviews | `InterviewChanged` with `ByCandidate` and a `Change` of Booked, Rescheduled or Cancelled | the job is in their scope, as for Moves |
 | Forms | `QuestionnaireAnswered` (only the candidate answers a follow-up form) | the job is in their scope, as for Moves |
 
@@ -214,9 +214,9 @@ answered ("Taylor Brook answered Screening questionnaire", linking to the answer
 an automation's offer, toast nobody. Each of these is its own toast, never grouped with others. Any event the table does not
 name never toasts, so a verification result (`VerificationAssessed`) cannot; the Activity feed says only that the checks
 finished. Every edit of a hiring, email or scorecard
-template (create, change, archive, restore, delete or reset) raises
-`TemplateChanged` so open dashboards refresh the template lists and pickers. It toasts for an email template or a
-scorecard, to the member who changed it last before this edit ("Jordan Ellis changed the email template Stage change",
+template or a library form (create, change, archive, restore, delete or reset) raises
+`TemplateChanged` so open dashboards refresh the template lists and pickers. It toasts for an email template, a
+scorecard or a form, to the member who changed it last before this edit ("Jordan Ellis changed the email template Stage change",
 linking to it), and never for a hiring template: its edits are drafts, and only its publish toasts. A template deleted
 since has no name to read, so its toast is dropped. Several edits of one template within the group window make one
 toast.

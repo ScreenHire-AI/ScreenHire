@@ -7,16 +7,15 @@
   import Panel from '#lib/components/panel.svelte';
   import PreviewFrame from '#lib/components/preview-frame.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
-  import StepMarker from '#lib/components/step-marker.svelte';
-  import { Badge } from '#lib/components/ui/badge/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
-  import type { Question } from '@screenhire/api-client';
-  import { emailTemplateNames, followUpsOf, isTerminal, questionTypeLabels, summarize } from '#lib/workflow.js';
+  import { emailTemplateNames, followUpsOf, isTerminal, summarize } from '#lib/workflow.js';
   import type { WorkflowTab } from '#lib/workflow-tabs.js';
+  import { sendingOf } from '#lib/forms-timeline.js';
   import { anyStageFacts, stageFacts } from '#lib/stage-facts.js';
   import AiUseRow from './ai-use-row.svelte';
   import { rowClass } from './controls.js';
   import ProblemsPanel from './problems-panel.svelte';
+  import QuestionList from './question-list.svelte';
   import QuestionnairePreview from './questionnaire-preview.svelte';
   import ScorecardName from './scorecard-name.svelte';
   import TestDrive from './test-drive.svelte';
@@ -138,28 +137,7 @@
   {#if tab === 'automations'}<AutomationsPanel {workflow} {errors} />{/if}
 </Tabs.Content>
 
-{#snippet questionList(list: readonly Question[])}
-  <ol class="flex flex-col">
-    {#each list as question, index (question.id)}
-      <li class={['flex gap-3', rowClass]}>
-        <StepMarker>{index + 1}</StepMarker>
-        <div class="flex min-w-0 flex-col gap-1.5 pt-1">
-          <span class="font-semibold break-words">{question.label}</span>
-          {#if question.helpText}<span class="text-muted-foreground">{question.helpText}</span>{/if}
-          <span class="flex flex-wrap gap-1.5">
-            <Badge variant="muted">{questionTypeLabels[question.type]}</Badge>
-            {#if question.required}<Badge variant="muted">Required</Badge>{/if}
-            {#if question.knockout}<Badge variant="muted">Knockout if {question.knockout.disqualifyingAnswer ? 'yes' : 'no'}</Badge>{/if}
-            {#each question.options ?? [] as option (option.id)}<Badge variant="muted">{option.label}</Badge>{/each}
-          </span>
-          {#if question.knockout?.reason}<span class="text-muted-foreground">{question.knockout.reason}</span>{/if}
-        </div>
-      </li>
-    {/each}
-  </ol>
-{/snippet}
-
-<Tabs.Content value="questions">
+<Tabs.Content value="forms">
   <!-- Content and the candidate's form never share the screen (A8): the switch swaps them in place. -->
   <div class="flex flex-col gap-5">
     <EditPreviewSwitch bind:mode readOnly />
@@ -170,17 +148,18 @@
         </PreviewFrame>
       </Panel>
     {:else}
-      <Panel title="Screening questions" count={questions.length}>
+      <Panel title="Application form" count={questions.length}>
         {#if questions.length === 0}
           <p class="text-muted-foreground">No questions. Every form still asks for a resume.</p>
         {:else}
-          {@render questionList(questions)}
+          <QuestionList {questions} />
         {/if}
         <div class="mt-4"><AiUseRow policy={aiUse?.policy} href={aiUse?.href} /></div>
       </Panel>
       {#each followUps as followUp (followUp.id)}
-        <Panel title={`Follow-up: ${followUp.name || followUp.id}`} count={followUp.questions.length}>
-          {@render questionList(followUp.questions)}
+        <Panel title={followUp.name || followUp.id} count={followUp.questions.length}>
+          <p class="mb-3 text-muted-foreground">{sendingOf(workflow, followUp.id).words}</p>
+          <QuestionList questions={followUp.questions} />
         </Panel>
       {/each}
     {/if}

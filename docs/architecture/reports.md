@@ -1,10 +1,12 @@
 ---
 type: Design
 title: "Reports: headline numbers, trend, funnel, time to hire, sources and open jobs"
-description: "The Reports page and GET /v1/reports/hiring: what each panel counts, the raw SQL that computes it under row-level security and job access, the date range and time zone in the person's own days, the previous period, the CSV export, why no verification data appears, and the known limits."
+description: "The Reports page and GET /v1/reports/hiring: what each panel counts, the raw SQL that computes it under row-level security and job access, the date range and time zone in the person's own days, the previous period, the CSV export, why no verification data appears, the equality monitoring totals with every count under 5 hidden, and the known limits."
 tags: [reports, sql, tenancy, dashboard]
 sources:
   - resource: apps/api/Reports/HiringReportReads.cs
+  - resource: apps/api/Reports/EqualityReportReads.cs
+  - resource: apps/dashboard/src/lib/components/equality-report-panel.svelte
   - resource: apps/api/Endpoints/ReportEndpoints.cs
   - resource: apps/api/Contracts/ReportContracts.cs
   - resource: apps/dashboard/src/routes/(app)/reports/+page.svelte
@@ -160,3 +162,32 @@ the report arrives and while it is empty.
   ([job distribution](job-distribution.md#posted-by-you)). Google for Jobs and the public job-board API must keep their canonical URLs, so
   their applicants count as Careers page, as do applications finished from a saved draft link, which drops the tag.
 - **Weeks follow Monday.** The first day of the week is not taken from the person's locale.
+
+## 7. Equality monitoring
+
+`GET /v1/reports/equality` (`GetEqualityReport`, `apps/api/Reports/EqualityReportReads.cs`) counts the answers to the
+organization's equality monitoring forms ([workflow engine](workflow-engine.md), section 7, Forms): for each such library
+form, how many candidates answered it in the range, and per question how many gave each answer and how many gave none.
+It groups the answered requests by their library form (`questionnaire_requests.form_template_id`), so a form used by
+several templates and jobs is counted once across them.
+
+- **Who.** Signed-in people with Edit settings only: no API key and no MCP tool. It is a 404 while
+  `ScreenHire:Forms:EqualityMonitoring:Enabled` is off, which it is until the owner's legal review.
+- **The range and jobs** are the hiring report's: `from` and `to` with its limits, and `jobId` repeated, where a job
+  the person cannot see adds nothing. A request counts by when it was answered. It reads through EF, so the tenant
+  filter and the job access filter narrow it as row-level security does.
+- **Small counts are hidden** (`SmallCounts.Suppress`): every count under 5, zero included, is null, and when only one
+  count of a question would be hidden the next smallest is hidden with it, so a lone hidden count cannot be worked out
+  from the shown counts and the number of responses. Where two or more are hidden, their sum still can be for a single
+  choice or yes/no question; each one stays unknown. A form fewer than 5 candidates answered in the range shows only that.
+- **Nothing names a candidate.** The response carries the forms, questions and answers and their counts, never an id of
+  an application or a person. Labels come from every published version, the newest winning.
+- **The page.** `equality-report-panel.svelte`, after the other panels, a panel per form and a table per question, with
+  "Fewer than 5" where a count is hidden, for someone who may see it where the deployment offers equality forms.
+- **Known limit: differencing.** Hiding small counts protects each response on its own, not two responses compared.
+  Someone who may see the totals can still narrow a count down to one candidate in three ways: two ranges that differ by
+  a few minutes (the application's timeline shows when each candidate answered); one job's totals against all jobs'; and
+  the sum of two or more hidden counts, as above. Snapping the range to whole days or setting a minimum length would not
+  close the first: a range one day longer still shows a lone answer from that day. Closing it takes fixed reporting
+  periods or added noise, which is the legal review's call, along with whether the "Answered" time may show on the
+  candidate's page. The setting stays off until then.

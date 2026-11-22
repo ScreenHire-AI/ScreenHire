@@ -325,8 +325,9 @@ before the candidate sends the application; sent, it is judged as on any applica
 
 ## 8. Follow-up questionnaires
 
-After someone applied, a SendQuestionnaire automation can email them a link to a follow-up questionnaire
-(workflow-engine.md §8): `/questionnaires/{token}` on the organization's careers board. Each page is a native form
+After someone applied, a SendQuestionnaire automation, or someone with Send a form on the candidate's page, can email
+them a link to one of the job's forms (workflow-engine.md §8): `/questionnaires/{token}` on the organization's careers
+board. Each page is a native form
 posted to the `questionnaire` Astro Action (`src/lib/questionnaire.ts`), so it works with JavaScript off and ships no
 script at all. Its fields are the same shared question components as the apply form, rendered on the server; follow-up
 questionnaires have no file questions, so there is no upload island. It pages like the apply form (§7): one section a
@@ -340,6 +341,10 @@ answers" on the last page.
 - **Answers only.** No device check, no form telemetry and no bot challenge: the candidate saw the notice when they
   applied, and this page collects what they type into its fields and nothing about their browser (CLAUDE.md
   non-negotiable 4). The page says so above the button.
+- **Equality monitoring.** On an equality monitoring form the page says, under the employer's line, that every
+  question is optional and that the answers are only counted with other candidates' answers and never shown with the
+  application. It collects nothing more than any other form. The wording waits on the owner's legal review, as the
+  setting that offers such forms does.
 - **The link stays private.** `Cache-Control: no-store`, `noindex`, and `<meta name="referrer" content="no-referrer">`,
   so the token is never cached or sent on. The careers server refuses a token that is not Data Protection's base64url
   text before it builds an API path from it.

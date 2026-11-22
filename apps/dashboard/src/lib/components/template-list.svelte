@@ -12,10 +12,10 @@
     lastUpdated: LastUpdate;
     /** Hiring: what it is for. */
     description?: string | null;
-    /** Hiring: the newest published version and the draft's, if any. */
+    /** Hiring and forms: the newest published version and the draft's, if any. */
     published?: number | null;
     draft?: number | null;
-    /** Scorecards: how many questions. */
+    /** Scorecards and forms: how many questions. */
     questions?: number;
     /** Emails: the subject, and its pieces with each variable as a word. */
     subject?: string;
@@ -61,7 +61,17 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { actorName } from '#lib/history.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
-  import { filterCounts, filtersFor, matchesFilter, templateKindViews, templateStatus, usedByWords, type TemplateFilter, type TemplateKind } from '#lib/templates.js';
+  import {
+    filterCounts,
+    filtersFor,
+    isVersioned,
+    matchesFilter,
+    templateKindViews,
+    templateStatus,
+    usedByWords,
+    type TemplateFilter,
+    type TemplateKind,
+  } from '#lib/templates.js';
 
   // One tab of the Templates page (design system section 21): the list template's table panel (section 7). Its header
   // is its title and the search, with no sentence about the tab (W9); under it the filters with their counts (T4), then
@@ -136,12 +146,13 @@
   const middle: Record<TemplateKind, Column[]> = {
     hiring: [column.accessor((row) => row.description ?? '', { id: 'description', header: 'What it is for', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(textCell, row.original.description ?? '') })],
     scorecards: [column.accessor((row) => row.questions ?? 0, { id: 'questions', header: 'Questions', sortFn: 'basic', cell: ({ row }) => String(row.original.questions ?? 0) })],
+    forms: [column.accessor((row) => row.questions ?? 0, { id: 'questions', header: 'Questions', sortFn: 'basic', cell: ({ row }) => String(row.original.questions ?? 0) })],
     emails: [column.accessor((row) => row.subject ?? '', { id: 'subject', header: 'Subject', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(subjectCell, row.original) })],
   };
   const columns: Column[] = [
     column.accessor('name', { header: 'Name', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(nameCell, row.original) }),
-    // Status first after the name (T2), for the one kind with versions.
-    ...(kindOf === 'hiring'
+    // Status first after the name (T2), for the kinds with versions.
+    ...(isVersioned(kindOf)
       ? [column.accessor((row) => templateStatus(row).label, { id: 'status', header: 'Status', sortFn: 'alphanumeric', cell: ({ row }) => renderSnippet(statusCell, row.original) })]
       : []),
     ...middle[kindOf],
@@ -259,7 +270,7 @@
           {#snippet meta()}{#if row.lastUpdated.at}<DateText at={row.lastUpdated.at} />{/if}{/snippet}
           {#snippet facts()}
             {#if row.builtIn}<BuiltInBadge />{/if}
-            {#if kind === 'hiring' && !row.archived}{@const state = templateStatus(row)}<StatusBadge status={state.status} label={state.label} quiet />{/if}
+            {#if isVersioned(kind) && !row.archived}{@const state = templateStatus(row)}<StatusBadge status={state.status} label={state.label} quiet />{/if}
             {#if row.usage?.usedBy.length}<Badge variant="muted">Used by {usedByWords(kind, row.usage.usedBy, row.published)}</Badge>{/if}
           {/snippet}
           <!-- Duplicate and Archive live only on the row, so a phone gets the row's menu too (section 11, Table, list item). -->

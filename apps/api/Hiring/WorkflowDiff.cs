@@ -20,7 +20,22 @@ internal static class WorkflowDiff
         return changes;
     }
 
-    private static JsonNode? ToNode(HiringWorkflow workflow) => JsonSerializer.SerializeToNode(workflow, JsonColumns.SerializerOptions);
+    // A form's link to its library form (which form, which version) is bookkeeping, not what the candidate is asked: its
+    // questions are compared, its link is not, so a job that copied a form before forms had links shows no change for it.
+    private static JsonNode? ToNode(HiringWorkflow workflow)
+    {
+        var node = JsonSerializer.SerializeToNode(workflow, JsonColumns.SerializerOptions);
+        if (node?["followUpQuestionnaires"] is JsonArray forms)
+        {
+            foreach (var form in forms.OfType<JsonObject>())
+            {
+                form.Remove("formTemplateId");
+                form.Remove("formVersion");
+            }
+        }
+
+        return node;
+    }
 
     private static void Walk(JsonNode? before, JsonNode? after, string path, List<WorkflowChange> changes)
     {

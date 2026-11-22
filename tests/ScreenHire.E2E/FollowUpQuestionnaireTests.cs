@@ -63,9 +63,10 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
         await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
         var tags = Page.Locator("[data-slot='header-band']").GetByRole(AriaRole.List, new() { Name = "Tags", Exact = true });
         await Expect(tags).ToContainTextAsync("answered", new() { Timeout = 30_000 });
-        // The tag is a pill in the candidate's header; the questionnaire and its answers are on the Application tab.
+        // The tag is a pill in the candidate's header; the form and its answers are on the Application tab, in a row that opens.
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Application") }).ClickAsync();
-        var followUp = Page.GetByRole(AriaRole.Region, new() { Name = "Follow-up: Availability" });
+        var followUp = Page.GetByRole(AriaRole.Region, new() { Name = "Forms", Exact = true });
+        await followUp.GetByRole(AriaRole.Button, new() { NameRegex = new("^Availability") }).ClickAsync();
         await Expect(followUp).ToContainTextAsync("In two weeks");
         await Expect(followUp).ToContainTextAsync("Do you hold a forklift licence?");
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
@@ -106,6 +107,94 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
         await Page.GetByLabel("Yes").CheckAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Send answers" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Answers sent");
+    }
+
+    [Fact]
+    public async Task A_form_built_in_the_library_and_sent_at_Screening_reaches_the_candidate_and_its_answers_show_on_the_Application_tab()
+    {
+        var owner = ApiSession.NewEmail("e2e-forms");
+        var candidate = ApiSession.NewEmail("candidate");
+        var title = $"Line cook {Guid.NewGuid().ToString("N")[..4]}";
+        using var session = new ApiSession(Fixture);
+        await session.SignInWithDevSsoAsync(owner, Ct);
+        await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+        var template = await ReadAsync(await session.PostAsync("/v1/templates", new { name = $"{title} template" }, Ct), HttpStatusCode.Created);
+        var templateId = template.GetProperty("id").GetGuid();
+
+        // The form is built once, in the library, and published.
+        await SignInAsync(owner);
+        await Page.GotoAsync(DashboardUrl("/templates?tab=forms"));
+        // The header band's New template menu; the empty list below offers its own button too.
+        await Page.Locator("[data-slot=header-band]").GetByRole(AriaRole.Button, new() { Name = "New template" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Form", Exact = true }).ClickAsync();
+        var create = Page.GetByRole(AriaRole.Dialog, new() { Name = "New form" });
+        await create.GetByLabel("Name").FillAsync("Screening questionnaire");
+        await create.GetByRole(AriaRole.Button, new() { Name = "Create form" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Screening questionnaire");
+        var questions = Page.GetByRole(AriaRole.Region, new() { Name = "Questions", Exact = true });
+        await questions.GetByRole(AriaRole.Button, new() { NameRegex = new("^Edit question 1") }).ClickAsync();
+        await questions.GetByRole(AriaRole.Textbox, new() { Name = "Question 1", Exact = true }).FillAsync("Which shifts can you work?");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved as a draft of version 1." })).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Publish", Exact = true }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Published version 1." })).ToBeVisibleAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+
+        // The hiring template takes it from the library and sends it when a candidate enters Screening.
+        await Page.GotoAsync(DashboardUrl($"/templates/{templateId}?tab=forms"));
+        var forms = Page.GetByRole(AriaRole.Group, new() { Name = "Forms", Exact = true });
+        await forms.GetByRole(AriaRole.Button, new() { Name = "New form" }).ClickAsync();
+        var add = Page.GetByRole(AriaRole.Dialog, new() { Name = "Add a form" });
+        await add.GetByRole(AriaRole.Button, new() { Name = "Add Screening questionnaire" }).ClickAsync();
+        var card = forms.GetByRole(AriaRole.Button, new() { NameRegex = new("^Screening questionnaire") });
+        await Expect(card).ToContainTextAsync("Only when sent by hand");
+        await Page.GetByRole(AriaRole.Combobox, new() { Name = "When it's sent" }).SelectOptionAsync("stage");
+        await Page.GetByRole(AriaRole.Combobox, new() { Name = "Stage", Exact = true }).SelectOptionAsync(new SelectOptionValue { Label = "Screening" });
+        await Expect(card).ToContainTextAsync("Sent when they enter Screening");
+        await Expect(card).ToContainTextAsync("1 question");
+        await ExpectNoAccessibilityViolationsAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" })).ToContainTextAsync("Sends \"Screening questionnaire\"");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Publish", Exact = true }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Published version 1." })).ToBeVisibleAsync();
+
+        // A job from the template, a candidate moved into Screening: the form's email arrives, and the candidate answers.
+        var version = await ReadAsync(await session.Client.GetAsync($"/v1/templates/{templateId}/versions/1", Ct), HttpStatusCode.OK);
+        var job = await ReadAsync(await session.PostAsync(
+            "/v1/jobs",
+            new
+            {
+                title,
+                templateVersionId = version.GetProperty("id").GetGuid(),
+                description = "<p>Cook on the line.</p>",
+                employmentType = "FullTime",
+                workplaceType = "Remote",
+                applicantLocationRequirements = Britain,
+            },
+            Ct), HttpStatusCode.Created);
+        var application = await ReadAsync(await session.PostAsync(
+            $"/v1/jobs/{job.GetProperty("id").GetGuid()}/applications", new { candidate = new { fullName = "Riley Chen", email = candidate } }, Ct), HttpStatusCode.Created);
+        var applicationId = application.GetProperty("id").GetGuid();
+        await ReadAsync(await session.PostAsync($"/v1/applications/{applicationId}/move", new { toStageId = "screening" }, Ct), HttpStatusCode.OK);
+        var link = QuestionnaireLink().Match((await Fixture.Mailpit.WaitForMessagesAsync(candidate, 1, Ct))[0].Text);
+        link.Success.Should().BeTrue();
+        await Page.GotoAsync(link.Value);
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Screening questionnaire");
+        await Page.GetByLabel("Which shifts can you work?").FillAsync("Weekends and evenings");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Send answers" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Answers sent");
+
+        // The recruiter reads the answers under the form's own row on the Application tab.
+        await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Application") }).ClickAsync();
+        var sent = Page.GetByRole(AriaRole.Region, new() { Name = "Forms", Exact = true });
+        var row = sent.GetByRole(AriaRole.Button, new() { NameRegex = new("^Screening questionnaire") });
+        await Expect(row).ToContainTextAsync("Answered");
+        await row.ClickAsync();
+        await Expect(sent).ToContainTextAsync("Weekends and evenings");
+        await ExpectNoAccessibilityViolationsAsync();
     }
 
     // A new organization whose job sends "Availability" on entering Screening and tags the application when it is

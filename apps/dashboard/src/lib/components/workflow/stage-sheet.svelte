@@ -83,7 +83,7 @@
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
   // What runs here, as the card says it: each email and each automation's short label. The reminder the sheet keeps for
   // the time limit is under "When overdue", so it is not listed again (W7).
-  const here = $derived(stage ? stageFacts(workflow, stage, templateNames).filter((fact) => fact.kind === 'email' || fact.kind === 'automation') : []);
+  const here = $derived(stage ? stageFacts(workflow, stage, templateNames).filter((fact) => fact.kind === 'email' || fact.kind === 'form' || fact.kind === 'automation') : []);
   const overdue = $derived(stage ? whenOverdue(workflow, stage.id, templateNames) : []);
 
   let otherChosen = $state(false);
