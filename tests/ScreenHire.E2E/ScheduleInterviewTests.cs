@@ -58,12 +58,14 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await Page.GotoAsync(applicationUrl);
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Riley Chen");
 
-        // The recruiter connects the sandbox calendar on Your account > Connected accounts, and comes back to that page,
+        // The recruiter connects the sandbox calendar on Your account > Calendar and accounts, and comes back to that page,
         // which says how it went in its Calendar panel.
         await Page.Locator("[data-sidebar=footer]").GetByRole(AriaRole.Button).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Your account" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Connected accounts" }).ClickAsync();
-        var calendar = Page.GetByRole(AriaRole.Region, new() { Name = "Calendar" });
+        await Page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Calendar and accounts" }).ClickAsync();
+        // The page also holds the person's own hours and ScreenHire's calendar, above the Calendar panel.
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Interview hours" })).ToBeVisibleAsync();
+        var calendar = Page.GetByRole(AriaRole.Region, new() { Name = "Calendar", Exact = true });
         await calendar.GetByRole(AriaRole.Button, new() { Name = "Connect Sandbox calendar" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex("/account/connected$"));
         await Expect(calendar).ToContainTextAsync("Connected");
@@ -71,30 +73,35 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GotoAsync(applicationUrl);
 
-        // Schedule interview sits beside Email. The sheet lists the people who see the job: the recruiter is ticked
-        // and is the organizer, the teammate can be ticked, and the member with no calendar is shown, in words, as unavailable.
+        // Schedule interview sits beside Email. The sheet opens on the decision, with Pick from our times chosen (the sandbox
+        // calendar gives it times). It lists the people who see the job: the recruiter is ticked and is the organizer, the
+        // teammate can be ticked, and the member with no calendar or hours is shown, in words, as unavailable.
         var header = Page.Locator("[data-slot=header-band]");
         await Expect(header.GetByRole(AriaRole.Button, new() { Name = "Email", Exact = true })).ToBeVisibleAsync();
         await header.GetByRole(AriaRole.Button, new() { Name = "Schedule interview" }).ClickAsync();
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Schedule interview" });
+        var choice = sheet.GetByRole(AriaRole.Radiogroup, new() { Name = "How should Riley pick a time?" });
+        await Expect(choice.GetByRole(AriaRole.Radio)).ToHaveCountAsync(3);
+        await Expect(choice.GetByLabel("Pick from our times")).ToBeCheckedAsync();
         var interviewers = sheet.GetByRole(AriaRole.Group, new() { Name = "Interviewers" });
         await Expect(interviewers.GetByRole(AriaRole.Checkbox, new() { NameRegex = new($"^{Regex.Escape(ownerName)}") })).ToBeCheckedAsync();
         await Expect(sheet.GetByText($"{ownerName}'s calendar sends the invitation.")).ToBeVisibleAsync();
         var without = interviewers.GetByRole(AriaRole.Checkbox, new() { NameRegex = new($"^{Regex.Escape(otherName)}") });
         await Expect(without).ToBeDisabledAsync();
         await Expect(interviewers).ToContainTextAsync(otherName);
-        await Expect(interviewers.GetByText("No calendar connected")).ToHaveCountAsync(1);
+        await Expect(interviewers.GetByText("No calendar or hours")).ToHaveCountAsync(1);
         await interviewers.GetByRole(AriaRole.Checkbox, new() { NameRegex = new($"^{Regex.Escape(teammateName)}") }).CheckAsync();
         await sheet.GetByLabel("Time zone").SelectOptionAsync("UTC");
         await Expect(sheet.GetByLabel("Length")).ToHaveValueAsync("30");
-        await Expect(sheet.GetByLabel("From")).ToHaveValueAsync("09:00");
-        await Expect(sheet.GetByLabel("To")).ToHaveValueAsync("17:00");
+        await Expect(sheet.GetByRole(AriaRole.Checkbox, new() { Name = "Monday", Exact = true })).ToBeCheckedAsync();
+        await Expect(sheet.GetByLabel("Monday from")).ToHaveValueAsync("09:00");
+        await Expect(sheet.GetByLabel("Monday to")).ToHaveValueAsync("17:00");
         await ExpectNoAccessibilityViolationsAsync();
         await ShotsAsync("schedule-interview-sheet", sheet: true);
         await OpenScheduleSheetAsync(header);
         await interviewers.GetByRole(AriaRole.Checkbox, new() { NameRegex = new($"^{Regex.Escape(teammateName)}") }).CheckAsync();
         await sheet.GetByLabel("Time zone").SelectOptionAsync("UTC");
-        await sheet.GetByRole(AriaRole.Button, new() { Name = "Send invitation" }).ClickAsync();
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Send", Exact = true }).ClickAsync();
         await Expect(sheet).ToHaveCountAsync(0);
 
         // The Overview says it is waiting for the candidate, and there is no booked time yet.
@@ -143,25 +150,26 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity", Exact = true })).ToContainTextAsync("Interview booked for", new() { Timeout = 30_000 });
         await Page.GotoAsync(applicationUrl);
 
-        // Offering new times is in the same menu: the booked time stays, and the panel says it waits for a new one.
+        // Moving the interview is in the same menu, with the same three ways: the booked time stays, and the panel says it
+        // waits for a new one.
         await panel.GetByRole(AriaRole.Button, new() { Name = "Interview actions" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Offer new times" }).ClickAsync();
-        var offer = Page.GetByRole(AriaRole.Dialog, new() { Name = "Offer new times" });
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Move the interview" }).ClickAsync();
+        var offer = Page.GetByRole(AriaRole.Dialog, new() { Name = "Move the interview" });
         await Expect(offer).ToBeVisibleAsync();
-        await Expect(offer).ToContainTextAsync("Riley Chen gets a link to pick another time.");
-        await Expect(offer).ToContainTextAsync("The booked time stays until they pick.");
+        await Expect(offer).ToContainTextAsync("The booked time stays until a new one is booked.");
+        await Expect(offer.GetByLabel("Pick from our times")).ToBeCheckedAsync();
         await Expect(offer.GetByLabel("First day")).Not.ToHaveValueAsync("");
         await Page.Mouse.MoveAsync(0, 0);
         await Expect(Page.Locator("[data-slot=tooltip-content]")).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "offer-new-times-sheet-1280");
-        await offer.GetByRole(AriaRole.Button, new() { Name = "Send new times" }).ClickAsync();
+        await offer.GetByRole(AriaRole.Button, new() { Name = "Send", Exact = true }).ClickAsync();
         await Expect(offer).ToHaveCountAsync(0);
         await Expect(panel).ToContainTextAsync("Waiting for a new time", new() { Timeout = 30_000 });
         await Expect(panel).ToContainTextAsync("The booked time stays until Riley Chen picks one.");
         await Expect(booked).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
-        await WaitForEmailAsync(candidate, "New times for your interview");
+        await WaitForEmailAsync(candidate, "New options for your");
         await Page.GotoAsync($"{applicationUrl}?tab=activity");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity", Exact = true })).ToContainTextAsync("Offered new times for the interview on", new() { Timeout = 30_000 });
         await Page.GotoAsync(applicationUrl);
@@ -212,11 +220,11 @@ public sealed partial class ScheduleInterviewTests(E2EFixture fixture) : Browser
 
         await OpenScheduleSheetAsync(Page.Locator("[data-slot=header-band]"));
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Schedule interview" });
-        await Expect(sheet).ToContainTextAsync("Nobody who sees this job has a calendar connected.");
-        await Expect(sheet.GetByRole(AriaRole.Button, new() { Name = "Send invitation" })).ToHaveCountAsync(0);
+        await Expect(sheet).ToContainTextAsync("Nobody who sees this job has a calendar connected or interview hours set.");
+        await Expect(sheet.GetByRole(AriaRole.Button, new() { Name = "Send", Exact = true })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
 
-        await sheet.GetByRole(AriaRole.Button, new() { Name = "Connect your calendar" }).ClickAsync();
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Connect your calendar or set your hours" }).ClickAsync();
         await Expect(sheet).ToHaveCountAsync(0);
         var calendar = Page.GetByRole(AriaRole.Dialog, new() { Name = "Calendar" });
         await Expect(calendar.GetByRole(AriaRole.Button, new() { Name = "Connect Sandbox calendar" })).ToBeVisibleAsync();
