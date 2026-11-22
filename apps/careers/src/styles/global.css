@@ -5,6 +5,52 @@
 @import "@screenhire/ui/theme.css";
 @import "@screenhire/ui/questions.css";
 
+/* Steps that move with no script (apply-flow.md §7): every careers page opts in to cross-document view transitions, so a
+   step of the apply form, a follow-up page or the page after Send slides in from the right as the last one leaves, while
+   the header holds still and the progress bar cross-fades to its new value. Only for people who have not asked for
+   reduced motion; a browser without view transitions loads the next page as it always has. The transition runs no
+   script, but only where scripting is on: Chromium with JavaScript off starts a cross-document transition and never
+   ends it, which leaves the new page under the transition's layer and every click on it caught there. */
+@media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
+  @view-transition {
+    navigation: auto;
+  }
+
+  ::view-transition-old(apply-step) {
+    animation: 160ms ease-in both step-out;
+  }
+
+  ::view-transition-new(apply-step) {
+    animation: 220ms ease-out both step-in;
+  }
+}
+
+@keyframes step-out {
+  to {
+    opacity: 0;
+    translate: -16px 0;
+  }
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    translate: 16px 0;
+  }
+}
+
+.candidate-header {
+  view-transition-name: careers-header;
+}
+
+.apply-step {
+  view-transition-name: apply-step;
+}
+
+.apply-progress {
+  view-transition-name: apply-progress;
+}
+
 @layer base {
   html {
     background: var(--candidate-background);

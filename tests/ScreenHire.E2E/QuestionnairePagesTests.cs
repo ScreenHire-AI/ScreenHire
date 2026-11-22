@@ -10,10 +10,11 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The apply form a page at a time (apply-flow.md §7), with JavaScript off: one named section a page with "Step 2 of 4"
-/// and how many questions are answered, Change on the review and back to it, and saving to finish later through the
-/// link Mailpit receives. Each test applies to a job of its own organization, copied from the "Software engineer" system
-/// template and given two sections.
+/// The apply form a page at a time (apply-flow.md §7), with JavaScript off: one named section a page with its progress
+/// ("40% done"), Change on the review and back to it, and saving to finish later through the link Mailpit receives; and,
+/// without sections, four questions a page, the focus on each page's first question, Enter moving on where it is safe,
+/// the check line beside a field that was left wrong, and the finish page. Each test applies to a job of its own
+/// organization, copied from the "Software engineer" system template and given two sections or more questions.
 /// </summary>
 public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -32,14 +33,13 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         await WithoutJavaScriptAsync();
 
         await GoToAsync("careers", $"/{organization.Slug}/jobs/{job.Slug}/apply");
-        await Expect(Progress()).ToContainTextAsync("Step 1 of 4");
+        await Expect(Progress()).ToHaveTextAsync("20% done");
         await FillDetailsAsync(email);
         await Page.GetByLabel("Your CV or resume").SetInputFilesAsync(new FilePayload { Name = "Casey CV.pdf", MimeType = "application/pdf", Buffer = Pdf });
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
 
         await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Eligibility");
-        await Expect(Progress()).ToContainTextAsync("Step 2 of 4");
-        await Expect(Progress()).ToContainTextAsync("1 of 5 answered");
+        await Expect(Progress()).ToHaveTextAsync("40% done");
         await Expect(Page.GetByLabel("What is your notice period?")).ToHaveCountAsync(0, new() { Timeout = 1000 });
         await ExpectNoAccessibilityViolationsAsync();
         // A page checks its own questions before it moves on.
@@ -49,7 +49,7 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue" }).ClickAsync();
 
         await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Your experience");
-        await Expect(Progress()).ToContainTextAsync("Step 3 of 4");
+        await Expect(Progress()).ToHaveTextAsync("60% done");
         await Experience().GetByLabel("3 to 5").CheckAsync();
         await Page.GetByLabel("What is your notice period?").FillAsync("A month");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
@@ -124,6 +124,91 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         observation.CarriedOverQuestionIds.Should().Equal("work_authorization");
     }
 
+    [Fact]
+    public async Task Without_sections_a_candidate_answers_four_questions_a_page_and_moves_on_with_Enter()
+    {
+        var (organization, job) = await OrganizationWithLongJobAsync();
+        var email = ApiSession.NewEmail("short");
+        await WithoutJavaScriptAsync();
+
+        // The job page says how long applying takes and why applications are checked; the full notice waits on the form.
+        await GoToAsync("careers", $"/{organization.Slug}/jobs/{job.Slug}");
+        await Expect(Page.Locator("[data-apply-minutes]")).ToHaveTextAsync("Takes about 5 minutes");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "How we review applications" })).ToHaveCountAsync(0);
+        await Expect(Page.Locator("[data-checks-line]")).ToContainTextAsync("We look out for bots and borrowed identities, so genuine applicants get a fair look.");
+        await ExpectNoAccessibilityViolationsAsync();
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Apply for this role" }).ClickAsync();
+
+        // Details, three pages of questions (4, 4 and 1) and the review: five steps, and the sent form after them. The
+        // details step opens on the notice, not on a field.
+        await Expect(Progress()).ToHaveTextAsync("17% done");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "How we review applications" })).ToBeVisibleAsync();
+        await Expect(Page.GetByLabel("First name")).Not.ToBeFocusedAsync();
+
+        // A field left wrong says so beside it, with no script and before anything is posted.
+        var emailCheck = Page.Locator(".field").Filter(new() { Has = Page.GetByLabel("Email") }).Locator(".field-check");
+        await Page.GetByLabel("Email").FillAsync("casey.example.com");
+        await Page.GetByLabel("Phone").FocusAsync();
+        await Expect(emailCheck).ToBeVisibleAsync();
+        await Expect(emailCheck).ToHaveTextAsync("Enter an email address, like name@example.com");
+        await ExpectNoAccessibilityViolationsAsync();
+        await FillDetailsAsync(email);
+        await Page.GetByLabel("Phone").FocusAsync();
+        await Expect(emailCheck).ToBeHiddenAsync();
+        await Page.GetByLabel("Your CV or resume").SetInputFilesAsync(new FilePayload { Name = "Casey CV.pdf", MimeType = "application/pdf", Buffer = Pdf });
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
+
+        // The first page opens with the focus on its first question, and Enter in a line moves on.
+        await Expect(Progress()).ToHaveTextAsync("33% done");
+        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Questions");
+        await Expect(RightToWork().GetByLabel("Yes")).ToBeFocusedAsync();
+        await Expect(Page.GetByLabel("Which team would you like to join?")).ToHaveCountAsync(0);
+        await ExpectNoAccessibilityViolationsAsync();
+        await RightToWork().GetByLabel("Yes").CheckAsync();
+        await Experience().GetByLabel("3 to 5").CheckAsync();
+        await Page.GetByLabel("What is your notice period?").FillAsync("A month");
+        await Page.GetByLabel("What is your notice period?").PressAsync("Enter");
+
+        // In a few sentences Enter starts a new line and stays on the page.
+        await Expect(Progress()).ToHaveTextAsync("50% done");
+        var team = Page.GetByLabel("Which team would you like to join?");
+        await Expect(team).ToBeFocusedAsync();
+        await team.FillAsync("Platform");
+        var now = Page.GetByLabel("What are you working on now?");
+        await now.FillAsync("A payments service");
+        await now.PressAsync("Enter");
+        await Expect(now).ToHaveValueAsync("A payments service\n");
+        await Expect(Progress()).ToHaveTextAsync("50% done");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue", Exact = true }).ClickAsync();
+
+        await Expect(Progress()).ToHaveTextAsync("67% done");
+        await Expect(Page.GetByLabel("Anything else we should know?")).ToBeFocusedAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
+
+        // The review stays short of 100%, and Enter there posts the review back to itself, with the choice kept: it
+        // neither sends nor opens a Change.
+        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Review and send");
+        await Expect(Progress()).ToHaveTextAsync("83% done");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Questions, page 2" })).ToContainTextAsync("Platform");
+        await Page.GetByLabel("No, I did not use AI tools").CheckAsync();
+        // Each render stamps the time the step was shown into the state, so a new value is the review drawn again.
+        var state = Page.Locator("input[name=state]");
+        var shown = await state.InputValueAsync();
+        await Page.GetByLabel("No, I did not use AI tools").PressAsync("Enter");
+        await Expect(state).Not.ToHaveValueAsync(shown);
+        await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Review and send");
+        await Expect(Page.GetByLabel("No, I did not use AI tools")).ToBeCheckedAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Send application" }).ClickAsync();
+
+        // A warm finish: what happens next, each led by when, and the candidate's own page.
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Application sent");
+        var next = Page.GetByRole(AriaRole.Region, new() { Name = "What happens next" });
+        await Expect(next.Locator("li")).ToHaveTextAsync([new Regex("^Now"), new Regex("^Next"), new Regex("^Any time")]);
+        await Expect(next.GetByRole(AriaRole.Link, new() { Name = "your page" })).ToHaveAttributeAsync("href", $"/{organization.Slug}/my-applications");
+        await ExpectNoAccessibilityViolationsAsync();
+    }
+
     private ILocator Progress() => Page.Locator("[data-page-progress]");
 
     private ILocator RightToWork() => Page.GetByRole(AriaRole.Group, new() { Name = "Do you have the right to work in the country this job is in?" });
@@ -147,17 +232,51 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         return await Fixture.CreateDbContextAsync(tenant, Ct);
     }
 
+    // "Software engineer" version 1's four questions after the resume, then five more and no sections: three pages of 4, 4
+    // and 1 at the default page size. About 5 minutes: 60 s of details, 10 s a pick, 20 s a line or link, 90 s to write.
+    private async Task<(Organization Organization, Job Job)> OrganizationWithLongJobAsync()
+    {
+        var engineering = await SoftwareEngineerAsync();
+        Job job = null!;
+        var organization = await Fixture.CreateOrganizationAsync(org =>
+        {
+            job = TestData.NewJob(org, "engineer", "Platform Engineer");
+            job.UseTemplate(engineering);
+            job.ReviseWorkflow(
+                job.Workflow with
+                {
+                    Questionnaire = job.Workflow.Questionnaire with
+                    {
+                        Questions =
+                        [
+                            .. job.Workflow.Questionnaire.Questions,
+                            new Question("team", QuestionType.ShortText, "Which team would you like to join?", Required: true),
+                            new Question("now", QuestionType.LongText, "What are you working on now?"),
+                            new Question("languages", QuestionType.ShortText, "Which languages do you write?"),
+                            new Question("travel", QuestionType.YesNo, "Can you travel twice a year?"),
+                            new Question("else", QuestionType.ShortText, "Anything else we should know?"),
+                        ],
+                    },
+                },
+                DateTimeOffset.UtcNow);
+            job.Publish(DateTimeOffset.UtcNow);
+            return [job];
+        }, Ct);
+        return (organization, job);
+    }
+
+    private async Task<HiringTemplateVersion> SoftwareEngineerAsync()
+    {
+        var reader = new TenantContext();
+        reader.SetOrganization(Guid.NewGuid()); // system templates belong to no organization, so any tenant reads them
+        await using var db = await Fixture.CreateDbContextAsync(reader, Ct);
+        return await db.HiringTemplateVersions.AsNoTracking().SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion1, Ct);
+    }
+
     // "Software engineer" version 1's questions, the resume and the right to work in one section and the rest in another.
     private async Task<(Organization Organization, Job Job)> OrganizationWithSectionedJobAsync()
     {
-        HiringTemplateVersion engineering;
-        var reader = new TenantContext();
-        reader.SetOrganization(Guid.NewGuid()); // system templates belong to no organization, so any tenant reads them
-        await using (var db = await Fixture.CreateDbContextAsync(reader, Ct))
-        {
-            engineering = await db.HiringTemplateVersions.AsNoTracking().SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion1, Ct);
-        }
-
+        var engineering = await SoftwareEngineerAsync();
         Job job = null!;
         var organization = await Fixture.CreateOrganizationAsync(org =>
         {

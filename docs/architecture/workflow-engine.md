@@ -439,8 +439,8 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   `packages/ui/src/questions` that the careers pages render, and its window icon opens it at `/preview/form`, a window
   that follows each edit. The apply form's preview starts with the candidate's details and the resume and ends with the
   AI-use question; a follow-up's is its questions alone, as its page shows them. The preview pages as the candidate does (each named section, or
-  pages of the organization's questions per page), one step at a time with Back and Next, each opening with the step line the
-  candidate sees ("Step 2 of 4", "9 of 24 answered"); the last step's send button is off, because nothing is sent from a preview. Marking a yes/no question as a knockout shows what a knockout may be (an
+  pages of the organization's questions per page), one step at a time with Back and Next, each opening with the progress bar the
+  candidate sees ("40% done", apply-flow.md section 7); the last step's send button is off, because nothing is sent from a preview. Marking a yes/no question as a knockout shows what a knockout may be (an
   objective eligibility check, never AI use or an accommodation), and, while no automation's condition reads its answer, that nothing happens to it yet, with a link to the Automations tab (A11). The automation form offers "Send a questionnaire" and
   the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.

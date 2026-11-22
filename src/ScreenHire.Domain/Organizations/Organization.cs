@@ -76,8 +76,8 @@ public sealed class Organization
     /// </summary>
     public bool SignalNetworkOptIn { get; set; }
 
-    /// <summary>The page size every new organization starts with.</summary>
-    public const int DefaultQuestionsPerPage = 8;
+    /// <summary>The page size every new organization starts with: a few related questions at a time (apply-flow.md §7).</summary>
+    public const int DefaultQuestionsPerPage = 4;
 
     public const int MinQuestionsPerPage = 1;
 

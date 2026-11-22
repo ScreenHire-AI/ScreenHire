@@ -39,4 +39,5 @@ export interface PublicJob {
   /** @nullable */
   updatedAt: string | null;
   url: string;
+  applyMinutes: number;
 }

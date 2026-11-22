@@ -8,6 +8,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import QuestionIsland from '../test-support/QuestionIsland.astro';
 import { emptyState, type ApplyState } from '../lib/apply';
 import QuestionField from './QuestionField.astro';
+import StepIndicator from './StepIndicator.astro';
 
 let container: AstroContainer;
 
@@ -29,7 +30,7 @@ const question = (overrides: Partial<PublicQuestion>): PublicQuestion => ({
   ...overrides,
 });
 
-const render = (props: { question: PublicQuestion; state?: ApplyState; errors?: Record<string, string> }) =>
+const render = (props: { question: PublicQuestion; state?: ApplyState; errors?: Record<string, string>; autofocus?: boolean }) =>
   container.renderToString(QuestionField, {
     props: { state: emptyState(), errors: {}, organization: 'brightwater', jobId: '0199e5b1-0000-7000-8000-000000000000', maxBytes: 10 * 1024 * 1024, ...props },
     request: new Request('http://localhost/brightwater/jobs/x/apply'),
@@ -120,5 +121,72 @@ describe('QuestionField as an Astro island', () => {
     expect(html).toMatch(/<astro-island[^>]*client="load"/);
     expect(html).toContain('component-export="QuestionField"');
     expect(html).toMatch(/<input[^>]*name="q:licence"[^>]*value="yes"[^>]*checked/);
+  });
+});
+
+describe('the first question of a page (apply-flow.md §7)', () => {
+  it('takes the focus as the page loads, in the server HTML, with no script', async () => {
+    const text = await render({ question: question({ id: 'notice', label: 'Notice period' }), autofocus: true });
+    expect(text).toMatch(/<input[^>]*name="q:notice"[^>]*autofocus/);
+    expect(text).not.toContain('<script');
+
+    const long = await render({ question: question({ id: 'why', type: 'LongText', label: 'Why us?' }), autofocus: true });
+    expect(long).toMatch(/<textarea[^>]*name="q:why"[^>]*autofocus/);
+  });
+
+  it('puts the focus on the first choice of a choice question, and only there', async () => {
+    const html = await render({
+      question: question({ id: 'licence', type: 'YesNo', label: 'Do you hold a forklift licence?' }),
+      autofocus: true,
+    });
+
+    expect(html.match(/autofocus/g)).toHaveLength(1);
+    expect(html).toMatch(/<input[^>]*value="yes"[^>]*autofocus|<input[^>]*autofocus[^>]*value="yes"/);
+  });
+
+  it('leaves the focus alone unless asked', async () => {
+    const html = await render({ question: question({ id: 'notice', label: 'Notice period' }) });
+    expect(html).not.toContain('autofocus');
+  });
+});
+
+describe('the check line beside a field', () => {
+  it('is in the page for a required field, hidden until the browser finds the field wrong after it was left', async () => {
+    const html = await render({ question: question({ id: 'notice', label: 'Notice period', required: true }) });
+
+    expect(html).toMatch(/<div class="field [^"]*">/);
+    expect(html).toMatch(/<p class="field-check">Add an answer<\/p>/);
+    // Kept out of the field's description: hidden text in aria-describedby would be read while the field is fine.
+    expect(html).not.toMatch(/aria-describedby="[^"]*check/);
+  });
+
+  it('says what a web address needs, and an optional line has none', async () => {
+    expect(await render({ question: question({ id: 'site', type: 'Url', label: 'Portfolio' }) })).toContain(
+      'Enter a web address, like https://example.com',
+    );
+    expect(await render({ question: question({ id: 'notes', label: 'Anything else?' }) })).not.toContain('field-check');
+  });
+});
+
+describe('StepIndicator', () => {
+  it('draws one bar and "40% done", with no step count and no answer count', async () => {
+    const html = await container.renderToString(StepIndicator, { props: { step: 2, steps: 4 } });
+
+    const bar = html.match(/<progress[^>]*>/)?.[0] ?? '';
+    expect(bar).toContain('class="page-progress"');
+    expect(bar).toContain('max="100"');
+    expect(bar).toContain('value="40"');
+    // Hidden from screen readers, which read the same "40% done" as everyone else.
+    expect(bar).toContain('aria-hidden="true"');
+    expect(html).toMatch(/data-page-progress[^>]*>40% done</);
+    expect(html).not.toMatch(/Step \d of/);
+    expect(html).not.toContain('answered');
+    expect(html).not.toContain('<nav');
+    expect(html).not.toMatch(/style=/);
+  });
+
+  it('stays short of 100% on the review, the last step before sending', async () => {
+    const html = await container.renderToString(StepIndicator, { props: { step: 4, steps: 4 } });
+    expect(html).toContain('80% done');
   });
 });

@@ -28,20 +28,40 @@ const jobTitle = jobResponse.status === 200 ? jobResponse.data.title : null;
   branding={employer.branding}
   noindex
 >
-  <h1 class="font-display text-candidate-title">Application sent</h1>
+  {/* A warm finish (apply-flow.md §1): a check mark, the heading, then what happens next, each led by when. It promises no
+      date and no reader, because the employer sets neither here (design-system 4.4): only that they write by email. */}
+  <div class="flex flex-col items-start gap-4">
+    <span class="grid size-14 place-items-center rounded-full bg-candidate-chip text-candidate-brand-text" aria-hidden="true">
+      <svg class="size-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6 9 17l-5-5"></path>
+      </svg>
+    </span>
+    <h1 class="font-display text-candidate-title">Application sent</h1>
+  </div>
   <p class="mt-3 text-candidate-body">
-    Thank you for applying{jobTitle && <> for <strong>{jobTitle}</strong></>} at {employer.name}. We have your application.
+    Thank you for applying{jobTitle && <> for <strong>{jobTitle}</strong></>} at {employer.name}.
   </p>
 
   <Panel id="next-heading" title="What happens next" class="mt-6">
-    <ul class="flex list-disc flex-col gap-2 pl-5 text-candidate-body">
-      <li>Our checks for bots and impersonation never reject anyone.</li>
-      <li>{employer.name} contacts you by email about next steps.</li>
-      <li>
-        See where your application stands and read your messages on <a href={withEmbed(`${base}/my-applications`, embed)} class="text-link">your page</a>.
+    <ol class="flex flex-col gap-4 text-candidate-body">
+      <li class="flex flex-col gap-1">
+        <span class="font-semibold">Now</span>
+        <span>{employer.name} has your application.</span>
       </li>
-      <li>You can ask {employer.name} to show, correct or delete your information, or to have a person review your application. Use the address they write to you from.</li>
-    </ul>
+      <li class="flex flex-col gap-1">
+        <span class="font-semibold">Next</span>
+        <span>{employer.name} contacts you by email about next steps. Our checks for bots and impersonation never reject anyone.</span>
+      </li>
+      <li class="flex flex-col gap-1">
+        <span class="font-semibold">Any time</span>
+        <span>
+          See where your application stands and read your messages on <a href={withEmbed(`${base}/my-applications`, embed)} class="text-link">your page</a>.
+        </span>
+      </li>
+    </ol>
+    <p slot="footer" class="border-t border-candidate-border px-4 py-3 text-candidate-hint text-candidate-muted-foreground">
+      You can ask {employer.name} to show, correct or delete your information, or to have a person review your application. Use the address they write to you from.
+    </p>
   </Panel>
 
   <a href={withEmbed(base || '/', embed)} class="button-secondary mt-4">See other open roles</a>

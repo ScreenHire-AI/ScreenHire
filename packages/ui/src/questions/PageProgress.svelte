@@ -1,27 +1,22 @@
 <script lang="ts">
-  // Where the candidate is in a form of several pages (apply-flow.md §7): a bar of one segment per step, then "Step 2 of
-  // 4" and "9 of 24 answered". Server-rendered on the careers pages (no JavaScript) and live in the dashboard's
-  // questionnaire preview, so the preview is the form.
+  // Where the candidate is in a form of several pages (apply-flow.md §7): one bar and "40% done", from progressPercent.
+  // The bar is a native <progress>, so its fill needs no inline style under the careers pages' content security policy.
+  // It is hidden from screen readers, which read the same words as everyone else. Server-rendered on the careers pages
+  // (no JavaScript) and live in the dashboard's questionnaire preview, so the preview is the form.
+  import { progressPercent } from './model';
+
   interface Props {
     /** The current step, from 1. */
     step: number;
     steps: number;
-    answered: number;
-    /** The form's questions; with none, only the step shows. */
-    total: number;
   }
 
-  let { step, steps, answered, total }: Props = $props();
+  let { step, steps }: Props = $props();
+
+  const percent = $derived(progressPercent(step, steps));
 </script>
 
 <div class="flex flex-col gap-2">
-  <div aria-hidden="true" class="flex gap-1">
-    {#each Array.from({ length: steps }, (_, i) => i) as i (i)}
-      <span class={['h-1.5 flex-1 rounded-full', i < step ? 'bg-candidate-cta' : 'bg-candidate-chip']}></span>
-    {/each}
-  </div>
-  <p class="flex flex-wrap justify-between gap-x-4 gap-y-1 text-candidate-hint text-candidate-muted-foreground" data-page-progress>
-    <span class="font-semibold text-candidate-foreground">Step {step} of {steps}</span>
-    {#if total > 0}<span>{answered} of {total} answered</span>{/if}
-  </p>
+  <progress class="page-progress" max="100" value={percent} aria-hidden="true"></progress>
+  <p class="text-candidate-hint font-semibold text-candidate-foreground" data-page-progress>{percent}% done</p>
 </div>

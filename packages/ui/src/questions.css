@@ -106,8 +106,42 @@
     @apply text-caption text-muted-foreground;
   }
 
+  /* A field the candidate edited and left in a state the browser knows is wrong (empty and required, not an email):
+     the edge turns, and the field's own check line shows under it, with no script (`:user-invalid` matches only after
+     the field was used). The server's error summary is still the accessible path on Continue; a field it already marked
+     keeps only that message. */
+  .field-input:user-invalid {
+    @apply border-2 border-destructive;
+  }
+
+  .field-check {
+    @apply hidden text-candidate-body font-semibold text-destructive;
+  }
+
+  .field:has(.field-input:user-invalid):not(:has([aria-invalid="true"])) .field-check {
+    @apply block;
+  }
+
+  /* The progress bar (questions/PageProgress.svelte): a native <progress>, drawn in the candidate tokens. */
+  .page-progress {
+    @apply block h-2 w-full appearance-none overflow-hidden rounded-full border-0 bg-candidate-chip;
+  }
+
+  .page-progress::-webkit-progress-bar {
+    @apply bg-candidate-chip;
+  }
+
+  .page-progress::-webkit-progress-value {
+    @apply rounded-full bg-candidate-cta;
+  }
+
+  .page-progress::-moz-progress-bar {
+    @apply rounded-full bg-candidate-cta;
+  }
+
+  /* 48px, a comfortable target for a thumb (design-system 4.4). */
   .choice {
-    @apply flex min-h-11 items-center gap-3 rounded-lg border border-candidate-input-border bg-candidate-surface px-4 py-2;
+    @apply flex min-h-12 items-center gap-3 rounded-lg border border-candidate-input-border bg-candidate-surface px-4 py-2;
   }
 
   .choice input {

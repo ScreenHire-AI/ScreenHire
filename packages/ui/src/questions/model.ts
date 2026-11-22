@@ -85,6 +85,17 @@ export const isChoice = (question: QuestionSpec): boolean =>
 export const selectedOf = (answer: AnswerValue | undefined): string[] =>
   answer === undefined ? [] : Array.isArray(answer) ? answer : [answer];
 
+/**
+ * The line a text field shows once the browser finds it wrong after the candidate left it (`:user-invalid`): what the
+ * type needs, else that a required field needs an answer. An optional plain field has none, since nothing typed into it
+ * can be wrong to the browser.
+ */
+export function checkFor(type: string, required: boolean): string | null {
+  if (type === 'email') return 'Enter an email address, like name@example.com';
+  if (type === 'url') return 'Enter a web address, like https://example.com';
+  return required ? 'Add an answer' : null;
+}
+
 /** The `aria-describedby` for a field with an optional hint and error. */
 export const describedBy = (id: string, hint: unknown, error: unknown): string | undefined =>
   [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
@@ -100,7 +111,7 @@ export interface SectionSpec {
  * Questions a page when a questionnaire has no sections, and the range an organization may set, as the API holds them
  * (`Organization.DefaultQuestionsPerPage`, `MinQuestionsPerPage`, `MaxQuestionsPerPage`).
  */
-export const DEFAULT_QUESTIONS_PER_PAGE = 8;
+export const DEFAULT_QUESTIONS_PER_PAGE = 4;
 export const MIN_QUESTIONS_PER_PAGE = 1;
 export const MAX_QUESTIONS_PER_PAGE = 50;
 
@@ -140,15 +151,13 @@ export function questionPages(
   return pages;
 }
 
-/** How many of `questions` have an answer: text, a choice, or a file. */
-export function answeredCount(
-  questions: readonly QuestionSpec[],
-  answers: Readonly<Record<string, AnswerValue | undefined>>,
-  files: Readonly<Record<string, unknown>> = {},
-): number {
-  return questions.filter((question) => {
-    if (question.type === 'File') return files[question.id] != null;
-    const answer = answers[question.id];
-    return Array.isArray(answer) ? answer.length > 0 : answer !== undefined && answer.trim() !== '';
-  }).length;
+/**
+ * How far along a form of several pages the candidate is, as a whole percentage (apply-flow.md §7). The sent form is the
+ * last step, so the step on screen counts as reached and the last page (the review) stays short of 100: a form of four
+ * steps reads 20, 40, 60 and 80, and "done" belongs to the page that says it was sent.
+ */
+export function progressPercent(step: number, steps: number): number {
+  const total = Math.max(1, Math.floor(steps));
+  const at = Math.min(Math.max(1, Math.floor(step)), total);
+  return Math.round((100 * at) / (total + 1));
 }

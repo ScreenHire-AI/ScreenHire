@@ -1,5 +1,6 @@
 using FluentValidation;
 using ScreenHire.Application.Distribution;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Content;
@@ -14,7 +15,8 @@ namespace ScreenHire.Api.Contracts;
 /// card shows under the title: the one the team wrote, or the description's first sentence. <c>updatedAt</c> is the last change to
 /// the posting content, for sitemaps' <c>lastmod</c>. For a closed job (410 Gone), <c>validThrough</c> is when it closed,
 /// so the page's JSON-LD tells Google it has expired. <c>url</c> is the job's careers page, from the deployment's
-/// domain configuration: the canonical URL that feeds, boards and Google all use.
+/// domain configuration: the canonical URL that feeds, boards and Google all use. <c>applyMinutes</c> is about how long
+/// applying takes, from the job's questions (<c>ApplicationForm.EstimatedMinutes</c>).
 /// </remarks>
 public sealed record PublicJob(
     Guid Id,
@@ -35,7 +37,8 @@ public sealed record PublicJob(
     SalaryPeriod? SalaryPeriod,
     DateTimeOffset? ValidThrough,
     DateTimeOffset? UpdatedAt,
-    string Url);
+    string Url,
+    int ApplyMinutes);
 
 /// <summary>
 /// The public careers listing for one organization. <c>url</c> is the board's careers page; <c>branding</c> is its
@@ -218,7 +221,8 @@ internal static class JobMappings
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.EmploymentType,
             job.SalaryMin, job.SalaryMax, job.SalaryCurrency, job.PublishedAt, job.Description, job.EffectiveSummary, job.Department,
             job.Locations, job.ApplicantLocationRequirements, job.Salary?.Period,
-            job.Status == JobStatus.Closed ? job.ClosedAt : job.ValidThrough, job.UpdatedAt ?? job.PublishedAt, url);
+            job.Status == JobStatus.Closed ? job.ClosedAt : job.ValidThrough, job.UpdatedAt ?? job.PublishedAt, url,
+            ApplicationForm.EstimatedMinutes(ApplicationForm.QuestionsFor(job.Workflow)));
 
     public static JobSummary ToSummary(this Job job, ChangeStamp? lastChange, int? latestTemplateVersion = null) =>
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.Status, job.CreatedAt, job.PublishedAt,

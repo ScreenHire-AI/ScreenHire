@@ -2,7 +2,6 @@
 import JobFacts from '../../../components/JobFacts.astro';
 import JobUnavailable from '../../../components/JobUnavailable.astro';
 import Panel from '../../../components/Panel.astro';
-import PrivacyNotice from '../../../components/PrivacyNotice.astro';
 import CareersLayout from '../../../layouts/CareersLayout.astro';
 import { getPublicJob, getPublicOrganization, jsonLdScript } from '../../../lib/api';
 import { newTabLinks, useEmbedding, withEmbed } from '../../../lib/embed';
@@ -79,16 +78,26 @@ const posting = job
         </Panel>
       )}
 
-      {/* The button comes before the notice so a phone does not scroll past a long box to find it. Opening the form
-          collects nothing: the form shows the same notice above its first field, and nothing is recorded until the
-          candidate uses it (docs/architecture/apply-flow.md section 2). */}
-      <a href={withSource(withEmbed(`${base}/jobs/${job.slug}/apply`, embed), Astro.url.searchParams.get('src'))} class="button-primary mt-6 w-full sm:w-fit">
-        Apply for this role
-      </a>
-
-      <div class="mt-6">
-        <PrivacyNotice base={base} />
+      {/* Opening the form collects nothing: the form shows the full notice above its first field, and nothing is recorded
+          until the candidate uses it (docs/architecture/apply-flow.md section 2). Browsing collects nothing either, so the
+          job page carries one line about the checks and the link to what is collected, never how a check works. */}
+      <div class="mt-6 flex flex-col gap-3">
+        <a href={withSource(withEmbed(`${base}/jobs/${job.slug}/apply`, embed), Astro.url.searchParams.get('src'))} class="button-primary w-full sm:w-fit">
+          Apply for this role
+        </a>
+        <p class="flex items-center gap-2 text-candidate-hint text-candidate-muted-foreground" data-apply-minutes>
+          <svg aria-hidden="true" class="size-4 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+          </svg>
+          Takes about {job.applyMinutes} minutes
+        </p>
       </div>
+
+      <p class="mt-6 text-candidate-hint text-candidate-muted-foreground" data-checks-line>
+        We look out for bots and borrowed identities, so genuine applicants get a fair look.{' '}
+        <a href={withEmbed(`${base}/privacy`, embed)} class="font-semibold text-candidate-foreground underline underline-offset-2">What we collect and why</a>
+      </p>
     </CareersLayout>
   )
 }
