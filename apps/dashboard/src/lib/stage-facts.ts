@@ -197,13 +197,15 @@ function chipsOf(workflow: HiringWorkflow, here: readonly Automation[], template
         const name = action.type === 'SendEmail' && action.emailTemplate ? templateNames.get(action.emailTemplate) : undefined;
         emails.push({ automationId: automation.id, name: name ?? ownName(automation, workflow, templateNames) });
       }
-    } else if (plain && onlyForms(automation)) {
+    } else if (plain && onlyForms(automation) && automation.actions.every((action) => action.type === 'SendQuestionnaire' && followUpsOf(workflow).some((form) => form.id === action.questionnaireId))) {
       for (const action of automation.actions) {
         if (action.type !== 'SendQuestionnaire') continue;
         const form = followUpsOf(workflow).find((candidate) => candidate.id === action.questionnaireId);
         if (form && !forms.some((existing) => existing.id === form.id)) forms.push({ id: form.id, name: form.name || form.id, questions: form.questions.length });
       }
     } else {
+      // Anything else, a form-only automation whose form is gone included, is counted by its own name, so a stage where
+      // an automation runs never says nothing happens.
       automations.push({ id: automation.id, name: ownName(automation, workflow, templateNames) });
     }
   }

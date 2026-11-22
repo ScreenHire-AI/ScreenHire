@@ -54,7 +54,8 @@ export type FormSending = { moment: SendMoment; words: string; editable: boolean
 const NAME_LENGTH = 80;
 const clip = (text: string, length = NAME_LENGTH): string => (text.length > length ? text.slice(0, length).trimEnd() : text);
 const lowerFirst = (text: string): string => text.replace(/^./, (first) => first.toLowerCase());
-const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? '' : 's'}`;
+/** "1 question", "3 questions": a count and its word. */
+export const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? '' : 's'}`;
 const isOn = (automation: Automation) => automation.enabled !== false;
 
 /** The stages a form can be sent at: open stages after Applied (the application form already covers that moment). */

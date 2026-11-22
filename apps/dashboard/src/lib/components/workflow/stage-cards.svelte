@@ -17,7 +17,8 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import { anyStageChips, stageChips } from '#lib/stage-facts.js';
+  import { plural } from '#lib/forms-timeline.js';
+  import { anyStageChips, stageChips, type StageChipCounts } from '#lib/stage-facts.js';
   import { emailTemplateNames, errorsAt, errorsUnder, insertionIndex, insertStage, isTerminal, newStage, withoutStage } from '#lib/workflow.js';
   import FieldErrors from './field-errors.svelte';
   import StageChips from './stage-chips.svelte';
@@ -38,6 +39,7 @@
     automationHref,
     questionsHref,
     onshow,
+    onshowform,
   }: {
     workflow: HiringWorkflow;
     errors: readonly DefinitionError[];
@@ -53,6 +55,8 @@
     questionsHref?: string;
     /** Opens an automation in the page instead of following its link. */
     onshow?: (automationId: string) => void;
+    /** Opens a form on the Forms tab instead of following its link. */
+    onshowform?: (formId: string) => void;
   } = $props();
 
   let root = $state<HTMLElement>();
@@ -62,6 +66,11 @@
   const open = $derived(workflow.stages.filter((stage) => !isTerminal(stage.kind)));
   const ends = $derived(workflow.stages.filter((stage) => isTerminal(stage.kind)));
   const anyStage = $derived(anyStageChips(workflow, templateNames));
+  // An end's button says what it sends: "Edit Rejected: 1 email".
+  function endLabel(name: string, chips: StageChipCounts): string {
+    const counts = [chips.automations.length && plural(chips.automations.length, 'automation'), chips.emails.length && plural(chips.emails.length, 'email')].filter(Boolean);
+    return counts.length > 0 ? `Edit ${name}: ${counts.join(', ')}` : `Edit ${name}`;
+  }
   const formHref = $derived(questionsHref ? (formId: string) => `${questionsHref}${questionsHref.includes('?') ? '&' : '?'}form=${encodeURIComponent(formId)}` : undefined);
 
   // A sheet opens once the card's menu has closed: opened from the item itself, it loses focus to the closing menu.
@@ -190,6 +199,7 @@
                   {automationHref}
                   {formHref}
                   {onshow}
+                  {onshowform}
                   onlimit={() => onopen(stage.id)}
                   onscorecard={() => onscorecard(index)}
                 />
@@ -236,7 +246,7 @@
                     aria-haspopup="dialog"
                     data-stage-open={stage.id}
                     data-end-stage
-                    aria-label={`Edit ${stage.name}${chips.automations.length + chips.emails.length > 0 ? `: ${[chips.automations.length && `${chips.automations.length} ${chips.automations.length === 1 ? 'automation' : 'automations'}`, chips.emails.length && `${chips.emails.length} ${chips.emails.length === 1 ? 'email' : 'emails'}`].filter(Boolean).join(', ')}` : ''}`}
+                    aria-label={endLabel(stage.name, chips)}
                     class={['font-semibold tabular-nums', failing && 'border-status-verify']}
                     onclick={() => onopen(stage.id)}
                   >
@@ -269,7 +279,7 @@
   }
 
   .stage-row > :global(ol) {
-    --gap: 2.5rem;
+    --gap: 2rem;
     --min: 11rem;
     --max: 32rem;
     --share: min(var(--max), calc((100cqw - (var(--n) - 1) * var(--gap)) / var(--n) - 1px));

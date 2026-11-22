@@ -10,6 +10,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Popover from '#lib/components/ui/popover/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+  import { plural } from '#lib/forms-timeline.js';
   import { chipsEmpty, respondWithin, type StageChipCounts } from '#lib/stage-facts.js';
   import ScorecardName from './scorecard-name.svelte';
 
@@ -27,6 +28,7 @@
     automationHref,
     formHref,
     onshow,
+    onshowform,
     onlimit,
     onscorecard,
     empty = 'Nothing happens automatically',
@@ -43,6 +45,8 @@
     formHref?: (formId: string) => string;
     /** Opens an automation in the page instead of following its link. */
     onshow?: (automationId: string) => void;
+    /** Opens a form on the Forms tab instead of following its link. */
+    onshowform?: (formId: string) => void;
     /** Opens the stage's sheet from the time limit chip. */
     onlimit?: () => void;
     /** Opens the scorecard sheet from the scorecard chip. */
@@ -52,23 +56,23 @@
     class?: string;
   } = $props();
 
-  const plural = (count: number, one: string, other = `${one}s`) => `${count} ${count === 1 ? one : other}`;
   // Links are underlined text (A5): a light rule at rest that darkens on hover.
   const linkClass =
     'underline decoration-border underline-offset-2 hover:decoration-current focus-visible:decoration-current pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center';
   // A chip that does not answer a click: its icon and muted words with no border or fill, so it never passes for a button (A6).
   const plainChip = 'inline-flex h-7 items-center gap-1 text-caption text-muted-foreground [&_svg]:size-3.5';
 
-  function show(event: MouseEvent, automationId: string) {
-    if (!onshow || event.metaKey || event.ctrlKey || event.shiftKey) return;
+  // A plain click opens the item in the page; a modified click follows the link, to a new tab or window.
+  function show(event: MouseEvent, id: string, open: ((id: string) => void) | undefined) {
+    if (!open || event.metaKey || event.ctrlKey || event.shiftKey) return;
     event.preventDefault();
-    onshow(automationId);
+    open(id);
   }
 </script>
 
-{#snippet item(text: string, href: string | undefined, automationId?: string)}
+{#snippet item(text: string, href: string | undefined, id?: string, open?: (id: string) => void)}
   {#if href}
-    <a {href} class={['min-w-0 break-words', linkClass]} onclick={(event) => automationId && show(event, automationId)}>{text}</a>
+    <a {href} class={['min-w-0 break-words', linkClass]} onclick={(event) => id && show(event, id, open)}>{text}</a>
   {:else}
     <span class="min-w-0 break-words">{text}</span>
   {/if}
@@ -102,7 +106,7 @@
 {#snippet automationList()}
   <ul class="flex flex-col gap-1.5">
     {#each chips.automations as automation (automation.id)}
-      <li class="flex items-start gap-1.5"><ZapIcon aria-hidden="true" class="mt-0.5 shrink-0 text-primary" />{@render item(automation.name, automationHref?.(automation.id), automation.id)}</li>
+      <li class="flex items-start gap-1.5"><ZapIcon aria-hidden="true" class="mt-0.5 shrink-0 text-primary" />{@render item(automation.name, automationHref?.(automation.id), automation.id, onshow)}</li>
     {/each}
   </ul>
 {/snippet}
@@ -110,7 +114,7 @@
 {#snippet emailList()}
   <ul class="flex flex-col gap-1.5">
     {#each chips.emails as email, index (index)}
-      <li class="flex items-start gap-1.5"><MailIcon aria-hidden="true" class="mt-0.5 shrink-0 text-muted-foreground" />{@render item(email.name, automationHref?.(email.automationId), email.automationId)}</li>
+      <li class="flex items-start gap-1.5"><MailIcon aria-hidden="true" class="mt-0.5 shrink-0 text-muted-foreground" />{@render item(email.name, automationHref?.(email.automationId), email.automationId, onshow)}</li>
     {/each}
   </ul>
 {/snippet}
@@ -119,7 +123,7 @@
   <ul class="flex flex-col gap-1.5">
     {#each chips.forms as form (form.id)}
       <li class="flex items-start gap-1.5">
-        {@render item(form.name, formHref?.(form.id))}
+        {@render item(form.name, formHref?.(form.id), form.id, onshowform)}
         <Badge variant="count" class="ml-auto shrink-0"><span aria-hidden="true">{form.questions}</span><span class="sr-only">{plural(form.questions, 'question')}</span></Badge>
       </li>
     {/each}
@@ -131,13 +135,23 @@
 {:else}
   <ul class={['flex flex-wrap items-center gap-1.5', className]} aria-label={`What happens at ${stageName}`}>
     {#if chips.limitDays}
-      <li>
+      {@const limit = respondWithin(chips.limitDays)}
+      <!-- The time limit is the widest chip. In a narrow card it takes its own line and, past the card's width, cuts with
+           its words in the tooltip (F5), so it never runs out of the card. The read-only flow's columns are wide enough. -->
+      <li class="max-w-full min-w-0">
         {#if onlimit}
-          <Button variant="outline" size="sm" aria-haspopup="dialog" data-chip="limit" class="tabular-nums" onclick={onlimit}>
-            <ClockIcon aria-hidden="true" class="text-muted-foreground" />{respondWithin(chips.limitDays)}
-          </Button>
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button {...props} variant="outline" size="sm" aria-haspopup="dialog" data-chip="limit" class="max-w-full gap-1 px-2 tabular-nums" onclick={onlimit}>
+                  <ClockIcon aria-hidden="true" class="text-muted-foreground" /><span class="truncate">{limit}</span>
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Content>{limit}</Tooltip.Content>
+          </Tooltip.Root>
         {:else}
-          <span class={plainChip} data-chip="limit"><ClockIcon aria-hidden="true" />{respondWithin(chips.limitDays)}</span>
+          <span class={plainChip} data-chip="limit"><ClockIcon aria-hidden="true" />{limit}</span>
         {/if}
       </li>
     {/if}
@@ -153,9 +167,18 @@
     {#if chips.scorecard}
       <li>
         {#if onscorecard}
-          <Button variant="outline" size="sm" aria-haspopup="dialog" data-chip="scorecard" onclick={onscorecard}>
-            <ClipboardListIcon aria-hidden="true" class="text-muted-foreground" />Scorecard
-          </Button>
+          <!-- An icon like the counts beside it, with its word in the tooltip and the accessible name, so the counts keep one row. -->
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Button {...props} variant="outline" size="sm" aria-haspopup="dialog" aria-label="Scorecard" data-chip="scorecard" class="px-2" onclick={onscorecard}>
+                  <!-- Touch has no hover to show the tooltip before the sheet opens, so there the word shows too. -->
+                  <ClipboardListIcon aria-hidden="true" class="text-muted-foreground" /><span aria-hidden="true" class="hidden pointer-coarse:inline">Scorecard</span>
+                </Button>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Content>Scorecard</Tooltip.Content>
+          </Tooltip.Root>
         {:else}
           <!-- Where nothing opens, the chip names the scorecard, with the word Scorecard for screen readers only (W9). -->
           <span class={plainChip} data-chip="scorecard"
