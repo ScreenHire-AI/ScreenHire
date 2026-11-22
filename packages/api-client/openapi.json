@@ -11588,6 +11588,67 @@
         ]
       }
     },
+    "/v1/workflows/test-emails": {
+      "post": {
+        "tags": [
+          "Workflows"
+        ],
+        "operationId": "SendTryItEmails",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TryItEmailsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TryItEmailsSent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/applications/{applicationId}/automation-runs": {
       "get": {
         "tags": [
@@ -33230,6 +33291,38 @@
           "Manual",
           "SlaBreached"
         ]
+      },
+      "TryItEmailsRequest": {
+        "required": [
+          "templateIds"
+        ],
+        "type": "object",
+        "properties": {
+          "templateIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Try it's \"Send me these emails\": the email templates one stage of a try-out shows, sent to the signed-in person's own\naddress with the sample candidate, each marked as a test. Nothing goes to anyone else."
+      },
+      "TryItEmailsSent": {
+        "required": [
+          "to",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Where the test emails went, and how many."
       },
       "UpdateAccountNotificationsRequest": {
         "required": [

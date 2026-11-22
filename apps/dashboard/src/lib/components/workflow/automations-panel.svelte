@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { DefinitionError, EvaluationOutcome, HiringWorkflow } from '@screenhire/api-client';
+  import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import ListIcon from '~icons/lucide/list';
   import PlusIcon from '~icons/lucide/plus';
   import WorkflowIcon from '~icons/lucide/workflow';
@@ -19,8 +19,6 @@
     workflow,
     errors,
     graphActions,
-    tested,
-    onclear,
     onopen,
     onadd,
   }: {
@@ -28,8 +26,6 @@
     errors: readonly DefinitionError[];
     /** What pressing a node does; absent where the workflow only reads. */
     graphActions?: GraphActions;
-    tested?: ReadonlyMap<string, EvaluationOutcome>;
-    onclear?: () => void;
     /** Opens the automation at this index; absent where the workflow only reads. */
     onopen?: (index: number) => void;
     /** Opens every recipe; absent where the pipeline only reads. */
@@ -53,7 +49,7 @@
     {#if onadd && !(view === 'map' && workflow.automations.length === 0)}<Button variant="outline" onclick={onadd}><PlusIcon aria-hidden="true" />Add automation</Button>{/if}
   {/snippet}
   {#if view === 'map'}
-    <WorkflowGraph {workflow} {errors} actions={graphActions} {tested} {onclear} />
+    <WorkflowGraph {workflow} {errors} actions={graphActions} />
   {:else}
     <AutomationList {workflow} {onopen} />
   {/if}

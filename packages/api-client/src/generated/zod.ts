@@ -10315,6 +10315,16 @@ export const SimulateWorkflowResponse = zod.object({
 })
 
 
+export const SendTryItEmailsBody = zod.object({
+  "templateIds": zod.array(zod.string())
+}).describe('Try it\'s "Send me these emails": the email templates one stage of a try-out shows, sent to the signed-in person\'s own\naddress with the sample candidate, each marked as a test. Nothing goes to anyone else.')
+
+export const SendTryItEmailsResponse = zod.object({
+  "to": zod.string(),
+  "count": zod.int()
+}).describe('Where the test emails went, and how many.')
+
+
 export const ListAutomationRunsParams = zod.object({
   "applicationId": zod.uuid()
 })

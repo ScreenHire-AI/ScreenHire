@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type { AiUsePolicy, DefinitionError, EvaluationOutcome, HiringWorkflow, WorkflowSimulationResult } from '@screenhire/api-client';
-  import { onMount, tick, untrack } from 'svelte';
+  import type { AiUsePolicy, DefinitionError, HiringWorkflow } from '@screenhire/api-client';
+  import { onMount, tick } from 'svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { placeOf, removeAt, withoutStage } from '#lib/workflow.js';
   import type { WorkflowTab } from '#lib/workflow-tabs.js';
-  import { LANE_NODE, addAction, addAutomation, addCondition, connect, definitionStamp, focusGraphNode, stageNode, triggerNode } from '#lib/workflow-graph.js';
+  import { LANE_NODE, addAction, addAutomation, addCondition, connect, focusGraphNode, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
   import AutomationList from './automation-list.svelte';
   import AutomationRecipes from './automation-recipes.svelte';
@@ -18,26 +18,24 @@
   import StageCards from './stage-cards.svelte';
   import StageSheet from './stage-sheet.svelte';
   import type { GraphActions } from './step-node.svelte';
-  import TestDrive from './test-drive.svelte';
+  import TryIt from './try-it.svelte';
 
   // The pipeline builder (workflow-engine.md §4) for a template's draft or a job's own copy: the pipeline's stages,
-  // questions, automations (the map or the list) and the test drive over one workflow, as the panes of the page's
+  // questions, automations (the map or the list) and Try it over one workflow, as the panes of the page's
   // `Tabs.Root` (`WorkflowTabs` sits on the header band). The page owns loading and saving, and shows the validation
   // result beside its title; `errors` are the API validator's, with paths relative to the workflow. A version that cannot
   // be edited is a `WorkflowSummary`.
   let {
     workflow = $bindable(),
     errors,
-    checking = false,
     tab = $bindable(),
     hrefOf,
     aiUse,
     templateId,
+    finish,
   }: {
     workflow: HiringWorkflow;
     errors: readonly DefinitionError[];
-    /** The validator's check of the latest change is on its way. */
-    checking?: boolean;
     tab: WorkflowTab;
     /** The address that shows a tab, for the links that go to one (A5). */
     hrefOf: (tab: WorkflowTab) => string;
@@ -45,6 +43,8 @@
     aiUse?: { policy?: AiUsePolicy; href?: string };
     /** The hiring template being edited, so a new library form made from its Forms tab comes back to it; a job has none. */
     templateId?: string;
+    /** The page's own action at the end of Try it: "Looks good, publish" on a template's draft, "Looks good, save" on a job's. */
+    finish?: { label: string; run: () => void; disabled?: boolean };
   } = $props();
 
   // The stage whose sheet is open, by id, so reordering the stages behind it keeps the same one.
@@ -55,24 +55,6 @@
     const next = withoutStage(workflow, index);
     workflow.stages = next.stages;
     workflow.automations = next.automations;
-  }
-
-  // The last test's outcome per automation, lit on the map once the person asks to see it there. The automations tab
-  // mounts only while it is shown, and a test is about the workflow as it was, so an edit clears it.
-  let tested = $state<ReadonlyMap<string, EvaluationOutcome> | undefined>();
-  const stamp = $derived(definitionStamp(workflow));
-  $effect(() => {
-    void stamp;
-    untrack(() => (tested = undefined));
-  });
-
-  async function showTested(result: WorkflowSimulationResult) {
-    tested = new Map(result.automations.map((automation) => [automation.automationId, automation.outcome]));
-    tab = 'automations';
-    // The button that asked leaves with its tab, so the focus goes to Clear, beside the words saying what is lit. On a
-    // node it would light that node's path in place of the test's. A phone has the list, which has nothing to clear.
-    await tick();
-    document.querySelector<HTMLElement>('[data-graph-clear]')?.focus();
   }
 
   let drawerOpen = $state(false);
@@ -290,7 +272,7 @@
   }
 </script>
 
-<!-- The Test tab shows its own notice with the fix inline, so the list is left out there (W7). -->
+<!-- The Try it tab shows its own notice with the fix inline, so the list is left out there (W7). -->
 {#if tab !== 'test'}<ProblemsPanel title="Problems to fix" {workflow} {errors} onfix={fix} />{/if}
 
 <Tabs.Content value="pipeline">
@@ -313,8 +295,6 @@
       {workflow}
       {errors}
       {graphActions}
-      {tested}
-      onclear={() => (tested = undefined)}
       onopen={(index) => openAutomation(index, `automations[${index}]`)}
       onadd={() => openRecipes(null)}
     />
@@ -324,7 +304,7 @@
   <QuestionnaireBuilder bind:workflow {errors} {aiUse} automationsHref={hrefOf('automations')} {automationHref} {templateId} />
 </Tabs.Content>
 <Tabs.Content value="test">
-  <TestDrive bind:workflow {errors} {checking} onshow={showTested} onadd={() => openRecipes(null)} onfix={fix} automationsHref={hrefOf('automations')} />
+  <TryIt bind:workflow {errors} onfix={fix} aiUse={aiUse?.policy} {finish} onchange={openStage} />
 </Tabs.Content>
 
 <StageSheet

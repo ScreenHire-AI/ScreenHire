@@ -18,14 +18,14 @@
   import QuestionList from './question-list.svelte';
   import QuestionnairePreview from './questionnaire-preview.svelte';
   import ScorecardName from './scorecard-name.svelte';
-  import TestDrive from './test-drive.svelte';
+  import TryIt from './try-it.svelte';
   import StageFactList from './stage-fact-list.svelte';
   import StageFlow from './stage-flow.svelte';
   import AutomationsPanel from './automations-panel.svelte';
 
   // A workflow that cannot be edited here (a ScreenHire template, a published version, a closed job's), read as content
   // (design system section 7, read-only view): the same views as the builder, as panes of the page's `Tabs.Root`, with
-  // data as text and pills, never disabled inputs. The test drive still runs: it changes nothing.
+  // data as text and pills, never disabled inputs. Try it still runs: it changes nothing.
   let {
     workflow,
     errors,
@@ -167,5 +167,5 @@
 </Tabs.Content>
 
 <Tabs.Content value="test">
-  <TestDrive {workflow} {errors} automationsHref={hrefOf('automations')} onfix={() => {}} editable={false} />
+  <TryIt {workflow} {errors} onfix={() => {}} editable={false} aiUse={aiUse?.policy} />
 </Tabs.Content>

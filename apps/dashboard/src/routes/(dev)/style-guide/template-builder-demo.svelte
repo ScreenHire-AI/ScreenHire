@@ -7,13 +7,13 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import StageCards from '#lib/components/workflow/stage-cards.svelte';
   import StageSheet from '#lib/components/workflow/stage-sheet.svelte';
-  import TestDrive from '#lib/components/workflow/test-drive.svelte';
+  import TryIt from '#lib/components/workflow/try-it.svelte';
   import ValidationBadge from '#lib/components/workflow/validation-badge.svelte';
 
-  // The template builder's parts (design system section 11: Stage cards, Stage sheet, Start from card, Test drive, Fix
-  // button) on one sample workflow. Stage cards and Test drive draw their own panel, so they sit under
+  // The template builder's parts (design system section 11: Stage cards, Stage sheet, Start from card, Try it, Fix
+  // button) on one sample workflow. Stage cards and Try it draw their own panel, so they sit under
   // a heading rather than inside another panel. The style guide has no API, so this example brings its own query cache with
-  // the answers the parts read; the Test drive shows its paused state, which runs nothing.
+  // the answers the parts read; Try it shows its paused state, which runs nothing.
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false }, mutations: { retry: false } } });
   setQueryClientContext(client);
   const answer = <T,>(data: T) => ({ status: 200, headers: new Headers(), data });
@@ -98,11 +98,11 @@
   </div>
 </Panel>
 
-<section aria-labelledby="style-guide-test-drive" class="flex flex-col gap-2">
-  <h2 id="style-guide-test-drive" class="text-heading">Test drive</h2>
+<section aria-labelledby="style-guide-try-it" class="flex flex-col gap-2">
+  <h2 id="style-guide-try-it" class="text-heading">Try it, paused by a problem</h2>
   <figure class="flex flex-col gap-2">
     <figcaption class="text-caption text-muted-foreground">Paused by a problem: only the notice, with the fix in place</figcaption>
-    <TestDrive bind:workflow errors={problems} onfix={nothing} automationsHref="#test-drive" />
+    <TryIt bind:workflow errors={problems} onfix={nothing} />
   </figure>
 </section>
 

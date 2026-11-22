@@ -160,6 +160,8 @@
 
   // The tab is in the address (`?tab=`), so a link reaches it and a reload keeps it.
   const workflowTab = createWorkflowTab();
+  // Try it has its own primary button, Move Jordan on (design system section 11), so the page's action is outline there (A1).
+  const headerVariant = $derived(workflowTab.value === 'test' ? 'outline' : 'default');
   let notice = $state('');
   let failure = $state('');
   const busy = $derived(save.isPending || publish.isPending || nextVersion.isPending || copy.isPending || archive.isPending || unarchive.isPending);
@@ -294,17 +296,17 @@
       {#if !mayEdit}
         <!-- A role that cannot change templates reads them only: no action. -->
       {:else if detail.isSystem}
-        <Button size="lg" onclick={copyTemplate} disabled={busy}><CopyIcon aria-hidden="true" />Copy template</Button>
+        <Button size="lg" variant={headerVariant} onclick={copyTemplate} disabled={busy}><CopyIcon aria-hidden="true" />Copy template</Button>
       {:else if detail.archived}
-        <Button size="lg" onclick={() => setArchived(false)} disabled={busy}><ArchiveRestoreIcon aria-hidden="true" />Restore</Button>
+        <Button size="lg" variant={headerVariant} onclick={() => setArchived(false)} disabled={busy}><ArchiveRestoreIcon aria-hidden="true" />Restore</Button>
       {:else if isDraft}
-        <!-- A draft with problems saves; only Test and Publish wait for them, and the Fix button beside the title says why. -->
+        <!-- A draft with problems saves; only Try it and Publish wait for them, and the Fix button beside the title says why. -->
         <!-- It goes off and on with every edit, so it does not fade: a half-faded button reads as a contrast failure to a checker that looks mid-change. -->
-        <Button size="lg" class="transition-none" onclick={publishDraft} disabled={busy || !draft.ready}><SendIcon aria-hidden="true" />Publish</Button>
+        <Button size="lg" variant={headerVariant} class="transition-none" onclick={publishDraft} disabled={busy || !draft.ready}><SendIcon aria-hidden="true" />Publish</Button>
       {:else if draftVersion}
-        <Button size="lg" href={`/templates/${detail.id}?version=${draftVersion.version}`}><PencilIcon aria-hidden="true" />Open the draft</Button>
+        <Button size="lg" variant={headerVariant} href={`/templates/${detail.id}?version=${draftVersion.version}`}><PencilIcon aria-hidden="true" />Open the draft</Button>
       {:else}
-        <Button size="lg" onclick={startNextVersion} disabled={busy}
+        <Button size="lg" variant={headerVariant} onclick={startNextVersion} disabled={busy}
           ><PencilIcon aria-hidden="true" />Edit as version {(versions.at(-1)?.version ?? 0) + 1}</Button
         >
       {/if}
@@ -443,11 +445,11 @@
           <WorkflowEditor
             bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)}
             errors={draft.errors}
-            checking={draft.checking}
             bind:tab={workflowTab.value}
             hrefOf={(tab) => workflowTab.href(tab)}
             {aiUse}
             templateId={params.templateId}
+            finish={{ label: 'Looks good, publish', run: publishDraft, disabled: busy || !draft.ready }}
           />
         {:else}
           <WorkflowSummary workflow={draft.workflow} errors={draft.errors} tab={workflowTab.value} hrefOf={(tab) => workflowTab.href(tab)} {aiUse} />

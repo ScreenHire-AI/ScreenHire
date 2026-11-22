@@ -105,6 +105,7 @@ builder.Services.AddScreenHirePrivacy();
 builder.Services.AddScreenHireDataRequests();
 // The candidate's own page: a signed link by email, each application's status, and the messages (docs/architecture/candidate-portal.md).
 builder.Services.AddScreenHirePortal();
+builder.Services.AddScreenHireTryIt();
 // The sites an organization lets embed its careers pages (docs/architecture/careers-widget.md).
 builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(CareersEmbeddingOptions.Section);
 // The addresses of our Terms, Privacy Policy and DPA, which the sign-in page's agreement line links to.
