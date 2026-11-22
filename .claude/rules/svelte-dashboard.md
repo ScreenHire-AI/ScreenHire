@@ -98,6 +98,10 @@ new route is the `/add-dashboard-page` skill.
   with `tableSortOptions` (`#lib/table-sort.svelte.ts`) gives it one sorted column, the table's default, two states
   per column, and the person's choice remembered per table through `preferences` (in the browser). `SortMenu` is the
   phone's Sort chip on the same table.
+- A table row opens its record (design system L5) through one helper, `rowLink` (`#lib/row-link.ts`): `{@attach rowLink}`
+  on the `<tr>`, and `data-row-link` on the record's link or sheet button in the name cell. Never a stretched
+  `after:absolute after:inset-0` link over a row (it blocks text selection and every other cell's click), and never a
+  `role` or `tabindex` on the `<tr>`. A selectable table's checkbox label takes `selectCellLabel` in a positioned cell.
 - Reorderable lists are `ReorderList` with its `ReorderGrip`s (design system A7), never up and down buttons. Each list
   is its own svelte-dnd-action zone with its own type; the library's settings live once in `#lib/dnd.ts`.
 - Verification states are drawn from `#lib/verification.ts` (`stateOf`: one word, long name, status, level steps) through `VerificationChip`, with `LevelMark` drawing the status's own icon for Review (`eye`) and Verify (`id-card`) and the bare `AiMark` for Some and Strong signs of AI help (which never sorts, filters or counts);

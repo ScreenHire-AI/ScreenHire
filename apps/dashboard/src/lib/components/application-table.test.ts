@@ -277,15 +277,30 @@ describe('candidate table', () => {
     expect(screen.getAllByRole('checkbox', { name: /^Select (?!all)/ }).every((box) => (box as HTMLInputElement).checked)).toBe(true);
   });
 
-  it('gives each checkbox a label as its hit area, 44px on touch (F4)', async () => {
+  it('makes the whole checkbox cell its hit area, at least 44px on touch (L5, F4)', async () => {
     render(WithTooltips, { props: { component: ApplicationTable, props: { applications } } });
 
     for (const box of screen.getAllByRole('checkbox')) {
+      // The label fills its cell, which is 50px wide and 70px on touch, in a 48px row.
       expect(box.parentElement?.tagName).toBe('LABEL');
-      expect(box.parentElement).toHaveClass('size-6', 'pointer-coarse:size-11');
+      expect(box.parentElement).toHaveClass('absolute', 'inset-0');
+      expect(box.closest('td, th')).toHaveClass('sticky', 'w-12.5', 'pointer-coarse:w-17.5');
     }
     await fireEvent.click(screen.getAllByRole('checkbox', { name: /^Select (?!all)/ })[0]!.parentElement!);
     expect(screen.getAllByRole('checkbox', { name: /^Select (?!all)/ })[0]).toBeChecked();
+  });
+
+  it('opens the application from anywhere on its row, but selects from the checkbox cell (L5)', async () => {
+    render(WithTooltips, { props: { component: ApplicationTable, props: { applications, showJob: true } } });
+    const row = rowOf('Casey Morgan');
+    const follow = vi.spyOn(within(row).getByRole('link', { name: 'Casey Morgan' }), 'click').mockImplementation(() => {});
+    const [select, , , stage] = within(row).getAllByRole('cell');
+
+    await fireEvent.click(stage!);
+    expect(follow).toHaveBeenCalledTimes(1);
+    await fireEvent.click(select!);
+    expect(within(row).getByRole('checkbox')).toBeChecked();
+    expect(follow).toHaveBeenCalledTimes(1);
   });
 
   it('keeps its sr-only labels inside the scroller, so a phone page does not scroll sideways (F1)', () => {

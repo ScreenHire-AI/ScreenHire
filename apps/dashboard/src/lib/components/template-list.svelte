@@ -52,6 +52,7 @@
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TemplateSubject from '#lib/components/template-subject.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { rowLink } from '#lib/row-link.js';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
@@ -181,8 +182,7 @@
   const tableRows = $derived(table.getRowModel().rows);
 
   // A table wider than its panel (a tablet) scrolls sideways inside it, and the name column stays put (design system
-  // section 8). A stuck cell holds the name's row-covering link, so while the table scrolls the link covers the name
-  // cell only, as on the candidate table; while it fits, the whole row is the link (section 9).
+  // section 8).
   let scrollerWidth = $state(0);
   let tableWidth = $state(0);
   let scrolledSideways = $state(false);
@@ -292,8 +292,8 @@
         </thead>
         <tbody>
           {#each tableRows as tableRow (tableRow.id)}
-            <!-- The whole row is the link (section 9): the name's link covers it, and cells with controls sit above it. -->
-            <tr class="group relative h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
+            <!-- A click anywhere on the row opens the template (L5): the name is its link. -->
+            <tr {@attach rowLink} class="group h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
               {#each tableRow.getAllCells() as cell (cell.id)}
                 <td
                   class={[
@@ -331,15 +331,15 @@
 {#snippet nameCell(row: TemplateRow)}
   <!-- The row's name, with at most one badge after it (L1). -->
   <span class="flex min-w-0 items-center gap-2">
-    <TruncatedText text={row.name} href={row.href} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" />
+    <TruncatedText text={row.name} href={row.href} data-row-link class="font-semibold text-foreground no-underline hover:underline" />
     {#if row.builtIn}<BuiltInBadge class="shrink-0" />{/if}
   </span>
 {/snippet}
 
-{#snippet textCell(text: string)}{#if text}<span class="relative block min-w-0"><TruncatedText {text} /></span>{/if}{/snippet}
+{#snippet textCell(text: string)}{#if text}<span class="block min-w-0"><TruncatedText {text} /></span>{/if}{/snippet}
 
 {#snippet subjectCell(row: TemplateRow)}
-  <span class="relative block min-w-0"><TemplateSubject parts={row.subjectParts ?? []} /></span>
+  <span class="block min-w-0"><TemplateSubject parts={row.subjectParts ?? []} /></span>
 {/snippet}
 
 {#snippet usedByCell(row: TemplateRow)}
@@ -353,7 +353,7 @@
 
 {#snippet lastUsedCell(row: TemplateRow)}
   {#if row.usage?.lastUsedAt}
-    <span class="relative"><DateText at={row.usage.lastUsedAt} /></span>
+    <DateText at={row.usage.lastUsedAt} />
   {:else if row.usage}
     Never
   {:else if usagePending}
@@ -369,7 +369,7 @@
 
 {#snippet updatedCell(row: TemplateRow)}
   {@const name = who(row)}
-  <span class="relative"
+  <span
     >{#if row.lastUpdated.at}<DateText at={row.lastUpdated.at} />{#if name}{' '}by {name}{/if}{:else if name}By {name}{/if}</span
   >
 {/snippet}
@@ -377,5 +377,5 @@
 {#snippet actionsHeader()}<span class="sr-only">Actions</span>{/snippet}
 
 {#snippet actionsCell(row: TemplateRow)}
-  {#if hasMenu(row)}<span class="relative inline-flex">{@render menu(row)}</span>{/if}
+  {#if hasMenu(row)}<span class="inline-flex">{@render menu(row)}</span>{/if}
 {/snippet}

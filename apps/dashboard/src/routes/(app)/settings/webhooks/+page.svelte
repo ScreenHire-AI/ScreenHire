@@ -34,6 +34,7 @@
   import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { rowLink } from '#lib/row-link.js';
   import WebhookEndpointSheet from '#lib/components/webhook-endpoint-sheet.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -193,23 +194,24 @@
               </Table.Header>
               <Table.Body>
                 {#each sorted as endpoint (endpoint.id)}
-                  <!-- The whole row is the link (design system section 9): the endpoint's link covers it. -->
-                  <Table.Row class="relative h-12">
+                  <!-- A click anywhere on the row opens the endpoint (L5): its name is the link. -->
+                  <Table.Row {@attach rowLink} class="h-12 hover:bg-muted">
                     <Table.Cell class="px-4.5">{@render badge(endpoint)}</Table.Cell>
                     <Table.Cell class="w-1/2 max-w-0">
                       <TruncatedText
                         text={name(endpoint)}
                         href={href(endpoint.id)}
-                        class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline"
+                        data-row-link
+                        class="font-semibold text-foreground no-underline hover:underline"
                       />
                     </Table.Cell>
                     <!-- The URL gets its own cell only when a description names the endpoint, so it shows once (W6). -->
                     <Table.Cell class="w-1/2 max-w-0 text-muted-foreground">
-                      {#if endpoint.description}<span class="relative block min-w-0"><TruncatedText text={endpoint.url} /></span>{/if}
+                      {#if endpoint.description}<span class="block min-w-0"><TruncatedText text={endpoint.url} /></span>{/if}
                     </Table.Cell>
                     <Table.Cell class="tabular-nums">{events(endpoint.events.length)}</Table.Cell>
                     <Table.Cell class="pr-4.5 text-muted-foreground">
-                      {#if endpoint.lastUpdated.at}<span class="relative"><DateText at={endpoint.lastUpdated.at} /></span>{/if}
+                      {#if endpoint.lastUpdated.at}<DateText at={endpoint.lastUpdated.at} />{/if}
                     </Table.Cell>
                   </Table.Row>
                 {/each}

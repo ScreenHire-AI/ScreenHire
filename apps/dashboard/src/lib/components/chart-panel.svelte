@@ -36,6 +36,7 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { IsMobile } from '#lib/hooks/is-mobile.svelte.js';
   import type { TableSort } from '#lib/preferences.svelte.js';
+  import { rowLink } from '#lib/row-link.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { cn } from '#lib/utils.js';
 
@@ -189,14 +190,15 @@
           </Table.Header>
           <Table.Body>
             {#each sorted as row (rowKey(row))}
-              <Table.Row class="h-10">
+              <!-- A row whose name is a link opens it from anywhere on the row (L5). -->
+              <Table.Row {@attach rowLink} class={['h-10', shown[0]?.href && 'hover:bg-muted']}>
                 {#each shown as column, index (column.id)}
                   {#if index === 0}
                     <!-- The name takes two fifths and the numbers share the rest, so on a wide panel the figures spread
                          across the row instead of packing at its right edge behind a long empty gap. -->
                     <Table.Cell class="w-2/5 max-w-0 min-w-40 font-semibold">
                       {#if column.href}
-                        <a href={column.href(row)} class="inline-flex min-h-6 max-w-full min-w-0 items-center text-primary underline underline-offset-2 pointer-coarse:min-h-11"
+                        <a href={column.href(row)} data-row-link class="inline-flex min-h-6 max-w-full min-w-0 items-center text-primary underline underline-offset-2 pointer-coarse:min-h-11"
                           ><TruncatedText text={column.text(row)} /></a
                         >
                       {:else}

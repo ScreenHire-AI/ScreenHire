@@ -48,6 +48,7 @@
   } from '#lib/distribution.js';
   import { describeError, invalidatePath, planProblem, type PlanProblem } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
+  import { rowLink } from '#lib/row-link.js';
   import { needsAttention } from '#lib/status.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
@@ -207,7 +208,8 @@
           {#each rows as row (row.id)}
             <!-- A row keeps one height (L1): a problem is the notice above the tabs, its fixes are in the row's menu. On a
                  phone a row with dates has two more lines, so a row without them is held to the same height. -->
-            <tr data-board={row.id} class="h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted max-md:h-17">
+            <!-- A board that can be customized opens Customize from anywhere on its row (L5): its name is the button. -->
+            <tr {@attach rowLink} data-board={row.id} class="h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted max-md:h-17">
               {#each row.getAllCells() as cell (cell.id)}
                 <td
                   class={[
@@ -256,7 +258,17 @@
   {@const posted = postedAt(row.posting)}
   <!-- The board's name, with at most one badge after it (L1). -->
   <span class="flex min-w-0 items-center gap-2">
-    <TruncatedText text={row.name} class="font-semibold" />
+    {#if canCustomize(job.status, row.board, row.posting)}
+      <button
+        type="button"
+        data-row-link
+        aria-label={`Customize for ${row.name}`}
+        class="min-w-0 truncate text-left font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11"
+        onclick={() => openCustomize({ boardId: row.boardId, name: row.name })}>{row.name}</button
+      >
+    {:else}
+      <TruncatedText text={row.name} class="font-semibold" />
+    {/if}
     {#if canCustomize(job.status, row.board, row.posting) && row.posting?.jobChangedSinceCustomized}
       <Hint content="The job changed since this board was customized.">
         {#snippet children({ props })}<span {...props} class="inline-flex shrink-0 rounded-full"><Badge variant="muted">Job changed</Badge></span>{/snippet}

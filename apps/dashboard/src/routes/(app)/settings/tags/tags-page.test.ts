@@ -96,6 +96,16 @@ describe('tags page', () => {
     expect(screen.getByText('Renamed "Sr" to "Staff".')).toHaveClass('sr-only');
   });
 
+  it('opens Rename from anywhere on the tag row, its name the button for keyboards (L5)', async () => {
+    renderPage();
+    const table = (await screen.findAllByRole('table'))[0]!;
+    const row = within(table).getByRole('button', { name: 'Rename Sr' }).closest('tr')!;
+
+    await fireEvent.click(within(row).getAllByRole('cell')[1]!);
+    const dialog = await screen.findByRole('dialog', { name: 'Rename tag' });
+    expect(within(dialog).getByLabelText('Name')).toHaveValue('Sr');
+  });
+
   it('shows why a rename was refused under the field, as Merge is the way to combine two tags', async () => {
     renderPage({ 'POST /v1/tags/rename': () => Response.json({ detail: '"Senior" is already a tag. Merge into it to combine the two.' }, { status: 409 }) });
     await choose('Sr', 'Rename');

@@ -15,6 +15,7 @@
   import { formatRating } from '#lib/scorecards.js';
   import { readable, rosterRows, type RosterRow, type WaitingRow } from '#lib/scorecard-roster.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
+  import { rowLink } from '#lib/row-link.js';
   import { personName } from '#lib/team.js';
   import { recommendationLabels } from '#lib/workflow.js';
 
@@ -78,9 +79,10 @@
   const askedBy = (row: WaitingRow) => (row.askedByUserId ? personName(row.askedByUserId, members, currentUserId) : undefined);
   const askedText = (row: WaitingRow) => `Asked ${formatDate(row.askedAt)}${askedBy(row) ? ` by ${askedBy(row)}` : ''}`;
   const waitingName = (row: WaitingRow) => sentenceStart(personName(row.assigneeUserId, members, currentUserId));
-  // The whole row opens the scorecard: the reviewer's name is the one button, stretched over the row (L1).
-  const rowButton =
-    'min-w-0 truncate rounded-sm text-left font-semibold text-foreground after:absolute after:inset-0 hover:underline focus-visible:outline-2 focus-visible:outline-ring';
+  // The whole row opens the scorecard (L5): the reviewer's name is its one button. In the table `rowLink` follows it from
+  // anywhere on the row; a phone's list item stretches it over the item.
+  const rowButton = 'min-w-0 truncate rounded-sm text-left font-semibold text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-ring';
+  const itemButton = `${rowButton} after:absolute after:inset-0`;
 </script>
 
 {#snippet recommendation(row: RosterRow)}
@@ -122,7 +124,7 @@
             {#if row.entry.withheld}
               <span class="min-w-0 truncate font-semibold">{row.reviewer}</span>
             {:else}
-              <button type="button" class={rowButton} onclick={() => (openId = row.id)}>{row.reviewer}</button>
+              <button type="button" class={itemButton} onclick={() => (openId = row.id)}>{row.reviewer}</button>
             {/if}
             <span class="shrink-0 text-caption text-muted-foreground"><DateText at={row.submittedAt} /></span>
           </div>
@@ -162,7 +164,7 @@
       <Table.Body>
         {#each sorted as row (row.id)}
           <!-- A withheld scorecard opens nothing: there is nothing in it for this reader yet. -->
-          <Table.Row class={['group relative h-12', !row.entry.withheld && 'hover:bg-muted']} aria-current={openId === row.id ? 'true' : undefined}>
+          <Table.Row {@attach rowLink} class={['h-12', !row.entry.withheld && 'hover:bg-muted']} aria-current={openId === row.id ? 'true' : undefined}>
             {#each table.getHeaderGroups()[0]!.headers as header (header.id)}
               {#if header.id === 'reviewer'}
                 <Table.Cell class="max-w-56 pl-4.5">
@@ -170,7 +172,7 @@
                     {#if row.entry.withheld}
                       <span class="min-w-0 truncate font-semibold">{row.reviewer}</span>
                     {:else}
-                      <button type="button" class={rowButton} onclick={() => (openId = row.id)}>{row.reviewer}</button>
+                      <button type="button" data-row-link class={rowButton} onclick={() => (openId = row.id)}>{row.reviewer}</button>
                     {/if}
                   </span>
                 </Table.Cell>
@@ -181,7 +183,7 @@
               {:else if header.id === 'rating'}
                 <Table.Cell class="whitespace-nowrap">{@render ratingText(row)}</Table.Cell>
               {:else if header.id === 'submitted'}
-                <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative"><DateText at={row.submittedAt} /></span></Table.Cell>
+                <Table.Cell class="whitespace-nowrap text-muted-foreground"><DateText at={row.submittedAt} /></Table.Cell>
               {/if}
             {/each}
           </Table.Row>

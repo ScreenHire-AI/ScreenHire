@@ -30,6 +30,7 @@
   import { applicationsPath, candidatesPath, jobsPath, tagsPath, templatesPath, viewsPath } from '#lib/realtime.js';
   import { settingsCrumbs } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
+  import { rowLink } from '#lib/row-link.js';
 
   // The organization's tags (design system section 21, Settings, Tags) on the list template: each tag, how many
   // candidates have it and the hiring templates whose published version names it. A row's menu renames it, merges it
@@ -205,8 +206,17 @@
               </Table.Header>
               <Table.Body>
                 {#each sorted as tag (tag.name)}
-                  <Table.Row class="h-12">
-                    <Table.Cell class="max-w-64 px-4.5 font-semibold"><span class="flex min-w-0"><TruncatedText text={tag.name} /></span></Table.Cell>
+                  <!-- A click anywhere on the row opens the tag to rename (L5): its name is the button. -->
+                  <Table.Row {@attach rowLink} class="h-12 hover:bg-muted">
+                    <Table.Cell class="max-w-64 px-4.5">
+                      <button
+                        type="button"
+                        data-row-link
+                        aria-label={`Rename ${tag.name}`}
+                        class="block max-w-full min-w-0 truncate text-left font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11"
+                        onclick={() => (renaming = tag.name)}>{tag.name}</button
+                      >
+                    </Table.Cell>
                     <Table.Cell class="tabular-nums">{tag.applications}</Table.Cell>
                     <Table.Cell class="w-full max-w-0 min-w-48">
                       <span class="flex min-w-0"><TruncatedText text={templatesOf(tag)} /></span>

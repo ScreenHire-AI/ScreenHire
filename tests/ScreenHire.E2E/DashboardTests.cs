@@ -164,6 +164,20 @@ public sealed partial class DashboardTests(E2EFixture fixture) : BrowserTest(fix
 
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/"));
         await ExpectBrightwaterJobsAsync();
+
+        // A click anywhere on a row opens its record (L5), here on the Location cell rather than the title's link. Ctrl or
+        // Cmd opens it in a new tab, as the link itself would, and leaves the list where it was.
+        var location = Page.GetByRole(AriaRole.Table, new() { Name = "Jobs" }).GetByRole(AriaRole.Row)
+            .Filter(new() { HasText = "Senior .NET Engineer" }).GetByRole(AriaRole.Cell).Nth(4);
+        var jobPage = new Regex(@"/jobs/[0-9a-f-]{36}$");
+        var tab = await Page.Context.RunAndWaitForPageAsync(() => location.ClickAsync(new() { Modifiers = [KeyboardModifier.ControlOrMeta] }));
+        await Expect(tab).ToHaveURLAsync(jobPage);
+        await tab.CloseAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(@"[?&]status=all"));
+
+        await location.ClickAsync();
+        await Expect(Page).ToHaveURLAsync(jobPage);
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync("Senior .NET Engineer");
     }
 
     [Fact]

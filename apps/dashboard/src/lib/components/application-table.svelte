@@ -28,6 +28,7 @@
   import UsersIcon from '~icons/lucide/users';
   import { keptInMindLabel, stageLabel } from '#lib/talent-pool.js';
   import { createTableSort, tableSortOptions, type TableSortState } from '#lib/table-sort.svelte.js';
+  import { rowLink, selectCellLabel } from '#lib/row-link.js';
 
   let {
     applications,
@@ -244,8 +245,8 @@
 </script>
 
 {#snippet selectHeader()}
-  <!-- The label is the hit area, sized for mouse and touch (design system F4, section 17). -->
-  <label class="inline-grid size-6 place-items-center pointer-coarse:size-11">
+  <!-- The label fills the cell, so the whole cell selects, sized for mouse and touch (design system L5, F4, section 17). -->
+  <label class={selectCellLabel}>
     <input
       type="checkbox"
       class="size-4 accent-primary"
@@ -257,8 +258,8 @@
 {/snippet}
 
 {#snippet selectCell(application: ApplicationSummary)}
-  <!-- The label is the hit area, sized for mouse and touch (design system F4, section 17). -->
-  <label class="inline-grid size-6 place-items-center pointer-coarse:size-11">
+  <!-- The label fills the cell, so the whole cell selects, sized for mouse and touch (design system L5, F4, section 17). -->
+  <label class={selectCellLabel}>
     <input
       type="checkbox"
       class="size-4 accent-primary"
@@ -451,7 +452,8 @@
             {@const row = rows[item.index]}
             {#if row}
               {@const tinted = row.id === activeId || selectedIds.includes(row.id)}
-              <tr data-row-id={row.id} aria-rowindex={item.index + 2} class={['group h-12', tinted ? 'bg-row-selected' : 'hover:bg-muted']}>
+              <!-- A click anywhere on the row opens the application (L5): the candidate's name is its link. -->
+              <tr {@attach rowLink} data-row-id={row.id} aria-rowindex={item.index + 2} class={['group h-12', tinted ? 'bg-row-selected' : 'hover:bg-muted']}>
                 {#each row.getAllCells() as cell (cell.id)}
                   <td
                     class={[

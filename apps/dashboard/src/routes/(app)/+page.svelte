@@ -28,6 +28,7 @@
   import PlanProblemNotice from '#lib/components/plan-problem-notice.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import JoinedNotice from '#lib/components/joined-notice.svelte';
+  import { rowLink } from '#lib/row-link.js';
   import JobsOverview from '#lib/components/jobs-overview.svelte';
   import ListItem from '#lib/components/list-item.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
@@ -424,11 +425,9 @@
             </thead>
             <tbody>
               {#each rows as row (row.id)}
-                <!-- The whole row is the link (section 9): the title's link covers it, and the cells with their own
-                     controls sit above it. The Status column sticks while a tablet scrolls the table (section 8). It has no z-index,
-                     so the link's cover and the later cells' raised spans still paint above it. The Actions column sticks too;
-                     it comes last, so it paints above the cover and lets clicks through to it, all but its menu's. -->
-                <tr class="group relative h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
+                <!-- A click anywhere on the row opens the job (L5): the title is its link. The Status and Actions columns
+                     stick while a tablet scrolls the table (section 8). -->
+                <tr {@attach rowLink} class="group h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
                   {#each row.getAllCells() as cell (cell.id)}
                     <td
                       class={[
@@ -443,8 +442,8 @@
                         (cell.column.id === 'type' || cell.column.id === 'updatedAt') && 'text-muted-foreground',
                         (cell.column.id === 'candidates' || cell.column.id === 'lastApplied' || cell.column.id === 'updatedAt') && 'text-right tabular-nums',
                         // The row menu sticks at the right edge as Status does at the left, so a tablet that scrolls the table
-                        // still reaches it (section 8). The cell around the menu stays part of the row's link.
-                        cell.column.id === 'actions' && 'pointer-events-none sticky right-0 bg-card text-right group-hover:bg-muted',
+                        // still reaches it (section 8).
+                        cell.column.id === 'actions' && 'sticky right-0 bg-card text-right group-hover:bg-muted',
                       ]}
                     >
                       <FlexRender {cell} />
@@ -473,7 +472,7 @@
 {#snippet titleCell(job: JobSummary)}
   <!-- The row's name, with at most one badge after it (L1). -->
   <span class="flex min-w-0 items-center gap-2">
-    <TruncatedText text={job.title} href={`/jobs/${job.id}`} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" />
+    <TruncatedText text={job.title} href={`/jobs/${job.id}`} data-row-link class="font-semibold text-foreground no-underline hover:underline" />
     {#if job.templateUpdateAvailable}<Badge variant="muted" class="shrink-0">Template update</Badge>{/if}
   </span>
 {/snippet}
@@ -482,27 +481,27 @@
      arrive the cell says nothing, not a "No candidates" that may be untrue. -->
 {#snippet candidatesCell(job: JobSummary)}
   {@const count = candidateCounts?.get(job.id) ?? 0}
-  {#if count > 0}<span class="relative text-foreground">{count}</span>{:else if candidateCounts}<span class="sr-only">No candidates</span>{/if}
+  {#if count > 0}<span class="text-foreground">{count}</span>{:else if candidateCounts}<span class="sr-only">No candidates</span>{/if}
 {/snippet}
 
 <!-- Two lines before it is cut, so "Remote (United Kingdom, Ireland)" reads whole on a tablet (the owner's walk-through, 2026-11-21). -->
-{#snippet locationCell(job: JobSummary)}<span class="relative block min-w-0"><TruncatedText text={job.location} lines={2} /></span>{/snippet}
+{#snippet locationCell(job: JobSummary)}<span class="block min-w-0"><TruncatedText text={job.location} lines={2} /></span>{/snippet}
 
 <!-- A draft was never published, so its cell is blank, its words for screen readers only (L1). -->
 {#snippet lastAppliedCell(job: JobSummary)}
   {@const at = lastApplied?.get(job.id)}
-  {#if at}<span class="relative"><DateText {at} /></span>{:else if lastApplied}<span class="sr-only">No applications yet</span>{/if}
+  {#if at}<DateText {at} />{:else if lastApplied}<span class="sr-only">No applications yet</span>{/if}
 {/snippet}
 
 {#snippet updatedCell(job: JobSummary)}
-  {#if job.lastUpdated.at}<span class="relative"><DateText at={job.lastUpdated.at} /></span>{/if}
+  {#if job.lastUpdated.at}<DateText at={job.lastUpdated.at} />{/if}
 {/snippet}
 
 {#snippet actionsHeader()}<span class="sr-only">Actions</span>{/snippet}
 
 {#snippet actionsCell(job: JobSummary)}
   {#if mayEdit && job.status !== 'Closed'}
-    <span class="pointer-events-auto relative inline-flex">{@render rowMenu(job)}</span>
+    <span class="inline-flex">{@render rowMenu(job)}</span>
   {/if}
 {/snippet}
 

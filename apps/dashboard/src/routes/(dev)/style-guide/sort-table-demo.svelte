@@ -5,11 +5,12 @@
   import SortHeader from '#lib/components/sort-header.svelte';
   import SortMenu from '#lib/components/sort-menu.svelte';
   import { day, hour } from '#lib/dates.js';
+  import { rowLink } from '#lib/row-link.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
   // A sortable table (L1, L2) of hiring templates, as the Templates page lists them: the name with Built in after it, then
   // plain text, and Last updated right-aligned with its sort icon before the text. It opens newest first by Last updated
-  // and remembers the person's sort under `style-guide`.
+  // and remembers the person's sort under `style-guide`. A click anywhere on a row follows its name's link (L5).
   type Template = { id: string; name: string; builtIn: boolean; jobs: number; updatedAt: string };
 
   const now = Date.now();
@@ -35,7 +36,7 @@
 
 {#snippet nameCell(template: Template)}
   <span class="flex min-w-0 items-center gap-2">
-    <a href="#sort-header" class="truncate font-semibold text-foreground no-underline hover:underline">{template.name}</a>
+    <a href="#sort-header" data-row-link class="truncate font-semibold text-foreground no-underline hover:underline">{template.name}</a>
     {#if template.builtIn}<BuiltInBadge />{/if}
   </span>
 {/snippet}
@@ -56,7 +57,7 @@
       </thead>
       <tbody>
         {#each table.getRowModel().rows as row (row.id)}
-          <tr class="h-12 border-b border-border-subtle last:border-b-0">
+          <tr {@attach rowLink} class="h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted">
             {#each row.getAllCells() as cell (cell.id)}
               <td class={['px-3 whitespace-nowrap', cell.column.id === 'name' && 'px-4.5', cell.column.id === 'updatedAt' && 'text-right tabular-nums']}><FlexRender {cell} /></td>
             {/each}

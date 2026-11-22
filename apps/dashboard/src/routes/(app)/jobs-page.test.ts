@@ -87,14 +87,20 @@ describe('jobs page', () => {
     expect((await dataRows()).map((row) => cellTexts(row)[1])[0]).toBe('Senior .NET Engineer');
   });
 
-  it('keeps the row menu reachable while a tablet scrolls the table, and the cell around it part of the row link', async () => {
+  it('keeps the row menu reachable while a tablet scrolls the table, and opens the job from anywhere else on its row (L5)', async () => {
     vi.stubGlobal('fetch', vi.fn(apiStub({ 'GET /v1/jobs': () => Response.json(jobs) })));
     renderPage();
 
     const menu = await screen.findByRole('button', { name: `Actions for ${jobs[0]!.title}` });
     const cell = menu.closest('td')!;
-    expect(cell).toHaveClass('sticky', 'right-0', 'pointer-events-none');
-    expect(cell.querySelector('span')).toHaveClass('pointer-events-auto');
+    expect(cell).toHaveClass('sticky', 'right-0');
+    const row = menu.closest('tr')!;
+    const follow = vi.spyOn(within(row).getByRole('link', { name: jobs[0]!.title }), 'click').mockImplementation(() => {});
+    await fireEvent.click(cell);
+    await fireEvent.click(within(row).getAllByRole('cell')[0]!);
+    expect(follow).toHaveBeenCalledTimes(2);
+    await fireEvent.click(menu);
+    expect(follow).toHaveBeenCalledTimes(2);
   });
 
   it('sorts by every column, opens on Last updated newest first, and remembers the sort (L2)', async () => {

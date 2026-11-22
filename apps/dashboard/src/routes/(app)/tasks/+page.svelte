@@ -25,6 +25,7 @@
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import { sentenceStart } from '#lib/history.js';
   import { describeError } from '#lib/query.js';
+  import { rowLink } from '#lib/row-link.js';
   import { matchesWords } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { taskHref } from '#lib/tasks.svelte.js';
@@ -126,7 +127,6 @@
   const sorted = $derived(table.getRowModel().rows.map((row) => row.original));
 
   const sidebar = Sidebar.useSidebar();
-  const rowLink = 'font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline';
 </script>
 
 <svelte:head>
@@ -208,13 +208,13 @@
               </Table.Header>
               <Table.Body>
                 {#each sorted as task (task.id)}
-                  <!-- The whole row is the link to where the work is done (design system section 9). -->
-                  <Table.Row class="group relative h-12 hover:bg-muted">
+                  <!-- A click anywhere on the row opens where the work is done (L5): the task's note is its link. -->
+                  <Table.Row {@attach rowLink} class="h-12 hover:bg-muted">
                     <!-- One branch per entry in `columns`, which draws the headers. -->
                     {#each table.getHeaderGroups()[0]!.headers as header (header.id)}
                       {#if header.id === 'task'}
                         <Table.Cell class="max-w-96 pl-4.5">
-                          <span class="flex min-w-0"><TruncatedText text={task.note} href={taskHref(task)} class={rowLink} /></span>
+                          <span class="flex min-w-0"><TruncatedText text={task.note} href={taskHref(task)} data-row-link class="font-semibold text-foreground no-underline hover:underline" /></span>
                         </Table.Cell>
                       {:else if header.id === 'candidate'}
                         <Table.Cell class="max-w-56"><span class="flex min-w-0"><TruncatedText text={task.candidateName} /></span></Table.Cell>
@@ -225,9 +225,9 @@
                       {:else if header.id === 'for'}
                         <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={task.assignee} /></span></Table.Cell>
                       {:else if header.id === 'created'}
-                        <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative"><DateText at={task.createdAt} /></span></Table.Cell>
+                        <Table.Cell class="whitespace-nowrap text-muted-foreground"><DateText at={task.createdAt} /></Table.Cell>
                       {:else if header.id === 'done'}
-                        <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative">{#if task.completedAt}<DateText at={task.completedAt} />{/if}</span></Table.Cell>
+                        <Table.Cell class="whitespace-nowrap text-muted-foreground">{#if task.completedAt}<DateText at={task.completedAt} />{/if}</Table.Cell>
                       {:else if header.id === 'doneBy'}
                         <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={task.doneBy} /></span></Table.Cell>
                       {/if}
