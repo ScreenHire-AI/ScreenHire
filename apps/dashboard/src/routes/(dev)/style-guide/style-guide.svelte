@@ -75,6 +75,7 @@
   import Notice from '#lib/components/notice.svelte';
   import NotificationTray from '#lib/components/notification-tray.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
+  import OverviewColumns from '#lib/components/overview-columns.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PlanCard from '#lib/components/plan-card.svelte';
   import PlanComparison from '#lib/components/plan-comparison.svelte';
@@ -1650,6 +1651,20 @@
         <SettingsMenu current="/settings/team">
           <Panel title="Members"><p>A settings page's panels sit here, beside the menu.</p></Panel>
         </SettingsMenu>
+      </section>
+
+      <!-- An overview's two columns (Reports, the Verification overview, Billing): each stacks its own panels, so a short panel
+           never leaves a hole beside a tall one. One column until its container is 69rem wide. -->
+      <section aria-label="Overview columns" class="@container">
+        <OverviewColumns>
+          {#snippet main()}
+            <Panel title="Main column"><p>The work the page is for.</p></Panel>
+            <Panel title="Another main panel"><p>It stacks under the first, whatever the side column holds.</p></Panel>
+          {/snippet}
+          {#snippet side()}
+            <Panel title="Side column"><p>What supports it.</p></Panel>
+          {/snippet}
+        </OverviewColumns>
       </section>
 
       <div class="flex flex-wrap items-start gap-5">

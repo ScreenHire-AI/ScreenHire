@@ -59,7 +59,7 @@
   <div
     class={[
       'flex w-full flex-col gap-4 px-4 pt-5 md:px-6',
-      frame && 'mx-auto max-w-[calc(var(--container-settings)+--spacing(12))]',
+      frame && 'mx-auto max-w-settings-frame',
       form && 'mx-auto max-w-form',
       !tabs && 'pb-5',
     ]}

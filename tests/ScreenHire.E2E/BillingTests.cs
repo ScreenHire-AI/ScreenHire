@@ -141,7 +141,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // The overview's columns (design system section 7, S10): the plan, this month and the invoices in the main column, the
         // card and the plans in the side column, each stacking on its own; on a phone one column, main then side.
-        foreach (var width in new[] { 2560, 1440 })
+        foreach (var width in new[] { 1440, 2560 })
         {
             await Page.SetViewportSizeAsync(width, 1000);
             var planCardBox = await BoxAsync(plan);
