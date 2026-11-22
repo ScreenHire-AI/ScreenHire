@@ -355,10 +355,10 @@ describe('follow-up questionnaires', () => {
 
   it('starts a SendQuestionnaire action on the first follow-up, and says what each part does', () => {
     expect(newAction('SendQuestionnaire', withFollowUp.stages, withFollowUp.followUpQuestionnaires ?? [])).toEqual({ type: 'SendQuestionnaire', questionnaireId: 'availability' });
-    expect(summarize(withFollowUp.automations[0]!, withFollowUp)).toBe('When a candidate enters Screening: send the "Availability" questionnaire.');
+    expect(summarize(withFollowUp.automations[0]!, withFollowUp)).toBe('When a candidate enters Screening: send the "Availability" form.');
     expect(summarize(withFollowUp.automations[1]!, withFollowUp)).toBe('When the candidate answers "Availability": add the tag "answered".');
     expect(summarize({ ...withFollowUp.automations[1]!, trigger: { type: 'QuestionnaireCompleted' } }, withFollowUp)).toBe(
-      'When a follow-up questionnaire is answered: add the tag "answered".',
+      'When a form is answered: add the tag "answered".',
     );
   });
 

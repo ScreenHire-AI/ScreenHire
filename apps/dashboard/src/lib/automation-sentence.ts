@@ -456,7 +456,7 @@ function triggerParts(automation: Automation, index: number, workflow: HiringWor
         blank({
           kind: 'choice',
           id: 'trigger-questionnaire',
-          name: 'Follow-up questionnaire',
+          name: 'Form',
           text: trigger.questionnaireId ? followUpName(workflow, trigger.questionnaireId) : 'any follow-up',
           errorPath,
           choices,
@@ -884,7 +884,7 @@ function conditionParts(automation: Automation, index: number, workflow: HiringW
 /** An action kind in the list: "Send an email". */
 export const actionKindChoiceLabels: Partial<Record<ActionType, string>> = {
   SendEmail: 'Send an email',
-  SendQuestionnaire: 'Send a questionnaire',
+  SendQuestionnaire: 'Send a form',
   MoveToStage: 'Move to a stage',
   AddTag: 'Add a tag',
   AssignReviewer: 'Ask a teammate to review',
@@ -899,7 +899,7 @@ export const actionKindChoiceLabels: Partial<Record<ActionType, string>> = {
 /** An action kind as the chip in the sentence says it, before its own blank. */
 export const actionKindWords: Partial<Record<ActionType, string>> = {
   SendEmail: 'send the email',
-  SendQuestionnaire: 'send the questionnaire',
+  SendQuestionnaire: 'send the form',
   MoveToStage: 'move them to',
   AddTag: 'add the tag',
   AssignReviewer: 'ask',
@@ -1025,7 +1025,7 @@ function actionParts(automation: Automation, index: number, workflow: HiringWork
           blank({
             kind: 'choice',
             id: `action-${step}-arg`,
-            name: `${name}: questionnaire`,
+            name: `${name}: form`,
             text: choices.find((choice) => choice.id === action.questionnaireId)?.label ?? 'choose a questionnaire',
             errorPath,
             choices,

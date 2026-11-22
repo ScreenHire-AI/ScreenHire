@@ -150,14 +150,14 @@ const faqs: Faq[] = [
     <RuledList items={fair} />
   </Section>
 
-  <Section labelledby="market-title" class="flex flex-col gap-10">
-    <div class="flex max-w-measure flex-col gap-4">
+  <Section labelledby="market-title" class="flex flex-wrap items-start gap-x-16 gap-y-10">
+    <div class="flex min-w-0 flex-[1_1_22rem] flex-col gap-4">
       <h2 id="market-title" class="font-display text-section text-balance">{fraudSoldApart.pain}</h2>
       <p class="text-pretty text-secondary-foreground">
         What two vendors' own pages say today, with the date we read each one. {fraudSoldApart.answer}
       </p>
     </div>
-    <ul class="flex flex-col">
+    <ul class="flex min-w-0 flex-[2_1_28rem] flex-col">
       {
         fraudSoldApart.facts.map((fact) => (
           <li class="flex flex-wrap gap-x-16 gap-y-2 border-t border-border py-5 last:border-b">

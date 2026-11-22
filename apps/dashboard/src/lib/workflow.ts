@@ -63,7 +63,7 @@ export const triggerLabels: Partial<Record<TriggerType, string>> = {
   StageEntered: 'A candidate enters a stage',
   StageExited: 'A candidate leaves a stage',
   TimeElapsed: 'Time passes in a stage',
-  QuestionnaireCompleted: 'A follow-up questionnaire is answered',
+  QuestionnaireCompleted: 'A form is answered',
   VerificationAssessed: 'The verification checks finish',
   ReviewerDecision: 'A reviewer records a decision',
   SlaBreached: "A stage's time limit passes",
@@ -145,7 +145,7 @@ export const recommendations = Object.keys(recommendationLabels) as NonNullable<
 /** Actions v1 runs. RequestVerification is refused at save, so not offered. */
 export const actionLabels: Partial<Record<ActionType, string>> = {
   SendEmail: 'Send an email',
-  SendQuestionnaire: 'Send a questionnaire',
+  SendQuestionnaire: 'Send a form',
   MoveToStage: 'Move to a stage',
   AddTag: 'Add a tag',
   AssignReviewer: 'Assign a reviewer',
@@ -185,7 +185,7 @@ export const actionFieldLabels: Record<ActionField, string> = {
   note: 'Note',
   url: 'URL (https)',
   reason: 'Reason',
-  questionnaireId: 'Questionnaire',
+  questionnaireId: 'Form',
 };
 
 /** The four fields of a ScheduleInterview action, as the form words them. */
@@ -730,7 +730,7 @@ export function describeAction(
   if (action.type === 'MoveToStage') return `Move to ${workflow.stages.find((stage) => stage.id === action.stageId)?.name ?? action.stageId}`;
   // A tag with no name yet reads as unfinished, never as an empty pair of quotes.
   if (action.type === 'AddTag') return action.tag?.trim() ? `Add the tag "${action.tag}"` : 'Add a tag (no name yet)';
-  if (action.type === 'SendQuestionnaire') return `Send the "${followUpName(workflow, action.questionnaireId)}" questionnaire`;
+  if (action.type === 'SendQuestionnaire') return `Send the "${followUpName(workflow, action.questionnaireId)}" form`;
   if (action.type === 'SendEmail') {
     const name = action.emailTemplate ? templateNames.get(action.emailTemplate) : undefined;
     return name ? `Send the "${name}" email` : 'Send an email';
