@@ -54,6 +54,53 @@ public sealed class SettingsBrandingTests(E2EFixture fixture) : SettingsArea(fix
         await ExpectCareersBrandingAsync(tenantHost!, "");
     }
 
+    // Heading fonts from the Google Fonts catalogue (ADR-0031), against the test stack's sandbox catalogue: the picker draws
+    // each name in its own font through the API, and the careers titles load the saved family from the careers origin
+    // alone. Hosting it once, the files and the licence are HeadingFontTests' (integration).
+    [Fact]
+    public async Task A_font_chosen_from_the_catalogue_draws_the_careers_titles_from_the_careers_origin()
+    {
+        var (owner, slug) = await OwnerAsync();
+        await SignInAsync(owner);
+        await GoToAsync("dashboard", "/settings/branding");
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Branding");
+
+        await Page.GetByRole(AriaRole.Button, new() { Name = "More fonts" }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Heading fonts" });
+        await sheet.GetByRole(AriaRole.Radio, new() { Name = "Slab", Exact = true }).ClickAsync();
+        await sheet.GetByLabel("Search fonts").FillAsync("zilla");
+        var zilla = sheet.GetByRole(AriaRole.Radio, new() { NameRegex = new Regex("^Zilla Slab") });
+        await zilla.CheckAsync();
+        // The name is drawn in its own face, which came from the API's preview route.
+        await Page.WaitForFunctionAsync("() => [...document.fonts].some(f => f.family.includes('zilla-slab') && f.status === 'loaded')");
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-settings-branding-more-fonts-1280");
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Use Zilla Slab" }).ClickAsync();
+
+        await Expect(sheet).ToHaveCountAsync(0);
+        await Expect(Page.GetByRole(AriaRole.Radio, new() { NameRegex = new Regex("^Zilla Slab") })).ToBeCheckedAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save branding" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved" })).ToHaveTextAsync("Saved.");
+
+        var fonts = new List<string>();
+        Page.Request += (_, request) =>
+        {
+            if (request.ResourceType == "font")
+            {
+                fonts.Add(request.Url);
+            }
+        };
+        await OpenAsync("careers", $"/{slug}");
+        var title = Page.GetByRole(AriaRole.Heading, new() { Level = 1 });
+        (await title.EvaluateAsync<string>("e => getComputedStyle(e).fontFamily")).Should().StartWith("\"ScreenHire heading zilla-slab\"");
+        await Page.WaitForFunctionAsync("() => [...document.fonts].some(f => f.family.includes('zilla-slab') && f.status === 'loaded')");
+
+        var careers = Fixture.GetEndpoint("careers");
+        var origin = $"{careers.Scheme}://{careers.Host}:{careers.Port}/";
+        fonts.Should().Contain(url => url.Contains("/brand/fonts/zilla-slab/latin-700.woff2"), "the title's weight is fetched");
+        fonts.Should().OnlyContain(url => url.StartsWith(origin, StringComparison.Ordinal), "a candidate's browser asks no font host for anything");
+    }
+
     [Fact]
     public async Task The_branding_editor_fits_one_screen_at_1440_by_900_empty_and_with_all_three_images_set()
     {
@@ -66,6 +113,15 @@ public sealed class SettingsBrandingTests(E2EFixture fixture) : SettingsArea(fix
 
         // Colours and Heading font share a row, and the three images are one row of tiles.
         await ExpectBrandingEditorFitsAsync("with the image tiles empty");
+
+        // A catalogue font joins the six as a choice of its own; the More fonts button sits in the panel's header.
+        await Page.GetByRole(AriaRole.Button, new() { Name = "More fonts" }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Heading fonts" });
+        await sheet.GetByLabel("Search fonts").FillAsync("bebas");
+        await sheet.GetByRole(AriaRole.Radio, new() { NameRegex = new Regex("^Bebas Neue") }).CheckAsync();
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Use Bebas Neue" }).ClickAsync();
+        await Expect(sheet).ToHaveCountAsync(0);
+        await ExpectBrandingEditorFitsAsync("with a catalogue font chosen");
 
         // A set tile is taller than an empty one (a picture, its size, Replace and Remove), and the editor still fits.
         await Page.Locator("input#logo").SetInputFilesAsync(new FilePayload { Name = "logo.png", MimeType = "image/png", Buffer = TestPng.Solid(400, 100) });

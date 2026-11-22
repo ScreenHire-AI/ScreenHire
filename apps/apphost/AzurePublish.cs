@@ -67,12 +67,13 @@ internal static class AzurePublish
         var appDatabase = builder.AddConnectionString("screenhire-app", ReferenceExpression.Create(
             $"Host={postgres.Resource.HostName};Database=screenhire;Username=screenhire_app;Password={appPassword};SSL Mode=Require"));
 
-        // Blob Storage. Applicant uploads, brand images, email attachments and the copies of candidates' data that a data
-        // request produces (docs/architecture/data-requests.md), all private. The API signs user-delegation SAS links
+        // Blob Storage. Applicant uploads, brand images, the heading fonts ScreenHire hosts (docs/architecture/branding.md),
+        // email attachments and the copies of candidates' data that a data request produces
+        // (docs/architecture/data-requests.md), all private. The API signs user-delegation SAS links
         // (Storage Blob Data Contributor includes that), so no account key is ever used.
         var storage = builder.AddAzureStorage("storage");
         var blobs = storage.AddBlobs("blobs");
-        foreach (var container in new[] { "applicant-uploads", "brand-images", "email-attachments", "data-exports" })
+        foreach (var container in new[] { "applicant-uploads", "brand-images", "heading-fonts", "email-attachments", "data-exports" })
         {
             storage.AddBlobContainer(container);
         }

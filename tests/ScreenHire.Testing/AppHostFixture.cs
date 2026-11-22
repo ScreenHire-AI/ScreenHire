@@ -135,6 +135,9 @@ public class AppHostFixture : IAsyncLifetime
                 // Email: the local fake for replies and sending domains (docs/architecture/email.md), and the public key the
                 // tests sign SendGrid event webhooks with (EmailEvents), so bounces run with no SendGrid.
                 "--ScreenHire:Email:Sandbox:Enabled=true",
+                // Heading fonts: the local catalogue of a dozen bundled fonts (docs/architecture/branding.md), so picking,
+                // downloading and serving one runs with no internet.
+                "--ScreenHire:Fonts:Sandbox:Enabled=true",
                 $"--ScreenHire:Email:SendGrid:EventWebhookPublicKey={EmailEvents.PublicKey}",
                 $"--Parameters:sendgrid-inbound-secret={EmailEvents.InboundSecret}",
                 .. ExtraArguments,

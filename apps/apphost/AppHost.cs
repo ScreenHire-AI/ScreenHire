@@ -68,6 +68,12 @@
 //                               Forms), forwarded to the API: EqualityMonitoring:Enabled (default false) offers equality
 //                               monitoring forms and their totals in Reports. It waits on a legal review; the test stacks
 //                               turn it on.
+//   Fonts:*                     heading fonts (the API's FontsOptions, docs/architecture/branding.md section 3, ADR-0031),
+//                               forwarded to the API: Sandbox:Enabled=true is the local catalogue of a dozen bundled fonts
+//                               (appsettings.Development.json and the test stacks turn it on, so nothing needs the
+//                               internet); otherwise the API lists Google Fonts through Fontsource, which needs no key.
+//                               Container (heading-fonts), CatalogueLifetime and PreviewsPerMinute tune it, and
+//                               Fontsource:ApiUrl, FilesUrl and PackageUrl are the addresses it reads.
 //   CareersEmbedding:*          the sites allowed to embed the careers pages (the API's CareersEmbeddingOptions,
 //                               docs/architecture/careers-widget.md), forwarded to the API: AllowLoopback
 //                               (appsettings.Development.json and the test stacks turn it on, so a site on this machine,
@@ -352,6 +358,15 @@ foreach (var (key, value) in settings.GetSection("Forms").AsEnumerable(makePaths
     if (value is not null)
     {
         api.WithEnvironment($"ScreenHire__Forms__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+    }
+}
+
+// Heading fonts: plain settings, read by the API, which lists, downloads and serves them.
+foreach (var (key, value) in settings.GetSection("Fonts").AsEnumerable(makePathsRelative: true))
+{
+    if (value is not null)
+    {
+        api.WithEnvironment($"ScreenHire__Fonts__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
     }
 }
 

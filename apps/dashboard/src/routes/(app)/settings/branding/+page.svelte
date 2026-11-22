@@ -1,7 +1,8 @@
 <script lang="ts">
   import ExternalLinkIcon from '~icons/lucide/external-link';
   import SaveIcon from '~icons/lucide/save';
-  import type { HeadingFont, HttpValidationProblemDetails } from '@screenhire/api-client';
+  import TypeIcon from '~icons/lucide/type';
+  import type { HeadingFontOption, HttpValidationProblemDetails } from '@screenhire/api-client';
   import {
     ApiError,
     createCheckBrandingContrast,
@@ -11,7 +12,7 @@
     createUpdateOrganizationBranding,
     getGetOrganizationBrandingQueryKey,
   } from '@screenhire/api-client/svelte-query';
-  import { defaultHeadingFont, headingFonts } from '@screenhire/ui/heading-fonts';
+  import { bundledHeadingFont, defaultHeadingFont, headingFonts } from '@screenhire/ui/heading-fonts';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
@@ -21,6 +22,7 @@
   import EditPreviewLayout from '#lib/components/edit-preview-layout.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import HeadingFontSheet from '#lib/components/heading-font-sheet.svelte';
   import HistoryFact from '#lib/components/history-fact.svelte';
   import ImageField from '#lib/components/image-field.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -31,6 +33,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { BrandImageSlot } from '#lib/brand-images.svelte.js';
+  import { loadHeadingFontFace, previewFamily } from '#lib/heading-font-faces.svelte.js';
   import { brandColorPattern, normalizeBrandColor } from '#lib/branding.js';
   import { applyValidationProblem } from '#lib/forms.js';
   import { createPreviewSource } from '#lib/preview-window.svelte.js';
@@ -68,6 +71,9 @@
   const sharingImage = new BrandImageSlot('SharingImage', 'sharing image');
   let saved = $state('');
   let mode = $state<'edit' | 'preview'>('edit');
+  // A font from the catalogue that is not one of the six (ADR-0031): the saved one, or the one More fonts picked.
+  let picked = $state<{ id: string; family: string; serif: boolean } | null>(null);
+  let moreFonts = $state(false);
 
   const colourOrNull = (text: string) => (brandColorPattern.test(text.trim()) ? normalizeBrandColor(text) : null);
 
@@ -85,7 +91,7 @@
           data: {
             brandColor: colourOrNull(submitted.data.brandColor),
             secondColor: colourOrNull(submitted.data.secondColor),
-            headingFont: (submitted.data.headingFont || null) as HeadingFont | null,
+            headingFont: submitted.data.headingFont || null,
             logoId: logo.image?.id ?? null,
             faviconId: favicon.image?.id ?? null,
             sharingImageId: sharingImage.image?.id ?? null,
@@ -114,8 +120,11 @@
     if (detail && !started) {
       started = true;
       reset({
-        data: { ...blank, brandColor: detail.brandColor ?? '', secondColor: detail.secondColor ?? '', headingFont: detail.headingFont ?? '' },
+        data: { ...blank, brandColor: detail.brandColor ?? '', secondColor: detail.secondColor ?? '', headingFont: detail.headingFont?.id ?? '' },
       });
+      if (detail.headingFont && !bundledHeadingFont(detail.headingFont.id)) {
+        picked = { id: detail.headingFont.id, family: detail.headingFont.family, serif: false };
+      }
       logo.image = detail.logo;
       favicon.image = detail.favicon;
       sharingImage.image = detail.sharingImage;
@@ -149,7 +158,7 @@
       organizationName: organization.data?.data.name ?? '',
       brand: brand ? { color: brand, text: checks?.brandColor?.color === brand ? checks.brandColor.textColor : undefined } : null,
       header: second ? { color: second, text: checks?.secondColor?.color === second ? checks.secondColor.textColor : undefined } : null,
-      headingFont: ($form.headingFont || null) as HeadingFont | null,
+      headingFont: $form.headingFont ? { id: $form.headingFont, serif: picked?.id === $form.headingFont && picked.serif } : null,
       logo: logo.image,
       favicon: favicon.image,
       sharingImage: sharingImage.image,
@@ -185,10 +194,24 @@
   const topRow = 'grid min-w-0 gap-5 @[52rem]/editor:grid-cols-[minmax(0,4fr)_minmax(0,5fr)]';
   const imageRow = 'grid gap-6 @[34rem]/editor:grid-cols-2 @[52rem]/editor:grid-cols-3';
 
-  const fonts = [
-    { value: '', title: defaultHeadingFont.label, description: "ScreenHire's", family: defaultHeadingFont.family },
-    ...Object.entries(headingFonts).map(([value, font]) => ({ value, title: font.label, description: undefined, family: font.family })),
+  // The six bundled fonts and ScreenHire's, then the catalogue font in use or just picked, drawn in its preview face.
+  const bundled = [
+    // ScreenHire's is named as the default, in its own font; its family's name is for screen readers. Every choice is one
+    // line, so a seventh (a catalogue font) keeps the editor on one screen at 1440 by 900.
+    { value: '', title: "ScreenHire's", hidden: ` (${defaultHeadingFont.label})`, family: defaultHeadingFont.family },
+    ...Object.entries(headingFonts).map(([value, font]) => ({ value, title: font.label, hidden: undefined, family: font.family })),
   ];
+  const fonts = $derived(
+    picked ? [...bundled, { value: picked.id, title: picked.family, hidden: undefined, family: previewFamily(picked.id, picked.serif) }] : bundled,
+  );
+  $effect(() => {
+    if (picked) loadHeadingFontFace(picked.id);
+  });
+
+  function chooseFont(font: HeadingFontOption) {
+    if (!font.bundled) picked = { id: font.id, family: font.family, serif: font.styles.includes('Serif') };
+    $form.headingFont = font.id;
+  }
 </script>
 
 <svelte:head>
@@ -222,7 +245,7 @@
             </Panel>
             <Panel title="Heading font">
               <div aria-hidden="true" class="grid gap-2 @md:grid-cols-2">
-                {#each Array.from({ length: 6 }, (_, index) => index) as index (index)}<Skeleton class="h-14 w-full" />{/each}
+                {#each Array.from({ length: 6 }, (_, index) => index) as index (index)}<Skeleton class="h-10 w-full" />{/each}
               </div>
             </Panel>
           </div>
@@ -273,21 +296,25 @@
               </Panel>
 
               <Panel title="Heading font">
+                {#snippet actions()}
+                  <Button variant="outline" onclick={() => (moreFonts = true)}><TypeIcon aria-hidden="true" />More fonts</Button>
+                {/snippet}
                 <div class="@container">
                   <div role="radiogroup" aria-label="Heading font" class="grid gap-2 @md:grid-cols-2 @[40rem]:grid-cols-3">
                     {#each fonts as font (font.value)}
                       <label
-                        class="flex items-start gap-2 rounded-lg border border-input p-2.5 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
+                        class="flex items-start gap-2 rounded-lg border border-input px-2 py-1.5 pointer-coarse:p-2.5 has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring"
                       >
                         <input type="radio" name="headingFont" value={font.value} bind:group={$form.headingFont} class="mt-1 size-4 shrink-0 accent-primary" />
-                        <span class="flex min-w-0 flex-col gap-0.5">
-                          <span class="text-heading font-bold break-words" style:font-family={font.family}>{font.title}</span>
-                          {#if font.description}<span class="text-muted-foreground">{font.description}</span>{/if}
+                        <span class="min-w-0 text-heading font-bold break-words" style:font-family={font.family}>
+                          {font.title}{#if font.hidden}<span class="sr-only">{font.hidden}</span>{/if}
                         </span>
                       </label>
                     {/each}
                   </div>
+                  <FailureText message={$errors.headingFont?.[0]} />
                 </div>
+                <HeadingFontSheet bind:open={moreFonts} value={$form.headingFont} saved={detail?.headingFont?.id ?? ''} onchoose={chooseFont} />
               </Panel>
             </div>
 

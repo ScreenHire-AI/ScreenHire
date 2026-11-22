@@ -95,6 +95,9 @@ subsystem.
   (US dollars the trial includes, 5.00) and `Ai:ReportBatchSize` (200) tune it; an organization's own key is never charged) goes to the API, and its `Trial:*`, `Plans:*`,
   `Ai:*`, `Sandbox:*` and `Stripe:*` keys to the worker, which sends the trial's reminders and reports the AI use, and gets both Stripe parameters; see
   [`docs/architecture/billing.md`](docs/architecture/billing.md).
+  `ScreenHire:Fonts:*` (heading fonts: `Sandbox:Enabled`, on in `pnpm dev` and the test stacks, is a dozen bundled fonts; otherwise the API lists Google Fonts
+  through Fontsource, which needs no key, and the branding save downloads a family once into the `heading-fonts` container) goes to the API; see
+  [`docs/architecture/branding.md`](docs/architecture/branding.md) section 3 and ADR-0031.
   `ScreenHire:Legal:*` (`TermsUrl`, `PrivacyUrl`, `DpaUrl`: the addresses of our own legal documents, none set in the repository; the sign-in page's agreement line links each one that is set) goes to the API, which returns them with `GET /v1/auth/providers`; see
   [`docs/architecture/sign-in-and-tenancy.md`](docs/architecture/sign-in-and-tenancy.md).
   `ScreenHire:Email:*` (Mailpit sends unless `SendGrid:Enabled=true` with the `sendgrid-api-key` secret; `ReplyDomain` is the host

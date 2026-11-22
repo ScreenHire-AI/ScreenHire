@@ -13,7 +13,10 @@ internal sealed class OrganizationConfiguration : IEntityTypeConfiguration<Organ
         builder.Property(o => o.HomeRegion).HasMaxLength(16);
         builder.Property(o => o.BrandColor).HasMaxLength(7);
         builder.Property(o => o.SecondColor).HasMaxLength(7);
-        builder.Property(o => o.HeadingFont).HasConversion<string>().HasMaxLength(40);
+        // The column kept its name from when it held one of six enum names; it holds a font id since ADR-0031.
+        builder.Property(o => o.HeadingFontId).HasColumnName("heading_font").HasMaxLength(HeadingFont.MaxIdLength);
+        builder.Property(o => o.HeadingFontFamily).HasMaxLength(HeadingFont.MaxFamilyLength);
+        builder.Ignore(o => o.HeadingFont);
         // Existing organizations let no other site frame their careers pages.
         builder.Property(o => o.EmbedOrigins).HasColumnType("text[]").HasDefaultValueSql("'{}'::text[]");
         // Existing organizations have skipped no setup step and hidden nothing.

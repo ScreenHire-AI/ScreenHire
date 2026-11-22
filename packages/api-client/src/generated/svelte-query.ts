@@ -131,6 +131,7 @@ import type {
   GetSuggestedTeamParams,
   GetTeamHistoryParams,
   GetWebhookEndpointHistoryParams,
+  HeadingFontCatalogueResponse,
   HiringReport,
   HiringTeamMember,
   HiringTeamRequest,
@@ -644,6 +645,100 @@ export function createListSandboxListings<TData = Awaited<ReturnType<typeof list
 
 
   const query = createQuery(() => getListSandboxListingsQueryOptions(organizationSlug(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type getPublicHeadingFontFileResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getPublicHeadingFontFileResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicHeadingFontFileResponseSuccess = (getPublicHeadingFontFileResponse200) & {
+  headers: Headers;
+};
+export type getPublicHeadingFontFileResponseError = (getPublicHeadingFontFileResponse404) & {
+  headers: Headers;
+};
+
+export const getGetPublicHeadingFontFileUrl = (fontId: string,
+    fileName: string,) => {
+
+
+
+
+  return `/v1/public/heading-fonts/${fontId}/${fileName}`
+}
+
+export const getPublicHeadingFontFile = async (fontId: string,
+    fileName: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getPublicHeadingFontFileResponseSuccess> => {
+
+  return apiQueryFetch<getPublicHeadingFontFileResponseSuccess>(getGetPublicHeadingFontFileUrl(fontId,fileName),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicHeadingFontFileQueryKey = (fontId: string,
+    fileName: string,) => {
+    return [
+    'v1','public','heading-fonts',fontId,fileName
+    ] as const;
+    }
+
+
+export const getGetPublicHeadingFontFileQueryOptions = <TData = Awaited<ReturnType<typeof getPublicHeadingFontFile>>, TError = ErrorType<void>>(fontId: string,
+    fileName: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicHeadingFontFile>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicHeadingFontFileQueryKey(fontId,fileName);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicHeadingFontFile>>> = ({ signal }) => getPublicHeadingFontFile(fontId,fileName, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: fontId !== null && fontId !== undefined && fileName !== null && fileName !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getPublicHeadingFontFile>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicHeadingFontFileQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicHeadingFontFile>>>
+export type GetPublicHeadingFontFileQueryError = ErrorType<void>
+
+
+
+export function createGetPublicHeadingFontFile<TData = Awaited<ReturnType<typeof getPublicHeadingFontFile>>, TError = ErrorType<void>>(
+ fontId: () =>  string,
+    fileName: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getPublicHeadingFontFile>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetPublicHeadingFontFileQueryOptions(fontId(),
+    fileName(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
   return query
 }
@@ -15779,6 +15874,187 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getTestVerificationModelMutationOptions(options?.()) }), queryClient);
     }
+
+export type listHeadingFontsResponse200 = {
+  data: HeadingFontCatalogueResponse
+  status: 200
+}
+
+export type listHeadingFontsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listHeadingFontsResponseSuccess = (listHeadingFontsResponse200) & {
+  headers: Headers;
+};
+export type listHeadingFontsResponseError = (listHeadingFontsResponse401) & {
+  headers: Headers;
+};
+
+export const getListHeadingFontsUrl = () => {
+
+
+
+
+  return `/v1/heading-fonts`
+}
+
+export const listHeadingFonts = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listHeadingFontsResponseSuccess> => {
+
+  return apiQueryFetch<listHeadingFontsResponseSuccess>(getListHeadingFontsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListHeadingFontsQueryKey = () => {
+    return [
+    'v1','heading-fonts'
+    ] as const;
+    }
+
+
+export const getListHeadingFontsQueryOptions = <TData = Awaited<ReturnType<typeof listHeadingFonts>>, TError = ErrorType<void>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listHeadingFonts>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListHeadingFontsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listHeadingFonts>>> = ({ signal }) => listHeadingFonts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listHeadingFonts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListHeadingFontsQueryResult = NonNullable<Awaited<ReturnType<typeof listHeadingFonts>>>
+export type ListHeadingFontsQueryError = ErrorType<void>
+
+
+
+export function createListHeadingFonts<TData = Awaited<ReturnType<typeof listHeadingFonts>>, TError = ErrorType<void>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listHeadingFonts>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListHeadingFontsQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type getHeadingFontPreviewResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getHeadingFontPreviewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHeadingFontPreviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getHeadingFontPreviewResponseSuccess = (getHeadingFontPreviewResponse200) & {
+  headers: Headers;
+};
+export type getHeadingFontPreviewResponseError = (getHeadingFontPreviewResponse401 | getHeadingFontPreviewResponse404) & {
+  headers: Headers;
+};
+
+export const getGetHeadingFontPreviewUrl = (fontId: string,) => {
+
+
+
+
+  return `/v1/heading-fonts/${fontId}/preview`
+}
+
+export const getHeadingFontPreview = async (fontId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getHeadingFontPreviewResponseSuccess> => {
+
+  return apiQueryFetch<getHeadingFontPreviewResponseSuccess>(getGetHeadingFontPreviewUrl(fontId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetHeadingFontPreviewQueryKey = (fontId: string,) => {
+    return [
+    'v1','heading-fonts',fontId,'preview'
+    ] as const;
+    }
+
+
+export const getGetHeadingFontPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getHeadingFontPreview>>, TError = ErrorType<void>>(fontId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHeadingFontPreview>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHeadingFontPreviewQueryKey(fontId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHeadingFontPreview>>> = ({ signal }) => getHeadingFontPreview(fontId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: fontId !== null && fontId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getHeadingFontPreview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetHeadingFontPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getHeadingFontPreview>>>
+export type GetHeadingFontPreviewQueryError = ErrorType<void>
+
+
+
+export function createGetHeadingFontPreview<TData = Awaited<ReturnType<typeof getHeadingFontPreview>>, TError = ErrorType<void>>(
+ fontId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHeadingFontPreview>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetHeadingFontPreviewQueryOptions(fontId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type listTeamMembersResponse200 = {
   data: TeamMember[]

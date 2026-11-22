@@ -1,0 +1,222 @@
+[
+  {
+    "id": "arvo",
+    "family": "Arvo",
+    "category": "serif",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      400,
+      700
+    ],
+    "styles": [
+      "Slab"
+    ],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "arvo.woff2"
+  },
+  {
+    "id": "bebas-neue",
+    "family": "Bebas Neue",
+    "category": "sans-serif",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      400
+    ],
+    "styles": [],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "bebas-neue.woff2"
+  },
+  {
+    "id": "bungee",
+    "family": "Bungee",
+    "category": "display",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      400
+    ],
+    "styles": [],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "bungee.woff2"
+  },
+  {
+    "id": "lobster",
+    "family": "Lobster",
+    "category": "display",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      400
+    ],
+    "styles": [],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "lobster.woff2"
+  },
+  {
+    "id": "lora",
+    "family": "Lora",
+    "category": "serif",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      400,
+      500,
+      600,
+      700
+    ],
+    "styles": [],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "lora.woff2"
+  },
+  {
+    "id": "merriweather",
+    "family": "Merriweather",
+    "category": "serif",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "styles": [],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "merriweather.woff2"
+  },
+  {
+    "id": "quicksand",
+    "family": "Quicksand",
+    "category": "sans-serif",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "styles": [
+      "Rounded"
+    ],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "quicksand.woff2"
+  },
+  {
+    "id": "roboto-slab",
+    "family": "Roboto Slab",
+    "category": "serif",
+    "license": "Apache-2.0",
+    "version": "5.3.0",
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "styles": [
+      "Slab"
+    ],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "roboto-slab.woff2"
+  },
+  {
+    "id": "space-grotesk",
+    "family": "Space Grotesk",
+    "category": "sans-serif",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "styles": [],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "space-grotesk.woff2"
+  },
+  {
+    "id": "ubuntu",
+    "family": "Ubuntu",
+    "category": "sans-serif",
+    "license": "UFL-1.0",
+    "version": "5.3.0",
+    "weights": [
+      300,
+      400,
+      500,
+      700
+    ],
+    "styles": [],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": null
+  },
+  {
+    "id": "varela-round",
+    "family": "Varela Round",
+    "category": "sans-serif",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      400
+    ],
+    "styles": [
+      "Rounded"
+    ],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "varela-round.woff2"
+  },
+  {
+    "id": "work-sans",
+    "family": "Work Sans",
+    "category": "sans-serif",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900
+    ],
+    "styles": [],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "work-sans.woff2"
+  },
+  {
+    "id": "zilla-slab",
+    "family": "Zilla Slab",
+    "category": "serif",
+    "license": "OFL-1.1",
+    "version": "5.3.0",
+    "weights": [
+      300,
+      400,
+      500,
+      600,
+      700
+    ],
+    "styles": [
+      "Slab"
+    ],
+    "latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+    "file": "zilla-slab.woff2"
+  }
+]

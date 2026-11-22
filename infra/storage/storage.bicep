@@ -60,6 +60,11 @@ resource brand_images 'Microsoft.Storage/storageAccounts/blobServices/containers
   parent: blobs
 }
 
+resource heading_fonts 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
+  name: 'heading-fonts'
+  parent: blobs
+}
+
 resource email_attachments 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = {
   name: 'email-attachments'
   parent: blobs
