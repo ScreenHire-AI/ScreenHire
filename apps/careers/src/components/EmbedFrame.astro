@@ -14,8 +14,8 @@
         target,
       );
     post(true);
-    // A browser ignores autofocus in a frame from another site, so the error summary, which takes the focus on the careers
-    // site, is focused here instead.
+    // A browser ignores autofocus in a frame from another site, so what takes the focus on the careers site (the error
+    // summary, or the first question of a page) is focused here instead.
     document.querySelector<HTMLElement>('[autofocus]')?.focus();
     new ResizeObserver(() => post(false)).observe(document.documentElement);
   }

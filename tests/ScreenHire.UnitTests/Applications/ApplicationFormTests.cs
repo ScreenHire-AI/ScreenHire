@@ -37,6 +37,28 @@ public sealed class ApplicationFormTests
     }
 
     [Fact]
+    public void Applying_takes_a_minute_for_the_details_and_a_little_more_for_each_question()
+    {
+        // 60 s of details and resume, then 10 s for each pick (yes/no, choice, multi-choice, number) and 20 s for each line
+        // or link: 140 s, so about 3 minutes.
+        ApplicationForm.EstimatedMinutes(All).Should().Be(3);
+    }
+
+    [Fact]
+    public void A_short_form_still_says_two_minutes_and_writing_takes_longest()
+    {
+        ApplicationForm.EstimatedMinutes([Cv]).Should().Be(2, "never less than it takes to read the form and fill in the details");
+        ApplicationForm.EstimatedMinutes([]).Should().Be(2);
+
+        var why = new Question("why", QuestionType.LongText, "Why us?");
+        var story = new Question("story", QuestionType.LongText, "Tell us about a hard problem");
+        var sample = new Question("sample", QuestionType.File, "A work sample", AcceptedFileTypes: [".pdf"]);
+
+        // 60 + 90 + 90 + 30 = 270 s, rounded up.
+        ApplicationForm.EstimatedMinutes([Cv, why, story, sample]).Should().Be(5);
+    }
+
+    [Fact]
     public void Valid_answers_pass_including_a_knockout_answer()
     {
         ApplicationAnswer[] answers =

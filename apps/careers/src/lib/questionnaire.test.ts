@@ -122,6 +122,20 @@ describe('answering a questionnaire', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps the last page with what was typed when Enter presses its hidden first button, and sends nothing', async () => {
+    const fetch = vi.fn().mockImplementation(async () => json(200, sectioned));
+    vi.stubGlobal('fetch', fetch);
+
+    const stay = await answerQuestionnaire(
+      form({ organization: 'acme', token, step: 'page-2', pageQuestions: 'licence', state: JSON.stringify({ answers: { start: 'Monday' } }), 'q:licence': 'yes', intent: 'go:page-2' }),
+      undefined,
+    );
+
+    expect(stay).toMatchObject({ step: 'page-2', answers: { start: 'Monday', licence: 'yes' }, errors: {} });
+    expect(stay.outcome).toBeUndefined();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('saves the answers to finish later without checking them, and sends nothing', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(json(200, sectioned)).mockResolvedValueOnce(json(204));
     vi.stubGlobal('fetch', fetch);

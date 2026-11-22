@@ -312,8 +312,9 @@ describe('job page', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(publish, expect.objectContaining({ method: 'POST' })));
     expect(fetchMock.mock.calls.find(([url]) => url === publish)![1]!.body).toBeUndefined();
-    // A draft has nothing to close, so on a wide screen there is no More menu.
-    expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument();
+    // A draft has nothing to close, so on a wide screen More holds only Switch template.
+    const menu = await openMoreActions();
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Switch template']);
   });
 
   it('says where a published job went, with a link to Job postings, because the Publish button is gone', async () => {
@@ -515,6 +516,7 @@ describe('job page', () => {
       'Edit pipeline',
       'Add candidate',
       'Edit hiring team',
+      'Switch template',
       'Close & remove everywhere',
     ]);
     const band = document.querySelector<HTMLElement>('[data-slot=header-band]')!;

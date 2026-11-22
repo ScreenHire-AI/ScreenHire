@@ -83,10 +83,10 @@ describe('QuestionnairePreview', () => {
   });
 
   it('follows the questionnaire as it is edited', async () => {
-    const view = render(QuestionnairePreview, { questions });
+    const view = render(QuestionnairePreview, { questions, questionsPerPage: 8 });
     await next();
 
-    await view.rerender({ questions: [...questions, { id: 'site', type: 'Url', label: 'Portfolio link' }] });
+    await view.rerender({ questions: [...questions, { id: 'site', type: 'Url', label: 'Portfolio link' }], questionsPerPage: 8 });
 
     expect(screen.getByRole('textbox', { name: /Portfolio link/ })).toHaveAttribute('type', 'url');
   });
@@ -111,27 +111,40 @@ describe('QuestionnairePreview pages', () => {
     { id: 'about', name: 'About the role', questionIds: ['shifts', 'years', 'why'] },
   ];
 
-  it('shows each named section as its own step with the step line the candidate sees', async () => {
+  it('shows each named section as its own step with the progress the candidate sees', async () => {
     render(QuestionnairePreview, { questions, sections: twoSections });
 
-    // Details, two pages and the review: four steps.
-    expect(screen.getByText('Step 1 of 4')).toBeInTheDocument();
+    // Details, two pages and the review: four steps, and the sent form after them, so the review reads 80%.
+    expect(screen.getByText('20% done')).toBeInTheDocument();
     await next();
     expect(screen.getByRole('heading', { name: 'Eligibility' })).toHaveFocus();
-    expect(screen.getByText('0 of 5 answered')).toBeInTheDocument();
+    expect(screen.getByText('40% done')).toBeInTheDocument();
     await next();
     expect(screen.getByRole('heading', { name: 'About the role' })).toBeInTheDocument();
-    expect(screen.getByText('Step 3 of 4')).toBeInTheDocument();
+    expect(screen.getByText('60% done')).toBeInTheDocument();
     expect(document.querySelectorAll('[data-preview-page]')).toHaveLength(1);
   });
 
-  it("splits a questionnaire without sections at the organization's page size, and counts answers as they are tried", async () => {
+  it("splits a questionnaire without sections at the organization's page size", async () => {
     render(QuestionnairePreview, { questions, questionsPerPage: 2 });
     await next();
 
-    expect(screen.getByText('Step 2 of 4')).toBeInTheDocument();
-    await fireEvent.click(screen.getByRole('radio', { name: 'Yes' }));
-    expect(screen.getByText('1 of 5 answered')).toBeInTheDocument();
+    expect(screen.getByText('40% done')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Yes' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Days' })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Why this role\?/)).toBeNull();
+  });
+
+  it('asks four questions a page by default', async () => {
+    render(QuestionnairePreview, { questions });
+
+    // The four questions after the resume fit one page: details, Questions and the review.
+    expect(screen.getByText('25% done')).toBeInTheDocument();
+    await next();
+    expect(screen.getByRole('heading', { name: 'Questions' })).toBeInTheDocument();
+    await next();
+    expect(screen.getByRole('heading', { name: 'Review and send' })).toBeInTheDocument();
+    expect(screen.getByText('75% done')).toBeInTheDocument();
   });
 
   it('pages a follow-up questionnaire without the details step, ending in Send answers', async () => {
@@ -139,7 +152,7 @@ describe('QuestionnairePreview pages', () => {
 
     expect(screen.queryByText('Your details')).toBeNull();
     await next();
-    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
+    expect(screen.getByText('67% done')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send answers' })).toBeDisabled();
   });
 
@@ -148,11 +161,11 @@ describe('QuestionnairePreview pages', () => {
     await next();
     await next();
     await next();
-    expect(screen.getByText('Step 4 of 4')).toBeInTheDocument();
+    expect(screen.getByText('80% done')).toBeInTheDocument();
 
     await view.rerender({ questions, sections: null, questionsPerPage: 8 });
 
-    expect(screen.getByText('Step 3 of 3')).toBeInTheDocument();
+    expect(screen.getByText('75% done')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Review and send' })).toBeInTheDocument();
   });
 });

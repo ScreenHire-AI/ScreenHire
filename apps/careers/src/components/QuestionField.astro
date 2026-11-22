@@ -16,9 +16,11 @@ interface Props {
   organization: string;
   jobId: string;
   maxBytes: number;
+  /** The first question of a page takes the focus when it loads (apply-flow.md §7). */
+  autofocus?: boolean;
 }
 
-const { question, state, errors, organization, jobId, maxBytes } = Astro.props;
+const { question, state, errors, organization, jobId, maxBytes, autofocus = false } = Astro.props;
 ---
 
 {
@@ -37,6 +39,6 @@ const { question, state, errors, organization, jobId, maxBytes } = Astro.props;
       error={errors[fields.file(question.id)] ?? null}
     />
   ) : (
-    <QuestionField question={question} answer={state.answers[question.id]} error={errors[fields.answer(question.id)] ?? null} />
+    <QuestionField question={question} answer={state.answers[question.id]} error={errors[fields.answer(question.id)] ?? null} autofocus={autofocus} />
   )
 }

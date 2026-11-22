@@ -63,4 +63,6 @@ export interface ApplicationTimelineEntry {
   startsAt?: string | null;
   /** @nullable */
   endsAt?: string | null;
+  /** @nullable */
+  templateVersionId?: string | null;
 }

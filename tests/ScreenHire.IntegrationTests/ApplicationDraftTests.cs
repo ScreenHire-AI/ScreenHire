@@ -247,7 +247,7 @@ public sealed partial class ApplicationDraftTests(AppHostFixture fixture)
         var recruiter = await fixture.SignedInWithOrganizationAsync();
         using var _ = recruiter;
 
-        (await recruiter.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK).Body.GetProperty("questionsPerPage").GetInt32().Should().Be(8);
+        (await recruiter.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK).Body.GetProperty("questionsPerPage").GetInt32().Should().Be(4);
         var name = (await recruiter.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK).Text("name");
 
         var saved = (await recruiter.PutAsync("/v1/organization", new JsonObject { ["name"] = name, ["questionsPerPage"] = 12 })).Expect(HttpStatusCode.OK);
@@ -257,7 +257,7 @@ public sealed partial class ApplicationDraftTests(AppHostFixture fixture)
         saved.Body.GetProperty("questionsPerPage").GetInt32().Should().Be(12);
         renamed.Body.GetProperty("questionsPerPage").GetInt32().Should().Be(12, "a save without it keeps it");
         var history = (await recruiter.GetAsync("/v1/organization/history")).Expect(HttpStatusCode.OK).Body.GetRawText();
-        history.Should().Contain("changed questions per page from 8 to ");
+        history.Should().Contain("changed questions per page from 4 to ");
     }
 
     // A draft as the careers server saves it: the candidate and some of the engineering template's answers.

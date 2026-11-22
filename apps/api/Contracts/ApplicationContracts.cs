@@ -211,6 +211,9 @@ public sealed record ApplicationFileSummary(
 /// <c>InterviewNewTimesOffered</c> and <c>InterviewCancelled</c>, the interview and its time as UTC instants: the new time
 /// for a booking or a reschedule, the time it had for the cancellation of a booked interview, the time still held when new
 /// times were offered, and none for an invitation.
+/// <c>templateVersionId</c>: For a <c>StageChanged</c> entry made when the job switched templates, the version it switched
+/// to; the entry says the pipeline changed rather than that someone moved the candidate, and <c>fromStageId</c> may equal
+/// <c>toStageId</c>. The job's <c>former</c> stages name a stage the new pipeline does not have.
 /// </remarks>
 public sealed record ApplicationTimelineEntry(
     Guid Id,
@@ -240,7 +243,8 @@ public sealed record ApplicationTimelineEntry(
     Guid? OtherApplicationId = null,
     Guid? InterviewId = null,
     DateTimeOffset? StartsAt = null,
-    DateTimeOffset? EndsAt = null);
+    DateTimeOffset? EndsAt = null,
+    Guid? TemplateVersionId = null);
 
 /// <summary>A note as it stands: its latest text, its author and when it was written and last edited.</summary>
 /// <remarks>
@@ -368,7 +372,7 @@ internal static class ApplicationMappings
             entry.Data.StageId, entry.Data.Recommendation, entry.Data.EmailTemplateId, entry.Data.EmailSubject, entry.Data.QuestionnaireId,
             entry.Data.QuestionnaireRequestId, entry.Data.NoteId, added ? note?.EditedAt : null, apiKeyName, entry.Data.EmailId, entry.Data.TaskId,
             Enum.TryParse<TalentPoolExit>(entry.Data.PoolExit, out var exit) ? exit : null, entry.Data.OtherJobId, entry.Data.OtherApplicationId,
-            entry.Data.InterviewId, entry.Data.StartsAt, entry.Data.EndsAt);
+            entry.Data.InterviewId, entry.Data.StartsAt, entry.Data.EndsAt, entry.Data.TemplateVersionId);
     }
 
     public static ApplicationNoteDetail ToDetail(this ApplicationNote note) =>

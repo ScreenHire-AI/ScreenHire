@@ -96,7 +96,11 @@ public static class JobChanges
             lines.Add(ChangeLine.Plain("changed when the posting expires", [new("Expires", Instant(before.ValidThrough), Instant(after.ValidThrough), ChangeValueKind.Instant)]));
         }
 
-        if (before.SourceTemplateVersion != after.SourceTemplateVersion && after.SourceTemplateVersion is { } version && templateName is not null)
+        if (before.SourceTemplateId != after.SourceTemplateId && templateName is not null)
+        {
+            lines.Add(ChangeLine.Of("switched to the template ", templateName));
+        }
+        else if (before.SourceTemplateVersion != after.SourceTemplateVersion && after.SourceTemplateVersion is { } version && templateName is not null)
         {
             lines.Add(ChangeLine.Of($"took version {version.ToString(CultureInfo.InvariantCulture)} of ", templateName));
         }

@@ -225,8 +225,13 @@
     url.searchParams.delete('schedule');
     void goto(url, { replace: true, reset: false });
   });
-  const stageName = (id: string | null | undefined) => (id ? (stages.find((stage) => stage.id === id)?.name ?? id) : '');
-  const questions = $derived(new Map((workflow?.questionnaire.questions ?? []).map((question) => [question.id, question])));
+  // A stage or question the job's pipeline no longer has (a template switch, an edit) reads by its former name.
+  const former = $derived(job.data?.data.former);
+  const stageName = (id: string | null | undefined) =>
+    id ? (stages.find((stage) => stage.id === id)?.name ?? former?.stages.find((stage) => stage.id === id)?.name ?? id) : '';
+  const questions = $derived(
+    new Map([...(former?.questions ?? []), ...(workflow?.questionnaire.questions ?? [])].map((question) => [question.id, question])),
+  );
   const followUpName = (requestId: string | null | undefined) =>
     detail?.followUps.find((followUp) => followUp.id === requestId)?.name ?? 'a follow-up questionnaire';
   // Saved candidates' entries name other jobs: where the candidate was invited, added or applied.

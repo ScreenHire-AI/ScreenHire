@@ -168,8 +168,9 @@ public static class TrackedKinds
     private static async ValueTask<IReadOnlyList<ChangeLine>> JobAsync(
         Job? before, Job? after, ChangeContext context, CancellationToken cancellationToken)
     {
-        // Only a new job, or one that took a template update, names its template.
-        var named = after is not null && (before is null || before.SourceTemplateVersion != after.SourceTemplateVersion);
+        // Only a new job, or one that took a template update or switched templates, names its template.
+        var named = after is not null
+            && (before is null || before.SourceTemplateId != after.SourceTemplateId || before.SourceTemplateVersion != after.SourceTemplateVersion);
         return JobChanges.Describe(before, after, named ? await context.TemplateNameAsync(after!.SourceTemplateId, cancellationToken) : null);
     }
 

@@ -123,6 +123,7 @@ import type {
   GetHiringReportParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
+  GetJobTemplateSwitchParams,
   GetOAuthAuthorizationRequestParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
@@ -162,6 +163,7 @@ import type {
   JobPublishCheck,
   JobSummary,
   JobTemplateDiff,
+  JobTemplateSwitchPreview,
   JobVersionDetail,
   JobVersionSummary,
   KeepInMindRequest,
@@ -273,6 +275,7 @@ import type {
   StartCalendarConnectRequest,
   StartSlackLinkRequest,
   SubmitScorecardRequest,
+  SwitchJobTemplateRequest,
   SwitchOrganizationRequest,
   TagChangeResult,
   TagList,
@@ -7599,6 +7602,247 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getApplyJobTemplateUpdateMutationOptions(options?.()) }), queryClient);
+    }
+
+export type getJobTemplateSwitchResponse200 = {
+  data: JobTemplateSwitchPreview
+  status: 200
+}
+
+export type getJobTemplateSwitchResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getJobTemplateSwitchResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobTemplateSwitchResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobTemplateSwitchResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getJobTemplateSwitchResponseSuccess = (getJobTemplateSwitchResponse200) & {
+  headers: Headers;
+};
+export type getJobTemplateSwitchResponseError = (getJobTemplateSwitchResponse400 | getJobTemplateSwitchResponse401 | getJobTemplateSwitchResponse404 | getJobTemplateSwitchResponse429) & {
+  headers: Headers;
+};
+
+export const getGetJobTemplateSwitchUrl = (jobId: string,
+    params: GetJobTemplateSwitchParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/jobs/${jobId}/workflow/switch-template?${stringifiedParams}` : `/v1/jobs/${jobId}/workflow/switch-template`
+}
+
+export const getJobTemplateSwitch = async (jobId: string,
+    params: GetJobTemplateSwitchParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getJobTemplateSwitchResponseSuccess> => {
+
+  return apiQueryFetch<getJobTemplateSwitchResponseSuccess>(getGetJobTemplateSwitchUrl(jobId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetJobTemplateSwitchQueryKey = (jobId: string,
+    params?: GetJobTemplateSwitchParams,) => {
+    return [
+    'v1','jobs',jobId,'workflow','switch-template', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetJobTemplateSwitchQueryOptions = <TData = Awaited<ReturnType<typeof getJobTemplateSwitch>>, TError = ErrorType<HttpValidationProblemDetails | void>>(jobId: string,
+    params: GetJobTemplateSwitchParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJobTemplateSwitch>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetJobTemplateSwitchQueryKey(jobId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobTemplateSwitch>>> = ({ signal }) => getJobTemplateSwitch(jobId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: jobId !== null && jobId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getJobTemplateSwitch>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetJobTemplateSwitchQueryResult = NonNullable<Awaited<ReturnType<typeof getJobTemplateSwitch>>>
+export type GetJobTemplateSwitchQueryError = ErrorType<HttpValidationProblemDetails | void>
+
+
+
+export function createGetJobTemplateSwitch<TData = Awaited<ReturnType<typeof getJobTemplateSwitch>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
+ jobId: () =>  string,
+    params: () =>  GetJobTemplateSwitchParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJobTemplateSwitch>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetJobTemplateSwitchQueryOptions(jobId(),
+    params(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type switchJobTemplateResponse200 = {
+  data: JobDetail
+  status: 200
+}
+
+export type switchJobTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type switchJobTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type switchJobTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type switchJobTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type switchJobTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type switchJobTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type switchJobTemplateResponseSuccess = (switchJobTemplateResponse200) & {
+  headers: Headers;
+};
+export type switchJobTemplateResponseError = (switchJobTemplateResponse400 | switchJobTemplateResponse401 | switchJobTemplateResponse403 | switchJobTemplateResponse404 | switchJobTemplateResponse409 | switchJobTemplateResponse429) & {
+  headers: Headers;
+};
+
+export const getSwitchJobTemplateUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/workflow/switch-template`
+}
+
+export const switchJobTemplate = async (jobId: string,
+    switchJobTemplateRequest: SwitchJobTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<switchJobTemplateResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<switchJobTemplateResponseSuccess>(getSwitchJobTemplateUrl(jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(switchJobTemplateRequest)
+  }
+);}
+
+
+
+
+
+export const getSwitchJobTemplateMutationKey = () => ['switchJobTemplate'] as const;
+
+export const getSwitchJobTemplateMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof switchJobTemplate>>, TError,SwitchJobTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof switchJobTemplate>>, TError,SwitchJobTemplateMutationVariables, TContext> => {
+
+const mutationKey = getSwitchJobTemplateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof switchJobTemplate>>, SwitchJobTemplateMutationVariables> = (props) => {
+          const {jobId,data} = props ?? {};
+
+          return  switchJobTemplate(jobId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SwitchJobTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof switchJobTemplate>>>
+    export type SwitchJobTemplateMutationBody = SwitchJobTemplateRequest
+    export type SwitchJobTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SwitchJobTemplateMutationVariables = {jobId: string;data: SwitchJobTemplateRequest}
+
+    export const createSwitchJobTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof switchJobTemplate>>, TError,SwitchJobTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof switchJobTemplate>>,
+        TError,
+        SwitchJobTemplateMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSwitchJobTemplateMutationOptions(options?.()) }), queryClient);
     }
 
 export type listHiringTemplatesResponse200 = {

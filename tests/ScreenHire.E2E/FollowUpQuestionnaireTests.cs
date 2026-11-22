@@ -85,8 +85,7 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
 
         await WithoutJavaScriptAsync();
         await Page.GotoAsync(link.Value);
-        await Expect(Page.Locator("[data-page-progress]")).ToContainTextAsync("Step 1 of 2");
-        await Expect(Page.Locator("[data-page-progress]")).ToContainTextAsync("0 of 2 answered");
+        await Expect(Page.Locator("[data-page-progress]")).ToHaveTextAsync("33% done");
         await Expect(Page.Locator("#questions-heading")).ToHaveTextAsync("When you can start");
         await Expect(Page.GetByLabel("Do you hold a forklift licence?")).ToHaveCountAsync(0);
         await Page.GetByLabel("When could you start?").FillAsync("In two weeks");
@@ -101,7 +100,7 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue" }).ClickAsync();
         await Expect(Page.Locator("#questions-heading")).ToHaveTextAsync("Your licence");
-        await Expect(Page.Locator("[data-page-progress]")).ToContainTextAsync("Step 2 of 2");
+        await Expect(Page.Locator("[data-page-progress]")).ToHaveTextAsync("67% done");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Send answers" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync("Answer this question.");
         await Page.GetByLabel("Yes").CheckAsync();

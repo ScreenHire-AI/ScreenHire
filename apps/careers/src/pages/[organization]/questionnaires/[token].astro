@@ -12,7 +12,7 @@ import { getPublicOrganization, getPublicQuestionnaire } from '../../../lib/api'
 import { fields, pagesFor } from '../../../lib/apply';
 import { basePath } from '../../../lib/host';
 import { answersFrom, isToken } from '../../../lib/questionnaire';
-import { answeredCount, PageProgress, QuestionField } from '@screenhire/ui/questions';
+import { PageProgress, QuestionField } from '@screenhire/ui/questions';
 
 const { organization, token } = Astro.params;
 const base = basePath(Astro.request, organization!);
@@ -108,13 +108,21 @@ const message = {
             )
           }
           {steps.length > 1 && (
-            <nav aria-label="Question pages">
-              <PageProgress step={index + 1} steps={steps.length} answered={answeredCount(questionnaire.questions, answers)} total={questionnaire.questions.length} />
-            </nav>
+            <div class="apply-progress">
+              <PageProgress step={index + 1} steps={steps.length} />
+            </div>
           )}
         </div>
 
-        <form method="POST" action={actions.questionnaire} novalidate aria-labelledby="questions-heading" class="mt-5 flex flex-col gap-4">
+        <form method="POST" action={actions.questionnaire} novalidate aria-labelledby="questions-heading" class="apply-step mt-5 flex flex-col gap-4">
+          {/* On the last page Enter in a field must not send the answers. Enter presses the form's first submit button
+              even when it is not shown, so the last page's first is a hidden one that stays on the page with what was
+              typed; only "Send answers" sends. */}
+          {last && (
+            <button type="submit" name="intent" value={`go:${step}`} hidden>
+              Stay on this page
+            </button>
+          )}
           <input type="hidden" name="organization" value={employer.slug} />
           <input type="hidden" name="token" value={token} />
           <input type="hidden" name="step" value={step} />
@@ -135,8 +143,14 @@ const message = {
             <Notice kind="success" message="Welcome back. Your saved answers are filled in." />
           )}
 
-          {(page?.questions ?? []).map((question) => (
-            <QuestionField question={question} answer={answers[question.id]} error={errors[fields.answer(question.id)] ?? null} />
+          {/* After the first page the focus starts on the page's first question; the first page opens on the employer's line. */}
+          {(page?.questions ?? []).map((question, i) => (
+            <QuestionField
+              question={question}
+              answer={answers[question.id]}
+              error={errors[fields.answer(question.id)] ?? null}
+              autofocus={i === 0 && index > 0 && Object.keys(errors).length === 0 && !formError}
+            />
           ))}
 
           <p class="text-candidate-hint text-candidate-muted-foreground">We send only your answers, nothing about your device.</p>

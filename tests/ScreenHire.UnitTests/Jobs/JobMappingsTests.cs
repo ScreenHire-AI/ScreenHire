@@ -1,4 +1,5 @@
 using ScreenHire.Api.Contracts;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Jobs;
 
 namespace ScreenHire.UnitTests.Jobs;
@@ -18,7 +19,8 @@ public sealed class JobMappingsTests
             job.Id, "Frontend Engineer (Svelte)", "frontend-engineer-svelte", "London, England, United Kingdom", WorkplaceType.Hybrid,
             EmploymentType.Contract, 60_000, 75_000, "GBP", Published, "<p>Svelte all day.</p>", "Svelte all day.", "Engineering",
             [new JobLocation("London", "England", "GB")], [], SalaryPeriod.Year, null, Published,
-            "https://careers.example.com/acme/jobs/frontend-engineer-svelte"));
+            "https://careers.example.com/acme/jobs/frontend-engineer-svelte",
+            ApplicationForm.EstimatedMinutes(ApplicationForm.QuestionsFor(job.Workflow))));
     }
 
     [Fact]

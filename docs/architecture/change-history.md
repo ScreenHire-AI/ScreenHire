@@ -140,6 +140,8 @@ The describers in `src/ScreenHire.Domain/History` are pure functions from the en
   message", with no before and after. A job's short summary makes a line only when a person writes, changes or clears
   it ("set the summary to ...", "cleared the summary, so it follows the description"); while it follows the description
   its own value is null and the description's line says everything.
+  A job that takes a template update reads "took version 2 of **Software engineer**", and one that switches to another
+  template "switched to the template **Kitchen**", each followed by the pipeline's own lines.
   A job's own AI-use policy makes a line the same way ("set AI use for this job to Not allowed", "made AI use follow the
   organization's policy"), and the organization's policy is on the Verification settings history. A time, such as when a posting expires,
   is an `Instant` detail in ISO 8601, which the browser formats.

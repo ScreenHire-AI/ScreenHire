@@ -1,19 +1,18 @@
 ---
-// Where the candidate is in the apply form (apply-flow.md §7): the shared progress line, "Step 2 of 4" and "9 of 24
-// answered", rendered on the server with no JavaScript, the same component the dashboard's preview shows.
+// How far along the apply form the candidate is (apply-flow.md §7): the shared progress bar and "40% done", rendered on
+// the server with no JavaScript, the same component the dashboard's preview shows. A line of progress, not navigation,
+// so it is no landmark.
 import { PageProgress } from '@screenhire/ui/questions';
 
 interface Props {
   /** The current step, from 1. */
   step: number;
   steps: number;
-  answered: number;
-  total: number;
 }
 
-const { step, steps, answered, total } = Astro.props;
+const { step, steps } = Astro.props;
 ---
 
-<nav aria-label="Application steps">
-  <PageProgress step={step} steps={steps} answered={answered} total={total} />
-</nav>
+<div class="apply-progress">
+  <PageProgress step={step} steps={steps} />
+</div>
