@@ -340,7 +340,9 @@ Authors check their screens against this list, and the `design-review` agent rep
 **Icons and shortcuts**
 
 - **I1** Lucide only, at the sizes in section 14, except the Google and Microsoft marks on the sign-in buttons, which
-  their branding guidelines require. Navigation and main buttons have an icon and a label.
+  their branding guidelines require. Navigation and main buttons have an icon and a label. The one letter that stands in
+  for an icon is a saved view's square in the icon rail, the first letter of its name with the name in its tooltip
+  (section 21); two views that start with the same letter are told apart by that tooltip.
 - **I2** Status icons, the level icons included, appear only in status badges and where a status is the fact (a table cell, a
   panel's step), never as decoration. The one other place is a built-in view of a status, whose sidebar icon is that status's
   mark (To review `eye`, To verify `id-card`, Overdue `clock-alert`), uncoloured, so the icon rail tells the views apart
