@@ -2,17 +2,20 @@
 // The plans as rows, not cards (design system section 22): name and open-job limit on the left, the monthly price on the
 // right. It reads the plan catalogue (packages/plans) through `buildPlans`, so a number set there shows here. A plan with
 // no price shows its name and limit and no amount, and a plan with no limit shows none. Built for a dark band, and right
-// on a light one too.
+// on a light one too. With `includes` (the pricing page passes the catalogue's `planIncludes`), a line of ticks under the rows
+// says what every plan includes: the same list the dashboard's Billing page shows, so the two never differ.
 import { formatPrice, hasPrice, plans as catalogue, type Plan } from '../../lib/pricing';
 
 interface Props {
   plans?: Plan[];
   /** The plan the free trial starts on, named in its row. */
   trialPlan?: string;
+  /** What every plan includes, as ticks under the rows. */
+  includes?: readonly string[];
   class?: string;
 }
 
-const { plans = catalogue, trialPlan, class: className } = Astro.props;
+const { plans = catalogue, trialPlan, includes = [], class: className } = Astro.props;
 
 const price = formatPrice;
 ---
@@ -38,3 +41,15 @@ const price = formatPrice;
     ))
   }
 </ul>
+{
+  includes.length > 0 && (
+    <ul aria-label="Every plan includes" class="mt-5 flex flex-wrap gap-x-6 gap-y-2" data-plan-includes>
+      {includes.map((item) => (
+        <li class="flex items-center gap-2">
+          <svg aria-hidden="true" viewBox="0 0 16 16" class="size-4 shrink-0"><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          {item}
+        </li>
+      ))}
+    </ul>
+  )
+}

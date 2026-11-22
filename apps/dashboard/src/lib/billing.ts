@@ -8,8 +8,9 @@ import type {
   BillingPlan,
   BillingState,
 } from '@screenhire/api-client';
+import { included } from '@screenhire/plans';
 import { formatCost } from '#lib/ai-usage.js';
-import { locales } from '#lib/dates.js';
+import { calendarDaysUntil, locales } from '#lib/dates.js';
 import type { StatusName } from '#lib/status.js';
 
 /** How each billing state reads as a status badge (design system section 3.2): an icon, a colour and these words. */
@@ -41,6 +42,29 @@ const jobs = (count: number) => `${count} open ${count === 1 ? 'job' : 'jobs'}`;
 export function planLimitText(plan: BillingPlan): string {
   if (plan.unlimited) return 'Unlimited open jobs';
   return plan.activeJobs === null ? 'Open job limit not set' : `Up to ${jobs(plan.activeJobs)}`;
+}
+
+/**
+ * What every plan includes, the ticks on the plan card and on each plan's card: the plan catalogue's own list
+ * (`packages/plans/included.json`), which the marketing pricing page shows too, so the two never say different things. Plans
+ * differ only in their open job limit, which the API sends with each plan.
+ */
+export const planIncludes: readonly string[] = included;
+
+/** The open jobs in words beside the plan card's meter: `3 of 10 open jobs` against a limit, `3 open jobs` with none. */
+export function headroomText(overview: Pick<BillingOverview, 'openJobs' | 'activeJobLimit'>): string {
+  const { openJobs, activeJobLimit } = overview;
+  return activeJobLimit === null ? jobs(openJobs) : `${openJobs} of ${jobs(activeJobLimit)}`;
+}
+
+/**
+ * The trial's days left as the plan card's title: `Trial: 9 days left`, `Trial: 1 day left`, `Trial: ends today`. Calendar days in
+ * the person's zone, the same count as the bell's line (`calendarDaysUntil`).
+ */
+export function trialLeftText(trialEndsAt: string, now: number): string {
+  const days = calendarDaysUntil(trialEndsAt, now);
+  if (days <= 0) return 'Trial: ends today';
+  return `Trial: ${days} ${days === 1 ? 'day' : 'days'} left`;
 }
 
 /** The open jobs, under an Open jobs label: `3 of 5` against the plan's limit, or `3` with none (no plan after it ends, or an unlimited one). */

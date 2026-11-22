@@ -57,6 +57,9 @@ importers:
       '@screenhire/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@screenhire/plans':
+        specifier: workspace:*
+        version: link:../../packages/plans
       '@screenhire/realtime':
         specifier: workspace:*
         version: link:../../packages/realtime

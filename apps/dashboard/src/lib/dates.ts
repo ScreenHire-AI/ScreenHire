@@ -136,6 +136,17 @@ function calendarDay(at: Date): { year: number; month: number; day: number } {
   return { year: part('year'), month: part('month'), day: part('day') };
 }
 
+/**
+ * Calendar days from now until an instant, as a person counts them in their zone: 0 on its own day, 1 the day before, below 0
+ * once its day has passed. Midnights are compared as UTC counts, so a daylight saving change does not shift the count. The
+ * trial's days left in the bell and on Billing both come from here, so the two never disagree.
+ */
+export function calendarDaysUntil(iso: string, now: number): number {
+  const at = calendarDay(new Date(iso));
+  const today = calendarDay(new Date(now));
+  return Math.round((Date.UTC(at.year, at.month - 1, at.day) - Date.UTC(today.year, today.month - 1, today.day)) / day);
+}
+
 /** The person's day an instant falls on, as a key for grouping: `2026-10-25`. */
 export function dayKey(iso: string): string {
   const { year, month, day: date } = calendarDay(new Date(iso));
