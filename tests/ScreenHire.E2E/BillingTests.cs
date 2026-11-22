@@ -96,6 +96,17 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(plan.GetByRole(AriaRole.Button, new() { Name = "Change plan" })).ToBeVisibleAsync();
         await Expect(plans.Locator("[data-plan-card=starter]")).ToContainTextAsync("Your plan");
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Change to") })).ToHaveCountAsync(2);
+        // The longest label, Change to Unlimited, stays on one line inside its card (F5), here and at a laptop width where the
+        // three cards are at their narrowest.
+        foreach (var width in new[] { 1440, 1180 })
+        {
+            await Page.SetViewportSizeAsync(width, 1000);
+            var overflowing = await plans.Locator("[data-plan-card] button").EvaluateAllAsync<int>(
+                "buttons => buttons.filter(button => button.scrollWidth > button.clientWidth || button.getBoundingClientRect().right > button.closest('[data-plan-card]').getBoundingClientRect().right).length");
+            overflowing.Should().Be(0, $"every plan button fits its card at {width}");
+        }
+
+        await Page.SetViewportSizeAsync(1440, 1000);
 
         // This month, added up: the plan's line and the total, then the next invoice. No AI credits bought, so the plan is the whole of it.
         var month = Page.GetByRole(AriaRole.Region, new() { Name = "This month so far", Exact = true });

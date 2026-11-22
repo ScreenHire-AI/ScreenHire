@@ -10,8 +10,8 @@
   // order of the marketing pricing page: each card's name, its price, its open job limit first and then what every plan includes,
   // from the plan catalogue the pricing page reads. The plan in force is marked by its words and the primary edge; the others
   // carry the page's action for them (`actionFor`), the same Choose or Change to as before. The cards sit in the Plans panel, so
-  // they are bordered with no shadow (S4, S5), three across once the panel is wide enough and one above the other below that, never
-  // two and one.
+  // they are bordered with no shadow (S4, S5), three across once the panel's body is 38rem wide and one above the other below that,
+  // never two and one. 38rem keeps each card wide enough for its longest button, Change to Unlimited, on one line (F5).
   let {
     plans,
     current = null,
@@ -33,7 +33,7 @@
 </script>
 
 <div class="@container">
-  <ul class="grid grid-cols-1 gap-3 @lg:grid-cols-3">
+  <ul class="grid grid-cols-1 gap-3 @min-[38rem]:grid-cols-3">
     {#each plans as plan (plan.key)}
       {@const marked = plan.key === current}
       {@const action = actionFor(plan)}

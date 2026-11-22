@@ -399,20 +399,25 @@ describe('billing page', () => {
   });
 
   it('brings the plans into view from the plan card, with focus there: Choose a plan on the trial, Change plan on a subscription', async () => {
+    const original = Element.prototype.scrollIntoView;
     const scrolled = vi.fn();
     Element.prototype.scrollIntoView = scrolled;
-    for (const [overview, label] of [
-      [trial, 'Choose a plan'],
-      [active, 'Change plan'],
-    ] as const) {
-      renderPage(overview);
+    try {
+      for (const [overview, label] of [
+        [trial, 'Choose a plan'],
+        [active, 'Change plan'],
+      ] as const) {
+        renderPage(overview);
 
-      await fireEvent.click(await screen.findByRole('button', { name: label }));
+        await fireEvent.click(await screen.findByRole('button', { name: label }));
 
-      expect(document.activeElement).toBe(plans());
-      expect(scrolled).toHaveBeenCalled();
-      cleanup();
-      scrolled.mockClear();
+        expect(document.activeElement).toBe(plans());
+        expect(scrolled).toHaveBeenCalled();
+        cleanup();
+        scrolled.mockClear();
+      }
+    } finally {
+      Element.prototype.scrollIntoView = original;
     }
   });
 

@@ -183,7 +183,7 @@ describe('plan comparison cards', () => {
     render(PlanComparison, { props: { plans: [starter, growth, unlimited], actionFor: () => null } });
 
     const grid = cardOf('starter').parentElement as HTMLElement;
-    expect(grid).toHaveClass('grid-cols-1', '@lg:grid-cols-3');
+    expect(grid).toHaveClass('grid-cols-1', '@min-[38rem]:grid-cols-3');
     expect(grid.className).not.toMatch(/grid-cols-2/);
   });
 });
