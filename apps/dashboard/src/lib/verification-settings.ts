@@ -53,7 +53,7 @@ export const checkGroupCopy: Record<CheckGroup, CheckGroupCopy> = {
     offCost: 'Answers are not compared and the consistency check does not run, so a contradiction waits for a person to spot it.',
   },
   Duplicates: {
-    summary: 'One person behind several applications',
+    summary: 'Applications that share an email, phone, device or file',
     looksAt: 'The same email address, phone number, device or resume file on another of your applicants.',
     example: 'Three applications under different names sent from the same device.',
     offCost: 'One person applying under several names is not noticed, and the device check does not run.',

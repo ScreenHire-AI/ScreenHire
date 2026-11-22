@@ -6,6 +6,8 @@ import { user, userAs } from '../../../../test-support/fixtures.js';
 import { ownKey, settingsWith, stubSettings } from '../../../../test-support/verification-settings.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
+// After the fixtures, which the `$app/state` mock below reads when this component's imports load it.
+import ChecksSettings from '#lib/components/verification-area/checks-settings.svelte';
 
 const location = vi.hoisted(() => ({ url: 'http://dashboard.test/verification/checks' }));
 vi.mock('$app/state', () => ({
@@ -180,6 +182,32 @@ describe('the Checks tab', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await within(section('Network')).findByText('203.0.113.7 is not allowed.')).toBeInTheDocument();
+  });
+
+  it('opens the row of another refused setting and says why under Save', async () => {
+    stubSettings(settingsWith(), {
+      'GET /v1/verification/overview': () => Response.json(overview()),
+      'PUT /v1/organization/verification-settings': () => Response.json({ errors: { defaultAiUse: ['Choose a policy this plan offers.'] } }, { status: 400 }),
+    });
+    render(WithQueryClient, { props: { component: Page, props: { data: { user } } } });
+    await screen.findByRole('switch', { name: 'Answers' });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Choose a policy this plan offers.')).toBeInTheDocument();
+    expect(within(section('Answers')).getByRole('combobox', { name: 'AI use while applying' })).toBeInTheDocument();
+    expect(screen.queryByText('Saved. It applies from the next application.')).not.toBeInTheDocument();
+  });
+
+  it('opens the row a link names while the tab is already showing', async () => {
+    stubSettings(settingsWith());
+    const props = { detail: settingsWith(), canEdit: true, found: null };
+    const view = render(WithQueryClient, { props: { component: ChecksSettings, props: { ...props, opened: '' } } });
+    expect(within(section('Network')).queryByRole('textbox')).not.toBeInTheDocument();
+
+    await view.rerender({ props: { component: ChecksSettings, props: { ...props, opened: 'network' } } });
+
+    expect(await within(section('Network')).findByRole('textbox', { name: 'Trusted networks' })).toBeInTheDocument();
   });
 
   it('shows Slack only once Slack is connected', async () => {

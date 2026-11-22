@@ -76,6 +76,11 @@
   const open = $state(Object.fromEntries(groups.map((group) => [group, untrack(() => opened) === keys[group]])) as Record<CheckGroup, boolean>);
   const allOpen = $derived(groups.every((group) => open[group]));
   const setAll = (value: boolean) => groups.forEach((group) => (open[group] = value));
+  // A link followed while the tab is already showing changes only the hash, so the row it names opens then too.
+  $effect(() => {
+    const linked = groups.find((group) => keys[group] === opened);
+    if (linked) untrack(() => (open[linked] = true));
+  });
 
   const aiUses = Object.keys(aiUseLabels) as (keyof typeof aiUseLabels)[];
   // The label is "Name: explanation". The name fits a phone-width select; the explanation goes in the info button.
@@ -172,8 +177,13 @@
             if (networkServerError) open.Network = true;
             if (domainServerError || 'deviceCheck' in rest) open.Duplicates = true;
             if ('defaultAiUse' in rest || 'llmConsistencyCheck' in rest) open.Answers = true;
-            // A refusal that names no field still says why, under Save.
-            if (!domainServerError && !networkServerError && Object.keys(rest).length === 0) {
+            // Only the trusted lists show a refusal beside the field, so any other refused setting says why under Save,
+            // and so does a refusal that names no field.
+            const refused = Object.values(rest).flat();
+            if (refused.length > 0) {
+              submitted.valid = false;
+              submitted.errors._errors = [refused[0]];
+            } else if (!domainServerError && !networkServerError) {
               submitted.valid = false;
               submitted.errors._errors = [describeError(error, 'Could not save the settings')];
             }
@@ -274,15 +284,16 @@
         {#each aiUses as policy (policy)}<option value={policy}>{aiUseName(policy)}{policy === 'AllowedWithDisclosure' ? ' (default)' : ''}</option>{/each}
       </select>
     </Field.Field>
-    <div class="flex items-start gap-4">
-      <div class="flex min-w-0 flex-1 items-center gap-1">
+    <!-- The switch before its label, as each group's switch is before its name, so the two never sit apart. -->
+    <div class="flex items-center gap-3">
+      <Switch id="consistency-check" bind:checked={$form.llmConsistencyCheck} />
+      <div class="flex min-w-0 items-center gap-1">
         <Field.Label for="consistency-check">Compare each application's sources</Field.Label>
         <InfoButton
           label="About comparing each application's sources"
           text={`The consistency check. It sends the resume, the answers and any uploaded LinkedIn export to ${detail.modelSource === 'OwnKey' ? 'your AI provider' : "ScreenHire's AI provider"}, and finds details that contradict each other. Whose key runs it is on the AI use tab.`}
         />
       </div>
-      <Switch id="consistency-check" bind:checked={$form.llmConsistencyCheck} class="mt-1" />
     </div>
   {:else}
     <SummaryList>
