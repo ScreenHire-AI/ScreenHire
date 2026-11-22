@@ -910,9 +910,21 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("first_sent_at");
 
+                    b.Property<Guid?>("FormTemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("form_template_id");
+
                     b.Property<Guid>("JobId")
                         .HasColumnType("uuid")
                         .HasColumnName("job_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Standard")
+                        .HasColumnName("kind");
 
                     b.Property<DateTimeOffset>("LastSentAt")
                         .HasColumnType("timestamp with time zone")
@@ -958,6 +970,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "ApplicationId", "QuestionnaireId")
                         .IsUnique()
                         .HasDatabaseName("ix_questionnaire_requests_organization_id_application_id_quest");
+
+                    b.HasIndex("OrganizationId", "Kind", "FormTemplateId")
+                        .HasDatabaseName("ix_questionnaire_requests_organization_id_kind_form_template_id");
 
                     b.ToTable("questionnaire_requests", (string)null);
                 });
@@ -1780,6 +1795,128 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_email_templates_organization_id_created_at");
 
                     b.ToTable("email_templates", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Hiring.FormTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("archived_at");
+
+                    b.Property<Guid?>("CopiedFromFormId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("copied_from_form_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("kind");
+
+                    b.Property<int?>("LatestPublishedVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("latest_published_version");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_form_templates");
+
+                    b.HasAlternateKey("OrganizationId", "Id")
+                        .HasName("ak_form_templates_organization_id_id");
+
+                    b.HasIndex("OrganizationId", "Name")
+                        .HasDatabaseName("ix_form_templates_organization_id_name");
+
+                    b.ToTable("form_templates", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Hiring.FormTemplateVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("FormTemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("form_template_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<Guid?>("PublishedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("published_by");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_form_template_versions");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("ix_form_template_versions_organization_id");
+
+                    b.HasIndex("FormTemplateId", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ix_form_template_versions_form_template_id_version");
+
+                    b.HasIndex("OrganizationId", "FormTemplateId")
+                        .HasDatabaseName("ix_form_template_versions_organization_id_form_template_id");
+
+                    b.HasIndex(new[] { "FormTemplateId" }, "ix_form_template_versions_one_draft")
+                        .IsUnique()
+                        .HasDatabaseName("ix_form_template_versions_form_template_id")
+                        .HasFilter("status = 'Draft'");
+
+                    b.ToTable("form_template_versions", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Hiring.HiringTemplate", b =>
@@ -5889,6 +6026,34 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_email_templates_organizations_organization_id");
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Hiring.FormTemplate", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_form_templates_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Hiring.FormTemplateVersion", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_form_template_versions_organizations_organization_id");
+
+                    b.HasOne("ScreenHire.Domain.Hiring.FormTemplate", null)
+                        .WithMany("Versions")
+                        .HasForeignKey("OrganizationId", "FormTemplateId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_form_template_versions_form_templates_organization_id_form_");
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Hiring.HiringTemplate", b =>
                 {
                     b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
@@ -6652,6 +6817,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ScreenHire.Domain.Applications.ApplicationNote", b =>
                 {
                     b.Navigation("Mentions");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Hiring.FormTemplate", b =>
+                {
+                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Hiring.HiringTemplate", b =>

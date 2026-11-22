@@ -16,11 +16,12 @@ namespace ScreenHire.UnitTests.History;
 public sealed partial class TrackedKindsTests
 {
     [Fact]
-    public void Templates_jobs_roles_settings_the_sending_domain_the_team_api_keys_and_webhook_endpoints_are_tracked()
+    public void Templates_forms_jobs_roles_settings_the_sending_domain_the_team_api_keys_and_webhook_endpoints_are_tracked()
     {
         TrackedKinds.All.Select(k => k.EntityType).Should().BeEquivalentTo(
         [
             typeof(HiringTemplate), typeof(HiringTemplateVersion), typeof(EmailTemplate), typeof(Job), typeof(JobPosting), typeof(ScorecardTemplate),
+            typeof(FormTemplate), typeof(FormTemplateVersion),
             typeof(CustomRole), typeof(Organization), typeof(Organization), typeof(VerificationSettings), typeof(RetentionSettings), typeof(TalentPoolEntry),
             typeof(SendingDomain),
             typeof(OrganizationMember), typeof(NamedTeam), typeof(OrganizationInvitation), typeof(ApiKey), typeof(WebhookEndpoint), typeof(WebhookEndpointSecret),

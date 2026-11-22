@@ -73,6 +73,7 @@ public static partial class DefinitionValidator
     public const int MaxScorecardQuestions = 20;
     public const int MaxFollowUpQuestionnaires = 10;
     public const int MaxSections = 20;
+    public const int MaxFormNameLength = 80;
     public const int MaxInterviewers = 5;
     public const int MaxInterviewWindowDays = 60;
 
@@ -340,18 +341,112 @@ public static partial class DefinitionValidator
                 errors.Add(new(Join(followUpPath, "id"), $"{Cap(owner)} has the id '{followUp.Id}', which another follow-up questionnaire already has. Use a different id."));
             }
 
-            ValidateText(followUp.Name, Join(followUpPath, "name"), 80, required: true, $"The name of follow-up questionnaire {i + 1}", errors);
-            if (followUp.Questions is not { Count: > 0 } followUpQuestions)
-            {
-                errors.Add(new(Join(followUpPath, "questions"), $"{Cap(owner)} has no questions. Add one, or delete it."));
-                continue;
-            }
-
-            ValidateQuestions(followUpQuestions, followUpPath, followUp: true, owner, questions, errors);
-            ValidateSections(followUp.Sections, followUpQuestions, followUpPath, owner, errors);
+            ValidateText(followUp.Name, Join(followUpPath, "name"), MaxFormNameLength, required: true, $"The name of follow-up questionnaire {i + 1}", errors);
+            ValidateFormLink(followUp, followUpPath, owner, errors);
+            ValidateFormQuestions(followUp.Questions, followUp.Sections, followUp.Kind, followUpPath, owner, questions, errors);
         }
 
         return byId;
+    }
+
+    /// <summary>
+    /// The problems with one library form on its own (workflow-engine.md §7, Forms): its name, questions and sections, under
+    /// the rules a follow-up questionnaire keeps, and an equality monitoring form's. Question ids need only be unique within
+    /// the form; a hiring template that uses it checks them against its other forms.
+    /// </summary>
+    public static IReadOnlyList<DefinitionError> ValidateForm(FormContent? content, FormKind kind)
+    {
+        var errors = new List<DefinitionError>();
+        if (content is null)
+        {
+            errors.Add(new("", "The form is empty. Give it a name and at least one question."));
+            return errors;
+        }
+
+        if (!Enum.IsDefined(kind))
+        {
+            errors.Add(new("kind", "Choose what kind of form this is."));
+        }
+
+        var owner = Ref("form", content.Name);
+        ValidateText(content.Name, "name", MaxFormNameLength, required: true, "The form's name", errors);
+        ValidateFormQuestions(content.Questions, content.Sections, kind, "", owner, new(StringComparer.Ordinal), errors);
+        return errors;
+    }
+
+    // A follow-up that copies a library form names both the form and its version, or neither.
+    private static void ValidateFormLink(FollowUpQuestionnaire followUp, string path, string owner, List<DefinitionError> errors)
+    {
+        if (followUp.FormTemplateId == Guid.Empty)
+        {
+            errors.Add(new(Join(path, "formTemplateId"), $"{Cap(owner)} names a library form with an empty id. Choose the form again."));
+        }
+
+        if ((followUp.FormTemplateId is null) != (followUp.FormVersion is null))
+        {
+            errors.Add(new(Join(path, followUp.FormTemplateId is null ? "formTemplateId" : "formVersion"),
+                $"{Cap(owner)} names a library form without its version, or a version without its form. Choose the form again."));
+        }
+        else if (followUp.FormVersion is < 1)
+        {
+            errors.Add(new(Join(path, "formVersion"), $"{Cap(owner)} names a version of its library form that cannot exist. Choose the form again."));
+        }
+
+        if (followUp.Kind is { } kind && !Enum.IsDefined(kind))
+        {
+            errors.Add(new(Join(path, "kind"), $"{Cap(owner)} has a kind that does not exist. Choose the form again."));
+        }
+    }
+
+    private static void ValidateFormQuestions(
+        IReadOnlyList<Question>? questions, IReadOnlyList<QuestionSection>? sections, FormKind? kind, string path, string owner,
+        Dictionary<string, Question> byId, List<DefinitionError> errors)
+    {
+        if (questions is not { Count: > 0 })
+        {
+            errors.Add(new(Join(path, "questions"), $"{Cap(owner)} has no questions. Add one, or delete it."));
+            return;
+        }
+
+        ValidateQuestions(questions, path, followUp: true, owner, byId, errors);
+        ValidateSections(sections, questions, path, owner, errors);
+        if (kind == FormKind.EqualityMonitoring)
+        {
+            ValidateEqualityQuestions(questions, path, owner, errors);
+        }
+    }
+
+    // Equality monitoring answers are only ever counted (workflow-engine.md §7, Forms): every question is a choice, so the
+    // totals have categories, and optional, so nobody has to answer one. A knockout would act on an answer.
+    private static void ValidateEqualityQuestions(IReadOnlyList<Question> questions, string path, string owner, List<DefinitionError> errors)
+    {
+        for (var i = 0; i < questions.Count; i++)
+        {
+            if (questions[i] is not { } question)
+            {
+                continue;
+            }
+
+            var questionPath = $"{Join(path, "questions")}[{i}]";
+            var described = Described(question.Label, i + 1, owner);
+            if (question.Type is not (QuestionType.SingleChoice or QuestionType.MultiChoice or QuestionType.YesNo))
+            {
+                errors.Add(new(Join(questionPath, "type"),
+                    $"{Cap(described)} is not a choice. An equality monitoring form is only counted, so each question offers choices. Change the question type."));
+            }
+
+            if (question.Required)
+            {
+                errors.Add(new(Join(questionPath, "required"),
+                    $"{Cap(described)} is required. Nobody has to answer an equality monitoring form, so make it optional."));
+            }
+
+            if (question.Knockout is not null)
+            {
+                errors.Add(new(Join(questionPath, "knockout"),
+                    $"{Cap(described)} is a knockout. Nothing may act on an equality monitoring answer, so remove the knockout."));
+            }
+        }
     }
 
     private static void ValidateQuestions(
@@ -364,7 +459,7 @@ public static partial class DefinitionValidator
 
         for (var i = 0; i < questions.Count; i++)
         {
-            var questionPath = $"{path}.questions[{i}]";
+            var questionPath = $"{Join(path, "questions")}[{i}]";
             var question = questions[i];
             if (question is null)
             {
@@ -621,6 +716,7 @@ public static partial class DefinitionValidator
             ValidateTrigger(automation.Trigger, Join(automationPath, "trigger"), quoted, named, parts, errors);
             ValidateConditions(automation.Conditions, Join(automationPath, "conditions"), quoted, named, automation.Trigger?.Type, questions, errors);
             ValidateActions(automation.Actions, Join(automationPath, "actions"), quoted, named, parts, errors);
+            ValidateEqualityUse(automation, automationPath, quoted, parts, errors);
         }
 
         var signalDriven = DrivenAutomations(automations, DrivenBySignal);
@@ -630,6 +726,35 @@ public static partial class DefinitionValidator
             if (automations[i] is { } automation)
             {
                 ValidateGuardrails(automation, $"{path}[{i}]", signalDriven.Contains(i), delayDriven.Contains(i), stages, questions, errors);
+            }
+        }
+    }
+
+    // Nothing acts on an equality monitoring form (workflow-engine.md §7, Forms): no condition reads its answers, and no
+    // automation starts when one is answered. Sending one is allowed: that asks, and acts on nothing.
+    private static void ValidateEqualityUse(Automation automation, string path, string quoted, WorkflowParts parts, List<DefinitionError> errors)
+    {
+        var equality = parts.FollowUps.Values.Where(f => f.Kind == FormKind.EqualityMonitoring).ToList();
+        if (equality.Count == 0)
+        {
+            return;
+        }
+
+        if (automation.Trigger is { Type: TriggerType.QuestionnaireCompleted, QuestionnaireId: { } formId }
+            && equality.Any(f => f.Id == formId))
+        {
+            errors.Add(new(Join(path, "trigger.questionnaireId"),
+                $"{Cap(quoted)} starts when an equality monitoring form is answered. Nothing may act on those answers, so choose another form or trigger."));
+        }
+
+        var questionIds = equality.SelectMany(f => f.Questions ?? []).Where(q => q is not null).Select(q => q.Id).ToHashSet(StringComparer.Ordinal);
+        var rules = automation.Conditions?.Rules ?? [];
+        for (var i = 0; i < rules.Count; i++)
+        {
+            if (rules[i]?.Fact is { } fact && fact.StartsWith(AnswersPrefix, StringComparison.Ordinal) && questionIds.Contains(fact[AnswersPrefix.Length..]))
+            {
+                errors.Add(new(Join(path, $"conditions.rules[{i}].fact"),
+                    $"Condition {i + 1} of {quoted} tests an answer on an equality monitoring form. Those answers are only counted in totals, so choose another question."));
             }
         }
     }

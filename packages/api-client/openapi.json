@@ -21639,9 +21639,40 @@
             "items": {
               "$ref": "#/components/schemas/QuestionSection"
             }
+          },
+          "formTemplateId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "formVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "kind": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FormKind"
+              }
+            ]
           }
         },
         "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads."
+      },
+      "FormKind": {
+        "enum": [
+          "Standard",
+          "EqualityMonitoring",
+          null
+        ]
       },
       "FunnelEnd": {
         "enum": [

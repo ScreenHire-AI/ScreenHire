@@ -51,6 +51,9 @@ public enum ChangeSubjectKind
     /// each rotation of its signing secret. The subject is the endpoint.
     /// </summary>
     WebhookEndpoint,
+
+    /// <summary>A library form, on Templates, Forms: created, its versions started and published, and archived.</summary>
+    FormTemplate,
 }
 
 /// <summary>

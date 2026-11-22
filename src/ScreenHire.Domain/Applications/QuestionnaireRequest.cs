@@ -36,6 +36,18 @@ public sealed class QuestionnaireRequest : IJobScoped
     /// <summary>The questionnaire's name when it was last sent, so the record reads after the workflow changes.</summary>
     public string QuestionnaireName { get; private set; } = "";
 
+    /// <summary>
+    /// The form's kind when it was first sent, never changed afterwards. Every reader goes by this, not by the workflow, so
+    /// an equality monitoring form's answers stay out of the candidate's page even if the workflow changes later.
+    /// </summary>
+    public FormKind Kind { get; init; }
+
+    /// <summary>The library form the follow-up was copied from when first sent, or null: what Reports totals group by.</summary>
+    public Guid? FormTemplateId { get; init; }
+
+    /// <summary>Whether this is an equality monitoring form, whose answers only count toward totals in Reports.</summary>
+    public bool IsEqualityMonitoring => Kind == FormKind.EqualityMonitoring;
+
     public DateTimeOffset FirstSentAt { get; init; }
 
     public DateTimeOffset LastSentAt { get; private set; }
@@ -102,6 +114,8 @@ public sealed class QuestionnaireRequest : IJobScoped
             ApplicationId = application.Id,
             JobId = application.JobId,
             QuestionnaireId = questionnaire.Id,
+            Kind = questionnaire.Kind ?? FormKind.Standard,
+            FormTemplateId = questionnaire.FormTemplateId,
             FirstSentAt = now,
         };
         request.Resend(questionnaire, now);
@@ -126,9 +140,9 @@ public sealed class QuestionnaireRequest : IJobScoped
     /// <summary>Whether the link sent last has run out at <paramref name="now"/>.</summary>
     public bool IsExpired(DateTimeOffset now) => now >= ExpiresAt;
 
-    /// <summary>The timeline entry for a send, linked to the automation run that sent it.</summary>
-    public ApplicationEvent SentEvent(DateTimeOffset now, Guid? automationRunId) =>
-        NewEvent(ApplicationEventType.QuestionnaireSent, now, automationRunId);
+    /// <summary>The timeline entry for a send, linked to the automation run that sent it, or to the person who sent it by hand.</summary>
+    public ApplicationEvent SentEvent(DateTimeOffset now, Guid? automationRunId, Guid? actorUserId = null)
+        => NewEvent(ApplicationEventType.QuestionnaireSent, now, automationRunId, actorUserId);
 
     /// <summary>
     /// Records the candidate's answers and returns the timeline entry that raises the QuestionnaireCompleted trigger. The
@@ -152,10 +166,11 @@ public sealed class QuestionnaireRequest : IJobScoped
         return entry;
     }
 
-    private ApplicationEvent NewEvent(ApplicationEventType type, DateTimeOffset now, Guid? automationRunId) =>
+    private ApplicationEvent NewEvent(ApplicationEventType type, DateTimeOffset now, Guid? automationRunId, Guid? actorUserId = null) =>
         new()
         {
             OrganizationId = OrganizationId,
+            ActorUserId = actorUserId,
             ApplicationId = ApplicationId,
             Type = type,
             Data = new ApplicationEventData(AutomationRunId: automationRunId, QuestionnaireId: QuestionnaireId, QuestionnaireRequestId: Id),

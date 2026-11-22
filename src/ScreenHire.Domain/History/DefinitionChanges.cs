@@ -195,6 +195,11 @@ public static class DefinitionChanges
                     lines.Add(ChangeLine.Of($"renamed the follow-up questionnaire from {a.Name} to ", b.Name));
                 }
 
+                if (b.FormVersion is { } version && (a.FormTemplateId != b.FormTemplateId || a.FormVersion != version))
+                {
+                    lines.Add(ChangeLine.Of($"updated {b.Name} to version ", version.ToString(System.Globalization.CultureInfo.InvariantCulture), " of the library form"));
+                }
+
                 if (Reordered(a.Questions, b.Questions, q => q.Id))
                 {
                     lines.Add(ChangeLine.Of("reordered the questions of ", b.Name));
@@ -217,6 +222,27 @@ public static class DefinitionChanges
 
         Sections(before.Questionnaire.Sections, after.Questionnaire.Sections, "", lines);
     }
+
+    /// <summary>
+    /// A library form's content changes: its name, its questions and its sections, in the words a hiring template's
+    /// questions use (workflow-engine.md section 7, Forms).
+    /// </summary>
+    public static IReadOnlyList<ChangeLine> Form(FormContent before, FormContent after)
+    {
+        ArgumentNullException.ThrowIfNull(before);
+        ArgumentNullException.ThrowIfNull(after);
+        var lines = new List<ChangeLine>();
+        if (before.Name != after.Name)
+        {
+            lines.Add(ChangeLine.Of($"renamed the form from {before.Name} to ", after.Name));
+        }
+
+        Questions(AsWorkflow(before), AsWorkflow(after), lines);
+        return lines;
+    }
+
+    private static HiringWorkflow AsWorkflow(FormContent content) =>
+        new([], new Questionnaire(content.Questions ?? [], content.Sections), []);
 
     // A questionnaire's named pages: added, removed, renamed, or holding other questions. `of` names a follow-up
     // questionnaire (" of Availability"), empty for the apply form.
