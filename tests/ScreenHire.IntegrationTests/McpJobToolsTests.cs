@@ -81,6 +81,45 @@ public sealed class McpJobToolsTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Apply_template_update_replaces_the_jobs_own_edits_and_a_stale_version_or_a_job_without_a_template_is_refused()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await using var mcp = await ConnectAsync(owner);
+        var template = (await mcp.CallAsync("list_hiring_templates", new())).GetProperty("templates").EnumerateArray()
+            .First(t => t.GetProperty("latestPublishedVersionId").ValueKind == JsonValueKind.String);
+        var job = (await mcp.CallAsync("create_job", new()
+        {
+            ["title"] = "Support Engineer",
+            ["templateVersionId"] = template.GetProperty("latestPublishedVersionId").GetGuid(),
+            ["description"] = "<p>Help customers succeed.</p>",
+            ["workplaceType"] = "Remote",
+            ["employmentType"] = "FullTime",
+        })).GetProperty("id").GetGuid();
+        var read = await mcp.CallAsync("get_job", new() { ["jobId"] = job });
+        var questions = JsonNode.Parse(read.GetProperty("questions").GetRawText())!.AsObject();
+        var list = questions["questions"] as JsonArray ?? [];
+        list.Add(new JsonObject { ["id"] = "portfolio", ["type"] = "Url", ["label"] = "A link to your portfolio", ["required"] = false });
+        questions["questions"] = list;
+        var edited = await mcp.CallAsync(
+            "set_job_questions", new() { ["jobId"] = job, ["questions"] = questions, ["expectedWorkflowVersion"] = read.GetProperty("workflowVersion").GetInt32() });
+        var version = edited.GetProperty("workflowVersion").GetInt32();
+
+        var updated = await mcp.CallAsync("apply_template_update", new() { ["jobId"] = job, ["expectedWorkflowVersion"] = version });
+        var stale = await mcp.CallFailingAsync("apply_template_update", new() { ["jobId"] = job, ["expectedWorkflowVersion"] = version });
+        var own = (await owner.CreateJobAsync(Samples.RemoteJob("Platform Engineer"))).Id();
+        var ownVersion = (await mcp.CallAsync("get_job", new() { ["jobId"] = own })).GetProperty("workflowVersion").GetInt32();
+        var noTemplate = await mcp.CallFailingAsync("apply_template_update", new() { ["jobId"] = own, ["expectedWorkflowVersion"] = ownVersion });
+
+        updated.GetProperty("questions").GetProperty("questions").EnumerateArray().Select(q => q.GetProperty("id").GetString())
+            .Should().NotContain("portfolio", "the template's version replaces the job's own edits");
+        updated.GetProperty("workflowVersion").GetInt32().Should().BeGreaterThan(version);
+        stale.Should().Contain("reload it");
+        noTemplate.Should().Contain("did not start from a template");
+        (await owner.GetAsync($"/v1/jobs/{job}")).At("workflow.questionnaire.questions").EnumerateArray()
+            .Select(q => q.GetProperty("id").GetString()).Should().NotContain("portfolio");
+    }
+
+    [Fact]
     public async Task Set_job_pipeline_adds_a_stage_after_screening()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

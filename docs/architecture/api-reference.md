@@ -23,6 +23,7 @@ sources:
   - resource: apps/marketing/src/developers/samples/verify_signature.py
   - resource: apps/marketing/src/developers/samples/ScreenHireSignature.cs
   - resource: tests/ScreenHire.UnitTests/Tooling/PublicApiDocumentTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Production/ApiReferenceTests.cs
   - resource: tests/ScreenHire.UnitTests/Mcp/McpToolCatalogTests.cs
   - resource: tests/ScreenHire.UnitTests/Webhooks/SignatureSampleTests.cs
   - resource: apps/marketing/src/lib/developers.test.ts
@@ -51,6 +52,8 @@ can describe a route, an event or a tool the API lacks.
 - **Summaries.** Every public operation has `.WithSummary(...)` beside its `.WithName(...)`: a short sentence-case
   phrase with no full stop, such as "Move an application to a stage". `PublicApiDocumentTests` reads the committed file
   and fails on an operation without one, and on one the full document does not mark as taking a key.
+  `ApiReferenceTests` (integration, the API run in Production) checks that the served `/openapi/public.json` has the
+  committed file's paths and webhooks, and that `/scalar` shows it.
 - **Tags and groups.** Tags are set at the source with `.WithTags(...)`, one per route group: scorecard routes are
   `Scorecards`, and hiring templates, the scorecard library and the form library are `Templates`. The public document
   adds `x-tagGroups` from `ApiDocuments.TagGroups` (Hiring: Jobs, Applications, Candidates, Interviews, Scorecards, Tasks,

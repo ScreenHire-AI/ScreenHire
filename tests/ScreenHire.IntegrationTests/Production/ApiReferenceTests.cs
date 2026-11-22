@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 
@@ -40,12 +41,38 @@ public sealed class ApiReferenceTests(ProductionApiFixture fixture) : IClassFixt
         var page = await reference.Content.ReadAsStringAsync(cancellationToken);
         page.Should().Contain("\"telemetry\":false", "the public page sends Scalar no telemetry")
             .And.Contain("\"withDefaultFonts\":false", "nor loads fonts from Scalar's CDN");
-        page.Should().Contain("/openapi/public.json", "the reference shows the public document, what a key can call");
+        // Scalar lists each document as a source, its url relative to the page.
+        page.Should().Contain("\"url\":\"openapi/public.json\"", "the reference shows the public document, what a key can call");
         openApi.StatusCode.Should().Be(HttpStatusCode.OK);
         (await openApi.Content.ReadAsStringAsync(cancellationToken)).Should().Contain("\"openapi\"");
         published.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await published.Content.ReadAsStringAsync(cancellationToken)).Should().Contain("\"ScreenHire API\"").And.Contain("\"webhooks\"");
+        using var served = JsonDocument.Parse(await published.Content.ReadAsStringAsync(cancellationToken));
+        using var committed = JsonDocument.Parse(await File.ReadAllTextAsync(CommittedPublicDocument(), cancellationToken));
+        served.RootElement.GetProperty("info").GetProperty("title").GetString().Should().Be("ScreenHire API");
+        foreach (var section in new[] { "paths", "webhooks" })
+        {
+            // The developer docs and the dashboard read the committed file; the running API must serve what it says.
+            Keys(served.RootElement, section).Should().Equal(Keys(committed.RootElement, section), section);
+        }
+
         (await meta.Content.ReadAsStringAsync(cancellationToken)).Should().Contain("\"Production\"", "the fixture runs the API in Production");
+    }
+
+    private static List<string> Keys(JsonElement document, string section) =>
+        [.. document.GetProperty(section).EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal)];
+
+    // packages/api-client/openapi_public.json, under the folder that holds ScreenHire.slnx.
+    private static string CommittedPublicDocument()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "ScreenHire.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory is null
+            ? throw new InvalidOperationException($"No ScreenHire.slnx above {AppContext.BaseDirectory}.")
+            : Path.Combine(directory.FullName, "packages", "api-client", "openapi_public.json");
     }
 
     // The process is running before Kestrel listens, so the first requests may be refused.
