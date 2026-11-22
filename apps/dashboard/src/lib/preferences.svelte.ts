@@ -32,6 +32,13 @@ const reduceMotionKey = 'screenhire:reduce-motion';
 const sortKey = (table: string) => `screenhire:sort:${table}`;
 const setupTourKey = (userId: string) => `screenhire:setup-tour:${userId}`;
 const pipelineViewKey = 'screenhire:pipeline-view';
+const activityFiltersKey = 'screenhire:activity-filters';
+
+/** The Activity feed's filters as the person last left them: whose jobs, and which kinds (none is every kind). */
+export interface ActivityFilters {
+  scope?: string;
+  kinds: string[];
+}
 
 /** How a job's candidates show: a table or the board. */
 export type PipelineView = 'table' | 'board';
@@ -163,6 +170,25 @@ class Preferences {
 
   setSort(table: string, sort: TableSort): void {
     write(sortKey(table), JSON.stringify({ id: sort.id, desc: sort.desc }));
+  }
+
+  /** The Activity feed's filters in this browser; anything unreadable counts as none chosen. */
+  activityFilters(): ActivityFilters {
+    try {
+      const value: unknown = JSON.parse(read(activityFiltersKey) ?? 'null');
+      if (typeof value === 'object' && value !== null) {
+        const scope = 'scope' in value && typeof value.scope === 'string' ? value.scope : undefined;
+        const kinds = 'kinds' in value && Array.isArray(value.kinds) ? value.kinds.filter((kind): kind is string => typeof kind === 'string') : [];
+        return { scope, kinds };
+      }
+    } catch {
+      // Not JSON: someone else's value under our key.
+    }
+    return { kinds: [] };
+  }
+
+  setActivityFilters(filters: ActivityFilters): void {
+    write(activityFiltersKey, JSON.stringify(filters));
   }
 
   /**

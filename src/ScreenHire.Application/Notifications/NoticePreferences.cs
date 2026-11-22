@@ -49,9 +49,12 @@ public static class NoticeRows
     [
         new(NoticeKind.Mentions, [ToastKind.Mentions], HasSlack: true, Scoped: false, []),
         new(NoticeKind.Replies, [ToastKind.Replies], HasSlack: false, Scoped: false, []),
-        new(NoticeKind.Interviews, [], HasSlack: false, Scoped: false, []),
+        // Email goes to the interviewers; the toast, a candidate booking, moving or cancelling, to the job's hiring team, as
+        // the person's My jobs or Everything says.
+        new(NoticeKind.Interviews, [ToastKind.Interviews], HasSlack: false, Scoped: false, []),
         new(NoticeKind.Tasks, [ToastKind.Tasks], HasSlack: true, Scoped: false, []),
-        new(NoticeKind.NewApplications, [ToastKind.NewCandidates], HasSlack: false, Scoped: true, []),
+        // A candidate answering a follow-up form is news from a candidate on the person's jobs, as an application is.
+        new(NoticeKind.NewApplications, [ToastKind.NewCandidates, ToastKind.Forms], HasSlack: false, Scoped: true, []),
         new(NoticeKind.TeammateChanges,
             [ToastKind.Moves, ToastKind.Notes, ToastKind.Tags, ToastKind.Emails, ToastKind.Scorecards, ToastKind.Templates],
             HasSlack: false, Scoped: true, []),

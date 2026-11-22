@@ -49,7 +49,8 @@
   import { clock } from '#lib/clock.svelte.js';
   import { billingFeature, slackFeature } from '#lib/settings.js';
   import { sectionsFor, setShell } from '#lib/shell.js';
-  import { createChordHandler } from '#lib/shortcuts.js';
+  import { activityPanel } from '#lib/activity-feed.svelte.js';
+  import { createChordHandler, opensActivity } from '#lib/shortcuts.js';
   import { configureDates } from '#lib/date-settings.svelte.js';
   import { cardShows, defaultNotificationSettings, toastSettingsFrom, type ToastSettings } from '#lib/teammate-changes.js';
   import { TeammateToasts } from '#lib/teammate-toasts.js';
@@ -207,8 +208,13 @@
       return;
     }
 
-    if (preferences.shortcutsEnabled && !event.defaultPrevented && chords(event)) {
+    if (!preferences.shortcutsEnabled || event.defaultPrevented) return;
+    if (chords(event)) {
       event.preventDefault();
+    } else if (opensActivity(event)) {
+      // A opens the bell at Activity (design system section 15); the bell on this page takes the request.
+      event.preventDefault();
+      activityPanel.open();
     }
   }
 

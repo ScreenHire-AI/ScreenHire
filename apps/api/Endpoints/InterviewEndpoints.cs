@@ -181,7 +181,8 @@ internal static class InterviewEndpoints
         db.InterviewAttendees.AddRange(attendees);
         db.ApplicationEvents.Add(application.InterviewInvited(interview, now, tenant.UserId));
         await outbox.PublishAsync(new SendInterviewInvitation(application.OrganizationId, application.Id, interview.Id, Guid.CreateVersion7(), tenant.UserId));
-        await outbox.PublishAsync(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString()));
+        await outbox.PublishAsync(new InterviewChanged(
+            application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.Invited, tenant.UserId));
         try
         {
             await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
@@ -259,7 +260,9 @@ internal static class InterviewEndpoints
                 application.OrganizationId, application.Id, interview.Id, interview.Revision, ActorUserId: tenant.UserId));
         }
 
-        await outbox.PublishAsync(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString()));
+        await outbox.PublishAsync(new InterviewChanged(
+            application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.Cancelled, tenant.UserId,
+            StartsAt: interview.StartsAt));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         var byUser = (await HiringTeams.MembersAsync(db, tenant, cancellationToken)).Values.ToDictionary(m => m.UserId);
         return TypedResults.Ok(interview.ToDto(attendees, byUser, now));
@@ -314,7 +317,9 @@ internal static class InterviewEndpoints
         interview.OfferNewTimes(request.WindowStart, request.WindowEnd, now);
         db.ApplicationEvents.Add(application.InterviewNewTimesOffered(interview, now, tenant.UserId));
         await outbox.PublishAsync(new SendInterviewNewTimes(application.OrganizationId, application.Id, interview.Id, Guid.CreateVersion7(), tenant.UserId));
-        await outbox.PublishAsync(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString()));
+        await outbox.PublishAsync(new InterviewChanged(
+            application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.NewTimesOffered, tenant.UserId,
+            StartsAt: interview.StartsAt));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
 
         var attendees = await db.InterviewAttendees.AsNoTracking()

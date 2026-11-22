@@ -60,6 +60,26 @@ internal static class RatingReads
             .Contains(applicationId);
     }
 
+    /// <summary>
+    /// The applications among <paramref name="applicationIds"/> where <paramref name="userId"/> still has their own
+    /// scorecard to give, so others' scorecards stay out of what they read.
+    /// </summary>
+    public static async Task<HashSet<Guid>> WithheldAmongAsync(
+        ScreenHireDbContext db, IReadOnlyCollection<Guid> applicationIds, Guid? userId, CancellationToken cancellationToken)
+    {
+        if (userId is not { } id || applicationIds.Count == 0)
+        {
+            return [];
+        }
+
+        var given = await db.ApplicationScorecards.AsNoTracking()
+            .Where(s => applicationIds.Contains(s.ApplicationId) && s.ReviewerUserId == id)
+            .Select(s => new { s.ApplicationId, s.StageId, s.SubmittedAt, s.ScorecardTemplateId })
+            .ToListAsync(cancellationToken);
+        return await WithheldAsync(
+            db, applicationIds, userId, given.Select(s => (s.ApplicationId, new GivenScorecard(s.StageId, s.SubmittedAt, s.ScorecardTemplateId))), cancellationToken);
+    }
+
     // The applications among applicationIds where the person has an open Review task, or a scorecard asked of them, that
     // their scorecards have not answered.
     private static async Task<HashSet<Guid>> WithheldAsync(

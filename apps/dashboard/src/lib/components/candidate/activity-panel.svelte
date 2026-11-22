@@ -14,7 +14,7 @@
   import { Badge } from '#lib/components/ui/badge/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
-  import { activityKind, activityKinds, actorText, describeEvent, eventIcons, kindCounts, visibleEntries, type ActivityKind, type ActivityNames } from '#lib/activity.js';
+  import { activityHref, activityKind, activityKinds, actorText, describeEvent, eventIcons, kindCounts, visibleEntries, type ActivityKind, type ActivityNames } from '#lib/activity.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { reviewActivities } from '#lib/verification-activity.js';
   import { applicationsPath } from '#lib/realtime.js';
@@ -77,6 +77,7 @@
       id: entry.id,
       icon: eventIcons[entry.type],
       event: describeEvent(entry, names),
+      href: activityHref(entry, applicationId),
       actor: actorText(entry, members, currentUserId),
       note: entry.type === 'NoteAdded' ? undefined : (entry.note ?? undefined),
       noteId: entry.type === 'NoteAdded' ? (entry.noteId ?? undefined) : undefined,

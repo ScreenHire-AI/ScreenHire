@@ -10,6 +10,7 @@
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+  import { linkedTo } from '#lib/linked.svelte.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { applicationsPath } from '#lib/realtime.js';
 
@@ -65,7 +66,8 @@
 {#if interviews.isError}
   <Panel title="Interview"><QueryError message={describeError(interviews.error, 'Could not load the interview')} onretry={() => interviews.refetch()} inset /></Panel>
 {:else if shown}
-  <Panel title="Interview" actions={live && mayChange ? menu : undefined}>
+  <!-- Activity's and the toasts' interview links land here (#interview). -->
+  <Panel id="interview" title="Interview" actions={live && mayChange ? menu : undefined} {@attach linkedTo('interview')}>
     <InterviewDetails interview={shown} {candidateName} />
   </Panel>
 {/if}

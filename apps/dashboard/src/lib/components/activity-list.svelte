@@ -7,6 +7,8 @@
     icon: Component;
     /** What happened: "Moved to Screening". */
     event: string;
+    /** Where the change is (`activityHref`): the event is then a link to it. */
+    href?: string;
     /** Who did it, shown muted after the event. */
     actor?: string;
     /** A note left with the event, quoted below it. */
@@ -24,8 +26,9 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
 
   // Events on a record, newest first (design system section 11): an icon in a circle, the event, who did it and time
-  // ago. A team note draws its own text and menu through `body` and `actions`, and is the anchor `#note-{id}` that a
-  // mention email links to. While `items` is undefined (still loading) it shows skeleton rows of the same shape (E1).
+  // ago. An event with an `href` links to where its change is (the email, the scorecard, the interview, the stage). A
+  // team note draws its own text and menu through `body` and `actions`, and is the anchor `#note-{id}` that a mention
+  // email links to. While `items` is undefined (still loading) it shows skeleton rows of the same shape (E1).
   let {
     items,
     label,
@@ -66,7 +69,12 @@
         <div class="flex min-w-0 flex-1 flex-col gap-0.5 pt-1">
           <div class="flex items-start gap-2">
             <p class="min-w-0 flex-1 break-words">
-              <span class="font-semibold">{item.event}</span>
+              {#if item.href}
+                <!-- The whole event is the link, so on a touch screen it is a 44px target (F4) with the rows' spacing kept by the negative margin. -->
+                <a href={item.href} class="font-semibold text-foreground underline underline-offset-2 pointer-coarse:-my-3.5 pointer-coarse:inline-block pointer-coarse:py-3.5">{item.event}</a>
+              {:else}
+                <span class="font-semibold">{item.event}</span>
+              {/if}
               {#if item.actor}<span class="text-muted-foreground">{item.actor}</span>{/if}
             </p>
             {#if item.noteId && actions}<div class="-mt-1.5 shrink-0">{@render actions(item)}</div>{/if}

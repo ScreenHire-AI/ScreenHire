@@ -315,7 +315,8 @@ public static partial class ExecuteAutomationActionHandler
             chosen.Select((userId, index) => InterviewAttendee.Create(interview, userId, isOrganizer: index == 0, usable[userId])));
         context.Db.ApplicationEvents.Add(application.InterviewInvited(interview, context.Now, actorUserId: null, context.Run.Id));
         context.Outgoing.Add(new SendInterviewInvitation(application.OrganizationId, application.Id, interview.Id, Guid.CreateVersion7(), ActorUserId: null));
-        context.Outgoing.Add(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString()));
+        context.Outgoing.Add(new InterviewChanged(
+            application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.Invited));
         return Completed($"Offered an interview with {(chosen.Count == 1 ? "1 interviewer" : $"{chosen.Count} interviewers")}; the candidate has {action.InterviewWindowDays} days to pick a time.");
     }
 

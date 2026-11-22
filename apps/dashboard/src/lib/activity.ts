@@ -20,9 +20,10 @@ import StickyNoteIcon from '~icons/lucide/sticky-note';
 import TagIcon from '~icons/lucide/tag';
 import TagsIcon from '~icons/lucide/tags';
 import Trash2Icon from '~icons/lucide/trash-2';
-import type { ApplicationEventType, ApplicationTimelineEntry, TalentPoolExit, TeamMember } from '@screenhire/api-client';
+import type { ActivityEntry, ApplicationEventType, ApplicationTimelineEntry, TalentPoolExit, TeamMember } from '@screenhire/api-client';
 import type { Component } from 'svelte';
 import { formatDateTime } from '#lib/dates.js';
+import { sentenceStart } from '#lib/history.js';
 import { personName } from '#lib/team.js';
 
 /**
@@ -196,4 +197,123 @@ export function actorText(
   if (entry.actorUserId) return `by ${personName(entry.actorUserId, members, currentUserId)}`;
   if (entry.actorApiKeyId) return entry.actorApiKeyName ? `by ${entry.actorApiKeyName}` : 'by an API key';
   return undefined;
+}
+
+type Linkable = Pick<ApplicationTimelineEntry, 'type'> &
+  Partial<Pick<ApplicationTimelineEntry, 'noteId' | 'emailId' | 'scorecardId' | 'questionnaireRequestId' | 'otherApplicationId'>>;
+
+/**
+ * Where an entry's change is (design system section 11, Activity): the note on Activity, the email on Messages, the
+ * scorecard's sheet, the follow-up form's answers, the interview, the verification, and for a move, a tag or the
+ * application itself the candidate's Overview, under the stage rail. The Activity feed in the bell and the candidate's own
+ * Activity tab link every entry this way.
+ */
+export function activityHref(entry: Linkable, applicationId: string): string {
+  const candidate = `/applications/${applicationId}`;
+  switch (entry.type) {
+    case 'NoteAdded':
+      return entry.noteId ? `${candidate}?tab=activity#note-${entry.noteId}` : `${candidate}?tab=activity`;
+    case 'EmailSent':
+    case 'EmailReceived':
+      return entry.emailId ? `${candidate}?tab=messages#email-${entry.emailId}` : `${candidate}?tab=messages`;
+    case 'ScorecardSubmitted':
+      // No id when the reader still has their own scorecard to give (ADR-0013): the tab, not the sheet.
+      return entry.scorecardId ? `${candidate}?tab=scorecards#scorecard-${entry.scorecardId}` : `${candidate}?tab=scorecards`;
+    case 'QuestionnaireSent':
+    case 'QuestionnaireCompleted':
+      return entry.questionnaireRequestId ? `${candidate}?tab=application#follow-up-${entry.questionnaireRequestId}` : `${candidate}?tab=application`;
+    case 'InterviewInvited':
+    case 'InterviewBooked':
+    case 'InterviewRescheduled':
+    case 'InterviewCancelled':
+    case 'InterviewNewTimesOffered':
+      return `${candidate}#interview`;
+    case 'VerificationAssessed':
+      return `${candidate}?tab=verification`;
+    case 'InvitedToApply':
+      return entry.otherApplicationId ? `/applications/${entry.otherApplicationId}` : candidate;
+    default:
+      return candidate;
+  }
+}
+
+/**
+ * One line of the workspace's Activity feed: `before`, then the record as a link (`link`, to `href`), then `after`, and who
+ * did it when that is not the sentence's subject (`by`): "Riley Harper moved [Taylor Brook] to Screening", "[Taylor Brook]
+ * applied", "Moved [Taylor Brook] to Screening" by ATS sync, via an API key. Checks say only that they finished, never what
+ * they found (non-negotiable 1).
+ */
+export interface FeedLine {
+  before: string;
+  link: string;
+  href: string;
+  after: string;
+  by?: string;
+}
+
+/** The words for one feed entry. `members` and `currentUserId` name the member who made it ("You" for the reader). */
+export function feedLine(entry: ActivityEntry, members: readonly TeamMember[] | undefined, currentUserId: string | undefined): FeedLine {
+  const doer = entry.by === 'Member' && entry.actorUserId ? sentenceStart(personName(entry.actorUserId, members, currentUserId)) : undefined;
+  const by = entry.by === 'Automation' ? 'by an automation' : entry.by === 'ApiKey' ? `by ${entry.actorApiKeyName ?? 'a key'}, via an API key` : undefined;
+  // A sentence whose subject is whoever made the change: their name when a member did, else it starts with the verb and
+  // says who after it.
+  const done = (verb: string, link: string, after: string, href: string): FeedLine =>
+    doer ? { before: `${doer} ${verb}`, link, href, after } : { before: sentenceStart(verb), link, href, after, by };
+
+  const event = entry.event;
+  if (!event || !entry.applicationId) {
+    const job = `/jobs/${entry.jobId}`;
+    const change = entry.jobChange;
+    if (change?.created) return done('created ', entry.jobTitle, '', job);
+    const line = change?.line?.text;
+    const more = change && change.moreLines > 0 ? ` and ${change.moreLines} more ${change.moreLines === 1 ? 'change' : 'changes'}` : '';
+    return done('changed ', entry.jobTitle, line ? `: ${line}${more}` : more, job);
+  }
+
+  const name = entry.candidateName ?? 'a candidate';
+  const href = activityHref(event, entry.applicationId);
+  const candidate = (after: string): FeedLine => ({ before: '', link: name, href, after });
+  const at = (word: string) => (event.startsAt ? ` ${word} ${formatDateTime(event.startsAt)}` : '');
+  switch (event.type) {
+    case 'Submitted':
+      return entry.by === 'Candidate' ? candidate(' applied') : done('added ', name, entry.toStageName ? ` to ${entry.toStageName}` : '', href);
+    case 'StageChanged':
+      return done('moved ', name, entry.toStageName ? ` to ${entry.toStageName}` : '', href);
+    case 'TagAdded':
+      return done('tagged ', name, ` "${event.tag ?? ''}"`, href);
+    case 'TagRemoved':
+      return done(`removed the tag "${event.tag ?? ''}" from `, name, '', href);
+    case 'NoteAdded':
+      return done('added a note on ', name, '', href);
+    case 'VerificationAssessed':
+      return { before: 'Checks finished for ', link: name, href, after: '' };
+    case 'ScorecardSubmitted':
+      return done(entry.stageName ? `submitted the ${entry.stageName} scorecard for ` : 'submitted a scorecard for ', name, '', href);
+    case 'EmailSent':
+      return done('emailed ', name, event.emailSubject ? ` "${event.emailSubject}"` : '', href);
+    case 'EmailReceived':
+      return candidate(event.emailSubject ? ` replied "${event.emailSubject}"` : ' replied');
+    case 'QuestionnaireSent':
+      return done('sent ', name, ` the "${entry.followUpName ?? 'follow-up'}" form`, href);
+    case 'QuestionnaireCompleted':
+      return candidate(` answered "${entry.followUpName ?? 'a follow-up form'}"`);
+    case 'TaskCreated':
+      return done('created a task for ', name, '', href);
+    case 'KeptInMind':
+      return done('saved ', name, ' for later', href);
+    case 'InvitedToApply':
+      return done('invited ', name, ' to apply for another job', href);
+    case 'InterviewInvited':
+      return done('invited ', name, ' to pick an interview time', href);
+    case 'InterviewBooked':
+      return entry.by === 'Candidate' ? candidate(` booked an interview${at('for')}`) : done('booked ', name, `'s interview${at('for')}`, href);
+    case 'InterviewRescheduled':
+      return entry.by === 'Candidate' ? candidate(` moved their interview${at('to')}`) : done('moved ', name, `'s interview${at('to')}`, href);
+    case 'InterviewCancelled':
+      return done('cancelled ', name, `'s interview${at('on')}`, href);
+    case 'InterviewNewTimesOffered':
+      return done('offered ', name, ' new interview times', href);
+    default:
+      return done('changed ', name, '', href);
+  }
 }

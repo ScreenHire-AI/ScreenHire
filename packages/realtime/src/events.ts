@@ -25,8 +25,21 @@ export const realtimeEventSchemas = {
     actorUserId: actor,
   }),
   // An interview was offered, booked, moved or cancelled, or its calendar events were written. status is the request's
-  // status name (Open, Booked, Cancelled), or null when only the events changed.
-  InterviewChanged: z.object({ organizationId: id, applicationId: id, jobId: id, interviewId: id, status: z.string().nullable() }),
+  // status name (Open, Booked, Cancelled), or null when only the events changed. change says what happened (Invited, Booked,
+  // Rescheduled, Cancelled, NewTimesOffered), null for a calendar write or ScreenHire's own change; actorUserId is the member
+  // who made it, byCandidate says the candidate did, and startsAt is the time it is about. All four are missing from an
+  // event an older API queued.
+  InterviewChanged: z.object({
+    organizationId: id,
+    applicationId: id,
+    jobId: id,
+    interviewId: id,
+    status: z.string().nullable(),
+    change: z.string().nullish(),
+    actorUserId: actor,
+    byCandidate: z.boolean().optional(),
+    startsAt: instant.nullish(),
+  }),
   // An email went to an application's candidate and is on its timeline.
   ApplicationEmailed: z.object({ organizationId: id, applicationId: id, jobId: id, eventId: id, sentAt: instant, actorUserId: actor }),
   // A candidate answered an email. senderUserId is who sent that email (null when an automation did): their dashboard, or for an

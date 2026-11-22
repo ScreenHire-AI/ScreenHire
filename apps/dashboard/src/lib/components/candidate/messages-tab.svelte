@@ -3,6 +3,7 @@
   import ReplyIcon from '~icons/lucide/reply';
   import SendIcon from '~icons/lucide/send';
   import type { CandidateEmailEntry, TeamMember } from '@screenhire/api-client';
+  import { tick } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import ReceivedEmail from '#lib/components/candidate/received-email.svelte';
   import SentEmail from '#lib/components/candidate/sent-email.svelte';
@@ -17,6 +18,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { actorText } from '#lib/activity.js';
   import { emailThreads, threadIds } from '#lib/email-history.js';
+  import { linkedId } from '#lib/linked.svelte.js';
   import { describeError } from '#lib/query.js';
 
   // Every email to the candidate and every reply from them, about any of their applications, as a history to scan (design
@@ -53,6 +55,17 @@
   const openCount = $derived(ids.filter((id) => open.has(id)).length);
   // The job of each email, only when the candidate has more than one application to tell apart.
   const manyJobs = $derived(new Set(emails?.map((email) => email.applicationId)).size > 1);
+
+  // A link to one email (#email-<id>, from Activity or a toast) opens its row and brings it into view once the emails are in,
+  // once per link, so closing it again stays closed.
+  let linkedHandled: string | undefined;
+  $effect(() => {
+    const id = linkedId('email-');
+    if (!id || id === linkedHandled || !emails?.some((email) => email.id === id)) return;
+    linkedHandled = id;
+    open.add(id);
+    void tick().then(() => document.getElementById(`email-${id}`)?.scrollIntoView({ block: 'center' }));
+  });
 
   function who(email: CandidateEmailEntry): string {
     if (email.direction === 'Received') return `From ${email.fromAddress ?? 'the candidate'}`;

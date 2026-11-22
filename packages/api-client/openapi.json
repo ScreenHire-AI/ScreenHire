@@ -9119,6 +9119,99 @@
         ]
       }
     },
+    "/v1/activity": {
+      "get": {
+        "tags": [
+          "Activity"
+        ],
+        "operationId": "GetActivity",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ActivityScope"
+            }
+          },
+          {
+            "name": "kinds",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ActivityKind"
+              }
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/activity/seen": {
+      "post": {
+        "tags": [
+          "Activity"
+        ],
+        "operationId": "MarkActivitySeen",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/views": {
       "get": {
         "tags": [
@@ -16437,6 +16530,193 @@
           "Reject"
         ]
       },
+      "ActivityActor": {
+        "enum": [
+          "Member",
+          "ApiKey",
+          "Automation",
+          "Candidate",
+          "ScreenHire"
+        ],
+        "description": "Who made a change in the feed: a member, an organization API key, an automation, the candidate, or ScreenHire itself\n(a calendar sync, an interview ended with the application)."
+      },
+      "ActivityEntry": {
+        "required": [
+          "id",
+          "kind",
+          "occurredAt",
+          "by",
+          "actorUserId",
+          "actorApiKeyName",
+          "jobId",
+          "jobTitle",
+          "applicationId",
+          "candidateName",
+          "event",
+          "fromStageName",
+          "toStageName",
+          "stageName",
+          "followUpName",
+          "jobChange"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ActivityKind"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "by": {
+            "$ref": "#/components/schemas/ActivityActor"
+          },
+          "actorUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "actorApiKeyName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "applicationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "event": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ApplicationTimelineEntry"
+              }
+            ]
+          },
+          "fromStageName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "toStageName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stageName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "followUpName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "jobChange": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JobActivity"
+              }
+            ]
+          }
+        },
+        "description": "One change somewhere in the workspace that the person may see."
+      },
+      "ActivityKind": {
+        "enum": [
+          "Moves",
+          "Applications",
+          "Messages",
+          "Interviews",
+          "Scorecards",
+          "Notes",
+          "Tasks",
+          "Jobs"
+        ],
+        "description": "The kinds the workspace's Activity feed filters by (docs/architecture/notifications.md, \"Activity\")."
+      },
+      "ActivityPage": {
+        "required": [
+          "entries",
+          "nextBefore",
+          "seenAt",
+          "unseenCount",
+          "scope"
+        ],
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityEntry"
+            }
+          },
+          "nextBefore": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "unseenCount": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ActivityScope"
+          }
+        },
+        "description": "One page of the workspace's activity, newest first. `nextBefore` is the cursor for the next page, or null after\nthe last. `seenAt` is when the person last opened the feed, null before the first time. `unseenCount` is how\nmany changes in this scope and these kinds came after that, other than the person's own, at most 100; null with no\n`seenAt`. `scope` is the scope the page covers: the one asked for, or the person's own choice."
+      },
+      "ActivityScope": {
+        "enum": [
+          "MyJobs",
+          "Everything"
+        ],
+        "description": "Whose jobs the feed covers: the jobs whose hiring team the person is on, or every job they can see."
+      },
       "AddApplicationNoteRequest": {
         "required": [
           "note"
@@ -22270,6 +22550,34 @@
           "HiringTeamOnly"
         ],
         "description": "Which jobs a member sees (ADR-0015): every job, or only the jobs whose hiring team they are on\n(List&lt;Guid&gt; Job.HiringTeam). Stored as text on the membership and on an invitation."
+      },
+      "JobActivity": {
+        "required": [
+          "created",
+          "line",
+          "moreLines"
+        ],
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "boolean"
+          },
+          "line": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HistoryLine"
+              }
+            ]
+          },
+          "moreLines": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "A save that changed a job: `created` when it made the job, else its first change in words (the job's History has\nthe rest) and how many more lines that save holds."
       },
       "JobAiUse": {
         "required": [
@@ -29029,9 +29337,11 @@
           "Tasks",
           "Templates",
           "Mentions",
-          "Replies"
+          "Replies",
+          "Interviews",
+          "Forms"
         ],
-        "description": "A kind of teammate's change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray's cards for a note that\nmentions them and a candidate's reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off."
+        "description": "A kind of teammate's change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray's cards for a note that\nmentions them and a candidate's reply to their email (the bell keeps both either way). ToastKind.Interviews is a\ncandidate booking, moving or cancelling an interview, and ToastKind.Forms a candidate answering a follow-up form, both\non a job whose hiring team they are on. Stored and sent as text; new kinds are appended, and start on because\nIReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off."
       },
       "TriggerType": {
         "enum": [
@@ -31213,6 +31523,9 @@
     },
     {
       "name": "Notifications"
+    },
+    {
+      "name": "Activity"
     },
     {
       "name": "Views"

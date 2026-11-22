@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { chordTimeoutMs, createChordHandler, isTypingTarget } from './shortcuts.js';
+import { chordTimeoutMs, createChordHandler, isTypingTarget, opensActivity, shortcutGroups } from './shortcuts.js';
 
 function press(key: string, target: EventTarget = document.body, init: KeyboardEventInit = {}) {
   const event = new KeyboardEvent('keydown', { key, bubbles: true, ...init });
@@ -69,5 +69,22 @@ describe('isTypingTarget', () => {
 
     expect(isTypingTarget(editor)).toBe(true);
     expect(isTypingTarget(bold)).toBe(true);
+  });
+});
+
+describe('the Activity shortcut', () => {
+  const key = (init: KeyboardEventInit, target: EventTarget = document.body) => {
+    const event = new KeyboardEvent('keydown', init);
+    Object.defineProperty(event, 'target', { value: target });
+    return event;
+  };
+
+  it('is A alone, outside text fields, and listed for the ? dialog as a single key the switch turns off', () => {
+    expect(opensActivity(key({ key: 'a' }))).toBe(true);
+    expect(opensActivity(key({ key: 'A', shiftKey: true }))).toBe(false);
+    expect(opensActivity(key({ key: 'a', ctrlKey: true }))).toBe(false);
+    expect(opensActivity(key({ key: 'a' }, document.createElement('input')))).toBe(false);
+    const anywhere = shortcutGroups([]).find((group) => group.label === 'Anywhere')!;
+    expect(anywhere.shortcuts).toContainEqual({ label: "Open the workspace's activity", keys: ['A'], singleKey: true });
   });
 });

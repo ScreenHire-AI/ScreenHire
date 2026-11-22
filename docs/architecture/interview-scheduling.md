@@ -390,7 +390,9 @@ request has a newer revision or is no longer in the state the message is about (
 no usable calendar, or a calendar that refuses the event for good, is marked `Failed` with a short problem and the others
 go on; a calendar that is only down throws, so Wolverine retries and the events already made are found again. Then the
 candidate gets `interview-confirmation` (or `interview-cancelled`), whose timeline entry has an id derived from the interview
-and revision, and `InterviewChanged` tells open dashboards.
+and revision, and `InterviewChanged` tells open dashboards. That event also says what happened and who did it (`Change`,
+`ActorUserId`, `ByCandidate`, `StartsAt`), so the job's hiring team gets a toast when the candidate books, moves or cancels
+(realtime.md, "Teammates' changes as toasts"); a member's own change and ScreenHire's cancellations toast nobody.
 
 These handlers take the interviewers' locks before they read the request and hold them through the calendar calls, until
 the handler's transaction commits. `ScreenHire:Calendar:Timeout` (10 seconds) bounds each call, so a provider that hangs

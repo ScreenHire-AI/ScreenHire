@@ -307,6 +307,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "ApplicationId", "OccurredAt")
                         .HasDatabaseName("ix_application_events_organization_id_application_id_occurred_");
 
+                    b.HasIndex("OrganizationId", "OccurredAt", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("ix_application_events_organization_id_occurred_at_id");
+
                     b.ToTable("application_events", (string)null);
                 });
 
@@ -1995,6 +1999,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_change_records");
 
+                    b.HasIndex("OrganizationId", "SubjectKind", "OccurredAt", "Id")
+                        .IsDescending(false, false, true, true)
+                        .HasDatabaseName("ix_change_records_organization_id_subject_kind_occurred_at_id");
+
                     b.HasIndex("OrganizationId", "SubjectKind", "SubjectId", "Sequence")
                         .IsDescending(false, false, false, true)
                         .HasDatabaseName("ix_change_records_organization_id_subject_kind_subject_id_sequ");
@@ -2575,6 +2583,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ActivitySeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("activity_seen_at");
 
                     b.Property<bool?>("ConfirmMoves")
                         .HasColumnType("boolean")

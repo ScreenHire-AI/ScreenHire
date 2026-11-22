@@ -7859,10 +7859,10 @@ export const GetAccountNotificationsResponse = zod.object({
   "scope": zod.enum(['MyJobs', 'Everything']).describe('Which jobs the job rows (new applications, teammates\' changes, verification suggested) cover: the jobs whose hiring\nteam the person is on, or every job they can see.'),
   "pauseToasts": zod.boolean(),
   "closeToasts": zod.boolean(),
-  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies', 'Interviews', 'Forms']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). ToastKind.Interviews is a\ncandidate booking, moving or cancelling an interview, and ToastKind.Forms a candidate answering a follow-up form, both\non a job whose hiring team they are on. Stored and sent as text; new kinds are appended, and start on because\nIReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
   "rows": zod.array(zod.object({
   "kind": zod.enum(['Mentions', 'Replies', 'Interviews', 'Tasks', 'NewApplications', 'TeammateChanges', 'VerificationSuggested', 'AiUseAndBilling']).describe('A row of the person\'s notification choices on Your account (docs/architecture/notifications.md, "Each person\'s\nchoices"): what they can be told about, by toast, email and Slack. Stored and sent as text; new rows are appended.'),
-  "toasts": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "toasts": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies', 'Interviews', 'Forms']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). ToastKind.Interviews is a\ncandidate booking, moving or cancelling an interview, and ToastKind.Forms a candidate answering a follow-up form, both\non a job whose hiring team they are on. Stored and sent as text; new kinds are appended, and start on because\nIReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
   "email": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
   "emailDefault": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
   "slack": zod.boolean().nullable(),
@@ -7877,7 +7877,7 @@ export const UpdateAccountNotificationsBody = zod.object({
   "scope": zod.enum(['MyJobs', 'Everything']).describe('Which jobs the job rows (new applications, teammates\' changes, verification suggested) cover: the jobs whose hiring\nteam the person is on, or every job they can see.'),
   "pauseToasts": zod.boolean(),
   "closeToasts": zod.boolean(),
-  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies', 'Interviews', 'Forms']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). ToastKind.Interviews is a\ncandidate booking, moving or cancelling an interview, and ToastKind.Forms a candidate answering a follow-up form, both\non a job whose hiring team they are on. Stored and sent as text; new kinds are appended, and start on because\nIReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
   "rows": zod.array(zod.object({
   "kind": zod.enum(['Mentions', 'Replies', 'Interviews', 'Tasks', 'NewApplications', 'TeammateChanges', 'VerificationSuggested', 'AiUseAndBilling']).describe('A row of the person\'s notification choices on Your account (docs/architecture/notifications.md, "Each person\'s\nchoices"): what they can be told about, by toast, email and Slack. Stored and sent as text; new rows are appended.'),
   "email": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
@@ -7889,10 +7889,10 @@ export const UpdateAccountNotificationsResponse = zod.object({
   "scope": zod.enum(['MyJobs', 'Everything']).describe('Which jobs the job rows (new applications, teammates\' changes, verification suggested) cover: the jobs whose hiring\nteam the person is on, or every job they can see.'),
   "pauseToasts": zod.boolean(),
   "closeToasts": zod.boolean(),
-  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "toastsOff": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies', 'Interviews', 'Forms']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). ToastKind.Interviews is a\ncandidate booking, moving or cancelling an interview, and ToastKind.Forms a candidate answering a follow-up form, both\non a job whose hiring team they are on. Stored and sent as text; new kinds are appended, and start on because\nIReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
   "rows": zod.array(zod.object({
   "kind": zod.enum(['Mentions', 'Replies', 'Interviews', 'Tasks', 'NewApplications', 'TeammateChanges', 'VerificationSuggested', 'AiUseAndBilling']).describe('A row of the person\'s notification choices on Your account (docs/architecture/notifications.md, "Each person\'s\nchoices"): what they can be told about, by toast, email and Slack. Stored and sent as text; new rows are appended.'),
-  "toasts": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). Stored and sent as text; new\nkinds are appended, and start on because IReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
+  "toasts": zod.array(zod.enum(['Moves', 'NewCandidates', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Tasks', 'Templates', 'Mentions', 'Replies', 'Interviews', 'Forms']).describe('A kind of teammate\'s change a member can turn off. The first six are about a candidate on a job whose hiring team\nthey are on; ToastKind.Tasks is a task assigned to them; ToastKind.Templates a hiring template they changed\nlast, published by someone else. ToastKind.Mentions and ToastKind.Replies are the tray\'s cards for a note that\nmentions them and a candidate\'s reply to their email (the bell keeps both either way). ToastKind.Interviews is a\ncandidate booking, moving or cancelling an interview, and ToastKind.Forms a candidate answering a follow-up form, both\non a job whose hiring team they are on. Stored and sent as text; new kinds are appended, and start on because\nIReadOnlyList&lt;ToastKind&gt; NotificationSettings.Off lists the kinds turned off.')),
   "email": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
   "emailDefault": zod.enum(['Instantly', 'Digest', 'Off']).describe('How a person wants a kind by email: each one as it happens, in the daily digest, or not at all.'),
   "slack": zod.boolean().nullable(),
@@ -8021,6 +8021,87 @@ export const DismissNotificationParams = zod.object({
 })
 
 export const DismissNotificationResponse = zod.void()
+
+
+export const GetActivityQueryParams = zod.object({
+  "scope": zod.enum(['MyJobs', 'Everything']).optional(),
+  "kinds": zod.array(zod.enum(['Moves', 'Applications', 'Messages', 'Interviews', 'Scorecards', 'Notes', 'Tasks', 'Jobs']).describe('The kinds the workspace\'s Activity feed filters by (docs/architecture/notifications.md, "Activity").')).optional(),
+  "before": zod.string().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetActivityResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "kind": zod.enum(['Moves', 'Applications', 'Messages', 'Interviews', 'Scorecards', 'Notes', 'Tasks', 'Jobs']).describe('The kinds the workspace\'s Activity feed filters by (docs/architecture/notifications.md, "Activity").'),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "by": zod.enum(['Member', 'ApiKey', 'Automation', 'Candidate', 'ScreenHire']).describe('Who made a change in the feed: a member, an organization API key, an automation, the candidate, or ScreenHire itself\n(a calendar sync, an interview ended with the application).'),
+  "actorUserId": zod.uuid().nullable(),
+  "actorApiKeyName": zod.string().nullable(),
+  "jobId": zod.uuid(),
+  "jobTitle": zod.string(),
+  "applicationId": zod.uuid().nullable(),
+  "candidateName": zod.string().nullable(),
+  "event": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "actorUserId": zod.uuid().nullable(),
+  "fromStageId": zod.string().nullable(),
+  "toStageId": zod.string().nullable(),
+  "note": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "actorApiKeyId": zod.uuid().nullable(),
+  "scorecardId": zod.uuid().nullable(),
+  "stageId": zod.string().nullable(),
+  "recommendation": zod.string().nullable(),
+  "emailTemplateId": zod.string().nullish(),
+  "emailSubject": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish(),
+  "questionnaireRequestId": zod.uuid().nullish(),
+  "noteId": zod.uuid().nullish(),
+  "noteEditedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "actorApiKeyName": zod.string().nullish(),
+  "emailId": zod.uuid().nullish(),
+  "taskId": zod.uuid().nullish(),
+  "poolExit": zod.union([zod.null(),zod.union([zod.literal('Expired'),zod.literal('Removed'),zod.literal('CandidateAsked'),zod.literal('AddedToJob'),zod.literal('AppliedAgain'),zod.literal('BackInJob'),zod.literal('KeptFromAnotherJob'),zod.literal(null)])]).optional(),
+  "otherJobId": zod.uuid().nullish(),
+  "otherApplicationId": zod.uuid().nullish(),
+  "interviewId": zod.uuid().nullish(),
+  "startsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullish()
+}).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')]),
+  "fromStageName": zod.string().nullable(),
+  "toStageName": zod.string().nullable(),
+  "stageName": zod.string().nullable(),
+  "followUpName": zod.string().nullable(),
+  "jobChange": zod.union([zod.null(),zod.object({
+  "created": zod.boolean(),
+  "line": zod.union([zod.null(),zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.')]),
+  "moreLines": zod.int()
+}).describe('A save that changed a job: `created` when it made the job, else its first change in words (the job\'s History has\nthe rest) and how many more lines that save holds.')])
+}).describe('One change somewhere in the workspace that the person may see.')),
+  "nextBefore": zod.string().nullable(),
+  "seenAt": zod.iso.datetime({"offset":true}).nullable(),
+  "unseenCount": zod.int().nullable(),
+  "scope": zod.enum(['MyJobs', 'Everything']).describe('Whose jobs the feed covers: the jobs whose hiring team the person is on, or every job they can see.')
+}).describe('One page of the workspace\'s activity, newest first. `nextBefore` is the cursor for the next page, or null after\nthe last. `seenAt` is when the person last opened the feed, null before the first time. `unseenCount` is how\nmany changes in this scope and these kinds came after that, other than the person\'s own, at most 100; null with no\n`seenAt`. `scope` is the scope the page covers: the one asked for, or the person\'s own choice.')
+
+
+export const MarkActivitySeenResponse = zod.void()
 
 
 export const ListViewsResponse = zod.object({

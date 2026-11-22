@@ -29,9 +29,9 @@ const grid = (overrides: Partial<AccountNotifications> = {}): AccountNotificatio
   rows: [
     row('Mentions', { toasts: ['Mentions'], slack: true }),
     row('Replies', { toasts: ['Replies'] }),
-    row('Interviews'),
+    row('Interviews', { toasts: ['Interviews'] }),
     row('Tasks', { toasts: ['Tasks'], email: 'Digest', emailDefault: 'Digest', slack: true }),
-    row('NewApplications', { toasts: ['NewCandidates'], email: 'Digest', emailDefault: 'Digest', scoped: true }),
+    row('NewApplications', { toasts: ['NewCandidates', 'Forms'], email: 'Digest', emailDefault: 'Digest', scoped: true }),
     row('TeammateChanges', { toasts: ['Moves', 'Notes', 'Tags', 'Emails', 'Scorecards', 'Templates'], email: 'Off', emailDefault: 'Off', scoped: true }),
     row('VerificationSuggested', { email: 'Off', emailDefault: 'Off', slack: false }),
   ],
@@ -57,8 +57,10 @@ describe('Your account > Notifications', () => {
     expect(within(grid_).getByRole('combobox', { name: 'Mentions: email' })).toHaveValue('Instantly');
     expect(within(grid_).getByRole('combobox', { name: 'Tasks assigned to you: email' })).toHaveValue('Digest');
     expect(within(grid_).getByRole('combobox', { name: "Teammates' moves and notes: email" })).toHaveValue('Off');
-    // Interviews has no toast yet, so its In the app cell is a dash with words for a screen reader, not a disabled switch (A3).
-    expect(within(grid_).queryByRole('switch', { name: 'Interviews booked or changed: in the app' })).toBeNull();
+    // Verification suggested never toasts, so its In the app cell is a dash with words for a screen reader, not a disabled
+    // switch (A3); a candidate's booking does toast, under Interviews.
+    expect(within(grid_).queryByRole('switch', { name: 'Verification suggested: in the app' })).toBeNull();
+    expect(within(grid_).getByRole('switch', { name: 'Interviews booked or changed: in the app' })).toBeInTheDocument();
     expect(within(grid_).getAllByText('No toast for this').length).toBeGreaterThan(0);
   });
 

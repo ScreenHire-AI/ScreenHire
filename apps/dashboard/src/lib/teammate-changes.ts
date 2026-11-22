@@ -1,8 +1,14 @@
 import type { AccountNotifications, NoticeScope, ToastKind } from '@screenhire/api-client';
 import type { RealtimeEvent } from '@screenhire/realtime';
+import { formatDateTime } from '#lib/dates.js';
 
-/** The kinds about a candidate on a job whose hiring team the person is on. */
-export type CandidateKind = Exclude<ToastKind, 'Tasks' | 'Templates' | 'Mentions' | 'Replies'>;
+/** The kinds about a teammate's change to a candidate on a job whose hiring team the person is on. */
+export type CandidateKind = Exclude<ToastKind, 'Tasks' | 'Templates' | 'Mentions' | 'Replies' | 'Interviews' | 'Forms'>;
+
+/** What a candidate did to their interview from their booking page: the changes the hiring team hears of. */
+export type InterviewChange = 'Booked' | 'Rescheduled' | 'Cancelled';
+
+const interviewChanges: readonly string[] = ['Booked', 'Rescheduled', 'Cancelled'] satisfies InterviewChange[];
 
 export type TaskAction = 'created' | 'completed' | 'reopened';
 
@@ -30,7 +36,9 @@ export type TeammateChange =
   | { kind: CandidateKind; actorUserId: string; applicationId: string; jobId: string }
   | AppliedChange
   | { kind: 'Tasks'; actorUserId: string; applicationId: string; jobId: string; taskId: string; action: TaskAction }
-  | { kind: 'Templates'; actorUserId: string; templateType: TemplateType; templateId: string; version?: number };
+  | { kind: 'Templates'; actorUserId: string; templateType: TemplateType; templateId: string; version?: number }
+  | { kind: 'Interviews'; actorUserId: null; applicationId: string; jobId: string; interviewId: string; change: InterviewChange; startsAt?: string }
+  | { kind: 'Forms'; actorUserId: null; applicationId: string; jobId: string; requestId: string };
 
 /** What decides whether a change is for this person. */
 export interface ChangeContext {
@@ -79,7 +87,7 @@ const candidateEvents: Partial<Record<RealtimeEvent['type'], CandidateKind>> = {
 };
 
 // The change an event describes and who it is for, before the person's settings. Any event not named here (a
-// verification result, a note edit, an automation's run, the candidate's answers) never becomes a toast.
+// verification result, a note edit, an automation's run) never becomes a toast.
 function describe(event: RealtimeEvent, context: ChangeContext): TeammateChange | undefined {
   const me = context.userId;
   switch (event.type) {
@@ -111,6 +119,19 @@ function describe(event: RealtimeEvent, context: ChangeContext): TeammateChange 
         ? { kind: 'NewCandidates', actorUserId, applicationId, jobId }
         : { kind: 'NewCandidates', actorUserId: null, applicationId, jobId };
     }
+    case 'InterviewChanged': {
+      // The candidate booking, moving or cancelling from their booking page tells the job's hiring team; a member's own change
+      // to an interview, an automation's offer and a calendar write do not.
+      const { byCandidate, change, applicationId, jobId, interviewId, startsAt } = event.data;
+      if (!byCandidate || !change || !interviewChanges.includes(change) || !onTheirJobs(context, jobId)) return undefined;
+      return { kind: 'Interviews', actorUserId: null, applicationId, jobId, interviewId, change: change as InterviewChange, startsAt: startsAt ?? undefined };
+    }
+    case 'QuestionnaireAnswered': {
+      // Only the candidate answers a follow-up form.
+      const { applicationId, jobId, requestId } = event.data;
+      if (!onTheirJobs(context, jobId)) return undefined;
+      return { kind: 'Forms', actorUserId: null, applicationId, jobId, requestId };
+    }
     default: {
       const kind = candidateEvents[event.type];
       if (!kind || !('actorUserId' in event.data) || !('applicationId' in event.data) || !('jobId' in event.data)) return undefined;
@@ -124,8 +145,8 @@ function describe(event: RealtimeEvent, context: ChangeContext): TeammateChange 
 /**
  * The teammate's change in `event` that this person should see as a toast, or undefined. A change needs a member behind
  * it (an API key, an automation or the candidate is no teammate, and a key may be the person's own assistant), never
- * the person themselves, and a kind they have not turned off. The one exception is a new application, which the
- * candidate or a key makes and the job's hiring team hears of.
+ * the person themselves, and a kind they have not turned off. The exceptions are what the candidate does, which the job's
+ * hiring team hears of: a new application, an interview booked, moved or cancelled, and a follow-up form answered.
  */
 export function changeFor(event: RealtimeEvent, context: ChangeContext): TeammateChange | undefined {
   if (!context.userId || !context.settings.toasts) return undefined;
@@ -145,6 +166,10 @@ export function groupKey(change: TeammateChange): string {
       return `Tasks:${change.taskId}:${change.action}`;
     case 'Templates':
       return `Templates:${change.templateType}:${change.templateId}:${change.version ?? 'edited'}`;
+    case 'Interviews':
+      return `Interviews:${change.interviewId}:${change.change}:${change.startsAt ?? ''}`;
+    case 'Forms':
+      return `Forms:${change.requestId}`;
     default:
       return `${change.kind}:${change.actorUserId}:${change.jobId}`;
   }
@@ -169,7 +194,15 @@ export interface ChangeFacts {
   stageName?: string;
   taskNote?: string;
   templateName?: string;
+  /** The follow-up form a candidate answered. */
+  formName?: string;
 }
+
+const interviewWords: Record<InterviewChange, (when: string) => string> = {
+  Booked: (when) => (when ? ` booked ${when}` : ' booked an interview'),
+  Rescheduled: (when) => (when ? ` moved their interview to ${when}` : ' moved their interview'),
+  Cancelled: (when) => (when ? ` cancelled their interview on ${when}` : ' cancelled their interview'),
+};
 
 // The sentence and link of a template change: a published hiring template version, or an edit of an email template or a scorecard.
 function templateWords(
@@ -220,6 +253,25 @@ export function toastFor(id: string, change: TeammateChange, facts: ChangeFacts)
       };
     case 'Templates':
       return { id, kind: change.kind, ...templateWords(change, actor, facts.templateName), context: '' };
+    case 'Interviews': {
+      // "Taylor Brook booked Tue, Nov 25, 9:00 AM for Senior .NET Engineer", in the reader's own time zone.
+      const when = change.startsAt ? formatDateTime(change.startsAt) : '';
+      return {
+        id,
+        kind: change.kind,
+        sentence: ['', candidate, `${interviewWords[change.change](when)}${job ? ` for ${job}` : ''}`],
+        href: `/applications/${change.applicationId}#interview`,
+        context: '',
+      };
+    }
+    case 'Forms':
+      return {
+        id,
+        kind: change.kind,
+        sentence: ['', candidate, ` answered ${facts.formName ?? 'a follow-up form'}`],
+        href: `/applications/${change.applicationId}?tab=application#follow-up-${change.requestId}`,
+        context: job,
+      };
     default: {
       const href = `/applications/${change.applicationId}`;
       const words: Record<CandidateKind, [string, string, string]> = {

@@ -1,5 +1,6 @@
 import type { RealtimeEvent } from '@screenhire/realtime';
 import { describe, expect, it } from 'vitest';
+import { formatDateTime } from '#lib/dates.js';
 import {
   appliedGroupToastFor,
   changeFor,
@@ -198,5 +199,54 @@ describe('a new application', () => {
     expect(toast.sentence.join('')).toBe('3 new applications to Senior .NET Engineer');
     expect(toast.href).toBe(`/candidates?view=not-screened&job=${teamJob}`);
     expect(toast.sentence.join('')).not.toMatch(/verif|fraud|suspicious/i);
+  });
+});
+
+describe("the candidate's interview and follow-up form", () => {
+  const interviewId = '0199f0c4-0000-7000-8000-000000000401';
+  const startsAt = '2026-11-25T09:00:00+00:00';
+  const interview = (data: Partial<Extract<RealtimeEvent, { type: 'InterviewChanged' }>['data']>, jobId = teamJob): RealtimeEvent => ({
+    type: 'InterviewChanged',
+    data: { ...ids, jobId, interviewId, status: 'Booked', change: 'Booked', byCandidate: true, startsAt, ...data },
+  });
+  const answered = (jobId = teamJob): RealtimeEvent => ({
+    type: 'QuestionnaireAnswered',
+    data: { ...ids, jobId, requestId: interviewId, answeredAt: at },
+  });
+
+  it('tells the hiring team when the candidate books, moves or cancels', () => {
+    for (const change of ['Booked', 'Rescheduled', 'Cancelled'] as const) {
+      expect(changeFor(interview({ change }), context)).toEqual({
+        kind: 'Interviews', actorUserId: null, applicationId: ids.applicationId, jobId: teamJob, interviewId, change, startsAt,
+      });
+    }
+  });
+
+  it("never toasts a member's own interview change, an automation's offer, a calendar write or another team's job", () => {
+    expect(changeFor(interview({ byCandidate: false, actorUserId: me, change: 'Cancelled' }), context)).toBeUndefined();
+    expect(changeFor(interview({ byCandidate: false, actorUserId: null, change: 'Invited' }), context)).toBeUndefined();
+    expect(changeFor(interview({ byCandidate: false, change: null }), context)).toBeUndefined();
+    expect(changeFor(interview({}, otherJob), context)).toBeUndefined();
+  });
+
+  it('follows the Interviews and Forms switches and Pause toasts', () => {
+    const off = (kinds: ('Interviews' | 'Forms')[]) => ({ ...context, settings: { ...defaultNotificationSettings, off: kinds } });
+    expect(changeFor(interview({}), off(['Interviews']))).toBeUndefined();
+    expect(changeFor(answered(), off(['Forms']))).toBeUndefined();
+    expect(changeFor(answered(), off(['Interviews']))).toMatchObject({ kind: 'Forms' });
+    expect(changeFor(answered(), { ...context, settings: { ...defaultNotificationSettings, toasts: false } })).toBeUndefined();
+  });
+
+  it('says what the candidate did, linked to the interview or the answers, each one its own toast', () => {
+    const booked = changeFor(interview({}), context)!;
+    const toast = toastFor('t1', booked, { actorName: '', candidateName: 'Taylor Brook', jobTitle: 'Senior .NET Engineer' });
+    expect(toast.sentence.join('')).toBe(`Taylor Brook booked ${formatDateTime(startsAt)} for Senior .NET Engineer`);
+    expect(toast.href).toBe(`/applications/${ids.applicationId}#interview`);
+    expect(groupKey(booked)).not.toBe(groupKey(changeFor(interview({ change: 'Cancelled' }), context)!));
+
+    const form = changeFor(answered(), context)!;
+    const formToast = toastFor('t2', form, { actorName: '', candidateName: 'Taylor Brook', jobTitle: 'Senior .NET Engineer', formName: 'Screening questionnaire' });
+    expect(formToast.sentence.join('')).toBe('Taylor Brook answered Screening questionnaire');
+    expect(formToast.href).toBe(`/applications/${ids.applicationId}?tab=application#follow-up-${interviewId}`);
   });
 });

@@ -23,7 +23,34 @@ namespace ScreenHire.Application.Scheduling;
 /// caller's authorization. <see cref="Status"/> is the request's status name, or null when the event is only about the
 /// calendar events.
 /// </summary>
-public sealed record InterviewChanged(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid InterviewId, string? Status) : IJobEvent;
+/// <remarks>
+/// Who made the change and what it was, for the hiring team's toasts (docs/architecture/realtime.md): <see cref="Change"/>
+/// is one of <see cref="InterviewChanges"/>, null for a calendar write or an organizer handed on when an interviewer left
+/// (ScreenHire's own cancellation is Cancelled with no actor). <see cref="ActorUserId"/> is the member who made it; <see cref="ByCandidate"/> says the
+/// candidate did, from their booking page. Neither for an automation or ScreenHire. <see cref="StartsAt"/> is the time the
+/// change is about: the booked or new time, or the time a cancelled booking had. Added last with defaults, as every field
+/// an event gains is.
+/// </remarks>
+public sealed record InterviewChanged(
+    Guid OrganizationId,
+    Guid ApplicationId,
+    Guid JobId,
+    Guid InterviewId,
+    string? Status,
+    string? Change = null,
+    Guid? ActorUserId = null,
+    bool ByCandidate = false,
+    DateTimeOffset? StartsAt = null) : IJobEvent;
+
+/// <summary>What happened to an interview, as <see cref="InterviewChanged.Change"/> says it.</summary>
+public static class InterviewChanges
+{
+    public const string Invited = "Invited";
+    public const string Booked = "Booked";
+    public const string Rescheduled = "Rescheduled";
+    public const string Cancelled = "Cancelled";
+    public const string NewTimesOffered = "NewTimesOffered";
+}
 
 /// <summary>What the interview handlers load for one interview: the rows an email or a calendar event is written from.</summary>
 internal sealed record InterviewContext(

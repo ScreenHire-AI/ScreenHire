@@ -536,7 +536,9 @@ job access is `All` or `HiringTeamOnly` (`organization_members.job_access`); Own
 says (`JobAccessRules.SeesAllJobs`). A member on Only jobs they're on sees a job, its applications and everything under
 them, only while they are on its team; another job is a 404 like another organization's, and lists, Tasks, views (`saved-views.md`),
 search (`GET /v1/search`, the dashboard's Ctrl K, signed-in people only, which starts from applications so a candidate
-shows only through a job the reader sees), reports (`reports.md`) and live updates leave it out. Existing members and new invitations start at All jobs.
+shows only through a job the reader sees), reports (`reports.md`), the bell's Activity feed (`GET /v1/activity`, which joins a
+job's change history to the jobs the reader can see because `change_records` has no `job_scope` policy, notifications.md) and
+live updates leave it out. Existing members and new invitations start at All jobs.
 
 `apps/api/Endpoints/HiringTeamEndpoints.cs`, session only (a team decides who sees a job's candidates, which API keys do
 not change):

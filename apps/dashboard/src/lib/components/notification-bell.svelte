@@ -5,12 +5,15 @@
   import {
     createDismissNotification,
     createListNotifications,
+    createListTeamMembers,
+    createMarkActivitySeen,
     createMarkAllNotificationsRead,
     createMarkNotificationRead,
   } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { mergeProps } from 'bits-ui';
   import { tick } from 'svelte';
+  import ActivityFeed from '#lib/components/activity-feed.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
   import QueryError from '#lib/components/query-error.svelte';
@@ -18,13 +21,16 @@
   import StepMarker from '#lib/components/step-marker.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
+  import { Kbd } from '#lib/components/ui/kbd/index.js';
   import * as Popover from '#lib/components/ui/popover/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
+  import * as Tabs from '#lib/components/ui/tabs/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
+  import { activityPanel, createActivityFeed, unseenText } from '#lib/activity-feed.svelte.js';
   import { notificationLine } from '#lib/notification-lines.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { preferences } from '#lib/preferences.svelte.js';
-  import { notificationsPath } from '#lib/realtime.js';
+  import { activityPath, notificationsPath } from '#lib/realtime.js';
   import { setupPanel } from '#lib/setup-panel.svelte.js';
   import { isOpen, type SetupStep } from '#lib/setup-checklist.js';
   import { createSetupProgress } from '#lib/setup-progress.svelte.js';
@@ -38,6 +44,9 @@
   // itself right after onboarding (`preferences.takeSetupTour`), as soon as the steps are known. Each step has Not needed,
   // and the section's icon button hides the whole checklist: both are saved on the server for the organization, so they hold
   // for every Owner and Admin on every device, and Settings, General shows the checklist again.
+  // A second tab, Activity, is the workspace's changes (ActivityFeed): it opens from the tab or the A shortcut
+  // (`activityPanel`), and reads only while the panel is open. Its count is the changes since the person last opened it,
+  // in the tab's count badge, never on the bell, which counts only what needs attention.
   let { user }: { user: CurrentUser | null | undefined } = $props();
 
   const queryClient = useQueryClient();
@@ -49,7 +58,15 @@
   const dismiss = createDismissNotification(() => ({ mutation: { onSettled: refresh } }));
 
   let open = $state(false);
+  let tab = $state<'attention' | 'activity'>('attention');
   let panel = $state<HTMLElement | null>(null);
+  const feed = createActivityFeed(() => open);
+  const team = createListTeamMembers(() => ({ query: { enabled: open && tab === 'activity' } }));
+  const markSeen = createMarkActivitySeen();
+  // When the person last looked and how many changes came since, held while the tab is open so the summary and the
+  // "Seen before" line stay put after the tab records that they have looked.
+  let since = $state<{ at: string; count: number } | undefined>();
+  let handledActivity = activityPanel.requests;
   // Set when the panel opens for its setup steps, so focus starts there and not on the panel's top, until it closes:
   // bits-ui can ask where focus goes more than once while the panel opens. The section is found in the panel each time.
   let focusSetup = false;
@@ -66,10 +83,35 @@
     }
   });
   $effect(() => {
+    if (activityPanel.requests > handledActivity) {
+      handledActivity = activityPanel.requests;
+      tab = 'activity';
+      open = true;
+    }
+  });
+  // Opening Activity records that the person has looked, once its first page is in; leaving it (another tab, or closing the
+  // panel) records it again, for what arrived while they looked, and the count is read afresh next time: from the page
+  // the server sends then, never the last visit's page still in the cache.
+  $effect(() => {
+    const viewing = open && tab === 'activity';
+    const first = feed.fresh;
+    if (viewing && first && !since) {
+      since = { at: first.seenAt ?? '', count: first.seenAt ? (first.unseenCount ?? 0) : 0 };
+      markSeen.mutate();
+    } else if (!viewing && since) {
+      since = undefined;
+      markSeen.mutate(undefined, { onSettled: () => invalidatePath(queryClient, activityPath) });
+    }
+  });
+  $effect(() => {
+    if (!open) tab = 'attention';
+  });
+  $effect(() => {
     if (setupPanel.requests > handledRequests) {
       handledRequests = setupPanel.requests;
       focusSetup = true;
       // Already open: no autofocus follows, so move focus to the steps here.
+      tab = 'attention';
       if (open) panel?.querySelector<HTMLElement>('[data-bell-setup]')?.focus();
       open = true;
     }
@@ -87,6 +129,7 @@
   const unread = $derived(notifications.data?.data.unreadCount ?? 0);
   const count = $derived(setup.remaining.length + unread);
   const label = $derived(count > 0 ? `Notifications, ${count} need attention` : 'Notifications');
+  const unseen = $derived(tab === 'activity' ? 0 : (feed.fresh?.unseenCount ?? 0));
   const empty = $derived(notifications.isSuccess && items.length === 0 && setup.remaining.length === 0);
   // The step's place in the whole list, so a step keeps its number as the ones before it are done.
   const numbered = $derived((setup.steps ?? []).map((step, index) => ({ step, number: index + 1 })).filter(({ step }) => isOpen(step)));
@@ -132,7 +175,7 @@
       {/snippet}
     </Tooltip.Trigger>
     <!-- A new Owner has no reason to open a bell, so while setup steps are left the tooltip says the bell holds them. -->
-    <Tooltip.Content>{setup.steps ? 'Setup and notifications' : 'Notifications'}</Tooltip.Content>
+    <Tooltip.Content>{setup.steps ? 'Setup and notifications' : 'Notifications'}{#if preferences.shortcutsEnabled}<Kbd>A</Kbd>{/if}</Tooltip.Content>
   </Tooltip.Root>
 
   <!-- Focus starts on the panel, not its first button: that would open its tooltip over the list. -->
@@ -146,74 +189,87 @@
     align="end"
     collisionPadding={16}
     role="dialog"
-    aria-label="Needs attention"
+    aria-label="Notifications"
     class="max-h-[min(36rem,calc(100dvh-5rem))] w-95 max-w-[calc(100vw-2rem)] gap-0 overflow-y-auto p-0">
-    <header class="flex h-14 shrink-0 items-center gap-2 border-b border-border-subtle px-4">
-      <h2 class="min-w-0 flex-1 truncate text-heading">Needs attention</h2>
-      {#if unread > 0}
-        <Button variant="outline" onclick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>Mark all as read</Button>
-      {/if}
-    </header>
-
-    {#if setup.steps}
-      <section data-bell-setup tabindex="-1" aria-labelledby="bell-setup-title" class="flex flex-col gap-1 outline-hidden border-b border-border-subtle px-4 py-3">
-        <div class="flex items-center gap-2">
-          <h3 id="bell-setup-title" class="min-w-0 flex-1 truncate font-semibold">Finish setting up</h3>
-          <IconButton label="Hide setup for everyone" onclick={hide} disabled={setup.saving}><XIcon aria-hidden="true" /></IconButton>
-        </div>
-        <ol aria-label="Setup steps" class="flex flex-col">
-          {#each numbered as { step, number } (step.id)}
-            <li class="flex min-w-0 items-center gap-3 py-1.5">
-              <StepMarker state="upcoming">{number}</StepMarker>
-              <a href={step.href} onclick={() => (open = false)} class="block min-w-0 break-words py-0.5 font-semibold text-foreground underline underline-offset-2 pointer-coarse:py-3">{step.label}</a>
-              {#if step.optional}<span class="shrink-0 text-caption text-muted-foreground">Optional</span>{/if}
-              <Button variant="outline" size="sm" class="ml-auto shrink-0" aria-label={`Not needed: ${step.label}`} disabled={setup.saving} onclick={() => skip(step)}>Not needed</Button>
-            </li>
-          {/each}
-        </ol>
-        {#if setup.doneCount > 0}
-          <p class="text-body text-muted-foreground">{setup.doneCount} {setup.doneCount === 1 ? 'step' : 'steps'} done</p>
+    <Tabs.Root bind:value={tab} class="gap-0">
+      <header class="flex h-14 shrink-0 items-center gap-2 border-b border-border-subtle px-4">
+        <!-- The panel's two views: what needs this person, and what is happening across the workspace. Each count sits in the
+             count badge (T4); Activity's is the changes since the person last opened it. -->
+        <Tabs.List variant="line" aria-label="Notifications" class="-mb-px h-full min-w-0 flex-1 justify-start p-0 group-data-[orientation=horizontal]/tabs:h-full">
+          <Tabs.Trigger value="attention" class="h-full flex-none px-1 font-semibold group-data-[orientation=horizontal]/tabs:after:bottom-0">Needs attention</Tabs.Trigger>
+          <Tabs.Trigger value="activity" class="h-full flex-none px-1 font-semibold group-data-[orientation=horizontal]/tabs:after:bottom-0">
+            Activity{#if unseen > 0}{' '}<Badge variant="count">{unseenText(unseen)}</Badge>{/if}
+          </Tabs.Trigger>
+        </Tabs.List>
+        {#if tab === 'attention' && unread > 0}
+          <Button variant="outline" onclick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>Mark all as read</Button>
         {/if}
-        <FailureText message={setup.failed ? 'Could not save that. Try again.' : null} />
-      </section>
-    {/if}
-
-    <!-- Neither has an Undo in the bell: Settings, General brings the steps back, so the panel says so and links there. -->
-    <p role="status" class="border-b border-border-subtle px-4 py-3 text-body text-muted-foreground empty:hidden">{#if changedHere === 'hidden'}Setup is hidden for everyone. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Show it again in Settings, General</a>.{:else if changedHere === 'skipped'}Not needed for everyone in your organization. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Bring it back in Settings, General</a>.{/if}</p>
-
-    {#if notifications.isError}
-      <div class="p-4">
-        <QueryError message={describeError(notifications.error, 'Could not load notifications')} onretry={() => notifications.refetch()} inset />
-      </div>
-    {:else if notifications.isPending && !setup.steps}
-      <div class="flex flex-col gap-3 p-4" aria-busy="true">
-        <Skeleton class="h-5 w-4/5" />
-        <Skeleton class="h-5 w-3/5" />
-      </div>
-    {:else if items.length > 0}
-      <ul aria-label="Alerts" class="flex flex-col">
-        {#each items as item (item.id)}
-          {@const line = notificationLine(item.kind, item.payload)}
-          <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle py-2.5 pr-2 pl-4 last:border-b-0">
-            <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-              <a
-                href={item.link}
-                onclick={() => {
-                  if (!item.readAt) markRead.mutate({ id: item.id });
-                  open = false;
-                }}
-                class={['min-w-0 break-words text-foreground underline underline-offset-2 pointer-coarse:py-3', !item.readAt && 'font-semibold']}
-              >
-                {#if !item.readAt}<span class="sr-only">Unread:</span>{' '}{/if}{line}
-              </a>
-              <RelativeTime at={item.createdAt} class="text-caption text-muted-foreground" />
+      </header>
+      <Tabs.Content value="attention">
+        {#if setup.steps}
+          <section data-bell-setup tabindex="-1" aria-labelledby="bell-setup-title" class="flex flex-col gap-1 outline-hidden border-b border-border-subtle px-4 py-3">
+            <div class="flex items-center gap-2">
+              <h3 id="bell-setup-title" class="min-w-0 flex-1 truncate font-semibold">Finish setting up</h3>
+              <IconButton label="Hide setup for everyone" onclick={hide} disabled={setup.saving}><XIcon aria-hidden="true" /></IconButton>
             </div>
-            <IconButton label={`Dismiss: ${line}`} onclick={() => dismiss.mutate({ id: item.id })}><XIcon aria-hidden="true" /></IconButton>
-          </li>
-        {/each}
-      </ul>
-    {:else if empty}
-      <p class="px-4 py-6 text-body text-muted-foreground">Nothing needs attention.</p>
-    {/if}
+            <ol aria-label="Setup steps" class="flex flex-col">
+              {#each numbered as { step, number } (step.id)}
+                <li class="flex min-w-0 items-center gap-3 py-1.5">
+                  <StepMarker state="upcoming">{number}</StepMarker>
+                  <a href={step.href} onclick={() => (open = false)} class="block min-w-0 break-words py-0.5 font-semibold text-foreground underline underline-offset-2 pointer-coarse:py-3">{step.label}</a>
+                  {#if step.optional}<span class="shrink-0 text-caption text-muted-foreground">Optional</span>{/if}
+                  <Button variant="outline" size="sm" class="ml-auto shrink-0" aria-label={`Not needed: ${step.label}`} disabled={setup.saving} onclick={() => skip(step)}>Not needed</Button>
+                </li>
+              {/each}
+            </ol>
+            {#if setup.doneCount > 0}
+              <p class="text-body text-muted-foreground">{setup.doneCount} {setup.doneCount === 1 ? 'step' : 'steps'} done</p>
+            {/if}
+            <FailureText message={setup.failed ? 'Could not save that. Try again.' : null} />
+          </section>
+        {/if}
+
+        <!-- Neither has an Undo in the bell: Settings, General brings the steps back, so the panel says so and links there. -->
+        <p role="status" class="border-b border-border-subtle px-4 py-3 text-body text-muted-foreground empty:hidden">{#if changedHere === 'hidden'}Setup is hidden for everyone. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Show it again in Settings, General</a>.{:else if changedHere === 'skipped'}Not needed for everyone in your organization. <a href="/settings/organization" onclick={() => (open = false)} class="text-foreground underline underline-offset-2">Bring it back in Settings, General</a>.{/if}</p>
+
+        {#if notifications.isError}
+          <div class="p-4">
+            <QueryError message={describeError(notifications.error, 'Could not load notifications')} onretry={() => notifications.refetch()} inset />
+          </div>
+        {:else if notifications.isPending && !setup.steps}
+          <div class="flex flex-col gap-3 p-4" aria-busy="true">
+            <Skeleton class="h-5 w-4/5" />
+            <Skeleton class="h-5 w-3/5" />
+          </div>
+        {:else if items.length > 0}
+          <ul aria-label="Alerts" class="flex flex-col">
+            {#each items as item (item.id)}
+              {@const line = notificationLine(item.kind, item.payload)}
+              <li class="flex min-w-0 items-start gap-2 border-b border-border-subtle py-2.5 pr-2 pl-4 last:border-b-0">
+                <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <a
+                    href={item.link}
+                    onclick={() => {
+                      if (!item.readAt) markRead.mutate({ id: item.id });
+                      open = false;
+                    }}
+                    class={['min-w-0 break-words text-foreground underline underline-offset-2 pointer-coarse:py-3', !item.readAt && 'font-semibold']}
+                  >
+                    {#if !item.readAt}<span class="sr-only">Unread:</span>{' '}{/if}{line}
+                  </a>
+                  <RelativeTime at={item.createdAt} class="text-caption text-muted-foreground" />
+                </div>
+                <IconButton label={`Dismiss: ${line}`} onclick={() => dismiss.mutate({ id: item.id })}><XIcon aria-hidden="true" /></IconButton>
+              </li>
+            {/each}
+          </ul>
+        {:else if empty}
+          <p class="px-4 py-6 text-body text-muted-foreground">Nothing needs attention.</p>
+        {/if}
+      </Tabs.Content>
+      <Tabs.Content value="activity">
+        <ActivityFeed {feed} members={team.data?.data} currentUserId={user?.id} {since} onnavigate={() => (open = false)} />
+      </Tabs.Content>
+    </Tabs.Root>
   </Popover.Content>
 </Popover.Root>
