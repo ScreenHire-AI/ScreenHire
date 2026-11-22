@@ -77,7 +77,8 @@ internal static class PublicQuestionnaireEndpoints
             open ? [.. found.Questionnaire!.Questions.Select(q => q.ToPublic(_ => []))] : [],
             open && found.Questionnaire!.Sections is { Count: > 0 } sections ? sections : null,
             found.Organization.QuestionsPerPage,
-            open ? found.Request.DraftAnswers : []));
+            open ? found.Request.DraftAnswers : [],
+            found.Request.IsEqualityMonitoring));
     }
 
     // Keeps the answers to finish later, through the same link: checked for shape only, since nothing is required yet.
@@ -174,9 +175,15 @@ internal static class PublicQuestionnaireEndpoints
         var entry = found.Request.Complete(questionnaire, answers, now);
         db.ApplicationEvents.Add(entry);
         var application = found.Application;
-        await outbox.PublishAsync(new RunAutomations(
-            application.OrganizationId, application.Id, TriggerType.QuestionnaireCompleted, StageId: null, entry.Id, now,
-            QuestionnaireId: questionnaire.Id));
+        // Nothing acts on an equality monitoring form: an automation that names no form fires on any answered form, so the
+        // trigger is not raised for one at all (workflow-engine.md section 7, Forms).
+        if (!found.Request.IsEqualityMonitoring)
+        {
+            await outbox.PublishAsync(new RunAutomations(
+                application.OrganizationId, application.Id, TriggerType.QuestionnaireCompleted, StageId: null, entry.Id, now,
+                QuestionnaireId: questionnaire.Id));
+        }
+
         await outbox.PublishAsync(new QuestionnaireAnswered(application.OrganizationId, application.Id, application.JobId, found.Request.Id, entry.Id, now));
         try
         {

@@ -141,8 +141,9 @@ public sealed class QuestionnaireRequest : IJobScoped
     public bool IsExpired(DateTimeOffset now) => now >= ExpiresAt;
 
     /// <summary>The timeline entry for a send, linked to the automation run that sent it, or to the person who sent it by hand.</summary>
-    public ApplicationEvent SentEvent(DateTimeOffset now, Guid? automationRunId, Guid? actorUserId = null)
-        => NewEvent(ApplicationEventType.QuestionnaireSent, now, automationRunId, actorUserId);
+    /// <remarks><c>entryId</c> is the entry's id, when a retried request must find the entry its first try left.</remarks>
+    public ApplicationEvent SentEvent(DateTimeOffset now, Guid? automationRunId, Guid? actorUserId = null, Guid? entryId = null) =>
+        NewEvent(ApplicationEventType.QuestionnaireSent, now, automationRunId, actorUserId, entryId);
 
     /// <summary>
     /// Records the candidate's answers and returns the timeline entry that raises the QuestionnaireCompleted trigger. The
@@ -166,9 +167,10 @@ public sealed class QuestionnaireRequest : IJobScoped
         return entry;
     }
 
-    private ApplicationEvent NewEvent(ApplicationEventType type, DateTimeOffset now, Guid? automationRunId, Guid? actorUserId = null) =>
+    private ApplicationEvent NewEvent(ApplicationEventType type, DateTimeOffset now, Guid? automationRunId, Guid? actorUserId = null, Guid? entryId = null) =>
         new()
         {
+            Id = entryId ?? Guid.CreateVersion7(),
             OrganizationId = OrganizationId,
             ActorUserId = actorUserId,
             ApplicationId = ApplicationId,

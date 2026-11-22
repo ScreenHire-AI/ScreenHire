@@ -722,6 +722,12 @@ internal static class JobEndpoints
             }
         }
 
+        // A form copied from the library keeps its library kind, so an equality monitoring form's answers stay protected.
+        if (workflow is not null)
+        {
+            workflow = await FormReferences.WithLibraryKindsAsync(db, workflow, cancellationToken);
+        }
+
         if (job.Status != JobStatus.Draft
             && (await TemplateReferences.ValidateAsync(db, workflow, cancellationToken)).ToProblems("workflow") is { } problems)
         {

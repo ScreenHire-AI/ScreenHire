@@ -123,6 +123,8 @@ public class AppHostFixture : IAsyncLifetime
                 "--ScreenHire:Legal:PrivacyUrl=https://example.com/privacy",
                 // Slack: the local sandbox workspace (docs/architecture/slack.md), so connecting and posting run with no Slack.
                 "--ScreenHire:Slack:Sandbox:Enabled=true",
+                // Forms: equality monitoring forms, off in a deployment until a legal review, so their rules can be tested.
+                "--ScreenHire:Forms:EqualityMonitoring:Enabled=true",
                 // Sign out everywhere reaches another session within a second, so a test sees it with no wait.
                 "--ScreenHire:Auth:SecurityStampInterval=00:00:01",
                 // Billing: the local fake provider (docs/architecture/billing.md). The plans are not pinned: the stack sells what

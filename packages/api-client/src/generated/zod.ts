@@ -144,8 +144,22 @@ export const GetTemplateUsageResponse = zod.object({
 }).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation. A job\nusing a hiring template carries `templateVersion`, the template version its pipeline came from (below the\ntemplate\'s newest published version, it is on an older one), and `workflowVersion`, its pipeline\'s own version,\nwhich applying an update expects; both are null on every other kind.')),
   "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
   "notUsedRecently": zod.boolean()
+}).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.')),
+  "forms": zod.array(zod.object({
+  "templateId": zod.string(),
+  "usedBy": zod.array(zod.object({
+  "kind": zod.enum(['Job', 'HiringTemplate', 'JobAutomation', 'TemplateAutomation']).describe('What uses a template: a job, a hiring template, or an automation in either.'),
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "automationId": zod.string().nullish(),
+  "automationName": zod.string().nullish(),
+  "templateVersion": zod.int().nullish(),
+  "workflowVersion": zod.int().nullish()
+}).describe('One thing that uses a template. `id` is the job\'s or the hiring template\'s id; for an automation it is the job\nor template the automation belongs to, and `automationId` and `automationName` name the automation. A job\nusing a hiring template carries `templateVersion`, the template version its pipeline came from (below the\ntemplate\'s newest published version, it is on an older one), and `workflowVersion`, its pipeline\'s own version,\nwhich applying an update expects; both are null on every other kind.')),
+  "lastUsedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "notUsedRecently": zod.boolean()
 }).describe('Where one template is used and when it was last used. `templateId` is the id its own list gives it.\n`usedBy` lists every user, so its length is the count: jobs that are not closed for a hiring template, hiring\ntemplates for a scorecard, automations for an email. `lastUsedAt`: when a job last started from it, a stage last\nused it or an email last went out from it; null when never. `notUsedRecently`: nothing used it in the last 180\ndays, and the team has had it longer than that.'))
-}).describe('Every template\'s use, by kind, as the Templates page lists them.')
+}).describe('Every template\'s use, by kind, as the Templates page lists them. A library form\'s users are hiring templates, each with\n`templateVersion`, the version of the form its current versions hold (below the form\'s newest published version,\nit is on an older one).')
 
 
 export const GetMetaResponse = zod.object({
@@ -790,6 +804,8 @@ export const GetPublicQuestionnaireParams = zod.object({
   "token": zod.string()
 })
 
+export const getPublicQuestionnaireResponseEqualityMonitoringDefault = false;
+
 export const GetPublicQuestionnaireResponse = zod.object({
   "organization": zod.object({
   "name": zod.string(),
@@ -858,8 +874,9 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire as its careers page shows it, through the signed link in the candidate\'s email.\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\n`draft` holds the answers the candidate saved to finish later, empty when there are none.')
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+  "equalityMonitoring": zod.boolean().default(getPublicQuestionnaireResponseEqualityMonitoringDefault)
+}).describe('A follow-up questionnaire as its careers page shows it, through the signed link in the candidate\'s email.\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\n`draft` holds the answers the candidate saved to finish later, empty when there are none.\n`equalityMonitoring`: an equality monitoring form, whose page says its answers are optional and only ever counted.')
 
 
 export const AnswerPublicQuestionnaireParams = zod.object({
@@ -1400,7 +1417,10 @@ export const CreateJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -1610,7 +1630,10 @@ export const GetJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -1843,7 +1866,10 @@ export const UpdateJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -2105,7 +2131,10 @@ export const SetJobAiUseResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -2319,7 +2348,10 @@ export const PublishJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -2529,7 +2561,10 @@ export const CloseJobResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -2781,7 +2816,10 @@ export const UpdateJobWorkflowBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "expectedWorkflowVersion": zod.int()
@@ -2933,7 +2971,10 @@ export const UpdateJobWorkflowResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -3148,7 +3189,10 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "workflowVersion": zod.int(),
@@ -3356,7 +3400,10 @@ export const CreateHiringTemplateBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -3629,7 +3676,10 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -3770,7 +3820,10 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -3924,7 +3977,10 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -4074,7 +4130,10 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -4215,7 +4274,10 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -4369,7 +4431,10 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "postingDefaults": zod.object({
@@ -4605,8 +4670,9 @@ export const CreateApplicationResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]).optional()
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes. `kind` is the form\'s kind when it was sent: an equality monitoring form\'s `questions` and\n`answers` are always empty, because its answers only count toward totals in Reports (workflow-engine.md section\n7, Forms).')),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
   "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
@@ -4768,8 +4834,9 @@ export const GetApplicationResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]).optional()
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes. `kind` is the form\'s kind when it was sent: an equality monitoring form\'s `questions` and\n`answers` are always empty, because its answers only count toward totals in Reports (workflow-engine.md section\n7, Forms).')),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
   "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
@@ -4876,8 +4943,9 @@ export const MoveApplicationResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]).optional()
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes. `kind` is the form\'s kind when it was sent: an equality monitoring form\'s `questions` and\n`answers` are always empty, because its answers only count toward totals in Reports (workflow-engine.md section\n7, Forms).')),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
   "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
@@ -5088,8 +5156,9 @@ export const AddApplicationTagResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]).optional()
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes. `kind` is the form\'s kind when it was sent: an equality monitoring form\'s `questions` and\n`answers` are always empty, because its answers only count toward totals in Reports (workflow-engine.md section\n7, Forms).')),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
   "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
@@ -5195,8 +5264,9 @@ export const RemoveApplicationTagResponse = zod.object({
   "questionId": zod.string(),
   "value": zod.string().nullish(),
   "values": zod.array(zod.string()).nullish()
-}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.'))
-}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes.')),
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]).optional()
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes. `kind` is the form\'s kind when it was sent: an equality monitoring form\'s `questions` and\n`answers` are always empty, because its answers only count toward totals in Reports (workflow-engine.md section\n7, Forms).')),
   "slaDueAt": zod.iso.datetime({"offset":true}).nullish(),
   "rating": zod.union([zod.null(),zod.object({
   "state": zod.enum(['NotRated', 'Rated', 'AfterYourScorecard']).describe('`NotRated`: no scorecard with a rating answer yet. `Rated`: see `value`. `AfterYourScorecard`: the\nreader has a review to give first.'),
@@ -8792,7 +8862,10 @@ export const ValidateWorkflowBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.')
 }).describe('A workflow to check, as the builder holds it before saving.')
@@ -8928,7 +9001,10 @@ export const SimulateWorkflowBody = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "questionIds": zod.array(zod.string())
-}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
 }).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
 }).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
   "trigger": zod.object({
@@ -9276,6 +9352,31 @@ export const GetFunnelApplicationsQueryParams = zod.object({
 
 export const GetFunnelApplicationsResponseItem = zod.uuid()
 export const GetFunnelApplicationsResponse = zod.array(GetFunnelApplicationsResponseItem)
+
+
+export const GetEqualityReportQueryParams = zod.object({
+  "from": zod.iso.datetime({"offset":true}).optional(),
+  "to": zod.iso.datetime({"offset":true}).optional(),
+  "jobId": zod.array(zod.uuid()).optional()
+})
+
+export const GetEqualityReportResponse = zod.object({
+  "forms": zod.array(zod.object({
+  "formTemplateId": zod.uuid(),
+  "name": zod.string(),
+  "responses": zod.int().nullable(),
+  "questions": zod.array(zod.object({
+  "questionId": zod.string(),
+  "label": zod.string(),
+  "answers": zod.array(zod.object({
+  "value": zod.string(),
+  "label": zod.string(),
+  "count": zod.int().nullable()
+}).describe('How many gave this answer, or null where the count is hidden.'))
+}).describe('One question\'s totals, a count per answer and one for no answer (`value` empty).'))
+}).describe('One form\'s totals. `responses` is how many candidates answered it in the range, null when that is under the\nminimum, and then `questions` is empty.')),
+  "minimumCount": zod.int()
+}).describe('Equality monitoring totals for the range (docs/architecture/reports.md, Equality monitoring): one entry per equality\nmonitoring form in the library. Nothing here names a candidate. A count under `minimumCount` is null, and so is the\nnext smallest when only one count of a question would be hidden, so no hidden count can be worked out from the rest.')
 
 
 export const ListApplicationScorecardsParams = zod.object({
@@ -9644,6 +9745,524 @@ export const UnarchiveScorecardTemplateResponse = zod.object({
 }).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
   "archived": zod.boolean()
 }).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
+
+
+export const listFormTemplatesResponseFormsItemLastUpdatedCreatedDefault = false;
+
+export const ListFormTemplatesResponse = zod.object({
+  "forms": zod.array(zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]),
+  "questions": zod.int(),
+  "latestPublishedVersion": zod.int().nullable(),
+  "draftVersion": zod.int().nullable(),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(listFormTemplatesResponseFormsItemLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
+}).describe('One library form in the list (workflow-engine.md section 7, Forms). `name` and `questions` are the newest\nversion\'s; `latestPublishedVersion` is the version a hiring template can use, null until one is published, and\n`draftVersion` the draft\'s number while there is one.')),
+  "equalityMonitoringEnabled": zod.boolean()
+}).describe('The form library: the organization\'s forms by name, and whether this deployment offers equality monitoring forms\n(`ScreenHire:Forms:EqualityMonitoring:Enabled`, off until a legal review).')
+
+
+export const createFormTemplateBodyContentTwoQuestionsItemRequiredDefault = false;
+
+export const CreateFormTemplateBody = zod.object({
+  "content": zod.union([zod.null(),zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(createFormTemplateBodyContentTwoQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('A library form version\'s content: what a hiring template copies into its follow-up questionnaire.')]).optional(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional(),
+  "copyFromFormId": zod.uuid().nullish()
+}).describe('A new library form. Its first version starts as a draft holding `content`, or a copy of\n`copyFromFormId`\'s newest version. `kind` defaults to Standard; EqualityMonitoring only where this deployment\noffers it. A copy keeps its source\'s kind.')
+
+export const createFormTemplateResponseLastUpdatedCreatedDefault = false;
+
+export const CreateFormTemplateResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]),
+  "copiedFromFormId": zod.uuid().nullable(),
+  "latestPublishedVersion": zod.int().nullable(),
+  "versions": zod.array(zod.object({
+  "version": zod.int(),
+  "status": zod.enum(['Draft', 'Published']),
+  "name": zod.string(),
+  "questions": zod.int(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One version of a library form, without its content.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(createFormTemplateResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
+}).describe('A library form with its versions, newest last. `copiedFromFormId`: the form it was copied from, if any.')
+
+
+export const GetFormTemplateParams = zod.object({
+  "formId": zod.uuid()
+})
+
+export const getFormTemplateResponseLastUpdatedCreatedDefault = false;
+
+export const GetFormTemplateResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]),
+  "copiedFromFormId": zod.uuid().nullable(),
+  "latestPublishedVersion": zod.int().nullable(),
+  "versions": zod.array(zod.object({
+  "version": zod.int(),
+  "status": zod.enum(['Draft', 'Published']),
+  "name": zod.string(),
+  "questions": zod.int(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One version of a library form, without its content.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(getFormTemplateResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
+}).describe('A library form with its versions, newest last. `copiedFromFormId`: the form it was copied from, if any.')
+
+
+export const GetFormTemplateHistoryParams = zod.object({
+  "formId": zod.uuid()
+})
+
+export const GetFormTemplateHistoryQueryParams = zod.object({
+  "before": zod.uuid().optional(),
+  "limit": zod.int().optional()
+})
+
+export const GetFormTemplateHistoryResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "id": zod.uuid(),
+  "at": zod.iso.datetime({"offset":true}),
+  "by": zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)]),
+  "userId": zod.uuid().nullable(),
+  "apiKeyId": zod.uuid().nullable(),
+  "lines": zod.array(zod.object({
+  "text": zod.string(),
+  "parts": zod.array(zod.object({
+  "text": zod.string(),
+  "strong": zod.boolean()
+})),
+  "details": zod.array(zod.object({
+  "label": zod.string(),
+  "before": zod.string().nullable(),
+  "after": zod.string().nullable(),
+  "kind": zod.enum(['Text', 'Paragraphs', 'Instant']).describe('How the screen shows a detail\'s values.')
+}).describe('A value before and after. Equal values did not change and show for context; a null `before` is new and a null\n`after` was removed. An `Instant` is ISO 8601, for the browser to format.'))
+}).describe('One change in words, such as "made Notes on the exercise optional". `text` is the sentence; `parts` are its\nruns, with the name of the thing that changed marked `strong`. `details` are its values before and after.'))
+}).describe('Everything one save changed in the object: who, when, and a line per change.')),
+  "nextBefore": zod.uuid().nullable()
+}).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
+
+
+export const CreateFormTemplateVersionParams = zod.object({
+  "formId": zod.uuid()
+})
+
+export const createFormTemplateVersionBodyContentTwoQuestionsItemRequiredDefault = false;
+
+export const CreateFormTemplateVersionBody = zod.object({
+  "content": zod.union([zod.null(),zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(createFormTemplateVersionBodyContentTwoQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('A library form version\'s content: what a hiring template copies into its follow-up questionnaire.')]).optional()
+}).describe('The next version as a draft: `content`, or a copy of the newest version\'s when it is left out.')
+
+export const createFormTemplateVersionResponseContentQuestionsItemRequiredDefault = false;
+
+export const CreateFormTemplateVersionResponse = zod.object({
+  "formTemplateId": zod.uuid(),
+  "version": zod.int(),
+  "status": zod.enum(['Draft', 'Published']),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]),
+  "content": zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(createFormTemplateVersionResponseContentQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('A library form version\'s content: what a hiring template copies into its follow-up questionnaire.'),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One version of a library form with its content, which a hiring template copies into a follow-up questionnaire. The\ncontent\'s JSON Schema is the follow-up questionnaire\'s questions and sections.')
+
+
+export const GetFormTemplateVersionParams = zod.object({
+  "formId": zod.uuid(),
+  "version": zod.int()
+})
+
+export const getFormTemplateVersionResponseContentQuestionsItemRequiredDefault = false;
+
+export const GetFormTemplateVersionResponse = zod.object({
+  "formTemplateId": zod.uuid(),
+  "version": zod.int(),
+  "status": zod.enum(['Draft', 'Published']),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]),
+  "content": zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(getFormTemplateVersionResponseContentQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('A library form version\'s content: what a hiring template copies into its follow-up questionnaire.'),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One version of a library form with its content, which a hiring template copies into a follow-up questionnaire. The\ncontent\'s JSON Schema is the follow-up questionnaire\'s questions and sections.')
+
+
+export const UpdateFormTemplateVersionParams = zod.object({
+  "formId": zod.uuid(),
+  "version": zod.int()
+})
+
+export const updateFormTemplateVersionBodyContentQuestionsItemRequiredDefault = false;
+
+export const UpdateFormTemplateVersionBody = zod.object({
+  "content": zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateFormTemplateVersionBodyContentQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('A library form version\'s content: what a hiring template copies into its follow-up questionnaire.')
+}).describe('A draft\'s new content.')
+
+export const updateFormTemplateVersionResponseContentQuestionsItemRequiredDefault = false;
+
+export const UpdateFormTemplateVersionResponse = zod.object({
+  "formTemplateId": zod.uuid(),
+  "version": zod.int(),
+  "status": zod.enum(['Draft', 'Published']),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]),
+  "content": zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateFormTemplateVersionResponseContentQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('A library form version\'s content: what a hiring template copies into its follow-up questionnaire.'),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One version of a library form with its content, which a hiring template copies into a follow-up questionnaire. The\ncontent\'s JSON Schema is the follow-up questionnaire\'s questions and sections.')
+
+
+export const PublishFormTemplateVersionParams = zod.object({
+  "formId": zod.uuid(),
+  "version": zod.int()
+})
+
+export const publishFormTemplateVersionResponseContentQuestionsItemRequiredDefault = false;
+
+export const PublishFormTemplateVersionResponse = zod.object({
+  "formTemplateId": zod.uuid(),
+  "version": zod.int(),
+  "status": zod.enum(['Draft', 'Published']),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]),
+  "content": zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(publishFormTemplateVersionResponseContentQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('A library form version\'s content: what a hiring template copies into its follow-up questionnaire.'),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One version of a library form with its content, which a hiring template copies into a follow-up questionnaire. The\ncontent\'s JSON Schema is the follow-up questionnaire\'s questions and sections.')
+
+
+export const ApplyFormToTemplatesParams = zod.object({
+  "formId": zod.uuid(),
+  "version": zod.int()
+})
+
+export const ApplyFormToTemplatesBody = zod.object({
+  "templateIds": zod.array(zod.uuid())
+}).describe('The hiring templates to update to this published version of the form.')
+
+export const ApplyFormToTemplatesResponse = zod.object({
+  "templates": zod.array(zod.object({
+  "templateId": zod.uuid(),
+  "templateName": zod.string(),
+  "outcome": zod.enum(['Published', 'UpdatedDraft', 'NotUpdated']).describe('What updating one hiring template did. `Published`: it had no draft, so the update is its new published version\n`version`, which new jobs get; its jobs stay on theirs until someone updates them. `UpdatedDraft`: its draft\n`version` now holds the form, waiting to be published with the rest of the draft. `NotUpdated`: nothing changed,\nand `problem` says why.'),
+  "version": zod.int().nullish(),
+  "problem": zod.string().nullish()
+}))
+})
+
+
+export const ArchiveFormTemplateParams = zod.object({
+  "formId": zod.uuid()
+})
+
+export const archiveFormTemplateResponseLastUpdatedCreatedDefault = false;
+
+export const ArchiveFormTemplateResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]),
+  "copiedFromFormId": zod.uuid().nullable(),
+  "latestPublishedVersion": zod.int().nullable(),
+  "versions": zod.array(zod.object({
+  "version": zod.int(),
+  "status": zod.enum(['Draft', 'Published']),
+  "name": zod.string(),
+  "questions": zod.int(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One version of a library form, without its content.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(archiveFormTemplateResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
+}).describe('A library form with its versions, newest last. `copiedFromFormId`: the form it was copied from, if any.')
+
+
+export const UnarchiveFormTemplateParams = zod.object({
+  "formId": zod.uuid()
+})
+
+export const unarchiveFormTemplateResponseLastUpdatedCreatedDefault = false;
+
+export const UnarchiveFormTemplateResponse = zod.object({
+  "id": zod.uuid(),
+  "name": zod.string(),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]),
+  "copiedFromFormId": zod.uuid().nullable(),
+  "latestPublishedVersion": zod.int().nullable(),
+  "versions": zod.array(zod.object({
+  "version": zod.int(),
+  "status": zod.enum(['Draft', 'Published']),
+  "name": zod.string(),
+  "questions": zod.int(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One version of a library form, without its content.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(unarchiveFormTemplateResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "archived": zod.boolean()
+}).describe('A library form with its versions, newest last. `copiedFromFormId`: the form it was copied from, if any.')
+
+
+export const SendApplicationFormParams = zod.object({
+  "applicationId": zod.uuid(),
+  "questionnaireId": zod.string()
+})
+
+export const SendApplicationFormHeader = zod.object({
+  "Idempotency-Key": zod.string().optional()
+})
+
+export const sendApplicationFormResponseQuestionsItemRequiredDefault = false;
+
+export const SendApplicationFormResponse = zod.object({
+  "id": zod.uuid(),
+  "questionnaireId": zod.string(),
+  "name": zod.string(),
+  "firstSentAt": zod.iso.datetime({"offset":true}),
+  "lastSentAt": zod.iso.datetime({"offset":true}),
+  "expiresAt": zod.iso.datetime({"offset":true}),
+  "timesSent": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(sendApplicationFormResponseQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "answers": zod.array(zod.object({
+  "questionId": zod.string(),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish()
+}).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
+  "kind": zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)]).optional()
+}).describe('A follow-up questionnaire sent to the candidate. Until it is answered, `questions` and `answers` are empty;\nonce it is, `questions` are the questions as the candidate saw them, so the answers read the same after the\nworkflow changes. `kind` is the form\'s kind when it was sent: an equality monitoring form\'s `questions` and\n`answers` are always empty, because its answers only count toward totals in Reports (workflow-engine.md section\n7, Forms).')
 
 
 export const ListWebhookEventTypesResponseItem = zod.string()

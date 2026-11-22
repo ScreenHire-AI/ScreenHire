@@ -34,5 +34,10 @@ public sealed record UsageItem(
 /// </summary>
 public sealed record TemplateUse(string TemplateId, IReadOnlyList<UsageItem> UsedBy, DateTimeOffset? LastUsedAt, bool NotUsedRecently);
 
-/// <summary>Every template's use, by kind, as the Templates page lists them.</summary>
-public sealed record TemplateUsageList(IReadOnlyList<TemplateUse> Hiring, IReadOnlyList<TemplateUse> Scorecards, IReadOnlyList<TemplateUse> Emails);
+/// <summary>
+/// Every template's use, by kind, as the Templates page lists them. A library form's users are hiring templates, each with
+/// <c>templateVersion</c>, the version of the form its current versions hold (below the form's newest published version,
+/// it is on an older one).
+/// </summary>
+public sealed record TemplateUsageList(
+    IReadOnlyList<TemplateUse> Hiring, IReadOnlyList<TemplateUse> Scorecards, IReadOnlyList<TemplateUse> Emails, IReadOnlyList<TemplateUse> Forms);

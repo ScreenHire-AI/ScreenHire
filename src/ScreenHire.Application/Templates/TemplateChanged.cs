@@ -13,6 +13,9 @@ public enum TemplateKind
 
     /// <summary>A library scorecard.</summary>
     ScorecardTemplate,
+
+    /// <summary>A library form: a draft version, a publish, an archive.</summary>
+    FormTemplate,
 }
 
 /// <summary>

@@ -64,6 +64,10 @@
 //                               Data Processing Agreement (DpaUrl), forwarded to the API (its LegalOptions). The sign-in page's
 //                               agreement line links to each one that is set and names only those; none are set here, so
 //                               the line is left out (docs/architecture/sign-in-and-tenancy.md).
+//   Forms:*                     the form library (the API's FormsOptions, docs/architecture/workflow-engine.md section 7,
+//                               Forms), forwarded to the API: EqualityMonitoring:Enabled (default false) offers equality
+//                               monitoring forms and their totals in Reports. It waits on a legal review; the test stacks
+//                               turn it on.
 //   CareersEmbedding:*          the sites allowed to embed the careers pages (the API's CareersEmbeddingOptions,
 //                               docs/architecture/careers-widget.md), forwarded to the API: AllowLoopback
 //                               (appsettings.Development.json and the test stacks turn it on, so a site on this machine,
@@ -339,6 +343,15 @@ foreach (var (key, value) in settings.GetSection("Legal").AsEnumerable(makePaths
     if (value is not null)
     {
         api.WithEnvironment($"ScreenHire__Legal__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+    }
+}
+
+// The form library: whether equality monitoring forms are offered, read by the API.
+foreach (var (key, value) in settings.GetSection("Forms").AsEnumerable(makePathsRelative: true))
+{
+    if (value is not null)
+    {
+        api.WithEnvironment($"ScreenHire__Forms__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
     }
 }
 
