@@ -107,6 +107,35 @@ public sealed class InterviewHoursEndpointTests(AppHostFixture fixture)
         limited.Should().NotBeEmpty().And.Contain(s => s.UtcDateTime.Date != booked.UtcDateTime.Date);
     }
 
+    // The check InterviewBooking repeats under the interviewers' locks, called with nothing racing it: pick from our times
+    // repeats the person's own hours, and a time a person chose checks only an overlap.
+    [Fact]
+    public async Task The_check_under_the_locks_keeps_a_bookings_buffer_and_a_full_day()
+    {
+        using var world = await InterviewWorld.CreateAsync(fixture);
+        var alone = new[] { world.Owner.UserId };
+        var (_, token) = await world.ScheduledAsync(interviewers: alone);
+        var slots = await SlotsAsync(world, token);
+        var booked = slots.First(s => s >= DateTimeOffset.UtcNow.AddDays(2) && slots.Contains(s.AddMinutes(30)) && slots.Contains(s.AddMinutes(90)));
+        (await world.BookAsync(token, booked)).Expect(HttpStatusCode.NoContent);
+        var tenant = SchedulingTestSupport.TenantOf(world.OrganizationId);
+        await using var db = await fixture.CreateDbContextAsync(tenant, TestContext.Current.CancellationToken);
+        var (availability, _) = SchedulingTestSupport.Services(db, tenant);
+        Task<bool> KeepsAsync(DateTimeOffset start, bool withHours) =>
+            availability.BookingsKeepAsync(alone, start, start.AddMinutes(30), Guid.Empty, withHours, TestContext.Current.CancellationToken);
+
+        (await KeepsAsync(booked, withHours: false)).Should().BeTrue("the booking itself");
+        (await KeepsAsync(booked.AddMinutes(30), withHours: true)).Should().BeFalse("no hours of their own yet, so only an overlap keeps them");
+
+        (await world.Owner.PutAsync(HoursPath, Body("UTC", WeekdayHours("09:00", "17:00"), 30, null))).Expect(HttpStatusCode.OK);
+        (await KeepsAsync(booked.AddMinutes(30), withHours: true)).Should().BeTrue("inside the 30 minute buffer");
+        (await KeepsAsync(booked.AddMinutes(30), withHours: false)).Should().BeFalse("a time a person chose checks only an overlap");
+        (await KeepsAsync(booked.AddMinutes(60), withHours: true)).Should().BeFalse("past the buffer");
+
+        (await world.Owner.PutAsync(HoursPath, Body("UTC", WeekdayHours("09:00", "17:00"), 0, 1))).Expect(HttpStatusCode.OK);
+        (await KeepsAsync(booked.AddMinutes(90), withHours: true)).Should().BeTrue("the day already holds its one interview");
+    }
+
     // Both times are offered while nothing is booked; the booking check under the locks is what keeps the buffer.
     [Fact]
     public async Task Two_candidates_racing_for_times_inside_each_others_buffer_book_one()

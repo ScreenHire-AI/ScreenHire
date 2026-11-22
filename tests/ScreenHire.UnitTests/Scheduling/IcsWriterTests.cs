@@ -53,6 +53,23 @@ public sealed class IcsWriterTests
     }
 
     [Fact]
+    public void A_line_break_in_a_link_or_an_address_cannot_start_a_property_of_its_own()
+    {
+        var ev = Event() with
+        {
+            Url = "https://meet.example.org/abc\r\nATTENDEE:mailto:x@example.com",
+            Organizer = new IcsPerson("team@reply.example.com\nMETHOD:CANCEL"),
+            Attendees = [new IcsPerson("grace@example.com\r\nSTATUS:CANCELLED")],
+        };
+
+        var lines = Lines(IcsWriter.Invitation(ev));
+
+        lines.Should().ContainSingle(l => l.StartsWith("METHOD:", StringComparison.Ordinal)).Which.Should().Be("METHOD:REQUEST");
+        lines.Should().ContainSingle(l => l.StartsWith("STATUS:", StringComparison.Ordinal)).Which.Should().Be("STATUS:CONFIRMED");
+        lines.Should().ContainSingle(l => l.StartsWith("ATTENDEE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Long_lines_fold_at_75_octets_without_splitting_a_character()
     {
         var summary = string.Concat(Enumerable.Repeat("Entretien café ☕ ", 12));
