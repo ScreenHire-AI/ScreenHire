@@ -136,6 +136,8 @@ sources:
   - resource: apps/dashboard/src/lib/template-switch.ts
   - resource: src/ScreenHire.Domain/Hiring/StageMapping.cs
   - resource: src/ScreenHire.Domain/Jobs/FormerWorkflowParts.cs
+  - resource: src/ScreenHire.Domain/Jobs/Job.cs
+  - resource: src/ScreenHire.Domain/Applications/ApplicationEvent.cs
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-preview.svelte
   - resource: apps/dashboard/src/lib/components/workflow/question-settings.svelte
