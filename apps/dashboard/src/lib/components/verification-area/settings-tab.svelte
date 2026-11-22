@@ -9,8 +9,8 @@
 
   // The 688px column of a settings tab (design system section 7, Form) around the organization's saved verification
   // settings: a skeleton while they load, an error with Retry, then `children` with the settings. The layout reads the same
-  // query for the Last updated fact, so this adds no request. `wide` gives the tab the full width, for Checks, whose groups put
-  // their settings beside what they are.
+  // query for the Last updated fact, so this adds no request. `wide` gives the tab the full width, for Checks, whose opened rows put
+  // a group's settings beside what it is.
   let { title, wide = false, children }: { title: string; wide?: boolean; children: Snippet<[OrganizationVerificationSettings]> } = $props();
 
   const settings = createGetOrganizationVerificationSettings();

@@ -1,5 +1,9 @@
 <script lang="ts">
   import { untrack, type Snippet } from 'svelte';
+  import { cubicInOut } from 'svelte/easing';
+  import { prefersReducedMotion } from 'svelte/motion';
+  import { slide } from 'svelte/transition';
+  import ChevronDownIcon from '~icons/lucide/chevron-down';
   import SaveIcon from '~icons/lucide/save';
   import type { CheckGroup, HttpValidationProblemDetails, OrganizationVerificationSettings } from '@screenhire/api-client';
   import { ApiError } from '@screenhire/api-client/svelte-query';
@@ -12,6 +16,7 @@
   import StatusBadge from '#lib/components/status-badge.svelte';
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
@@ -31,21 +36,26 @@
   import { createVerificationSettingsSave, savedMessage } from '#lib/verification-settings-save.js';
   import { aiUseLabels, aiUseName } from '#lib/workflow.js';
 
-  // The Checks tab (verification-engine.md 10.11): every switch that decides what runs, one section per group of checks, with
-  // what the group looks at, an example of what it catches, what turning it off costs and how often it found something this
-  // month, and the settings that tune that group inside it: the AI-use policy and the consistency check in Answers, trusted
+  // The Checks tab (verification-engine.md 10.11): every switch that decides what runs, one compact row per group so all six fit
+  // on one screen (the owner's walk-through, 2026-11-22). A row has the group's switch beside its name, a one-line summary and how
+  // often it found something this month; it opens in place to what the group looks at, an example of what it catches, what
+  // turning it off costs, and the settings that tune that group: the AI-use policy and the consistency check in Answers, trusted
   // networks in Network, trusted email domains and the device check in Duplicates. The Verification suggested alert's
   // organization default is in Settings > Notification defaults, and each person's own choice in Your account > Notifications.
-  // Whoever can see verification reads it all as text; Edit settings gets the controls and one Save (A3). A group that is off
-  // records that it did not run, so nobody reads a missing check as clean. The Signal Network has no control: it stays off
-  // until legal review, and a switch that cannot be turned on would be a disabled control.
+  // Whoever can see verification reads it all as text; Edit settings gets the controls and one Save (A3), which sends every
+  // setting whether its row is open or not. A group that is off records that it did not run, so nobody reads a missing check as
+  // clean. The Signal Network has no control: it stays off until legal review, and a switch that cannot be turned on would be a
+  // disabled control.
   let {
     detail,
     canEdit,
     found,
+    opened,
   }: {
     detail: OrganizationVerificationSettings;
     canEdit: boolean;
+    /** The group whose row starts open, by its key ("answers"), such as from a link to the AI-use policy. */
+    opened?: string;
     /** This month's applications each group found something in, and how many were checked; null while it loads or for none. */
     found: { applications: Partial<Record<CheckGroup, number>>; checked: number } | null;
   } = $props();
@@ -61,6 +71,16 @@
     FormUse: 'formUse',
   };
   const runs = (group: CheckGroup) => detail.checks[keys[group]] ?? true;
+
+  // Every row starts closed, except one a link asks for.
+  const open = $state(Object.fromEntries(groups.map((group) => [group, untrack(() => opened) === keys[group]])) as Record<CheckGroup, boolean>);
+  const allOpen = $derived(groups.every((group) => open[group]));
+  const setAll = (value: boolean) => groups.forEach((group) => (open[group] = value));
+  // A link followed while the tab is already showing changes only the hash, so the row it names opens then too.
+  $effect(() => {
+    const linked = groups.find((group) => keys[group] === opened);
+    if (linked) untrack(() => (open[linked] = true));
+  });
 
   const aiUses = Object.keys(aiUseLabels) as (keyof typeof aiUseLabels)[];
   // The label is "Name: explanation". The name fits a phone-width select; the explanation goes in the info button.
@@ -137,8 +157,17 @@
             void trustedDomains;
             void trustedNetworks;
             applyValidationProblem(submitted, { ...problem, errors: rest });
-            // A refusal that names no field still says why, under Save.
-            if (!domainServerError && !networkServerError && Object.keys(rest).length === 0) {
+            // A refused setting shows in its own row, so that row opens.
+            if (networkServerError) open.Network = true;
+            if (domainServerError || 'deviceCheck' in rest) open.Duplicates = true;
+            if ('defaultAiUse' in rest || 'llmConsistencyCheck' in rest) open.Answers = true;
+            // Only the trusted lists show a refusal beside the field, so any other refused setting says why under Save,
+            // and so does a refusal that names no field.
+            const refused = Object.values(rest).flat();
+            if (refused.length > 0) {
+              submitted.valid = false;
+              submitted.errors._errors = [refused[0]];
+            } else if (!domainServerError && !networkServerError) {
               submitted.valid = false;
               submitted.errors._errors = [describeError(error, 'Could not save the settings')];
             }
@@ -151,55 +180,80 @@
     },
   );
 
-  const foundLine = (group: CheckGroup) => {
-    if (!found || found.checked === 0) return null;
+  // The month's count as the row's chip: a count of applications, never a score. Nothing while it loads, before anything was
+  // checked, or for a group that is off, where "Nothing found" would read as clean.
+  const foundChip = (group: CheckGroup) => {
+    if (!found || found.checked === 0 || !runs(group)) return null;
     const count = found.applications[group] ?? 0;
-    return `Found something in ${count} of ${found.checked} ${found.checked === 1 ? 'application' : 'applications'} this month`;
+    // The words a screen reader adds, which the panel's info button says for everyone else.
+    return count === 0 ? { text: 'Nothing found', more: ' this month' } : { text: `Found in ${count} of ${found.checked}`, more: ' applications this month' };
   };
 </script>
 
-<!-- What a group is: the three plain lines, then this month's count. Shared by the form and the read-only view. -->
-{#snippet about(group: CheckGroup)}
-  {@const copy = checkGroupCopy[group]}
-  <div class="flex max-w-measure flex-col gap-1.5">
-    <p>{copy.looksAt}</p>
-    <p class="text-muted-foreground"><span class="font-medium text-foreground">For example:</span> {copy.example}</p>
-    <p class="text-muted-foreground"><span class="font-medium text-foreground">Off:</span> {copy.offCost}</p>
-    {#if foundLine(group)}
-      <p class="flex items-center gap-1 text-muted-foreground tabular-nums" data-found>
-        {foundLine(group)}
-        <InfoButton
-          label={`About this count for ${checkGroupLabels[group]}`}
-          text="Applications this month in which this group counted something towards the level. A count of applications, never a score."
-        />
-      </p>
-    {/if}
-  </div>
-{/snippet}
-
-<!-- A group's section: its name and switch (or On or Off as text), what it is, and the settings that tune it beside that. -->
-{#snippet section(group: CheckGroup, settings?: Snippet)}
+<!-- A group's row (A9, the owner's walk-through, 2026-11-22): the switch (or On or Off as text) at its start beside the group's
+     name, so nobody wonders which group a switch belongs to, then the button that opens the row in place: the name, the one-line
+     summary, the chevron beside them, and the month's count as a quiet chip at the end. The switch sits outside the button,
+     because a control inside a button is not reachable on its own. Open, the row shows what the group looks at, its example,
+     what off costs and the settings that tune it. -->
+{#snippet row(group: CheckGroup, settings?: Snippet)}
   {@const key = keys[group]}
-  <section aria-labelledby={`group-${key}`} data-check-group={group} class="grid gap-x-8 gap-y-4 border-t border-border-subtle px-4.5 py-5 first:border-t-0 max-md:px-4 @5xl:grid-cols-2">
-    <div class="flex flex-col gap-3">
-      <div class="flex items-center justify-between gap-4">
-        <h3 id={`group-${key}`} class="text-body font-semibold">
-          {#if canEdit}<label for={`check-${key}`}>{checkGroupLabels[group]}</label>{:else}{checkGroupLabels[group]}{/if}
-        </h3>
+  {@const copy = checkGroupCopy[group]}
+  {@const chip = foundChip(group)}
+  <div data-check-group={group} class="border-t border-border-subtle first:border-t-0">
+    <!-- The switch lines up with the name's line, which is the row's only line at desktop width and its first on a phone. -->
+    <div class="flex items-start gap-3 px-4.5 max-md:px-4">
+      <div class={['flex h-13 shrink-0 items-center max-md:h-9', canEdit ? 'w-8' : 'w-16']}>
         {#if canEdit}
-          <Switch id={`check-${key}`} bind:checked={$form.checks[key]} aria-describedby={`group-${key}-about`} />
+          <Switch id={`check-${key}`} bind:checked={$form.checks[key]} aria-labelledby={`group-${key}-name`} aria-describedby={`group-${key}-summary`} />
         {:else if runs(group)}
           <StatusBadge status="done" label="On" quiet />
         {:else}
           <StatusBadge status="notInEffect" label="Off" />
         {/if}
       </div>
-      <div id={`group-${key}-about`}>{@render about(group)}</div>
+      <h3 class="min-w-0 flex-1">
+        <button
+          type="button"
+          aria-expanded={open[group]}
+          aria-controls={open[group] ? `group-${key}-detail` : undefined}
+          class="-mx-2 flex min-h-13 w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
+          onclick={() => (open[group] = !open[group])}
+        >
+          <span class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+            <span class="flex min-w-0 items-center gap-1.5">
+              <span class="flex min-w-0 flex-col md:flex-row md:items-baseline md:gap-3">
+                <span id={`group-${key}-name`} class="text-body font-semibold">{checkGroupLabels[group]}</span>
+                <span id={`group-${key}-summary`} class="text-muted-foreground">{copy.summary}</span>
+              </span>
+              <ChevronDownIcon
+                aria-hidden="true"
+                class={['size-4 shrink-0 text-muted-foreground transition-transform duration-180 ease-in-out motion-reduce:transition-none', open[group] && 'rotate-180']}
+              />
+            </span>
+            {#if chip}
+              <Badge variant="muted" class="ml-auto tabular-nums" data-found>{chip.text}<span class="sr-only">{chip.more}</span></Badge>
+            {/if}
+          </span>
+        </button>
+      </h3>
     </div>
-    {#if settings}
-      <div class="flex flex-col gap-5">{@render settings()}</div>
+    {#if open[group]}
+      <div
+        id={`group-${key}-detail`}
+        transition:slide={{ duration: prefersReducedMotion.current ? 0 : 180, easing: cubicInOut }}
+        class={['grid gap-x-8 gap-y-5 pr-4.5 pb-5 max-md:px-4 @5xl:grid-cols-2', canEdit ? 'md:pl-15.5' : 'md:pl-23.5']}
+      >
+        <div class="flex max-w-measure flex-col gap-1.5">
+          <p>{copy.looksAt}</p>
+          <p class="text-muted-foreground"><span class="font-medium text-foreground">For example:</span> {copy.example}</p>
+          <p class="text-muted-foreground"><span class="font-medium text-foreground">Off:</span> {copy.offCost}</p>
+        </div>
+        {#if settings}
+          <div class="flex max-w-form flex-col gap-5">{@render settings()}</div>
+        {/if}
+      </div>
     {/if}
-  </section>
+  </div>
 {/snippet}
 
 {#snippet answersSettings()}
@@ -214,15 +268,16 @@
         {#each aiUses as policy (policy)}<option value={policy}>{aiUseName(policy)}{policy === 'AllowedWithDisclosure' ? ' (default)' : ''}</option>{/each}
       </select>
     </Field.Field>
-    <div class="flex items-start gap-4">
-      <div class="flex min-w-0 flex-1 items-center gap-1">
+    <!-- The switch before its label, as each group's switch is before its name, so the two never sit apart. -->
+    <div class="flex items-center gap-3">
+      <Switch id="consistency-check" bind:checked={$form.llmConsistencyCheck} />
+      <div class="flex min-w-0 items-center gap-1">
         <Field.Label for="consistency-check">Compare each application's sources</Field.Label>
         <InfoButton
           label="About comparing each application's sources"
           text={`The consistency check. It sends the resume, the answers and any uploaded LinkedIn export to ${detail.modelSource === 'OwnKey' ? 'your AI provider' : "ScreenHire's AI provider"}, and finds details that contradict each other. Whose key runs it is in Settings, AI model.`}
         />
       </div>
-      <Switch id="consistency-check" bind:checked={$form.llmConsistencyCheck} class="mt-1" />
     </div>
   {:else}
     <SummaryList>
@@ -299,20 +354,30 @@
   </SummaryItem>
 {/snippet}
 
-{#snippet sections()}
-  <p class="px-4.5 pt-4 text-muted-foreground max-md:px-4">A group that is off records that it did not run, so nobody reads a missing check as clean.</p>
-  <div class="@container flex flex-col">
-    {#each groups as group (group)}
-      {@render section(group, group === 'Answers' ? answersSettings : group === 'Network' ? networkSettings : group === 'Duplicates' ? duplicatesSettings : undefined)}
-    {/each}
-  </div>
+<!-- The Checks panel: what an Off group means is one press away beside the title (W12), and Expand all or Collapse all on the
+     right (A9). -->
+{#snippet checksPanel()}
+  <Panel title="Checks" flush>
+    {#snippet tools()}
+      <InfoButton label="About the checks">
+        <p>A group that is off records that it did not run, so nobody reads a missing check as clean.</p>
+        <p class="mt-2">Each row counts the applications this month in which the group found something. A count of applications, never a score.</p>
+      </InfoButton>
+    {/snippet}
+    {#snippet actions()}
+      <Button type="button" variant="outline" onclick={() => setAll(!allOpen)}>{allOpen ? 'Collapse all' : 'Expand all'}</Button>
+    {/snippet}
+    <div class="@container flex flex-col">
+      {#each groups as group (group)}
+        {@render row(group, group === 'Answers' ? answersSettings : group === 'Network' ? networkSettings : group === 'Duplicates' ? duplicatesSettings : undefined)}
+      {/each}
+    </div>
+  </Panel>
 {/snippet}
 
 {#if canEdit}
   <form method="POST" use:enhance novalidate aria-label="Checks settings" class="flex flex-col gap-5">
-    <Panel title="Checks" flush>
-      {@render sections()}
-    </Panel>
+    {@render checksPanel()}
     <!-- One Save for the whole tab, held at the bottom of the window so a switch near the top never needs a long scroll to keep. -->
     <div class="sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-2 rounded-panel border border-border bg-card px-4.5 py-3 shadow-surface max-md:px-4" data-save-bar>
       <FailureText message={$errors._errors?.[0]} class="mr-auto" />
@@ -321,7 +386,5 @@
     </div>
   </form>
 {:else}
-  <Panel title="Checks" flush>
-    {@render sections()}
-  </Panel>
+  {@render checksPanel()}
 {/if}

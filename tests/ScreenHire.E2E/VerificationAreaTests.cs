@@ -2,11 +2,11 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The Verification area in a real browser: three tabs under one header band, each at its own path. An owner walks all of them,
-/// turns a check group off and changes the AI-use policy on Checks with one Save and finds both saved after a reload; the old AI
-/// use tab's address lands on Billing's AI use section, in view, whose key link opens Settings > Integrations > AI model; an old
-/// tab's address lands on the tab that holds its settings now; a Recruiter has the same three tabs, sees plain text instead of
-/// switches, and is sent back to the Overview from AI use. Each test that makes an organization signs in as a new owner of a new
-/// one.
+/// sees every check group's row and Save on one 1440x900 screen, turns a group off and changes the AI-use policy on Checks with
+/// one Save and finds both saved after a reload; the old AI use tab's address lands on Billing's AI use section, in view, whose
+/// key link opens Settings > Integrations > AI model; an old tab's address lands on the tab that holds its settings now; a
+/// Recruiter has the same three tabs, sees plain text instead of switches, and is sent back to the Overview from AI use. Each
+/// test that makes an organization signs in as a new owner of a new one.
 /// </summary>
 public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -20,7 +20,7 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
     public async Task An_owner_walks_the_three_tabs_and_a_group_and_the_policy_saved_together_on_Checks_stay_saved()
     {
         await SignInAsNewOwnerAsync();
-        await Page.SetViewportSizeAsync(1440, 1000);
+        await Page.SetViewportSizeAsync(1440, 900);
         await GoToAsync("dashboard", "/verification");
 
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Verification");
@@ -37,12 +37,22 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await Expect(Page.GetByText("No activity matches.")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
-        // Checks: turn Documents off and the AI-use policy to Not allowed, one Save, and find both after a reload.
+        // Checks: every group's row and Save on one screen with nothing open, then Documents off and the AI-use policy to Not
+        // allowed from the opened Answers row, one Save, and both found after a reload.
         await OpenTabAsync("Checks", "/verification/checks");
+        var rows = Page.Locator("[data-check-group]");
+        await Expect(rows).ToHaveCountAsync(6);
+        for (var index = 0; index < 6; index++)
+        {
+            await Expect(rows.Nth(index)).ToBeInViewportAsync(new() { Ratio = 1 });
+        }
+
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Save" })).ToBeInViewportAsync(new() { Ratio = 1 });
         var documents = Page.GetByRole(AriaRole.Switch, new() { Name = "Documents" });
         await Expect(documents).ToBeCheckedAsync();
         await documents.ClickAsync();
         var answers = Page.Locator("[data-check-group='Answers']");
+        await answers.GetByRole(AriaRole.Button, new() { Expanded = false }).ClickAsync();
         await answers.GetByRole(AriaRole.Combobox, new() { Name = "AI use while applying", Exact = true }).SelectOptionAsync(new SelectOptionValue { Value = "NotAllowed" });
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
         await Expect(Page.GetByText("Saved. It applies from the next application.")).ToBeVisibleAsync();
@@ -51,6 +61,7 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await Page.ReloadAsync();
         await Expect(Page.GetByRole(AriaRole.Switch, new() { Name = "Documents" })).Not.ToBeCheckedAsync();
         await Expect(Page.GetByRole(AriaRole.Switch, new() { Name = "Network" })).ToBeCheckedAsync();
+        await answers.GetByRole(AriaRole.Button, new() { Expanded = false }).ClickAsync();
         await Expect(answers.GetByRole(AriaRole.Combobox, new() { Name = "AI use while applying", Exact = true })).ToHaveValueAsync("NotAllowed");
 
         // The AI use tab moved out of the area: its old address, which alert emails still carry, lands on Billing's AI use section,
@@ -85,6 +96,12 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await Expect(Tabs).ToHaveTextAsync(EveryTab);
         (await Page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= document.documentElement.clientWidth"))
             .Should().BeTrue("the page never scrolls sideways; the tab strip does");
+
+        // Every row open, its settings included, still fits the phone's width.
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Expand all" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Textbox, new() { Name = "Trusted networks" })).ToBeVisibleAsync();
+        (await Page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= document.documentElement.clientWidth"))
+            .Should().BeTrue("an open row wraps to the phone's width");
         await ExpectNoAccessibilityViolationsAsync();
     }
 
@@ -106,6 +123,7 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
 
         await OpenTabAsync("Checks", "/verification/checks");
         await Expect(Page.Locator("[data-check-group]")).ToHaveCountAsync(6);
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Expand all" }).ClickAsync();
         await Expect(Page.GetByText("AI use while applying")).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Switch)).ToHaveCountAsync(0);
         await Expect(Page.GetByRole(AriaRole.Combobox)).ToHaveCountAsync(0);

@@ -850,12 +850,13 @@ limited like the sign-in routes.
 **Checks tab.** Six groups can be turned off, each a fixed set of analyzers (`CheckGroups`): Network (`network`), Contact details
 (`identity`), Documents (`documents`), Answers (`answers`, `consistency`), Duplicates (`duplicates`) and Form activity
 (`automation`, `behavioural`; its enum value and stored notes keep the old name, `FormUse` and "Form use", and `RunNotes.Describe`
-words a stored note in the current one). Each group's section has its switch, two or three lines on what it looks at, one example
-of what it catches, what turning it off costs (`checkGroupCopy` in `apps/dashboard/src/lib/verification-settings.ts`), and "Found
-something in 4 of 14 applications this month": the Overview's count for the group against the month's applications checked, a count
-and never a score. The settings that tune a group sit inside it: the AI-use policy and "Compare each application's sources" (the
-consistency check, `llmConsistencyCheck`) in Answers, trusted networks in Network, trusted email domains and the device check in
-Duplicates. One Save keeps the tab. A group that is off is not run: the pipeline writes the analyzer's run with no signals and the
+words a stored note in the current one). Each group is one compact row, so all six fit on one screen (the owner's walk-through,
+2026-11-22): its switch beside its name, a one-line summary, and "Found in 4 of 14", the Overview's count for the group against the
+month's applications checked ("Nothing found" at 0, nothing for a group that is off), a count and never a score. The row opens in
+place to what the group looks at, one example of what it catches and what turning it off costs (`checkGroupCopy` in
+`apps/dashboard/src/lib/verification-settings.ts`), and the settings that tune it: the AI-use policy and "Compare each application's
+sources" (the consistency check, `llmConsistencyCheck`) in Answers, trusted networks in Network, trusted email domains and the device
+check in Duplicates. A link can open one row by its key (`/verification/checks#answers`, the template's Change policy). One Save keeps the tab and sends every setting, open or not. When the API refuses a setting, its row opens: the trusted lists show the reason beside the field and any other setting's reason shows under Save. A group that is off is not run: the pipeline writes the analyzer's run with no signals and the
 note "<Group> checks are turned off in this organization's settings", the consistency check is recorded as off so no source
 is sent to a model, and `checksNotRun` shows the reviewer which groups did not look. A re-check never runs a group that is off.
 Turning Form activity off stops the apply page collecting form telemetry: the form is issued no session token, ingest keeps nothing
