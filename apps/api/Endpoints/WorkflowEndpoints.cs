@@ -40,7 +40,7 @@ internal static class WorkflowEndpoints
         services.AddSingleton<IValidator<TryItEmailsRequest>, TryItEmailsRequestValidator>();
         services.Configure<RateLimiterOptions>(options => options.AddPolicy(TryItEmailsRateLimitPolicy, context =>
             RateLimitPartition.GetFixedWindowLimiter(
-                context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+                context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = TryItEmailsPermits, Window = TryItEmailsWindow })));
         return services;
     }
@@ -138,7 +138,7 @@ internal static class WorkflowEndpoints
             templates.Add(template);
         }
 
-        var to = await db.Users.AsNoTracking().Where(u => u.Id == tenant.UserId).Select(u => u.Email).SingleAsync(cancellationToken);
+        var to = await db.Users.AsNoTracking().Where(u => u.Id == tenant.UserId).Select(u => u.Email).SingleOrDefaultAsync(cancellationToken);
         if (to is null)
         {
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("", "Your account has no email address."));

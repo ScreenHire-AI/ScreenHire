@@ -18,6 +18,9 @@ import { actionWords } from '#lib/action-words.js';
 import { trackedStages, type Tracker } from '#lib/pipeline-tracker.js';
 import { allQuestions } from '#lib/workflow.js';
 
+/** A question in quotes, ending the sentence: its own question mark ends it, so no full stop follows the quote. */
+const quoted = (label: string): string => `"${label}"${/[?!.]$/.test(label.trim()) ? '' : '.'}`;
+
 /** The candidate's first name, the API's sample candidate (Jordan Lee), so the emails and the buttons say the same name. */
 export const candidateName = 'Jordan';
 
@@ -51,7 +54,7 @@ function mustHavesOf(workflow: HiringWorkflow): MustHave[] {
 export function scenariosOf(workflow: HiringWorkflow): Scenario[] {
   const scenarios: Scenario[] = [{ id: 'fit', title: 'A good fit', description: 'Says yes to everything you need.' }];
   const mustHave = mustHavesOf(workflow)[0];
-  if (mustHave) scenarios.push({ id: 'cannot', title: "Can't work here", description: `Answers ${mustHave.fail === 'yes' ? 'Yes' : 'No'} to "${mustHave.question.label}".` });
+  if (mustHave) scenarios.push({ id: 'cannot', title: "Can't work here", description: `Answers ${mustHave.fail === 'yes' ? 'Yes' : 'No'} to ${quoted(mustHave.question.label)}` });
   scenarios.push(
     { id: 'check', title: 'Something to check', description: 'The checks flag something. You decide what happens.' },
     { id: 'form', title: 'Fill in the form yourself', description: 'Answer the questions as a candidate would.' },
@@ -138,6 +141,9 @@ export function requestFor(
 /** How many times one click follows automations that move the candidate on by themselves. Two that move back and forth stop here. */
 export const maxAutomaticMoves = 3;
 
+/** The most emails one "Send me these emails" sends: the API's limit (TryItEmailsRequestValidator.MaxEmails). */
+export const maxEmailsPerSend = 5;
+
 /** One action the evaluator ran, with the automation that ran it. */
 export interface Ran {
   automationId: string;
@@ -193,6 +199,8 @@ export function thingsOf(
     /** An automation moved them to a way out (Rejected, Withdrawn), which ends the walk. */
     left?: string;
     waited?: number;
+    /** The last stage: there is no stage to move them on to. */
+    last?: boolean;
   },
 ): Thing[] {
   const things: Thing[] = [];
@@ -224,14 +232,14 @@ export function thingsOf(
     return things;
   }
   if (review) {
-    const because = candidate.saidNoTo ? `${candidateName} said no to "${candidate.saidNoTo}". ` : '';
+    const because = candidate.saidNoTo ? `${candidateName} said no to ${quoted(candidate.saidNoTo)} ` : '';
     things.push({ kind: 'decide', text: `${because}They wait on your review list, and nobody is turned down until you decide.` });
   } else if (options.first && candidate.flagged) {
     things.push({ kind: 'decide', text: `The checks flagged something about ${candidateName}. A person looks and decides what happens.` });
-  } else if (options.waited) {
-    things.push({ kind: 'decide', text: ran.length === 0 ? `Nothing happens by itself after ${days(options.waited)}. You decide when ${candidateName} moves on.` : `You decide when ${candidateName} moves on.` });
   } else {
-    things.push({ kind: 'decide', text: ran.length === 0 ? `Nothing happens by itself here. You decide when ${candidateName} moves on.` : `You decide when ${candidateName} moves on.` });
+    const decide = options.last ? 'This is the last stage of your process.' : `You decide when ${candidateName} moves on.`;
+    const nothing = options.waited ? `Nothing happens by itself after ${days(options.waited)}. ` : 'Nothing happens by itself here. ';
+    things.push({ kind: 'decide', text: ran.length === 0 ? `${nothing}${decide}` : decide });
   }
   return things;
 }

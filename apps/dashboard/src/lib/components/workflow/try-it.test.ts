@@ -151,7 +151,7 @@ describe('a good fit, one stage at a time', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Move Jordan to Hired' }));
     await stageHeading('Hired');
-    expect(screen.getByText('Nothing happens by itself here. You decide when Jordan moves on.')).toBeInTheDocument();
+    expect(screen.getByText('Nothing happens by itself here. This is the last stage of your process.')).toBeInTheDocument();
 
     await fireEvent.click(screen.getByRole('button', { name: 'See the whole process' }));
     expect(await screen.findByRole('heading', { level: 3, name: "That's your hiring process" })).toBeInTheDocument();
@@ -244,7 +244,7 @@ describe('the other candidates', () => {
     await fireEvent.click(screen.getByRole('button', { name: /Can't work here/ }));
     await stageHeading('Applied');
 
-    expect(screen.getByText('Jordan said no to "Do you hold a driving licence?". They wait on your review list, and nobody is turned down until you decide.')).toBeInTheDocument();
+    expect(screen.getByText('Jordan said no to "Do you hold a driving licence?" They wait on your review list, and nobody is turned down until you decide.')).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/knockout|reject/i);
     expect(screen.getByRole('button', { name: 'Move Jordan to Phone call' })).toBeInTheDocument();
   });

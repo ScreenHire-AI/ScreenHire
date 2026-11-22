@@ -18,6 +18,7 @@
     candidateFor,
     candidateFromForm,
     maxAutomaticMoves,
+    maxEmailsPerSend,
     nextStage,
     ranOf,
     requestFor,
@@ -103,7 +104,8 @@
   const stage = $derived(walk ? workflow.stages.find((candidate) => candidate.id === walk!.stageId) : undefined);
   const next = $derived(walk && !walk.ended ? nextStage(workflow, walk.stageId) : undefined);
   const wait = $derived(stage ? waitOf(workflow, stage) : null);
-  const emailsHere = $derived([...new Set((walk?.things ?? []).flatMap((thing) => (thing.kind === 'email' ? [thing.templateId] : [])))]);
+  // At most as many as one send takes (TryItEmailsRequestValidator.MaxEmails): moves by itself can gather more.
+  const emailsHere = $derived([...new Set((walk?.things ?? []).flatMap((thing) => (thing.kind === 'email' ? [thing.templateId] : [])))].slice(0, maxEmailsPerSend));
   // The time limit passed a moment ago, so the rail's Overdue badge shows once the days have been let pass.
   let overdueAt = $state<string | null>(null);
 
@@ -142,7 +144,7 @@
    * One move: the moments that happen, then each form they are sent and answer, then the stage an automation moves them
    * to by itself, up to `maxAutomaticMoves` times. What ran on the way is shown together, on the stage they end up in.
    */
-  async function advance(from: Walk, stageId: string, first: AutomationTrigger[], hours: number | null, waited: number | null) {
+  async function advance(from: Walk, stageId: string, first: AutomationTrigger[], hours: number | null, waited: number | null): Promise<number> {
     const ticket = ++run;
     pending = true;
     failure = '';
@@ -185,7 +187,7 @@
         triggers = [{ type: 'StageEntered', stageId: here }];
         hours = null;
       }
-      if (ticket !== run) return;
+      if (ticket !== run) return ticket;
       const things = thingsOf(snapshot, ran, from.candidate, {
         first: waited === null && walkStages(snapshot)[0]?.id === stageId,
         templateNames,
@@ -193,6 +195,7 @@
         stopped,
         left,
         waited: waited ?? undefined,
+        last: !nextStage(snapshot, here),
       });
       const emails = [...new Set([...from.emails, ...things.flatMap((thing) => (thing.kind === 'email' ? [thing.templateId] : []))])];
       walk = {
@@ -209,10 +212,11 @@
       pending = false;
       void focusHeading();
     } catch (error) {
-      if (ticket !== run) return;
+      if (ticket !== run) return ticket;
       pending = false;
       failure = describeError(error, 'Could not try this stage');
     }
+    return ticket;
   }
 
   function begin(candidate: Candidate) {
@@ -237,10 +241,12 @@
     void advance(walk, next.id, arrivalTriggers(workflow, next.id), null, null);
   }
 
-  function letDaysPass() {
+  async function letDaysPass() {
     if (!walk || !wait) return;
-    if (wait.overdue) overdueAt = new Date(Date.now() - 60_000).toISOString();
-    void advance(walk, walk.stageId, wait.triggers, wait.days * 24, wait.days);
+    const overdue = wait.overdue;
+    const ticket = await advance(walk, walk.stageId, wait.triggers, wait.days * 24, wait.days);
+    // Only once the days have passed: a wait that failed leaves no Overdue badge behind.
+    if (overdue && ticket === run && !failure) overdueAt = new Date(Date.now() - 60_000).toISOString();
   }
 
   async function sendEmails() {

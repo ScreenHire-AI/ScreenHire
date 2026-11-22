@@ -306,7 +306,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.Keyboard.PressAsync("Escape");
         await Expect(letter).ToBeHiddenAsync();
         await ExpectNoAccessibilityViolationsAsync();
-        await SaveScreenshotAsync(Page, "dashboard-template-test-drive-light");
+        await SaveScreenshotAsync(Page, "dashboard-template-try-it-light");
 
         // Each press moves Jordan one stage on, until the last offers the whole process. A disabled button waits for the
         // stage it is moving to, so each press lands on the next stage's button.

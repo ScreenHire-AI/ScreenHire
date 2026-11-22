@@ -45,7 +45,12 @@ const matched = (automationId: string, actions: SimulatedAutomation['actions']):
 describe('who is applying', () => {
   it('offers four cards where the form has a must-have question, and words the one who cannot work here from it', () => {
     expect(scenariosOf(workflow).map((scenario) => scenario.id)).toEqual(['fit', 'cannot', 'check', 'form']);
-    expect(scenariosOf(workflow)[1]).toMatchObject({ title: "Can't work here", description: 'Answers No to "Do you hold a driving licence?".' });
+    expect(scenariosOf(workflow)[1]).toMatchObject({ title: "Can't work here", description: 'Answers No to "Do you hold a driving licence?"' });
+  });
+
+  it('ends the sentence once: a full stop only after a question with no punctuation of its own', () => {
+    const statement = { ...workflow, questionnaire: { questions: [{ ...workflow.questionnaire!.questions[0]!, label: 'I hold a driving licence' }] } };
+    expect(scenariosOf(statement)[1]).toMatchObject({ description: 'Answers No to "I hold a driving licence".' });
   });
 
   it("leaves out Can't work here when no question is a must-have: it would be the same candidate as a good fit", () => {
@@ -122,10 +127,16 @@ describe('what a stage shows', () => {
     expect(thingsOf(workflow, [], fit, { first: false, templateNames: names })).toEqual([{ kind: 'decide', text: 'Nothing happens by itself here. You decide when Jordan moves on.' }]);
   });
 
+  it('never says they move on from the last stage, where there is nowhere to go', () => {
+    expect(thingsOf(workflow, [], fit, { first: false, templateNames: names, last: true })).toEqual([{ kind: 'decide', text: 'Nothing happens by itself here. This is the last stage of your process.' }]);
+    const ran = ranOf([matched('a', [{ type: 'NotifyTeam' }])]);
+    expect(thingsOf(workflow, ran, fit, { first: false, templateNames: names, last: true }).at(-1)).toEqual({ kind: 'decide', text: 'This is the last stage of your process.' });
+  });
+
   it('puts someone who said no on the review list in plain words, and turns nobody down', () => {
     const ran = ranOf([matched('a', [{ type: 'QueueForRejectionReview', reason: 'No licence' }])]);
     const [line] = thingsOf(workflow, ran, candidateFor(workflow, 'cannot'), { first: true, templateNames: names });
-    expect(line).toEqual({ kind: 'decide', text: 'Jordan said no to "Do you hold a driving licence?". They wait on your review list, and nobody is turned down until you decide.' });
+    expect(line).toEqual({ kind: 'decide', text: 'Jordan said no to "Do you hold a driving licence?" They wait on your review list, and nobody is turned down until you decide.' });
   });
 
   it('says only that the checks flagged something and a person decides, on the first stage', () => {
