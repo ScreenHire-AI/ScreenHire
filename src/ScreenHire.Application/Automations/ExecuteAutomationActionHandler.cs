@@ -233,7 +233,16 @@ public static partial class ExecuteAutomationActionHandler
     private static async Task<(AutomationActionStatus, string)> ScheduleInterviewAsync(
         ActionContext context, AutomationAction action, CancellationToken cancellationToken)
     {
-        var (template, refusal) = await TemplateToSendAsync(context, EmailTemplateIds.InterviewInvitation, cancellationToken);
+        // The stage's default says how the candidate picks when the action does not. We'll suggest a time needs a person to pick
+        // the times, so a stage that defaults to it gets the task to choose instead.
+        var stageDefault = CurrentStage(context)?.Scheduling;
+        var option = action.InterviewOption ?? stageDefault?.Option ?? InterviewOption.OurTimes;
+        if (action.InterviewMode == InterviewMode.Choose || option == InterviewOption.OurSuggestion)
+        {
+            return await ChooseSchedulingAsync(context, cancellationToken);
+        }
+
+        var (template, refusal) = await TemplateToSendAsync(context, Scheduling.InterviewLinkEmail.InvitationTemplate(option), cancellationToken);
         if (template is null)
         {
             return refusal;
@@ -290,34 +299,84 @@ public static partial class ExecuteAutomationActionHandler
             return Failed($"These interviewers cannot see this job any more: {string.Join(", ", cannotSee)}.");
         }
 
+        // The stage's hours (and its interview blocks) come with its option; another option keeps the working hours.
+        var hours = stageDefault?.Option is null || stageDefault.Option == option ? stageDefault?.Hours : null;
+        var pick = new InterviewPick(option, hours, UseBlocks: option == InterviewOption.OurTimes && hours is not null && stageDefault?.UseBlocks == true);
         var connections = await context.Db.CalendarConnections.AsNoTracking().Where(c => chosen.Contains(c.UserId)).ToListAsync(cancellationToken);
         var usable = connections.Where(c => c.Problem is null && context.Calendar.Options.IsAvailable(c.Provider)).ToDictionary(c => c.UserId, c => c.Provider);
-        var noCalendar = chosen.Where(id => !usable.ContainsKey(id)).Select(id => byUser[id].Name).ToList();
-        if (noCalendar.Count > 0)
+
+        // Times offered from calendars need each interviewer's time to be known: a working calendar, or their own hours.
+        if (option == InterviewOption.OurTimes && !pick.UseBlocks)
         {
-            return Failed($"These interviewers have no working calendar connected: {string.Join(", ", noCalendar)}. Ask them to connect one in Your account, Connected accounts.");
+            var withHours = await context.Db.InterviewHours.AsNoTracking()
+                .Where(h => chosen.Contains(h.UserId) && h.Weekly != null).Select(h => h.UserId).ToListAsync(cancellationToken);
+            var noCalendar = chosen.Where(id => !usable.ContainsKey(id) && !withHours.Contains(id)).Select(id => byUser[id].Name).ToList();
+            if (noCalendar.Count > 0)
+            {
+                return Failed(
+                    $"These interviewers have no working calendar and no interview hours: {string.Join(", ", noCalendar)}. Ask them to connect a calendar or set their hours in Your account, Calendar.");
+            }
         }
 
         // The settings validated when the workflow was saved; the host may no longer know the zone, for one.
         var windowEnd = context.Now.AddDays(action.InterviewWindowDays ?? 0);
-        if (InterviewRequest.Problem(
+        if ((InterviewRequest.Problem(
                 action.InterviewMinutes ?? 0, context.Now, windowEnd, action.InterviewTimeZone,
-                InterviewRequest.DefaultDayStart, InterviewRequest.DefaultDayEnd, context.Now) is { } problem)
+                InterviewRequest.DefaultDayStart, InterviewRequest.DefaultDayEnd, context.Now)
+            ?? InterviewRequest.PickProblem(pick, action.InterviewMinutes ?? 0, context.Now, windowEnd, context.Now)) is { } problem)
         {
             return Failed($"The interview settings no longer work: {problem}");
         }
 
         var interview = InterviewRequest.Create(
             application, action.InterviewMinutes!.Value, context.Now, windowEnd, action.InterviewTimeZone!,
-            createdByUserId: null, context.Now, sourceKey: sourceKey, meetingName: CurrentStage(context)?.MeetingName);
+            createdByUserId: null, context.Now, sourceKey: sourceKey, meetingName: CurrentStage(context)?.MeetingName, pick: pick);
         context.Db.InterviewRequests.Add(interview);
         context.Db.InterviewAttendees.AddRange(
-            chosen.Select((userId, index) => InterviewAttendee.Create(interview, userId, isOrganizer: index == 0, usable[userId])));
+            chosen.Select((userId, index) => InterviewAttendee.Create(
+                interview, userId, isOrganizer: index == 0, usable.TryGetValue(userId, out var provider) ? provider : CalendarProvider.ScreenHire)));
+        foreach (var done in await Scheduling.SchedulingTasks.CompleteAsync(context.Db, application, userId: null, context.Now, cancellationToken))
+        {
+            context.Outgoing.Add(done);
+        }
+
         context.Db.ApplicationEvents.Add(application.InterviewInvited(interview, context.Now, actorUserId: null, context.Run.Id));
         context.Outgoing.Add(new SendInterviewInvitation(application.OrganizationId, application.Id, interview.Id, Guid.CreateVersion7(), ActorUserId: null));
         context.Outgoing.Add(new InterviewChanged(
             application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.Invited));
-        return Completed($"Offered an interview with {(chosen.Count == 1 ? "1 interviewer" : $"{chosen.Count} interviewers")}; the candidate has {action.InterviewWindowDays} days to pick a time.");
+        var how = option == InterviewOption.TheirTimes ? "to tell us when they are free" : "to pick a time";
+        return Completed($"Offered an interview with {(chosen.Count == 1 ? "1 interviewer" : $"{chosen.Count} interviewers")}; the candidate has {action.InterviewWindowDays} days {how}.");
+    }
+
+    /// <summary>
+    /// The ScheduleInterview action in Choose mode: a task for the hiring team, "Choose how Grace schedules", which offering
+    /// the interview finishes. Skipped when the application has ended, an interview is open or booked, or the task is open already.
+    /// </summary>
+    private static async Task<(AutomationActionStatus, string)> ChooseSchedulingAsync(ActionContext context, CancellationToken cancellationToken)
+    {
+        var application = context.Application;
+        if (application.HasEnded(CurrentStage(context)))
+        {
+            return Skipped("The application has ended, so nobody was asked to schedule.");
+        }
+
+        if (await context.Db.InterviewRequests.AnyAsync(
+                r => r.ApplicationId == application.Id && (r.Status == InterviewStatus.Open || r.Status == InterviewStatus.Booked) && r.WindowEnd > context.Now,
+                cancellationToken))
+        {
+            return Skipped("The candidate already has an interview that is open or booked.");
+        }
+
+        if (await context.Db.ApplicationTasks.AnyAsync(
+                t => t.ApplicationId == application.Id && t.Kind == ApplicationTaskKind.ChooseScheduling && t.CompletedAt == null, cancellationToken))
+        {
+            return Skipped("The team already has a task to choose how the candidate schedules.");
+        }
+
+        var firstName = await context.Db.Candidates.AsNoTracking().Where(c => c.Id == application.CandidateId).Select(c => c.FirstName).SingleOrDefaultAsync(cancellationToken);
+        var meeting = CurrentStage(context)?.MeetingNameOrDefault() ?? WorkflowStage.DefaultMeetingName;
+        return AddTask(context, ApplicationTaskKind.ChooseScheduling, Scheduling.SchedulingTasks.Note(firstName ?? "the candidate", meeting), null,
+            "Asked the hiring team to choose how the candidate schedules.");
     }
 
     private static (AutomationActionStatus, string) MoveToStage(ActionContext context, string stageId)

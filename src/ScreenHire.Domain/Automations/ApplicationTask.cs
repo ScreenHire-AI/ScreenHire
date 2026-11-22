@@ -86,11 +86,12 @@ public sealed class ApplicationTask : IApplicationScoped
     }
 
     /// <summary>
-    /// Marks the task done by <paramref name="userId"/>. A task that is done already keeps who finished it and when, and
+    /// Marks the task done by <paramref name="userId"/> (null when ScreenHire finished it, as offering an interview by an
+    /// automation finishes a choose-scheduling task). A task that is done already keeps who finished it and when, and
     /// this returns false. Completing a task changes nothing about the application: a rejection review is decided by
     /// moving the candidate, not by this.
     /// </summary>
-    public bool Complete(Guid userId, DateTimeOffset now)
+    public bool Complete(Guid? userId, DateTimeOffset now)
     {
         if (CompletedAt is not null)
         {
@@ -132,4 +133,10 @@ public enum ApplicationTaskKind
 
     /// <summary>Fill in a library scorecard a teammate asked for; done when the assignee submits it.</summary>
     Scorecard,
+
+    /// <summary>
+    /// Choose how the candidate schedules (a ScheduleInterview action in Choose mode); done when anyone offers the application
+    /// an interview, never by ticking it.
+    /// </summary>
+    ChooseScheduling,
 }

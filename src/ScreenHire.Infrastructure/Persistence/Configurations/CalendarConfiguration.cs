@@ -5,6 +5,7 @@ using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Scheduling;
+using ScreenHire.Infrastructure.Identity;
 
 namespace ScreenHire.Infrastructure.Persistence.Configurations;
 
@@ -60,6 +61,13 @@ internal sealed class InterviewRequestConfiguration : IEntityTypeConfiguration<I
         builder.Property(r => r.MeetingUrl).HasMaxLength(InterviewRequest.MaxMeetingUrlLength);
         builder.Property(r => r.SourceKey).HasMaxLength(InterviewRequest.MaxSourceKeyLength);
         builder.Property(r => r.MeetingName).HasMaxLength(WorkflowStage.MaxMeetingNameLength);
+        builder.Property(r => r.Option).HasConversion<string>().HasMaxLength(20);
+        builder.Property(r => r.Hours).HasJsonColumn();
+        builder.Property(r => r.ProposedTimes).HasJsonColumn();
+        builder.Property(r => r.ExtraTimes).HasJsonColumn();
+        builder.Property(r => r.CandidateTimes).HasJsonColumn();
+        builder.Property(r => r.CandidateNote).HasMaxLength(InterviewRequest.MaxNoteLength);
+        builder.Property(r => r.TeamNote).HasMaxLength(InterviewRequest.MaxNoteLength);
 
         // The request goes with its application (and so its job), like the other rows under an application.
         builder.HasOne<JobApplication>().WithMany()
@@ -81,6 +89,27 @@ internal sealed class InterviewRequestConfiguration : IEntityTypeConfiguration<I
         builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.SourceKey }).IsUnique().HasFilter("source_key IS NOT NULL");
         // The overlap check: confirmed bookings in a time range.
         builder.HasIndex(r => new { r.OrganizationId, r.StartsAt }).HasFilter("status = 'Booked'");
+    }
+}
+
+internal sealed class InterviewHoursConfiguration : IEntityTypeConfiguration<InterviewHours>
+{
+    public void Configure(EntityTypeBuilder<InterviewHours> builder)
+    {
+        builder.ToTable("interview_hours");
+        builder.Property(h => h.TimeZone).HasMaxLength(InterviewRequest.MaxTimeZoneLength);
+        builder.Property(h => h.Weekly).HasJsonColumn();
+        builder.Property(h => h.FeedSecret).HasMaxLength(InterviewHours.FeedSecretLength * 2);
+
+        builder.HasOne<Organization>().WithMany().HasForeignKey(h => h.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        // Goes with the membership, like the member's other preferences.
+        builder.HasOne<OrganizationMember>().WithMany().HasForeignKey(h => h.MemberId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(h => h.UserId).OnDelete(DeleteBehavior.Cascade);
+        // One row per membership; availability finds a person by user id.
+        builder.HasIndex(h => new { h.OrganizationId, h.MemberId }).IsUnique();
+        builder.HasIndex(h => new { h.OrganizationId, h.UserId }).IsUnique();
+        builder.HasIndex(h => h.MemberId);
+        builder.HasIndex(h => h.UserId);
     }
 }
 

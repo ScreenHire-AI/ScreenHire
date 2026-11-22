@@ -2,7 +2,7 @@ namespace ScreenHire.Domain.Hiring;
 
 /// <summary>
 /// The email templates a <see cref="ActionType.SendEmail"/> or <see cref="ActionType.Reject"/> action, or a person
-/// sending by hand, can name. Ten are built in, and every organization may edit their wording; an organization's own
+/// sending by hand, can name. Fourteen are built in, and every organization may edit their wording; an organization's own
 /// templates (<see cref="EmailTemplate"/>) are named by their id as a Guid string. The validator checks the shape of an
 /// id; the API checks that an organization template exists when a person saves a workflow that names it.
 /// </summary>
@@ -54,11 +54,30 @@ public static class EmailTemplateIds
     /// <summary>Reminds the candidate of a booked interview, a day and an hour before it: the time, the meeting link and the link to change it. Only scheduling sends it.</summary>
     public const string InterviewReminder = "interview-reminder";
 
+    /// <summary>
+    /// Asks the candidate when they are free for an interview (tell us when you're free), with the signed link to suggest
+    /// times. Only scheduling sends it.
+    /// </summary>
+    public const string InterviewInvitationSuggest = "interview-invitation-suggest";
+
+    /// <summary>
+    /// Offers the candidate one or two times the team picked (we'll suggest a time), with the signed link to accept one or ask
+    /// for another. Only scheduling sends it.
+    /// </summary>
+    public const string InterviewInvitationProposed = "interview-invitation-proposed";
+
+    /// <summary>Tells the candidate the team changed how they pick a time, with the same signed link. Only scheduling sends it.</summary>
+    public const string InterviewOptionsUpdated = "interview-options-updated";
+
+    /// <summary>Asks the candidate for more times when none of theirs works, with the team's message and the signed link. Only scheduling sends it.</summary>
+    public const string InterviewMoreTimes = "interview-more-times";
+
     /// <summary>The built-in templates, in the order the dashboard lists them.</summary>
     public static IReadOnlyList<string> BuiltIn { get; } =
     [
         ApplicationReceived, StageChange, QuestionnaireRequest, ApplicationRejected, TalentPoolInvitation, InterviewInvitation, InterviewConfirmation,
-        InterviewCancelled, InterviewNewTimes, InterviewReminder,
+        InterviewCancelled, InterviewNewTimes, InterviewReminder, InterviewInvitationSuggest, InterviewInvitationProposed, InterviewOptionsUpdated,
+        InterviewMoreTimes,
     ];
 
     /// <summary>ScreenHire's names for the built-in templates, which organizations cannot rename.</summary>
@@ -74,13 +93,18 @@ public static class EmailTemplateIds
         [InterviewCancelled] = "Interview cancelled",
         [InterviewNewTimes] = "New interview times",
         [InterviewReminder] = "Interview reminder",
+        [InterviewInvitationSuggest] = "Tell us when you're free",
+        [InterviewInvitationProposed] = "Times we suggest",
+        [InterviewOptionsUpdated] = "Interview options updated",
+        [InterviewMoreTimes] = "More times, please",
     };
 
     public static IReadOnlySet<string> All { get; } =
         new HashSet<string>(StringComparer.Ordinal) 
         {
             ApplicationReceived, StageChange, QuestionnaireRequest, ApplicationRejected, TalentPoolInvitation, InterviewInvitation,
-            InterviewConfirmation, InterviewCancelled, InterviewNewTimes, InterviewReminder,
+            InterviewConfirmation, InterviewCancelled, InterviewNewTimes, InterviewReminder, InterviewInvitationSuggest, InterviewInvitationProposed,
+            InterviewOptionsUpdated, InterviewMoreTimes,
         };
 
     /// <summary>
@@ -90,9 +114,10 @@ public static class EmailTemplateIds
     /// </summary>
     public static bool IsActionOnly(string id) => id is ApplicationRejected or QuestionnaireRequest or TalentPoolInvitation || IsInterview(id);
 
-    /// <summary>Whether <paramref name="id"/> is one of the five interview emails, which only interview scheduling sends.</summary>
+    /// <summary>Whether <paramref name="id"/> is one of the nine interview emails, which only interview scheduling sends.</summary>
     public static bool IsInterview(string id) =>
-        id is InterviewInvitation or InterviewConfirmation or InterviewCancelled or InterviewNewTimes or InterviewReminder;
+        id is InterviewInvitation or InterviewConfirmation or InterviewCancelled or InterviewNewTimes or InterviewReminder
+            or InterviewInvitationSuggest or InterviewInvitationProposed or InterviewOptionsUpdated or InterviewMoreTimes;
 
     /// <summary>Whether <paramref name="id"/> is sent only by an invitation flow with links of its own: the talent pool's or scheduling's. The composer never offers it.</summary>
     public static bool IsInvitationOnly(string id) => id == TalentPoolInvitation || IsInterview(id);

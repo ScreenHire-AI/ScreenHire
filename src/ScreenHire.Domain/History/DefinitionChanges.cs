@@ -1,5 +1,6 @@
 using System.Globalization;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Scheduling;
 using static ScreenHire.Domain.History.ChangeLabels;
 
 namespace ScreenHire.Domain.History;
@@ -80,6 +81,19 @@ public static class DefinitionChanges
             lines.Add(ChangeLine.Of("changed what the meeting in ", b.Name, $" is called, from {a.MeetingNameOrDefault()} to {b.MeetingNameOrDefault()}"));
         }
 
+        switch (a.Scheduling, b.Scheduling)
+        {
+            case (null, { } added):
+                lines.Add(ChangeLine.Of("set how interviews are offered in ", b.Name, details: [new("Scheduling", null, SchedulingLabel(added))]));
+                break;
+            case ({ } removed, null):
+                lines.Add(ChangeLine.Of("removed how interviews are offered in ", b.Name, details: [new("Scheduling", SchedulingLabel(removed), null)]));
+                break;
+            case ({ } from, { } to) when JsonSame(from, to) is false:
+                lines.Add(ChangeLine.Of("changed how interviews are offered in ", b.Name, details: [new("Scheduling", SchedulingLabel(from), SchedulingLabel(to))]));
+                break;
+        }
+
         switch (a.HasScorecard(), b.HasScorecard())
         {
             case (false, true):
@@ -97,6 +111,45 @@ public static class DefinitionChanges
                 break;
         }
     }
+
+    // A stage's scheduling default in words: the option, then the length and the days ahead when it sets them.
+    private static string SchedulingLabel(StageScheduling scheduling)
+    {
+        var parts = new List<string>
+        {
+            scheduling.Option switch
+            {
+                InterviewOption.TheirTimes => "Tell us when you're free",
+                InterviewOption.OurSuggestion => "We'll suggest a time",
+                InterviewOption.OurTimes => scheduling.UseBlocks ? "Pick from our times, in interview blocks" : "Pick from our times",
+                _ => "No default way to pick",
+            },
+        };
+        if (scheduling.DurationMinutes is { } minutes)
+        {
+            parts.Add($"{minutes.ToString(CultureInfo.InvariantCulture)} minutes");
+        }
+
+        if (scheduling.WindowDays is { } days)
+        {
+            parts.Add($"{Days(days)} ahead");
+        }
+
+        if (scheduling.InterviewerTeamId is not null)
+        {
+            parts.Add("a team interviews");
+        }
+        else if (scheduling.InterviewerUserIds is { Count: > 0 } people)
+        {
+            parts.Add(people.Count == 1 ? "1 interviewer" : $"{people.Count.ToString(CultureInfo.InvariantCulture)} interviewers");
+        }
+
+        return string.Join(", ", parts);
+    }
+
+    // Records with list members compare by reference, so two defaults are the same when their JSON is.
+    private static bool JsonSame(StageScheduling left, StageScheduling right) =>
+        System.Text.Json.JsonSerializer.Serialize(left) == System.Text.Json.JsonSerializer.Serialize(right);
 
     // A job's copy says its own name; a template's stage names a built-in, or one of the organization's own scorecards,
     // whose name a definition does not hold.

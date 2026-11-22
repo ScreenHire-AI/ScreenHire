@@ -15,4 +15,5 @@ export const CalendarProvider = {
   Google: 'Google',
   Microsoft: 'Microsoft',
   Sandbox: 'Sandbox',
+  ScreenHire: 'ScreenHire',
 } as const;

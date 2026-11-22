@@ -24,11 +24,26 @@ const fresh: SetupInputs = {
   sendingDomain: noDomain,
   jobs: jobs.map((job) => ({ ...job, publishedAt: null })),
   setup: nothingSkipped,
+  interviewing: { calendarConnected: false, hasHours: false },
 };
 
 const done = (inputs: SetupInputs) => Object.fromEntries((setupSteps(inputs) ?? []).map((step) => [step.id, step.done]));
 
 describe('the setup checklist', () => {
+  it('asks an organization that interviews to connect a calendar or set hours, done by either', () => {
+    const interviewing = { ...fresh, setup: { ...nothingSkipped, hasInterviewStage: true } };
+
+    expect(setupSteps(fresh)!.map((step) => step.id)).not.toContain('Interviewing');
+    expect(setupSteps(interviewing)!.find((step) => step.id === 'Interviewing')).toMatchObject({
+      label: 'Connect your calendar or set your hours',
+      href: '/account/connected',
+      done: false,
+    });
+    expect(done({ ...interviewing, interviewing: { calendarConnected: false, hasHours: true } }).Interviewing).toBe(true);
+    expect(done({ ...interviewing, interviewing: { calendarConnected: true, hasHours: false } }).Interviewing).toBe(true);
+    expect(setupSteps({ ...interviewing, interviewing: undefined })).toBeUndefined();
+  });
+
   it('lists the four steps in the order a team does them, each linking to its page, all open for a new organization', () => {
     const steps = setupSteps(fresh)!;
 
@@ -107,6 +122,7 @@ describe('the setup checklist', () => {
       sendingDomain: withDomain('Verified'),
       jobs: [published],
       setup: nothingSkipped,
+      interviewing: { calendarConnected: false, hasHours: false },
     });
 
     expect(showSetup(open, false)).toBe(true);

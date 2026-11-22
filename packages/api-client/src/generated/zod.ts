@@ -903,6 +903,10 @@ export const GetPublicInterviewQueryParams = zod.object({
   "tz": zod.string().optional()
 })
 
+export const getPublicInterviewResponseOptionDefault = `OurTimes`;
+export const getPublicInterviewResponseAnotherTimeAskedDefault = false;
+export const getPublicInterviewResponseWaitingForTeamDefault = false;
+
 export const GetPublicInterviewResponse = zod.object({
   "organization": zod.object({
   "name": zod.string(),
@@ -955,7 +959,14 @@ export const GetPublicInterviewResponse = zod.object({
   "canChange": zod.boolean(),
   "minNoticeHours": zod.int(),
   "newTimesOffered": zod.boolean(),
-  "meetingName": zod.string()
+  "meetingName": zod.string(),
+  "option": zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(getPublicInterviewResponseOptionDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.'),
+  "suggestable": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "suggestedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "proposedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "anotherTimeAsked": zod.boolean().default(getPublicInterviewResponseAnotherTimeAskedDefault),
+  "waitingForTeam": zod.boolean().default(getPublicInterviewResponseWaitingForTeamDefault),
+  "teamNote": zod.string().nullish()
 }).describe('The interview as the candidate\'s page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team\'s calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. `newTimesOffered` is true while the team\'s offer of new times waits for the candidate: the\nbooked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.\n`meetingName` is what the team calls the meeting (the stage\'s meeting name), in lower case, such as "trial shift"\nor "interview"; the page uses it for its title, headings and buttons.\nNothing about the interviewers, and nothing from verification.')
 
 
@@ -989,6 +1000,30 @@ export const CancelPublicInterviewParams = zod.object({
 })
 
 export const CancelPublicInterviewResponse = zod.void()
+
+
+export const SuggestPublicInterviewTimesParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const SuggestPublicInterviewTimesBody = zod.object({
+  "times": zod.array(zod.iso.datetime({"offset":true}))
+}).describe('The times the candidate is free: 3 to 5 of `suggestable`.')
+
+export const SuggestPublicInterviewTimesResponse = zod.void()
+
+
+export const AskPublicInterviewAnotherTimeParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string()
+})
+
+export const AskPublicInterviewAnotherTimeBody = zod.object({
+  "note": zod.string().nullable()
+}).describe('The candidate cannot make the team\'s times and asks for another, with an optional note (500 characters at most).')
+
+export const AskPublicInterviewAnotherTimeResponse = zod.void()
 
 
 export const GetPublicTalentPoolStatusParams = zod.object({
@@ -1255,8 +1290,11 @@ export const CreateJobBody = zod.object({
 }).describe('A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion\'s workflow, and every field left out here takes the template\'s posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor\'s elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with "- " make a list. The summary is the plain-text\nline a careers card shows under the title, at most 160 characters; leave it out and the card uses the description\'s\nfirst sentence. Who\'s hiring: the job\'s hiring team starts with the person who creates it, the people of the named team\n`teamId` as they are now, and `memberIds`, the organization\'s member ids. They are copied, so a later change\nto the team changes no job. An API key sends neither, and its job starts with nobody on its team.')
 
 export const createJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const createJobResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const createJobResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const createJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const createJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const createJobResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const createJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const createJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const createJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -1308,7 +1346,22 @@ export const CreateJobResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(createJobResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(createJobResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1369,7 +1422,9 @@ export const CreateJobResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(createJobResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1465,8 +1520,11 @@ export const GetJobParams = zod.object({
 })
 
 export const getJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const getJobResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const getJobResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const getJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const getJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const getJobResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const getJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const getJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const getJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -1518,7 +1576,22 @@ export const GetJobResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(getJobResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(getJobResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1579,7 +1652,9 @@ export const GetJobResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(getJobResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(getJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(getJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1698,8 +1773,11 @@ export const UpdateJobBody = zod.object({
 }).describe('Replaces a job\'s posting content. A published job keeps its slug; a closed job cannot change. The description is rich\ntext, as on CreateJobRequest. A blank or missing summary goes back to following the description.')
 
 export const updateJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const updateJobResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const updateJobResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const updateJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const updateJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const updateJobResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const updateJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const updateJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const updateJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -1751,7 +1829,22 @@ export const UpdateJobResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(updateJobResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(updateJobResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -1812,7 +1905,9 @@ export const UpdateJobResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(updateJobResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -1960,8 +2055,11 @@ export const SetJobAiUseBody = zod.object({
 }).describe('Sets a job\'s own AI-use policy, or follows the organization\'s again when `policy` is null. It is a route of its own\nrather than a field of UpdateJobRequest, which replaces the posting and would clear it when left out.')
 
 export const setJobAiUseResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const setJobAiUseResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const setJobAiUseResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const setJobAiUseResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const setJobAiUseResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const setJobAiUseResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const setJobAiUseResponseWorkflowAutomationsItemEnabledDefault = true;
 export const setJobAiUseResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const setJobAiUseResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -2013,7 +2111,22 @@ export const SetJobAiUseResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(setJobAiUseResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(setJobAiUseResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2074,7 +2187,9 @@ export const SetJobAiUseResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(setJobAiUseResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(setJobAiUseResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(setJobAiUseResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2174,8 +2289,11 @@ export const PublishJobBody = zod.union([zod.null(),zod.object({
 }).describe('Publishing a job: optionally, the boards to post it to. Left out, the first publish posts to every board in\n`GET /v1/boards` and a later one updates the boards the job is already on. Naming a board the job was taken\ndown from posts it again.')])
 
 export const publishJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const publishJobResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const publishJobResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const publishJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const publishJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const publishJobResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const publishJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const publishJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const publishJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -2227,7 +2345,22 @@ export const PublishJobResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(publishJobResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(publishJobResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2288,7 +2421,9 @@ export const PublishJobResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(publishJobResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(publishJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(publishJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2384,8 +2519,11 @@ export const CloseJobParams = zod.object({
 })
 
 export const closeJobResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const closeJobResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const closeJobResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const closeJobResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const closeJobResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const closeJobResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const closeJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const closeJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const closeJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -2437,7 +2575,22 @@ export const CloseJobResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(closeJobResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(closeJobResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2498,7 +2651,9 @@ export const CloseJobResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(closeJobResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(closeJobResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(closeJobResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2661,8 +2816,11 @@ export const UpdateJobWorkflowParams = zod.object({
 })
 
 export const updateJobWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const updateJobWorkflowBodyWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const updateJobWorkflowBodyWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const updateJobWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const updateJobWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const updateJobWorkflowBodyWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const updateJobWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
 export const updateJobWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const updateJobWorkflowBodyWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -2689,7 +2847,22 @@ export const UpdateJobWorkflowBody = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(updateJobWorkflowBodyWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(updateJobWorkflowBodyWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2750,7 +2923,9 @@ export const UpdateJobWorkflowBody = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(updateJobWorkflowBodyWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -2788,8 +2963,11 @@ export const UpdateJobWorkflowBody = zod.object({
 }).describe('Replaces a job\'s workflow with the recruiter\'s edit of it: the job\'s own copy, tailored. `expectedWorkflowVersion`\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\nthan overwriting their change. A stage that still holds applications cannot be removed.')
 
 export const updateJobWorkflowResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const updateJobWorkflowResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const updateJobWorkflowResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const updateJobWorkflowResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const updateJobWorkflowResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const updateJobWorkflowResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const updateJobWorkflowResponseWorkflowAutomationsItemEnabledDefault = true;
 export const updateJobWorkflowResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const updateJobWorkflowResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -2841,7 +3019,22 @@ export const UpdateJobWorkflowResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(updateJobWorkflowResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(updateJobWorkflowResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -2902,7 +3095,9 @@ export const UpdateJobWorkflowResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(updateJobWorkflowResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateJobWorkflowResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3003,8 +3198,11 @@ export const ApplyJobTemplateUpdateBody = zod.object({
 }).describe('Replaces a job\'s workflow with a published version of the template it came from (usually the newest, from\n`GET /v1/jobs/{jobId}/workflow/template-diff`). It replaces the job\'s own edits too, which the diff lists.\n`expectedWorkflowVersion` works as in UpdateJobWorkflowRequest.')
 
 export const applyJobTemplateUpdateResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const applyJobTemplateUpdateResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const applyJobTemplateUpdateResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const applyJobTemplateUpdateResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const applyJobTemplateUpdateResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const applyJobTemplateUpdateResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const applyJobTemplateUpdateResponseWorkflowAutomationsItemEnabledDefault = true;
 export const applyJobTemplateUpdateResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const applyJobTemplateUpdateResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -3056,7 +3254,22 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(applyJobTemplateUpdateResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3117,7 +3330,9 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(applyJobTemplateUpdateResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(applyJobTemplateUpdateResponseWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3233,8 +3448,11 @@ export const ListHiringTemplatesResponse = zod.array(ListHiringTemplatesResponse
 
 
 export const createHiringTemplateBodyDefinitionTwoWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const createHiringTemplateBodyDefinitionTwoWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const createHiringTemplateBodyDefinitionTwoWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const createHiringTemplateBodyDefinitionTwoWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault = true;
 export const createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const createHiringTemplateBodyDefinitionTwoWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -3264,7 +3482,22 @@ export const CreateHiringTemplateBody = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(createHiringTemplateBodyDefinitionTwoWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3325,7 +3558,9 @@ export const CreateHiringTemplateBody = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3508,8 +3743,11 @@ export const CreateHiringTemplateVersionParams = zod.object({
 })
 
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const createHiringTemplateVersionBodyDefinitionTwoWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const createHiringTemplateVersionBodyDefinitionTwoWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault = true;
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const createHiringTemplateVersionBodyDefinitionTwoWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -3537,7 +3775,22 @@ export const CreateHiringTemplateVersionBody = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(createHiringTemplateVersionBodyDefinitionTwoWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3598,7 +3851,9 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateVersionBodyDefinitionTwoWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3645,8 +3900,11 @@ export const CreateHiringTemplateVersionBody = zod.object({
 }).describe('Starts the next version as a draft: the given definition, or a copy of the newest version\'s.')
 
 export const createHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const createHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const createHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const createHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
 export const createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const createHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -3678,7 +3936,22 @@ export const CreateHiringTemplateVersionResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(createHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3739,7 +4012,9 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(createHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3799,8 +4074,11 @@ export const GetHiringTemplateVersionParams = zod.object({
 })
 
 export const getHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const getHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const getHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const getHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
 export const getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const getHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -3832,7 +4110,22 @@ export const GetHiringTemplateVersionResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(getHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3893,7 +4186,9 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(getHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -3953,8 +4248,11 @@ export const UpdateHiringTemplateVersionParams = zod.object({
 })
 
 export const updateHiringTemplateVersionBodyDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const updateHiringTemplateVersionBodyDefinitionWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const updateHiringTemplateVersionBodyDefinitionWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const updateHiringTemplateVersionBodyDefinitionWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemEnabledDefault = true;
 export const updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const updateHiringTemplateVersionBodyDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -3982,7 +4280,22 @@ export const UpdateHiringTemplateVersionBody = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(updateHiringTemplateVersionBodyDefinitionWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -4043,7 +4356,9 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateHiringTemplateVersionBodyDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -4090,8 +4405,11 @@ export const UpdateHiringTemplateVersionBody = zod.object({
 }).describe('Replaces a draft version\'s definition.')
 
 export const updateHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const updateHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const updateHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const updateHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
 export const updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const updateHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -4123,7 +4441,22 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(updateHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -4184,7 +4517,9 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(updateHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -4244,8 +4579,11 @@ export const PublishHiringTemplateVersionParams = zod.object({
 })
 
 export const publishHiringTemplateVersionResponseDefinitionWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const publishHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const publishHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const publishHiringTemplateVersionResponseDefinitionWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault = true;
 export const publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const publishHiringTemplateVersionResponseDefinitionWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -4277,7 +4615,22 @@ export const PublishHiringTemplateVersionResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(publishHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -4338,7 +4691,9 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(publishHiringTemplateVersionResponseDefinitionWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -4898,7 +5253,7 @@ export const GetApplicationTimelineParams = zod.object({
 
 export const GetApplicationTimelineResponseItem = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'InterviewOptionChanged', 'InterviewTimesSuggested', 'InterviewAnotherTimeAsked', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -4939,7 +5294,7 @@ export const AddApplicationNoteBody = zod.object({
 
 export const AddApplicationNoteResponse = zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'InterviewOptionChanged', 'InterviewTimesSuggested', 'InterviewAnotherTimeAsked', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -5223,7 +5578,7 @@ export const CreateApplicationTaskBody = zod.object({
 export const CreateApplicationTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -5242,7 +5597,7 @@ export const ListApplicationTasksParams = zod.object({
 export const ListApplicationTasksResponseItem = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -5343,7 +5698,7 @@ export const GetCandidateHistoryResponseItem = zod.object({
   "jobTitle": zod.string(),
   "entry": zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'InterviewOptionChanged', 'InterviewTimesSuggested', 'InterviewAnotherTimeAsked', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -7183,32 +7538,44 @@ export const UpdateCareersEmbeddingResponse = zod.object({
 }).describe('The signed-in user\'s organization. `slug` names its careers pages and public API routes and does not change after\nonboarding; `careersUrl` is its careers board on the configured careers domain, where `{careersUrl}/embed.js`\nis the embeddable widget\'s script. `questionsPerPage` is how many questions candidates see on each page of a\nquestionnaire that has no sections. `embedOrigins` are the sites allowed to show the careers pages in a frame\n(origins such as `https://www.example.com`, in the order they were added). `lastUpdated` is the last change\nto the name, the questions per page or the sites, or when the organization was made; its history is\n`/v1/organization/history`.')
 
 
+export const getOrganizationSetupResponseHasInterviewStageDefault = false;
+
 export const GetOrganizationSetupResponse = zod.object({
   "hidden": zod.boolean(),
-  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
-}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email', 'Interviewing']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')),
+  "hasInterviewStage": zod.boolean().default(getOrganizationSetupResponseHasInterviewStageDefault)
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.\n`hasInterviewStage` says a job has a stage that holds interviews (of the interview kind, or with a scheduling\ndefault), so the checklist shows its Interviewing step.')
 
 
 export const SkipSetupStepBody = zod.object({
-  "step": zod.union([zod.null(),zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')])
+  "step": zod.union([zod.null(),zod.enum(['Branding', 'Job', 'Team', 'Email', 'Interviewing']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')])
 }).describe('Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing. Nullable\nonly so a body without it is refused rather than read as the first step.')
+
+export const skipSetupStepResponseHasInterviewStageDefault = false;
 
 export const SkipSetupStepResponse = zod.object({
   "hidden": zod.boolean(),
-  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
-}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email', 'Interviewing']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')),
+  "hasInterviewStage": zod.boolean().default(skipSetupStepResponseHasInterviewStageDefault)
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.\n`hasInterviewStage` says a job has a stage that holds interviews (of the interview kind, or with a scheduling\ndefault), so the checklist shows its Interviewing step.')
 
+
+export const hideSetupResponseHasInterviewStageDefault = false;
 
 export const HideSetupResponse = zod.object({
   "hidden": zod.boolean(),
-  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
-}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email', 'Interviewing']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')),
+  "hasInterviewStage": zod.boolean().default(hideSetupResponseHasInterviewStageDefault)
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.\n`hasInterviewStage` says a job has a stage that holds interviews (of the interview kind, or with a scheduling\ndefault), so the checklist shows its Interviewing step.')
 
+
+export const showSetupAgainResponseHasInterviewStageDefault = false;
 
 export const ShowSetupAgainResponse = zod.object({
   "hidden": zod.boolean(),
-  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.'))
-}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.')
+  "skippedSteps": zod.array(zod.enum(['Branding', 'Job', 'Team', 'Email', 'Interviewing']).describe('A step of the setup checklist in the dashboard\'s notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization\'s own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped.')),
+  "hasInterviewStage": zod.boolean().default(showSetupAgainResponseHasInterviewStageDefault)
+}).describe('The organization\'s own choices about the dashboard\'s setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization\'s data, not from here.\n`hasInterviewStage` says a job has a stage that holds interviews (of the interview kind, or with a scheduling\ndefault), so the checklist shows its Interviewing step.')
 
 
 export const getOrganizationBrandingResponseLastUpdatedCreatedDefault = false;
@@ -7993,6 +8360,81 @@ export const RemovePhotoResponse = zod.object({
 export const SignOutEverywhereResponse = zod.void()
 
 
+export const GetInterviewHoursResponse = zod.object({
+  "timeZone": zod.string(),
+  "weekly": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]),
+  "bufferMinutes": zod.int(),
+  "maxPerDay": zod.int().nullable(),
+  "feedUrl": zod.string().nullable()
+}).describe('The caller\'s own interview hours (Your account, Calendar): the days and hours they interview (`weekly`, null when\nthey set none), the minutes kept free around each interview (`bufferMinutes`, 0 to 120), the most interviews in a\nday (`maxPerDay`, 1 to 12, null for no limit) and the IANA `timeZone` the hours are in. Hours make them\nsomeone times can be offered from without a connected calendar (ScreenHire\'s calendar). `feedUrl` is their private\nsubscribe link, a calendar feed of their booked interviews, or null while it is off.')
+
+
+export const updateInterviewHoursBodyBufferMinutesDefault = 0;
+
+export const UpdateInterviewHoursBody = zod.object({
+  "timeZone": zod.string().nullable(),
+  "weekly": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]),
+  "bufferMinutes": zod.int().default(updateInterviewHoursBodyBufferMinutesDefault),
+  "maxPerDay": zod.int().nullish()
+}).describe('Sets the caller\'s interview hours; see InterviewHoursSettings.')
+
+export const UpdateInterviewHoursResponse = zod.object({
+  "timeZone": zod.string(),
+  "weekly": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]),
+  "bufferMinutes": zod.int(),
+  "maxPerDay": zod.int().nullable(),
+  "feedUrl": zod.string().nullable()
+}).describe('The caller\'s own interview hours (Your account, Calendar): the days and hours they interview (`weekly`, null when\nthey set none), the minutes kept free around each interview (`bufferMinutes`, 0 to 120), the most interviews in a\nday (`maxPerDay`, 1 to 12, null for no limit) and the IANA `timeZone` the hours are in. Hours make them\nsomeone times can be offered from without a connected calendar (ScreenHire\'s calendar). `feedUrl` is their private\nsubscribe link, a calendar feed of their booked interviews, or null while it is off.')
+
+
+export const TurnOnCalendarFeedResponse = zod.object({
+  "timeZone": zod.string(),
+  "weekly": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]),
+  "bufferMinutes": zod.int(),
+  "maxPerDay": zod.int().nullable(),
+  "feedUrl": zod.string().nullable()
+}).describe('The caller\'s own interview hours (Your account, Calendar): the days and hours they interview (`weekly`, null when\nthey set none), the minutes kept free around each interview (`bufferMinutes`, 0 to 120), the most interviews in a\nday (`maxPerDay`, 1 to 12, null for no limit) and the IANA `timeZone` the hours are in. Hours make them\nsomeone times can be offered from without a connected calendar (ScreenHire\'s calendar). `feedUrl` is their private\nsubscribe link, a calendar feed of their booked interviews, or null while it is off.')
+
+
+export const TurnOffCalendarFeedResponse = zod.object({
+  "timeZone": zod.string(),
+  "weekly": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]),
+  "bufferMinutes": zod.int(),
+  "maxPerDay": zod.int().nullable(),
+  "feedUrl": zod.string().nullable()
+}).describe('The caller\'s own interview hours (Your account, Calendar): the days and hours they interview (`weekly`, null when\nthey set none), the minutes kept free around each interview (`bufferMinutes`, 0 to 120), the most interviews in a\nday (`maxPerDay`, 1 to 12, null for no limit) and the IANA `timeZone` the hours are in. Hours make them\nsomeone times can be offered from without a connected calendar (ScreenHire\'s calendar). `feedUrl` is their private\nsubscribe link, a calendar feed of their booked interviews, or null while it is off.')
+
+
 export const ListNotificationsResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.uuid(),
@@ -8044,7 +8486,7 @@ export const GetActivityResponse = zod.object({
   "candidateName": zod.string().nullable(),
   "event": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'EmailReceived']),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'InterviewOptionChanged', 'InterviewTimesSuggested', 'InterviewAnotherTimeAsked', 'EmailReceived']),
   "occurredAt": zod.iso.datetime({"offset":true}),
   "actorUserId": zod.uuid().nullable(),
   "fromStageId": zod.string().nullable(),
@@ -8672,8 +9114,11 @@ export const RevokeApiKeyResponse = zod.object({
 
 
 export const validateWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const validateWorkflowBodyWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const validateWorkflowBodyWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const validateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const validateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const validateWorkflowBodyWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const validateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
 export const validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const validateWorkflowBodyWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -8700,7 +9145,22 @@ export const ValidateWorkflowBody = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(validateWorkflowBodyWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(validateWorkflowBodyWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -8761,7 +9221,9 @@ export const ValidateWorkflowBody = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(validateWorkflowBodyWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(validateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -8807,8 +9269,11 @@ export const ValidateWorkflowResponse = zod.object({
 
 
 export const simulateWorkflowBodyWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const simulateWorkflowBodyWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const simulateWorkflowBodyWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const simulateWorkflowBodyWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const simulateWorkflowBodyWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const simulateWorkflowBodyWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault = true;
 export const simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const simulateWorkflowBodyWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -8836,7 +9301,22 @@ export const SimulateWorkflowBody = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(simulateWorkflowBodyWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(simulateWorkflowBodyWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -8897,7 +9377,9 @@ export const SimulateWorkflowBody = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(simulateWorkflowBodyWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(simulateWorkflowBodyWorkflowAutomationsItemAllowAutoRejectDefault)
@@ -8954,6 +9436,8 @@ export const SimulateWorkflowBody = zod.object({
   "chain": zod.array(zod.string()).nullish()
 }).describe('"Test this workflow" (workflow-engine.md §4): run a sample application through a workflow and see which automations\na trigger would fire. Nothing is saved or sent. `facts` is the sample application\'s snapshot; leave members out\nfor facts it does not have.')
 
+export const simulateWorkflowResponseAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
+
 export const SimulateWorkflowResponse = zod.object({
   "automations": zod.array(zod.object({
   "automationId": zod.string(),
@@ -8978,7 +9462,9 @@ export const SimulateWorkflowResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(simulateWorkflowResponseAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "reason": zod.string().nullable()
 }).describe('What one automation would do. Only automations the trigger fires are listed, in definition order.'))
@@ -8988,6 +9474,8 @@ export const SimulateWorkflowResponse = zod.object({
 export const ListAutomationRunsParams = zod.object({
   "applicationId": zod.uuid()
 })
+
+export const listAutomationRunsResponseActionsItemActionInterviewOptionTwoDefault = `OurTimes`;
 
 export const ListAutomationRunsResponseItem = zod.object({
   "id": zod.uuid(),
@@ -9038,7 +9526,9 @@ export const ListAutomationRunsResponseItem = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(listAutomationRunsResponseActionsItemActionInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.'),
   "status": zod.enum(['Pending', 'Completed', 'Skipped', 'Failed']),
   "detail": zod.string().nullable(),
@@ -9078,7 +9568,7 @@ export const ListTasksResponseItem = zod.object({
   "jobId": zod.uuid(),
   "candidateName": zod.string(),
   "jobTitle": zod.string(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -9097,7 +9587,7 @@ export const CompleteTaskParams = zod.object({
 export const CompleteTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -9116,7 +9606,7 @@ export const ReopenTaskParams = zod.object({
 export const ReopenTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -9379,7 +9869,7 @@ export const RequestScorecardBody = zod.object({
 export const RequestScorecardResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -10348,11 +10838,11 @@ export const ExportVerificationActivityResponse = zod.unknown()
 export const GetCalendarResponse = zod.object({
   "sandbox": zod.boolean(),
   "providers": zod.array(zod.object({
-  "id": zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
+  "id": zod.enum(['Google', 'Microsoft', 'Sandbox', 'ScreenHire']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
   "name": zod.string()
 }).describe('A calendar the member can connect: its id, and the name the sheet shows.')),
   "connection": zod.union([zod.null(),zod.object({
-  "provider": zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
+  "provider": zod.enum(['Google', 'Microsoft', 'Sandbox', 'ScreenHire']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
   "providerName": zod.string(),
   "accountEmail": zod.string().nullable(),
   "connectedAt": zod.iso.datetime({"offset":true}),
@@ -10365,7 +10855,7 @@ export const DisconnectCalendarResponse = zod.void()
 
 
 export const StartCalendarConnectBody = zod.object({
-  "provider": zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
+  "provider": zod.enum(['Google', 'Microsoft', 'Sandbox', 'ScreenHire']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).'),
   "returnUrl": zod.string().nullable()
 }).describe('Connects the member\'s calendar. `returnUrl`: the dashboard path to come back to, a local path only.')
 
@@ -10378,18 +10868,24 @@ export const ListInterviewersQueryParams = zod.object({
   "jobId": zod.uuid()
 })
 
+export const listInterviewersResponseHasHoursDefault = false;
+
 export const ListInterviewersResponseItem = zod.object({
   "userId": zod.uuid(),
   "displayName": zod.string(),
   "calendarConnected": zod.boolean(),
-  "calendarProvider": zod.union([zod.null(),zod.enum(['Google', 'Microsoft', 'Sandbox']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).')])
-}).describe('A member who can interview for a job: one who sees it (everyone who sees all jobs, and the members on its hiring team).\n`calendarConnected` is true when their calendar is connected and works here, so ScreenHire can read when they are\nbusy and put the interview in it; an interview cannot be offered with someone who has none. `calendarProvider`\nsays which calendar it is, and is null when `calendarConnected` is false.')
+  "calendarProvider": zod.union([zod.null(),zod.enum(['Google', 'Microsoft', 'Sandbox', 'ScreenHire']).describe('Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only).')]),
+  "hasHours": zod.boolean().default(listInterviewersResponseHasHoursDefault)
+}).describe('A member who can interview for a job: one who sees it (everyone who sees all jobs, and the members on its hiring team).\n`calendarConnected` is true when their calendar is connected and works here, so ScreenHire can read when they are\nbusy and put the interview in it; an interview cannot be offered with someone who has none. `calendarProvider`\nsays which calendar it is, and is null when `calendarConnected` is false. `hasHours` is true when they set their\nown interview hours, which is ScreenHire\'s calendar for someone with no connected one: either makes them someone times can\nbe offered from.')
 export const ListInterviewersResponse = zod.array(ListInterviewersResponseItem)
 
 
 export const ScheduleInterviewParams = zod.object({
   "applicationId": zod.uuid()
 })
+
+export const scheduleInterviewBodyOptionTwoDefault = `OurTimes`;
+export const scheduleInterviewBodyUseBlocksDefault = false;
 
 export const ScheduleInterviewBody = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullable(),
@@ -10398,8 +10894,23 @@ export const ScheduleInterviewBody = zod.object({
   "windowEnd": zod.iso.datetime({"offset":true}),
   "timeZone": zod.string().nullable(),
   "dayStart": zod.string().nullish(),
-  "dayEnd": zod.string().nullish()
+  "dayEnd": zod.string().nullish(),
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(scheduleInterviewBodyOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(scheduleInterviewBodyUseBlocksDefault),
+  "proposedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "extraTimes": zod.array(zod.iso.datetime({"offset":true})).nullish()
 }).describe('Offers an application\'s candidate an interview. `interviewerUserIds` are one to five members who see the job; the\nfirst is the organizer, whose calendar event invites the candidate and makes the meeting link. `durationMinutes`\nis 15, 30, 45, 60, 90 or 120. The candidate picks a start that fits inside `windowStart` and `windowEnd`\n(at most 90 days) within the working hours `dayStart` and `dayEnd` (`HH:mm`, default 09:00 and 17:00,\nweekdays only) in `timeZone` (an IANA id such as `Europe/London`), which is also the zone the candidate\'s page\nfirst shows.')
+
+export const scheduleInterviewResponseOptionDefault = `OurTimes`;
+export const scheduleInterviewResponseUseBlocksDefault = false;
+export const scheduleInterviewResponseWaitsForTeamDefault = false;
 
 export const ScheduleInterviewResponse = zod.object({
   "id": zod.uuid(),
@@ -10423,13 +10934,34 @@ export const ScheduleInterviewResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "createdByUserId": zod.uuid().nullable(),
   "cancelledByCandidate": zod.boolean(),
-  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "option": zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(scheduleInterviewResponseOptionDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.'),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(scheduleInterviewResponseUseBlocksDefault),
+  "proposedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "extraTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimesAt": zod.iso.datetime({"offset":true}).nullish(),
+  "anotherTimeAskedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "candidateNote": zod.string().nullish(),
+  "teamNote": zod.string().nullish(),
+  "waitsForTeam": zod.boolean().default(scheduleInterviewResponseWaitsForTeamDefault)
 }).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
 
 
 export const ListApplicationInterviewsParams = zod.object({
   "applicationId": zod.uuid()
 })
+
+export const listApplicationInterviewsResponseOptionDefault = `OurTimes`;
+export const listApplicationInterviewsResponseUseBlocksDefault = false;
+export const listApplicationInterviewsResponseWaitsForTeamDefault = false;
 
 export const ListApplicationInterviewsResponseItem = zod.object({
   "id": zod.uuid(),
@@ -10453,7 +10985,24 @@ export const ListApplicationInterviewsResponseItem = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "createdByUserId": zod.uuid().nullable(),
   "cancelledByCandidate": zod.boolean(),
-  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "option": zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(listApplicationInterviewsResponseOptionDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.'),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(listApplicationInterviewsResponseUseBlocksDefault),
+  "proposedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "extraTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimesAt": zod.iso.datetime({"offset":true}).nullish(),
+  "anotherTimeAskedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "candidateNote": zod.string().nullish(),
+  "teamNote": zod.string().nullish(),
+  "waitsForTeam": zod.boolean().default(listApplicationInterviewsResponseWaitsForTeamDefault)
 }).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
 export const ListApplicationInterviewsResponse = zod.array(ListApplicationInterviewsResponseItem)
 
@@ -10461,6 +11010,10 @@ export const ListApplicationInterviewsResponse = zod.array(ListApplicationInterv
 export const CancelInterviewParams = zod.object({
   "interviewId": zod.uuid()
 })
+
+export const cancelInterviewResponseOptionDefault = `OurTimes`;
+export const cancelInterviewResponseUseBlocksDefault = false;
+export const cancelInterviewResponseWaitsForTeamDefault = false;
 
 export const CancelInterviewResponse = zod.object({
   "id": zod.uuid(),
@@ -10484,7 +11037,24 @@ export const CancelInterviewResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "createdByUserId": zod.uuid().nullable(),
   "cancelledByCandidate": zod.boolean(),
-  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "option": zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(cancelInterviewResponseOptionDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.'),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(cancelInterviewResponseUseBlocksDefault),
+  "proposedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "extraTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimesAt": zod.iso.datetime({"offset":true}).nullish(),
+  "anotherTimeAskedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "candidateNote": zod.string().nullish(),
+  "teamNote": zod.string().nullish(),
+  "waitsForTeam": zod.boolean().default(cancelInterviewResponseWaitsForTeamDefault)
 }).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
 
 
@@ -10496,6 +11066,10 @@ export const OfferNewInterviewTimesBody = zod.object({
   "windowStart": zod.iso.datetime({"offset":true}),
   "windowEnd": zod.iso.datetime({"offset":true})
 }).describe('Offers the candidate new times for a booked interview: they pick from `windowStart` to `windowEnd` (at most 90\ndays), in the interview\'s own length, working hours and zone. The booked time stays held until they pick, and the\nevents in every calendar then move. Offering again replaces the window.')
+
+export const offerNewInterviewTimesResponseOptionDefault = `OurTimes`;
+export const offerNewInterviewTimesResponseUseBlocksDefault = false;
+export const offerNewInterviewTimesResponseWaitsForTeamDefault = false;
 
 export const OfferNewInterviewTimesResponse = zod.object({
   "id": zod.uuid(),
@@ -10519,8 +11093,251 @@ export const OfferNewInterviewTimesResponse = zod.object({
   "createdAt": zod.iso.datetime({"offset":true}),
   "createdByUserId": zod.uuid().nullable(),
   "cancelledByCandidate": zod.boolean(),
-  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable()
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "option": zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(offerNewInterviewTimesResponseOptionDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.'),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(offerNewInterviewTimesResponseUseBlocksDefault),
+  "proposedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "extraTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimesAt": zod.iso.datetime({"offset":true}).nullish(),
+  "anotherTimeAskedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "candidateNote": zod.string().nullish(),
+  "teamNote": zod.string().nullish(),
+  "waitsForTeam": zod.boolean().default(offerNewInterviewTimesResponseWaitsForTeamDefault)
 }).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
+
+
+export const ChangeInterviewOptionParams = zod.object({
+  "interviewId": zod.uuid()
+})
+
+export const changeInterviewOptionBodyOptionDefault = `OurTimes`;
+export const changeInterviewOptionBodyUseBlocksDefault = false;
+
+export const ChangeInterviewOptionBody = zod.object({
+  "option": zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(changeInterviewOptionBodyOptionDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.'),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(changeInterviewOptionBodyUseBlocksDefault),
+  "proposedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "extraTimes": zod.array(zod.iso.datetime({"offset":true})).nullish()
+}).describe('Changes how the candidate picks a time: on an Open interview (Change how they pick), or to move a Booked one, whose time\nstays held until a new one is booked. The fields are ScheduleInterviewRequest\'s, over the new days\n`windowStart` to `windowEnd`; the interview keeps its interviewers, length and zone. The candidate\'s link stays\nthe same, and they are emailed that their options changed.')
+
+export const changeInterviewOptionResponseOptionDefault = `OurTimes`;
+export const changeInterviewOptionResponseUseBlocksDefault = false;
+export const changeInterviewOptionResponseWaitsForTeamDefault = false;
+
+export const ChangeInterviewOptionResponse = zod.object({
+  "id": zod.uuid(),
+  "status": zod.enum(['Open', 'Booked', 'Cancelled', 'Expired']),
+  "startsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "timeZone": zod.string(),
+  "durationMinutes": zod.int(),
+  "dayStart": zod.string(),
+  "dayEnd": zod.string(),
+  "meetingUrl": zod.string().nullable(),
+  "interviewers": zod.array(zod.object({
+  "userId": zod.uuid(),
+  "displayName": zod.string(),
+  "isOrganizer": zod.boolean(),
+  "syncStatus": zod.enum(['Pending', 'Synced', 'Failed']).describe('Where one interviewer\'s calendar event stands.'),
+  "syncProblem": zod.string().nullable()
+}).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "createdByUserId": zod.uuid().nullable(),
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "option": zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(changeInterviewOptionResponseOptionDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.'),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(changeInterviewOptionResponseUseBlocksDefault),
+  "proposedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "extraTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimesAt": zod.iso.datetime({"offset":true}).nullish(),
+  "anotherTimeAskedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "candidateNote": zod.string().nullish(),
+  "teamNote": zod.string().nullish(),
+  "waitsForTeam": zod.boolean().default(changeInterviewOptionResponseWaitsForTeamDefault)
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
+
+
+export const BookInterviewTimeParams = zod.object({
+  "interviewId": zod.uuid()
+})
+
+export const BookInterviewTimeBody = zod.object({
+  "start": zod.iso.datetime({"offset":true})
+}).describe('The team books one of the times the candidate suggested.')
+
+export const bookInterviewTimeResponseOptionDefault = `OurTimes`;
+export const bookInterviewTimeResponseUseBlocksDefault = false;
+export const bookInterviewTimeResponseWaitsForTeamDefault = false;
+
+export const BookInterviewTimeResponse = zod.object({
+  "id": zod.uuid(),
+  "status": zod.enum(['Open', 'Booked', 'Cancelled', 'Expired']),
+  "startsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "timeZone": zod.string(),
+  "durationMinutes": zod.int(),
+  "dayStart": zod.string(),
+  "dayEnd": zod.string(),
+  "meetingUrl": zod.string().nullable(),
+  "interviewers": zod.array(zod.object({
+  "userId": zod.uuid(),
+  "displayName": zod.string(),
+  "isOrganizer": zod.boolean(),
+  "syncStatus": zod.enum(['Pending', 'Synced', 'Failed']).describe('Where one interviewer\'s calendar event stands.'),
+  "syncProblem": zod.string().nullable()
+}).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "createdByUserId": zod.uuid().nullable(),
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "option": zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(bookInterviewTimeResponseOptionDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.'),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(bookInterviewTimeResponseUseBlocksDefault),
+  "proposedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "extraTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimesAt": zod.iso.datetime({"offset":true}).nullish(),
+  "anotherTimeAskedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "candidateNote": zod.string().nullish(),
+  "teamNote": zod.string().nullish(),
+  "waitsForTeam": zod.boolean().default(bookInterviewTimeResponseWaitsForTeamDefault)
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
+
+
+export const AskForMoreInterviewTimesParams = zod.object({
+  "interviewId": zod.uuid()
+})
+
+export const AskForMoreInterviewTimesBody = zod.object({
+  "note": zod.string().nullable()
+}).describe('None of the candidate\'s times works: the team asks for more, with an optional short message (500 characters at most).')
+
+export const askForMoreInterviewTimesResponseOptionDefault = `OurTimes`;
+export const askForMoreInterviewTimesResponseUseBlocksDefault = false;
+export const askForMoreInterviewTimesResponseWaitsForTeamDefault = false;
+
+export const AskForMoreInterviewTimesResponse = zod.object({
+  "id": zod.uuid(),
+  "status": zod.enum(['Open', 'Booked', 'Cancelled', 'Expired']),
+  "startsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullable(),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "timeZone": zod.string(),
+  "durationMinutes": zod.int(),
+  "dayStart": zod.string(),
+  "dayEnd": zod.string(),
+  "meetingUrl": zod.string().nullable(),
+  "interviewers": zod.array(zod.object({
+  "userId": zod.uuid(),
+  "displayName": zod.string(),
+  "isOrganizer": zod.boolean(),
+  "syncStatus": zod.enum(['Pending', 'Synced', 'Failed']).describe('Where one interviewer\'s calendar event stands.'),
+  "syncProblem": zod.string().nullable()
+}).describe('One interviewer on an interview and the state of their calendar event. `syncStatus` is `Pending` (not on the\ncalendar yet, or being changed), `Synced` or `Failed`; `syncProblem` says why in plain words when it\nfailed. `displayName` is "Former member" for someone who left the organization.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "createdByUserId": zod.uuid().nullable(),
+  "cancelledByCandidate": zod.boolean(),
+  "newTimesOfferedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "option": zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(askForMoreInterviewTimesResponseOptionDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.'),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(askForMoreInterviewTimesResponseUseBlocksDefault),
+  "proposedTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "extraTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimes": zod.array(zod.iso.datetime({"offset":true})).nullish(),
+  "candidateTimesAt": zod.iso.datetime({"offset":true}).nullish(),
+  "anotherTimeAskedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "candidateNote": zod.string().nullish(),
+  "teamNote": zod.string().nullish(),
+  "waitsForTeam": zod.boolean().default(askForMoreInterviewTimesResponseWaitsForTeamDefault)
+}).describe('An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer\'s Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team\'s offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer.')
+
+
+export const previewInterviewOpenTimesBodyUseBlocksDefault = false;
+
+export const PreviewInterviewOpenTimesBody = zod.object({
+  "jobId": zod.uuid(),
+  "interviewerUserIds": zod.array(zod.uuid()),
+  "durationMinutes": zod.int(),
+  "windowStart": zod.iso.datetime({"offset":true}),
+  "windowEnd": zod.iso.datetime({"offset":true}),
+  "timeZone": zod.string(),
+  "dayStart": zod.string().nullish(),
+  "dayEnd": zod.string().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(previewInterviewOpenTimesBodyUseBlocksDefault)
+}).describe('The times an interview would offer, before it is sent: for the sheet\'s check that pick from our times has something to\noffer. The fields are the interview\'s; `jobId` is the job the interviewers must see.')
+
+export const PreviewInterviewOpenTimesResponse = zod.object({
+  "slots": zod.array(zod.iso.datetime({"offset":true})),
+  "nextSevenDays": zod.int(),
+  "unavailableInterviewerUserIds": zod.array(zod.uuid())
+}).describe('What pick from our times would offer: `slots`, the first open times (at most 50) in order, and\n`nextSevenDays`, how many open times there are in the 7 days from now. `unavailableInterviewerUserIds` are the\ninterviewers whose time cannot be known (no calendar and no hours), while any are named nothing is offered.')
+
+
+export const ListInterviewersFreeBody = zod.object({
+  "jobId": zod.uuid(),
+  "interviewerUserIds": zod.array(zod.uuid()),
+  "starts": zod.array(zod.iso.datetime({"offset":true})),
+  "durationMinutes": zod.int(),
+  "interviewId": zod.uuid().nullish()
+}).describe('Whether each interviewer is free at each of `starts` (one to ten times) for an interview of `durationMinutes`:\nfor the team choosing among the candidate\'s times or picking its own. `interviewId` is the interview being moved, whose\nown time does not count as busy.')
+
+export const ListInterviewersFreeResponseItem = zod.object({
+  "start": zod.iso.datetime({"offset":true}),
+  "interviewers": zod.array(zod.object({
+  "userId": zod.uuid(),
+  "state": zod.enum(['Free', 'Busy', 'OutsideHours', 'Unknown']).describe('Whether one interviewer is free at one time, as the team sees it beside the candidate\'s or its own times.')
+}).describe('One interviewer at one time: `Free`, `Busy`, `OutsideHours` (outside their own interview hours) or `Unknown`.'))
+}).describe('Who is free at one time.')
+export const ListInterviewersFreeResponse = zod.array(ListInterviewersFreeResponseItem)
 
 
 export const listEmailTemplatesResponseTemplatesItemLastUpdatedCreatedDefault = false;

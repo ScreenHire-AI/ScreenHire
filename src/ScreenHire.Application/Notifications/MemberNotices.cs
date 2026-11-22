@@ -39,11 +39,14 @@ public sealed record NotifyTeammateChange(
     Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid ActorUserId, string Change, Guid SourceId) : ITenantMessage;
 
 /// <summary>
-/// An interview was booked, moved or cancelled (the change: <c>Booked</c>, <c>Moved</c>, <c>Cancelled</c>): tells the members on
-/// it, other than the member who made the change. A booking and a move are the candidate's (the careers page), so only a
-/// cancellation from the dashboard has a member behind it.
+/// An interview was booked, moved or cancelled (the change: <c>Booked</c>, <c>Moved</c>, <c>Cancelled</c>), or the next step is
+/// the team's (<c>TimesSuggested</c>: the candidate sent the times they are free; <c>AnotherTimeAsked</c>: the candidate cannot
+/// make the team's times): tells the members on it and the person who offered it, other than the member who made the change.
+/// A booking and a move are the candidate's (the careers page), so only a cancellation from the dashboard has a member behind
+/// it. <see cref="At"/> tells apart two notices of one revision (a candidate who sends times again after the team asked).
 /// </summary>
-public sealed record NotifyInterviewChanged(Guid OrganizationId, Guid InterviewId, int Revision, string Change, Guid? ActorUserId = null) : ITenantMessage;
+public sealed record NotifyInterviewChanged(
+    Guid OrganizationId, Guid InterviewId, int Revision, string Change, Guid? ActorUserId = null, DateTimeOffset? At = null) : ITenantMessage;
 
 /// <summary>The words ScreenHire's own emails about a member's work use. Names and titles only, never a note, task or reply's text.</summary>
 public static class MemberNoticeEmails
@@ -60,11 +63,22 @@ public static class MemberNoticeEmails
     public static EmailMessage NewApplication(string to, NoticePlace place, Uri link) =>
         Compose(to, $"{place.Candidate} applied to {place.Job}", $"{place.Candidate} applied to {place.Job} at {place.Organization}.", "Open the application", link);
 
-    public static EmailMessage InterviewChanged(string to, string change, NoticePlace place, Uri link)
+    public static EmailMessage InterviewChanged(string to, string change, NoticePlace place, Uri link) => change switch
     {
-        var verb = InterviewVerb(change);
-        return Compose(to, $"Interview {verb}: {place.Candidate}", $"The interview with {place.Where} was {verb}.", "Open the application", link);
-    }
+        "TimesSuggested" => Compose(to, $"Times to book: {place.Candidate}",
+            $"{place.Candidate} sent the times they are free for an interview: {place.Job}, at {place.Organization}. Book one.", "Book a time", link),
+        "AnotherTimeAsked" => Compose(to, $"Another time, please: {place.Candidate}",
+            $"{place.Candidate} cannot make the interview times you suggested: {place.Job}, at {place.Organization}.", "Open the application", link),
+        _ => Compose(to, $"Interview {InterviewVerb(change)}: {place.Candidate}", $"The interview with {place.Where} was {InterviewVerb(change)}.", "Open the application", link),
+    };
+
+    /// <summary>The digest's line for an interview notice.</summary>
+    public static string InterviewLine(string? change, string? candidate, string? job) => change switch
+    {
+        "TimesSuggested" => $"{candidate} sent times to book an interview, {job}",
+        "AnotherTimeAsked" => $"{candidate} asked for another interview time, {job}",
+        _ => $"The interview with {candidate}, {job}, was {InterviewVerb(change)}",
+    };
 
     public static EmailMessage TeammateChange(string to, string actor, string change, NoticePlace place, Uri link) =>
         Compose(to, $"{actor} {ChangeVerb(change)} {place.Candidate}", $"{actor} {ChangeVerb(change)} {place.Where}.", "Open the application", link);
@@ -210,7 +224,7 @@ public static class NotifyInterviewChangedHandler
         var outgoing = new OutgoingMessages();
         var interview = await db.InterviewRequests.AsNoTracking()
             .Where(i => i.Id == message.InterviewId)
-            .Select(i => new { i.ApplicationId, i.JobId, i.Revision })
+            .Select(i => new { i.ApplicationId, i.JobId, i.Revision, i.CreatedByUserId })
             .SingleOrDefaultAsync(cancellationToken);
         // A later change tells everyone again; this one says nothing once it is out of date.
         if (interview is null || interview.Revision != message.Revision)
@@ -223,8 +237,16 @@ public static class NotifyInterviewChangedHandler
             .Select(a => a.UserId)
             .Distinct()
             .ToListAsync(cancellationToken);
+
+        // The team's next step goes to the person who offered the interview too: they are the one waiting on it.
+        if (message.At is not null && interview.CreatedByUserId is { } creator && !attendees.Contains(creator))
+        {
+            attendees.Add(creator);
+        }
+
+        var source = message.At is { } at ? $"{message.InterviewId:N}:{message.Change}:{at.UtcTicks}" : $"{message.InterviewId:N}:{message.Revision}";
         outgoing.AddRange(attendees.Select(userId => new NotifyMember(
-            message.OrganizationId, userId, NoticeKind.Interviews, $"{message.InterviewId:N}:{message.Revision}", interview.ApplicationId,
+            message.OrganizationId, userId, NoticeKind.Interviews, source, interview.ApplicationId,
             interview.JobId, message.ActorUserId, message.Change)));
         return outgoing;
     }

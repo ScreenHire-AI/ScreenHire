@@ -28,6 +28,7 @@ import type {
   ApplicationTimelineEntry,
   ApplicationVerification,
   ApplyTemplateUpdateRequest,
+  AskForMoreTimesRequest,
   AutomationIssue,
   AutomationRunEntry,
   BillingInvoiceList,
@@ -36,6 +37,7 @@ import type {
   BillingPlanChangePreview,
   BillingRedirect,
   BoardSummary,
+  BookInterviewTimeRequest,
   BrandImageUploadRequest,
   BrandingContrast,
   BrandingImage,
@@ -47,6 +49,7 @@ import type {
   CandidateSummary,
   ChallengeProviderParams,
   ChangeBillingPlanRequest,
+  ChangeInterviewOptionRequest,
   ChangeMemberJobAccessRequest,
   ChangeMemberRoleRequest,
   CheckBrandingContrastParams,
@@ -82,6 +85,8 @@ import type {
   ExportAiUsageCallsParams,
   ExportVerificationActivityParams,
   FillTimeZoneRequest,
+  FreeTime,
+  FreeTimesRequest,
   GetActivityParams,
   GetAiUsageSummaryParams,
   GetApiKeysHistoryParams,
@@ -111,6 +116,7 @@ import type {
   HiringTemplateVersionDetail,
   HistoryPage,
   HttpValidationProblemDetails,
+  InterviewHoursSettings,
   Interviewer,
   InvitationAcceptance,
   InvitationDetails,
@@ -155,6 +161,8 @@ import type {
   OfferNewInterviewTimesRequest,
   OnboardingRequest,
   OpenBillingPortalParams,
+  OpenTimes,
+  OpenTimesRequest,
   OrganizationBranding,
   OrganizationProfile,
   OrganizationRetention,
@@ -184,7 +192,9 @@ import type {
   PublicDataRequestLinkStatus,
   PublicDataRequestReceipt,
   PublicInterview,
+  PublicInterviewAnotherTime,
   PublicInterviewChoice,
+  PublicInterviewSuggestion,
   PublicJob,
   PublicJobBoard,
   PublicOrganization,
@@ -252,6 +262,7 @@ import type {
   UpdateHiddenViewsRequest,
   UpdateHiringTemplateRequest,
   UpdateHiringTemplateVersionRequest,
+  UpdateInterviewHoursRequest,
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
   UpdateOrganizationRequest,
@@ -2477,6 +2488,155 @@ export const cancelPublicInterview = async (organizationSlug: string,
     method: 'POST'
 
 
+  }
+);}
+
+
+
+export type suggestPublicInterviewTimesResponse204 = {
+  data: void
+  status: 204
+}
+
+export type suggestPublicInterviewTimesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type suggestPublicInterviewTimesResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type suggestPublicInterviewTimesResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type suggestPublicInterviewTimesResponse429 = {
+  data: void
+  status: 429
+}
+
+export type suggestPublicInterviewTimesResponseSuccess = (suggestPublicInterviewTimesResponse204) & {
+  headers: Headers;
+};
+export type suggestPublicInterviewTimesResponseError = (suggestPublicInterviewTimesResponse404 | suggestPublicInterviewTimesResponse409 | suggestPublicInterviewTimesResponse410 | suggestPublicInterviewTimesResponse429) & {
+  headers: Headers;
+};
+
+export type suggestPublicInterviewTimesResponse = (suggestPublicInterviewTimesResponseSuccess | suggestPublicInterviewTimesResponseError)
+
+export const getSuggestPublicInterviewTimesUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/interviews/${token}/suggest`
+}
+
+export const suggestPublicInterviewTimes = async (organizationSlug: string,
+    token: string,
+    publicInterviewSuggestion: PublicInterviewSuggestion, options?: Parameters<typeof apiFetch>[1]): Promise<suggestPublicInterviewTimesResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<suggestPublicInterviewTimesResponse>(getSuggestPublicInterviewTimesUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicInterviewSuggestion)
+  }
+);}
+
+
+
+export type askPublicInterviewAnotherTimeResponse204 = {
+  data: void
+  status: 204
+}
+
+export type askPublicInterviewAnotherTimeResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type askPublicInterviewAnotherTimeResponse404 = {
+  data: void
+  status: 404
+}
+
+export type askPublicInterviewAnotherTimeResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type askPublicInterviewAnotherTimeResponse410 = {
+  data: ProblemDetails
+  status: 410
+}
+
+export type askPublicInterviewAnotherTimeResponse429 = {
+  data: void
+  status: 429
+}
+
+export type askPublicInterviewAnotherTimeResponseSuccess = (askPublicInterviewAnotherTimeResponse204) & {
+  headers: Headers;
+};
+export type askPublicInterviewAnotherTimeResponseError = (askPublicInterviewAnotherTimeResponse400 | askPublicInterviewAnotherTimeResponse404 | askPublicInterviewAnotherTimeResponse409 | askPublicInterviewAnotherTimeResponse410 | askPublicInterviewAnotherTimeResponse429) & {
+  headers: Headers;
+};
+
+export type askPublicInterviewAnotherTimeResponse = (askPublicInterviewAnotherTimeResponseSuccess | askPublicInterviewAnotherTimeResponseError)
+
+export const getAskPublicInterviewAnotherTimeUrl = (organizationSlug: string,
+    token: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/interviews/${token}/another-time`
+}
+
+export const askPublicInterviewAnotherTime = async (organizationSlug: string,
+    token: string,
+    publicInterviewAnotherTime: PublicInterviewAnotherTime, options?: Parameters<typeof apiFetch>[1]): Promise<askPublicInterviewAnotherTimeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<askPublicInterviewAnotherTimeResponse>(getAskPublicInterviewAnotherTimeUrl(organizationSlug,token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicInterviewAnotherTime)
   }
 );}
 
@@ -9637,6 +9797,205 @@ export const signOutEverywhere = async ( options?: Parameters<typeof apiFetch>[1
 
 
 
+export type getInterviewHoursResponse200 = {
+  data: InterviewHoursSettings
+  status: 200
+}
+
+export type getInterviewHoursResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getInterviewHoursResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getInterviewHoursResponseSuccess = (getInterviewHoursResponse200) & {
+  headers: Headers;
+};
+export type getInterviewHoursResponseError = (getInterviewHoursResponse401 | getInterviewHoursResponse404) & {
+  headers: Headers;
+};
+
+export type getInterviewHoursResponse = (getInterviewHoursResponseSuccess | getInterviewHoursResponseError)
+
+export const getGetInterviewHoursUrl = () => {
+
+
+
+
+  return `/v1/account/interview-hours`
+}
+
+export const getInterviewHours = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getInterviewHoursResponse> => {
+
+  return apiFetch<getInterviewHoursResponse>(getGetInterviewHoursUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateInterviewHoursResponse200 = {
+  data: InterviewHoursSettings
+  status: 200
+}
+
+export type updateInterviewHoursResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateInterviewHoursResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateInterviewHoursResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateInterviewHoursResponseSuccess = (updateInterviewHoursResponse200) & {
+  headers: Headers;
+};
+export type updateInterviewHoursResponseError = (updateInterviewHoursResponse400 | updateInterviewHoursResponse401 | updateInterviewHoursResponse404) & {
+  headers: Headers;
+};
+
+export type updateInterviewHoursResponse = (updateInterviewHoursResponseSuccess | updateInterviewHoursResponseError)
+
+export const getUpdateInterviewHoursUrl = () => {
+
+
+
+
+  return `/v1/account/interview-hours`
+}
+
+export const updateInterviewHours = async (updateInterviewHoursRequest: UpdateInterviewHoursRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateInterviewHoursResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateInterviewHoursResponse>(getUpdateInterviewHoursUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateInterviewHoursRequest)
+  }
+);}
+
+
+
+export type turnOnCalendarFeedResponse200 = {
+  data: InterviewHoursSettings
+  status: 200
+}
+
+export type turnOnCalendarFeedResponse401 = {
+  data: void
+  status: 401
+}
+
+export type turnOnCalendarFeedResponse404 = {
+  data: void
+  status: 404
+}
+
+export type turnOnCalendarFeedResponseSuccess = (turnOnCalendarFeedResponse200) & {
+  headers: Headers;
+};
+export type turnOnCalendarFeedResponseError = (turnOnCalendarFeedResponse401 | turnOnCalendarFeedResponse404) & {
+  headers: Headers;
+};
+
+export type turnOnCalendarFeedResponse = (turnOnCalendarFeedResponseSuccess | turnOnCalendarFeedResponseError)
+
+export const getTurnOnCalendarFeedUrl = () => {
+
+
+
+
+  return `/v1/account/interview-hours/feed`
+}
+
+export const turnOnCalendarFeed = async ( options?: Parameters<typeof apiFetch>[1]): Promise<turnOnCalendarFeedResponse> => {
+
+  return apiFetch<turnOnCalendarFeedResponse>(getTurnOnCalendarFeedUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type turnOffCalendarFeedResponse200 = {
+  data: InterviewHoursSettings
+  status: 200
+}
+
+export type turnOffCalendarFeedResponse401 = {
+  data: void
+  status: 401
+}
+
+export type turnOffCalendarFeedResponse404 = {
+  data: void
+  status: 404
+}
+
+export type turnOffCalendarFeedResponseSuccess = (turnOffCalendarFeedResponse200) & {
+  headers: Headers;
+};
+export type turnOffCalendarFeedResponseError = (turnOffCalendarFeedResponse401 | turnOffCalendarFeedResponse404) & {
+  headers: Headers;
+};
+
+export type turnOffCalendarFeedResponse = (turnOffCalendarFeedResponseSuccess | turnOffCalendarFeedResponseError)
+
+export const getTurnOffCalendarFeedUrl = () => {
+
+
+
+
+  return `/v1/account/interview-hours/feed`
+}
+
+export const turnOffCalendarFeed = async ( options?: Parameters<typeof apiFetch>[1]): Promise<turnOffCalendarFeedResponse> => {
+
+  return apiFetch<turnOffCalendarFeedResponse>(getTurnOffCalendarFeedUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
 export type listNotificationsResponse200 = {
   data: NotificationList
   status: 200
@@ -15142,6 +15501,369 @@ return apiFetch<offerNewInterviewTimesResponse>(getOfferNewInterviewTimesUrl(int
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(offerNewInterviewTimesRequest)
+  }
+);}
+
+
+
+export type changeInterviewOptionResponse200 = {
+  data: ApplicationInterview
+  status: 200
+}
+
+export type changeInterviewOptionResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type changeInterviewOptionResponse401 = {
+  data: void
+  status: 401
+}
+
+export type changeInterviewOptionResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type changeInterviewOptionResponse404 = {
+  data: void
+  status: 404
+}
+
+export type changeInterviewOptionResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type changeInterviewOptionResponse422 = {
+  data: ProblemDetails
+  status: 422
+}
+
+export type changeInterviewOptionResponseSuccess = (changeInterviewOptionResponse200) & {
+  headers: Headers;
+};
+export type changeInterviewOptionResponseError = (changeInterviewOptionResponse400 | changeInterviewOptionResponse401 | changeInterviewOptionResponse403 | changeInterviewOptionResponse404 | changeInterviewOptionResponse409 | changeInterviewOptionResponse422) & {
+  headers: Headers;
+};
+
+export type changeInterviewOptionResponse = (changeInterviewOptionResponseSuccess | changeInterviewOptionResponseError)
+
+export const getChangeInterviewOptionUrl = (interviewId: string,) => {
+
+
+
+
+  return `/v1/interviews/${interviewId}/option`
+}
+
+export const changeInterviewOption = async (interviewId: string,
+    changeInterviewOptionRequest: ChangeInterviewOptionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<changeInterviewOptionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<changeInterviewOptionResponse>(getChangeInterviewOptionUrl(interviewId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changeInterviewOptionRequest)
+  }
+);}
+
+
+
+export type bookInterviewTimeResponse200 = {
+  data: ApplicationInterview
+  status: 200
+}
+
+export type bookInterviewTimeResponse401 = {
+  data: void
+  status: 401
+}
+
+export type bookInterviewTimeResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type bookInterviewTimeResponse404 = {
+  data: void
+  status: 404
+}
+
+export type bookInterviewTimeResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type bookInterviewTimeResponseSuccess = (bookInterviewTimeResponse200) & {
+  headers: Headers;
+};
+export type bookInterviewTimeResponseError = (bookInterviewTimeResponse401 | bookInterviewTimeResponse403 | bookInterviewTimeResponse404 | bookInterviewTimeResponse409) & {
+  headers: Headers;
+};
+
+export type bookInterviewTimeResponse = (bookInterviewTimeResponseSuccess | bookInterviewTimeResponseError)
+
+export const getBookInterviewTimeUrl = (interviewId: string,) => {
+
+
+
+
+  return `/v1/interviews/${interviewId}/book`
+}
+
+export const bookInterviewTime = async (interviewId: string,
+    bookInterviewTimeRequest: BookInterviewTimeRequest, options?: Parameters<typeof apiFetch>[1]): Promise<bookInterviewTimeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<bookInterviewTimeResponse>(getBookInterviewTimeUrl(interviewId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bookInterviewTimeRequest)
+  }
+);}
+
+
+
+export type askForMoreInterviewTimesResponse200 = {
+  data: ApplicationInterview
+  status: 200
+}
+
+export type askForMoreInterviewTimesResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type askForMoreInterviewTimesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type askForMoreInterviewTimesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type askForMoreInterviewTimesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type askForMoreInterviewTimesResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type askForMoreInterviewTimesResponseSuccess = (askForMoreInterviewTimesResponse200) & {
+  headers: Headers;
+};
+export type askForMoreInterviewTimesResponseError = (askForMoreInterviewTimesResponse400 | askForMoreInterviewTimesResponse401 | askForMoreInterviewTimesResponse403 | askForMoreInterviewTimesResponse404 | askForMoreInterviewTimesResponse409) & {
+  headers: Headers;
+};
+
+export type askForMoreInterviewTimesResponse = (askForMoreInterviewTimesResponseSuccess | askForMoreInterviewTimesResponseError)
+
+export const getAskForMoreInterviewTimesUrl = (interviewId: string,) => {
+
+
+
+
+  return `/v1/interviews/${interviewId}/more-times`
+}
+
+export const askForMoreInterviewTimes = async (interviewId: string,
+    askForMoreTimesRequest: AskForMoreTimesRequest, options?: Parameters<typeof apiFetch>[1]): Promise<askForMoreInterviewTimesResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<askForMoreInterviewTimesResponse>(getAskForMoreInterviewTimesUrl(interviewId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(askForMoreTimesRequest)
+  }
+);}
+
+
+
+export type previewInterviewOpenTimesResponse200 = {
+  data: OpenTimes
+  status: 200
+}
+
+export type previewInterviewOpenTimesResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type previewInterviewOpenTimesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type previewInterviewOpenTimesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type previewInterviewOpenTimesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type previewInterviewOpenTimesResponseSuccess = (previewInterviewOpenTimesResponse200) & {
+  headers: Headers;
+};
+export type previewInterviewOpenTimesResponseError = (previewInterviewOpenTimesResponse400 | previewInterviewOpenTimesResponse401 | previewInterviewOpenTimesResponse403 | previewInterviewOpenTimesResponse404) & {
+  headers: Headers;
+};
+
+export type previewInterviewOpenTimesResponse = (previewInterviewOpenTimesResponseSuccess | previewInterviewOpenTimesResponseError)
+
+export const getPreviewInterviewOpenTimesUrl = () => {
+
+
+
+
+  return `/v1/scheduling/open-times`
+}
+
+export const previewInterviewOpenTimes = async (openTimesRequest: OpenTimesRequest, options?: Parameters<typeof apiFetch>[1]): Promise<previewInterviewOpenTimesResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<previewInterviewOpenTimesResponse>(getPreviewInterviewOpenTimesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(openTimesRequest)
+  }
+);}
+
+
+
+export type listInterviewersFreeResponse200 = {
+  data: FreeTime[]
+  status: 200
+}
+
+export type listInterviewersFreeResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type listInterviewersFreeResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listInterviewersFreeResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listInterviewersFreeResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listInterviewersFreeResponseSuccess = (listInterviewersFreeResponse200) & {
+  headers: Headers;
+};
+export type listInterviewersFreeResponseError = (listInterviewersFreeResponse400 | listInterviewersFreeResponse401 | listInterviewersFreeResponse403 | listInterviewersFreeResponse404) & {
+  headers: Headers;
+};
+
+export type listInterviewersFreeResponse = (listInterviewersFreeResponseSuccess | listInterviewersFreeResponseError)
+
+export const getListInterviewersFreeUrl = () => {
+
+
+
+
+  return `/v1/scheduling/free`
+}
+
+export const listInterviewersFree = async (freeTimesRequest: FreeTimesRequest, options?: Parameters<typeof apiFetch>[1]): Promise<listInterviewersFreeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<listInterviewersFreeResponse>(getListInterviewersFreeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(freeTimesRequest)
   }
 );}
 

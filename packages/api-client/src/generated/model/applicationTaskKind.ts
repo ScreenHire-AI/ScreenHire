@@ -13,4 +13,5 @@ export const ApplicationTaskKind = {
   Task: 'Task',
   RejectionReview: 'RejectionReview',
   Scorecard: 'Scorecard',
+  ChooseScheduling: 'ChooseScheduling',
 } as const;

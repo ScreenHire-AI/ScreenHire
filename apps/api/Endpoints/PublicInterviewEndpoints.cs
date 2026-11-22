@@ -6,6 +6,7 @@ using ScreenHire.Api.Branding;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Notifications;
 using ScreenHire.Application.Scheduling;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
@@ -66,8 +67,26 @@ internal static class PublicInterviewEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status410Gone)
             .Produces(StatusCodes.Status429TooManyRequests);
+        group.MapPost("/suggest", SuggestPublicInterviewTimes).WithName("SuggestPublicInterviewTimes")
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status410Gone)
+            .Produces(StatusCodes.Status429TooManyRequests);
+        group.MapPost("/another-time", AskPublicInterviewAnotherTime).WithName("AskPublicInterviewAnotherTime")
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status410Gone)
+            .Produces(StatusCodes.Status429TooManyRequests);
         return app;
     }
+
+    /// <summary>The most times the suggest grid offers: three weeks of a working day at a half-hour step and more.</summary>
+    internal const int MaxSuggestable = 400;
+
+    // Every time within the team's limits for tell us when you're free: the window, the hours and the minimum notice, on the
+    // step. Busy time does not count: these are the candidate's free times, and the team books the one that suits it.
+    internal static IReadOnlyList<DateTimeOffset> Suggestable(InterviewRequest interview, CalendarInterviewOptions options, DateTimeOffset now) =>
+        SlotFinder.Find(
+            interview.WindowStart, interview.WindowEnd, interview.Duration, options.StepMinutes, interview.Zone, interview.EffectiveHours,
+            now + TimeSpan.FromHours(options.MinNoticeHours), [[]], MaxSuggestable);
 
     private static async Task<Results<Ok<PublicInterview>, NotFound>> GetPublicInterview(
         string organizationSlug,
@@ -93,8 +112,15 @@ internal static class PublicInterviewEndpoints
         var minNotice = TimeSpan.FromHours(calendar.Options.Interviews.MinNoticeHours);
         var canChange = status == InterviewStatus.Booked && interview.CanBeChangedByCandidate(now, minNotice);
         IReadOnlyList<DateTimeOffset> slots = [];
+        IReadOnlyList<DateTimeOffset> suggestable = [];
         var unavailable = false;
-        if (status == InterviewStatus.Open || (status == InterviewStatus.Booked && canChange))
+        var picking = status == InterviewStatus.Open || (status == InterviewStatus.Booked && interview.HasPendingNewTimes(now));
+        if (picking && interview.Option == InterviewOption.TheirTimes && interview.CandidateTimes.Count == 0)
+        {
+            suggestable = Suggestable(interview, calendar.Options.Interviews, now);
+        }
+
+        if (interview.Option == InterviewOption.OurTimes && (status == InterviewStatus.Open || (status == InterviewStatus.Booked && canChange)))
         {
             var attendees = await db.InterviewAttendees.AsNoTracking()
                 .Where(a => a.InterviewId == interview.Id)
@@ -133,7 +159,133 @@ internal static class PublicInterviewEndpoints
             canChange,
             calendar.Options.Interviews.MinNoticeHours,
             interview.HasPendingNewTimes(now),
-            interview.MeetingNameOrDefault()));
+            interview.MeetingNameOrDefault(),
+            interview.Option,
+            suggestable,
+            picking ? interview.CandidateTimes : [],
+            picking && interview.Option == InterviewOption.OurSuggestion && interview.AnotherTimeAskedAt is null
+                ? [.. interview.ProposedTimes.Where(t => t > now)]
+                : [],
+            picking && interview.AnotherTimeAskedAt is not null,
+            picking && interview.WaitsForTeam(now),
+            picking ? interview.TeamNote : null));
+    }
+
+    // Tell us when you're free: the candidate sends 3 to 5 of the times within the limits. Under the interviewers' locks, as
+    // every change to the request is, so a team change at the same moment cannot cross it. The team is told.
+    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> SuggestPublicInterviewTimes(
+        string organizationSlug,
+        string token,
+        PublicInterviewSuggestion suggestion,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        TenantContext tenant,
+        InterviewLinks links,
+        CalendarAccess calendar,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
+        if (await FindAsync(organizationSlug, token, db, tenant, links, cancellationToken) is not { } found)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var interview = found.Interview;
+        var now = time.GetUtcNow();
+        if (ClosedProblem(found.StatusAt(now)) is { } closed)
+        {
+            return closed;
+        }
+
+        var attendeeUsers = await db.InterviewAttendees.AsNoTracking().Where(a => a.InterviewId == interview.Id).Select(a => a.UserId).ToListAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await InterviewLocks.TakeAsync(db, interview.OrganizationId, attendeeUsers, cancellationToken);
+        await db.Entry(interview).ReloadAsync(cancellationToken);
+        if (ClosedProblem(found.StatusAt(now)) is { } closedNow)
+        {
+            return closedNow;
+        }
+
+        if (interview.Option != InterviewOption.TheirTimes || !interview.IsPicking(now) || interview.CandidateTimes.Count > 0)
+        {
+            return NotOffered();
+        }
+
+        var times = (suggestion.Times ?? []).Select(t => t.ToUniversalTime()).ToList();
+        var allowed = Suggestable(interview, calendar.Options.Interviews, now).ToHashSet();
+        switch (InterviewRequest.SuggestionProblem(times, allowed))
+        {
+            case SuggestionFault.TooFew:
+                return Problem(StatusCodes.Status409Conflict, "too_few_times", "Choose more times", "Choose at least 3 times you are free.");
+            case SuggestionFault.TooMany:
+                return Problem(StatusCodes.Status409Conflict, "too_many_times", "Choose fewer times", "Choose at most 5 times.");
+            case SuggestionFault.NotOffered:
+                return NotOffered();
+        }
+
+        var application = found.Application;
+        interview.SuggestTimes(times, allowed, now);
+        db.ApplicationEvents.Add(application.InterviewTimesSuggested(interview, now));
+        await outbox.PublishAsync(new InterviewChanged(
+            application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.TimesSuggested,
+            ByCandidate: true, StartsAt: interview.StartsAt));
+        await outbox.PublishAsync(new NotifyInterviewChanged(application.OrganizationId, interview.Id, interview.Revision, InterviewChanges.TimesSuggested, At: now));
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    // We'll suggest a time: the candidate cannot make the team's times and asks for another, with an optional note.
+    private static async Task<Results<NoContent, NotFound, ValidationProblem, ProblemHttpResult>> AskPublicInterviewAnotherTime(
+        string organizationSlug,
+        string token,
+        PublicInterviewAnotherTime request,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        TenantContext tenant,
+        InterviewLinks links,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (request.Note is { Length: > InterviewRequest.MaxNoteLength })
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("note", $"Keep the note to {InterviewRequest.MaxNoteLength} characters."));
+        }
+
+        var db = outbox.DbContext;
+        if (await FindAsync(organizationSlug, token, db, tenant, links, cancellationToken) is not { } found)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var interview = found.Interview;
+        var now = time.GetUtcNow();
+        if (ClosedProblem(found.StatusAt(now)) is { } closed)
+        {
+            return closed;
+        }
+
+        var attendeeUsers = await db.InterviewAttendees.AsNoTracking().Where(a => a.InterviewId == interview.Id).Select(a => a.UserId).ToListAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await InterviewLocks.TakeAsync(db, interview.OrganizationId, attendeeUsers, cancellationToken);
+        await db.Entry(interview).ReloadAsync(cancellationToken);
+        if (ClosedProblem(found.StatusAt(now)) is { } closedNow)
+        {
+            return closedNow;
+        }
+
+        if (interview.Option != InterviewOption.OurSuggestion || !interview.IsPicking(now) || interview.AnotherTimeAskedAt is not null)
+        {
+            return NotOffered();
+        }
+
+        var application = found.Application;
+        interview.AskForAnotherTime(request.Note, now);
+        db.ApplicationEvents.Add(application.InterviewAnotherTimeAsked(interview, now));
+        await outbox.PublishAsync(new InterviewChanged(
+            application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.AnotherTimeAsked,
+            ByCandidate: true, StartsAt: interview.StartsAt));
+        await outbox.PublishAsync(new NotifyInterviewChanged(application.OrganizationId, interview.Id, interview.Revision, InterviewChanges.AnotherTimeAsked, At: now));
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        return TypedResults.NoContent();
     }
 
     private static Task<Results<NoContent, NotFound, ProblemHttpResult>> BookPublicInterview(
@@ -185,6 +337,12 @@ internal static class PublicInterviewEndpoints
         if (NotChangeable(found.StatusAt(now), reschedule) is { } refused)
         {
             return refused;
+        }
+
+        // The candidate's own suggestions are the team's to book; the candidate books our times or accepts the team's.
+        if (found.Interview.Option == InterviewOption.TheirTimes)
+        {
+            return NotOffered();
         }
 
         InterviewBookingResult result;
@@ -318,6 +476,9 @@ internal static class PublicInterviewEndpoints
             StatusCodes.Status410Gone, "expired", "Link expired", "The time to pick an interview has passed. Contact the hiring team if you would like another time."),
         _ => null,
     };
+
+    private static ProblemHttpResult NotOffered() => Problem(
+        StatusCodes.Status409Conflict, "not_offered", "That is not open now", "The team changed what you can choose. Look at the page again.");
 
     private static ProblemHttpResult AlreadyBooked() => Problem(
         StatusCodes.Status409Conflict, "already_booked", "Already booked", "A time is already booked. Use Pick another time to move it.");
