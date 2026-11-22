@@ -12,7 +12,7 @@ namespace ScreenHire.IntegrationTests.Migrations;
 /// </summary>
 public sealed class FormLibraryMigrationTests(AppHostFixture fixture)
 {
-    private const string Before = "AddActivityFeed";
+    private const string Before = "AddManualPostings";
     private const string After = "AddFormLibrary";
 
     [Fact]
@@ -84,12 +84,32 @@ public sealed class FormLibraryMigrationTests(AppHostFixture fixture)
         (await LinkAsync(scratch, v3, "availability", ct)).Should().Be((kitchenAvailability.Id, 2), "the draft's changed form is the second version");
         (await LinkAsync(scratch, v2, "references", ct)).Should().Be(await LinkAsync(scratch, v3, "references", ct), "unchanged content is one version");
         (await LinkAsync(scratch, v1, "availability", ct)).Should().Be((null, null), "an older published version keeps its copy as it was");
-        (await scratch.ScalarAsync<string>(
-            $"SELECT content::text FROM form_template_versions WHERE form_template_id = '{kitchenAvailability.Id}' AND version = 2", ct))
-            .Should().Contain("What is the earliest day you can start?", "the questions are kept as the draft had them");
+        var barAvailability = forms.Single(f => f.Organization == studio && f.Name == "Availability" && f.Versions == 1);
+        foreach (var (form, version, source) in new[]
+        {
+            (kitchenAvailability.Id, 1, availability),
+            (kitchenAvailability.Id, 2, availabilityRevised),
+            (forms.Single(f => f.Organization == studio && f.Name == "References").Id, 1, references),
+            (barAvailability.Id, 1, availability),
+            (forms.Single(f => f.Name == "Before your first shift").Id, 1, own),
+            (forms.Single(f => f.Organization == other).Id, 1, references),
+        })
+        {
+            var content = JsonNode.Parse(await scratch.ScalarAsync<string>(
+                $"SELECT content::text FROM form_template_versions WHERE form_template_id = '{form}' AND version = {version}", ct));
+            var expected = JsonNode.Parse(source)!.AsObject();
+            expected.Remove("id");
+            JsonNode.DeepEquals(content, expected).Should().BeTrue($"version {version} of {expected["name"]} keeps the follow-up's name and questions: {content}");
+        }
+
         (await scratch.ScalarAsync<string>("SELECT string_agg(workflow::text, '|' ORDER BY id) FROM jobs", ct))
             .Should().Be(jobsBefore, "a live job's workflow is never rewritten");
         (await scratch.UnforcedTablesAsync(ct)).Should().BeEmpty("FORCE comes back on the tables the copy lifted it from");
+        (await scratch.ScalarAsync<bool>("SELECT has_table_privilege('screenhire_app', 'form_templates', 'DELETE')", ct))
+            .Should().BeFalse("deleting a form would cascade to its published versions");
+        (await scratch.ScalarAsync<string>(
+            "SELECT string_agg(policyname || ':' || cmd || ':' || coalesce(qual, ''), '|' ORDER BY policyname) FROM pg_policies WHERE tablename = 'form_template_versions' AND cmd IN ('UPDATE', 'DELETE')", ct))
+            .Should().Contain("tenant_delete_drafts:DELETE").And.Contain("tenant_update_drafts:UPDATE").And.Contain("'Draft'", "a published version cannot be changed or deleted");
 
         await scratch.MigrateAsync(Before, ct);
 

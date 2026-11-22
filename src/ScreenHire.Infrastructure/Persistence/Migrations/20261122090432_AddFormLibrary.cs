@@ -48,7 +48,9 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
         // job without a template) becomes a library form of its own, unless a library version has the same content
         // already; the job keeps its copy as its own. The tables are forced, so with no tenant set the owner reads and
         // writes nothing unless the force is lifted around the copy; it is put back before the migration ends, and the
-        // copy aborts it when a current follow-up was left unlinked.
+        // copy aborts it when a current follow-up was left unlinked. A template with only a draft still gets a published
+        // version 1 of each form, because a link names a published version. jsonb_strip_nulls drops null members at every
+        // depth (a question's "helpText": null too), which reads back the same, since a missing member is its default.
         private const string ConvertFollowUps = """
             ALTER TABLE hiring_templates NO FORCE ROW LEVEL SECURITY;
             ALTER TABLE hiring_template_versions NO FORCE ROW LEVEL SECURITY;
