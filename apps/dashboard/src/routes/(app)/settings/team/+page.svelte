@@ -433,16 +433,16 @@
                       <Table.Cell class="max-w-64 px-4.5">
                         <span class="flex min-w-0 items-center gap-2">
                           {#if manageable(member)}
-                            <button
-                              type="button"
+                            <TruncatedText
+                              text={member.displayName}
                               data-row-link
                               aria-label={`Edit access for ${member.displayName}`}
-                              class="min-w-0 truncate text-left font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11"
+                              class="font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11"
                               onclick={() => {
                                 editing = member;
                                 accessOpen = true;
-                              }}>{member.displayName}</button
-                            >
+                              }}
+                            />
                           {:else}
                             <TruncatedText text={member.displayName} class="font-semibold" />
                           {/if}

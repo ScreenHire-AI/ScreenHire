@@ -259,13 +259,13 @@
   <!-- The board's name, with at most one badge after it (L1). -->
   <span class="flex min-w-0 items-center gap-2">
     {#if canCustomize(job.status, row.board, row.posting)}
-      <button
-        type="button"
+      <TruncatedText
+        text={row.name}
         data-row-link
         aria-label={`Customize for ${row.name}`}
-        class="min-w-0 truncate text-left font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11"
-        onclick={() => openCustomize({ boardId: row.boardId, name: row.name })}>{row.name}</button
-      >
+        class="font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11"
+        onclick={() => openCustomize({ boardId: row.boardId, name: row.name })}
+      />
     {:else}
       <TruncatedText text={row.name} class="font-semibold" />
     {/if}

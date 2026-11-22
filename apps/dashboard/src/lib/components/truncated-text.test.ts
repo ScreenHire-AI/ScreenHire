@@ -49,6 +49,22 @@ describe('truncated text', () => {
     expect(tooltip()).toHaveTextContent(text);
   });
 
+  it('can be a button, such as a name that opens its sheet, that runs its click and keeps the tooltip while cut (L5, F5)', async () => {
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(2000);
+    const onclick = vi.fn();
+    render(WithTooltips, { props: { component: TruncatedText, props: { text, onclick, 'aria-label': `Rename ${text}`, 'data-row-link': '' } } });
+
+    const button = screen.getByRole('button', { name: `Rename ${text}` });
+    expect(button).toHaveAttribute('type', 'button');
+    expect(button).toHaveAttribute('data-row-link');
+    expect(button).toHaveClass('truncate');
+    await fireEvent.focus(button);
+    expect(tooltip()).toHaveTextContent(text);
+    await fireEvent.click(button);
+    expect(onclick).toHaveBeenCalledTimes(1);
+    await expectNoAxeViolations(document.body);
+  });
+
   it('underlines a link at rest only when asked, and a name in a table keeps its hover underline', () => {
     const { unmount } = render(WithTooltips, { props: { component: TruncatedText, props: { text: 'Platform Engineer', href: '/jobs/1', underlined: true } } });
     expect(screen.getByRole('link', { name: 'Platform Engineer' })).toHaveClass('truncate', 'underline');

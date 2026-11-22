@@ -84,10 +84,14 @@ export const rowLink: Attachment<HTMLElement> = (row) => {
   const document = row.ownerDocument;
   let layerWasOpen = false;
 
-  const onpointerdown = (event: PointerEvent) => {
+  const onpointerdown = () => {
     // An open menu closes on this press (bits-ui waits a moment, or for the click on touch), so look now.
     layerWasOpen = document.querySelector(openLayer) !== null;
-    // A middle press outside a control would start the browser's autoscroll, not open the record.
+  };
+
+  const onmousedown = (event: MouseEvent) => {
+    // A middle press outside a control would start the browser's autoscroll, not open the record. Browsers check the
+    // mousedown for that, not the pointerdown.
     if (event.button === 1 && rowClick(event, row)) event.preventDefault();
   };
 
@@ -114,11 +118,13 @@ export const rowLink: Attachment<HTMLElement> = (row) => {
 
   row.setAttribute('data-row-click', '');
   row.addEventListener('pointerdown', onpointerdown);
+  row.addEventListener('mousedown', onmousedown);
   row.addEventListener('click', follow);
   row.addEventListener('auxclick', onauxclick);
   return () => {
     row.removeAttribute('data-row-click');
     row.removeEventListener('pointerdown', onpointerdown);
+    row.removeEventListener('mousedown', onmousedown);
     row.removeEventListener('click', follow);
     row.removeEventListener('auxclick', onauxclick);
   };

@@ -93,7 +93,7 @@ describe('rowLink', () => {
     expect(box.checked).toBe(true);
     click(find('[data-cell="select"]'), { ctrlKey: true });
     expect(box.checked).toBe(false);
-    click(find('[data-cell="select"]'), { button: 1 }, 'pointerdown');
+    click(find('[data-cell="select"]'), { button: 1 }, 'mousedown');
     click(find('[data-cell="select"]'), { button: 1 }, 'auxclick');
     expect(box.checked).toBe(false);
     box.disabled = true;
@@ -118,9 +118,11 @@ describe('rowLink', () => {
 
   it('opens the record in a new tab on a middle click, and stops the autoscroll its press would start', () => {
     const { find } = makeRow();
-    const press = click(find('[data-text]'), { button: 1 }, 'pointerdown');
+    const press = click(find('[data-text]'), { button: 1 }, 'mousedown');
     click(find('[data-text]'), { button: 1 }, 'auxclick');
     expect(press.defaultPrevented).toBe(true);
+    // A middle press on another control keeps its own default.
+    expect(click(find('[data-other-link]'), { button: 1 }, 'mousedown').defaultPrevented).toBe(false);
     expect(open).toHaveBeenCalledWith('http://localhost:3000/applications/1', '_blank', 'noopener');
   });
 
