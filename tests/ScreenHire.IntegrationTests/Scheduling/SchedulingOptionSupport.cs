@@ -23,11 +23,12 @@ internal static class SchedulingOptionSupport
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    private static readonly string[] Weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
     /// <summary>Hours on every weekday, in the shape the API takes (<c>WeeklyHours</c>).</summary>
     public static JsonObject WeekdayHours(string from, string to) => new()
     {
-        ["days"] = new JsonArray([.. new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" }
-            .Select(day => (JsonNode)new JsonObject { ["day"] = day, ["from"] = from, ["to"] = to })]),
+        ["days"] = new JsonArray([.. Weekdays.Select(day => (JsonNode)new JsonObject { ["day"] = day, ["from"] = from, ["to"] = to })]),
     };
 
     /// <summary>Offers the interview with how the candidate picks set to <paramref name="option"/> (and anything else <paramref name="more"/> adds).</summary>
