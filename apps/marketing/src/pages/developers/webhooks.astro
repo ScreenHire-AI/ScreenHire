@@ -38,17 +38,17 @@ const header = 'ScreenHire-Signature: t=1795685400,v1=2bed3e1e1acabdfbb4a8b529ba
     The signature header looks like this. <code>v1</code> is the hex HMAC-SHA256 of the time, a full stop and the raw body,
     keyed with your endpoint's secret:
   </p>
-  <pre><code>{header}</code></pre>
+  <pre tabindex="0"><code>{header}</code></pre>
   <p>
     Check it on the body exactly as it arrived, before you parse it, and refuse a <code>t</code> more than five minutes old so a
     captured delivery cannot be sent again.
   </p>
   <h3>Node</h3>
-  <pre><code>{node}</code></pre>
+  <pre tabindex="0"><code>{node}</code></pre>
   <h3>Python</h3>
-  <pre><code>{python}</code></pre>
+  <pre tabindex="0"><code>{python}</code></pre>
   <h3>C#</h3>
-  <pre><code>{csharp}</code></pre>
+  <pre tabindex="0"><code>{csharp}</code></pre>
 
   <h2>Retries and replays</h2>
   <p>
@@ -69,7 +69,7 @@ const header = 'ScreenHire-Signature: t=1795685400,v1=2bed3e1e1acabdfbb4a8b529ba
         <p>
           <strong>{event.summary}.</strong> {inlineCode(event.description).map((part) => (part.code ? <code>{part.text}</code> : part.text))}
         </p>
-        <pre><code>{event.sample}</code></pre>
+        <pre tabindex="0"><code>{event.sample}</code></pre>
       </>
     ))
   }
