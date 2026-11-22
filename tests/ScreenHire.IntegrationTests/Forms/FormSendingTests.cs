@@ -126,6 +126,10 @@ public sealed partial class FormSendingTests(AppHostFixture fixture)
             .Should().Equal(("Yes", 5), ("No", null), ("No answer", null));
         report.Body.GetRawText().Should().NotContain(applications[0].ToString(), "totals name no candidate");
 
+        using var otherOrganization = await fixture.SignedInWithOrganizationAsync();
+        (await ReportAsync(otherOrganization, from)).Body.GetRawText().Should().NotContain(
+            formId.ToString(), "another organization's totals hold neither this form nor its answers");
+
         (await recruiter.GetAsync($"/v1/reports/equality?from={Uri.EscapeDataString(from.ToString("O"))}&to={Uri.EscapeDataString(DateTimeOffset.UtcNow.AddMinutes(5).ToString("O"))}"))
             .Expect(HttpStatusCode.Forbidden);
     }

@@ -515,8 +515,9 @@ internal sealed partial class DevelopmentDemo(
 
         var source = await db.HiringTemplateVersions.AsNoTracking()
             .SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion5, cancellationToken);
-        // A library form the template sends when a candidate enters Screening, so the Forms tab, the form library and a
-        // candidate's Application tab have one to show (workflow-engine.md section 7, Forms).
+        // A library form the template sends when a candidate enters Screening, so the template's Forms tab and the form
+        // library have one to show (workflow-engine.md section 7, Forms). Only the jobs made from this template carry it;
+        // the open demo jobs are seeded on their own, so their candidates' Application tabs show no forms.
         var form = FormTemplate.Create(step.OrganizationId, FormKind.Standard, ScreeningForm, step.Now, step.Owner);
         form.Publish(form.Draft!, step.Now, step.Owner);
         db.FormTemplates.Add(form);

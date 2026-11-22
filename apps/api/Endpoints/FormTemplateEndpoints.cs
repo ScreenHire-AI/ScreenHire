@@ -307,7 +307,8 @@ internal static class FormTemplateEndpoints
     // Each named hiring template that uses an older version of this form takes this one, under the follow-up id it already
     // has, so its automations keep sending it. A template with a draft has the draft changed; one without gets a new
     // version that is published through the template's own publish path, so it is checked and announced as a Publish is.
-    // Every template is checked before anything is saved, and one save commits the lot.
+    // Every template is checked before anything is saved. The drafts are saved together first, then the new versions are
+    // published, so a teammate's change in between can leave a draft saved and unpublished; the 409 says so.
     private static async Task<Results<Ok<ApplyFormToTemplatesResult>, NotFound, ValidationProblem, ProblemHttpResult>> ApplyFormToTemplates(
         Guid formId,
         int version,
@@ -338,9 +339,13 @@ internal static class FormTemplateEndpoints
         var now = time.GetUtcNow();
         var results = new List<FormTemplateUpdate>();
         var drafts = new List<(HiringTemplate Template, HiringTemplateVersion Draft, bool Publish)>();
-        foreach (var templateId in ids.Distinct())
+        var distinct = ids.Distinct().ToList();
+        var templates = await db.HiringTemplates.Include(t => t.Versions)
+            .Where(t => distinct.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
+        foreach (var templateId in distinct)
         {
-            var template = await TemplateEndpoints.LoadAsync(db, templateId, tracking: true, cancellationToken);
+            var template = templates.GetValueOrDefault(templateId);
             if (template is null || template.IsSystem)
             {
                 results.Add(new(templateId, "", FormUpdateOutcome.NotUpdated, Problem: "No hiring template of yours has this id."));
@@ -412,7 +417,7 @@ internal static class FormTemplateEndpoints
         catch (DbUpdateException exception) when (exception is DbUpdateConcurrencyException || exception.IsUniqueViolation())
         {
             return TypedResults.Problem(
-                "Someone changed one of these templates at the same moment. Look again, then update the templates that still need it.",
+                "Someone changed one of these templates at the same moment, so some may have a draft with this form and others none. Look again, then update the templates that still need it.",
                 statusCode: StatusCodes.Status409Conflict);
         }
 
