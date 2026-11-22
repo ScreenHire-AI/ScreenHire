@@ -29,8 +29,10 @@ namespace ScreenHire.Application.Scheduling;
 /// is one of <see cref="InterviewChanges"/>, null for a calendar write or an organizer handed on when an interviewer left
 /// (ScreenHire's own cancellation is Cancelled with no actor). <see cref="ActorUserId"/> is the member who made it; <see cref="ByCandidate"/> says the
 /// candidate did, from their booking page. Neither for an automation or ScreenHire. <see cref="StartsAt"/> is the time the
-/// change is about: the booked or new time, or the time a cancelled booking had. Added last with defaults, as every field
-/// an event gains is.
+/// change is about: the booked or new time, or the time a cancelled booking had. <see cref="Revision"/> is the request's
+/// <see cref="Domain.Scheduling.InterviewRequest.Revision"/> after a booking, a new time or a cancellation, and
+/// <see cref="ChangedAt"/> when it happened: together the stable key and time of the <c>interview.*</c> webhook events
+/// (docs/architecture/workflow-engine.md section 5). Added last with defaults, as every field an event gains is.
 /// </remarks>
 public sealed record InterviewChanged(
     Guid OrganizationId,
@@ -41,7 +43,9 @@ public sealed record InterviewChanged(
     string? Change = null,
     Guid? ActorUserId = null,
     bool ByCandidate = false,
-    DateTimeOffset? StartsAt = null) : IJobEvent;
+    DateTimeOffset? StartsAt = null,
+    int? Revision = null,
+    DateTimeOffset? ChangedAt = null) : IJobEvent;
 
 /// <summary>What happened to an interview, as <see cref="InterviewChanged.Change"/> says it.</summary>
 public static class InterviewChanges

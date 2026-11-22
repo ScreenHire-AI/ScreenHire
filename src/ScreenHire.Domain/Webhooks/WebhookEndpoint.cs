@@ -120,8 +120,23 @@ public static class WebhookEventTypes
 
     public const string JobClosed = "job.closed";
 
+    public const string ApplicationHired = "application.hired";
+
+    public const string CandidateErased = "candidate.erased";
+
+    public const string InterviewScheduled = "interview.scheduled";
+
+    public const string InterviewRescheduled = "interview.rescheduled";
+
+    public const string InterviewCancelled = "interview.cancelled";
+
+    public const string ScorecardSubmitted = "scorecard.submitted";
+
     public static IReadOnlyList<string> All { get; } =
-        [ApplicationSubmitted, ApplicationMoved, VerificationAssessed, AutomationFailed, JobPublished, JobClosed];
+    [
+        ApplicationSubmitted, ApplicationMoved, ApplicationHired, VerificationAssessed, AutomationFailed, JobPublished, JobClosed,
+        CandidateErased, InterviewScheduled, InterviewRescheduled, InterviewCancelled, ScorecardSubmitted,
+    ];
 
     public static bool IsKnown(string type) => All.Contains(type, StringComparer.Ordinal);
 }

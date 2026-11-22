@@ -5,7 +5,8 @@ namespace ScreenHire.IntegrationTests.Production;
 
 /// <summary>
 /// The API reference is public in production at the same path as in development: it documents the public API and holds
-/// no data, and the dashboard's API keys and Webhooks pages link to it.
+/// no data, and the dashboard's API keys and Webhooks pages link to it. It shows the public document, what a key can call,
+/// while the full document that feeds the generated client stays served too.
 /// </summary>
 [Collection<OwnStackRun>]
 public sealed class ApiReferenceTests(ProductionApiFixture fixture) : IClassFixture<ProductionApiFixture>
@@ -31,6 +32,7 @@ public sealed class ApiReferenceTests(ProductionApiFixture fixture) : IClassFixt
 
         using var reference = await GetOnceListeningAsync(client, "/scalar", cancellationToken);
         using var openApi = await client.GetAsync("/openapi/v1.json", cancellationToken);
+        using var published = await client.GetAsync("/openapi/public.json", cancellationToken);
         using var meta = await client.GetAsync("/v1/meta", cancellationToken);
 
         reference.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -38,8 +40,11 @@ public sealed class ApiReferenceTests(ProductionApiFixture fixture) : IClassFixt
         var page = await reference.Content.ReadAsStringAsync(cancellationToken);
         page.Should().Contain("\"telemetry\":false", "the public page sends Scalar no telemetry")
             .And.Contain("\"withDefaultFonts\":false", "nor loads fonts from Scalar's CDN");
+        page.Should().Contain("/openapi/public.json", "the reference shows the public document, what a key can call");
         openApi.StatusCode.Should().Be(HttpStatusCode.OK);
         (await openApi.Content.ReadAsStringAsync(cancellationToken)).Should().Contain("\"openapi\"");
+        published.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await published.Content.ReadAsStringAsync(cancellationToken)).Should().Contain("\"ScreenHire API\"").And.Contain("\"webhooks\"");
         (await meta.Content.ReadAsStringAsync(cancellationToken)).Should().Contain("\"Production\"", "the fixture runs the API in Production");
     }
 

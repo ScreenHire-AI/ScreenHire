@@ -31,63 +31,63 @@ internal static class ApplicationEndpoints
     public static IEndpointRouteBuilder MapApplicationEndpoints(this IEndpointRouteBuilder app)
     {
         var jobs = app.MapGroup("/v1/jobs/{jobId:guid}/applications").WithTags("Applications").AllowApiKeys();
-        jobs.MapGet("/", ListJobApplications).WithName("ListJobApplications").Produces(StatusCodes.Status401Unauthorized);
-        jobs.MapPost("/", CreateApplication).WithName("CreateApplication")
+        jobs.MapGet("/", ListJobApplications).WithName("ListJobApplications").WithSummary("List a job's applications").Produces(StatusCodes.Status401Unauthorized);
+        jobs.MapPost("/", CreateApplication).WithName("CreateApplication").WithSummary("Add an application to a job")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.AddCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        jobs.MapPost("/resume-uploads", CreateResumeUpload).WithName("CreateResumeUpload")
+        jobs.MapPost("/resume-uploads", CreateResumeUpload).WithName("CreateResumeUpload").WithSummary("Upload a resume for a new application")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.AddCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 
         var applications = app.MapGroup("/v1/applications").WithTags("Applications").AllowApiKeys();
-        applications.MapGet("/", ListApplications).WithName("ListApplications").Produces(StatusCodes.Status401Unauthorized);
-        applications.MapGet("/{applicationId:guid}", GetApplication).WithName("GetApplication").Produces(StatusCodes.Status401Unauthorized);
-        applications.MapPost("/{applicationId:guid}/move", MoveApplication).WithName("MoveApplication")
+        applications.MapGet("/", ListApplications).WithName("ListApplications").WithSummary("List applications").Produces(StatusCodes.Status401Unauthorized);
+        applications.MapGet("/{applicationId:guid}", GetApplication).WithName("GetApplication").WithSummary("Get an application").Produces(StatusCodes.Status401Unauthorized);
+        applications.MapPost("/{applicationId:guid}/move", MoveApplication).WithName("MoveApplication").WithSummary("Move an application to a stage")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.MoveCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        applications.MapGet("/{applicationId:guid}/timeline", GetApplicationTimeline).WithName("GetApplicationTimeline")
+        applications.MapGet("/{applicationId:guid}/timeline", GetApplicationTimeline).WithName("GetApplicationTimeline").WithSummary("List an application's activity")
             .Produces(StatusCodes.Status401Unauthorized);
-        applications.MapPost("/{applicationId:guid}/notes", AddApplicationNote).WithName("AddApplicationNote")
+        applications.MapPost("/{applicationId:guid}/notes", AddApplicationNote).WithName("AddApplicationNote").WithSummary("Add a note to an application")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.AddNotesAndTags)
             .Produces(StatusCodes.Status401Unauthorized);
-        applications.MapPut("/{applicationId:guid}/notes/{noteId:guid}", EditApplicationNote).WithName("EditApplicationNote")
-            .RequireAntiforgeryToken()
-            .RequirePermission(Permission.AddNotesAndTags)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .Produces(StatusCodes.Status401Unauthorized);
-        applications.MapDelete("/{applicationId:guid}/notes/{noteId:guid}", DeleteApplicationNote).WithName("DeleteApplicationNote")
+        applications.MapPut("/{applicationId:guid}/notes/{noteId:guid}", EditApplicationNote).WithName("EditApplicationNote").WithSummary("Edit a note")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.AddNotesAndTags)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        applications.MapPost("/{applicationId:guid}/tags", AddApplicationTag).WithName("AddApplicationTag")
+        applications.MapDelete("/{applicationId:guid}/notes/{noteId:guid}", DeleteApplicationNote).WithName("DeleteApplicationNote").WithSummary("Delete a note")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.AddNotesAndTags)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        applications.MapDelete("/{applicationId:guid}/tags", RemoveApplicationTag).WithName("RemoveApplicationTag")
+        applications.MapPost("/{applicationId:guid}/tags", AddApplicationTag).WithName("AddApplicationTag").WithSummary("Tag an application")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.AddNotesAndTags)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        applications.MapPost("/{applicationId:guid}/tasks", CreateApplicationTask).WithName("CreateApplicationTask")
+        applications.MapDelete("/{applicationId:guid}/tags", RemoveApplicationTag).WithName("RemoveApplicationTag").WithSummary("Remove a tag from an application")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.AddNotesAndTags)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        applications.MapPost("/{applicationId:guid}/tasks", CreateApplicationTask).WithName("CreateApplicationTask").WithSummary("Create a task about an application")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.CreateTasks)
             .Produces(StatusCodes.Status401Unauthorized);
-        applications.MapGet("/{applicationId:guid}/files/{fileId:guid}", DownloadApplicationFile).WithName("DownloadApplicationFile")
+        applications.MapGet("/{applicationId:guid}/files/{fileId:guid}", DownloadApplicationFile).WithName("DownloadApplicationFile").WithSummary("Download an application's file")
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
 
         var candidates = app.MapGroup("/v1/candidates").WithTags("Candidates").AllowApiKeys();
-        candidates.MapGet("/", ListCandidates).WithName("ListCandidates").Produces(StatusCodes.Status401Unauthorized);
-        candidates.MapGet("/{candidateId:guid}", GetCandidate).WithName("GetCandidate").Produces(StatusCodes.Status401Unauthorized);
+        candidates.MapGet("/", ListCandidates).WithName("ListCandidates").WithSummary("List candidates").Produces(StatusCodes.Status401Unauthorized);
+        candidates.MapGet("/{candidateId:guid}", GetCandidate).WithName("GetCandidate").WithSummary("Get a candidate").Produces(StatusCodes.Status401Unauthorized);
 
         return app;
     }

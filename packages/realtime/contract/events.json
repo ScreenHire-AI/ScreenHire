@@ -214,7 +214,9 @@
       "change": "sample-6",
       "actorUserId": "0199f0c4-0000-7000-8000-000000000007",
       "byCandidate": true,
-      "startsAt": "2026-10-20T09:09:00+00:00"
+      "startsAt": "2026-10-20T09:09:00+00:00",
+      "revision": 10,
+      "changedAt": "2026-10-20T09:11:00+00:00"
     }
   },
   {

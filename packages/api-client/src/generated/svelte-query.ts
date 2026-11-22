@@ -6070,6 +6070,9 @@ export const getListJobsUrl = () => {
   return `/v1/jobs`
 }
 
+/**
+ * @summary List jobs
+ */
 export const listJobs = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listJobsResponseSuccess> => {
 
   return apiQueryFetch<listJobsResponseSuccess>(getListJobsUrl(),
@@ -6114,6 +6117,9 @@ export type ListJobsQueryResult = NonNullable<Awaited<ReturnType<typeof listJobs
 export type ListJobsQueryError = ErrorType<void>
 
 
+/**
+ * @summary List jobs
+ */
 
 export function createListJobs<TData = Awaited<ReturnType<typeof listJobs>>, TError = ErrorType<void>>(
   options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listJobs>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -6178,6 +6184,9 @@ export const getCreateJobUrl = () => {
   return `/v1/jobs`
 }
 
+/**
+ * @summary Create a job
+ */
 export const createJob = async (createJobRequest: CreateJobRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createJobResponseSuccess> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
@@ -6241,7 +6250,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateJobMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type CreateJobMutationVariables = {data: CreateJobRequest}
 
-    export const createCreateJob = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Create a job
+ */
+export const createCreateJob = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createJob>>, TError,CreateJobMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof createJob>>,
@@ -6287,6 +6299,9 @@ export const getGetJobUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}`
 }
 
+/**
+ * @summary Get a job
+ */
 export const getJob = async (jobId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getJobResponseSuccess> => {
 
   return apiQueryFetch<getJobResponseSuccess>(getGetJobUrl(jobId),
@@ -6331,6 +6346,9 @@ export type GetJobQueryResult = NonNullable<Awaited<ReturnType<typeof getJob>>>
 export type GetJobQueryError = ErrorType<void>
 
 
+/**
+ * @summary Get a job
+ */
 
 export function createGetJob<TData = Awaited<ReturnType<typeof getJob>>, TError = ErrorType<void>>(
  jobId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJob>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -6400,6 +6418,9 @@ export const getUpdateJobUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}`
 }
 
+/**
+ * @summary Edit a job
+ */
 export const updateJob = async (jobId: string,
     updateJobRequest: UpdateJobRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateJobResponseSuccess> => {
 
@@ -6464,7 +6485,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateJobMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type UpdateJobMutationVariables = {jobId: string;data: UpdateJobRequest}
 
-    export const createUpdateJob = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Edit a job
+ */
+export const createUpdateJob = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateJob>>, TError,UpdateJobMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof updateJob>>,
@@ -6510,6 +6534,9 @@ export const getGetJobPublishCheckUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/publish-check`
 }
 
+/**
+ * @summary Check a job before publishing it
+ */
 export const getJobPublishCheck = async (jobId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getJobPublishCheckResponseSuccess> => {
 
   return apiQueryFetch<getJobPublishCheckResponseSuccess>(getGetJobPublishCheckUrl(jobId),
@@ -6554,6 +6581,9 @@ export type GetJobPublishCheckQueryResult = NonNullable<Awaited<ReturnType<typeo
 export type GetJobPublishCheckQueryError = ErrorType<void>
 
 
+/**
+ * @summary Check a job before publishing it
+ */
 
 export function createGetJobPublishCheck<TData = Awaited<ReturnType<typeof getJobPublishCheck>>, TError = ErrorType<void>>(
  jobId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJobPublishCheck>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -6621,6 +6651,9 @@ export const getGetJobHistoryUrl = (jobId: string,
   return stringifiedParams.length > 0 ? `/v1/jobs/${jobId}/history?${stringifiedParams}` : `/v1/jobs/${jobId}/history`
 }
 
+/**
+ * @summary List a job's changes
+ */
 export const getJobHistory = async (jobId: string,
     params?: GetJobHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getJobHistoryResponseSuccess> => {
 
@@ -6668,6 +6701,9 @@ export type GetJobHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof get
 export type GetJobHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
 
 
+/**
+ * @summary List a job's changes
+ */
 
 export function createGetJobHistory<TData = Awaited<ReturnType<typeof getJobHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
  jobId: () =>  string,
@@ -6739,6 +6775,9 @@ export const getSetJobAiUseUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/ai-use`
 }
 
+/**
+ * @summary Set a job's AI use policy
+ */
 export const setJobAiUse = async (jobId: string,
     setJobAiUseRequest: SetJobAiUseRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<setJobAiUseResponseSuccess> => {
 
@@ -6803,7 +6842,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SetJobAiUseMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type SetJobAiUseMutationVariables = {jobId: string;data: SetJobAiUseRequest}
 
-    export const createSetJobAiUse = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Set a job's AI use policy
+ */
+export const createSetJobAiUse = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof setJobAiUse>>, TError,SetJobAiUseMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof setJobAiUse>>,
@@ -6869,6 +6911,9 @@ export const getPublishJobUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/publish`
 }
 
+/**
+ * @summary Publish a job
+ */
 export const publishJob = async (jobId: string,
     nullPublishJobRequest?: null | PublishJobRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<publishJobResponseSuccess> => {
 
@@ -6933,7 +6978,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type PublishJobMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type PublishJobMutationVariables = {jobId: string;data?: null | PublishJobRequest}
 
-    export const createPublishJob = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Publish a job
+ */
+export const createPublishJob = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof publishJob>>, TError,PublishJobMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof publishJob>>,
@@ -6989,6 +7037,9 @@ export const getCloseJobUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/close`
 }
 
+/**
+ * @summary Close a job
+ */
 export const closeJob = async (jobId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<closeJobResponseSuccess> => {
 
   return apiQueryFetch<closeJobResponseSuccess>(getCloseJobUrl(jobId),
@@ -7038,7 +7089,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CloseJobMutationError = ErrorType<void | ProblemDetails>
     export type CloseJobMutationVariables = {jobId: string}
 
-    export const createCloseJob = <TError = ErrorType<void | ProblemDetails>,
+    /**
+ * @summary Close a job
+ */
+export const createCloseJob = <TError = ErrorType<void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof closeJob>>, TError,CloseJobMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof closeJob>>,
@@ -7084,6 +7138,9 @@ export const getListJobVersionsUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/versions`
 }
 
+/**
+ * @summary List a job's published versions
+ */
 export const listJobVersions = async (jobId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listJobVersionsResponseSuccess> => {
 
   return apiQueryFetch<listJobVersionsResponseSuccess>(getListJobVersionsUrl(jobId),
@@ -7128,6 +7185,9 @@ export type ListJobVersionsQueryResult = NonNullable<Awaited<ReturnType<typeof l
 export type ListJobVersionsQueryError = ErrorType<void>
 
 
+/**
+ * @summary List a job's published versions
+ */
 
 export function createListJobVersions<TData = Awaited<ReturnType<typeof listJobVersions>>, TError = ErrorType<void>>(
  jobId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listJobVersions>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -7183,6 +7243,9 @@ export const getGetJobVersionUrl = (jobId: string,
   return `/v1/jobs/${jobId}/versions/${version}`
 }
 
+/**
+ * @summary Get a published version of a job
+ */
 export const getJobVersion = async (jobId: string,
     version: number, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getJobVersionResponseSuccess> => {
 
@@ -7230,6 +7293,9 @@ export type GetJobVersionQueryResult = NonNullable<Awaited<ReturnType<typeof get
 export type GetJobVersionQueryError = ErrorType<void>
 
 
+/**
+ * @summary Get a published version of a job
+ */
 
 export function createGetJobVersion<TData = Awaited<ReturnType<typeof getJobVersion>>, TError = ErrorType<void>>(
  jobId: () =>  string,
@@ -7286,6 +7352,9 @@ export const getGetJobTemplateDiffUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/workflow/template-diff`
 }
 
+/**
+ * @summary Compare a job's hiring process with its template
+ */
 export const getJobTemplateDiff = async (jobId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getJobTemplateDiffResponseSuccess> => {
 
   return apiQueryFetch<getJobTemplateDiffResponseSuccess>(getGetJobTemplateDiffUrl(jobId),
@@ -7330,6 +7399,9 @@ export type GetJobTemplateDiffQueryResult = NonNullable<Awaited<ReturnType<typeo
 export type GetJobTemplateDiffQueryError = ErrorType<void>
 
 
+/**
+ * @summary Compare a job's hiring process with its template
+ */
 
 export function createGetJobTemplateDiff<TData = Awaited<ReturnType<typeof getJobTemplateDiff>>, TError = ErrorType<void>>(
  jobId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getJobTemplateDiff>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -7399,6 +7471,9 @@ export const getUpdateJobWorkflowUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/workflow`
 }
 
+/**
+ * @summary Edit a job's hiring process
+ */
 export const updateJobWorkflow = async (jobId: string,
     updateJobWorkflowRequest: UpdateJobWorkflowRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateJobWorkflowResponseSuccess> => {
 
@@ -7463,7 +7538,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateJobWorkflowMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type UpdateJobWorkflowMutationVariables = {jobId: string;data: UpdateJobWorkflowRequest}
 
-    export const createUpdateJobWorkflow = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Edit a job's hiring process
+ */
+export const createUpdateJobWorkflow = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateJobWorkflow>>, TError,UpdateJobWorkflowMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof updateJobWorkflow>>,
@@ -7524,6 +7602,9 @@ export const getApplyJobTemplateUpdateUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/workflow/apply-template-update`
 }
 
+/**
+ * @summary Update a job from its template
+ */
 export const applyJobTemplateUpdate = async (jobId: string,
     applyTemplateUpdateRequest: ApplyTemplateUpdateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<applyJobTemplateUpdateResponseSuccess> => {
 
@@ -7588,7 +7669,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ApplyJobTemplateUpdateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type ApplyJobTemplateUpdateMutationVariables = {jobId: string;data: ApplyTemplateUpdateRequest}
 
-    export const createApplyJobTemplateUpdate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Update a job from its template
+ */
+export const createApplyJobTemplateUpdate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof applyJobTemplateUpdate>>, TError,ApplyJobTemplateUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof applyJobTemplateUpdate>>,
@@ -7629,6 +7713,9 @@ export const getListHiringTemplatesUrl = () => {
   return `/v1/templates`
 }
 
+/**
+ * @summary List hiring templates
+ */
 export const listHiringTemplates = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listHiringTemplatesResponseSuccess> => {
 
   return apiQueryFetch<listHiringTemplatesResponseSuccess>(getListHiringTemplatesUrl(),
@@ -7673,6 +7760,9 @@ export type ListHiringTemplatesQueryResult = NonNullable<Awaited<ReturnType<type
 export type ListHiringTemplatesQueryError = ErrorType<void>
 
 
+/**
+ * @summary List hiring templates
+ */
 
 export function createListHiringTemplates<TData = Awaited<ReturnType<typeof listHiringTemplates>>, TError = ErrorType<void>>(
   options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listHiringTemplates>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -7732,6 +7822,9 @@ export const getCreateHiringTemplateUrl = () => {
   return `/v1/templates`
 }
 
+/**
+ * @summary Create a hiring template
+ */
 export const createHiringTemplate = async (createHiringTemplateRequest: CreateHiringTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createHiringTemplateResponseSuccess> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
@@ -7795,7 +7888,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateHiringTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type CreateHiringTemplateMutationVariables = {data: CreateHiringTemplateRequest}
 
-    export const createCreateHiringTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Create a hiring template
+ */
+export const createCreateHiringTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createHiringTemplate>>, TError,CreateHiringTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof createHiringTemplate>>,
@@ -7841,6 +7937,9 @@ export const getGetHiringTemplateUrl = (templateId: string,) => {
   return `/v1/templates/${templateId}`
 }
 
+/**
+ * @summary Get a hiring template
+ */
 export const getHiringTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getHiringTemplateResponseSuccess> => {
 
   return apiQueryFetch<getHiringTemplateResponseSuccess>(getGetHiringTemplateUrl(templateId),
@@ -7885,6 +7984,9 @@ export type GetHiringTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof
 export type GetHiringTemplateQueryError = ErrorType<void>
 
 
+/**
+ * @summary Get a hiring template
+ */
 
 export function createGetHiringTemplate<TData = Awaited<ReturnType<typeof getHiringTemplate>>, TError = ErrorType<void>>(
  templateId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHiringTemplate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -7954,6 +8056,9 @@ export const getUpdateHiringTemplateUrl = (templateId: string,) => {
   return `/v1/templates/${templateId}`
 }
 
+/**
+ * @summary Rename or describe a hiring template
+ */
 export const updateHiringTemplate = async (templateId: string,
     updateHiringTemplateRequest: UpdateHiringTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateHiringTemplateResponseSuccess> => {
 
@@ -8018,7 +8123,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateHiringTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type UpdateHiringTemplateMutationVariables = {templateId: string;data: UpdateHiringTemplateRequest}
 
-    export const createUpdateHiringTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Rename or describe a hiring template
+ */
+export const createUpdateHiringTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateHiringTemplate>>, TError,UpdateHiringTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof updateHiringTemplate>>,
@@ -8077,6 +8185,9 @@ export const getGetHiringTemplateHistoryUrl = (templateId: string,
   return stringifiedParams.length > 0 ? `/v1/templates/${templateId}/history?${stringifiedParams}` : `/v1/templates/${templateId}/history`
 }
 
+/**
+ * @summary List a hiring template's changes
+ */
 export const getHiringTemplateHistory = async (templateId: string,
     params?: GetHiringTemplateHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getHiringTemplateHistoryResponseSuccess> => {
 
@@ -8124,6 +8235,9 @@ export type GetHiringTemplateHistoryQueryResult = NonNullable<Awaited<ReturnType
 export type GetHiringTemplateHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
 
 
+/**
+ * @summary List a hiring template's changes
+ */
 
 export function createGetHiringTemplateHistory<TData = Awaited<ReturnType<typeof getHiringTemplateHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
  templateId: () =>  string,
@@ -8195,6 +8309,9 @@ export const getCreateHiringTemplateVersionUrl = (templateId: string,) => {
   return `/v1/templates/${templateId}/versions`
 }
 
+/**
+ * @summary Start a draft of a hiring template
+ */
 export const createHiringTemplateVersion = async (templateId: string,
     createHiringTemplateVersionRequest: CreateHiringTemplateVersionRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createHiringTemplateVersionResponseSuccess> => {
 
@@ -8259,7 +8376,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateHiringTemplateVersionMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type CreateHiringTemplateVersionMutationVariables = {templateId: string;data: CreateHiringTemplateVersionRequest}
 
-    export const createCreateHiringTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Start a draft of a hiring template
+ */
+export const createCreateHiringTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createHiringTemplateVersion>>, TError,CreateHiringTemplateVersionMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof createHiringTemplateVersion>>,
@@ -8306,6 +8426,9 @@ export const getGetHiringTemplateVersionUrl = (templateId: string,
   return `/v1/templates/${templateId}/versions/${version}`
 }
 
+/**
+ * @summary Get a version of a hiring template
+ */
 export const getHiringTemplateVersion = async (templateId: string,
     version: number, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getHiringTemplateVersionResponseSuccess> => {
 
@@ -8353,6 +8476,9 @@ export type GetHiringTemplateVersionQueryResult = NonNullable<Awaited<ReturnType
 export type GetHiringTemplateVersionQueryError = ErrorType<void>
 
 
+/**
+ * @summary Get a version of a hiring template
+ */
 
 export function createGetHiringTemplateVersion<TData = Awaited<ReturnType<typeof getHiringTemplateVersion>>, TError = ErrorType<void>>(
  templateId: () =>  string,
@@ -8425,6 +8551,9 @@ export const getUpdateHiringTemplateVersionUrl = (templateId: string,
   return `/v1/templates/${templateId}/versions/${version}`
 }
 
+/**
+ * @summary Edit a hiring template's draft
+ */
 export const updateHiringTemplateVersion = async (templateId: string,
     version: number,
     updateHiringTemplateVersionRequest: UpdateHiringTemplateVersionRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateHiringTemplateVersionResponseSuccess> => {
@@ -8490,7 +8619,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateHiringTemplateVersionMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type UpdateHiringTemplateVersionMutationVariables = {templateId: string;version: number;data: UpdateHiringTemplateVersionRequest}
 
-    export const createUpdateHiringTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Edit a hiring template's draft
+ */
+export const createUpdateHiringTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateHiringTemplateVersion>>, TError,UpdateHiringTemplateVersionMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof updateHiringTemplateVersion>>,
@@ -8552,6 +8684,9 @@ export const getPublishHiringTemplateVersionUrl = (templateId: string,
   return `/v1/templates/${templateId}/versions/${version}/publish`
 }
 
+/**
+ * @summary Publish a hiring template's draft
+ */
 export const publishHiringTemplateVersion = async (templateId: string,
     version: number, options?: Parameters<typeof apiQueryFetch>[1]): Promise<publishHiringTemplateVersionResponseSuccess> => {
 
@@ -8602,7 +8737,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type PublishHiringTemplateVersionMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type PublishHiringTemplateVersionMutationVariables = {templateId: string;version: number}
 
-    export const createPublishHiringTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Publish a hiring template's draft
+ */
+export const createPublishHiringTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof publishHiringTemplateVersion>>, TError,PublishHiringTemplateVersionMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof publishHiringTemplateVersion>>,
@@ -8658,6 +8796,9 @@ export const getArchiveHiringTemplateUrl = (templateId: string,) => {
   return `/v1/templates/${templateId}/archive`
 }
 
+/**
+ * @summary Archive a hiring template
+ */
 export const archiveHiringTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<archiveHiringTemplateResponseSuccess> => {
 
   return apiQueryFetch<archiveHiringTemplateResponseSuccess>(getArchiveHiringTemplateUrl(templateId),
@@ -8707,7 +8848,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ArchiveHiringTemplateMutationError = ErrorType<void | ProblemDetails>
     export type ArchiveHiringTemplateMutationVariables = {templateId: string}
 
-    export const createArchiveHiringTemplate = <TError = ErrorType<void | ProblemDetails>,
+    /**
+ * @summary Archive a hiring template
+ */
+export const createArchiveHiringTemplate = <TError = ErrorType<void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof archiveHiringTemplate>>, TError,ArchiveHiringTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof archiveHiringTemplate>>,
@@ -8763,6 +8907,9 @@ export const getUnarchiveHiringTemplateUrl = (templateId: string,) => {
   return `/v1/templates/${templateId}/unarchive`
 }
 
+/**
+ * @summary Restore an archived hiring template
+ */
 export const unarchiveHiringTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<unarchiveHiringTemplateResponseSuccess> => {
 
   return apiQueryFetch<unarchiveHiringTemplateResponseSuccess>(getUnarchiveHiringTemplateUrl(templateId),
@@ -8812,7 +8959,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UnarchiveHiringTemplateMutationError = ErrorType<void | ProblemDetails>
     export type UnarchiveHiringTemplateMutationVariables = {templateId: string}
 
-    export const createUnarchiveHiringTemplate = <TError = ErrorType<void | ProblemDetails>,
+    /**
+ * @summary Restore an archived hiring template
+ */
+export const createUnarchiveHiringTemplate = <TError = ErrorType<void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof unarchiveHiringTemplate>>, TError,UnarchiveHiringTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof unarchiveHiringTemplate>>,
@@ -8858,6 +9008,9 @@ export const getListJobApplicationsUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/applications`
 }
 
+/**
+ * @summary List a job's applications
+ */
 export const listJobApplications = async (jobId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listJobApplicationsResponseSuccess> => {
 
   return apiQueryFetch<listJobApplicationsResponseSuccess>(getListJobApplicationsUrl(jobId),
@@ -8902,6 +9055,9 @@ export type ListJobApplicationsQueryResult = NonNullable<Awaited<ReturnType<type
 export type ListJobApplicationsQueryError = ErrorType<void>
 
 
+/**
+ * @summary List a job's applications
+ */
 
 export function createListJobApplications<TData = Awaited<ReturnType<typeof listJobApplications>>, TError = ErrorType<void>>(
  jobId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listJobApplications>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -8971,6 +9127,9 @@ export const getCreateApplicationUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/applications`
 }
 
+/**
+ * @summary Add an application to a job
+ */
 export const createApplication = async (jobId: string,
     createApplicationRequest: CreateApplicationRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createApplicationResponseSuccess> => {
 
@@ -9035,7 +9194,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateApplicationMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type CreateApplicationMutationVariables = {jobId: string;data: CreateApplicationRequest}
 
-    export const createCreateApplication = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Add an application to a job
+ */
+export const createCreateApplication = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createApplication>>, TError,CreateApplicationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof createApplication>>,
@@ -9096,6 +9258,9 @@ export const getCreateResumeUploadUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/applications/resume-uploads`
 }
 
+/**
+ * @summary Upload a resume for a new application
+ */
 export const createResumeUpload = async (jobId: string,
     uploadRequest: UploadRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createResumeUploadResponseSuccess> => {
 
@@ -9160,7 +9325,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateResumeUploadMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type CreateResumeUploadMutationVariables = {jobId: string;data: UploadRequest}
 
-    export const createCreateResumeUpload = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Upload a resume for a new application
+ */
+export const createCreateResumeUpload = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createResumeUpload>>, TError,CreateResumeUploadMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof createResumeUpload>>,
@@ -9201,6 +9369,9 @@ export const getListApplicationsUrl = () => {
   return `/v1/applications`
 }
 
+/**
+ * @summary List applications
+ */
 export const listApplications = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listApplicationsResponseSuccess> => {
 
   return apiQueryFetch<listApplicationsResponseSuccess>(getListApplicationsUrl(),
@@ -9245,6 +9416,9 @@ export type ListApplicationsQueryResult = NonNullable<Awaited<ReturnType<typeof 
 export type ListApplicationsQueryError = ErrorType<void>
 
 
+/**
+ * @summary List applications
+ */
 
 export function createListApplications<TData = Awaited<ReturnType<typeof listApplications>>, TError = ErrorType<void>>(
   options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApplications>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -9299,6 +9473,9 @@ export const getGetApplicationUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}`
 }
 
+/**
+ * @summary Get an application
+ */
 export const getApplication = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getApplicationResponseSuccess> => {
 
   return apiQueryFetch<getApplicationResponseSuccess>(getGetApplicationUrl(applicationId),
@@ -9343,6 +9520,9 @@ export type GetApplicationQueryResult = NonNullable<Awaited<ReturnType<typeof ge
 export type GetApplicationQueryError = ErrorType<void>
 
 
+/**
+ * @summary Get an application
+ */
 
 export function createGetApplication<TData = Awaited<ReturnType<typeof getApplication>>, TError = ErrorType<void>>(
  applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplication>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -9412,6 +9592,9 @@ export const getMoveApplicationUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/move`
 }
 
+/**
+ * @summary Move an application to a stage
+ */
 export const moveApplication = async (applicationId: string,
     moveApplicationRequest: MoveApplicationRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<moveApplicationResponseSuccess> => {
 
@@ -9476,7 +9659,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type MoveApplicationMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type MoveApplicationMutationVariables = {applicationId: string;data: MoveApplicationRequest}
 
-    export const createMoveApplication = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Move an application to a stage
+ */
+export const createMoveApplication = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof moveApplication>>, TError,MoveApplicationMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof moveApplication>>,
@@ -9522,6 +9708,9 @@ export const getGetApplicationTimelineUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/timeline`
 }
 
+/**
+ * @summary List an application's activity
+ */
 export const getApplicationTimeline = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getApplicationTimelineResponseSuccess> => {
 
   return apiQueryFetch<getApplicationTimelineResponseSuccess>(getGetApplicationTimelineUrl(applicationId),
@@ -9566,6 +9755,9 @@ export type GetApplicationTimelineQueryResult = NonNullable<Awaited<ReturnType<t
 export type GetApplicationTimelineQueryError = ErrorType<void>
 
 
+/**
+ * @summary List an application's activity
+ */
 
 export function createGetApplicationTimeline<TData = Awaited<ReturnType<typeof getApplicationTimeline>>, TError = ErrorType<void>>(
  applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplicationTimeline>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -9630,6 +9822,9 @@ export const getAddApplicationNoteUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/notes`
 }
 
+/**
+ * @summary Add a note to an application
+ */
 export const addApplicationNote = async (applicationId: string,
     addApplicationNoteRequest: AddApplicationNoteRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<addApplicationNoteResponseSuccess> => {
 
@@ -9694,7 +9889,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type AddApplicationNoteMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type AddApplicationNoteMutationVariables = {applicationId: string;data: AddApplicationNoteRequest}
 
-    export const createAddApplicationNote = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Add a note to an application
+ */
+export const createAddApplicationNote = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addApplicationNote>>, TError,AddApplicationNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof addApplicationNote>>,
@@ -9756,6 +9954,9 @@ export const getEditApplicationNoteUrl = (applicationId: string,
   return `/v1/applications/${applicationId}/notes/${noteId}`
 }
 
+/**
+ * @summary Edit a note
+ */
 export const editApplicationNote = async (applicationId: string,
     noteId: string,
     editApplicationNoteRequest: EditApplicationNoteRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<editApplicationNoteResponseSuccess> => {
@@ -9821,7 +10022,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type EditApplicationNoteMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type EditApplicationNoteMutationVariables = {applicationId: string;noteId: string;data: EditApplicationNoteRequest}
 
-    export const createEditApplicationNote = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Edit a note
+ */
+export const createEditApplicationNote = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof editApplicationNote>>, TError,EditApplicationNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof editApplicationNote>>,
@@ -9878,6 +10082,9 @@ export const getDeleteApplicationNoteUrl = (applicationId: string,
   return `/v1/applications/${applicationId}/notes/${noteId}`
 }
 
+/**
+ * @summary Delete a note
+ */
 export const deleteApplicationNote = async (applicationId: string,
     noteId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<deleteApplicationNoteResponseSuccess> => {
 
@@ -9928,7 +10135,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteApplicationNoteMutationError = ErrorType<void | ProblemDetails>
     export type DeleteApplicationNoteMutationVariables = {applicationId: string;noteId: string}
 
-    export const createDeleteApplicationNote = <TError = ErrorType<void | ProblemDetails>,
+    /**
+ * @summary Delete a note
+ */
+export const createDeleteApplicationNote = <TError = ErrorType<void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof deleteApplicationNote>>, TError,DeleteApplicationNoteMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof deleteApplicationNote>>,
@@ -9989,6 +10199,9 @@ export const getAddApplicationTagUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/tags`
 }
 
+/**
+ * @summary Tag an application
+ */
 export const addApplicationTag = async (applicationId: string,
     addApplicationTagRequest: AddApplicationTagRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<addApplicationTagResponseSuccess> => {
 
@@ -10053,7 +10266,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type AddApplicationTagMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type AddApplicationTagMutationVariables = {applicationId: string;data: AddApplicationTagRequest}
 
-    export const createAddApplicationTag = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Tag an application
+ */
+export const createAddApplicationTag = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof addApplicationTag>>, TError,AddApplicationTagMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof addApplicationTag>>,
@@ -10122,6 +10338,9 @@ export const getRemoveApplicationTagUrl = (applicationId: string,
   return stringifiedParams.length > 0 ? `/v1/applications/${applicationId}/tags?${stringifiedParams}` : `/v1/applications/${applicationId}/tags`
 }
 
+/**
+ * @summary Remove a tag from an application
+ */
 export const removeApplicationTag = async (applicationId: string,
     params?: RemoveApplicationTagParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<removeApplicationTagResponseSuccess> => {
 
@@ -10172,7 +10391,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RemoveApplicationTagMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type RemoveApplicationTagMutationVariables = {applicationId: string;params?: RemoveApplicationTagParams}
 
-    export const createRemoveApplicationTag = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Remove a tag from an application
+ */
+export const createRemoveApplicationTag = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof removeApplicationTag>>, TError,RemoveApplicationTagMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof removeApplicationTag>>,
@@ -10228,6 +10450,9 @@ export const getCreateApplicationTaskUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/tasks`
 }
 
+/**
+ * @summary Create a task about an application
+ */
 export const createApplicationTask = async (applicationId: string,
     createApplicationTaskRequest: CreateApplicationTaskRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createApplicationTaskResponseSuccess> => {
 
@@ -10292,7 +10517,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateApplicationTaskMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type CreateApplicationTaskMutationVariables = {applicationId: string;data: CreateApplicationTaskRequest}
 
-    export const createCreateApplicationTask = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Create a task about an application
+ */
+export const createCreateApplicationTask = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createApplicationTask>>, TError,CreateApplicationTaskMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof createApplicationTask>>,
@@ -10432,6 +10660,9 @@ export const getDownloadApplicationFileUrl = (applicationId: string,
   return `/v1/applications/${applicationId}/files/${fileId}`
 }
 
+/**
+ * @summary Download an application's file
+ */
 export const downloadApplicationFile = async (applicationId: string,
     fileId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<downloadApplicationFileResponse> => {
 
@@ -10479,6 +10710,9 @@ export type DownloadApplicationFileQueryResult = NonNullable<Awaited<ReturnType<
 export type DownloadApplicationFileQueryError = ErrorType<void | ProblemDetails>
 
 
+/**
+ * @summary Download an application's file
+ */
 
 export function createDownloadApplicationFile<TData = Awaited<ReturnType<typeof downloadApplicationFile>>, TError = ErrorType<void | ProblemDetails>>(
  applicationId: () =>  string,
@@ -10530,6 +10764,9 @@ export const getListCandidatesUrl = () => {
   return `/v1/candidates`
 }
 
+/**
+ * @summary List candidates
+ */
 export const listCandidates = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listCandidatesResponseSuccess> => {
 
   return apiQueryFetch<listCandidatesResponseSuccess>(getListCandidatesUrl(),
@@ -10574,6 +10811,9 @@ export type ListCandidatesQueryResult = NonNullable<Awaited<ReturnType<typeof li
 export type ListCandidatesQueryError = ErrorType<void>
 
 
+/**
+ * @summary List candidates
+ */
 
 export function createListCandidates<TData = Awaited<ReturnType<typeof listCandidates>>, TError = ErrorType<void>>(
   options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listCandidates>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -10628,6 +10868,9 @@ export const getGetCandidateUrl = (candidateId: string,) => {
   return `/v1/candidates/${candidateId}`
 }
 
+/**
+ * @summary Get a candidate
+ */
 export const getCandidate = async (candidateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getCandidateResponseSuccess> => {
 
   return apiQueryFetch<getCandidateResponseSuccess>(getGetCandidateUrl(candidateId),
@@ -10672,6 +10915,9 @@ export type GetCandidateQueryResult = NonNullable<Awaited<ReturnType<typeof getC
 export type GetCandidateQueryError = ErrorType<void>
 
 
+/**
+ * @summary Get a candidate
+ */
 
 export function createGetCandidate<TData = Awaited<ReturnType<typeof getCandidate>>, TError = ErrorType<void>>(
  candidateId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getCandidate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -11809,6 +12055,9 @@ export const getGetApplicationVerificationUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/verification`
 }
 
+/**
+ * @summary Get an application's verification result
+ */
 export const getApplicationVerification = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getApplicationVerificationResponseSuccess> => {
 
   return apiQueryFetch<getApplicationVerificationResponseSuccess>(getGetApplicationVerificationUrl(applicationId),
@@ -11853,6 +12102,9 @@ export type GetApplicationVerificationQueryResult = NonNullable<Awaited<ReturnTy
 export type GetApplicationVerificationQueryError = ErrorType<void>
 
 
+/**
+ * @summary Get an application's verification result
+ */
 
 export function createGetApplicationVerification<TData = Awaited<ReturnType<typeof getApplicationVerification>>, TError = ErrorType<void>>(
  applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplicationVerification>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -11919,6 +12171,9 @@ export const getListVerificationApplicationsUrl = (params?: ListVerificationAppl
   return stringifiedParams.length > 0 ? `/v1/verification/applications?${stringifiedParams}` : `/v1/verification/applications`
 }
 
+/**
+ * @summary List applications by verification level
+ */
 export const listVerificationApplications = async (params?: ListVerificationApplicationsParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listVerificationApplicationsResponseSuccess> => {
 
   return apiQueryFetch<listVerificationApplicationsResponseSuccess>(getListVerificationApplicationsUrl(params),
@@ -11963,6 +12218,9 @@ export type ListVerificationApplicationsQueryResult = NonNullable<Awaited<Return
 export type ListVerificationApplicationsQueryError = ErrorType<HttpValidationProblemDetails | void>
 
 
+/**
+ * @summary List applications by verification level
+ */
 
 export function createListVerificationApplications<TData = Awaited<ReturnType<typeof listVerificationApplications>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
  params?: () =>  ListVerificationApplicationsParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listVerificationApplications>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -22890,6 +23148,9 @@ export const getListTagsUrl = () => {
   return `/v1/tags`
 }
 
+/**
+ * @summary List the organization's tags
+ */
 export const listTags = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listTagsResponseSuccess> => {
 
   return apiQueryFetch<listTagsResponseSuccess>(getListTagsUrl(),
@@ -22934,6 +23195,9 @@ export type ListTagsQueryResult = NonNullable<Awaited<ReturnType<typeof listTags
 export type ListTagsQueryError = ErrorType<void>
 
 
+/**
+ * @summary List the organization's tags
+ */
 
 export function createListTags<TData = Awaited<ReturnType<typeof listTags>>, TError = ErrorType<void>>(
   options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listTags>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -23348,6 +23612,9 @@ export const getGetHiringReportUrl = (params?: GetHiringReportParams,) => {
   return stringifiedParams.length > 0 ? `/v1/reports/hiring?${stringifiedParams}` : `/v1/reports/hiring`
 }
 
+/**
+ * @summary Get the hiring report
+ */
 export const getHiringReport = async (params?: GetHiringReportParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getHiringReportResponseSuccess> => {
 
   return apiQueryFetch<getHiringReportResponseSuccess>(getGetHiringReportUrl(params),
@@ -23392,6 +23659,9 @@ export type GetHiringReportQueryResult = NonNullable<Awaited<ReturnType<typeof g
 export type GetHiringReportQueryError = ErrorType<HttpValidationProblemDetails | void>
 
 
+/**
+ * @summary Get the hiring report
+ */
 
 export function createGetHiringReport<TData = Awaited<ReturnType<typeof getHiringReport>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
  params?: () =>  GetHiringReportParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getHiringReport>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -23467,6 +23737,9 @@ export const getGetFunnelApplicationsUrl = (kind: StageKind,
   return stringifiedParams.length > 0 ? `/v1/reports/hiring/funnel/${kind}/applications?${stringifiedParams}` : `/v1/reports/hiring/funnel/${kind}/applications`
 }
 
+/**
+ * @summary List the applications behind a funnel step
+ */
 export const getFunnelApplications = async (kind: StageKind,
     params?: GetFunnelApplicationsParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getFunnelApplicationsResponseSuccess> => {
 
@@ -23514,6 +23787,9 @@ export type GetFunnelApplicationsQueryResult = NonNullable<Awaited<ReturnType<ty
 export type GetFunnelApplicationsQueryError = ErrorType<HttpValidationProblemDetails | void>
 
 
+/**
+ * @summary List the applications behind a funnel step
+ */
 
 export function createGetFunnelApplications<TData = Awaited<ReturnType<typeof getFunnelApplications>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
  kind: () =>  StageKind,
@@ -23688,6 +23964,9 @@ export const getListApplicationScorecardsUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/scorecards`
 }
 
+/**
+ * @summary List an application's scorecards
+ */
 export const listApplicationScorecards = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listApplicationScorecardsResponseSuccess> => {
 
   return apiQueryFetch<listApplicationScorecardsResponseSuccess>(getListApplicationScorecardsUrl(applicationId),
@@ -23732,6 +24011,9 @@ export type ListApplicationScorecardsQueryResult = NonNullable<Awaited<ReturnTyp
 export type ListApplicationScorecardsQueryError = ErrorType<void>
 
 
+/**
+ * @summary List an application's scorecards
+ */
 
 export function createListApplicationScorecards<TData = Awaited<ReturnType<typeof listApplicationScorecards>>, TError = ErrorType<void>>(
  applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listApplicationScorecards>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -23806,6 +24088,9 @@ export const getSubmitScorecardUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/scorecards`
 }
 
+/**
+ * @summary Submit a scorecard
+ */
 export const submitScorecard = async (applicationId: string,
     submitScorecardRequest: SubmitScorecardRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<submitScorecardResponseSuccess> => {
 
@@ -23870,7 +24155,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SubmitScorecardMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type SubmitScorecardMutationVariables = {applicationId: string;data: SubmitScorecardRequest}
 
-    export const createSubmitScorecard = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Submit a scorecard
+ */
+export const createSubmitScorecard = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof submitScorecard>>, TError,SubmitScorecardMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof submitScorecard>>,
@@ -23931,6 +24219,9 @@ export const getRequestScorecardUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/scorecard-requests`
 }
 
+/**
+ * @summary Ask a teammate for a scorecard
+ */
 export const requestScorecard = async (applicationId: string,
     requestScorecardRequest: RequestScorecardRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<requestScorecardResponseSuccess> => {
 
@@ -23995,7 +24286,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type RequestScorecardMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type RequestScorecardMutationVariables = {applicationId: string;data: RequestScorecardRequest}
 
-    export const createRequestScorecard = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Ask a teammate for a scorecard
+ */
+export const createRequestScorecard = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof requestScorecard>>, TError,RequestScorecardMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof requestScorecard>>,
@@ -24036,6 +24330,9 @@ export const getListScorecardTemplatesUrl = () => {
   return `/v1/scorecard-templates`
 }
 
+/**
+ * @summary List library scorecards
+ */
 export const listScorecardTemplates = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listScorecardTemplatesResponseSuccess> => {
 
   return apiQueryFetch<listScorecardTemplatesResponseSuccess>(getListScorecardTemplatesUrl(),
@@ -24080,6 +24377,9 @@ export type ListScorecardTemplatesQueryResult = NonNullable<Awaited<ReturnType<t
 export type ListScorecardTemplatesQueryError = ErrorType<void>
 
 
+/**
+ * @summary List library scorecards
+ */
 
 export function createListScorecardTemplates<TData = Awaited<ReturnType<typeof listScorecardTemplates>>, TError = ErrorType<void>>(
   options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listScorecardTemplates>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -24144,6 +24444,9 @@ export const getCreateScorecardTemplateUrl = () => {
   return `/v1/scorecard-templates`
 }
 
+/**
+ * @summary Create a library scorecard
+ */
 export const createScorecardTemplate = async (createScorecardTemplateRequest: CreateScorecardTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createScorecardTemplateResponseSuccess> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
@@ -24207,7 +24510,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateScorecardTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type CreateScorecardTemplateMutationVariables = {data: CreateScorecardTemplateRequest}
 
-    export const createCreateScorecardTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Create a library scorecard
+ */
+export const createCreateScorecardTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createScorecardTemplate>>, TError,CreateScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof createScorecardTemplate>>,
@@ -24253,6 +24559,9 @@ export const getGetScorecardTemplateUrl = (templateId: string,) => {
   return `/v1/scorecard-templates/${templateId}`
 }
 
+/**
+ * @summary Get a library scorecard
+ */
 export const getScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getScorecardTemplateResponseSuccess> => {
 
   return apiQueryFetch<getScorecardTemplateResponseSuccess>(getGetScorecardTemplateUrl(templateId),
@@ -24297,6 +24606,9 @@ export type GetScorecardTemplateQueryResult = NonNullable<Awaited<ReturnType<typ
 export type GetScorecardTemplateQueryError = ErrorType<void>
 
 
+/**
+ * @summary Get a library scorecard
+ */
 
 export function createGetScorecardTemplate<TData = Awaited<ReturnType<typeof getScorecardTemplate>>, TError = ErrorType<void>>(
  templateId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getScorecardTemplate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -24366,6 +24678,9 @@ export const getUpdateScorecardTemplateUrl = (templateId: string,) => {
   return `/v1/scorecard-templates/${templateId}`
 }
 
+/**
+ * @summary Edit a library scorecard
+ */
 export const updateScorecardTemplate = async (templateId: string,
     updateScorecardTemplateRequest: UpdateScorecardTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateScorecardTemplateResponseSuccess> => {
 
@@ -24430,7 +24745,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateScorecardTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type UpdateScorecardTemplateMutationVariables = {templateId: string;data: UpdateScorecardTemplateRequest}
 
-    export const createUpdateScorecardTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Edit a library scorecard
+ */
+export const createUpdateScorecardTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateScorecardTemplate>>, TError,UpdateScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof updateScorecardTemplate>>,
@@ -24489,6 +24807,9 @@ export const getGetScorecardTemplateHistoryUrl = (templateId: string,
   return stringifiedParams.length > 0 ? `/v1/scorecard-templates/${templateId}/history?${stringifiedParams}` : `/v1/scorecard-templates/${templateId}/history`
 }
 
+/**
+ * @summary List a library scorecard's changes
+ */
 export const getScorecardTemplateHistory = async (templateId: string,
     params?: GetScorecardTemplateHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getScorecardTemplateHistoryResponseSuccess> => {
 
@@ -24536,6 +24857,9 @@ export type GetScorecardTemplateHistoryQueryResult = NonNullable<Awaited<ReturnT
 export type GetScorecardTemplateHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
 
 
+/**
+ * @summary List a library scorecard's changes
+ */
 
 export function createGetScorecardTemplateHistory<TData = Awaited<ReturnType<typeof getScorecardTemplateHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
  templateId: () =>  string,
@@ -24602,6 +24926,9 @@ export const getArchiveScorecardTemplateUrl = (templateId: string,) => {
   return `/v1/scorecard-templates/${templateId}/archive`
 }
 
+/**
+ * @summary Archive a library scorecard
+ */
 export const archiveScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<archiveScorecardTemplateResponseSuccess> => {
 
   return apiQueryFetch<archiveScorecardTemplateResponseSuccess>(getArchiveScorecardTemplateUrl(templateId),
@@ -24651,7 +24978,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ArchiveScorecardTemplateMutationError = ErrorType<void | ProblemDetails>
     export type ArchiveScorecardTemplateMutationVariables = {templateId: string}
 
-    export const createArchiveScorecardTemplate = <TError = ErrorType<void | ProblemDetails>,
+    /**
+ * @summary Archive a library scorecard
+ */
+export const createArchiveScorecardTemplate = <TError = ErrorType<void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof archiveScorecardTemplate>>, TError,ArchiveScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof archiveScorecardTemplate>>,
@@ -24707,6 +25037,9 @@ export const getUnarchiveScorecardTemplateUrl = (templateId: string,) => {
   return `/v1/scorecard-templates/${templateId}/unarchive`
 }
 
+/**
+ * @summary Restore an archived library scorecard
+ */
 export const unarchiveScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<unarchiveScorecardTemplateResponseSuccess> => {
 
   return apiQueryFetch<unarchiveScorecardTemplateResponseSuccess>(getUnarchiveScorecardTemplateUrl(templateId),
@@ -24756,7 +25089,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UnarchiveScorecardTemplateMutationError = ErrorType<void | ProblemDetails>
     export type UnarchiveScorecardTemplateMutationVariables = {templateId: string}
 
-    export const createUnarchiveScorecardTemplate = <TError = ErrorType<void | ProblemDetails>,
+    /**
+ * @summary Restore an archived library scorecard
+ */
+export const createUnarchiveScorecardTemplate = <TError = ErrorType<void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof unarchiveScorecardTemplate>>, TError,UnarchiveScorecardTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof unarchiveScorecardTemplate>>,
@@ -24797,6 +25133,9 @@ export const getListFormTemplatesUrl = () => {
   return `/v1/form-templates`
 }
 
+/**
+ * @summary List library forms
+ */
 export const listFormTemplates = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listFormTemplatesResponseSuccess> => {
 
   return apiQueryFetch<listFormTemplatesResponseSuccess>(getListFormTemplatesUrl(),
@@ -24841,6 +25180,9 @@ export type ListFormTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof
 export type ListFormTemplatesQueryError = ErrorType<void>
 
 
+/**
+ * @summary List library forms
+ */
 
 export function createListFormTemplates<TData = Awaited<ReturnType<typeof listFormTemplates>>, TError = ErrorType<void>>(
   options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listFormTemplates>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -24905,6 +25247,9 @@ export const getCreateFormTemplateUrl = () => {
   return `/v1/form-templates`
 }
 
+/**
+ * @summary Create a library form
+ */
 export const createFormTemplate = async (createFormTemplateRequest: CreateFormTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createFormTemplateResponseSuccess> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
@@ -24968,7 +25313,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateFormTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type CreateFormTemplateMutationVariables = {data: CreateFormTemplateRequest}
 
-    export const createCreateFormTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Create a library form
+ */
+export const createCreateFormTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createFormTemplate>>, TError,CreateFormTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof createFormTemplate>>,
@@ -25014,6 +25362,9 @@ export const getGetFormTemplateUrl = (formId: string,) => {
   return `/v1/form-templates/${formId}`
 }
 
+/**
+ * @summary Get a library form
+ */
 export const getFormTemplate = async (formId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getFormTemplateResponseSuccess> => {
 
   return apiQueryFetch<getFormTemplateResponseSuccess>(getGetFormTemplateUrl(formId),
@@ -25058,6 +25409,9 @@ export type GetFormTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof g
 export type GetFormTemplateQueryError = ErrorType<void>
 
 
+/**
+ * @summary Get a library form
+ */
 
 export function createGetFormTemplate<TData = Awaited<ReturnType<typeof getFormTemplate>>, TError = ErrorType<void>>(
  formId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getFormTemplate>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
@@ -25125,6 +25479,9 @@ export const getGetFormTemplateHistoryUrl = (formId: string,
   return stringifiedParams.length > 0 ? `/v1/form-templates/${formId}/history?${stringifiedParams}` : `/v1/form-templates/${formId}/history`
 }
 
+/**
+ * @summary List a library form's changes
+ */
 export const getFormTemplateHistory = async (formId: string,
     params?: GetFormTemplateHistoryParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getFormTemplateHistoryResponseSuccess> => {
 
@@ -25172,6 +25529,9 @@ export type GetFormTemplateHistoryQueryResult = NonNullable<Awaited<ReturnType<t
 export type GetFormTemplateHistoryQueryError = ErrorType<HttpValidationProblemDetails | void>
 
 
+/**
+ * @summary List a library form's changes
+ */
 
 export function createGetFormTemplateHistory<TData = Awaited<ReturnType<typeof getFormTemplateHistory>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
  formId: () =>  string,
@@ -25243,6 +25603,9 @@ export const getCreateFormTemplateVersionUrl = (formId: string,) => {
   return `/v1/form-templates/${formId}/versions`
 }
 
+/**
+ * @summary Start a draft of a library form
+ */
 export const createFormTemplateVersion = async (formId: string,
     createFormTemplateVersionRequest: CreateFormTemplateVersionRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createFormTemplateVersionResponseSuccess> => {
 
@@ -25307,7 +25670,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateFormTemplateVersionMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type CreateFormTemplateVersionMutationVariables = {formId: string;data: CreateFormTemplateVersionRequest}
 
-    export const createCreateFormTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Start a draft of a library form
+ */
+export const createCreateFormTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createFormTemplateVersion>>, TError,CreateFormTemplateVersionMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof createFormTemplateVersion>>,
@@ -25354,6 +25720,9 @@ export const getGetFormTemplateVersionUrl = (formId: string,
   return `/v1/form-templates/${formId}/versions/${version}`
 }
 
+/**
+ * @summary Get a version of a library form
+ */
 export const getFormTemplateVersion = async (formId: string,
     version: number, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getFormTemplateVersionResponseSuccess> => {
 
@@ -25401,6 +25770,9 @@ export type GetFormTemplateVersionQueryResult = NonNullable<Awaited<ReturnType<t
 export type GetFormTemplateVersionQueryError = ErrorType<void>
 
 
+/**
+ * @summary Get a version of a library form
+ */
 
 export function createGetFormTemplateVersion<TData = Awaited<ReturnType<typeof getFormTemplateVersion>>, TError = ErrorType<void>>(
  formId: () =>  string,
@@ -25473,6 +25845,9 @@ export const getUpdateFormTemplateVersionUrl = (formId: string,
   return `/v1/form-templates/${formId}/versions/${version}`
 }
 
+/**
+ * @summary Edit a library form's draft
+ */
 export const updateFormTemplateVersion = async (formId: string,
     version: number,
     updateFormTemplateVersionRequest: UpdateFormTemplateVersionRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateFormTemplateVersionResponseSuccess> => {
@@ -25538,7 +25913,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateFormTemplateVersionMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type UpdateFormTemplateVersionMutationVariables = {formId: string;version: number;data: UpdateFormTemplateVersionRequest}
 
-    export const createUpdateFormTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Edit a library form's draft
+ */
+export const createUpdateFormTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateFormTemplateVersion>>, TError,UpdateFormTemplateVersionMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof updateFormTemplateVersion>>,
@@ -25600,6 +25978,9 @@ export const getPublishFormTemplateVersionUrl = (formId: string,
   return `/v1/form-templates/${formId}/versions/${version}/publish`
 }
 
+/**
+ * @summary Publish a library form's draft
+ */
 export const publishFormTemplateVersion = async (formId: string,
     version: number, options?: Parameters<typeof apiQueryFetch>[1]): Promise<publishFormTemplateVersionResponseSuccess> => {
 
@@ -25650,7 +26031,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type PublishFormTemplateVersionMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type PublishFormTemplateVersionMutationVariables = {formId: string;version: number}
 
-    export const createPublishFormTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Publish a library form's draft
+ */
+export const createPublishFormTemplateVersion = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof publishFormTemplateVersion>>, TError,PublishFormTemplateVersionMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof publishFormTemplateVersion>>,
@@ -25712,6 +26096,9 @@ export const getApplyFormToTemplatesUrl = (formId: string,
   return `/v1/form-templates/${formId}/versions/${version}/apply-to-templates`
 }
 
+/**
+ * @summary Update hiring templates to a form's latest version
+ */
 export const applyFormToTemplates = async (formId: string,
     version: number,
     applyFormToTemplatesRequest: ApplyFormToTemplatesRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<applyFormToTemplatesResponseSuccess> => {
@@ -25777,7 +26164,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ApplyFormToTemplatesMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type ApplyFormToTemplatesMutationVariables = {formId: string;version: number;data: ApplyFormToTemplatesRequest}
 
-    export const createApplyFormToTemplates = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Update hiring templates to a form's latest version
+ */
+export const createApplyFormToTemplates = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof applyFormToTemplates>>, TError,ApplyFormToTemplatesMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof applyFormToTemplates>>,
@@ -25828,6 +26218,9 @@ export const getArchiveFormTemplateUrl = (formId: string,) => {
   return `/v1/form-templates/${formId}/archive`
 }
 
+/**
+ * @summary Archive a library form
+ */
 export const archiveFormTemplate = async (formId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<archiveFormTemplateResponseSuccess> => {
 
   return apiQueryFetch<archiveFormTemplateResponseSuccess>(getArchiveFormTemplateUrl(formId),
@@ -25877,7 +26270,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ArchiveFormTemplateMutationError = ErrorType<void | ProblemDetails>
     export type ArchiveFormTemplateMutationVariables = {formId: string}
 
-    export const createArchiveFormTemplate = <TError = ErrorType<void | ProblemDetails>,
+    /**
+ * @summary Archive a library form
+ */
+export const createArchiveFormTemplate = <TError = ErrorType<void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof archiveFormTemplate>>, TError,ArchiveFormTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof archiveFormTemplate>>,
@@ -25928,6 +26324,9 @@ export const getUnarchiveFormTemplateUrl = (formId: string,) => {
   return `/v1/form-templates/${formId}/unarchive`
 }
 
+/**
+ * @summary Restore an archived library form
+ */
 export const unarchiveFormTemplate = async (formId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<unarchiveFormTemplateResponseSuccess> => {
 
   return apiQueryFetch<unarchiveFormTemplateResponseSuccess>(getUnarchiveFormTemplateUrl(formId),
@@ -25977,7 +26376,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UnarchiveFormTemplateMutationError = ErrorType<void | ProblemDetails>
     export type UnarchiveFormTemplateMutationVariables = {formId: string}
 
-    export const createUnarchiveFormTemplate = <TError = ErrorType<void | ProblemDetails>,
+    /**
+ * @summary Restore an archived library form
+ */
+export const createUnarchiveFormTemplate = <TError = ErrorType<void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof unarchiveFormTemplate>>, TError,UnarchiveFormTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof unarchiveFormTemplate>>,

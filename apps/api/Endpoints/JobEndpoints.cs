@@ -34,46 +34,46 @@ internal static class JobEndpoints
         var group = app.MapGroup("/v1/jobs").WithTags("Jobs").AllowApiKeys();
 
         // 401 comes from the authentication middleware, so the handlers' signatures cannot declare it.
-        group.MapGet("/", ListJobs).WithName("ListJobs").Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/", CreateJob).WithName("CreateJob")
+        group.MapGet("/", ListJobs).WithName("ListJobs").WithSummary("List jobs").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/", CreateJob).WithName("CreateJob").WithSummary("Create a job")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/publish-check", GetJobPublishCheck).WithName("GetJobPublishCheck").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/history", GetJobHistory).WithName("GetJobHistory").Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/{jobId:guid}", UpdateJob).WithName("UpdateJob")
+        group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob").WithSummary("Get a job").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/publish-check", GetJobPublishCheck).WithName("GetJobPublishCheck").WithSummary("Check a job before publishing it").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/history", GetJobHistory).WithName("GetJobHistory").WithSummary("List a job's changes").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/{jobId:guid}", UpdateJob).WithName("UpdateJob").WithSummary("Edit a job")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/{jobId:guid}/ai-use", SetJobAiUse).WithName("SetJobAiUse")
+        group.MapPut("/{jobId:guid}/ai-use", SetJobAiUse).WithName("SetJobAiUse").WithSummary("Set a job's AI use policy")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{jobId:guid}/publish", PublishJob).WithName("PublishJob")
+        group.MapPost("/{jobId:guid}/publish", PublishJob).WithName("PublishJob").WithSummary("Publish a job")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status402PaymentRequired)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{jobId:guid}/close", CloseJob).WithName("CloseJob")
+        group.MapPost("/{jobId:guid}/close", CloseJob).WithName("CloseJob").WithSummary("Close a job")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/versions", ListJobVersions).WithName("ListJobVersions").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/versions/{version:int}", GetJobVersion).WithName("GetJobVersion").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/workflow/template-diff", GetJobTemplateDiff).WithName("GetJobTemplateDiff")
+        group.MapGet("/{jobId:guid}/versions", ListJobVersions).WithName("ListJobVersions").WithSummary("List a job's published versions").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/versions/{version:int}", GetJobVersion).WithName("GetJobVersion").WithSummary("Get a published version of a job").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/workflow/template-diff", GetJobTemplateDiff).WithName("GetJobTemplateDiff").WithSummary("Compare a job's hiring process with its template")
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/{jobId:guid}/workflow", UpdateJobWorkflow).WithName("UpdateJobWorkflow")
+        group.MapPut("/{jobId:guid}/workflow", UpdateJobWorkflow).WithName("UpdateJobWorkflow").WithSummary("Edit a job's hiring process")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{jobId:guid}/workflow/apply-template-update", ApplyTemplateUpdate).WithName("ApplyJobTemplateUpdate")
+        group.MapPost("/{jobId:guid}/workflow/apply-template-update", ApplyTemplateUpdate).WithName("ApplyJobTemplateUpdate").WithSummary("Update a job from its template")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)

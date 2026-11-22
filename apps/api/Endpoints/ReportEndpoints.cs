@@ -25,8 +25,8 @@ internal static class ReportEndpoints
     public static IEndpointRouteBuilder MapReportEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/v1/reports").WithTags("Reports").AllowApiKeys();
-        group.MapGet("/hiring", GetHiringReport).WithName("GetHiringReport").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/hiring/funnel/{kind}/applications", GetFunnelApplications).WithName("GetFunnelApplications")
+        group.MapGet("/hiring", GetHiringReport).WithName("GetHiringReport").WithSummary("Get the hiring report").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/hiring/funnel/{kind}/applications", GetFunnelApplications).WithName("GetFunnelApplications").WithSummary("List the applications behind a funnel step")
             .Produces(StatusCodes.Status401Unauthorized);
 
         // Equality monitoring totals: signed-in people who may edit the organization's settings, never an API key or the MCP

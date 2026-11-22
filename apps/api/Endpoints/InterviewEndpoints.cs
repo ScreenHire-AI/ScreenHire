@@ -286,7 +286,7 @@ internal static class InterviewEndpoints
 
         await outbox.PublishAsync(new InterviewChanged(
             application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.Cancelled, tenant.UserId,
-            StartsAt: interview.StartsAt));
+            StartsAt: interview.StartsAt, Revision: interview.Revision, ChangedAt: now));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         var byUser = (await HiringTeams.MembersAsync(db, tenant, cancellationToken)).Values.ToDictionary(m => m.UserId);
         return TypedResults.Ok(interview.ToDto(attendees, byUser, now));
@@ -481,7 +481,8 @@ internal static class InterviewEndpoints
 
             await outbox.PublishAsync(new InterviewChanged(
                 application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(),
-                reschedule ? InterviewChanges.Rescheduled : InterviewChanges.Booked, userId, StartsAt: interview.StartsAt));
+                reschedule ? InterviewChanges.Rescheduled : InterviewChanges.Booked, userId, StartsAt: interview.StartsAt,
+                Revision: interview.Revision, ChangedAt: now));
             await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
             return result.Outcome;
         });

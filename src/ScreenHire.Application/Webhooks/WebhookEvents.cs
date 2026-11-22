@@ -4,10 +4,13 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Candidates;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.Verification;
 using ScreenHire.Application.Jobs;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Automations;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Domain.Webhooks;
 
@@ -41,6 +44,23 @@ public sealed record JobPublishedData(Guid JobId, int Version, Guid? JobVersionI
 
 public sealed record JobClosedData(Guid JobId);
 
+/// <summary>An application entered a stage of kind Hired. The <c>application.moved</c> event for the same move still comes too.</summary>
+public sealed record ApplicationHiredData(Guid ApplicationId, Guid JobId, Guid CandidateId, string StageId);
+
+/// <summary>A candidate and everything about them was erased; after it the id names no one.</summary>
+public sealed record CandidateErasedData(Guid CandidateId);
+
+/// <summary>
+/// An interview was booked, moved to a new time or cancelled. <c>startsAt</c> is the booked or new time, or the time a
+/// cancelled booking had (null for an offer cancelled before the candidate picked one); <c>byCandidate</c> says the
+/// candidate did it from their booking page.
+/// </summary>
+public sealed record InterviewEventData(
+    Guid InterviewId, Guid ApplicationId, Guid JobId, DateTimeOffset? StartsAt, int DurationMinutes, bool ByCandidate);
+
+/// <summary>A reviewer submitted a stage's scorecard: its overall recommendation, never its ratings, answers or note.</summary>
+public sealed record ScorecardSubmittedData(Guid ScorecardId, Guid ApplicationId, Guid JobId, string StageId, Recommendation Recommendation);
+
 /// <summary>
 /// Maps the domain events that already exist to webhook events (docs/architecture/workflow-engine.md §5). Each event's
 /// id comes from stable fields of the domain event, never the clock, so a redelivered domain event raises the same
@@ -49,6 +69,9 @@ public sealed record JobClosedData(Guid JobId);
 public static class WebhookEvents
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
+
+    /// <summary>How every delivery body is written: web names and enums as their names.</summary>
+    public static JsonSerializerOptions SerializerOptions => Json;
 
     public static FanOutWebhook From(ApplicationSubmitted e)
     {
@@ -92,6 +115,52 @@ public static class WebhookEvents
     {
         ArgumentNullException.ThrowIfNull(e);
         return Raise(e.OrganizationId, WebhookEventTypes.JobClosed, $"{e.JobId}:{e.ClosedAt.UtcTicks}", e.ClosedAt, new JobClosedData(e.JobId));
+    }
+
+    /// <summary>The move put the application in a stage of kind Hired; the caller checked the kind.</summary>
+    public static FanOutWebhook Hired(ApplicationMoved e, Guid candidateId)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return Raise(e.OrganizationId, WebhookEventTypes.ApplicationHired, e.EventId.ToString(), e.MovedAt,
+            new ApplicationHiredData(e.ApplicationId, e.JobId, candidateId, e.ToStageId));
+    }
+
+    public static FanOutWebhook From(CandidateErased e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return Raise(e.OrganizationId, WebhookEventTypes.CandidateErased, e.CandidateId.ToString(), e.ErasedAt, new CandidateErasedData(e.CandidateId));
+    }
+
+    /// <summary>
+    /// A booking, a new time or a cancellation; null for every other change (an offer, new times offered, a calendar
+    /// write). The key is the interview and its revision, which each of the three moves on by one.
+    /// </summary>
+    public static FanOutWebhook? From(InterviewChanged e, int durationMinutes, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        var type = e.Change switch
+        {
+            InterviewChanges.Booked => WebhookEventTypes.InterviewScheduled,
+            InterviewChanges.Rescheduled => WebhookEventTypes.InterviewRescheduled,
+            InterviewChanges.Cancelled => WebhookEventTypes.InterviewCancelled,
+            _ => null,
+        };
+        if (type is null)
+        {
+            return null;
+        }
+
+        // Every publisher of these three changes sends the revision; the start time keeps an older message distinct.
+        var revision = e.Revision?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? $"t{e.StartsAt?.UtcTicks}";
+        return Raise(e.OrganizationId, type, $"{e.InterviewId}:{revision}", e.ChangedAt ?? now,
+            new InterviewEventData(e.InterviewId, e.ApplicationId, e.JobId, e.StartsAt, durationMinutes, e.ByCandidate));
+    }
+
+    public static FanOutWebhook From(ScorecardSubmitted e, string stageId, Recommendation recommendation)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        return Raise(e.OrganizationId, WebhookEventTypes.ScorecardSubmitted, e.EventId.ToString(), e.SubmittedAt,
+            new ScorecardSubmittedData(e.ScorecardId, e.ApplicationId, e.JobId, stageId, recommendation));
     }
 
     /// <summary>

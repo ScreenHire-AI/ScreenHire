@@ -30,27 +30,27 @@ internal static class ScorecardTemplateEndpoints
 
     public static IEndpointRouteBuilder MapScorecardTemplateEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/v1/scorecard-templates").WithTags("Scorecard templates").AllowApiKeys();
-        group.MapGet("/", ListScorecardTemplates).WithName("ListScorecardTemplates").Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/", CreateScorecardTemplate).WithName("CreateScorecardTemplate")
+        var group = app.MapGroup("/v1/scorecard-templates").WithTags("Templates").AllowApiKeys();
+        group.MapGet("/", ListScorecardTemplates).WithName("ListScorecardTemplates").WithSummary("List library scorecards").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/", CreateScorecardTemplate).WithName("CreateScorecardTemplate").WithSummary("Create a library scorecard")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{templateId}", GetScorecardTemplate).WithName("GetScorecardTemplate").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{templateId}/history", GetScorecardTemplateHistory).WithName("GetScorecardTemplateHistory")
+        group.MapGet("/{templateId}", GetScorecardTemplate).WithName("GetScorecardTemplate").WithSummary("Get a library scorecard").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{templateId}/history", GetScorecardTemplateHistory).WithName("GetScorecardTemplateHistory").WithSummary("List a library scorecard's changes")
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/{templateId}", UpdateScorecardTemplate).WithName("UpdateScorecardTemplate")
+        group.MapPut("/{templateId}", UpdateScorecardTemplate).WithName("UpdateScorecardTemplate").WithSummary("Edit a library scorecard")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{templateId}/archive", ArchiveScorecardTemplate).WithName("ArchiveScorecardTemplate")
+        group.MapPost("/{templateId}/archive", ArchiveScorecardTemplate).WithName("ArchiveScorecardTemplate").WithSummary("Archive a library scorecard")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{templateId}/unarchive", UnarchiveScorecardTemplate).WithName("UnarchiveScorecardTemplate")
+        group.MapPost("/{templateId}/unarchive", UnarchiveScorecardTemplate).WithName("UnarchiveScorecardTemplate").WithSummary("Restore an archived library scorecard")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)

@@ -387,7 +387,8 @@ internal static class PublicInterviewEndpoints
 
         await outbox.PublishAsync(new InterviewChanged(
             application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(),
-            reschedule ? InterviewChanges.Rescheduled : InterviewChanges.Booked, ByCandidate: true, StartsAt: interview.StartsAt));
+            reschedule ? InterviewChanges.Rescheduled : InterviewChanges.Booked, ByCandidate: true, StartsAt: interview.StartsAt,
+            Revision: interview.Revision, ChangedAt: now));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
@@ -444,7 +445,7 @@ internal static class PublicInterviewEndpoints
 
         await outbox.PublishAsync(new InterviewChanged(
             application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.Cancelled,
-            ByCandidate: true, StartsAt: interview.StartsAt));
+            ByCandidate: true, StartsAt: interview.StartsAt, Revision: interview.Revision, ChangedAt: now));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.NoContent();
     }

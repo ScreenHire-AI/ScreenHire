@@ -30,42 +30,42 @@ internal static class FormTemplateEndpoints
 
     public static IEndpointRouteBuilder MapFormTemplateEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/v1/form-templates").WithTags("Form templates").AllowApiKeys();
-        group.MapGet("/", ListFormTemplates).WithName("ListFormTemplates").Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/", CreateFormTemplate).WithName("CreateFormTemplate")
+        var group = app.MapGroup("/v1/form-templates").WithTags("Templates").AllowApiKeys();
+        group.MapGet("/", ListFormTemplates).WithName("ListFormTemplates").WithSummary("List library forms").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/", CreateFormTemplate).WithName("CreateFormTemplate").WithSummary("Create a library form")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{formId:guid}", GetFormTemplate).WithName("GetFormTemplate").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{formId:guid}/history", GetFormTemplateHistory).WithName("GetFormTemplateHistory").Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{formId:guid}/versions", CreateFormTemplateVersion).WithName("CreateFormTemplateVersion")
+        group.MapGet("/{formId:guid}", GetFormTemplate).WithName("GetFormTemplate").WithSummary("Get a library form").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{formId:guid}/history", GetFormTemplateHistory).WithName("GetFormTemplateHistory").WithSummary("List a library form's changes").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{formId:guid}/versions", CreateFormTemplateVersion).WithName("CreateFormTemplateVersion").WithSummary("Start a draft of a library form")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{formId:guid}/versions/{version:int}", GetFormTemplateVersion).WithName("GetFormTemplateVersion")
+        group.MapGet("/{formId:guid}/versions/{version:int}", GetFormTemplateVersion).WithName("GetFormTemplateVersion").WithSummary("Get a version of a library form")
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/{formId:guid}/versions/{version:int}", UpdateFormTemplateVersion).WithName("UpdateFormTemplateVersion")
+        group.MapPut("/{formId:guid}/versions/{version:int}", UpdateFormTemplateVersion).WithName("UpdateFormTemplateVersion").WithSummary("Edit a library form's draft")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{formId:guid}/versions/{version:int}/publish", PublishFormTemplateVersion).WithName("PublishFormTemplateVersion")
+        group.MapPost("/{formId:guid}/versions/{version:int}/publish", PublishFormTemplateVersion).WithName("PublishFormTemplateVersion").WithSummary("Publish a library form's draft")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{formId:guid}/versions/{version:int}/apply-to-templates", ApplyFormToTemplates).WithName("ApplyFormToTemplates")
+        group.MapPost("/{formId:guid}/versions/{version:int}/apply-to-templates", ApplyFormToTemplates).WithName("ApplyFormToTemplates").WithSummary("Update hiring templates to a form's latest version")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{formId:guid}/archive", ArchiveFormTemplate).WithName("ArchiveFormTemplate")
+        group.MapPost("/{formId:guid}/archive", ArchiveFormTemplate).WithName("ArchiveFormTemplate").WithSummary("Archive a library form")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{formId:guid}/unarchive", UnarchiveFormTemplate).WithName("UnarchiveFormTemplate")
+        group.MapPost("/{formId:guid}/unarchive", UnarchiveFormTemplate).WithName("UnarchiveFormTemplate").WithSummary("Restore an archived library form")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .Produces(StatusCodes.Status401Unauthorized);

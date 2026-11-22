@@ -28,7 +28,7 @@ internal static class TagEndpoints
     public static IEndpointRouteBuilder MapTagEndpoints(this IEndpointRouteBuilder app)
     {
         var read = app.MapGroup("/v1/tags").WithTags("Tags").AllowApiKeys();
-        read.MapGet("/", ListTags).WithName("ListTags").Produces(StatusCodes.Status401Unauthorized);
+        read.MapGet("/", ListTags).WithName("ListTags").WithSummary("List the organization's tags").Produces(StatusCodes.Status401Unauthorized);
 
         var change = app.MapGroup("/v1/tags").WithTags("Tags").RequireAuthorization();
         change.MapPost("/rename", RenameTag).WithName("RenameTag")

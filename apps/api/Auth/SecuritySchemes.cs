@@ -7,7 +7,8 @@ namespace ScreenHire.Api.Auth;
 /// <summary>
 /// Declares how to authenticate in the OpenAPI document, so Scalar and the generated client show it: the session cookie
 /// on every route that needs a signed-in user, and the API key as an alternative on the hiring API
-/// (<see cref="ApiKeyAuthentication.HiringApiPolicy"/>). Public routes declare neither.
+/// (<see cref="ApiKeyAuthentication.HiringApiPolicy"/>). Public routes declare neither. The public document
+/// (<see cref="OpenApi.ApiDocuments.Public"/>) holds only what a key can call, so it declares the key alone.
 /// </summary>
 internal static class SecuritySchemes
 {
@@ -15,19 +16,23 @@ internal static class SecuritySchemes
 
     public const string ApiKey = "apiKey";
 
-    public static OpenApiOptions AddScreenHireSecuritySchemes(this OpenApiOptions options)
+    public static OpenApiOptions AddScreenHireSecuritySchemes(this OpenApiOptions options, bool includeSession = true)
     {
         options.AddDocumentTransformer((document, _, _) =>
         {
             document.Components ??= new OpenApiComponents();
             document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
-            document.Components.SecuritySchemes[Session] = new OpenApiSecurityScheme
+            if (includeSession)
             {
-                Type = SecuritySchemeType.ApiKey,
-                In = ParameterLocation.Cookie,
-                Name = AuthenticationSetup.SessionCookie,
-                Description = "The dashboard's session, from signing in. Changes also need the X-XSRF-TOKEN header.",
-            };
+                document.Components.SecuritySchemes[Session] = new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.ApiKey,
+                    In = ParameterLocation.Cookie,
+                    Name = AuthenticationSetup.SessionCookie,
+                    Description = "The dashboard's session, from signing in. Changes also need the X-XSRF-TOKEN header.",
+                };
+            }
+
             document.Components.SecuritySchemes[ApiKey] = new OpenApiSecurityScheme
             {
                 Type = SecuritySchemeType.Http,
@@ -48,9 +53,12 @@ internal static class SecuritySchemes
 
             // Two requirements are alternatives: either one authenticates the request.
             operation.Security ??= [];
-            operation.Security.Add(Requirement(Session, context.Document));
-            if (metadata.OfType<IAuthorizeData>().Any(a =>
-                a.Policy is ApiKeyAuthentication.HiringApiPolicy or ApiKeyAuthentication.VerificationApiPolicy))
+            if (includeSession)
+            {
+                operation.Security.Add(Requirement(Session, context.Document));
+            }
+
+            if (AcceptsApiKey(metadata))
             {
                 operation.Security.Add(Requirement(ApiKey, context.Document));
             }
@@ -60,6 +68,10 @@ internal static class SecuritySchemes
 
         return options;
     }
+
+    /// <summary>Whether a route takes an organization API key: the hiring API, or the verification reads with their scope.</summary>
+    public static bool AcceptsApiKey(IEnumerable<object> metadata) =>
+        metadata.OfType<IAuthorizeData>().Any(a => a.Policy is ApiKeyAuthentication.HiringApiPolicy or ApiKeyAuthentication.VerificationApiPolicy);
 
     private static OpenApiSecurityRequirement Requirement(string scheme, OpenApiDocument? document) =>
         new() { [new OpenApiSecuritySchemeReference(scheme, document)] = [] };

@@ -28,7 +28,7 @@ public sealed record ApplicationMoved(
 /// Runs in the worker once per <see cref="ApplicationMoved"/>: the workflow engine's <c>StageExited</c> trigger for the
 /// stage left and <c>StageEntered</c> for the stage entered, which also starts that stage's TimeElapsed timers. A move an
 /// automation made links its timeline entry to that run, so the engine can follow the chain (depth limit, cycles). It
-/// also raises the <c>application.moved</c> webhook event (<see cref="WebhookEvents"/>) and its Slack post (<see cref="SlackEvents"/>).
+/// also raises the <c>application.moved</c> webhook event, and <c>application.hired</c> for a move into a Hired stage (<see cref="WebhookEvents"/>) and its Slack post (<see cref="SlackEvents"/>).
 /// </summary>
 public static partial class ApplicationMovedHandler
 {
@@ -56,6 +56,12 @@ public static partial class ApplicationMovedHandler
             onlyAutomationId: null,
             cancellationToken);
         outgoing.Add(WebhookEvents.From(message));
+        var entered = await db.Jobs.AsNoTracking().Where(j => j.Id == message.JobId).Select(j => j.Workflow).SingleOrDefaultAsync(cancellationToken);
+        if (entered?.FindStage(message.ToStageId)?.Kind == StageKind.Hired)
+        {
+            outgoing.Add(WebhookEvents.Hired(message, application.CandidateId));
+        }
+
         // An interview offered or booked on an application that has now ended is cancelled. The handler checks the stage, so
         // a move that did not end it, or a move back, cancels nothing; this only asks for the check when there is an interview.
         if (await db.InterviewRequests.AsNoTracking().AnyAsync(
