@@ -730,8 +730,11 @@ The data model and API from the jobs and templates task, and the engine that run
   stage of the new pipeline, its mapped one or the one with its stage's id, else 400 on `stageMappings` naming the
   stage. In the same save every application gets a `StageChanged` entry with `templateVersionId`
   (`JobApplication.ChangePipeline`), even one whose stage carries over. That entry is a new stage entry, so a timer of the
-  old pipeline does nothing when it fires. A saved candidate stays saved, and the time in the stage starts again only
-  when the stage changes. The switch publishes `JobWorkflowChanged` and no `ApplicationMoved`, so no email goes, no
+  old pipeline does nothing when it fires, and the new pipeline's TimeElapsed and time limit timers start at the
+  candidate's next move, not at the switch. The Overdue view still reads the stage's time limit from `stageEnteredAt`. A
+  saved candidate stays saved, and the time in the stage starts again only when the stage changes; an entry that keeps
+  the stage id leaves `application.hoursInStage` running too. An application that had ended and lands in a stage that
+  ends one (Rejected to "Not this time") keeps when it ended, because retention counts from then. The switch publishes `JobWorkflowChanged` and no `ApplicationMoved`, so no email goes, no
   automation runs and no Slack message or webhook reports a move. Activity reads "The pipeline changed: from Screening
   to Phone call", and the change history "switched to the template **Kitchen**". Stage-keyed records of the old
   pipeline (an open task, a scorecard, an interview request) keep their stage id. A form sent and not yet answered is
@@ -741,8 +744,12 @@ The data model and API from the jobs and templates task, and the engine that run
 - **Former stages and questions:** every workflow change keeps what it drops in the job's `former` (`FormerWorkflowParts`:
   each stage's id, name and kind, and each apply-form question as it was asked), so a timeline entry or an answer that
   names one still reads in words: the application page, Activity and the candidate's history look a stage up in the
-  workflow, then in `former`. A stage or question dropped again replaces its older copy, and a current one with the same
-  id wins.
+  workflow, then in `former`, and the candidate's data copy, the MCP `get_application` and the verification checks' text
+  label an answer by a former question (`FormerWorkflowParts.WithQuestions`). A stage or question dropped again replaces
+  its older copy, and a current one with the same id wins. Reports read stage kinds from the current workflow only, so
+  a switched job's entries into its former stages drop out of its funnel and time per stage.
+  If a stage fills after the sheet read its preview, the switch is refused (400 on `stageMappings`) and the sheet goes
+  back to the stages step with that stage's suggestion added.
 - **Applications** start in the first stage. `POST /v1/applications/{id}/move` is the only way they move, always by a
   person, and every change appends to `application_events`. Recruiters add applications by hand with
   `POST /v1/jobs/{jobId}/applications`, optionally with `resumeUploadId` from
