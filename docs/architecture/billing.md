@@ -7,6 +7,7 @@ sources:
   - resource: packages/plans/plans.json
   - resource: packages/plans/src/index.ts
   - resource: packages/plans/ai.json
+  - resource: packages/plans/included.json
   - resource: src/ScreenHire.Domain/Billing/AiCharge.cs
   - resource: src/ScreenHire.Domain/Billing/BillingAccount.cs
   - resource: src/ScreenHire.Domain/Billing/Entitlement.cs
@@ -41,6 +42,8 @@ sources:
   - resource: apps/dashboard/src/lib/billing.ts
   - resource: apps/dashboard/src/lib/components/plan-problem-notice.svelte
   - resource: apps/dashboard/src/lib/components/change-plan-dialog.svelte
+  - resource: apps/dashboard/src/lib/components/plan-card.svelte
+  - resource: apps/dashboard/src/lib/components/plan-comparison.svelte
   - resource: apps/dashboard/src/routes/(app)/settings/billing/+page.svelte
   - resource: apps/dashboard/src/lib/components/billing-invoices.svelte
   - resource: apps/dashboard/src/lib/query.ts
@@ -105,6 +108,12 @@ share it:
 - The API embeds it (`PlanCatalogue`) and merges any `Plans:<key>:*` override over it at read time.
 - The marketing site reads it through `@screenhire/plans` (`catalogPlans`), and `apps/marketing/src/lib/pricing.ts` builds the pricing page from it, so the page shows the same numbers; a plan with no price shows its name and limit and no amount.
   The page's words (summary, highlight) stay in the site.
+
+What every plan includes is `packages/plans/included.json`, a few short lines ("Unlimited users", "Every feature", ...) that are the
+same for every plan, because plans differ only in open jobs. It is words, not a number, so the API neither reads nor overrides it.
+The marketing pricing page shows it as ticks under the plans (`planIncludes` in `pricing.ts`, through `PlanRows`), and the dashboard
+imports the same export (`@screenhire/plans`, `planIncludes` in `#lib/billing.ts`) for Billing's plan card and plan cards, so the two
+never say different things. Prices, limits and order on Billing still come from the API, which applies the overrides.
 
 A plan's limit is `ActiveJobs`, or none when `Unlimited` is true. A plan with neither limits nothing: a job count nobody
 chose is never enforced. A plan can be subscribed to in Stripe mode only when it has a `StripePriceId` (`canSubscribe`);
@@ -171,7 +180,7 @@ link to Settings > Billing. A host with no email sender or no dashboard address 
 
 **The bell.** One `trial-ending` notification per Owner, key `trial`, with `endsAt` and the plan's name in its payload and a link
 to `/settings/billing`. The dashboard works out "ends in N days", "ends tomorrow" or "ends today" from `endsAt` when it draws the
-line, in calendar days in the browser's time zone, so the one row stays right as the days pass instead of piling up one a day and
+line, in calendar days in the person's time zone (the browser's while they have none; `calendarDaysUntil`, which Billing's plan card counts with too), so the one row stays right as the days pass instead of piling up one a day and
 agrees with the date the trial ends on. The line is the fact alone; the link goes to the Billing page, which shows when the trial ends and, once it has ended, that open
 jobs stay open and a new job needs a plan. When the trial ends, the ending notice is cleared and `trial-ended` raised, so it
 comes back unread even for an Owner who had read or dismissed the first. Only Owners are addressed, so a member without Manage
@@ -575,9 +584,15 @@ is set up. An Admin gets the AI use part only; an Owner
 where no payment provider is set up gets it alone, never a page of what is not set up (design system A3). Someone with neither has no
 entry, and its address says only an owner can change billing. The Owner's panels, in order:
 
-- **Plan.** The state as a status badge beside the title (Free trial, Active, Payment failed or Ended), the current plan, the trial's end
-  or, for a subscription set to end, when it ends, and the open jobs against the limit (`3 of 5`, or `3` with none). The next payment is
-  not repeated here: This month so far says it (W7).
+- **Plan** (`PlanCard`, the owner's fifth walk-through, 2026-11-22: the plan is what customers pay for most, and it had been one plain
+  row). The state stays a status badge beside the page title (Free trial, Active, Payment failed or Ended). The card shows the plan's name
+  and monthly price large, then "Renews December 22" (or "Ends December 22" for a subscription set to end) as a day in words. Then what
+  every plan includes as a row of ticks from the catalogue (`included.json`), and the headroom: on a limited plan a small meter and
+  "3 of 10 open jobs", on one with no limit the count alone. Change plan brings the Plans panel below into view and focuses it, and shows
+  only when a plan card there has an action. During the trial the card is the trial card: "Trial: 9 days left" (calendar days in the
+  person's zone, the bell's count, `calendarDaysUntil`), "Growth until December 5", the ticks, the meter and Choose a plan, with no
+  price, because the trial costs nothing. Once a plan has ended it says "No plan", the count and Choose a plan. The renewal day
+  repeats the next invoice's date in This month so far, as the plan's own fact; the amount is said only there.
 - **This month so far** (`thisMonth` on the overview, `BillingEndpoints.ThisMonth`). Each charge on its own line: the plan at its monthly
   price while subscribed ("Growth, free trial" at $0.00 on the trial, no line once ended), the AI credits bought this month (linking to the
   credits further down), and the total. Then "Next invoice about $X on <date>" while a subscription runs: the next plan payment (none once it
@@ -588,8 +603,10 @@ entry, and its address says only an owner can change billing. The Owner's panels
   use Manage billing" line and the header's Manage billing button, so the words are the controls (A14) and the page has no primary button.
 - **Invoices**, once there is a customer (`BillingInvoices`, `GET .../invoices`): date, amount, status (Paid, Due, Void) and a PDF link
   opening in a new tab, newest first, sortable (L2).
-- **Plans.** A plan has a Choose button while Trialing or Ended (`mayChoosePlan`), which goes to Checkout. With an Active subscription that
-  is not set to end, every other plan has a Switch button, which opens `ChangePlanDialog`: it asks the preview route when it opens and shows
+- **Plans** (`PlanComparison`): the plans as comparison cards side by side, in the catalogue's order (the pricing page's), each with its
+  name, its price, its open job limit and then what every plan includes. They stack on a phone. The plan in force is marked "Your plan"
+  with the primary edge, and during the trial the trial's plan is marked "Your trial". A plan has a Choose button while Trialing or Ended (`mayChoosePlan`), which goes to Checkout. With an Active subscription that
+  is not set to end, every other plan has a Change to button ("Change to Growth"), which opens `ChangePlanDialog`: it asks the preview route when it opens and shows
   "$X now, then $Y a month from DATE" ("Nothing now" for a cheaper plan, with the line that the unused time is credited), and Confirm change
   sends the plan and the preview's `prorationDate`. The dialog's Confirm is the one primary there (A1). The dialog takes focus itself when it
   opens, so the date's tooltip does not open over the text. A failed preview keeps Confirm off, and a refused change stays in the dialog,
@@ -638,7 +655,9 @@ owner.
 | `BillingPublishCheckTests` (integration) | the job being published is not counted, so a double submit is not refused for taking its own place, and a different draft still is |
 | `BillingWebhookTests` (integration) | the route is a 404 outside Stripe mode. What a delivery does once read, through `BillingService` against the stack's database: a replay applied once, an older event ignored, and an event for another organization not applied |
 | `StripeWebhookRouteTests` (integration) | on a stack of its own in Stripe mode, the route end to end: a signed event applied to the organization it names, a wrong or missing signature a 401, a redelivery changing nothing, an unknown organization a 200, and another organization untouched; a paid credit session and an auto-reload's `invoice.paid` granting once |
-| `BillingTests` (end-to-end) | an owner buys credits in the sandbox and sees the balance and the purchase, and turns auto-reload on; an owner sees the trial and the plans and chooses one through Checkout, then the month's total, the next invoice, the card and the sandbox's invoices, changes the card without losing the plan and reaches Billing from their own menu; a publish past the limit shows the notice and its link to Billing; and a recruiter has no Billing entry in Settings or their menu |
+| `BillingTests` (end-to-end) | an owner buys credits in the sandbox and sees the balance and the purchase, and turns auto-reload on; an owner sees the trial card and the plans as cards side by side at 1440 and stacked at 390 with no sideways scroll, and chooses one through Checkout, then the plan card with its price and Change plan, then the month's total, the next invoice, the card and the sandbox's invoices, changes the card without losing the plan and reaches Billing from their own menu; a publish past the limit shows the notice and its link to Billing; and a recruiter has no Billing entry in Settings or their menu |
+| `plan-card.test.ts` (Vitest) | the plan card active, on the trial (days left counted in calendar days, one day, today), limited with its meter, over the limit, on Unlimited with the count alone, set to end, with tax and after it ended; the comparison cards in order with the limit first, the current plan or the trial's marked, each plan's action, a price not set, and stacking without two and one. The ticks on both are the catalogue's `included`, read from `@screenhire/plans` |
+| `pricing-includes.test.ts` (marketing Vitest) | the real pricing page lists the catalogue's `included`, in order, under the plans: with the plan card test, the two pages show one list |
 | `billing-page.test.ts`, `billing.test.ts`, `app-sidebar.test.ts`, `jobs-page.test.ts`, `distribution-panel.test.ts`, `job-page.test.ts`, `query.test.ts`, `settings.test.ts` (Vitest) | the page in each state, this month added up, the payment method's two controls and their intents, the invoices, the AI usage panel's one amount, money in two decimals, the account menu's Billing entry, the plan change dialog (the cost before confirming, a downgrade's nothing now, the change sent with the preview's date, a failed preview and a refused change), the notice and its link for an owner and anyone else at each place a draft opens, the 402 read as a plan problem, the settings entry hidden without a provider |
 | `TrialRemindersTests` (unit) | the reminder days (7 and 1 by default, a configured list replacing them, a day below 1 refused), the steps planned for a fresh trial, one under way, one that ended and one shorter than the notice window, a reminder doing nothing after a subscription or for a changed trial, the id of the record that a trial's reminders are scheduled, and the email's words |
 | `TrialReminderTests` (integration) | on the running worker: signing up schedules the five steps, the worker leaves the account alone and an immediate checkout is applied, each email reaches every Owner once and a redelivery adds none, an Admin gets nothing, one `trial-ending` notification becomes one `trial-ended` one, the retention purge keeps it, and choosing a plan clears it and makes the reminders still waiting do nothing |
