@@ -61,6 +61,9 @@ public sealed record ApplicationStage(string Id, string Name, StageKind Kind);
 /// can be saved (docs/architecture/talent-pool.md). <c>sourceSite</c>: the organization's own site the careers
 /// page was embedded in when the candidate applied (an origin such as <c>https://www.example.com</c>), or null.
 /// <c>nextInterviewAt</c>: when the earliest booked interview that has not started begins, or null (read at the time of the request).
+/// <c>sourceBoard</c>: the job board whose link the candidate followed, as its <c>src</c> tag: an automatic board's id, or the
+/// source key of a board the team posted the job on themselves; null when no board sent them. <c>sourceBoardName</c> is that
+/// board's name, as the team named it for one they posted on.
 /// </remarks>
 public sealed record ApplicationSummary(
     Guid Id,
@@ -80,7 +83,9 @@ public sealed record ApplicationSummary(
     DateTimeOffset? KeptInMindAt = null,
     bool AllowsFutureRoles = false,
     string? SourceSite = null,
-    DateTimeOffset? NextInterviewAt = null);
+    DateTimeOffset? NextInterviewAt = null,
+    string? SourceBoard = null,
+    string? SourceBoardName = null);
 
 /// <summary>
 /// The candidate's rating (ADR-0013 decision 13): one to five stars averaged from people's scorecards. Each rating answer
@@ -129,6 +134,7 @@ public enum RatingState
 /// <c>keptInMindAt</c>, <c>allowsFutureRoles</c>: as on <c>ApplicationSummary</c>. <c>futureRolesGivenAt</c>: when the
 /// candidate said "Keep my details for future roles" on this application's form (or the application it came from);
 /// null when they did not. <c>inTalentPool</c>: the candidate is a saved candidate, saved from this application.
+/// <c>sourceBoard</c>, <c>sourceBoardName</c>: as on <c>ApplicationSummary</c>.
 /// </remarks>
 public sealed record ApplicationDetail(
     Guid Id,
@@ -153,7 +159,9 @@ public sealed record ApplicationDetail(
     bool AllowsFutureRoles = false,
     DateTimeOffset? FutureRolesGivenAt = null,
     bool InTalentPool = false,
-    string? SourceSite = null);
+    string? SourceSite = null,
+    string? SourceBoard = null,
+    string? SourceBoardName = null);
 
 /// <summary>
 /// A follow-up questionnaire sent to the candidate. Until it is answered, <c>questions</c> and <c>answers</c> are empty;
@@ -311,11 +319,13 @@ internal static class ApplicationMappings
     /// <summary>The application in a list.</summary>
     public static ApplicationSummary ToSummary(
         this JobApplication application, Job job, Candidate candidate, DateTimeOffset lastActivityAt,
-        VerificationSummary? verification = null, ApplicationRating? rating = null, DateTimeOffset? nextInterviewAt = null) =>
+        VerificationSummary? verification = null, ApplicationRating? rating = null, DateTimeOffset? nextInterviewAt = null,
+        string? sourceBoardName = null) =>
         new(application.Id, application.JobId, application.CandidateId, candidate.FullName, application.StageIn(job),
             application.SubmittedAt, application.StageEnteredAt, lastActivityAt, job.Title, application.Source, application.Tags, verification,
             application.SlaDueAt(job), rating ?? ApplicationRating.NotRated, application.KeptInMindAt,
-            application.AllowsFutureRoles, application.SourceSite, nextInterviewAt);
+            application.AllowsFutureRoles, application.SourceSite, nextInterviewAt, application.SourceBoard,
+            application.SourceBoard is null ? null : sourceBoardName ?? application.SourceBoard);
 
     /// <summary>
     /// The application on its own; <paramref name="inTalentPool"/> says whether the candidate is a saved candidate, saved
@@ -323,14 +333,15 @@ internal static class ApplicationMappings
     /// </summary>
     public static ApplicationDetail ToDetail(
         this JobApplication application, Job job, Candidate candidate, IReadOnlyList<ApplicationFile> files,
-        IReadOnlyList<QuestionnaireRequest> followUps, bool inTalentPool, ApplicationRating? rating = null) =>
+        IReadOnlyList<QuestionnaireRequest> followUps, bool inTalentPool, ApplicationRating? rating = null, string? sourceBoardName = null) =>
         new(application.Id, application.JobId, job.Title, candidate.ToSummary(), application.StageIn(job),
             application.WorkflowVersion, application.AccommodationRequested, application.AiUseDeclaration,
             application.AiUseDetails, application.SubmittedAt, application.StageEnteredAt, application.Tags,
             application.Source,
             application.Answers, [.. files.Select(f => f.ToSummary())], [.. followUps.Select(f => f.ToFollowUp())], application.SlaDueAt(job),
             rating ?? ApplicationRating.NotRated, application.KeptInMindAt, application.AllowsFutureRoles,
-            application.FutureRolesConsentGivenAt, inTalentPool, application.SourceSite);
+            application.FutureRolesConsentGivenAt, inTalentPool, application.SourceSite, application.SourceBoard,
+            application.SourceBoard is null ? null : sourceBoardName ?? application.SourceBoard);
 
     public static ApplicationFollowUp ToFollowUp(this QuestionnaireRequest request) =>
         new(request.Id, request.QuestionnaireId, request.QuestionnaireName, request.FirstSentAt, request.LastSentAt, request.ExpiresAt,

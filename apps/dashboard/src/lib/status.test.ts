@@ -14,6 +14,7 @@ describe('status catalogue', () => {
       published: 'clear badge-check',
       review: 'review eye',
       overdue: 'review clock-alert',
+      stillPosted: 'review megaphone',
       verification: 'verify id-card',
       needsFixes: 'verify wrench',
       broken: 'verify circle-x',
@@ -47,6 +48,6 @@ describe('status catalogue', () => {
   it('keeps waiting states grey: nobody needs to act (T3)', () => {
     const attention = (Object.keys(statuses) as StatusName[]).filter(needsAttention);
 
-    expect(attention.toSorted()).toEqual(['broken', 'needsFixes', 'overdue', 'review', 'unsafeFile', 'verification']);
+    expect(attention.toSorted()).toEqual(['broken', 'needsFixes', 'overdue', 'review', 'stillPosted', 'unsafeFile', 'verification']);
   });
 });

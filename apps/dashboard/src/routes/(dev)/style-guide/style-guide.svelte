@@ -132,6 +132,7 @@
   import EditPreviewDemo from './edit-preview-demo.svelte';
   import AddCandidateDemo from './add-candidate-demo.svelte';
   import CustomizePostingDemo from './customize-posting-demo.svelte';
+  import PostItYourselfDemo from './post-it-yourself-demo.svelte';
   import BrandingDemo from './branding-demo.svelte';
   import AutomationDemo from './automation-demo.svelte';
   import GraphDemo from './graph-demo.svelte';
@@ -334,6 +335,7 @@
     { status: 'open', label: 'Open' },
     { status: 'review', label: 'Review suggested' },
     { status: 'overdue', label: 'Overdue by 2 days' },
+    { status: 'stillPosted', label: 'Still posted by you' },
     { status: 'verification', label: 'Verification suggested' },
     { status: 'needsFixes', label: 'Needs fixes' },
     { status: 'unsafeFile', label: 'Unsafe file' },
@@ -1091,6 +1093,9 @@
         </Panel>
         <Panel title="Customize sheet" class="flex-[1_1_320px]">
           <CustomizePostingDemo />
+        </Panel>
+        <Panel title="Post it yourself sheet" class="flex-[1_1_320px]">
+          <PostItYourselfDemo />
         </Panel>
         <Panel title="Live indicator" class="flex-[1_1_320px]">
           <div class="flex flex-col gap-1">

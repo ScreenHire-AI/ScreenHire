@@ -34,5 +34,8 @@ describe('sourceLabel', () => {
     expect(sourceLabel('CareersSite', 'http://partner.localhost:8080')).toBe('partner.localhost:8080');
     expect(sourceLabel('CareersSite', null)).toBe('Careers page');
     expect(sourceLabel('Recruiter')).toBe('Recruiter');
+    // The board whose link the candidate followed, one the team posted on themselves included; the site wins, as in Reports.
+    expect(sourceLabel('CareersSite', null, 'LinkedIn')).toBe('LinkedIn');
+    expect(sourceLabel('CareersSite', 'https://www.example.com', 'LinkedIn')).toBe('www.example.com');
   });
 });

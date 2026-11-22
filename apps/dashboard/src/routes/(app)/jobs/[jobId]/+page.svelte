@@ -14,6 +14,7 @@
     createGetJobPublishCheck,
     createListBoards,
     createListJobApplications,
+    createListManualPostings,
     createListTeamMembers,
     createPublishJob,
     getGetJobHistoryQueryOptions,
@@ -69,6 +70,8 @@
   const job = createGetJob(() => params.jobId);
   const applications = createListJobApplications(() => params.jobId);
   const boards = createListBoards();
+  // The boards the team posted the job on themselves; the Job postings tab counts the ones still up.
+  const manualPostings = createListManualPostings(() => params.jobId);
   // Every move control on the page (table, board, selection) shows only for a role with Move candidates (ADR-0014).
   const moves = createMoves({ allowed: () => can(page.data.user, 'MoveCandidates') });
   // Phones fold the secondary actions into More (design system section 8), with the sidebar's own phone test.
@@ -126,7 +129,11 @@
   const tab = $derived(['postings', 'distribution'].includes((page.shallow?.url ?? page.url).searchParams.get('tab') ?? '') ? 'postings' : 'candidates');
   const sections = $derived<RecordTab[]>([
     { value: 'candidates', label: 'Candidates', count: applications.isSuccess ? all.length : undefined },
-    { value: 'postings', label: 'Job postings', count: boards.data ? postedCount(rows) : undefined },
+    {
+      value: 'postings',
+      label: 'Job postings',
+      count: boards.data ? postedCount(rows) + (manualPostings.data?.data.postings ?? []).filter((posting) => !posting.takenDownAt).length : undefined,
+    },
   ]);
 
   // A tab is a view of the same page, so switching only changes the address (shallow), keeping the page's state.

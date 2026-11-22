@@ -347,3 +347,80 @@ describe('the Views list in the sidebar', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not delete the view (HTTP 403).');
   });
 });
+
+describe('the icon rail at tablet width', () => {
+  it('gives every built-in view its own icon, named in its tooltip in the rail, and the same icon in the full sidebar', async () => {
+    const iconsOf = () =>
+      ['To review', 'To verify', 'Overdue', 'New today', 'Not screened', 'Interviewing'].map(
+        (name) => within(main()).getByRole('link', { name }).querySelector('svg')?.getAttribute('data-icon'),
+      );
+    const expected = ['eye', 'id-card', 'clock-alert', 'calendar-plus', 'inbox', 'messages-square'];
+
+    stubViewport(800);
+    const { unmount } = render(ShellHarness, { props: { user } });
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
+    expect(iconsOf()).toEqual(expected);
+    // An icon alone does not name a view, so the rail names each one in its tooltip.
+    await fireEvent.focus(within(main()).getByRole('link', { name: 'Overdue' }));
+    await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent('Overdue'));
+    unmount();
+
+    stubViewport(1280);
+    render(ShellHarness, { props: { user } });
+    expect(iconsOf()).toEqual(expected);
+  });
+
+  it("shows a saved view as the first letter of its name in a square, named in its tooltip, and its icon in the full sidebar", async () => {
+    const shared = savedView({ id: 'shared', name: 'team queue', shared: true, mine: false, canEdit: false, inSidebar: true });
+    // A name that starts with one emoji of several code points keeps the whole emoji, not its first half.
+    const emoji = savedView({ id: 'emoji', name: '👩‍💻 Engineers' });
+    stubViewport(800);
+    const { unmount } = render(ShellHarness, { props: { user, saved: [view, shared, emoji] } });
+
+    for (const [name, letter] of [
+      ['Referrals in screening', 'R'],
+      ['team queue', 'T'],
+      ['👩‍💻 Engineers', '👩‍💻'],
+    ] as const) {
+      const link = within(main()).getByRole('link', { name: new RegExp(`^${name}`) });
+      const square = link.querySelector('[data-view-letter]');
+      expect(square?.textContent).toBe(letter);
+      expect(square).toHaveAttribute('aria-hidden', 'true');
+      expect(link.querySelector('svg')).toBeNull();
+    }
+    await fireEvent.focus(within(main()).getByRole('link', { name: /^team queue/ }));
+    await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent('team queue'));
+    unmount();
+
+    stubViewport(1280);
+    render(ShellHarness, { props: { user, saved: [view] } });
+    const link = within(main()).getByRole('link', { name: /^Referrals in screening/ });
+    expect(link.querySelector('[data-view-letter]')).toBeNull();
+    expect(link.querySelector('svg')).toHaveAttribute('data-icon', 'list-filter');
+  });
+
+  it('names the home link in a tooltip in the rail, as every other rail item is named', async () => {
+    stubViewport(800);
+    render(ShellHarness, { props: { user } });
+
+    await fireEvent.focus(screen.getByRole('link', { name: 'ScreenHire' }));
+
+    await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent('ScreenHire'));
+  });
+
+  it('sets the views apart from the main areas with a divider in the rail only', () => {
+    stubViewport(800);
+    const { unmount } = render(ShellHarness, { props: { user } });
+    const divider = within(main()).getByTestId('rail-views-divider');
+    expect(divider).toHaveAttribute('aria-hidden', 'true');
+    const jobs = within(main()).getByRole('link', { name: 'Jobs' });
+    const firstView = within(main()).getByRole('link', { name: 'To review' });
+    expect(jobs.compareDocumentPosition(divider) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(divider.compareDocumentPosition(firstView) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    unmount();
+
+    stubViewport(1280);
+    render(ShellHarness, { props: { user } });
+    expect(within(main()).queryByTestId('rail-views-divider')).toBeNull();
+  });
+});
