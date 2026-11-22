@@ -135,6 +135,9 @@ const panels: Record<string, string[]> = {
   'Answer menu': ['Answer menu'],
   Rating: ['Rating'],
   'Rating answer': ['Rating answer'],
+  // The plan card is its own panel, titled Plan, shown subscribed and on the trial in one section.
+  'Plan card': ['Plan card'],
+  'Plan comparison cards': ['Plan comparison cards'],
   'Choice card': ['Choice card'],
   'Weekly hours': ['Weekly hours'],
   'Filter menu': ['Filter menu'],

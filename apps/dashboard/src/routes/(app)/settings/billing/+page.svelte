@@ -141,7 +141,8 @@
     target?.scrollIntoView({ block: 'start' });
     target?.focus({ preventScroll: true });
   }
-  // The clock the trial's days left are counted from, once per visit; a live update redraws the card from the new overview.
+  // The clock the trial's days left are counted from, read once per visit: a page left open past midnight counts from the
+  // visit until it is opened again. A live update redraws the card from the new overview, still against this clock.
   const now = Date.now();
 
   // The card and the invoices exist once the provider has a customer: the portal can open.
@@ -303,7 +304,7 @@
             <Panel
               id="plans"
               tabindex={-1}
-              class="scroll-mt-20 outline-none"
+              class="scroll-mt-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               title="Plans"
               footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : standing === 'Trialing' ? trialFooter : undefined}>
               <PlanComparison

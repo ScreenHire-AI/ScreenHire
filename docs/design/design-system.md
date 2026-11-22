@@ -18,6 +18,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/provider-marks/microsoft-mark.svelte
   - resource: apps/marketing/src/components/StatusIcon.astro
   - resource: apps/dashboard/src/routes/(dev)/style-guide/style-guide.svelte
+  - resource: apps/dashboard/src/lib/components/plan-card.svelte
+  - resource: apps/dashboard/src/lib/components/plan-comparison.svelte
   - resource: apps/dashboard/src/lib/components/rich-text-editor.svelte
   - resource: apps/dashboard/src/lib/components/rich-text-toolbar.svelte
   - resource: apps/dashboard/src/lib/rich-text.ts

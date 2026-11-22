@@ -288,7 +288,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(0);
     }
 
-    // The stable scrollbar gutter (S8) counts in scrollWidth and not in clientWidth, so the page fits when the difference is that at most.
+    // Measured against the window's width, which includes the stable scrollbar gutter (S8): a page that fits is never wider than it.
     private async Task<bool> NoSidewaysScrollAsync() =>
         await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth");
 
