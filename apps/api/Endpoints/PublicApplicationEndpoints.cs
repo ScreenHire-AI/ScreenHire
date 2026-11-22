@@ -6,6 +6,7 @@ using ScreenHire.Api.Applications;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Distribution;
+using ScreenHire.Domain.Distribution;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
@@ -153,10 +154,26 @@ internal static class PublicApplicationEndpoints
         return origins.Contains(embedOrigin, StringComparer.Ordinal) ? embedOrigin : null;
     }
 
-    // The job board whose link the candidate followed, when it is one that tags its links (BoardUrls): anything else is
-    // dropped, never a reason to refuse an application.
-    private static string? SourceBoard(string? source) =>
-        source is not null && BoardUrls.TaggedBoards.Contains(source) ? source : null;
+    // The job board whose link the candidate followed: one that tags its links (BoardUrls), or a board the team posted this
+    // job on themselves, whose tracked link carries the posting's source key (ManualPosting). Anything else is dropped, never
+    // a reason to refuse an application. A posting that was taken down still counts: its listing may linger on the board.
+    private static async Task<string?> SourceBoardAsync(string? source, Guid jobId, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        if (source is null)
+        {
+            return null;
+        }
+
+        if (BoardUrls.TaggedBoards.Contains(source))
+        {
+            return source;
+        }
+
+        return ManualPosting.IsSourceKey(source)
+            && await db.ManualPostings.AsNoTracking().AnyAsync(p => p.JobId == jobId && p.SourceKey == source, cancellationToken)
+            ? source
+            : null;
+    }
 
     private static async Task<Results<Created<PublicApplicationReceipt>, NotFound, ValidationProblem, ProblemHttpResult>> SubmitApplication(
         string organizationSlug,
@@ -253,7 +270,7 @@ internal static class PublicApplicationEndpoints
             await turnstile.VerifyAsync(request.BotCheckToken, remoteAddress, cancellationToken),
             futureRoles,
             await SourceSiteAsync(request.EmbedOrigin, job.OrganizationId, outbox.DbContext, cancellationToken),
-            SourceBoard(request.Source),
+            await SourceBoardAsync(request.Source, job.Id, outbox.DbContext, cancellationToken),
             CandidateLanguage.Normalize(request.Language));
 
         var submitted = await ApplicationSubmission.SubmitAsync(

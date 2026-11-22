@@ -30,11 +30,17 @@ public static class BoardUrls
     {
         ArgumentException.ThrowIfNullOrEmpty(url);
         ArgumentException.ThrowIfNullOrEmpty(boardId);
-        if (!TaggedBoards.Contains(boardId))
-        {
-            return url;
-        }
+        return TaggedBoards.Contains(boardId) ? WithSource(url, boardId) : url;
+    }
 
+    /// <summary>
+    /// <paramref name="url"/> with <c>src=source</c> in its query, replacing an earlier <c>src</c> and keeping every other
+    /// parameter and the fragment: a tagged board's link, or the tracked link of a posting the team made themselves.
+    /// </summary>
+    public static string WithSource(string url, string source)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(url);
+        ArgumentException.ThrowIfNullOrEmpty(source);
         var fragmentAt = url.IndexOf('#', StringComparison.Ordinal);
         var fragment = fragmentAt < 0 ? string.Empty : url[fragmentAt..];
         var rest = fragmentAt < 0 ? url : url[..fragmentAt];
@@ -47,7 +53,7 @@ public static class BoardUrls
                 .Split('&', StringSplitOptions.RemoveEmptyEntries)
                 .Where(pair => !pair.StartsWith(SourceParameter + "=", StringComparison.Ordinal) && pair != SourceParameter)
                 .ToList();
-        kept.Add($"{SourceParameter}={Uri.EscapeDataString(boardId)}");
+        kept.Add($"{SourceParameter}={Uri.EscapeDataString(source)}");
 
         return $"{path}?{string.Join('&', kept)}{fragment}";
     }

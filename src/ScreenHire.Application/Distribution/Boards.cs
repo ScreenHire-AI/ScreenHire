@@ -12,4 +12,13 @@ public static class Boards
     public const string Adzuna = "adzuna";
     public const string Jooble = "jooble";
     public const string Sandbox = "sandbox";
+
+    /// <summary>
+    /// Every automatic board's id, configured or not. A posting the team makes themselves cannot take one as its source key,
+    /// or its applications would count for that board.
+    /// </summary>
+    public static IReadOnlySet<string> All { get; } = new HashSet<string>(StringComparer.Ordinal)
+    {
+        CareersPage, GoogleIndexing, JobBoardApi, GenericFeed, Careerjet, TalentCom, Adzuna, Jooble, Sandbox,
+    };
 }

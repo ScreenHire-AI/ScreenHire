@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.TalentPool;
@@ -37,6 +38,7 @@ internal static class ApplicationChanges
         IValidator<MoveApplicationRequest> validator,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
+        BoardRegistry boards,
         ClaimsPrincipal user,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -85,7 +87,7 @@ internal static class ApplicationChanges
             }
         }
 
-        return TypedResults.Ok(await ApplicationReads.DetailOfAsync(tenant, db, application, job, candidate, cancellationToken));
+        return TypedResults.Ok(await ApplicationReads.DetailOfAsync(tenant, db, boards, application, job, candidate, cancellationToken));
     }
 
     /// <summary>
@@ -144,6 +146,7 @@ internal static class ApplicationChanges
         IValidator<AddApplicationTagRequest> validator,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
+        BoardRegistry boards,
         ClaimsPrincipal user,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -156,7 +159,7 @@ internal static class ApplicationChanges
         // Tags are the organization's: one that differs only by case is the existing one, spelled as the team spells it.
         var tag = await OrganizationTags.SpellingOfAsync(outbox.DbContext, request.Tag, cancellationToken);
         return await ChangeTagsAsync(
-            applicationId, outbox, tenant, time, (application, now) => application.AddTag(tag, now, tenant.UserId, actorApiKeyId: user.ApiKeyId()),
+            applicationId, outbox, tenant, boards, time, (application, now) => application.AddTag(tag, now, tenant.UserId, actorApiKeyId: user.ApiKeyId()),
             cancellationToken);
     }
 
@@ -166,6 +169,7 @@ internal static class ApplicationChanges
         string? tag,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
+        BoardRegistry boards,
         ClaimsPrincipal user,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -176,7 +180,7 @@ internal static class ApplicationChanges
         }
 
         return await ChangeTagsAsync(
-            applicationId, outbox, tenant, time, (application, now) => application.RemoveTag(tag, now, tenant.UserId, user.ApiKeyId()), cancellationToken);
+            applicationId, outbox, tenant, boards, time, (application, now) => application.RemoveTag(tag, now, tenant.UserId, user.ApiKeyId()), cancellationToken);
     }
 
     /// <summary>
@@ -414,6 +418,7 @@ internal static class ApplicationChanges
         Guid applicationId,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
+        BoardRegistry boards,
         TimeProvider time,
         Func<JobApplication, DateTimeOffset, ApplicationEvent?> change,
         CancellationToken cancellationToken)
@@ -442,6 +447,6 @@ internal static class ApplicationChanges
             }
         }
 
-        return TypedResults.Ok(await ApplicationReads.DetailOfAsync(tenant, db, application, job, candidate, cancellationToken));
+        return TypedResults.Ok(await ApplicationReads.DetailOfAsync(tenant, db, boards, application, job, candidate, cancellationToken));
     }
 }
