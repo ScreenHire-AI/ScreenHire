@@ -9,8 +9,7 @@ namespace ScreenHire.Api.Contracts;
 /// <summary>
 /// The organization's verification settings (verification-engine.md §10). <c>llmConsistencyCheck</c> turns on the LLM
 /// consistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin
-/// turns it on. <c>limits</c> is the monthly AI budget and cap with what has been used so far this month; it is null for a
-/// member who cannot see AI usage (<c>ViewAiUsage</c>), and an Owner changes it with <c>/v1/organization/ai-usage/limits</c>.
+/// turns it on. What the check may spend on ScreenHire's key is the prepaid AI credits (<c>/v1/organization/billing/credits</c>).
 /// <c>presets</c> are the providers an organization can bring a key for, with the address each fills in.
 /// <c>ownKeyInputPrice</c> and <c>ownKeyOutputPrice</c> are what the organization's own key costs it, in US dollars per million
 /// tokens (null when unknown, or for a member who cannot edit settings).
@@ -36,7 +35,6 @@ public sealed record OrganizationVerificationSettings(
     bool ApiKeySaved,
     decimal? OwnKeyInputPrice,
     decimal? OwnKeyOutputPrice,
-    AiUsageLimitsView? Limits,
     IReadOnlyList<ModelPresetView> Presets,
     VerificationChecks Checks,
     AiUsePolicy DefaultAiUse,
@@ -65,8 +63,8 @@ public sealed record VerificationAlerts(bool SuggestedEmail = false, bool Sugges
 /// Replaces the organization's verification settings. <c>apiKey</c> is the one place a key travels: null keeps the saved key,
 /// text replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or
 /// model is tested before it is saved. <c>modelSource</c> <c>Included</c> erases the saved key, provider and price fields.
-/// A preset with a fixed address takes no <c>baseUrl</c>. The monthly budget and cap are not here: an Owner sets them with
-/// <c>/v1/organization/ai-usage/limits</c>.
+/// A preset with a fixed address takes no <c>baseUrl</c>. AI credits and auto-reload are not here: an Owner sets them in Billing
+/// (<c>/v1/organization/billing/credits/settings</c>).
 /// </summary>
 public sealed record UpdateVerificationSettingsRequest(
     bool LlmConsistencyCheck,

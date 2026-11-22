@@ -1,6 +1,7 @@
 import catalogue from '../plans.json';
 import aiDefaults from '../ai.json';
 import trialDefaults from '../trial.json';
+import creditDefaults from '../credits.json';
 
 /** One plan as the catalogue holds it. A null price or limit is not set yet: the owner decides both. */
 export interface CataloguePlan {
@@ -41,3 +42,13 @@ export const ai: AiPricing = aiDefaults;
 
 /** The margin as a whole percentage for copy: 0.2 is 20. */
 export const aiMarginPercent: number = Math.round(aiDefaults.margin * 100);
+
+/** Prepaid AI credits: the fixed amounts an organization can buy (US dollars), how many months a credit lasts (null: never) and the default low-balance alert. */
+export interface AiCredits {
+  amounts: number[];
+  expiryMonths: number | null;
+  lowBalanceAlert: number;
+}
+
+/** The credit amounts on offer. The API reads the same file as its default; `ScreenHire:Billing:Credits:*` overrides it there. */
+export const credits: AiCredits = creditDefaults;

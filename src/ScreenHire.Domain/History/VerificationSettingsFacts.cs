@@ -10,9 +10,6 @@ namespace ScreenHire.Domain.History;
 /// </summary>
 public sealed record VerificationSettingsFacts(
     bool ConsistencyCheck,
-    UsageUnit BudgetUnit,
-    decimal? MonthlyBudget,
-    decimal? MonthlyCap,
     decimal? OwnKeyInputPrice,
     decimal? OwnKeyOutputPrice,
     LlmSource Source,
@@ -44,9 +41,6 @@ public sealed record VerificationSettingsFacts(
         ArgumentNullException.ThrowIfNull(settings);
         return new VerificationSettingsFacts(
             settings.LlmConsistencyCheckEnabled,
-            settings.BudgetUnit,
-            settings.MonthlyBudget,
-            settings.MonthlyCap,
             settings.OwnKeyInputPrice,
             settings.OwnKeyOutputPrice,
             settings.LlmSource,

@@ -4,7 +4,6 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
-import type { AiUsageLimitsView } from './aiUsageLimitsView.ts';
 import type { AiUsePolicy } from './aiUsePolicy.ts';
 import type { DeviceCheckBasis } from './deviceCheckBasis.ts';
 import type { LastUpdate } from './lastUpdate.ts';
@@ -17,8 +16,7 @@ import type { VerificationChecks } from './verificationChecks.ts';
 /**
  * The organization's verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM
  * consistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin
- * turns it on. `limits` is the monthly AI budget and cap with what has been used so far this month; it is null for a
- * member who cannot see AI usage (`ViewAiUsage`), and an Owner changes it with `/v1/organization/ai-usage/limits`.
+ * turns it on. What the check may spend on ScreenHire's key is the prepaid AI credits (`/v1/organization/billing/credits`).
  * `presets` are the providers an organization can bring a key for, with the address each fills in.
  * `ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization's own key costs it, in US dollars per million
  * tokens (null when unknown, or for a member who cannot edit settings).
@@ -37,7 +35,6 @@ export interface OrganizationVerificationSettings {
   ownKeyInputPrice: number | null;
   /** @nullable */
   ownKeyOutputPrice: number | null;
-  limits: null | AiUsageLimitsView;
   presets: ModelPresetView[];
   checks: VerificationChecks;
   defaultAiUse: AiUsePolicy;

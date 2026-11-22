@@ -29,26 +29,25 @@ public sealed class BillingOptionsTests
         options.Mode.Should().Be(expected);
     }
 
-    // The one amount for AI use carries the margin only where it is billed: a figure with a margin nobody is charged is not
-    // the amount the customer pays (docs/architecture/ai-usage.md).
+    // The one amount for AI use carries the margin whenever billing is on, because every call is then drawn from a balance: a figure
+    // with a margin nobody is charged is not the amount the customer pays (docs/architecture/ai-usage.md).
     [Theory]
-    [InlineData("sk", "whsec", false, "price_meter", true)]
-    [InlineData("sk", "whsec", false, null, false)]
-    [InlineData("sk", "whsec", false, "  ", false)]
-    [InlineData(null, null, true, null, true)]
-    [InlineData(null, null, false, "price_meter", false)]
-    public void The_margin_is_in_force_only_while_ai_use_is_metered(string? secretKey, string? webhookSecret, bool sandbox, string? meterPrice, bool metered)
+    [InlineData("sk", "whsec", false, true)]
+    [InlineData(null, null, true, true)]
+    [InlineData(null, null, false, false)]
+    [InlineData("sk", null, false, false)]
+    public void The_margin_is_in_force_and_credits_are_on_whenever_billing_is_on(string? secretKey, string? webhookSecret, bool sandbox, bool on)
     {
         var options = new BillingOptions
         {
             SecretKey = secretKey,
             WebhookSecret = webhookSecret,
             Sandbox = new BillingSandboxOptions { Enabled = sandbox },
-            Ai = new BillingAiOptions { Margin = 0.25m, StripePriceId = meterPrice },
+            Ai = new BillingAiOptions { Margin = 0.25m },
         };
 
-        options.AiMetered.Should().Be(metered);
-        options.AiMarginInForce.Should().Be(metered ? 0.25m : 0m);
+        options.CreditsEnabled.Should().Be(on);
+        options.AiMarginInForce.Should().Be(on ? 0.25m : 0m);
     }
 
     [Fact]
@@ -83,45 +82,77 @@ public sealed class BillingOptionsTests
     }
 
     [Fact]
-    public void The_trial_includes_five_dollars_of_ai_use_and_a_run_reports_two_hundred_calls_unless_configured()
+    public void The_starting_credit_is_five_dollars_unless_configured()
     {
-        var ai = new BillingAiOptions();
-
-        ai.TrialAllowance.Should().Be(5.00m);
-        ai.ReportBatchSize.Should().Be(200);
-        ai.MeterEventName.Should().Be("screenhire_ai_usage");
-        ai.StripePriceId.Should().BeNull();
+        new BillingAiOptions().TrialAllowance.Should().Be(5.00m);
     }
 
     [Theory]
-    [InlineData(-0.01, 200, "meter", false)]
-    [InlineData(0, 200, "meter", true)]
-    [InlineData(5, 0, "meter", false)]
-    [InlineData(5, 1001, "meter", false)]
-    [InlineData(5, 1000, "meter", true)]
-    [InlineData(5, 200, " ", false)]
-    public void The_allowance_the_batch_and_the_meter_name_are_checked_at_start(double allowance, int batch, string meter, bool valid)
+    [InlineData(-0.01, false)]
+    [InlineData(0, true)]
+    [InlineData(5, true)]
+    public void The_starting_credit_may_not_be_negative(double allowance, bool valid)
     {
-        var options = new BillingOptions { Ai = new BillingAiOptions { TrialAllowance = (decimal)allowance, ReportBatchSize = batch, MeterEventName = meter } };
+        var options = new BillingOptions { Ai = new BillingAiOptions { TrialAllowance = (decimal)allowance } };
 
         new BillingAiGate().Validate(null, options).Succeeded.Should().Be(valid);
     }
 
+    // ---- Credits ----
+
     [Fact]
-    public void A_metered_price_beside_a_plan_that_is_not_in_dollars_stops_the_host_because_one_subscription_has_one_currency()
+    public void The_credit_defaults_are_the_ones_in_the_shared_catalogue_the_marketing_site_reads()
     {
-        var options = new BillingOptions
-        {
-            Ai = new BillingAiOptions { StripePriceId = "price_meter" },
-            Plans = new Dictionary<string, PlanOptions>(StringComparer.OrdinalIgnoreCase) { ["starter"] = new() { Currency = "EUR" } },
-        };
+        // packages/plans/credits.json is embedded and is the site's source for what credits cost, so the two cannot differ.
+        var credits = new BillingCreditOptions();
 
-        var result = new BillingAiGate().Validate(null, options);
+        credits.AmountsOnOffer.Should().Equal(10m, 25m, 50m, 100m);
+        credits.ExpiryMonths.Should().Be(12);
+        credits.LowBalanceAlert.Should().Be(5m);
+        credits.AmountsOnOffer.Should().Equal(CreditDefaults.Shipped.Amounts);
+    }
 
-        result.Failed.Should().BeTrue();
-        result.FailureMessage.Should().Contain("starter").And.Contain("USD");
-        // With no metered price there is nothing to mix, so a euro plan is fine.
-        new BillingAiGate().Validate(null, new BillingOptions { Plans = options.Plans }).Succeeded.Should().BeTrue();
+    [Fact]
+    public void Configured_amounts_replace_the_shipped_ones_and_are_offered_smallest_first()
+    {
+        var credits = new BillingCreditOptions { Amounts = [40m, 15m] };
+
+        credits.AmountsOnOffer.Should().Equal(15m, 40m);
+    }
+
+    [Fact]
+    public void A_credit_expires_the_configured_months_after_its_grant_and_never_when_none_is_set()
+    {
+        var granted = new DateTimeOffset(2026, 1, 31, 8, 0, 0, TimeSpan.Zero);
+
+        new BillingCreditOptions { ExpiryMonths = 12 }.ExpiresAt(granted).Should().Be(new DateTimeOffset(2027, 1, 31, 8, 0, 0, TimeSpan.Zero));
+        new BillingCreditOptions { ExpiryMonths = 1 }.ExpiresAt(granted).Should().Be(new DateTimeOffset(2026, 2, 28, 8, 0, 0, TimeSpan.Zero));
+        new BillingCreditOptions { ExpiryMonths = null }.ExpiresAt(granted).Should().BeNull();
+    }
+
+    public static TheoryData<BillingCreditOptions, bool> CreditSettings => new()
+    {
+        { new BillingCreditOptions(), true },
+        { new BillingCreditOptions { Amounts = [5m, 12.5m] }, true },
+        { new BillingCreditOptions { Amounts = [0m] }, false },
+        { new BillingCreditOptions { Amounts = [-5m] }, false },
+        { new BillingCreditOptions { Amounts = [10_000.01m] }, false },
+        { new BillingCreditOptions { Amounts = [10_000m] }, true },
+        { new BillingCreditOptions { Amounts = [10.001m] }, false },
+        { new BillingCreditOptions { Amounts = [10m, 10m] }, false },
+        { new BillingCreditOptions { ExpiryMonths = 0 }, false },
+        { new BillingCreditOptions { ExpiryMonths = 121 }, false },
+        { new BillingCreditOptions { ExpiryMonths = 120 }, true },
+        { new BillingCreditOptions { ExpiryMonths = null }, true },
+        { new BillingCreditOptions { LowBalanceAlert = -1m }, false },
+        { new BillingCreditOptions { LowBalanceAlert = 0m }, true },
+    };
+
+    [Theory]
+    [MemberData(nameof(CreditSettings))]
+    public void The_gate_refuses_amounts_expiry_and_a_low_balance_alert_that_would_misbehave_at_run_time(BillingCreditOptions credits, bool valid)
+    {
+        new BillingAiGate().Validate(null, new BillingOptions { Credits = credits }).Succeeded.Should().Be(valid);
     }
 
     [Fact]

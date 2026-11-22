@@ -8,7 +8,8 @@ namespace ScreenHire.E2E;
 /// Settings > Billing in a real browser, against the local sandbox payment provider and the plans the catalogue ships
 /// (docs/architecture/billing.md, ADR-0029, read through <see cref="ShippedPlans"/>): Starter, Growth (the trial's plan)
 /// and Unlimited. An Owner sees the free trial and the three plans, chooses one through the sandbox's checkout and comes
-/// back subscribed, with the month added up, the card and the sandbox's invoices, and reaches Billing from their own menu; a
+/// back subscribed, with the month added up, the card and the sandbox's invoices, and reaches Billing from their own menu; an Owner
+/// buys AI credits through the sandbox, sees the balance and the purchase, and turns auto-reload on (ADR-0032); a
 /// publish past the plan's limit is refused with a notice that links to Billing; a Recruiter cannot open the page and has no
 /// Billing in their menu. Each test signs in as a new person with a new organization, which starts on its own 14-day trial.
 /// </summary>
@@ -74,12 +75,11 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(plan).ToContainTextAsync("Starter");
         await Expect(plan).ToContainTextAsync($"0 of {ShippedPlans.Starter.RequiredLimit}");
 
-        // This month, added up: the plan's line and the total, then the next invoice. No AI use yet, so the plan is the whole of it.
+        // This month, added up: the plan's line and the total, then the next invoice. No AI credits bought, so the plan is the whole of it.
         var month = Page.GetByRole(AriaRole.Region, new() { Name = "This month so far", Exact = true });
         var price = $"${ShippedPlans.Starter.MonthlyPrice:0.00}";
         await Expect(month).ToContainTextAsync(new System.Text.RegularExpressions.Regex($@"Starter\s*{System.Text.RegularExpressions.Regex.Escape(price)}"));
         await Expect(month.Locator("[data-total]")).ToHaveTextAsync(price);
-        await Expect(month.GetByRole(AriaRole.Link, new() { NameRegex = new("AI call") })).ToHaveAttributeAsync("href", "#ai-use");
         await Expect(month.Locator("[data-next-invoice]")).ToContainTextAsync($"Next invoice about {price} on");
 
         // The card and the sandbox's sample invoices, newest first, each with its PDF.
@@ -107,6 +107,59 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Button, new() { NameRegex = new("Owner$") }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Billing" }).ClickAsync();
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing"));
+    }
+
+    // ADR-0032: AI use on ScreenHire's key is prepaid credits. Buying goes to the sandbox's Checkout, and the credits arrive only when the
+    // worker grants the confirmed payment, which reaches the open page live. A saved card then lets auto-reload be turned on.
+    [Fact]
+    public async Task An_owner_buys_AI_credits_sees_the_balance_and_the_purchase_and_turns_auto_reload_on()
+    {
+        var owner = ApiSession.NewEmail("e2e-billing-credits");
+        using (var session = new ApiSession(Fixture))
+        {
+            await session.SignInWithDevSsoAsync(owner, Ct);
+            await session.OnboardAsync(Ct);
+        }
+
+        await Page.SetViewportSizeAsync(1440, 1000);
+        await SignInAsync(Page, owner);
+        await Page.GotoAsync(DashboardUrl("/settings/billing#ai-credits"));
+
+        // A new organization starts with its starting credit, and no card saved yet: auto-reload says why it cannot be turned on.
+        var credits = Page.GetByRole(AriaRole.Region, new() { Name = "AI credits", Exact = true });
+        var balance = credits.Locator("[data-credit-balance]");
+        await Expect(balance).ToHaveTextAsync("$5.00");
+        var autoReload = Page.GetByRole(AriaRole.Region, new() { Name = "Auto-reload", Exact = true });
+        var reloadSwitch = autoReload.GetByRole(AriaRole.Switch, new() { Name = "Auto-reload" });
+        await Expect(reloadSwitch).ToBeDisabledAsync();
+        await Expect(autoReload).ToContainTextAsync("Buy credits once to save a card.");
+
+        // Buying $25 goes to the sandbox's Checkout and back. The page says the credits come when the payment is confirmed, then they do.
+        await credits.GetByRole(AriaRole.Button, new() { Name = "$25.00 of AI credits" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/settings/billing"));
+        await Expect(balance).ToHaveTextAsync("$30.00", new() { Timeout = 30_000 });
+
+        var purchases = Page.GetByRole(AriaRole.Region, new() { Name = "Purchases", Exact = true });
+        await Expect(purchases.GetByRole(AriaRole.Row)).ToHaveCountAsync(3, new() { Timeout = 30_000 });
+        var table = purchases.GetByRole(AriaRole.Table);
+        await Expect(table).ToContainTextAsync(new System.Text.RegularExpressions.Regex(@"Bought\s*\$25\.00\s*Paid"));
+        await Expect(table).ToContainTextAsync("Starting credit");
+
+        // The purchase saved the sandbox's card, so auto-reload can be turned on and saved.
+        await Expect(reloadSwitch).ToBeEnabledAsync(new() { Timeout = 30_000 });
+        await reloadSwitch.ClickAsync();
+        await autoReload.GetByLabel("When the balance falls below").FillAsync("5.00");
+        await autoReload.GetByLabel("Add", new() { Exact = true }).FillAsync("25.00");
+        await autoReload.GetByLabel("Most in a month").FillAsync("100.00");
+        await autoReload.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
+        await Expect(autoReload.GetByRole(AriaRole.Status)).ToHaveTextAsync("Saved. Auto-reload is on.");
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-settings-billing-credits-1440");
+
+        // It stays on.
+        await Page.ReloadAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Auto-reload", Exact = true }).GetByRole(AriaRole.Switch, new() { Name = "Auto-reload" }))
+            .ToHaveAttributeAsync("aria-checked", "true");
     }
 
     [Fact]

@@ -180,15 +180,6 @@ public sealed class LlmOptions
     /// <summary>How long one call may take before the check is recorded as unavailable.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(120);
 
-    /// <summary>Tokens per organization per calendar month (UTC) at which ScreenHire's key alerts, when the organization sets no budget of its own.</summary>
-    public long DefaultMonthlyTokenBudget { get; set; } = 2_000_000;
-
-    /// <summary>
-    /// Tokens per organization per calendar month (UTC) at which ScreenHire's key pauses the AI checks, when the
-    /// organization sets no cap of its own. The deployment's safety net; 0 turns it off. An own key has none.
-    /// </summary>
-    public long DefaultMonthlyTokenCap { get; set; } = 2_000_000;
-
     /// <summary>
     /// What ScreenHire's key costs, in US dollars per million tokens, by model id (<c>Prices:&lt;modelId&gt;:Input</c> and
     /// <c>:Output</c>). Configuration, never code: a price list in code goes stale. A model with no entry has an unknown cost.
@@ -196,24 +187,6 @@ public sealed class LlmOptions
     public Dictionary<string, ModelPrice> Prices { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     public AnthropicOptions Anthropic { get; set; } = new();
-
-    /// <summary>
-    /// The price of the model that answers on ScreenHire's key, which the default budget and cap are shown in dollars at: the
-    /// comparison model for Anthropic, the fake model for Fake. Null when no model answers or the model has no input and output price,
-    /// and the default then stays in tokens.
-    /// </summary>
-    public (decimal Input, decimal Output)? ConfiguredPrice()
-    {
-        var model = Provider switch
-        {
-            LlmProvider.Fake => FakeConsistencyChatClient.ModelId,
-            LlmProvider.Anthropic => ConsistencyModel,
-            _ => null,
-        };
-        return model is not null && Prices.TryGetValue(model, out var price) && price is { Input: { } input, Output: { } output }
-            ? (input, output)
-            : null;
-    }
 }
 
 /// <summary>What one model costs ScreenHire, in US dollars per million tokens.</summary>

@@ -473,6 +473,12 @@ internal static class AuthEndpoints
         if (billing.NewTrial(organization.Id) is { } trial)
         {
             db.BillingAccounts.Add(trial);
+            // And the starting AI credit, the trial's AI allowance (ADR-0032).
+            if (billing.StartingCredit(organization.Id) is { } credit)
+            {
+                db.CreditEntries.Add(credit);
+            }
+
             // The worker schedules the trial's reminders once this commits (docs/architecture/billing.md, "Trial reminders").
             await outbox.PublishAsync(new TrialStarted(organization.Id));
         }

@@ -132,11 +132,14 @@ public sealed class AiUsageAlert : ITenantOwned
 /// <summary>The keys of <see cref="AiUsageAlert"/>.</summary>
 public static class AiUsageAlertKeys
 {
-    /// <summary>The budget passed <paramref name="percent"/> percent in <paramref name="month"/> (<c>yyyy-MM</c>).</summary>
-    public static string Budget(string month, int percent) => $"{month}:budget-{percent}";
+    /// <summary>
+    /// The AI credit balance fell below the low-balance alert after the grant <paramref name="latestGrant"/>, the newest credit added:
+    /// one alert per refill (ADR-0032).
+    /// </summary>
+    public static string CreditsLow(Guid latestGrant) => $"credits-low:{latestGrant:N}";
 
-    /// <summary>The cap was reached in <paramref name="month"/> (<c>yyyy-MM</c>).</summary>
-    public static string Cap(string month) => $"{month}:cap";
+    /// <summary>The AI credits ran out after the grant <paramref name="latestGrant"/>.</summary>
+    public static string CreditsEmpty(Guid latestGrant) => $"credits-empty:{latestGrant:N}";
 
     /// <summary>A day's use was well above the recent average. <paramref name="day"/> is <c>yyyy-MM-dd</c>.</summary>
     public static string Spike(string day) => $"{day}:spike";

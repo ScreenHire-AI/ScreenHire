@@ -258,7 +258,12 @@ public static class DigestEmail
         {
             NoticeKind.Mentions when Guid.TryParse(item.SourceId, out var noteId) && item.ApplicationId is { } appId => MentionEmail.NotePath(appId, noteId),
             NoticeKind.Replies when item.ApplicationId is { } appId => ReplyEmail.MessagesPath(appId),
-            NoticeKind.AiUseAndBilling => item.Detail == "Trial" ? "/settings/billing" : "/settings/billing#ai-use",
+            NoticeKind.AiUseAndBilling => item.Detail switch
+            {
+                "Trial" => "/settings/billing",
+                Billing.AiCreditWording.Detail => Billing.AiCreditWording.Path,
+                _ => "/settings/billing#ai-use",
+            },
             _ => application,
         };
     }
@@ -276,7 +281,12 @@ public static class DigestEmail
             NoticeKind.NewApplications => $"{candidate} applied to {job}",
             NoticeKind.TeammateChanges => $"{someone} {MemberNoticeEmails.ChangeVerb(item.Detail)} {candidate}, {job}",
             NoticeKind.VerificationSuggested => VerificationAlertWording.Suggested(job ?? "a job"),
-            NoticeKind.AiUseAndBilling => item.Detail == "Trial" ? "Your free trial ends soon" : "AI use needs a look",
+            NoticeKind.AiUseAndBilling => item.Detail switch
+            {
+                "Trial" => "Your free trial ends soon",
+                Billing.AiCreditWording.Detail => "AI credits need a look",
+                _ => "AI use needs a look",
+            },
             _ => null,
         };
     }

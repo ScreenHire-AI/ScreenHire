@@ -1,9 +1,9 @@
-import type { VerificationOverviewView } from '@screenhire/api-client';
-import { render, screen, within } from '@testing-library/svelte';
+import type { AiCreditsView, VerificationOverviewView } from '@screenhire/api-client';
+import { render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub, user, userAs } from '../../../test-support/fixtures.js';
-import { dollarLimits, limits, settingsWith } from '../../../test-support/verification-settings.js';
+import { aiCredits, creditsWith } from '../../../test-support/ai-credits.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -27,13 +27,13 @@ const overview: VerificationOverviewView = {
   lastCheckedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
 };
 
-function renderPage(result: VerificationOverviewView | Response, signedIn = user, withLimits = true, shown = limits) {
+function renderPage(result: VerificationOverviewView | Response, signedIn = user, credits: AiCreditsView = aiCredits) {
   vi.stubGlobal(
     'fetch',
     vi.fn(
       apiStub({
         'GET /v1/verification/overview': () => (result instanceof Response ? result : Response.json(result)),
-        'GET /v1/organization/verification-settings': () => Response.json(settingsWith({ limits: withLimits ? shown : null })),
+        'GET /v1/organization/billing/credits': () => Response.json(credits),
       }),
     ),
   );
@@ -120,30 +120,39 @@ describe('the Overview tab', () => {
     expect(screen.queryByText(/still being checked/)).not.toBeInTheDocument();
   });
 
-  it("shows the AI usage against the budget, with a link to Billing's AI use section, for who can see usage", async () => {
+  it("shows the AI credits balance, with a link to Billing's credits, for who can see usage", async () => {
     renderPage(overview);
 
-    expect(await screen.findByRole('heading', { name: 'Spending limits' })).toBeInTheDocument();
-    expect(screen.getAllByText('420 tokens of 2,000,000 tokens').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'See AI use' })).toHaveAttribute('href', '/settings/billing#ai-use');
+    const panel = (await screen.findByRole('heading', { name: 'AI credits' })).closest('section') as HTMLElement;
+    expect(within(panel).getByText('Balance', { selector: 'dt' }).nextElementSibling).toHaveTextContent('$18.40');
+    expect(within(panel).queryByText('AI checks paused')).not.toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: 'See AI credits' })).toHaveAttribute('href', '/settings/billing#ai-credits');
+    expect(screen.queryByRole('heading', { name: 'Spending limits' })).not.toBeInTheDocument();
+    await expectNoAxeViolations();
   });
 
-  it('shows the budget in billed dollars where the deployment prices its model, with no estimate to explain', async () => {
-    renderPage(overview, user, true, dollarLimits);
+  it('says the AI checks are paused at a zero balance, with the badge, not a colour alone', async () => {
+    renderPage(overview, user, creditsWith({ balance: 0, paused: true }));
 
-    expect(await screen.findByRole('heading', { name: 'Spending limits' })).toBeInTheDocument();
-    expect((await screen.findAllByText('$0.07 of $3.84')).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/estimate/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/tokens of/)).not.toBeInTheDocument();
+    const panel = (await screen.findByRole('heading', { name: 'AI credits' })).closest('section') as HTMLElement;
+    expect(within(panel).getByText('$0.00')).toBeInTheDocument();
+    expect(within(panel).getByText('AI checks paused')).toBeInTheDocument();
+  });
+
+  it('shows no credits panel where no payment provider is set up', async () => {
+    renderPage(overview, user, creditsWith({ available: false, balance: 0 }));
+
+    await screen.findByText('Applications checked');
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'AI credits' })).not.toBeInTheDocument());
   });
 
   describe.each(['Recruiter', 'Viewer'] as const)('for a %s', (role) => {
-    it('shows the counts and no AI usage', async () => {
-      renderPage(overview, userAs(role), false);
+    it('shows the counts and no AI credits', async () => {
+      renderPage(overview, userAs(role));
 
       expect(await screen.findByText('Applications checked')).toBeInTheDocument();
-      expect(screen.queryByRole('heading', { name: 'Spending limits' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('link', { name: 'See AI use' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'AI credits' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'See AI credits' })).not.toBeInTheDocument();
     });
   });
 

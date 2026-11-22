@@ -1,7 +1,7 @@
 <script lang="ts">
   import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
   import type { VerificationGroupCount } from '@screenhire/api-client';
-  import { createGetOrganizationVerificationSettings, createGetVerificationOverview } from '@screenhire/api-client/svelte-query';
+  import { createGetAiCredits, createGetVerificationOverview } from '@screenhire/api-client/svelte-query';
   import BarChart, { type BarRow } from '#lib/components/bar-chart.svelte';
   import ChartPanel, { type ChartColumn } from '#lib/components/chart-panel.svelte';
   import LevelMark from '#lib/components/level-mark.svelte';
@@ -11,24 +11,28 @@
   import ReportStat from '#lib/components/report-stat.svelte';
   import StatusIcon from '#lib/components/status-icon.svelte';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import LimitsSummary from '#lib/components/verification-area/limits-summary.svelte';
+  import StatusBadge from '#lib/components/status-badge.svelte';
+  import SummaryItem from '#lib/components/summary-item.svelte';
+  import SummaryList from '#lib/components/summary-list.svelte';
   import { locales } from '#lib/dates.js';
+  import { formatCredits } from '#lib/billing.js';
   import { describeError } from '#lib/query.js';
-  import { aiUseAddress, canSeeUsage } from '#lib/verification-area.js';
+  import { canSeeUsage } from '#lib/verification-area.js';
   import { verificationStateOf, type VerificationState } from '#lib/verification.js';
   import type { PageProps } from './$types';
 
   // The Overview tab: this month's applications by what the checks found, what each of the six groups of checks found (a group
   // that is off says Off and links to Checks, so a quiet bar is never read as a clean one), and,
-  // for who can see AI usage, the month against the budget. Counts of applications only: no score, no percentage, no AI
+  // for who can see AI usage, the AI credits balance. Counts of applications only: no score, no percentage, no AI
   // assistance level, and nothing about a person (ADR-0004, design system section 16).
   let { data }: PageProps = $props();
 
   const overview = createGetVerificationOverview();
   const result = $derived(overview.data?.data);
   const usageVisible = $derived(canSeeUsage(data.user));
-  const settings = createGetOrganizationVerificationSettings(() => ({ query: { enabled: usageVisible } }));
-  const limits = $derived(usageVisible ? settings.data?.data.limits : null);
+  // The AI credits balance, where a payment provider is set up (ADR-0032): at zero the AI checks pause, which the badge says.
+  const creditsQuery = createGetAiCredits(() => ({ query: { enabled: usageVisible } }));
+  const credits = $derived(usageVisible && creditsQuery.data?.data.available ? creditsQuery.data.data : null);
 
   const count = new Intl.NumberFormat(locales);
   // Each level's tile carries the level's own icon, as the chips draw it: circle-check for Clear, eye for Review and id-card
@@ -117,11 +121,22 @@
       {/snippet}
     </ChartPanel>
 
-    {#if limits}
-      <Panel title="Spending limits">
+    {#if credits}
+      <Panel title="AI credits">
         <div class="flex flex-col gap-4">
-          <LimitsSummary {limits} cap={false} />
-          <p><a href={aiUseAddress} class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">See AI use</a></p>
+          <SummaryList>
+            <SummaryItem label="Balance">
+              <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span class="tabular-nums">{formatCredits(credits.balance)}</span>
+                {#if credits.paused}<StatusBadge status="notInEffect" label="AI checks paused" />{/if}
+              </span>
+            </SummaryItem>
+          </SummaryList>
+          <p>
+            <a href="/settings/billing#ai-credits" class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11"
+              >See AI credits</a
+            >
+          </p>
         </div>
       </Panel>
     {/if}

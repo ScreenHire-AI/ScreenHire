@@ -100,7 +100,7 @@ describe('whose key runs the AI check', () => {
 
   it('describes each choice in a line, with who bills what one press away, and offers the own-key fields only when it is chosen', async () => {
     renderPage(settingsWith());
-    expect(await screen.findByText("You're billed for what the checks use.")).toBeInTheDocument();
+    expect(await screen.findByText('The checks use your AI credits.')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /ScreenHire's key/ })).toBeChecked();
     expect(screen.queryByLabelText('API key')).not.toBeInTheDocument();
 

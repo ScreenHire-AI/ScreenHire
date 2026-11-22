@@ -3,9 +3,10 @@ using ScreenHire.Domain.Billing;
 namespace ScreenHire.Application.Billing;
 
 /// <summary>
-/// The payment provider behind billing (ADR-0029): Stripe, or the local sandbox. It starts a subscription (Checkout),
-/// sends the owner to the provider's own page to change or cancel it (the portal), and turns the provider's signed
-/// webhook into a <see cref="BillingProviderEvent"/>. It decides nothing about what a plan allows.
+/// The payment provider behind billing (ADR-0029, ADR-0032): Stripe, or the local sandbox. It starts a subscription (Checkout),
+/// sends the owner to the provider's own page to change or cancel it (the portal), takes payment for AI credits (a credit
+/// Checkout, an auto-reload charge), and turns the provider's signed webhook into a <see cref="BillingProviderEvent"/> or a
+/// <see cref="CreditPaymentEvent"/>. It decides nothing about what a plan allows or what a balance is.
 /// </summary>
 public interface IBillingProvider
 {
@@ -41,12 +42,24 @@ public interface IBillingProvider
     Task ChangePlanAsync(PlanChangeRequest request, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Reports AI use on ScreenHire's key to the provider's meter, so the subscription's next invoice charges it. Events are sent one at a
-    /// time in order, and the first failure stops the batch: the result lists the ids the provider took (and so will bill) and the
-    /// failure, if any, so the caller records what was sent before it retries the rest. An id the provider has already seen counts as
-    /// taken. Never throws for a refusal or an unreachable provider; that is in the result.
+    /// The provider's page where the owner pays for <see cref="CreditCheckoutRequest.Amount"/> of AI credits, once, saving the card for
+    /// auto-reload. Paying there grants nothing by itself: the credits come from the provider's signed confirmation (ADR-0032).
     /// </summary>
-    Task<AiUsageReportResult> ReportAiUsageAsync(AiUsageReport request, CancellationToken cancellationToken);
+    Task<Uri> CreateCreditCheckoutAsync(CreditCheckoutRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Charges the saved card for an auto-reload, off-session. A refusal (a declined card, a card that needs the owner to confirm) is
+    /// <see cref="CreditChargeStatus.Declined"/>, with nothing left to collect, and never retried by the provider. Throws
+    /// <see cref="BillingProviderException"/> only when the provider could not be reached or answered something unexpected, so a
+    /// retry with the same purchase is the same charge.
+    /// </summary>
+    Task<CreditCharge> ChargeCreditsAsync(CreditChargeRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The card a credit Checkout's payment saved for later off-session use, read from the provider's payment. Null when there is none.
+    /// Throws <see cref="BillingProviderException"/> when the provider refuses or cannot be reached.
+    /// </summary>
+    Task<string?> SavedPaymentMethodAsync(string paymentIntentId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Checks a webhook's signature and reads the event. <see cref="BillingWebhook.Event"/> is null for a valid delivery
@@ -127,17 +140,39 @@ public sealed record PlanChangeRequest(
 /// </summary>
 public sealed record PlanChangePreview(decimal AmountDueNow, decimal NextPaymentAmount, DateTimeOffset NextPaymentAt, string Currency, DateTimeOffset ProrationDate);
 
-/// <summary>One AI call to meter: the ledger call's id (the event's identifier at the provider) and its charge in micro-dollars (positive).</summary>
-public sealed record AiUsageEvent(Guid Id, long Micros);
+/// <summary>
+/// A credit Checkout: the purchase the payment is for (its id travels in the provider's metadata and is what the grant is keyed on),
+/// the US dollars of credit, the provider's customer when there is one, and where the browser goes after.
+/// </summary>
+public sealed record CreditCheckoutRequest(
+    Guid OrganizationId, Guid PurchaseId, decimal Amount, string? CustomerId, string? CustomerEmail, Uri SuccessUrl, Uri CancelUrl);
+
+/// <summary>An auto-reload charge: the purchase, the US dollars of credit, and the customer and saved card to charge.</summary>
+public sealed record CreditChargeRequest(Guid OrganizationId, Guid PurchaseId, decimal Amount, string CustomerId, string PaymentMethodId);
+
+/// <summary>How an auto-reload charge went.</summary>
+public enum CreditChargeStatus
+{
+    /// <summary>The provider took the payment. Stripe still confirms it by webhook, which grants; the sandbox grants at once.</summary>
+    Succeeded,
+
+    /// <summary>The provider took the request and has not settled it yet (a bank debit): its webhook grants or nothing does.</summary>
+    Pending,
+
+    /// <summary>Refused: a declined card or one that needs the owner. Nothing is left open to collect.</summary>
+    Declined,
+}
+
+/// <summary>An auto-reload charge's outcome, the provider's id for the payment, and its refusal code when declined.</summary>
+public sealed record CreditCharge(CreditChargeStatus Status, string? PaymentId, string? FailureCode = null);
 
 /// <summary>
-/// Usage to meter for one organization's provider customer, stamped <c>At</c> (the moment of the report, from the host's clock).
-/// <c>CustomerId</c> is null in the sandbox, which has no customers.
+/// The provider confirming that a credit purchase was paid: the event's id (recorded so a redelivery does nothing), the organization
+/// and purchase from the metadata the purchase put on the payment, the provider's id for the payment, the payment intent whose card
+/// a Checkout saved, and the customer the payment was made by.
 /// </summary>
-public sealed record AiUsageReport(Guid OrganizationId, string? CustomerId, IReadOnlyList<AiUsageEvent> Events, DateTimeOffset At);
-
-/// <summary>The ids the provider took, in order, and what stopped the rest (null when every event went through).</summary>
-public sealed record AiUsageReportResult(IReadOnlyList<Guid> Accepted, BillingProviderException? Failure);
+public sealed record CreditPaymentEvent(
+    string EventId, DateTimeOffset CreatedAt, Guid OrganizationId, Guid PurchaseId, string ProviderPaymentId, string? PaymentIntentId, string? CustomerId);
 
 /// <summary>
 /// What a provider told us, in its own terms made common. A null field says nothing about that fact and leaves it as it is.
@@ -155,8 +190,11 @@ public sealed record BillingProviderEvent(
     DateTimeOffset? CurrentPeriodEnd,
     bool? CancelsAtPeriodEnd);
 
-/// <summary>A webhook delivery. <c>SignatureValid</c> false means it is not signed by the provider: answer 401 and read nothing.</summary>
-public readonly record struct BillingWebhook(bool SignatureValid, BillingProviderEvent? Event);
+/// <summary>
+/// A webhook delivery. <c>SignatureValid</c> false means it is not signed by the provider: answer 401 and read nothing. A delivery is
+/// a subscription <c>Event</c>, a <c>Credit</c> payment, or neither (a type this app ignores).
+/// </summary>
+public readonly record struct BillingWebhook(bool SignatureValid, BillingProviderEvent? Event, CreditPaymentEvent? Credit = null);
 
 /// <summary>The provider refused a call or could not be reached. The message names no key and no customer.</summary>
 public sealed class BillingProviderException : Exception

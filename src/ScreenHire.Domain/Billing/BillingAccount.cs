@@ -51,6 +51,22 @@ public sealed class BillingAccount : ITenantOwned
     };
 
     /// <summary>
+    /// Keeps the customer a credit purchase created, where the account has none yet, so a later plan Checkout reuses it. Not an event:
+    /// <see cref="LastEventAt"/> stays, so a subscription event created earlier and delivered later is still applied.
+    /// </summary>
+    public bool AdoptCustomer(string customerId, DateTimeOffset now)
+    {
+        if (ProviderCustomerId is not null || string.IsNullOrWhiteSpace(customerId))
+        {
+            return false;
+        }
+
+        ProviderCustomerId = customerId;
+        UpdatedAt = now;
+        return true;
+    }
+
+    /// <summary>
     /// Applies what the provider reported. False when the event is older than one already applied. Fields the event does
     /// not carry (null) keep their value.
     /// </summary>

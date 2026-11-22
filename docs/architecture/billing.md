@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Billing, plans and the free trial"
-description: "How an organization pays and what its plan allows: the Off, Sandbox and Stripe modes, the plan catalogue shared with the pricing page, the trial that starts at sign-up and the reminders before it ends, the four entitlement states and the one thing a plan refuses (opening a draft job, as a 402), Checkout, the portal and the priced plan change, the signed Stripe webhook and its idempotency, AI use on ScreenHire's key reported to a Stripe meter at the provider's price plus a margin and shown as one amount, the month added up, the invoices and the payment method, the local sandbox, the three tables, the Owner's Billing page, tests and what is not built."
+description: "How an organization pays and what its plan allows: the Off, Sandbox and Stripe modes, the plan catalogue shared with the pricing page, the trial that starts at sign-up and the reminders before it ends, the four entitlement states and the one thing a plan refuses (opening a draft job, as a 402), Checkout, the portal and the priced plan change, the signed Stripe webhook and its idempotency, AI use on ScreenHire's key paid for in advance as AI credits (our own ledger, Checkout to buy, an off-session invoice to auto-reload, granted only from Stripe's signed confirmation, the AI check paused at zero) and shown as one amount, the month added up, the invoices and the payment method, the local sandbox, the five tables, the Owner's Billing page, tests and what is not built."
 tags: [billing, stripe, plans, trial, entitlement]
 sources:
   - resource: packages/plans/plans.json
@@ -17,7 +17,16 @@ sources:
   - resource: src/ScreenHire.Application/Billing/BillingAccess.cs
   - resource: src/ScreenHire.Application/Billing/BillingService.cs
   - resource: src/ScreenHire.Application/Billing/TrialReminderHandlers.cs
-  - resource: src/ScreenHire.Application/Billing/AiUsageReporting.cs
+  - resource: src/ScreenHire.Application/Billing/AiUsageBillingQueries.cs
+  - resource: src/ScreenHire.Application/Billing/AiCredits.cs
+  - resource: src/ScreenHire.Domain/Billing/AiCredits.cs
+  - resource: packages/plans/credits.json
+  - resource: apps/api/Endpoints/AiCreditEndpoints.cs
+  - resource: apps/api/Contracts/AiCreditContracts.cs
+  - resource: apps/dashboard/src/lib/components/ai-credits-panel.svelte
+  - resource: apps/dashboard/src/lib/components/auto-reload-form.svelte
+  - resource: apps/dashboard/src/lib/components/credit-purchases.svelte
+  - resource: apps/dashboard/src/lib/components/credit-deductions.svelte
   - resource: src/ScreenHire.Application/Billing/StripeBillingProvider.cs
   - resource: src/ScreenHire.Application/Billing/StripeSignature.cs
   - resource: src/ScreenHire.Application/Billing/SandboxBillingProvider.cs
@@ -46,9 +55,9 @@ account or the internet. Candidates never meet any of it.
 
 ## Configuration
 
-`ScreenHire:Billing` (`BillingOptions`), forwarded by the AppHost to the API. Its `Trial:*`, `Plans:*`, `Ai:*`, `Sandbox:*` and `Stripe:*` keys,
-`ApiBaseUrl` and `Timeout` go to the worker too, which sends the trial's reminders and reports AI use to Stripe's meter, and the worker gets
-both Stripe parameters as the API does. The mode (`BillingOptions.Mode`) is worked
+`ScreenHire:Billing` (`BillingOptions`), forwarded by the AppHost to the API. Its `Trial:*`, `Plans:*`, `Ai:*`, `Credits:*`, `Sandbox:*` and
+`Stripe:*` keys, `ApiBaseUrl` and `Timeout` go to the worker too, which sends the trial's reminders and grants, auto-reloads and expires AI
+credits, and the worker gets both Stripe parameters as the API does. The mode (`BillingOptions.Mode`) is worked
 out the same way everywhere:
 
 | Mode | When | Provider |
@@ -69,11 +78,11 @@ out the same way everywhere:
 | `Trial:Plan` | `packages/plans/trial.json` (`growth`) | The plan whose limit applies during the trial. With billing on, a key the catalogue does not have stops the host at start (`BillingTrialGate`), as a negative `Trial:Days` does, because neither would show up any other way |
 | `Trial:RemindDaysBefore` | `[7, 1]` | The days before `TrialEndsAt` the Owners are emailed. The day it ends is always reminded and is not a setting; a day below 1 stops the host at start. Configure it as a list (`ScreenHire__Billing__Trial__RemindDaysBefore__0=3`), which replaces the default |
 | `Plans:<key>:*` | the catalogue | Overrides `Name`, `Order`, `MonthlyPrice`, `Currency`, `ActiveJobs`, `Unlimited` and `StripePriceId` for one plan. A field left out keeps the catalogue's value |
-| `Ai:Margin` | `packages/plans/ai.json` (0.20) | The share added to the provider's price when AI use on ScreenHire's key is billed (0.20 is 20% on top). 0 to 10; anything else stops the host at start (`BillingAiGate`). The marketing site reads the same file to say "plus 20%", so a host that overrides this changes the file too. An organization's own key costs it nothing extra. The app never shows it: every figure for AI use already includes it (`BillingOptions.AiMarginInForce`, which is 0 while AI use is not billed: billing off, or Stripe without `Ai:StripePriceId`) |
-| `Ai:StripePriceId` | none | The metered Stripe price on the meter. Checkout adds it to a new subscription, and Stripe mode reports no usage without it (a warning in the log). The sandbox needs none. Every subscribable plan must be in USD while it is set (`BillingAiGate`), because the ledger prices in US dollars and a Stripe subscription has one currency |
-| `Ai:MeterEventName` | `screenhire_ai_usage` | The `event_name` of the Stripe meter the owner creates |
-| `Ai:TrialAllowance` | 5.00 | US dollars of AI use on ScreenHire's key the free trial includes. 0 includes none |
-| `Ai:ReportBatchSize` | 200 | The most calls one run reports for one organization (1 to 1000); a full batch asks for the next |
+| `Ai:Margin` | `packages/plans/ai.json` (0.20) | The share added to the provider's price when AI use on ScreenHire's key draws credits (0.20 is 20% on top). 0 to 10; anything else stops the host at start (`BillingAiGate`). The marketing site reads the same file to say "plus 20%", so a host that overrides this changes the file too. An organization's own key costs it nothing extra. The app never shows it: every figure for AI use already includes it (`BillingOptions.AiMarginInForce`, which is 0 with billing off) |
+| `Ai:TrialAllowance` | 5.00 | The starting credit: US dollars of AI credits every organization gets once, with its billing account. 0 gives none |
+| `Credits:Amounts` | `packages/plans/credits.json` (`[10, 25, 50, 100]`) | The fixed amounts, in US dollars, an Owner can buy. Each more than 0 and at most 10,000, to the cent, listed once (`BillingAiGate`). Configure it as a list (`ScreenHire__Billing__Credits__Amounts__0=20`), which replaces the default. The marketing site reads the file to say the smallest |
+| `Credits:ExpiryMonths` | `packages/plans/credits.json` (12) | Months a credit lasts from its grant, 1 to 120; empty means never |
+| `Credits:LowBalanceAlert` | `packages/plans/credits.json` (5.00) | A new organization's low-balance alert, in US dollars. Each Owner changes their organization's on Billing |
 | `ApiBaseUrl`, `Timeout` | Stripe's API, 15 s | For a test that points the real client at a stand-in |
 
 The two keys are secrets: they come from the parameters (set with `dotnet user-secrets set Parameters:stripe-secret-key
@@ -81,7 +90,7 @@ The two keys are secrets: they come from the parameters (set with `dotnet user-s
 from the settings. `BillingAccess` is always registered in the API and every test host, so an endpoint that takes it always
 resolves; with billing off, nothing reads or writes a billing row. The worker takes no part in Checkout, the portal or the publish check. It reads
 the trial's settings and the plan catalogue (`AddScreenHireTrialReminders`), to send the trial's reminders, and holds both providers
-(`AddScreenHireAiUsageBilling`) to report AI use to the meter.
+(`AddScreenHireAiCredits`) to grant, auto-reload and expire AI credits.
 
 ## Plans and the shared catalogue
 
@@ -332,94 +341,139 @@ Billing code cannot do these, and tax stays off until they are done:
 4. Set `ScreenHire:Billing:Stripe:Tax:Enabled=true` where the API runs, and `CollectTaxIds=false` if the business does not
    want tax ids.
 
-## AI usage
+## AI credits
 
 The consistency check calls a language model ([AI usage](ai-usage.md)). Its calls on an organization's own key cost ScreenHire
-nothing and are never billed. Its calls on ScreenHire's key cost ScreenHire the provider's price, and the organization pays that
-price plus a margin (`Ai:Margin`, 20% from `packages/plans/ai.json`). The plan includes the checks; the use of the built-in key is
-the one metered thing on top of it.
+nothing and never touch the credits. Its calls on ScreenHire's key are paid for in advance, as AI credits, the way Anthropic's
+console works (ADR-0032, the owner's fifth walk-through, 2026-11-22). The plan includes the checks; the use of the built-in key is
+the one thing bought on top of it, and it is bought before it is used.
 
-**The amount.** `AiCharge.Micros` prices one call: its cost in US dollars times (1 + margin), rounded half away from zero to a
-micro-dollar, a whole number. The unit is the micro-dollar because Stripe's meter takes positive integers and a call often costs a
-fraction of a cent. The Billing page sums the same function over the month, in SQL (Postgres rounds numeric half away from zero too),
-so its AI line and the meter agree to the micro-dollar for calls past the trial (the trial's allowance is its own line). A call with no known cost (`Unknown`, never a made-up zero) charges nothing.
+**Why our own ledger.** Stripe has billing credits (credit grants), but it applies them to a subscription invoice's metered lines only
+when the invoice finalizes, so the app could not pause the AI check at zero while the month runs. A grant also needs a subscription
+with a metered price, which a trial organization does not have, and there is no auto-recharge. ADR-0032 has the comparison. So the
+ledger is ours, and Stripe takes the money: Checkout in payment mode to buy, and an invoice paid off-session to auto-reload.
 
-**One amount for AI use.** A customer sees one amount for AI use, the amount they pay, and never the provider's price or the margin
-(the owner's walk-through, 2026-11-21). `AiCharge.Billed` is that amount for one call: on ScreenHire's key `AiCharge.Micros` in dollars, the
-figure the meter is sent; on the organization's own key the provider's price, which that provider charges and ScreenHire never bills, so
-it is labelled "Charged by your provider (estimate)". Billing's AI use section, its by-day and by-model tables, the call list, the Activity log, both
-CSVs, the budget and the cap and the Billing page all show it (`AiUsageQueries.BilledAmount` in SQL). The margin is
-`BillingOptions.AiMarginInForce`: `Ai:Margin` while AI use is billed (`AiMetered`: the sandbox, or Stripe with `Ai:StripePriceId` set), and 0 otherwise, because nobody is billed for it then. The ledger keeps
-the provider's price, so a margin changed later reprices what is shown but never what was reported.
+**The ledger.** `credit_entries` has one row per grant and per debit, in micro-dollars (a whole number, because a call often costs a
+fraction of a cent): positive for the starting credit, a purchase and an auto-reload, negative for an AI call and an expiry. The
+balance is the sum. The application role can neither update nor delete a row. Every row has a `source_key`, unique in its
+organization, so each effect lands once however often a message arrives:
 
-**Reporting.** Every 15 minutes (`ReportAiUsage`, a recurring Wolverine schedule in the worker) one message for each organization
-(`ReportOrganizationAiUsage`, `[Deduplicated]` on the organization and the 15-minute slot) settles that organization's pending calls:
-built-in key, a cost, started within the last 34 days and not yet in `ai_usage_charges`,
-oldest first, at most `Ai:ReportBatchSize`. A full batch sends the next one, keyed by the last call's id so the cron slot's own key
-does not swallow it. The 34 days are a choice, not Stripe's 35-day limit (the event carries the report's time, not the call's): an older
-call that was never settled is never billed, so a first invoice reaches back about one period at most, and the query stays bounded.
+| Row | `source_key` | Written by |
+|---|---|---|
+| The starting credit | `starting` | onboarding, with the billing account; for an organization older than credits, the first check, Billing page or account that asks (`AiCreditLedger.EnsureStartingCreditAsync`, one `INSERT ... ON CONFLICT DO NOTHING`) |
+| A purchase or an auto-reload | `purchase:<purchase id>` | `GrantAiCredits`, from the provider's confirmation |
+| One AI call | `call:<ledger call id>` | the consistency check, in the save that records the call |
+| What was left of a grant when it expired | `expiry:<grant id>` | the daily expiry run |
 
-- **Only a paying organization is reported.** The account must be Active or PastDue. During the trial there is no Stripe customer,
-  and after the subscription ended there is nothing to bill on, so those calls wait (up to the 34 days) and are settled when a plan
-  starts. In Stripe mode the account also needs its customer and `Ai:StripePriceId`; without either, nothing is sent and the run
-  warns in the log. The sandbox needs neither.
-- **One meter event per call**, sent one after another because Stripe answers 409 when two events for one customer and meter arrive
-  at once. The event is `POST /v1/billing/meter_events` with the meter's `event_name`, `identifier` = the ledger call's id,
-  `payload[stripe_customer_id]`, `payload[value]` = the charge in micro-dollars, and `timestamp` = the moment of the report, so a call
-  backfilled from the trial lands in the first paid period (Stripe ignores usage from before a subscription started). The metered
-  price turns a micro-dollar into money at 0.0001 cents a unit.
-- **Never twice.** The ledger is append-only and its rows commit late (a row is saved when its whole check finishes, with the call's
-  start as its time and an id made when the call ended), so no time or id watermark is safe. `ai_usage_charges` has one row per
-  settled call, with the ledger call's id as its primary key. Three layers hold: the message's dedupe key, that primary key, and
-  Stripe's own `identifier`, which it remembers for 24 hours (a repeat is a 400 `duplicate_meter_event` and counts as taken).
-- **A batch Stripe stops part-way.** `IBillingProvider.ReportAiUsageAsync` returns the ids Stripe took and the failure, and does not
-  throw. The handler saves the rows for what Stripe took and returns, so a retry cannot send those events again after Stripe's 24
-  hours; the rest waits for the next slot. Throwing would roll that save back with Wolverine's transaction. A refusal logs the status and
-  Stripe's error code and never the key or the customer.
-- **Not priced, not billed.** A call's cost is fixed when its row is written. A built-in call recorded with no price for its model
-  (`Verification:Llm:Prices:<model>` unset) has no cost, is never reported, and a price added later does not reprice it. The page counts
-  these calls and says they are not charged, and every run of a paying organization logs how many there are from the last 34 days
-  (a warning), so a missing price shows up in the Aspire dashboard.
-- **USD only.** The ledger prices in US dollars and all items of one Stripe subscription share a currency. `BillingAiGate` refuses to
-  start a host that has `Ai:StripePriceId` set beside a subscribable plan in another currency. The brief said "in the plan's currency";
-  converting would need an exchange rate the ledger does not have.
+**The amount.** `AiCharge.Micros` prices one call: its cost in US dollars times (1 + `Ai:Margin`), rounded half away from zero to a
+micro-dollar. A call with no known cost (`Unknown`, never a made-up zero) draws nothing, and Billing's AI use section counts these calls.
+The margin is `BillingOptions.AiMarginInForce`: `Ai:Margin` whenever a payment provider is set up, 0 with billing off. A customer sees
+one amount for AI use, the amount drawn, and never the provider's price or the margin (`AiCharge.Billed`, `AiUsageQueries.BilledAmount`
+in SQL); an own key's amount is the provider's price, labelled "Charged by your provider (estimate)".
 
-**The free trial.** Included up to `Ai:TrialAllowance` (US dollars, 5.00 by default), because a trial has no Stripe customer to meter
-against. A call that started before `TrialEndsAt` is a trial call (no new column: an Owner who subscribes early still keeps the allowance
-for the trial window). Once the account is paying, `AiChargePlanner` (pure, in the domain) walks the pending trial calls in time order and
-settles each as `Waived` while the waived total, counting earlier runs, stays within the allowance; the first call that would pass it,
-and every call after it, is reported in full, so use above the allowance is on the first paid invoice. A call that cost nothing is
-`Waived` with no micro-dollars, because the meter takes none. A call made after the trial with no plan is not a trial call and is
-billed in full when a plan starts. The Billing page says all of this in plain words.
+**Buying.** `POST /v1/organization/billing/credits/checkout` with one of `Credits:Amounts` (10, 25, 50 and 100 US dollars by default,
+from `packages/plans/credits.json`) records a `Pending` purchase in `credit_purchases` and returns the provider's page. Stripe Checkout
+runs in payment mode, with one line of "AI credits" priced inline in US dollars (`price_data`, tax-exclusive), the card saved for
+off-session use (`payment_intent_data[setup_future_usage]=off_session`), an invoice (`invoice_creation`), and the organization, the
+purchase id and `purpose=ai-credits` in the session's metadata. A trial organization has no Stripe customer yet, so Checkout makes one
+(`customer_creation=always`), which the account then keeps for its plan's Checkout. The same tax fields as a plan's Checkout apply. The
+browser comes back to `/settings/billing?credits=success#ai-credits` or `?credits=cancelled`, which grants nothing: the page says the
+credits appear when the payment is confirmed.
 
-**On the subscription.** Checkout adds `line_items[1][price]=<Ai:StripePriceId>` (a metered price takes no quantity). The plan change
-and the webhook read the item that carries a catalogue price, whichever order Stripe lists the items in (`PlanKeyOf`, `PeriodEnd`), and
-the plan change's preview ignores the metered line: it is usage so far, not the plan, and its earlier period would pull the next payment's
-date back. A subscription made before the metered price was set has no such item; the owner adds it in Stripe. Until then Stripe still
-takes that customer's meter events, so the calls are recorded as `Reported`, but no invoice charges them.
+**Granting.** Credits are granted only from the provider's signed event confirming the payment, never from the browser's return:
 
-**The sandbox** takes every event (`SandboxBillingProvider.ReportAiUsageAsync`) and keeps no meter of its own. The `ai_usage_charges` row,
-with provider `Sandbox`, is the record that the usage was reported, so the local demo and the tests show it. Brightwater is seeded Active on
-Unlimited with a trial that ended the day before, so the worker's next 15-minute report sends its demo calls to the sandbox meter in full.
+| Event | Grants |
+|---|---|
+| `checkout.session.completed` with `payment_status=paid`, or `checkout.session.async_payment_succeeded`, with `metadata.purpose=ai-credits` | a Checkout purchase |
+| `invoice.paid` with `metadata.purpose=ai-credits` | an auto-reload |
 
-**Budgets and caps count billed dollars** (owner decision, 2026-11-21): the same amount this page and its AI use section show, so a cap of $50
-stops at $50 billed ([AI usage](ai-usage.md#budget-alerts-and-the-cap)).
+The invoice Checkout creates carries the organization but not the purpose, so its own `invoice.paid` grants nothing; a credit session
+that is not paid yet is neither a grant nor a subscription event (a payment-mode session never changes the plan). The webhook records the
+event in `billing_events` and publishes `GrantAiCredits` through the outbox in the same save (`CreditPaymentApplier`). It also keeps the
+payment's customer on the account when the account has none, without counting as a subscription event (`BillingAccount.AdoptCustomer`
+leaves `LastEventAt` alone). The worker's handler is `[Deduplicated]` on the purchase, and the grant's key is the purchase id, which both
+of a Checkout's events carry. A redelivery, or two events for one purchase, grant once. The handler marks the purchase Paid, reads the
+card the Checkout saved (`GET /v1/payment_intents/{id}`, because a webhook carries the payment intent as an id), clears the credit
+notifications, and asks again for the AI checks the empty balance paused (`ResumeOrganizationAiChecks`). A grant expires
+`Credits:ExpiryMonths` after it is made (12; empty never).
 
-### Owner actions for AI usage
+**At zero the AI check pauses.** Before each check on ScreenHire's key, with credits on, a balance at or below zero records the check as
+`Paused` with `RunNotes.AiCreditsPaused`: "The AI checks were paused because this organization's AI credits ran out. This says nothing
+about the candidate. The other checks ran." The rule-based checks keep running, nothing marks or holds a candidate (ADR-0004), and a
+grant resumes the paused checks, as the daily 05:12 run does. The balance is read once before a check, so checks that run at the same
+moment can take it a little below zero; the next grant repays that first.
 
-Billing code cannot do these. Until they are done Stripe mode reports no usage (the log says so each run), and the sandbox is unaffected:
+**Auto-reload,** off by default: "when the balance falls below $X, add $Y", never more than a monthly maximum in a UTC month (the
+month's auto-reloads that are paid or still waiting count toward it), charged to the card the last purchase saved. A credit Checkout takes
+a card only (`payment_method_types[0]=card`), because an off-session reload needs its answer at once, where a bank debit settles days later.
+It runs in two steps:
 
-1. In Stripe, create a meter: `event_name` = `Ai:MeterEventName`, aggregation `sum`, customer by `stripe_customer_id`, value in `value`.
-2. Create a product (for example "AI checks") with a metered price on that meter: currency USD, `unit_amount_decimal=0.0001` (cents) per
-   unit, and `tax_behavior=exclusive` as for the plans. A unit is a micro-dollar. Set the price id as `ScreenHire:Billing:Ai:StripePriceId` where the API and the worker run.
-3. Give the worker the same Stripe secrets as the API (`ScreenHire--Billing--SecretKey` and `WebhookSecret` in the vault, which both hosts
-   read; locally the same two parameters).
-4. Set `Verification:Llm:Prices:<model>` for the deployed model. A call recorded without a price is never billed.
-5. Add the metered item to any subscription made before the price was set. Check the first real meter event in Stripe's test mode
-   ([status](../status.md#owner-actions)): no test here reaches Stripe, and the calls are pinned to API version `2024-06-20`.
-6. Decide the public pricing page's wording. It says "plus 20%" (`apps/marketing/src/lib/pricing.ts`, from `packages/plans/ai.json`) while
-   the app shows one amount and never the margin.
-7. Check the Billing page's invoices and card against a test-mode customer: the list, the PDF link and the card on file.
+1. After a check draws on the balance, `AiCreditChecks.DueAsync` decides (`AutoReload.Decide`, pure) and sends `ReloadAiCredits`, keyed on
+   the newest grant, the settings' last change and the UTC month, so the checks that finish together send one reload, and turning
+   auto-reload back on after a refusal, raising the monthly maximum or a new month asks again with no new grant in between. Its handler (`[Deduplicated]`, in its transaction) records a
+   `Pending` purchase and queues `ChargeAiCreditReload` through the outbox in the same commit. A partial unique index allows one auto-reload
+   in flight per organization.
+2. `ChargeAiCreditReload` charges only a purchase still `Pending` with no payment recorded, so a redelivery does nothing. It runs outside a
+   transaction, so what it records stays. In Stripe it makes a draft invoice (`auto_advance=false`, `pending_invoice_items_behavior=exclude`,
+   `automatic_tax` with tax on), its one item, finalize, and `POST /v1/invoices/{id}/pay` with the card and `off_session=true`, each call with
+   an `Idempotency-Key` from the purchase. A timeout throws and Wolverine retries the same purchase, so Stripe charges once.
+
+A refused charge (402, a declined card or `authentication_required`) voids the invoice, marks the purchase Failed, turns auto-reload off and
+sends `NotifyAiCredits(ReloadFailed)`; it never throws for a refusal, so nothing retries it. Stripe's signed `invoice.paid` grants a reload
+that succeeded. The sandbox has no webhook, so its successful charge grants at once. A reload still waiting for the provider's
+confirmation a day later (`ReloadAiCreditsHandler.ConfirmationWindow`) is closed as failed by the next reload decision, with auto-reload
+turned off and the Owners told, so it never blocks the reloads after it in silence; a confirmation that arrives after that still grants,
+because money the provider took is always credited. Turning auto-reload on while the balance is already below the threshold sends
+`ReloadAiCredits` from the settings route at once, under the same key a check would use.
+
+**Alerts.** The Owners (Manage billing) hear about the balance in the bell and by email, by each Owner's own choice for AI use and
+billing on Your account; the organization's budget alert defaults are not read, so an organization that turned those off still hears
+that a charge failed. Each alert is claimed in `ai_usage_alerts` and goes once:
+
+| Kind | When | Key claimed | Cleared |
+|---|---|---|---|
+| `ai-credits-low` | the balance falls below the low-balance alert (`Credits:LowBalanceAlert`, 5.00, each organization's own on Billing), unless a reload is starting now | `credits-low:<newest grant>` | by a grant |
+| `ai-credits-empty` | the balance is at or below zero: the AI checks pause | `credits-empty:<newest grant>` | by a grant; kept by the retention purge until then |
+| `ai-credits-reload-failed` | an auto-reload's charge was refused | `reload-failed:<purchase>` | by a grant; kept until then |
+
+Auto-reload being on does not silence the low-balance alert: a reload the monthly maximum or a missing card stopped must not leave the
+organization at zero with no warning.
+
+**Expiry.** A daily run at 04:52 UTC (`ExpireAiCredits`, one `ExpireOrganizationAiCredits` per organization, `[Deduplicated]` per day)
+replays the ledger (`CreditLots.Expiring`, pure): debits use the credit that expires first, a credit that never expires last, and a
+shortfall is repaid by the next grant. What is left of each grant past its expiry is written off as one `Expiry` row, keyed on the grant.
+
+**The sandbox** stands in for Stripe. Its credit Checkout is `GET /v1/billing/sandbox/credits?state=...`, mapped only in sandbox mode: it
+publishes the same `GrantAiCredits` through the same handler with a made-up payment, saves the test card `pm_sandbox_4242` and goes back
+to the Billing page. Its auto-reload charge always succeeds. Brightwater is seeded with its starting credit, a paid $25 purchase, the
+sandbox card and the demo's calls drawn from the balance.
+
+**USD only.** Credits are US dollars whatever currency a plan is in, because the ledger prices a call in US dollars. This month so far
+adds them to the total only when the plan is in US dollars.
+
+| Route | Permission | What it does |
+|---|---|---|
+| `GET /v1/organization/billing/credits` | View AI usage | The balance, whether the AI check is paused, the amounts on offer, the expiry, the low-balance alert, auto-reload's settings and what it charged this month, and whether a card is saved. `available: false` with billing off |
+| `GET .../credits/deductions?before=` | View AI usage | What took credits, newest first, 50 a page: one row per AI check (its calls and amount, linked to the application, with the candidate's name while the application exists) and one per expiry |
+| `GET .../credits/purchases` | Manage billing | The starting credit, each purchase and auto-reload, and the reloads whose charge was refused, newest first. A Checkout left unpaid is not listed |
+| `POST .../credits/checkout` | Manage billing | Body `{ amount }`, one of the amounts on offer (400 on `amount` otherwise). Returns `{ url }`; 502 when the provider does not answer |
+| `PUT .../credits/settings` | Manage billing | Body `{ lowBalanceAlert, autoReload: { enabled, below, amount, monthlyMax } }` in US dollars to the cent. Turning auto-reload on needs all three amounts, an amount of at least the smallest on offer, a monthly maximum that allows one reload, and a saved card (400 on `autoReload.enabled`: "Buy credits once to save a card"). Off, the amounts need only be 0 to 10,000 to the cent |
+
+With billing off each is a 404 but the first. A cookie session only: an API key gets nothing here.
+
+### Owner actions for AI credits
+
+Billing code cannot do these. The sandbox is unaffected:
+
+1. Add `checkout.session.async_payment_succeeded` and `invoice.paid` to the Stripe webhook endpoint's events (the [deploy runbook](../operations/deploy.md)).
+2. Delete the meter and the metered price the earlier owner actions created, and remove the metered item from any subscription that has it.
+3. Set `Verification:Llm:Prices:<model>` for the deployed model. A call recorded without a price draws no credits.
+4. In Stripe's test mode, buy credits, then turn auto-reload on and drain the balance: check the invoice, the tax with `Stripe:Tax:Enabled`, and that a
+   3-D Secure test card declines into "auto-reload turned off" with the email. No test here reaches Stripe; the calls are pinned to API version `2024-06-20`.
+5. Decide the public pricing page's wording. It says "plus 20%" (`apps/marketing/src/lib/features.ts`, from `packages/plans/ai.json`) while the app
+   shows one amount and never the margin.
+6. Confirm the defaults: credits expire after 12 months, the starting credit is $5, auto-reload is off, there are no self-serve refunds (a refund is
+   a person's action in Stripe and does not change the balance).
 
 ## Webhooks
 
@@ -433,7 +487,7 @@ Billing code cannot do these. Until they are done Stripe mode reports no usage (
    Anything else is a 401 and nothing is read.
 4. A signed event this app does not act on, or one that cannot be read, is a 200 so Stripe stops retrying it.
 
-Four event types are acted on:
+Four event types are acted on for a plan, and three more for AI credits (see AI credits, Granting):
 
 | Event | Applies |
 |---|---|
@@ -482,16 +536,28 @@ demo's Brightwater is seeded with an Active subscription on Unlimited, so the de
 
 ## Data
 
-Three tenant-owned tables, each with the `tenant_isolation` row-level security policy (migrations `AddBilling` and `AddAiUsageCharges`):
+Five tenant-owned tables, each with the `tenant_isolation` row-level security policy (migrations `AddBilling` and `AddAiCredits`):
 
 - `billing_accounts`, one per organization (unique on `organization_id`): `trial_ends_at`, `plan_key`, `status`
   (`None`, `Active`, `PastDue`, `Ended`), the Stripe customer and subscription ids, `current_period_end`,
   `cancels_at_period_end`, `last_event_at`, `created_at` and `updated_at`. It is the last state the provider told us, which
   is all the publish check reads. The provider owns the truth.
 - `billing_events`, one row per provider event applied (unique on `organization_id` and `event_id`), with no payload.
-- `ai_usage_charges`, one row per ledger call that billing has settled (see AI usage): the ledger call's id as the primary key,
-  `state` (`Reported` or `Waived`), `micros`, the `margin` it was priced with, `provider` (`Stripe` or `Sandbox`) and `settled_at`.
-  Insert-only for the application role, with the same tenant isolation policy as the other two.
+- `credit_entries`, the AI credit ledger (see AI credits): `kind`, `micros`, `at`, `expires_at`, `source_key` (unique per organization),
+  and the purchase, ledger call, consistency check, application or grant a row is about. Insert-only for the application role: no UPDATE and no
+  DELETE, and no retention purge, because the balance needs every row. Like `ai_usage_calls`, it has no `job_scope` policy: `application_id` is
+  a plain id for tracing a deduction, the ledger is organization-level, and the balance must sum every row whatever job scope the reader has.
+- `credit_purchases`, one row per attempt to buy (`source` `Checkout` or `AutoReload`, `amount`, `status` `Pending`, `Paid` or `Failed`, the
+  provider's payment id and refusal code). A partial unique index allows one `Pending` auto-reload per organization.
+- `credit_settings`, one per organization: the low-balance alert, auto-reload's switch and amounts, and the saved card. Apart from
+  `billing_accounts`, whose concurrency token races with Stripe's webhooks.
+
+`AddAiCredits` dropped `ai_usage_charges` (the metered charge's record) and the budget and cap columns of `verification_settings`, after
+carrying a dollar cap on ScreenHire's key over as auto-reload's monthly maximum (left off, so it limits nothing until an Owner turns
+auto-reload on). A budget, a limit stored in tokens and a limit on an own key had no equivalent and were dropped; an organization that
+had a budget gets the default low-balance alert. While auto-reload is off its amounts are kept unchecked against the smallest amount on
+offer, so a carried maximum below it never stops an Owner saving the low-balance alert. Every existing organization gets its starting
+credit the first time its balance is read (an AI check, the Billing page), and the AI check pauses at zero from then on.
 
 ## The Billing page
 
@@ -500,8 +566,8 @@ Settings > Billing (`/settings/billing`) is the one place the organization's mon
 
 - **The Owner's** (Manage billing), only where a payment provider is set up (`available`): the plan, this month so far, the payment method,
   the invoices and the plans below. `GET /v1/organization/billing` is asked only for Manage billing.
-- **AI use** (`#ai-use`), for whoever can see AI usage (View AI usage and All jobs): what the AI check costs, what the checks used and the
-  spending limits ([AI usage](ai-usage.md#who-sees-it)).
+- **AI use** (`#ai-use`), for whoever can see AI usage (View AI usage and All jobs): the AI credits, what the AI check used this month,
+  what the checks used, and the purchases and deductions behind the balance ([AI usage](ai-usage.md#who-sees-it)).
 
 So the page is in the Settings menu's Organization group for an Owner where billing is set up and for anyone who can see AI usage
 (`alsoFor` on its entry in `#lib/settings.ts`), whatever the provider; the account menu's Billing link stays an Owner's, where billing
@@ -513,14 +579,11 @@ entry, and its address says only an owner can change billing. The Owner's panels
   or, for a subscription set to end, when it ends, and the open jobs against the limit (`3 of 5`, or `3` with none). The next payment is
   not repeated here: This month so far says it (W7).
 - **This month so far** (`thisMonth` on the overview, `BillingEndpoints.ThisMonth`). Each charge on its own line: the plan at its monthly
-  price while subscribed ("Growth, free trial" at $0.00 on the trial, no line once ended), AI use on ScreenHire's key with its call count,
-  which links to the AI use section further down the page (no line where Stripe has no metered price, because none is billed), "Included in your
-  trial" taken off for what the allowance covers (`AiUsageBillingQueries.TrialCreditThisMonthAsync`: calls already settled as waived and the
-  trial calls still waiting, planned by `AiChargePlanner` as the report will settle them), and the total. Then "Next invoice about $X on
-  <date>" while a subscription runs: the next plan payment (none once it is set to end) plus this month's AI use, "about" because the
-  calendar month and the billing period differ, and "plus tax where it applies" while `taxAtCheckout`. On the trial it says nothing is
-  charged until a plan is chosen.
-- **Payment method**, once there is a customer (`canManage`): "Visa ending in 4242", with Change card and Cancel plan, which both open the
+  price while subscribed ("Growth, free trial" at $0.00 on the trial, no line once ended), the AI credits bought this month (linking to the
+  credits further down), and the total. Then "Next invoice about $X on <date>" while a subscription runs: the next plan payment (none once it
+  is set to end), "about" because the calendar month and the billing period differ, and "plus tax where it applies" while `taxAtCheckout`.
+  AI use is prepaid and on no invoice. On the trial it says the plan costs nothing until one is chosen (AI credits bought during the trial are charges all the same).
+- **Payment method**, once there is a subscription (`canManage`; a credit purchase alone makes a customer, not a subscription): "Visa ending in 4242", with Change card and Cancel plan, which both open the
   provider's portal with their intent (no Cancel plan for a plan already set to end). They replace the old "To change your card or cancel,
   use Manage billing" line and the header's Manage billing button, so the words are the controls (A14) and the page has no primary button.
 - **Invoices**, once there is a customer (`BillingInvoices`, `GET .../invoices`): date, amount, status (Paid, Due, Void) and a PDF link
@@ -531,21 +594,25 @@ entry, and its address says only an owner can change billing. The Owner's panels
   sends the plan and the preview's `prorationDate`. The dialog's Confirm is the one primary there (A1). The dialog takes focus itself when it
   opens, so the date's tooltip does not open over the text. A failed preview keeps Confirm off, and a refused change stays in the dialog,
   which prices it again. After it, the Plans panel says the plan is changing until the page shows it.
-- **AI use**, the first panel of the AI use section: for an Owner, the overview's `aiUsage`, "This month: 59 AI calls, $0.05", the one
-  amount, never the provider's price or the margin;
-  then one sentence for where the organization stands: that billing for AI use is not set up where Stripe has no metered price (checked
-  first, so a trial is never promised an invoice line that will not come), what the trial includes and that use above it is added to the
-  first invoice, "AI use is billed once you choose a plan" after the trial, or what the trial covered once a plan is paying. Calls on the
-  organization's own key and calls with no known price are each counted in a sentence of their own and are not charged. For everyone
-  in the section, Key says whose key runs the AI check. The footer says bringing your own key removes the charge (on ScreenHire's key),
-  with a link to Settings > Integrations > AI model to set it for Edit settings and one to the Activity log for the call-by-call list.
-  Under it, at the full width, what the checks used by day and by model, then Spending limits (the budget and cap), as
-  [AI usage](ai-usage.md#who-sees-it) describes.
+- **AI credits** (`#ai-credits`, `AiCreditsPanel`), the first panel of the AI use section, for everyone in it: the balance in US dollars,
+  and at zero on ScreenHire's key the status "AI checks paused" (its icon, colour and words) with one sentence that the other checks run
+  and a pause says nothing about a candidate. An own key reads that it uses no credits. For an Owner, a button for each amount on offer,
+  which goes to Checkout, and how long credits last; for anyone else, that an owner adds credits. Coming back from Checkout, the footer says
+  the credits appear when the payment is confirmed.
+- **Auto-reload** (`AutoReloadForm`), for an Owner on ScreenHire's key: the switch, "when the balance falls below", "add", "most in a
+  month" and the low-balance alert, in US dollars. Without a saved card the switch is off and says why beside it (A3).
+- **AI use**: for an Owner, the overview's `aiUsage`, "This month: 59 AI calls, $0.05", the one amount drawn from the credits, never the
+  provider's price or the margin; calls on the organization's own key and calls with no known price each counted in a sentence of their
+  own. For everyone in the section, Key says whose key runs the AI check. The footer says bringing your own key means the checks use no
+  credits, with a link to Settings > Integrations > AI model for Edit settings and one to the Activity log. Under it, at the full width,
+  what the checks used by day and by model ([AI usage](ai-usage.md#who-sees-it)).
+- **Purchases** (`CreditPurchases`, Owner) and **Deductions** (`CreditDeductions`, everyone in the section): sortable tables (L2), newest
+  first. A deduction is one AI check, linked to the application's Verification tab, or a credit's unused rest when it expired.
 
 Money always has two decimals ($79.00, $0.05). This month so far shows each line to the cent and its total and next invoice are the sum
 of the lines as rounded, so the panel always adds up; AI use under a cent reads "Under $0.01" there and in the AI usage panel alike, and a
-credit that rounds to nothing has no line. The page refetches when `BillingChanged` arrives (which invalidates the invoices and the card
-too, by path) and when the browser returns from Checkout.
+credit that rounds to nothing has no line. The page refetches when `BillingChanged` arrives (which invalidates the invoices, the card and
+the credits too, by path: a grant, an auto-reload and an expiry each send it) and when the browser returns from Checkout.
 
 A refused publish reaches a person at the three places a draft is opened (the jobs list, a job's page and its distribution
 panel) as `PlanProblemNotice` (a 402 is told from other failures by `planProblem` in `apps/dashboard/src/lib/query.ts`), a full-width notice above the table or panel in place of a plain failure line: the API's own
@@ -556,27 +623,28 @@ owner.
 
 | Test | Proves |
 |---|---|
-| `BillingOptionsTests` (unit) | the mode from the keys and the sandbox switch, Stripe winning when both are set, the 14-day Growth trial defaults, the sandbox refused outside Development and allowed in it, a negative trial or an unknown trial plan refused while billing is on, the margin on AI use only while it is metered |
+| `BillingOptionsTests` (unit) | the mode from the keys and the sandbox switch, Stripe winning when both are set, the 14-day Growth trial defaults, the sandbox refused outside Development and allowed in it, a negative trial or an unknown trial plan refused while billing is on, the margin on AI use whenever billing is on, the credit defaults from `credits.json`, a configured list replacing them, and bad amounts, expiry or alert refused |
 | `PlanCatalogueTests` (unit) | the shipped file has exactly Starter, Growth and Unlimited with a price on each, a limit that grows with the price (none on Unlimited) and no Stripe price, an override changes only the fields it sets, a blank Stripe price keeps the catalogue's, an unlimited plan has no limit, lookup by key, the trial plan |
 | `EntitlementTests` (unit) | the trial's last moment, a subscription deciding the state, the plan in force, the publish decision for each state and limit, a trial that ran out told apart from a subscription that ended, an event applying only what it carries and an older one changing nothing |
 | `BillingProblemsTests` (unit) | the 402 problems: type, title and a detail that names the numbers, the singular, that open jobs stay open, and a trial that ran out never mentioning a subscription |
 | `StripeSignatureTests` (unit) | a good signature, another secret, a changed body or timestamp, the five-minute window both ways, a malformed header without throwing, several `v1` values |
-| `StripeBillingProviderTests` (unit) | the invoices (newest first, drafts left out, each status, a zero-decimal amount, only an https PDF link), the payment method (the subscription's own, then the customer's, a method that is not a card, none), a refused read never naming the key, the meter events (fields, identifier, a duplicate counted as taken, a refusal stopping the batch, no customer sending nothing), the metered item on Checkout only when its price is set, a preview and an event ignoring the metered line and item, and the Checkout and portal requests against a stub handler (fields, metadata, key, pinned version, customer reuse), the tax fields with tax off, on, on for an existing customer and on with tax ids off, the plan change's lookup, preview and update requests (the plan's item among others, the date, `always_invoice`, the idempotency key) and a preview read into amounts (prorations as due now, a downgrade at 0, a zero-decimal and a three-decimal currency, a missing next payment), refusals and network failures without the key, each event type read into the common event, a period end from the subscription or its first item, and a plan from the price, ahead of the metadata |
+| `StripeBillingProviderTests` (unit) | the invoices (newest first, drafts left out, each status, a zero-decimal amount, only an https PDF link), the payment method (the subscription's own, then the customer's, a method that is not a card, none), a refused read never naming the key, the credit Checkout (payment mode, the line in cents, the card saved, no purpose on its invoice, the customer made or reused, tax), the auto-reload's four calls and their idempotency keys, a declined card and one needing authentication read as refused with the invoice voided, the credit events read from Stripe's own shapes (a paid session and an auto-reload's `invoice.paid` as grants, an unpaid session as nothing, a payment-mode session never a subscription event), a preview and an event ignoring a line or item on another price, and the Checkout and portal requests against a stub handler (fields, metadata, key, pinned version, customer reuse), the tax fields with tax off, on, on for an existing customer and on with tax ids off, the plan change's lookup, preview and update requests (the plan's item among others, the date, `always_invoice`, the idempotency key) and a preview read into amounts (prorations as due now, a downgrade at 0, a zero-decimal and a three-decimal currency, a missing next payment), refusals and network failures without the key, each event type read into the common event, a period end from the subscription or its first item, and a plan from the price, ahead of the metadata |
 | `SandboxBillingProviderTests` (unit) | the sample invoices (monthly at the plan's price, newest first, Due while past due, none before a customer), the test card, a well-formed sample PDF and none for an id it never made, the portal's intent in its state, the sandbox's links and state: what it names, whether tax and a tax id were asked for, its lifetime, a tampered, foreign or oversize state not reading, and no webhook; and its day-based proration (mid-period, first and last day, a downgrade, no known period end, a period end that has passed) |
 | `BillingTests` (integration) | the Owner's overview, the trial at sign-up and for an older organization, Checkout and the portal through the sandbox (asking for no tax on the shared stack), who may use them, and billing off; the invoices, their PDF and the card through the sandbox and who may read them; the portal opened to change the card leaving the plan and opened to cancel ending it; a paying month added up |
-| `BillingThisMonthTests` (unit) | This month so far in each state: the plan and AI use added up, the trial's credit taken off and never more than the use, a plan set to end invoicing only its AI use, an ended plan's missing line, and AI use that is not billed left out |
+| `BillingThisMonthTests` (unit) | This month so far in each state: the plan and the credits bought added up, a plan set to end with no next invoice, an ended plan's missing line, credits kept out of a total in another currency |
 | `BillingTaxTests` (integration) | on a stack of its own with `Stripe:Tax:Enabled`, the overview's `taxAtCheckout` and the sandbox Checkout asking for tax and a tax id |
 | `BillingPlanChangeTests` (integration) | the preview and the change through the sandbox: an upgrade's amounts bounded by the shipped prices, a downgrade owing nothing, a confirmation switching the plan and no other organization's, a stale or future `prorationDate` refused, a trial, an ended organization or a subscription set to end a 409, an unknown or current plan a 400 on `plan`, and Admins and Recruiters a 403 |
 | `BillingPlanLimitTests` (integration) | the 402 at the limit and when ended, open jobs left open, republish and close not counted, the whole organization counted for a member on "only jobs they're on", and no limit when billing is off |
 | `BillingPublishCheckTests` (integration) | the job being published is not counted, so a double submit is not refused for taking its own place, and a different draft still is |
 | `BillingWebhookTests` (integration) | the route is a 404 outside Stripe mode. What a delivery does once read, through `BillingService` against the stack's database: a replay applied once, an older event ignored, and an event for another organization not applied |
-| `StripeWebhookRouteTests` (integration) | on a stack of its own in Stripe mode, the route end to end: a signed event applied to the organization it names, a wrong or missing signature a 401, a redelivery changing nothing, an unknown organization a 200, and another organization untouched |
-| `BillingTests` (end-to-end) | an owner sees the trial and the plans and chooses one through Checkout, then the month's total, the next invoice, the card and the sandbox's invoices, changes the card without losing the plan and reaches Billing from their own menu; a publish past the limit shows the notice and its link to Billing; and a recruiter has no Billing entry in Settings or their menu |
+| `StripeWebhookRouteTests` (integration) | on a stack of its own in Stripe mode, the route end to end: a signed event applied to the organization it names, a wrong or missing signature a 401, a redelivery changing nothing, an unknown organization a 200, and another organization untouched; a paid credit session and an auto-reload's `invoice.paid` granting once |
+| `BillingTests` (end-to-end) | an owner buys credits in the sandbox and sees the balance and the purchase, and turns auto-reload on; an owner sees the trial and the plans and chooses one through Checkout, then the month's total, the next invoice, the card and the sandbox's invoices, changes the card without losing the plan and reaches Billing from their own menu; a publish past the limit shows the notice and its link to Billing; and a recruiter has no Billing entry in Settings or their menu |
 | `billing-page.test.ts`, `billing.test.ts`, `app-sidebar.test.ts`, `jobs-page.test.ts`, `distribution-panel.test.ts`, `job-page.test.ts`, `query.test.ts`, `settings.test.ts` (Vitest) | the page in each state, this month added up, the payment method's two controls and their intents, the invoices, the AI usage panel's one amount, money in two decimals, the account menu's Billing entry, the plan change dialog (the cost before confirming, a downgrade's nothing now, the change sent with the preview's date, a failed preview and a refused change), the notice and its link for an owner and anyone else at each place a draft opens, the 402 read as a plan problem, the settings entry hidden without a provider |
 | `TrialRemindersTests` (unit) | the reminder days (7 and 1 by default, a configured list replacing them, a day below 1 refused), the steps planned for a fresh trial, one under way, one that ended and one shorter than the notice window, a reminder doing nothing after a subscription or for a changed trial, the id of the record that a trial's reminders are scheduled, and the email's words |
 | `TrialReminderTests` (integration) | on the running worker: signing up schedules the five steps, the worker leaves the account alone and an immediate checkout is applied, each email reaches every Owner once and a redelivery adds none, an Admin gets nothing, one `trial-ending` notification becomes one `trial-ended` one, the retention purge keeps it, and choosing a plan clears it and makes the reminders still waiting do nothing |
-| `AiChargeTests` (unit) | a call's charge in micro-dollars (cost plus the margin, half away from zero, nothing for a cost that is unknown or zero), the sum of rounded charges, and `AiChargePlanner`: trial calls waived in time order within the allowance, the first to pass it and every later one reported, earlier waivers counted, a call after the trial reported, a free call waived, the same decisions in any order |
-| `BillingAiUsageTests` (integration) | in process against the stack with a fixed clock: only built-in calls with a known cost reported, once, at cost plus the margin; a free call waived and never sent; the allowance; no report before a plan or after it ended, and the wait ending when a plan starts; batches and the follow-up key; a batch Stripe stops part-way keeping what it took and the next run sending only the rest; the Stripe event's fields; Stripe without a price or customer sending nothing; billing off; row-level security and no UPDATE on `ai_usage_charges`; the fan-out and the 15-minute schedule; the overview's month, with no provider's price or margin in it; the page's sum equal to what was reported; the trial credit agreeing with what the report waives |
+| `AiChargeTests` (unit) | a call's charge in micro-dollars (cost plus the margin, half away from zero, nothing for a cost that is unknown or zero) and the sum of rounded charges |
+| `AiCreditsTests` (unit) | expiry by the credit that expires first, a credit that never expires used last, a shortfall repaid by the next grant, an expiry recorded once; auto-reload's decision for each outcome and the monthly maximum; the low-balance and empty alerts, quiet only while a reload starts |
+| `BillingCreditsTests` (integration) | the running worker deciding, charging and granting a sandbox reload; a reload never confirmed in a day closed as failed; a credit granted only by the confirmed payment (never by the return URL or an unconfirmed purchase) and once for a redelivery; one debit per built-in call at cost plus the margin and none for an own key; the check paused at zero with the credits note and no candidate marked, and resumed by a grant; auto-reload's refusal (a declined card, authentication required) failing the purchase, turning it off, voiding the invoice and telling the Owners in the bell and by email, never retried; turning it back on after a refusal reloading again with no new grant; a sandbox reload granted; the monthly maximum; a carried monthly maximum below the smallest amount not stopping the low-balance alert's save while auto-reload is off; the low-balance alert once per refill; expiry once; who may read, buy and change settings |
 | `RolePermissionsTests` (unit) | Manage billing is an Owner-only permission and its routes join the route table |
 
 The test stacks pin nothing: they sell the plans in `plans.json`, and a test that needs a price or a limit reads it through
@@ -586,13 +654,19 @@ The test stacks pin nothing: they sell the plans in `plans.json`, and a test tha
 
 - Tax filing and registration. Checkout calculates tax and collects tax ids (see Tax), but registering with Stripe Tax and filing returns are the owner's ([billing providers](../research/billing-providers.md) says what Stripe Tax does and does not do). The overview and the Billing page show prices without tax, with the words "plus tax where it applies", and never the tax Stripe charged.
 - A list of invoices or receipts; Stripe's portal has them.
+- Change history for the credit settings (the low-balance alert and auto-reload); `credit_settings` is not one of `TrackedKinds`.
+- Credit purchases among the sandbox's sample invoices. The Purchases panel lists them; in Stripe the credit invoices are among the real ones.
+- Slack for the credit alerts: the bell and email only, as for the trial's reminders.
+- The Payment method and Invoices panels for an organization that bought credits but has no plan: they open with a subscription.
+- Deductions past the newest 50: the panel says so, and the Activity log has every call.
 - Amounts read from Stripe except in a plan change's preview. The rest of the page shows the catalogue's price and Stripe
   charges its own.
 - Completing a payment that needs the Owner (3-D Secure) inside a plan change. It fails whole and sends the Owner to Change card.
 - Coupons and tax in a plan change's preview. Its amounts are the invoice lines' amounts, before discounts and tax, and only
   the lines Stripe returns with the preview (its first page) are read.
 - Seat-based pricing. A plan counts open jobs only.
-- AI use in a currency other than US dollars, and a refund or credit for a call that was reported and later disputed. A meter event Stripe took and our save lost for more than 24 hours
-  would be reported twice; the next run follows the first by 15 minutes, so only a long outage can do it.
+- Credits in a currency other than US dollars.
+- Refunds of credits. A refund is a person's action in Stripe, and it does not change the balance; nothing reads `charge.refunded`.
+- Paying an auto-reload that needs the Owner (3-D Secure): it is refused, auto-reload turns off, and the Owner buys through Checkout.
 - The call-by-call list in the Billing page: the Activity log has it.
 - A grace period, or an Ended state that blocks more than opening a draft.

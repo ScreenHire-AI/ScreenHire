@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aiMonthText, formatMoney, paymentMethodText, trialEnd, trialLine } from './billing.js';
+import { aiMonthText, aiUsageNotes, creditExpiryText, creditPurchaseStatus, creditSourceLabels, formatCredits, formatMoney, paymentMethodText, trialEnd, trialLine } from './billing.js';
 
 describe('trialLine', () => {
   it('says how many days the trial lasts and that it needs no card', () => {
@@ -58,5 +58,41 @@ describe('paymentMethodText', () => {
     expect(paymentMethodText({ type: 'card', brand: 'cartes_bancaires', last4: '1234' })).toBe('Card ending in 1234');
     expect(paymentMethodText({ type: 'sepa_debit', brand: null, last4: null })).toBe('Bank account');
     expect(paymentMethodText({ type: 'link', brand: null, last4: null })).toBe('Payment method on file');
+  });
+});
+
+describe('AI credits words', () => {
+  it('shows credits in dollars to the cent, a balance a little below zero as it is', () => {
+    expect(formatCredits(18.4)).toBe('$18.40');
+    expect(formatCredits(-0.02)).toBe('-$0.02');
+  });
+
+  it('says how long credits last, in the singular for one month, and that they never expire when there is no limit', () => {
+    expect(creditExpiryText(12)).toBe('Credits last 12 months from when they are added.');
+    expect(creditExpiryText(1)).toBe('Credits last 1 month from when they are added.');
+    expect(creditExpiryText(null)).toBe('Credits never expire.');
+  });
+
+  it('names where a credit came from and shows a refused reload as a failure, not as paid', () => {
+    expect(creditSourceLabels).toEqual({ StartingCredit: 'Starting credit', Checkout: 'Bought', AutoReload: 'Auto-reload' });
+    expect(creditPurchaseStatus.Failed).toEqual({ status: 'needsFixes', label: 'Failed' });
+    expect(creditPurchaseStatus.Paid.label).toBe('Paid');
+    expect(creditPurchaseStatus.Included.label).toBe('Included');
+  });
+});
+
+describe('aiUsageNotes', () => {
+  const usage = { month: '2026-11', builtInCalls: 4, charge: 0.2, callsWithUnknownCost: 0, ownKeyCalls: 0 };
+
+  it("says nothing when every call was priced and on ScreenHire's key", () => {
+    expect(aiUsageNotes(usage)).toEqual([]);
+  });
+
+  it('says that own-key and unpriced calls used no credits, in the singular for one', () => {
+    expect(aiUsageNotes({ ...usage, ownKeyCalls: 1, callsWithUnknownCost: 1 })).toEqual([
+      '1 call ran on your own key, so it used no credits.',
+      '1 call has no known price, so it used no credits.',
+    ]);
+    expect(aiUsageNotes({ ...usage, ownKeyCalls: 3 })).toEqual(['3 calls ran on your own key, so they used no credits.']);
   });
 });

@@ -35,7 +35,7 @@ public sealed class ConsistencyCheck : IApplicationScoped
     /// <summary>Each contradiction with its two quoted spans, verified against the text that was sent.</summary>
     public IReadOnlyList<Contradiction> Contradictions { get; private set; } = [];
 
-    /// <summary>Tokens the calls used, for the organization's monthly budget. Counts, never money.</summary>
+    /// <summary>Tokens the calls used, for the AI use report. Counts, never money.</summary>
     public long InputTokens { get; private set; }
 
     public long OutputTokens { get; private set; }
@@ -55,7 +55,7 @@ public sealed class ConsistencyCheck : IApplicationScoped
 
     /// <summary>
     /// Takes over a claim whose worker stopped without finishing it, or asks again for a check that was paused or skipped
-    /// for the monthly budget, now that the month or the cap has changed.
+    /// for lack of AI credits, now that credits were added.
     /// </summary>
     public void Reclaim(DateTimeOffset now)
     {
@@ -102,8 +102,8 @@ public enum ConsistencyCheckStatus
     OverBudget,
 
     /// <summary>
-    /// The organization's monthly cap was reached, so the AI check did not run. Never a mark against the candidate: it
-    /// is asked again when the cap is raised or the month changes.
+    /// The organization's AI credits ran out (on older rows, its monthly cap was reached), so the AI check did not run. Never
+    /// a mark against the candidate: it is asked again when credits are added.
     /// </summary>
     Paused,
 

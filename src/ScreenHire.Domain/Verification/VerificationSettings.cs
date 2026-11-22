@@ -17,9 +17,6 @@ namespace ScreenHire.Domain.Verification;
 /// </remarks>
 public sealed class VerificationSettings : ITenantOwned
 {
-    /// <summary>The highest monthly budget or cap an organization may set, in US dollars.</summary>
-    public const decimal MaxMonthlyMoney = 1_000_000m;
-
     /// <summary>The highest price per million tokens an organization may enter for its own key, in US dollars.</summary>
     public const decimal MaxPricePerMillion = 10_000m;
 
@@ -36,26 +33,6 @@ public sealed class VerificationSettings : ITenantOwned
     public Guid OrganizationId { get; init; }
 
     public bool LlmConsistencyCheckEnabled { get; set; }
-
-    /// <summary>
-    /// What <see cref="MonthlyBudget"/> and <see cref="MonthlyCap"/> are stored in. One unit for both, so the two never compare
-    /// tokens with dollars. Limits are set in dollars; a row an Owner saved before that may hold tokens, which are converted to
-    /// dollars where the key has a price (docs/architecture/ai-usage.md). The column's database default stays Tokens for those rows.
-    /// </summary>
-    public UsageUnit BudgetUnit { get; set; } = UsageUnit.Money;
-
-    /// <summary>
-    /// What the organization expects to use per calendar month (UTC), in <see cref="BudgetUnit"/>. Alerts go out at 50%, 80%
-    /// and 100% of it; it stops nothing. Null: the deployment's default budget applies to ScreenHire's key, none to an own key.
-    /// </summary>
-    public decimal? MonthlyBudget { get; set; }
-
-    /// <summary>
-    /// The hard cap per calendar month (UTC), in <see cref="BudgetUnit"/>. At the cap the AI-based checks pause until next
-    /// month or until the cap is raised; the rule-based checks keep running. Null: the deployment's default cap applies to
-    /// ScreenHire's key, none to an own key. Only an Owner sets it.
-    /// </summary>
-    public decimal? MonthlyCap { get; set; }
 
     /// <summary>US dollars per million input tokens the organization's own key costs it, so usage can show a cost. Null: unknown.</summary>
     public decimal? OwnKeyInputPrice { get; set; }
@@ -142,15 +119,6 @@ public enum LlmSource
 
     /// <summary>The organization's own key and model. ScreenHire charges nothing for it.</summary>
     OwnKey,
-}
-
-/// <summary>What a monthly budget or cap is counted in.</summary>
-public enum UsageUnit
-{
-    Tokens,
-
-    /// <summary>US dollars, from each call's cost (the provider's own figure, or tokens times a configured price).</summary>
-    Money,
 }
 
 /// <summary>

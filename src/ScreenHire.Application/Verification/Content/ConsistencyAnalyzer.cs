@@ -32,8 +32,9 @@ public sealed class ConsistencyAnalyzer(IContentRecords records) : IVerification
 
         if (check.Status == ConsistencyCheckStatus.Paused)
         {
-            // The exact note, so a reviewer's tab can say the AI checks were paused (RunNotes.KindOf), never a result about the candidate.
-            return AnalyzerResult.Nothing(RunNotes.AiChecksPaused);
+            // The check's own paused note (a check stored before credits keeps the cap's), so a reviewer's tab can say the AI checks were
+            // paused (RunNotes.KindOf), never a result about the candidate.
+            return AnalyzerResult.Nothing(check.Note is { } note && RunNotes.PausedNotes.Contains(note) ? note : RunNotes.AiCreditsPaused);
         }
 
         if (check.Status != ConsistencyCheckStatus.Completed)

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The plan catalogue (name, price, active job limit) the free trial (length, plan) and the margin added to the provider's price for AI use on ScreenHire's key, which the API and the marketing site both read. Prices, limits and the trial are the owner's decision; null means not set.",
+  "description": "The plan catalogue (name, price, active job limit) the free trial (length, plan) and the margin added to the provider's price for AI use on ScreenHire's key and the prepaid AI credit amounts, which the API and the marketing site both read. Prices, limits and the trial are the owner's decision; null means not set.",
   "exports": {
     ".": {
       "types": "./src/index.ts",
@@ -11,6 +11,7 @@
     },
     "./plans.json": "./plans.json",
     "./trial.json": "./trial.json",
-    "./ai.json": "./ai.json"
+    "./ai.json": "./ai.json",
+    "./credits.json": "./credits.json"
   }
 }

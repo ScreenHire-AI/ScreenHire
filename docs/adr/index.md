@@ -33,12 +33,14 @@ Architecture decision records, oldest first. A changed decision is a new or amen
 * [ADR-0029: Billing, plans and the free trial](0029-billing.md) - How an organization pays and what a plan allows: plans are configuration over a shared packages/plans catalogue, Stripe sits behind IBillingProvider with a local sandbox and is called over plain HTTP with a pinned API version, billing is off and limits nothing until configured, a trial starts at sign-up, only opening a draft job is ever refused (402), the open-job count is organization-wide under a per-organization lock, a signed webhook names its organization in metadata and applies once, and only an Owner sees any of it.
 * [ADR-0030: Marketing site direction](0030-marketing-site-direction.md) - How the marketing site looks and what it sells: five selling points in the owner's order told as pain, promise and proof, dark and white bands with the real product as the one bold element, a ban on generated-page decoration, the rules written in the design system and enforced by its review agent, and no third-party design skill installed.
 * [ADR-0031: Heading fonts come from the whole Google Fonts catalogue, and ScreenHire hosts each one](0031-heading-fonts-from-google-fonts.md) - An employer's heading font is any Google Fonts family under the OFL or Apache 2.0, listed live from Fontsource with no key; the branding save downloads the family's files once, for every organization, into our storage with its licence, and the careers pages serve them on their own origin, so candidates' browsers never ask a font host for anything. The six bundled fonts stay.
+* [ADR-0032: Prepaid AI credits on our own ledger](0032-prepaid-ai-credits.md) - AI use on ScreenHire's key is paid for in advance as credits, which replace the metered charge and the monthly budget and cap: our own append-only ledger, not Stripe's billing credits, because those apply only when a subscription invoice finalizes; credits granted only from Stripe's signed confirmation, once per purchase; Checkout in payment mode to buy and an invoice paid off-session to auto-reload; the AI check pausing at zero as the cap did, never marking a candidate.
 
 ## Status
 
 | ADR | Status |
 |---|---|
-| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0019 to 0025, 0029 to 0031 | Accepted |
+| 0001, 0002, 0006, 0008, 0012, 0014 to 0016, 0019 to 0025, 0030 to 0032 | Accepted |
+| 0029 | Accepted, decision 12 amended by 0032 (AI use on ScreenHire's key is prepaid credits, not metered) |
 | 0018 | Accepted, decision 3 amended by 0031 (any Google Fonts family under the OFL or Apache 2.0, hosted by ScreenHire; the six stay) |
 | 0007 | Accepted, the Email row amended by 0022 (SendGrid through the Azure Marketplace; ACS Email stays a possible sender) |
 | 0003 | Accepted, Lighthouse enforcement amended by 0020 (report-only in CI until calibrated on the runners) |

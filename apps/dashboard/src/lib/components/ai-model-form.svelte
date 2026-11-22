@@ -183,7 +183,7 @@
                 <div class="flex items-center gap-1">
                   <p id="model-source-label" class="text-body font-medium">Key</p>
                   <InfoButton label="About the two keys">
-                    <p>ScreenHire's key: the AI check runs on ScreenHire's AI provider, and you're billed for what the checks use, on your ScreenHire invoice.</p>
+                    <p>ScreenHire's key: the AI check runs on ScreenHire's AI provider and draws on your prepaid AI credits, which you add on the Billing page.</p>
                     <p>Your own key: your provider handles this data under your own terms and bills you for it. ScreenHire charges nothing for these calls, and the Activity log lists every call with the provider's request id, so you can compare it with your provider's dashboard.</p>
                   </InfoButton>
                 </div>
@@ -299,7 +299,7 @@
                   </Field.Field>
                 </div>
               {:else}
-                <p class="text-muted-foreground">You're billed for what the checks use.</p>
+                <p class="text-muted-foreground">The checks use your AI credits.</p>
               {/if}
             </div>
 

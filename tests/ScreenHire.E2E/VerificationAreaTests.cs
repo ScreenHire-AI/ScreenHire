@@ -65,12 +65,13 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await Expect(answers.GetByRole(AriaRole.Combobox, new() { Name = "AI use while applying", Exact = true })).ToHaveValueAsync("NotAllowed");
 
         // The AI use tab moved out of the area: its old address, which alert emails still carry, lands on Billing's AI use section,
-        // brought into view under the trial's plan panels.
+        // brought into view under the trial's plan panels. The section opens with the AI credits (ADR-0032).
         await GoToAsync("dashboard", "/verification/ai-use");
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing#ai-use"));
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "AI use", Exact = true })).ToBeInViewportAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "AI credits", Exact = true })).ToBeInViewportAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "AI use", Exact = true })).ToBeVisibleAsync();
         await Expect(Page.GetByText("Model calls", new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Spending limits" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Deductions" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
         // Whose key runs the AI check is an integration now.

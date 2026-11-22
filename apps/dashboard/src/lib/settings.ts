@@ -138,7 +138,7 @@ export const settingsSections: readonly SettingsSection[] = [
     allJobs: true,
   },
   // The plan and payments are Owners' (ManageBilling), only where a payment provider is set up. Its AI use section, what the
-  // checks used and cost and the monthly limits, is for whoever can see AI usage, so the page opens for them as well (A3).
+  // checks used and cost and the AI credits behind them, is for whoever can see AI usage, so the page opens for them as well (A3).
   {
     label: 'Billing',
     href: '/settings/billing',
@@ -160,7 +160,10 @@ export const settingsSections: readonly SettingsSection[] = [
       'budget',
       'cap',
       'spend',
-      'spending limits',
+      'credits',
+      'ai credits',
+      'auto-reload',
+      'top up',
     ],
     permission: 'ManageBilling',
     group: 'Organization',

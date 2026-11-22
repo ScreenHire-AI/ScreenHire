@@ -28,7 +28,7 @@ namespace ScreenHire.Api.Endpoints;
 internal static class VerificationSettingsHandlers
 {
     // Every member reads the settings, but the model address and the own key's prices only with Edit settings (its path can hold
-    // a token, which is why History keeps the host alone), and the limits with what has been used only with View AI usage.
+    // a token, which is why History keeps the host alone).
     public static async Task<Ok<OrganizationVerificationSettings>> Get(
         ScreenHireDbContext db, ITenantContext tenant, IOptions<VerificationOptions> verification, IServiceProvider services, SlackAccess slack,
         TimeProvider time, CancellationToken cancellationToken)
@@ -404,10 +404,6 @@ internal static class VerificationSettingsHandlers
         DateTimeOffset now, IReadOnlySet<Permission> permissions, CancellationToken cancellationToken)
     {
         var edits = permissions.Contains(Permission.EditSettings);
-        var limits = permissions.Contains(Permission.ViewAiUsage)
-            ? await AiUsageHandlers.LimitsAsync(
-                db, settings, options.Llm, services.GetRequiredService<IOptions<BillingOptions>>().Value.AiMarginInForce, now, cancellationToken)
-            : null;
         var last = settings is null
             ? null
             : await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.VerificationSettings, settings.OrganizationId.ToString("D"), cancellationToken);
@@ -425,7 +421,6 @@ internal static class VerificationSettingsHandlers
             !string.IsNullOrEmpty(settings?.ProtectedLlmApiKey),
             edits ? settings?.OwnKeyInputPrice : null,
             edits ? settings?.OwnKeyOutputPrice : null,
-            limits,
             [.. ModelPresets.All.Select(p => new ModelPresetView(p.Provider, p.BaseUrl, p.BaseUrlEditable, p.ListsModels))],
             new VerificationChecks(config.Network, config.Contact, config.Documents, config.Answers, config.Duplicates, config.FormUse),
             settings?.DefaultAiUse ?? AiUsePolicy.AllowedWithDisclosure,

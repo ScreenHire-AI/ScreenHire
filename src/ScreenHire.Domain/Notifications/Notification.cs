@@ -133,13 +133,25 @@ public static class NotificationKinds
     /// Kinds the daily retention purge keeps. They say something that stays true until a person acts, and the code that raises
     /// them clears them when it stops being true: a trial that ended with no plan is still the case a month later.
     /// </summary>
-    public static IReadOnlyList<string> KeptUntilCleared { get; } = [TrialEnding, TrialEnded];
+    public static IReadOnlyList<string> KeptUntilCleared { get; } = [TrialEnding, TrialEnded, AiCreditsEmpty, AiCreditsReloadFailed];
 
-    /// <summary>The month's AI use passed 50%, 80% or 100% of the budget. Key: <c>yyyy-MM:budget-N</c>. Payload: <c>percent</c>.</summary>
-    public const string AiUsageBudget = "ai-usage-budget";
+    /// <summary>
+    /// The AI credit balance fell below the organization's low-balance alert (ADR-0032). Key: <see cref="CreditsKey"/>. Payload:
+    /// <c>balance</c> (US dollars, two decimals). Cleared when credits are added.
+    /// </summary>
+    public const string AiCreditsLow = "ai-credits-low";
 
-    /// <summary>The month's AI use reached the cap and the AI checks paused. Key: <c>yyyy-MM:cap</c>.</summary>
-    public const string AiUsageCap = "ai-usage-cap";
+    /// <summary>The AI credits ran out and the AI checks paused. Key: <see cref="CreditsKey"/>. Cleared when credits are added.</summary>
+    public const string AiCreditsEmpty = "ai-credits-empty";
+
+    /// <summary>
+    /// An auto-reload's charge was refused and auto-reload turned off. Key: <see cref="CreditsKey"/>. Payload: <c>amount</c> (US dollars).
+    /// Cleared when credits are added.
+    /// </summary>
+    public const string AiCreditsReloadFailed = "ai-credits-reload-failed";
+
+    /// <summary>The key of the credit kinds: an organization has one balance.</summary>
+    public const string CreditsKey = "credits";
 
     /// <summary>A day's AI use was well above the recent average. Key: <c>yyyy-MM-dd:spike</c>. Payload: <c>day</c>.</summary>
     public const string AiUsageSpike = "ai-usage-spike";

@@ -233,7 +233,7 @@ internal sealed class ConsistencyCheckConfiguration : IEntityTypeConfiguration<C
             .OnDelete(DeleteBehavior.Cascade);
         // The claim: one check per application and prompt version, so a redelivered message never calls the model twice.
         builder.HasIndex(c => new { c.OrganizationId, c.ApplicationId, c.PromptVersion }).IsUnique();
-        // The monthly budget sums an organization's checks by start time.
+        // The AI use report and the resume sweep read an organization's checks by start time.
         builder.HasIndex(c => new { c.OrganizationId, c.StartedAt });
     }
 }
@@ -264,9 +264,6 @@ internal sealed class VerificationSettingsConfiguration : IEntityTypeConfigurati
         builder.PrimitiveCollection(s => s.TrustedDomains).HasColumnType("text[]").HasDefaultValueSql("'{}'");
         builder.PrimitiveCollection(s => s.TrustedNetworks).HasColumnType("text[]").HasDefaultValueSql("'{}'");
         // Tokens are whole numbers and dollars have cents, so one decimal column holds either; the unit says which.
-        builder.Property(s => s.BudgetUnit).HasConversion<string>().HasMaxLength(10).HasDefaultValue(UsageUnit.Tokens);
-        builder.Property(s => s.MonthlyBudget).HasPrecision(18, 2);
-        builder.Property(s => s.MonthlyCap).HasPrecision(18, 2);
         builder.Property(s => s.OwnKeyInputPrice).HasPrecision(12, 4);
         builder.Property(s => s.OwnKeyOutputPrice).HasPrecision(12, 4);
         builder.HasOne<Organization>().WithOne()

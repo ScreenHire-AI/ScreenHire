@@ -14,8 +14,10 @@ import type {
   AddFromTalentPoolRequest,
   AddVerificationNoteRequest,
   AddedFromTalentPool,
+  AiCreditDeductionList,
+  AiCreditPurchaseList,
+  AiCreditsView,
   AiUsageCallPage,
-  AiUsageLimitsView,
   AiUsageSummary,
   ApiKeySummary,
   ApiMeta,
@@ -153,6 +155,7 @@ import type {
   KeepInMindRequest,
   KeptInMind,
   LastUpdate,
+  ListAiCreditDeductionsParams,
   ListAiUsageCallsParams,
   ListInterviewersParams,
   ListJobBoardJobsParams,
@@ -255,6 +258,7 @@ import type {
   SlackTestResult,
   SourceApplications,
   StageKind,
+  StartAiCreditCheckoutRequest,
   StartBillingCheckoutRequest,
   StartCalendarConnectRequest,
   StartSlackLinkRequest,
@@ -276,7 +280,7 @@ import type {
   TryItEmailsSent,
   UpdateAccountNotificationsRequest,
   UpdateAccountPreferencesRequest,
-  UpdateAiUsageLimitsRequest,
+  UpdateAiCreditSettingsRequest,
   UpdateBrandingRequest,
   UpdateCareersEmbeddingRequest,
   UpdateEmailTemplateRequest,
@@ -16425,6 +16429,301 @@ export const getBillingPaymentMethod = async ( options?: Parameters<typeof apiFe
 
 
 
+export type getAiCreditsResponse200 = {
+  data: AiCreditsView
+  status: 200
+}
+
+export type getAiCreditsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getAiCreditsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getAiCreditsResponseSuccess = (getAiCreditsResponse200) & {
+  headers: Headers;
+};
+export type getAiCreditsResponseError = (getAiCreditsResponse401 | getAiCreditsResponse403) & {
+  headers: Headers;
+};
+
+export type getAiCreditsResponse = (getAiCreditsResponseSuccess | getAiCreditsResponseError)
+
+export const getGetAiCreditsUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/credits`
+}
+
+export const getAiCredits = async ( options?: Parameters<typeof apiFetch>[1]): Promise<getAiCreditsResponse> => {
+
+  return apiFetch<getAiCreditsResponse>(getGetAiCreditsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listAiCreditDeductionsResponse200 = {
+  data: AiCreditDeductionList
+  status: 200
+}
+
+export type listAiCreditDeductionsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listAiCreditDeductionsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listAiCreditDeductionsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listAiCreditDeductionsResponseSuccess = (listAiCreditDeductionsResponse200) & {
+  headers: Headers;
+};
+export type listAiCreditDeductionsResponseError = (listAiCreditDeductionsResponse401 | listAiCreditDeductionsResponse403 | listAiCreditDeductionsResponse404) & {
+  headers: Headers;
+};
+
+export type listAiCreditDeductionsResponse = (listAiCreditDeductionsResponseSuccess | listAiCreditDeductionsResponseError)
+
+export const getListAiCreditDeductionsUrl = (params?: ListAiCreditDeductionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/billing/credits/deductions?${stringifiedParams}` : `/v1/organization/billing/credits/deductions`
+}
+
+export const listAiCreditDeductions = async (params?: ListAiCreditDeductionsParams, options?: Parameters<typeof apiFetch>[1]): Promise<listAiCreditDeductionsResponse> => {
+
+  return apiFetch<listAiCreditDeductionsResponse>(getListAiCreditDeductionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type listAiCreditPurchasesResponse200 = {
+  data: AiCreditPurchaseList
+  status: 200
+}
+
+export type listAiCreditPurchasesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listAiCreditPurchasesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listAiCreditPurchasesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listAiCreditPurchasesResponseSuccess = (listAiCreditPurchasesResponse200) & {
+  headers: Headers;
+};
+export type listAiCreditPurchasesResponseError = (listAiCreditPurchasesResponse401 | listAiCreditPurchasesResponse403 | listAiCreditPurchasesResponse404) & {
+  headers: Headers;
+};
+
+export type listAiCreditPurchasesResponse = (listAiCreditPurchasesResponseSuccess | listAiCreditPurchasesResponseError)
+
+export const getListAiCreditPurchasesUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/credits/purchases`
+}
+
+export const listAiCreditPurchases = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listAiCreditPurchasesResponse> => {
+
+  return apiFetch<listAiCreditPurchasesResponse>(getListAiCreditPurchasesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type startAiCreditCheckoutResponse200 = {
+  data: BillingRedirect
+  status: 200
+}
+
+export type startAiCreditCheckoutResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type startAiCreditCheckoutResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startAiCreditCheckoutResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type startAiCreditCheckoutResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startAiCreditCheckoutResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type startAiCreditCheckoutResponseSuccess = (startAiCreditCheckoutResponse200) & {
+  headers: Headers;
+};
+export type startAiCreditCheckoutResponseError = (startAiCreditCheckoutResponse400 | startAiCreditCheckoutResponse401 | startAiCreditCheckoutResponse403 | startAiCreditCheckoutResponse404 | startAiCreditCheckoutResponse502) & {
+  headers: Headers;
+};
+
+export type startAiCreditCheckoutResponse = (startAiCreditCheckoutResponseSuccess | startAiCreditCheckoutResponseError)
+
+export const getStartAiCreditCheckoutUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/credits/checkout`
+}
+
+export const startAiCreditCheckout = async (startAiCreditCheckoutRequest: StartAiCreditCheckoutRequest, options?: Parameters<typeof apiFetch>[1]): Promise<startAiCreditCheckoutResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<startAiCreditCheckoutResponse>(getStartAiCreditCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startAiCreditCheckoutRequest)
+  }
+);}
+
+
+
+export type updateAiCreditSettingsResponse204 = {
+  data: void
+  status: 204
+}
+
+export type updateAiCreditSettingsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateAiCreditSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateAiCreditSettingsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateAiCreditSettingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateAiCreditSettingsResponseSuccess = (updateAiCreditSettingsResponse204) & {
+  headers: Headers;
+};
+export type updateAiCreditSettingsResponseError = (updateAiCreditSettingsResponse400 | updateAiCreditSettingsResponse401 | updateAiCreditSettingsResponse403 | updateAiCreditSettingsResponse404) & {
+  headers: Headers;
+};
+
+export type updateAiCreditSettingsResponse = (updateAiCreditSettingsResponseSuccess | updateAiCreditSettingsResponseError)
+
+export const getUpdateAiCreditSettingsUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/credits/settings`
+}
+
+export const updateAiCreditSettings = async (updateAiCreditSettingsRequest: UpdateAiCreditSettingsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateAiCreditSettingsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateAiCreditSettingsResponse>(getUpdateAiCreditSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateAiCreditSettingsRequest)
+  }
+);}
+
+
+
 export type getAiUsageSummaryResponse200 = {
   data: AiUsageSummary
   status: 200
@@ -16591,70 +16890,6 @@ export const exportAiUsageCalls = async (params?: ExportAiUsageCallsParams, opti
     method: 'GET'
 
 
-  }
-);}
-
-
-
-export type updateAiUsageLimitsResponse200 = {
-  data: AiUsageLimitsView
-  status: 200
-}
-
-export type updateAiUsageLimitsResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type updateAiUsageLimitsResponse401 = {
-  data: void
-  status: 401
-}
-
-export type updateAiUsageLimitsResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type updateAiUsageLimitsResponseSuccess = (updateAiUsageLimitsResponse200) & {
-  headers: Headers;
-};
-export type updateAiUsageLimitsResponseError = (updateAiUsageLimitsResponse400 | updateAiUsageLimitsResponse401 | updateAiUsageLimitsResponse403) & {
-  headers: Headers;
-};
-
-export type updateAiUsageLimitsResponse = (updateAiUsageLimitsResponseSuccess | updateAiUsageLimitsResponseError)
-
-export const getUpdateAiUsageLimitsUrl = () => {
-
-
-
-
-  return `/v1/organization/ai-usage/limits`
-}
-
-export const updateAiUsageLimits = async (updateAiUsageLimitsRequest: UpdateAiUsageLimitsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateAiUsageLimitsResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiFetch<updateAiUsageLimitsResponse>(getUpdateAiUsageLimitsUrl(),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateAiUsageLimitsRequest)
   }
 );}
 

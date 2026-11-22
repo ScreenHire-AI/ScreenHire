@@ -15422,6 +15422,261 @@
         ]
       }
     },
+    "/v1/organization/billing/credits": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "GetAiCredits",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCreditsView"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/billing/credits/deductions": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "ListAiCreditDeductions",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCreditDeductionList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/billing/credits/purchases": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "ListAiCreditPurchases",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCreditPurchaseList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/billing/credits/checkout": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "StartAiCreditCheckout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartAiCreditCheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRedirect"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/organization/billing/credits/settings": {
+      "put": {
+        "tags": [
+          "Billing"
+        ],
+        "operationId": "UpdateAiCreditSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAiCreditSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/organization/ai-usage/summary": {
       "get": {
         "tags": [
@@ -15715,64 +15970,6 @@
               "text/csv": {
                 "schema": {
                   "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "session": [ ]
-          }
-        ]
-      }
-    },
-    "/v1/organization/ai-usage/limits": {
-      "put": {
-        "tags": [
-          "AiUsage"
-        ],
-        "operationId": "UpdateAiUsageLimits",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateAiUsageLimitsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AiUsageLimitsView"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -19230,6 +19427,47 @@
         ],
         "description": "AI assistance levels, lowest first. Informational and relative to the job's AI policy."
       },
+      "AiAutoReload": {
+        "required": [
+          "enabled",
+          "below",
+          "amount",
+          "monthlyMax",
+          "reloadedThisMonth"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "below": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "amount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "monthlyMax": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "reloadedThisMonth": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "description": "Auto-reload: when the balance falls below `below`, add `amount`, never more than `monthlyMax` in a UTC month.\n`reloadedThisMonth` is what it has charged this month. Off by default; a refused charge turns it off."
+      },
       "AiCallOutcome": {
         "enum": [
           "Ok",
@@ -19244,6 +19482,206 @@
           "Unknown"
         ],
         "description": "Where a call's cost came from."
+      },
+      "AiCreditDeduction": {
+        "required": [
+          "id",
+          "date",
+          "kind",
+          "amount",
+          "calls",
+          "applicationId",
+          "candidateName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AiCreditDeductionKind"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "calls": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "applicationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One deduction from the balance, in US dollars: an AI check's calls (`calls` of them) for the application `applicationId`,\nwhose candidate is `candidateName` while the application still exists, or a credit's unused rest when it expired."
+      },
+      "AiCreditDeductionKind": {
+        "enum": [
+          "Check",
+          "Expiry"
+        ],
+        "description": "What took credits."
+      },
+      "AiCreditDeductionList": {
+        "required": [
+          "deductions",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "deductions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiCreditDeduction"
+            }
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "Deductions newest first. `next` is the cursor of the page after this one (`before`), null on the last page."
+      },
+      "AiCreditPurchase": {
+        "required": [
+          "id",
+          "date",
+          "amount",
+          "source",
+          "status",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AiCreditSource"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AiCreditPurchaseStatus"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One credit added, or an attempt that failed: when, how much in US dollars, where from, and when it expires."
+      },
+      "AiCreditPurchaseList": {
+        "required": [
+          "purchases"
+        ],
+        "type": "object",
+        "properties": {
+          "purchases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiCreditPurchase"
+            }
+          }
+        },
+        "description": "The credits added and the purchases that failed, newest first."
+      },
+      "AiCreditPurchaseStatus": {
+        "enum": [
+          "Paid",
+          "Included",
+          "Failed"
+        ],
+        "description": "How a credit purchase went."
+      },
+      "AiCreditSource": {
+        "enum": [
+          "StartingCredit",
+          "Checkout",
+          "AutoReload"
+        ],
+        "description": "Where a credit came from."
+      },
+      "AiCreditsView": {
+        "required": [
+          "available",
+          "balance",
+          "paused",
+          "ownKey",
+          "amounts",
+          "expiryMonths",
+          "lowBalanceAlert",
+          "autoReload",
+          "hasSavedCard"
+        ],
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double"
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "ownKey": {
+            "type": "boolean"
+          },
+          "amounts": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "expiryMonths": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "lowBalanceAlert": {
+            "type": "number",
+            "format": "double"
+          },
+          "autoReload": {
+            "$ref": "#/components/schemas/AiAutoReload"
+          },
+          "hasSavedCard": {
+            "type": "boolean"
+          }
+        },
+        "description": "The organization's prepaid AI credits (ADR-0032, docs/architecture/billing.md \"AI credits\"). `available` is false where no\npayment provider is set up, and then nothing else is set. `balance` is in US dollars, below zero when checks that ran at the\nsame moment overshot it. `paused`: the balance is at or below zero and ScreenHire's key runs the AI check, so it is paused.\n`ownKey`: the organization's own key runs it and credits are not drawn. `amounts` are the fixed amounts on offer and\n`expiryMonths` how long a credit lasts (null: never). `hasSavedCard`: a purchase saved a card, which auto-reload needs."
       },
       "AiKeySource": {
         "enum": [
@@ -19475,91 +19913,6 @@
         },
         "description": "Use by one provider, model and key source."
       },
-      "AiUsageLimitsView": {
-        "required": [
-          "unit",
-          "budget",
-          "cap",
-          "effectiveBudget",
-          "effectiveCap",
-          "priced"
-        ],
-        "type": "object",
-        "properties": {
-          "unit": {
-            "$ref": "#/components/schemas/UsageUnit"
-          },
-          "budget": {
-            "type": [
-              "null",
-              "number"
-            ],
-            "format": "double"
-          },
-          "cap": {
-            "type": [
-              "null",
-              "number"
-            ],
-            "format": "double"
-          },
-          "effectiveBudget": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/AiUsageLimitView"
-              }
-            ]
-          },
-          "effectiveCap": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/AiUsageLimitView"
-              }
-            ]
-          },
-          "priced": {
-            "type": "boolean"
-          }
-        },
-        "description": "The organization's monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key's price,\nwhich for ScreenHire's key falls back to the deployment's defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices)."
-      },
-      "AiUsageLimitView": {
-        "required": [
-          "amount",
-          "unit",
-          "isDefault",
-          "used",
-          "percent"
-        ],
-        "type": "object",
-        "properties": {
-          "amount": {
-            "type": "number",
-            "format": "double"
-          },
-          "unit": {
-            "$ref": "#/components/schemas/UsageUnit"
-          },
-          "isDefault": {
-            "type": "boolean"
-          },
-          "used": {
-            "type": "number",
-            "format": "double"
-          },
-          "percent": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "description": "One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment's default for ScreenHire's key, not one the organization set; `used` is this month's use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it)."
-      },
       "AiUsageSummary": {
         "required": [
           "from",
@@ -19568,7 +19921,6 @@
           "byDay",
           "byModel",
           "byKeySource",
-          "limits",
           "lastCallAt"
         ],
         "type": "object",
@@ -19602,9 +19954,6 @@
               "$ref": "#/components/schemas/AiUsageGroup"
             }
           },
-          "limits": {
-            "$ref": "#/components/schemas/AiUsageLimitsView"
-          },
           "lastCallAt": {
             "type": [
               "null",
@@ -19613,7 +19962,7 @@
             "format": "date-time"
           }
         },
-        "description": "This organization's AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester's days (`timeZone`). `limits` is\nthe month's position against the budget and cap, whatever range was asked for. `lastCallAt` is when the newest model call\nhappened, whatever the range, so the page can say how recent its numbers are (design system T7); null before the first."
+        "description": "This organization's AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester's days (`timeZone`). `lastCallAt` is when the newest model call\nhappened, whatever the range, so the page can say how recent its numbers are (design system T7); null before the first."
       },
       "AiUsageTotals": {
         "required": [
@@ -21565,10 +21914,7 @@
           "builtInCalls",
           "charge",
           "callsWithUnknownCost",
-          "ownKeyCalls",
-          "trialAllowance",
-          "trialAllowanceUsed",
-          "metered"
+          "ownKeyCalls"
         ],
         "type": "object",
         "properties": {
@@ -21590,20 +21936,9 @@
           "ownKeyCalls": {
             "type": "integer",
             "format": "int32"
-          },
-          "trialAllowance": {
-            "type": "number",
-            "format": "double"
-          },
-          "trialAllowanceUsed": {
-            "type": "number",
-            "format": "double"
-          },
-          "metered": {
-            "type": "boolean"
           }
         },
-        "description": "This UTC month's use of ScreenHire's AI key (docs/architecture/billing.md, \"AI usage\"). `charge` is what the organization\npays for it in US dollars, the one amount for AI use that its AI use section shows too, and it never names the provider's price or a\nmargin. A call whose cost is unknown (`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on\nthe organization's own key, never charged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what\nit has already covered. `metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered\nprice is set)."
+        "description": "This UTC month's use of ScreenHire's AI key (docs/architecture/billing.md, \"AI credits\"). `charge` is what it drew from the\nprepaid AI credits in US dollars, the one amount for AI use that its AI use section shows too, and it never names the provider's\nprice or a margin. A call whose cost is unknown (`callsWithUnknownCost`) is counted and draws nothing. `ownKeyCalls` are\ncalls on the organization's own key, which never draw on the credits."
       },
       "BillingInvoice": {
         "required": [
@@ -21779,7 +22114,7 @@
             ]
           }
         },
-        "description": "An organization's billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan's limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says \"plus tax where it applies\".\n`aiUsage`: this month's use of ScreenHire's AI key and what it costs (null while billing is off). `thisMonth`: what the\norganization pays this month so far, each charge on its line and added up, and the next invoice (null while billing is off)."
+        "description": "An organization's billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan's limit, null when it has none.\n`canManage`: there is a subscription, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says \"plus tax where it applies\".\n`aiUsage`: this month's use of ScreenHire's AI key and what it drew from the credits (null while billing is off). `thisMonth`: what the\norganization pays this month so far, each charge on its line and added up, and the next invoice (null while billing is off)."
       },
       "BillingPaymentMethod": {
         "required": [
@@ -21941,9 +22276,7 @@
           "currency",
           "planName",
           "planAmount",
-          "aiCalls",
-          "aiAmount",
-          "trialCredit",
+          "creditsBought",
           "total",
           "nextInvoiceAmount",
           "nextInvoiceAt"
@@ -21969,18 +22302,7 @@
             ],
             "format": "double"
           },
-          "aiCalls": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "aiAmount": {
-            "type": [
-              "null",
-              "number"
-            ],
-            "format": "double"
-          },
-          "trialCredit": {
+          "creditsBought": {
             "type": "number",
             "format": "double"
           },
@@ -22003,7 +22325,7 @@
             "format": "date-time"
           }
         },
-        "description": "This UTC month so far, added up (docs/architecture/billing.md, \"The Billing page\"), in `currency`. `planName` and\n`planAmount` are the plan's line: its monthly price while subscribed, 0 on the free trial, and null with no plan (ended).\n`aiCalls` and `aiAmount` are AI use on ScreenHire's key, null where it is not billed here. `trialCredit` is what the\ntrial's allowance covers of that use, 0 or more. `total` is the plan, plus AI use, less the credit, each to the cent first, so\nthe lines shown add up to it. `nextInvoiceAmount`\nand `nextInvoiceAt` estimate the next invoice while a subscription runs: the next plan payment (none when it is set to end)\nplus this month's AI use, so the page says \"about\"; null when no invoice is coming."
+        "description": "This UTC month so far, added up (docs/architecture/billing.md, \"The Billing page\"), in `currency`. `planName` and\n`planAmount` are the plan's line: its monthly price while subscribed, 0 on the free trial, and null with no plan (ended).\n`creditsBought` is the AI credits bought this month in US dollars, each purchase a charge of its own. `total` is the plan\nplus the credits (when the plan is in US dollars), each to the cent first, so the lines shown add up to it. `nextInvoiceAmount`\nand `nextInvoiceAt` estimate the plan's next invoice while a subscription runs, so the page says \"about\"; null when no invoice\nis coming. AI use is prepaid and on no invoice."
       },
       "BoardMode": {
         "enum": [
@@ -28303,7 +28625,6 @@
           "apiKeySaved",
           "ownKeyInputPrice",
           "ownKeyOutputPrice",
-          "limits",
           "presets",
           "checks",
           "defaultAiUse",
@@ -28364,16 +28685,6 @@
             ],
             "format": "double"
           },
-          "limits": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/AiUsageLimitsView"
-              }
-            ]
-          },
           "presets": {
             "type": "array",
             "items": {
@@ -28418,7 +28729,7 @@
             "type": "boolean"
           }
         },
-        "description": "The organization's verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `limits` is the monthly AI budget and cap with what has been used so far this month; it is null for a\nmember who cannot see AI usage (`ViewAiUsage`), and an Owner changes it with `/v1/organization/ai-usage/limits`.\n`presets` are the providers an organization can bring a key for, with the address each fills in.\n`ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization's own key costs it, in US dollars per million\ntokens (null when unknown, or for a member who cannot edit settings)."
+        "description": "The organization's verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. What the check may spend on ScreenHire's key is the prepaid AI credits (`/v1/organization/billing/credits`).\n`presets` are the providers an organization can bring a key for, with the address each fills in.\n`ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization's own key costs it, in US dollars per million\ntokens (null when unknown, or for a member who cannot edit settings)."
       },
       "PageTelemetryInput": {
         "required": [
@@ -32563,6 +32874,19 @@
         },
         "description": "How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional."
       },
+      "StartAiCreditCheckoutRequest": {
+        "required": [
+          "amount"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "description": "Buy one of the fixed amounts on offer, in US dollars."
+      },
       "StartBillingCheckoutRequest": {
         "required": [
           "plan"
@@ -33443,17 +33767,30 @@
         },
         "description": "The person's working habits here: single-key shortcuts, and whether a move that sends emails or creates tasks asks first."
       },
-      "UpdateAiUsageLimitsRequest": {
+      "UpdateAiAutoReload": {
+        "required": [
+          "enabled"
+        ],
         "type": "object",
         "properties": {
-          "budget": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "below": {
             "type": [
               "null",
               "number"
             ],
             "format": "double"
           },
-          "cap": {
+          "amount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "monthlyMax": {
             "type": [
               "null",
               "number"
@@ -33461,7 +33798,24 @@
             "format": "double"
           }
         },
-        "description": "Sets the monthly budget and cap, in US dollars to the cent, counted against the amount billed for AI use; null removes one.\nSetting one needs a price for the key in use (an own key's two prices), since a call with no known cost counts as nothing."
+        "description": "Auto-reload's settings. Turning it on needs all three amounts and a saved card."
+      },
+      "UpdateAiCreditSettingsRequest": {
+        "required": [
+          "lowBalanceAlert",
+          "autoReload"
+        ],
+        "type": "object",
+        "properties": {
+          "lowBalanceAlert": {
+            "type": "number",
+            "format": "double"
+          },
+          "autoReload": {
+            "$ref": "#/components/schemas/UpdateAiAutoReload"
+          }
+        },
+        "description": "The low-balance alert and auto-reload, in US dollars to the cent."
       },
       "UpdateBrandingRequest": {
         "required": [
@@ -34017,7 +34371,7 @@
             ]
           }
         },
-        "description": "Replaces the organization's verification settings. `apiKey` is the one place a key travels: null keeps the saved key,\ntext replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or\nmodel is tested before it is saved. `modelSource` `Included` erases the saved key, provider and price fields.\nA preset with a fixed address takes no `baseUrl`. The monthly budget and cap are not here: an Owner sets them with\n`/v1/organization/ai-usage/limits`."
+        "description": "Replaces the organization's verification settings. `apiKey` is the one place a key travels: null keeps the saved key,\ntext replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or\nmodel is tested before it is saved. `modelSource` `Included` erases the saved key, provider and price fields.\nA preset with a fixed address takes no `baseUrl`. AI credits and auto-reload are not here: an Owner sets them in Billing\n(`/v1/organization/billing/credits/settings`)."
       },
       "UpdateViewRequest": {
         "required": [
@@ -34221,13 +34575,6 @@
           "TemplateAutomation"
         ],
         "description": "What uses a template: a job, a hiring template, or an automation in either."
-      },
-      "UsageUnit": {
-        "enum": [
-          "Tokens",
-          "Money"
-        ],
-        "description": "What a monthly budget or cap is counted in."
       },
       "ValidateWorkflowRequest": {
         "required": [

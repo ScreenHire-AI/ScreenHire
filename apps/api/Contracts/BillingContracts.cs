@@ -10,9 +10,9 @@ namespace ScreenHire.Api.Contracts;
 /// publishing a new job stops). <c>trialEndsAt</c> is set during the trial. <c>nextPaymentAt</c> and
 /// <c>nextPaymentAmount</c> are set while a subscription renews, and <c>cancelsAtPeriodEnd</c> says it will not.
 /// <c>openJobs</c> counts the jobs open now and <c>activeJobLimit</c> is the plan's limit, null when it has none.
-/// <c>canManage</c>: the provider has a customer, so the payment portal can open. <c>sandbox</c>: the local fake, not Stripe.
+/// <c>canManage</c>: there is a subscription, so the payment portal can open. <c>sandbox</c>: the local fake, not Stripe.
 /// <c>taxAtCheckout</c>: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".
-/// <c>aiUsage</c>: this month's use of ScreenHire's AI key and what it costs (null while billing is off). <c>thisMonth</c>: what the
+/// <c>aiUsage</c>: this month's use of ScreenHire's AI key and what it drew from the credits (null while billing is off). <c>thisMonth</c>: what the
 /// organization pays this month so far, each charge on its line and added up, and the next invoice (null while billing is off).
 /// </summary>
 public sealed record BillingOverview(
@@ -33,40 +33,27 @@ public sealed record BillingOverview(
     BillingThisMonth? ThisMonth);
 
 /// <summary>
-/// This UTC month's use of ScreenHire's AI key (docs/architecture/billing.md, "AI usage"). <c>charge</c> is what the organization
-/// pays for it in US dollars, the one amount for AI use that its AI use section shows too, and it never names the provider's price or a
-/// margin. A call whose cost is unknown (<c>callsWithUnknownCost</c>) is counted and charges nothing. <c>ownKeyCalls</c> are calls on
-/// the organization's own key, never charged. <c>trialAllowance</c> is what the free trial includes and <c>trialAllowanceUsed</c> what
-/// it has already covered. <c>metered</c>: the payment provider can bill the use (the sandbox always can; Stripe once the metered
-/// price is set).
+/// This UTC month's use of ScreenHire's AI key (docs/architecture/billing.md, "AI credits"). <c>charge</c> is what it drew from the
+/// prepaid AI credits in US dollars, the one amount for AI use that its AI use section shows too, and it never names the provider's
+/// price or a margin. A call whose cost is unknown (<c>callsWithUnknownCost</c>) is counted and draws nothing. <c>ownKeyCalls</c> are
+/// calls on the organization's own key, which never draw on the credits.
 /// </summary>
-public sealed record BillingAiUsage(
-    string Month,
-    int BuiltInCalls,
-    decimal Charge,
-    int CallsWithUnknownCost,
-    int OwnKeyCalls,
-    decimal TrialAllowance,
-    decimal TrialAllowanceUsed,
-    bool Metered);
+public sealed record BillingAiUsage(string Month, int BuiltInCalls, decimal Charge, int CallsWithUnknownCost, int OwnKeyCalls);
 
 /// <summary>
 /// This UTC month so far, added up (docs/architecture/billing.md, "The Billing page"), in <c>currency</c>. <c>planName</c> and
 /// <c>planAmount</c> are the plan's line: its monthly price while subscribed, 0 on the free trial, and null with no plan (ended).
-/// <c>aiCalls</c> and <c>aiAmount</c> are AI use on ScreenHire's key, null where it is not billed here. <c>trialCredit</c> is what the
-/// trial's allowance covers of that use, 0 or more. <c>total</c> is the plan, plus AI use, less the credit, each to the cent first, so
-/// the lines shown add up to it. <c>nextInvoiceAmount</c>
-/// and <c>nextInvoiceAt</c> estimate the next invoice while a subscription runs: the next plan payment (none when it is set to end)
-/// plus this month's AI use, so the page says "about"; null when no invoice is coming.
+/// <c>creditsBought</c> is the AI credits bought this month in US dollars, each purchase a charge of its own. <c>total</c> is the plan
+/// plus the credits (when the plan is in US dollars), each to the cent first, so the lines shown add up to it. <c>nextInvoiceAmount</c>
+/// and <c>nextInvoiceAt</c> estimate the plan's next invoice while a subscription runs, so the page says "about"; null when no invoice
+/// is coming. AI use is prepaid and on no invoice.
 /// </summary>
 public sealed record BillingThisMonth(
     string Month,
     string Currency,
     string? PlanName,
     decimal? PlanAmount,
-    int AiCalls,
-    decimal? AiAmount,
-    decimal TrialCredit,
+    decimal CreditsBought,
     decimal Total,
     decimal? NextInvoiceAmount,
     DateTimeOffset? NextInvoiceAt);

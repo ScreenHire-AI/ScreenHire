@@ -1,10 +1,12 @@
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Verification.Llm;
+using ScreenHire.IntegrationTests.Billing;
 
 namespace ScreenHire.IntegrationTests;
 
@@ -85,8 +87,9 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
             .Select(e => e.GetProperty("right").GetProperty("label").GetString())
             .Should().Contain("LinkedIn profile export");
 
-        var settings = (await tenant.GetAsync("/v1/organization/verification-settings")).Expect(HttpStatusCode.OK);
-        settings.Body.GetProperty("limits").GetProperty("effectiveBudget").GetProperty("used").GetDecimal().Should().BeGreaterThan(0, "every call is in the usage ledger");
+        (await tenant.GetAsync("/v1/organization/ai-usage/summary")).Expect(HttpStatusCode.OK).At("totals.cost").GetDecimal()
+            .Should().BeGreaterThan(0, "every call is in the usage ledger");
+        (await tenant.CreditsAsync()).At("balance").GetDecimal().Should().BeLessThan(new BillingAiOptions().TrialAllowance, "and each one drew on the credits");
         await using var db = await VerificationSupport.TenantDbAsync(fixture, tenant.OrganizationId);
         (await db.ApplicationDocuments.Where(d => d.ApplicationId == applicationId).Select(d => d.Kind).ToListAsync(Ct))
             .Should().BeEquivalentTo([DocumentKind.Resume, DocumentKind.LinkedInExport]);
@@ -114,28 +117,28 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task Once_the_monthly_cap_is_reached_the_AI_check_is_paused_and_says_so_without_marking_the_candidate()
+    public async Task With_no_AI_credits_left_the_AI_check_is_paused_and_says_so_without_marking_the_candidate()
     {
         using var tenant = await fixture.SignedInWithOrganizationAsync();
         (await tenant.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true })).Expect(HttpStatusCode.OK);
-        (await tenant.PutAsync("/v1/organization/ai-usage/limits", new JsonObject { ["cap"] = 0.01m })).Expect(HttpStatusCode.OK);
         var (slug, jobId) = await VerificationSupport.OpenJobAsync(fixture, tenant, SystemTemplates.SoftwareEngineerVersion2);
         var first = SyntheticApplicants.GenuineHuman;
         var second = SyntheticApplicants.HonestAiAssisted;
 
         var firstId = await VerificationSupport.ApplyAsync(fixture, slug, jobId, first, answers: first.Answers);
         (await VerificationSupport.SettledAsync(fixture, tenant, firstId)).Text("consistencyCheck.status").Should().Be("Completed");
-        // A dollar of use passes the cent's cap, whatever the fake model's first check cost.
-        await VerificationSupport.SpendAsync(fixture, tenant.OrganizationId, 1m);
+        await VerificationSupport.DrainCreditsAsync(fixture, tenant.OrganizationId);
         var secondId = await VerificationSupport.ApplyAsync(fixture, slug, jobId, second, answers: second.Answers);
         var verification = await VerificationSupport.SettledAsync(fixture, tenant, secondId);
 
         verification.Text("consistencyCheck.status").Should().Be("Paused");
-        verification.Text("consistencyCheck.note").Should().Be(RunNotes.AiChecksPaused);
+        verification.Text("consistencyCheck.note").Should().Be(RunNotes.AiCreditsPaused);
         verification.Text("status").Should().Be("Assessed", "a paused check never holds up the assessment, and the rule-based checks still ran");
         var paused = verification.At("checksNotRun").EnumerateArray().Should().ContainSingle(n => n.GetProperty("kind").GetString() == "Paused").Subject;
         paused.GetProperty("label").GetString().Should().Be(RunNotes.AiChecksLabel);
         paused.GetProperty("note").GetString().Should().Contain("says nothing about the candidate");
+        verification.At("authenticity.signals").EnumerateArray().Select(s => s.GetProperty("code").GetString())
+            .Should().NotContain(SignalCatalogue.Inconsistency, "a paused check marks no candidate");
     }
 
     [Fact]
@@ -174,14 +177,10 @@ public sealed class ContentForensicsTests(AppHostFixture fixture)
 
         var initial = (await tenant.GetAsync("/v1/organization/verification-settings")).Expect(HttpStatusCode.OK);
         initial.Body.GetProperty("llmConsistencyCheck").GetBoolean().Should().BeFalse();
-        (await tenant.PutAsync("/v1/organization/ai-usage/limits", new JsonObject { ["budget"] = 0 }))
-            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("budget");
-        (await tenant.PutAsync("/v1/organization/ai-usage/limits", new JsonObject { ["budget"] = 500 })).Expect(HttpStatusCode.OK);
         var saved = (await tenant.PutAsync("/v1/organization/verification-settings", new JsonObject { ["llmConsistencyCheck"] = true }))
             .Expect(HttpStatusCode.OK);
 
         saved.Body.GetProperty("llmConsistencyCheck").GetBoolean().Should().BeTrue();
-        saved.Body.GetProperty("limits").GetProperty("budget").GetDecimal().Should().Be(500, "saving the settings leaves the Owner's budget alone");
         (await other.GetAsync("/v1/organization/verification-settings")).Expect(HttpStatusCode.OK)
             .Body.GetProperty("llmConsistencyCheck").GetBoolean().Should().BeFalse("another organization's switch is its own");
     }

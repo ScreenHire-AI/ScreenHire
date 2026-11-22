@@ -41,6 +41,9 @@ public sealed class BillingOptions
     /// <summary>What ScreenHire charges for AI use on its own key (docs/architecture/ai-usage.md, billing.md). Read by the billing of that use.</summary>
     public BillingAiOptions Ai { get; set; } = new();
 
+    /// <summary>Prepaid AI credits (ADR-0032): the amounts on offer, how long a credit lasts and the default low-balance alert.</summary>
+    public BillingCreditOptions Credits { get; set; } = new();
+
     /// <summary>Stripe's API. Configurable only so a test can point the real client at a stand-in.</summary>
     public Uri ApiBaseUrl { get; set; } = new("https://api.stripe.com/v1/");
 
@@ -56,24 +59,23 @@ public sealed class BillingOptions
         : BillingMode.Off;
 
     /// <summary>
-    /// Whether AI use on ScreenHire's key is billed: always in the sandbox, and with Stripe once the metered price
-    /// (<see cref="BillingAiOptions.StripePriceId"/>) is set, which is when the worker reports it.
+    /// Whether AI use on ScreenHire's key is paid for with prepaid credits: whenever a payment provider is set up (ADR-0032). With
+    /// billing off (a self-hosted deployment, where nobody is billed) there is no balance and nothing pauses the AI check.
     /// </summary>
-    public bool AiMetered => Mode == BillingMode.Sandbox || Mode == BillingMode.Stripe && !string.IsNullOrWhiteSpace(Ai.StripePriceId);
+    public bool CreditsEnabled => Mode != BillingMode.Off;
 
     /// <summary>
-    /// The margin on AI use that a customer pays: <see cref="BillingAiOptions.Margin"/> while AI use is billed (<see cref="AiMetered"/>),
+    /// The margin on AI use that a customer pays: <see cref="BillingAiOptions.Margin"/> while credits are on (<see cref="CreditsEnabled"/>),
     /// and 0 otherwise, because then nobody is billed for it and the amount shown is the provider's price. Every figure for AI use goes
-    /// through it, so Billing's AI use section, the budget and cap, and the Billing page show the one amount the meter is sent
+    /// through it, so a debit from the balance, Billing's AI use section and the Activity log show the one amount
     /// (docs/architecture/ai-usage.md).
     /// </summary>
-    public decimal AiMarginInForce => AiMetered ? Ai.Margin : 0m;
+    public decimal AiMarginInForce => CreditsEnabled ? Ai.Margin : 0m;
 }
 
 /// <summary>
-/// The charge for AI use on ScreenHire's key: the provider's price plus a margin. An organization's own key costs it nothing
-/// extra. The margin is configuration, so it changes without a release. Reported to the payment provider's meter by the worker
-/// (docs/architecture/billing.md, "AI usage").
+/// The charge for AI use on ScreenHire's key: the provider's price plus a margin, drawn from the organization's prepaid credits
+/// (ADR-0032). An organization's own key costs it nothing extra. The margin is configuration, so it changes without a release.
 /// </summary>
 public sealed class BillingAiOptions
 {
@@ -86,25 +88,64 @@ public sealed class BillingAiOptions
     /// <summary>The highest margin accepted, 10 for 1,000%: a larger value is a typo for a percentage (20 for 0.20).</summary>
     public const decimal MaxMargin = 10m;
 
-    /// <summary>The name of the Stripe meter's events. The owner creates the meter with this <c>event_name</c>.</summary>
-    public string MeterEventName { get; set; } = "screenhire_ai_usage";
-
     /// <summary>
-    /// The Stripe price on the meter (metered, USD, 0.0001 cents per unit, a unit being a micro-dollar). Checkout adds it to the
-    /// subscription. With none, Stripe mode reports no usage and says so in the log; the sandbox needs none.
-    /// </summary>
-    public string? StripePriceId { get; set; }
-
-    /// <summary>
-    /// US dollars of AI use on ScreenHire's key the free trial includes. Calls that started before the trial ended count toward it, in
-    /// time order, and the rest is billed from the first paid invoice. Zero includes none.
+    /// The starting credit: US dollars of AI credits every organization gets once, with its billing account (ADR-0032). It was the
+    /// trial's AI allowance, and keeps the name. Zero gives none.
     /// </summary>
     public decimal TrialAllowance { get; set; } = 5.00m;
+}
 
-    /// <summary>The most calls one run reports for one organization; a full batch sends the next.</summary>
-    public int ReportBatchSize { get; set; } = 200;
+/// <summary>
+/// Prepaid AI credits, <c>ScreenHire:Billing:Credits</c> (docs/architecture/billing.md, "AI credits"). The defaults are
+/// packages/plans/credits.json, which the marketing site reads too.
+/// </summary>
+public sealed class BillingCreditOptions
+{
+    /// <summary>The largest amount one purchase may be, in US dollars.</summary>
+    public const decimal MaxAmount = 10_000m;
 
-    public const int MaxReportBatchSize = 1000;
+    /// <summary>The longest a credit may last, in months.</summary>
+    public const int MaxExpiryMonths = 120;
+
+    /// <summary>
+    /// The fixed amounts an Owner can buy, in US dollars. Empty means the shipped list (<see cref="CreditDefaults.Shipped"/>); left empty
+    /// here rather than set to it, because the configuration binder adds a configured list to the elements an array already has.
+    /// </summary>
+    public decimal[] Amounts { get; set; } = [];
+
+    /// <summary>Months a credit lasts from its grant. Null means never. Defaults to packages/plans/credits.json (12).</summary>
+    public int? ExpiryMonths { get; set; } = CreditDefaults.Shipped.ExpiryMonths;
+
+    /// <summary>The low-balance alert a new organization starts with, in US dollars. Each Owner can change their organization's.</summary>
+    public decimal LowBalanceAlert { get; set; } = CreditDefaults.Shipped.LowBalanceAlert;
+
+    /// <summary>The amounts on offer: the configured list, or the shipped one, smallest first.</summary>
+    public IReadOnlyList<decimal> AmountsOnOffer => [.. (Amounts.Length > 0 ? Amounts : CreditDefaults.Shipped.Amounts).Order()];
+
+    /// <summary>When a credit granted at <paramref name="grantedAt"/> expires, or null when credits never do.</summary>
+    public DateTimeOffset? ExpiresAt(DateTimeOffset grantedAt) => ExpiryMonths is { } months ? grantedAt.AddMonths(months) : null;
+}
+
+/// <summary>
+/// The credit defaults as the catalogue ships them (packages/plans/credits.json, embedded), the file the marketing site reads to say
+/// what credits cost. Configuration (<see cref="BillingCreditOptions"/>) overrides them for the API and worker alone.
+/// </summary>
+public sealed record CreditDefaults(decimal[] Amounts, int? ExpiryMonths, decimal LowBalanceAlert)
+{
+    private const string ResourceName = "credits.json";
+
+    // Before Shipped: static fields initialize in the order they are written.
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    public static CreditDefaults Shipped { get; } = Load();
+
+    private static CreditDefaults Load()
+    {
+        using var stream = typeof(CreditDefaults).Assembly.GetManifestResourceStream(ResourceName)
+            ?? throw new InvalidOperationException($"The embedded {ResourceName} (packages/plans/credits.json) is missing.");
+        return JsonSerializer.Deserialize<CreditDefaults>(stream, Json)
+            ?? throw new InvalidOperationException($"The embedded {ResourceName} is empty.");
+    }
 }
 
 /// <summary>
@@ -244,9 +285,8 @@ public sealed class BillingSandboxGate(IHostEnvironment environment) : IValidate
 
 /// <summary>
 /// Refuses AI billing settings that would fail silently: a margin that would charge less than the provider's price, or a hundredfold
-/// more by a typing slip; a negative allowance; a batch size the run cannot work with; and a metered price beside a plan that is not
-/// in US dollars. The ledger prices a call in US dollars and all items of one Stripe subscription share a currency, so a euro plan
-/// with the metered price would fail at Checkout, or bill the wrong amount.
+/// more by a typing slip; a negative starting credit; a credit amount that is not dollars to the cent, is out of range or is listed
+/// twice; an expiry out of range; and a negative low-balance alert.
 /// </summary>
 public sealed class BillingAiGate : IValidateOptions<BillingOptions>
 {
@@ -254,6 +294,7 @@ public sealed class BillingAiGate : IValidateOptions<BillingOptions>
     {
         ArgumentNullException.ThrowIfNull(options);
         var ai = options.Ai;
+        var credits = options.Credits;
         var problems = new List<string>();
         if (ai.Margin is < 0m or > BillingAiOptions.MaxMargin)
         {
@@ -265,25 +306,22 @@ public sealed class BillingAiGate : IValidateOptions<BillingOptions>
             problems.Add($"ScreenHire:Billing:Ai:TrialAllowance is {ai.TrialAllowance}. It must be 0 or more US dollars.");
         }
 
-        if (ai.ReportBatchSize is < 1 or > BillingAiOptions.MaxReportBatchSize)
+        var amounts = credits.AmountsOnOffer;
+        if (amounts.Any(a => a is <= 0m or > BillingCreditOptions.MaxAmount || decimal.Round(a, 2) != a) || amounts.Distinct().Count() != amounts.Count)
         {
-            problems.Add($"ScreenHire:Billing:Ai:ReportBatchSize is {ai.ReportBatchSize}. It must be 1 to {BillingAiOptions.MaxReportBatchSize}.");
+            problems.Add(
+                $"ScreenHire:Billing:Credits:Amounts is [{string.Join(", ", amounts)}]. Each must be more than 0 and at most {BillingCreditOptions.MaxAmount} US dollars, to the cent, and listed once.");
         }
 
-        if (string.IsNullOrWhiteSpace(ai.MeterEventName))
+        if (credits.ExpiryMonths is < 1 or > BillingCreditOptions.MaxExpiryMonths)
         {
-            problems.Add("ScreenHire:Billing:Ai:MeterEventName must not be empty.");
+            problems.Add(
+                $"ScreenHire:Billing:Credits:ExpiryMonths is {credits.ExpiryMonths}. It must be 1 to {BillingCreditOptions.MaxExpiryMonths}, or empty for credits that never expire.");
         }
 
-        if (!string.IsNullOrWhiteSpace(ai.StripePriceId))
+        if (credits.LowBalanceAlert < 0m)
         {
-            var notDollars = new PlanCatalogue(Options.Create(options)).Plans
-                .Where(p => !string.Equals(p.Currency, "USD", StringComparison.OrdinalIgnoreCase)).Select(p => p.Key).ToList();
-            if (notDollars.Count > 0)
-            {
-                problems.Add(
-                    $"ScreenHire:Billing:Ai:StripePriceId is set, but the plans {string.Join(", ", notDollars)} are not in USD. AI use is priced in US dollars and a Stripe subscription has one currency.");
-            }
+            problems.Add($"ScreenHire:Billing:Credits:LowBalanceAlert is {credits.LowBalanceAlert}. It must be 0 or more US dollars.");
         }
 
         return problems.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(problems);

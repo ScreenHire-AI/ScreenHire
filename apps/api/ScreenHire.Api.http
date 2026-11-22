@@ -286,9 +286,18 @@ GET {{api}}/v1/organization/ai-usage/calls/export
 
 ###
 
-# An Owner sets the monthly budget (alerts at 50%, 80% and 100%) and cap (pauses the AI-based checks), in tokens or dollars.
-PUT {{api}}/v1/organization/ai-usage/limits
+# The prepaid AI credits: the balance, and the deductions (each call) newest first.
+GET {{api}}/v1/organization/billing/credits
+
+###
+
+GET {{api}}/v1/organization/billing/credits/deductions
+
+###
+
+# An Owner buys one of the amounts on offer; the answer is the payment page. The credit is granted when the payment is confirmed.
+POST {{api}}/v1/organization/billing/credits/checkout
 Content-Type: application/json
 X-XSRF-TOKEN: {{xsrf}}
 
-{ "unit": "Tokens", "budget": 1000000, "cap": 2000000 }
+{ "amount": 25 }

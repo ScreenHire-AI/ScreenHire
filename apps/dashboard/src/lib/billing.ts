@@ -1,4 +1,13 @@
-import type { BillingAiUsage, BillingInvoiceStatus, BillingOverview, BillingPaymentMethod, BillingPlan, BillingState } from '@screenhire/api-client';
+import type {
+  AiCreditPurchaseStatus,
+  AiCreditSource,
+  BillingAiUsage,
+  BillingInvoiceStatus,
+  BillingOverview,
+  BillingPaymentMethod,
+  BillingPlan,
+  BillingState,
+} from '@screenhire/api-client';
 import { formatCost } from '#lib/ai-usage.js';
 import { locales } from '#lib/dates.js';
 import type { StatusName } from '#lib/status.js';
@@ -77,38 +86,44 @@ export const invoiceStatus: Record<BillingInvoiceStatus, { status: StatusName; l
 };
 
 /**
- * What else the AI usage panel says, one sentence each, depending on where the organization stands (docs/architecture/billing.md,
- * "AI usage"): a provider that cannot bill it yet (before the trial's wording, which would promise an invoice line that never
- * comes), how the trial treats its use, checks that ran on the organization's own key, and calls nothing could price.
+ * What else the AI usage panel says, one sentence each (docs/architecture/billing.md, "AI credits"): checks that ran on the
+ * organization's own key, and calls nothing could price. Neither draws on the credits.
  */
-export function aiUsageNotes(usage: BillingAiUsage, state: BillingState | null): string[] {
+export function aiUsageNotes(usage: BillingAiUsage): string[] {
   const notes: string[] = [];
-  if (!usage.metered) {
-    notes.push('Billing for AI use is not set up here yet.');
-  } else if (state === 'Trialing') {
-    notes.push(
-      usage.trialAllowance > 0
-        ? `Your trial includes ${formatCost(usage.trialAllowance)} of AI use. Use above that is added to your first invoice.`
-        : 'AI use during your trial is added to your first invoice.',
-    );
-  } else if (state === 'Ended') {
-    notes.push('AI use is billed once you choose a plan.');
-  } else if (usage.trialAllowanceUsed > 0) {
-    notes.push(`Your trial covered ${formatCost(usage.trialAllowanceUsed)} of AI use.`);
-  }
-
   if (usage.ownKeyCalls > 0) {
     const n = usage.ownKeyCalls;
-    notes.push(`${n} ${n === 1 ? 'call' : 'calls'} ran on your own key, so ScreenHire charges nothing for ${n === 1 ? 'it' : 'them'}.`);
+    notes.push(`${n} ${n === 1 ? 'call' : 'calls'} ran on your own key, so ${n === 1 ? 'it used' : 'they used'} no credits.`);
   }
 
   if (usage.callsWithUnknownCost > 0) {
     const n = usage.callsWithUnknownCost;
-    notes.push(`${n} ${n === 1 ? 'call has' : 'calls have'} no known price, so ${n === 1 ? 'it is' : 'they are'} not charged.`);
+    notes.push(`${n} ${n === 1 ? 'call has' : 'calls have'} no known price, so ${n === 1 ? 'it used' : 'they used'} no credits.`);
   }
 
   return notes;
 }
+
+/** AI credits in US dollars with two decimals: `$18.40`. A balance a little below zero (checks that ran together) shows as it is. */
+export const formatCredits = (amount: number) => formatMoney(amount, 'USD');
+
+/** How long credits last, from `expiryMonths` (null: never). */
+export const creditExpiryText = (months: number | null) =>
+  months === null ? 'Credits never expire.' : `Credits last ${months} ${months === 1 ? 'month' : 'months'} from when they are added.`;
+
+/** Where a credit came from, in words. */
+export const creditSourceLabels: Record<AiCreditSource, string> = {
+  StartingCredit: 'Starting credit',
+  Checkout: 'Bought',
+  AutoReload: 'Auto-reload',
+};
+
+/** How a credit purchase went, as a status (section 3.2). */
+export const creditPurchaseStatus: Record<AiCreditPurchaseStatus, { status: StatusName; label: string }> = {
+  Paid: { status: 'done', label: 'Paid' },
+  Included: { status: 'done', label: 'Included' },
+  Failed: { status: 'needsFixes', label: 'Failed' },
+};
 
 /** Whether someone without a subscription can start one here: on the trial, or after the subscription ended. */
 export const mayChoosePlan = (state: BillingState | null) => state === 'Trialing' || state === 'Ended';

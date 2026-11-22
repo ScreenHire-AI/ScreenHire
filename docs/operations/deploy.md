@@ -322,22 +322,23 @@ done
 - **Billing.** The steps are in [Billing](../architecture/billing.md) and the owner actions in [status](../status.md#owner-actions).
   In Stripe, on an account only ScreenHire uses: a product with a recurring monthly price per plan, the customer portal turned
   on, and a webhook endpoint at `https://<api host>/v1/webhooks/stripe` for `checkout.session.completed`,
-  `customer.subscription.created`, `customer.subscription.updated` and `customer.subscription.deleted`. Create the endpoint
+  `checkout.session.async_payment_succeeded`, `invoice.paid`, `customer.subscription.created`, `customer.subscription.updated` and
+  `customer.subscription.deleted` (the second and third grant AI credits). Create the endpoint
   through Stripe's API with `api_version=2024-06-20`, the version the code is written against: a webhook otherwise arrives at
   the account's default version, and an endpoint's version cannot be changed later. In the vault: the two secrets above, and each plan's price
   id, price and limit as secrets named like the setting (for example `ScreenHire--Billing--Plans--growth--StripePriceId`,
   `ScreenHire--Billing--Plans--growth--MonthlyPrice`, `ScreenHire--Billing--Plans--growth--ActiveJobs`). Leave
   `ScreenHire:Billing:Sandbox:Enabled` off: the sandbox's checkout charges nobody, and an app started outside Development with it on
-  stops at start. AI use on ScreenHire's key is billed through a Stripe meter ([Billing](../architecture/billing.md#owner-actions-for-ai-usage)):
-  create the meter and its metered USD price, set `ScreenHire--Billing--Ai--StripePriceId` in the vault, and note that the worker reads the
-  same two Stripe secrets as the API, because it sends the meter events. Add Stripe to the sub-processor list.
+  stops at start. AI use on ScreenHire's key is prepaid AI credits ([Billing](../architecture/billing.md#owner-actions-for-ai-credits)):
+  no Stripe price is needed for them, and the worker reads the same two Stripe secrets as the API, because it charges auto-reloads.
+  Add Stripe to the sub-processor list.
 - **Turnstile.** `turnstile-site-key` and the vault secret `ScreenHire--Turnstile--SecretKey`. Without them the honeypot still works.
 - **Google Indexing.** A Google service account that owns the careers domain in Search Console, `google-indexing-mode` set to
   `Google`, its key JSON in the vault. The real client has never run.
 - **The consistency check.** `verification-llm-provider` to `Anthropic`, the two model ids, and the key in the vault. Add the
   provider to the sub-processor list and the DPA first. Price each model in the vault too
   (`ScreenHire--Verification--Llm--Prices--<modelId>--Input` and `--Output`, US dollars per million tokens): the usage ledger shows
-  costs, and the default budget and cap show in dollars instead of tokens ([AI usage](../architecture/ai-usage.md#settings)).
+  costs and each call draws its amount from the AI credits; a call with no price draws nothing ([AI usage](../architecture/ai-usage.md#settings)).
 
 ### 9. Proxies and client addresses
 

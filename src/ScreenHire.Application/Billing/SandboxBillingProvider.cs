@@ -11,7 +11,8 @@ namespace ScreenHire.Application.Billing;
 /// <summary>
 /// The local payment provider: Development and tests only, so every billing flow runs with no Stripe account (ADR-0029).
 /// Its "Checkout" and "portal" are the API's own <see cref="CheckoutPath"/> and <see cref="PortalPath"/>, which apply the
-/// change at once and send the browser back to the Billing page. It charges nobody. The URLs it makes are relative, so the
+/// change at once and send the browser back to the Billing page. Its credit Checkout (<see cref="CreditCheckoutPath"/>) asks the
+/// worker to grant the credits through the same message Stripe's signed event sends. It charges nobody. The URLs it makes are relative, so the
 /// dashboard, which proxies <c>/v1</c> to the API, reaches them on its own origin.
 /// </summary>
 /// <remarks>
@@ -173,15 +174,36 @@ public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtectio
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Takes every event: the sandbox charges nobody and keeps no meter of its own. The caller's record of what it reported
-    /// (<c>ai_usage_charges</c>, with the provider <c>Sandbox</c>) is what shows the usage was reported.
-    /// </summary>
-    public Task<AiUsageReportResult> ReportAiUsageAsync(AiUsageReport request, CancellationToken cancellationToken)
+    /// <summary>Where the sandbox's credit Checkout is: it asks the worker to grant the purchase, as Stripe's signed event does.</summary>
+    public const string CreditCheckoutPath = "/v1/billing/sandbox/credits";
+
+    /// <summary>The card the sandbox's credit Checkout saves for auto-reload.</summary>
+    public const string SandboxCard = "pm_sandbox_4242";
+
+    public Task<Uri> CreateCreditCheckoutAsync(CreditCheckoutRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Task.FromResult(new AiUsageReportResult([.. request.Events.Select(e => e.Id)], null));
+        var state = Issue(new SandboxBillingState(
+            request.OrganizationId, null, request.SuccessUrl.ToString(), TaxRequested: options.Value.Stripe.Tax.Enabled,
+            TaxIdsRequested: options.Value.CollectTaxIds, PurchaseId: request.PurchaseId));
+        return Task.FromResult(new Uri($"{CreditCheckoutPath}?state={Uri.EscapeDataString(state)}", UriKind.Relative));
     }
+
+    /// <summary>
+    /// Always succeeds: the sandbox charges nobody. It has no webhook, so the auto-reload handler grants a sandbox charge itself. A
+    /// refused charge is tested against Stripe's own answers (<see cref="StripeBillingProvider"/> with a stand-in).
+    /// </summary>
+    public Task<CreditCharge> ChargeCreditsAsync(CreditChargeRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Task.FromResult(new CreditCharge(CreditChargeStatus.Succeeded, $"in_sandbox_reload_{request.PurchaseId:N}"));
+    }
+
+    /// <summary>The sandbox's test card, for any payment its credit Checkout made.</summary>
+    public Task<string?> SavedPaymentMethodAsync(string paymentIntentId, CancellationToken cancellationToken) => Task.FromResult<string?>(SandboxCard);
+
+    /// <summary>The customer id the sandbox gives an organization, the same at Checkout for a plan and for credits.</summary>
+    public static string CustomerOf(Guid organizationId) => $"cus_sandbox_{organizationId:N}";
 
     /// <summary>The sandbox has no webhook: its pages apply the change themselves.</summary>
     public BillingWebhook ReadWebhook(string body, string? signature, DateTimeOffset now) => new(false, null);
@@ -214,7 +236,8 @@ public sealed class SandboxBillingProvider(IDataProtectionProvider dataProtectio
 /// What a sandbox page does: start <c>PlanKey</c> (Checkout; null for the portal) for the organization, then send the browser to
 /// <c>ReturnUrl</c>, the Billing page. <c>TaxRequested</c> and <c>TaxIdsRequested</c> say the checkout asked for tax and a tax id.
 /// <c>Intent</c> is what the portal was opened for: it cancels the plan, except to change the card, which the sandbox has nothing to do for.
+/// <c>PurchaseId</c> is a credit Checkout's purchase, which the credit page asks the worker to grant.
 /// </summary>
 public sealed record SandboxBillingState(
     Guid OrganizationId, string? PlanKey, string ReturnUrl, bool TaxRequested = false, bool TaxIdsRequested = false,
-    BillingPortalIntent Intent = BillingPortalIntent.Manage);
+    BillingPortalIntent Intent = BillingPortalIntent.Manage, Guid? PurchaseId = null);

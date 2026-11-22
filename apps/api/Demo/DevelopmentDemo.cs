@@ -157,7 +157,6 @@ internal sealed partial class DevelopmentDemo(
     {
         // Brightwater pays on the Unlimited plan, so the demo is never held to a limit (and has nothing to upgrade).
         await TryAsync(() => SeedBillingAsync(stoppingToken), stoppingToken);
-        await TryAsync(() => SeedAiUsageAsync(stoppingToken), stoppingToken);
 
         // Without Brightwater every step finds nothing to add to.
         var templateVersion = await TryAsync(() => SeedTemplateAsync(stoppingToken), stoppingToken);
@@ -208,6 +207,8 @@ internal sealed partial class DevelopmentDemo(
                 stoppingToken) ? 1 : 0;
         }
 
+        // After the applications, so the calls and the credits they drew belong to one of them.
+        await TryAsync(() => SeedAiUsageAsync(stoppingToken), stoppingToken);
         await TryAsync(() => SeedNotesAsync(stoppingToken), stoppingToken);
         await TryAsync(() => SeedScorecardsAsync(stoppingToken), stoppingToken);
         await TryAsync(() => SeedOneOffEmailAsync(stoppingToken), stoppingToken);
@@ -750,7 +751,8 @@ internal sealed partial class DevelopmentDemo(
     // membership log; the role's change history comes from the tracked save. A Robin someone has given another role
     // keeps it.
     // With billing on, Brightwater has an active subscription on the Unlimited plan (the sandbox's), so the demo shows a
-    // paying organization. Billing off: nothing to add.
+    // paying organization, and AI credits (ADR-0032): its starting credit and one paid purchase of $25, with the sandbox's card
+    // saved, so the Billing page shows a balance, a purchase history and an auto-reload that can be turned on. Billing off: nothing.
     private async Task SeedBillingAsync(CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
@@ -766,18 +768,42 @@ internal sealed partial class DevelopmentDemo(
             return;
         }
 
-        // The trial ended the day before the demo starts, so Brightwater's AI use (SeedAiUsageAsync and the worker's own checks) is
-        // past the trial and billed in full: the worker's 15-minute report sends it to the sandbox meter rather than waiving it under
-        // the trial's allowance. No TrialStarted is published, so no reminders are scheduled for it.
-        var trialDays = scope.ServiceProvider.GetRequiredService<IOptions<BillingOptions>>().Value.Trial.Days;
+        // The trial ended the day before the demo starts. No TrialStarted is published, so no reminders are scheduled for it.
+        var options = scope.ServiceProvider.GetRequiredService<IOptions<BillingOptions>>().Value;
+        var trialDays = options.Trial.Days;
         var account = BillingAccount.StartTrial(step.OrganizationId, step.Now.AddDays(-trialDays - 1), trialDays);
         account.Apply(step.Now, "cus_sandbox_demo", "sub_sandbox_demo", "unlimited", SubscriptionStatus.Active, step.Now.AddMonths(1), false, step.Now);
         db.BillingAccounts.Add(account);
+
+        // The credits as a real purchase leaves them: the purchase paid, its grant in the ledger, the card saved for auto-reload.
+        if (scope.ServiceProvider.GetRequiredService<BillingService>().StartingCredit(step.OrganizationId) is { } starting)
+        {
+            db.CreditEntries.Add(starting);
+        }
+
+        var bought = step.Now.AddDays(-2);
+        var purchase = new CreditPurchase { OrganizationId = step.OrganizationId, Source = CreditPurchaseSource.Checkout, Amount = 25m, CreatedAt = bought };
+        purchase.MarkPaid("pi_sandbox_demo", bought);
+        db.CreditPurchases.Add(purchase);
+        db.CreditEntries.Add(new CreditEntry
+        {
+            OrganizationId = step.OrganizationId,
+            Kind = CreditEntryKind.Purchase,
+            Micros = AiCharge.ToMicros(purchase.Amount),
+            At = bought,
+            ExpiresAt = options.Credits.ExpiresAt(bought),
+            SourceKey = CreditSourceKeys.Purchase(purchase.Id),
+            PurchaseId = purchase.Id,
+        });
+        var settings = CreditSettings.For(step.OrganizationId, options.Credits.LowBalanceAlert, step.Now);
+        settings.SaveCard(SandboxBillingProvider.SandboxCard, bought);
+        db.CreditSettings.Add(settings);
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
     }
 
-    // With billing on, a few priced calls on ScreenHire's key (the fake model's prices), so the Billing page's AI usage panel and the
-    // worker's report have something to show in the local demo. Only when the ledger is empty, so a restart adds nothing.
+    // With billing on, a few priced calls on ScreenHire's key (the fake model's prices), drawn from the AI credits as a check draws
+    // them, so the Billing page's AI use panel and its deductions have something to show in the local demo, against one of
+    // Brightwater's applications. Only when the ledger is empty, so a restart adds nothing.
     private async Task SeedAiUsageAsync(CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
@@ -793,13 +819,17 @@ internal sealed partial class DevelopmentDemo(
             return;
         }
 
+        var margin = scope.ServiceProvider.GetRequiredService<IOptions<BillingOptions>>().Value.AiMarginInForce;
+        var applicationId = await db.Applications.OrderBy(a => a.Id).Select(a => (Guid?)a.Id).FirstOrDefaultAsync(cancellationToken);
+        var calls = new List<AiUsageCall>();
         for (var i = 1; i <= 5; i++)
         {
             long input = 2_500 + 400 * i;
             long output = 300 + 50 * i;
-            db.AiUsageCalls.Add(new AiUsageCall
+            calls.Add(new AiUsageCall
             {
                 OrganizationId = step.OrganizationId,
+                ApplicationId = applicationId,
                 OccurredAt = step.Now.AddMinutes(-20 * i),
                 CheckName = AiUsageChecks.ConsistencyComparison,
                 Provider = "Fake",
@@ -816,7 +846,15 @@ internal sealed partial class DevelopmentDemo(
             });
         }
 
+        db.AiUsageCalls.AddRange(calls);
+        if (applicationId is { } application)
+        {
+            // One check's worth of calls, as one deduction (a made-up check id: the demo's own checks run in the worker).
+            db.CreditEntries.AddRange(AiCreditLedger.UsageEntries(calls, margin, Guid.CreateVersion7(), application));
+        }
+
         await step.Outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+
     }
 
     private async Task SeedInterviewerAsync(CancellationToken cancellationToken)

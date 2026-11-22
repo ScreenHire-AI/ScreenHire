@@ -33,20 +33,10 @@ public static class AiUsageQueries
     /// <summary>The UTC day <paramref name="day"/> falls in, as <c>yyyy-MM-dd</c>.</summary>
     public static string Day(DateTimeOffset day) => day.ToUniversalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-    /// <summary>Tokens the organization's calls have used this month, from both keys. A call that is still running counts nothing yet.</summary>
-    public static Task<long> TokensUsedThisMonthAsync(this ScreenHireDbContext db, DateTimeOffset now, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(db);
-        var monthStart = MonthStart(now);
-        return db.AiUsageCalls.AsNoTracking()
-            .Where(c => c.OccurredAt >= monthStart)
-            .SumAsync(c => (c.InputTokens ?? 0) + (c.OutputTokens ?? 0), cancellationToken);
-    }
-
     /// <summary>
     /// What a call comes to in the one amount a customer sees (<see cref="AiCharge.Billed"/>), as an expression Postgres runs inside a
     /// sum: ScreenHire's key at its cost times (1 + <paramref name="margin"/>) rounded to a micro-dollar (Postgres rounds numeric half
-    /// away from zero, as the meter's pricing does), an own key at its cost. An unknown cost counts nothing.
+    /// away from zero, as <see cref="AiCharge.Micros"/> does, so a sum agrees with the debits), an own key at its cost. An unknown cost counts nothing.
     /// </summary>
     public static Expression<Func<AiUsageCall, decimal>> BilledAmount(decimal margin)
     {
@@ -54,26 +44,6 @@ public static class AiUsageQueries
         return c => c.KeySource == AiKeySource.BuiltIn
             ? Math.Round((c.Cost ?? 0m) * factor * AiCharge.MicrosPerDollar) / AiCharge.MicrosPerDollar
             : c.Cost ?? 0m;
-    }
-
-    /// <summary>
-    /// What the organization's calls have used this month, in <paramref name="unit"/>: tokens, or billed dollars at
-    /// <paramref name="margin"/> (<see cref="BilledAmount"/>). A call with an unknown cost counts nothing toward dollars; Billing's AI use section
-    /// says how many there are.
-    /// </summary>
-    public static async Task<decimal> UsedThisMonthAsync(
-        this ScreenHireDbContext db, UsageUnit unit, decimal margin, DateTimeOffset now, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(db);
-        if (unit == UsageUnit.Tokens)
-        {
-            return await db.TokensUsedThisMonthAsync(now, cancellationToken);
-        }
-
-        var monthStart = MonthStart(now);
-        return await db.AiUsageCalls.AsNoTracking()
-            .Where(c => c.OccurredAt >= monthStart)
-            .SumAsync(BilledAmount(margin), cancellationToken);
     }
 
     /// <summary>Tokens used on each UTC day in [<paramref name="from"/>, <paramref name="to"/>), by day start. Days with no use are absent.</summary>

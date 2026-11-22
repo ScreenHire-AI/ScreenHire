@@ -1463,8 +1463,8 @@
 
       <Panel title="Info button">
         <p class="flex items-center gap-1">
-          Monthly budget
-          <InfoButton label="About the monthly budget" text="Warns you at 50%, 80% and 100% of what you're billed for the checks. It stops nothing." />
+          Low-balance alert
+          <InfoButton label="About the low-balance alert" text="Tells the Owners once the AI credits fall below this amount. It stops nothing." />
         </p>
       </Panel>
 
@@ -1473,7 +1473,7 @@
           rows={[
             {
               label: 'AI usage',
-              about: 'Tells people who can see AI usage when the monthly budget passes 50%, 80% and 100%.',
+              about: 'Tells the Owners when the AI credits run low or run out.',
               inApp: 'The bell tells everyone who can see AI usage.',
               email: 'budgetEmail',
               slack: 'budgetSlack',

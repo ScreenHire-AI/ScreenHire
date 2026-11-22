@@ -109,8 +109,8 @@ public enum CheckNotRunKind
     Trusted,
 
     /// <summary>
-    /// The AI checks were paused because the organization reached its monthly cap. The rule-based checks ran. Never a mark
-    /// against the candidate.
+    /// The AI checks were paused because the organization's AI credits ran out (or, on older rows, it reached its monthly cap).
+    /// The rule-based checks ran. Never a mark against the candidate.
     /// </summary>
     Paused,
 }
@@ -133,8 +133,17 @@ public static class RunNotes
 
     public const string TrustedEmailAndDeviceNotCompared = "A shared email address was not counted (trusted domain), and the device was not compared because form use checks are turned off.";
 
-    /// <summary>What the AI consistency check records when the organization's monthly cap paused it. Says nothing about the candidate.</summary>
+    /// <summary>
+    /// What the AI consistency check recorded when an organization's monthly cap paused it, before AI credits replaced the cap
+    /// (ADR-0032). Kept so a check stored with it still reads as paused. Says nothing about the candidate.
+    /// </summary>
     public const string AiChecksPaused = "The AI checks were paused because this organization reached its monthly AI cap. This says nothing about the candidate. The other checks ran.";
+
+    /// <summary>What the AI consistency check records when the organization's AI credits ran out. Says nothing about the candidate.</summary>
+    public const string AiCreditsPaused = "The AI checks were paused because this organization's AI credits ran out. This says nothing about the candidate. The other checks ran.";
+
+    /// <summary>The notes a paused AI check carries, the current one first.</summary>
+    public static IReadOnlyList<string> PausedNotes { get; } = [AiCreditsPaused, AiChecksPaused];
 
     /// <summary>The name a paused AI check is shown under, in place of the check group's.</summary>
     public const string AiChecksLabel = "AI checks";
@@ -151,7 +160,7 @@ public static class RunNotes
             return null;
         }
 
-        if (note == AiChecksPaused)
+        if (PausedNotes.Contains(note))
         {
             return CheckNotRunKind.Paused;
         }

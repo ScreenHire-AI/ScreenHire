@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
@@ -95,27 +96,17 @@ internal static class BillingEndpoints
         }
 
         var now = time.GetUtcNow();
-        var ai = options.Value.Ai;
-        var margin = options.Value.AiMarginInForce;
-        var usage = await AiUsageBillingQueries.ThisMonthAsync(db, now, margin, cancellationToken);
-        var metered = options.Value.AiMetered;
+        var usage = await AiUsageBillingQueries.ThisMonthAsync(db, now, options.Value.AiMarginInForce, cancellationToken);
         var aiUsage = new BillingAiUsage(
-            AiUsageQueries.Month(now),
-            usage.BuiltInCalls,
-            AiCharge.Dollars(usage.ChargeMicros),
-            usage.CallsWithUnknownCost,
-            usage.OwnKeyCalls,
-            ai.TrialAllowance,
-            AiCharge.Dollars(usage.TrialAllowanceUsedMicros),
-            metered);
+            AiUsageQueries.Month(now), usage.BuiltInCalls, AiCharge.Dollars(usage.ChargeMicros), usage.CallsWithUnknownCost, usage.OwnKeyCalls);
 
         var renewing = status.State is BillingState.Active or BillingState.PastDue;
-        var account = (await billing.AccountAsync(tenant.OrganizationId!.Value, cancellationToken))!;
-        var trialCredit = metered
-            ? AiCharge.Dollars(await AiUsageBillingQueries.TrialCreditThisMonthAsync(
-                db, now, margin, account.TrialEndsAt, AiCharge.ToMicros(ai.TrialAllowance), usage.TrialAllowanceUsedMicros, cancellationToken))
-            : 0m;
-        var thisMonth = ThisMonth(status, aiUsage, trialCredit, AiUsageQueries.Month(now));
+        // AI credits bought this month, which are charges of their own (ADR-0032): AI use itself is prepaid and on no invoice.
+        var monthStart = AiUsageQueries.MonthStart(now);
+        var creditsBought = AiCharge.Dollars(await db.CreditEntries.AsNoTracking()
+            .Where(e => (e.Kind == CreditEntryKind.Purchase || e.Kind == CreditEntryKind.AutoReload) && e.At >= monthStart)
+            .SumAsync(e => e.Micros, cancellationToken));
+        var thisMonth = ThisMonth(status, creditsBought, AiUsageQueries.Month(now));
         return TypedResults.Ok(new BillingOverview(
             true,
             access.Mode == BillingMode.Sandbox,
@@ -127,7 +118,7 @@ internal static class BillingEndpoints
             renewing && status.CancelsAtPeriodEnd,
             status.OpenJobs,
             status.Limit,
-            status.HasCustomer && access.Mode == BillingMode.Stripe || renewing && access.Mode == BillingMode.Sandbox,
+            status.HasSubscription && access.Mode == BillingMode.Stripe || renewing && access.Mode == BillingMode.Sandbox,
             options.Value.Stripe.Tax.Enabled,
             [.. catalogue.Plans.Select(p => ToContract(p, access.Mode))],
             aiUsage,
@@ -135,13 +126,12 @@ internal static class BillingEndpoints
     }
 
     /// <summary>
-    /// This month so far, added up: the plan's line (its price while subscribed, nothing on the trial, no line once ended), AI use on
-    /// ScreenHire's key where it is billed, less what the trial's allowance covers, and the next invoice while a subscription runs.
-    /// The month is the calendar month and the invoice follows the billing period, so the next invoice is an estimate ("about").
-    /// The page shows each line to the cent, so the total and the next invoice are the sum of the lines as rounded, and always add up
-    /// on screen. The lines themselves keep every digit, so the page can say "Under $0.01" for use that rounds to nothing.
+    /// This month so far, added up: the plan's line (its price while subscribed, nothing on the trial, no line once ended), the AI
+    /// credits bought this month (in US dollars, each purchase its own charge), and the next invoice while a subscription runs: the plan
+    /// alone, because AI use is prepaid (ADR-0032). The month is the calendar month and the invoice follows the billing period, so the
+    /// next invoice is an estimate ("about"). The page shows each line to the cent, so the total is the sum of the lines as rounded.
     /// </summary>
-    internal static BillingThisMonth ThisMonth(BillingStatus status, BillingAiUsage ai, decimal trialCredit, string month)
+    internal static BillingThisMonth ThisMonth(BillingStatus status, decimal creditsBought, string month)
     {
         var renewing = status.State is BillingState.Active or BillingState.PastDue;
         decimal? planAmount = status.State switch
@@ -151,20 +141,16 @@ internal static class BillingEndpoints
             _ => null,
         };
         var planName = planAmount is null ? null : status.Plan?.Name;
-        decimal? aiAmount = ai.Metered ? ai.Charge : null;
-        var credit = aiAmount is { } billed ? Math.Min(billed, trialCredit) : 0m;
-        var aiNet = Cents(aiAmount ?? 0m) - Cents(credit);
-        var total = Cents(planAmount ?? 0m) + aiNet;
-        decimal? next = null;
-        if (renewing && status.CurrentPeriodEnd is not null)
-        {
-            var amount = Cents(status.CancelsAtPeriodEnd ? 0m : status.Plan?.MonthlyPrice ?? 0m) + aiNet;
-            next = amount > 0m || !status.CancelsAtPeriodEnd ? amount : null;
-        }
+        // Credits are US dollars. A plan in another currency keeps its own total, and the credits line stands apart.
+        var currency = status.Plan?.Currency ?? "USD";
+        var total = Cents(planAmount ?? 0m) + (string.Equals(currency, "USD", StringComparison.OrdinalIgnoreCase) ? Cents(creditsBought) : 0m);
+        decimal? next = renewing && status.CurrentPeriodEnd is not null && !status.CancelsAtPeriodEnd
+            ? Cents(status.Plan?.MonthlyPrice ?? 0m)
+            : null;
 
         return new BillingThisMonth(
-            month, status.Plan?.Currency ?? "USD", planName, planAmount, ai.BuiltInCalls, aiAmount, credit, total, next,
-            next is null ? null : status.CurrentPeriodEnd);
+            month, currency, planName, planAmount, creditsBought, total, next, next is null ? null : status.CurrentPeriodEnd);
+
 
         // As the page shows money (Intl's default rounds half away from zero too).
         static decimal Cents(decimal amount) => Math.Round(amount, 2, MidpointRounding.AwayFromZero);
