@@ -39,14 +39,14 @@ export const pages = {
     label: 'Never guessing',
     title: 'Know where every candidate stands | ScreenHire',
     description:
-      "The pipeline, each candidate's activity, email kept on the application, notes, tasks and reports, and a page of their own for every candidate.",
+      "The team's activity in one feed, email kept on the application, notes, tasks and reports, and a page of their own for every candidate.",
   },
   automateAnything: {
     path: '/product/automate-anything/',
     label: 'Automate anything',
     title: 'Hiring automations on every plan | ScreenHire',
     description:
-      'Automate a reminder or a whole process on any stage, test it on a sample application before it goes live, and know a check never rejects anyone.',
+      'Automate a reminder or a whole process, book interviews three ways, try it on a made-up candidate first, and know a check never rejects anyone.',
   },
   integrations: {
     path: '/product/integrations/',
@@ -60,14 +60,14 @@ export const pages = {
     label: 'Built your way',
     title: 'Set up hiring your way: stages, forms, branding | ScreenHire',
     description:
-      'Your stages, questionnaires, scorecards, emails and colours, and who sees which jobs. Start from a hiring template or build your own.',
+      'Your stages, forms, scorecards, emails and colours, and who sees which jobs. Start from a hiring template or build your own.',
   },
   careersSite: {
     path: '/product/careers-site/',
     label: 'Careers site',
     title: 'Careers site and job posting | ScreenHire',
     description:
-      'A branded careers site, the apply form on your own site, Google for Jobs and job boards, and a notice candidates see before they apply.',
+      'A branded careers site, the apply form on your own site, Google for Jobs, job boards and postings you make by hand, and a notice before candidates apply.',
   },
   pricing: {
     path: '/pricing/',

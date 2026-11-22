@@ -20,7 +20,7 @@ namespace ScreenHire.E2E;
 /// The same picture every run: a fixed viewport at twice the pixels, reduced motion, the fonts loaded, a pinned locale and
 /// time zone, no hover, focus ring, toast or caret in the frame. Each screen has its full picture (<c>name.png</c>) and a
 /// picture at phone width (<c>name-phone.png</c>): the same screen laid out for a phone, for a page to show where the full
-/// screen would be unreadable. The verification panels leave out their reason codes, which the public site does not show.
+/// screen would be unreadable. No verification panel is taken: the public site never shows one.
 /// Times in the pictures are relative to the run.
 /// </remarks>
 [Collection<MarketingScreenshotsRun>]
