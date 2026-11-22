@@ -566,7 +566,7 @@ entry, and its address says only an owner can change billing. The Owner's panels
   price while subscribed ("Growth, free trial" at $0.00 on the trial, no line once ended), the AI credits bought this month (linking to the
   credits further down), and the total. Then "Next invoice about $X on <date>" while a subscription runs: the next plan payment (none once it
   is set to end), "about" because the calendar month and the billing period differ, and "plus tax where it applies" while `taxAtCheckout`.
-  AI use is prepaid and on no invoice. On the trial it says nothing is charged until a plan is chosen.
+  AI use is prepaid and on no invoice. On the trial it says the plan costs nothing until one is chosen (AI credits bought during the trial are charges all the same).
 - **Payment method**, once there is a subscription (`canManage`; a credit purchase alone makes a customer, not a subscription): "Visa ending in 4242", with Change card and Cancel plan, which both open the
   provider's portal with their intent (no Cancel plan for a plan already set to end). They replace the old "To change your card or cancel,
   use Manage billing" line and the header's Manage billing button, so the words are the controls (A14) and the page has no primary button.

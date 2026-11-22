@@ -249,7 +249,7 @@
                       <DateText at={month.nextInvoiceAt} />.
                     </p>
                   {:else if standing === 'Trialing'}
-                    <p class="text-muted-foreground">Nothing is charged until you choose a plan.</p>
+                    <p class="text-muted-foreground">The plan costs nothing until you choose one.</p>
                   {/if}
                 </div>
               </Panel>

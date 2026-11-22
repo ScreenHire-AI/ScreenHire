@@ -292,7 +292,7 @@ describe('billing page', () => {
 
       await screen.findByText('Free trial');
       expect(charges()).toEqual(['Growth, free trial $0.00', 'AI credits $25.00', 'Total so far $25.00']);
-      expect(within(panel()).getByText('Nothing is charged until you choose a plan.')).toBeInTheDocument();
+      expect(within(panel()).getByText('The plan costs nothing until you choose one.')).toBeInTheDocument();
       expect(within(panel()).queryByText(/Next invoice/)).toBeNull();
     });
 
