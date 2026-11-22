@@ -89,15 +89,20 @@ public sealed class ActivityFeedTests(AppHostFixture fixture)
         }
 
         await owner.PublishJobAsync(job);
-        var all = await FeedAsync(owner);
-        all.Select(e => e.GetProperty("kind").GetString()).Should().Contain(["Jobs", "Applications", "Moves"]);
+        // Moves from the applications' timelines and Jobs from the job's change history: two sources, both written by the
+        // requests above. Not every kind, because the worker also writes a "checks finished" entry for each application a
+        // moment later, which would land between this list and the pages read after it.
+        const string kinds = "kinds=Moves&kinds=Jobs";
+        var all = await FeedAsync(owner, $"?{kinds}");
+        all.Select(e => e.GetProperty("kind").GetString()).Distinct().Should().BeEquivalentTo(["Jobs", "Moves"]);
+        all.Count.Should().BeGreaterThan(4, "five or more entries, so a page of two has several to walk");
         all.Select(e => e.GetProperty("occurredAt").GetDateTimeOffset()).Should().BeInDescendingOrder();
 
         var paged = new List<Guid>();
         string? before = null;
         do
         {
-            var page = (await owner.GetAsync($"/v1/activity?limit=2{(before is null ? "" : $"&before={before}")}")).Expect(HttpStatusCode.OK);
+            var page = (await owner.GetAsync($"/v1/activity?{kinds}&limit=2{(before is null ? "" : $"&before={before}")}")).Expect(HttpStatusCode.OK);
             page.Count("entries").Should().BeLessThanOrEqualTo(2);
             paged.AddRange(page.At("entries").EnumerateArray().Select(e => e.GetProperty("id").GetGuid()));
             before = page.At("nextBefore").ValueKind == JsonValueKind.Null ? null : page.Text("nextBefore");
