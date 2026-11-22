@@ -132,6 +132,10 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/templates/[templateId]/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/jobs/[jobId]/workflow/+page.svelte
   - resource: apps/dashboard/src/lib/components/template-update-dialog.svelte
+  - resource: apps/dashboard/src/lib/components/switch-template-sheet.svelte
+  - resource: apps/dashboard/src/lib/template-switch.ts
+  - resource: src/ScreenHire.Domain/Hiring/StageMapping.cs
+  - resource: src/ScreenHire.Domain/Jobs/FormerWorkflowParts.cs
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-builder.svelte
   - resource: apps/dashboard/src/lib/components/workflow/questionnaire-preview.svelte
   - resource: apps/dashboard/src/lib/components/workflow/question-settings.svelte
@@ -270,7 +274,8 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
 
 - **Determinism**: conditions evaluate a facts snapshot captured at event time, so replays give the same result.
 - **Versioning**: running applications stay on the workflow version they started under unless the recruiter migrates
-  them (stage mapping UI).
+  them (stage mapping UI). What v1 does instead is section 8: a job's applications run on its current workflow, and
+  switching a job to another template maps its stages (section 7, Tailoring a job).
 - **Failure handling**: retries with backoff; poisoned actions land in a per-org "automation issues" inbox, never
   silently dropped.
 - **Expression language**: a small, safe JSON-based condition AST (not arbitrary code). The UI builds it; the API
@@ -471,7 +476,8 @@ nothing, because each save of a job's workflow is a new version.
 ## 5. API surface (public, same API the dashboard uses)
 
 - `GET/POST /v1/templates`, `POST /v1/templates/{id}/versions`, `POST /v1/templates/{id}/versions/{v}/publish`
-- `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `PUT /v1/jobs/{id}/ai-use`, `POST /v1/jobs/{id}/workflow/apply-template-update`
+- `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `PUT /v1/jobs/{id}/ai-use`, `POST /v1/jobs/{id}/workflow/apply-template-update`,
+  `GET` and `POST /v1/jobs/{id}/workflow/switch-template`
 - `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`
 - `POST /v1/jobs/{id}/applications` (add a candidate by hand) and `POST /v1/jobs/{id}/applications/resume-uploads`
   (its resume's upload link), both Add candidates
@@ -705,10 +711,36 @@ The data model and API from the jobs and templates task, and the engine that run
   job (409), and take `expectedWorkflowVersion`, so a stale editor gets 409 rather than overwriting someone's change.
   Each change adds one to the job's `workflowVersion` and raises `JobWorkflowChanged` through the outbox, so open
   dashboards refetch the job; an editor with unsaved changes keeps them and says a newer version exists. Neither
-  republishes the job: the careers form reads the workflow live. There is no stage mapping yet. A change that drops a
-  stage still holding applications is refused (400 on `workflow.stages`, naming the stage) until someone moves those
-  candidates. The check reads the applications before the save and takes no lock, so an application that arrives in
-  or moves to that stage in between is not caught.
+  republishes the job: the careers form reads the workflow live. Neither maps stages: a change that drops a stage still
+  holding applications is refused (400 on `workflow.stages`, naming the stage) until someone moves those candidates.
+  The check reads the applications before the save and takes no lock, so an application that arrives in or moves to
+  that stage in between is not caught.
+- **Switching a job to another template:** Switch template, in the job header's More menu for anyone with Edit jobs on
+  a job that is not closed (`switch-template-sheet.svelte`), is three steps. It picks a template (its newest published
+  version, as a new job does: own or ScreenHire's, not archived). Then it lists each current stage that holds candidates,
+  saved and finished ones included, with a choice of new stage. Then it shows a summary: the new stages, where each
+  stage's candidates go ("1 candidate in Screening moves to Phone call", `#lib/template-switch.ts`), that the moves
+  send no email and run no automation, and that the job's own pipeline edits are replaced. `GET
+  /v1/jobs/{id}/workflow/switch-template?templateVersionId=` serves the stages and the occupied stages with their counts,
+  each preselected by `StageMapping.Suggest`. It matches by kind first: among stages of that kind, the same name, else
+  the same place, so the second interview goes to the second interview. With no stage of that kind, it takes the same
+  name, else the first stage. `POST` with `templateVersionId`, `expectedWorkflowVersion` and
+  `stageMappings` (`fromStageId`, `toStageId`) takes the version (`Job.SwitchTemplate`), which also makes it the job's
+  source template, and refuses a closed job or a stale version (409). Every application of the job must land in a
+  stage of the new pipeline, its mapped one or the one with its stage's id, else 400 on `stageMappings` naming the
+  stage. In the same save every application gets a `StageChanged` entry with `templateVersionId`
+  (`JobApplication.ChangePipeline`), even one whose stage carries over. That entry is a new stage entry, so a timer of the
+  old pipeline does nothing when it fires. A saved candidate stays saved, and the time in the stage starts again only
+  when the stage changes. The switch publishes `JobWorkflowChanged` and no `ApplicationMoved`, so no email goes, no
+  automation runs and no Slack message or webhook reports a move. Activity reads "The pipeline changed: from Screening
+  to Phone call", and the change history "switched to the template **Kitchen**". Stage-keyed records of the old
+  pipeline (an open task, a scorecard, an interview request) keep their stage id. Like the edits above, the switch takes
+  no lock, so an application submitted into an old stage between the read and the save is not moved.
+- **Former stages and questions:** every workflow change keeps what it drops in the job's `former` (`FormerWorkflowParts`:
+  each stage's id, name and kind, and each apply-form question as it was asked), so a timeline entry or an answer that
+  names one still reads in words: the application page, Activity and the candidate's history look a stage up in the
+  workflow, then in `former`. A stage or question dropped again replaces its older copy, and a current one with the same
+  id wins.
 - **Applications** start in the first stage. `POST /v1/applications/{id}/move` is the only way they move, always by a
   person, and every change appends to `application_events`. Recruiters add applications by hand with
   `POST /v1/jobs/{jobId}/applications`, optionally with `resumeUploadId` from

@@ -2,6 +2,7 @@
   import { preferences } from '#lib/preferences.svelte.js';
   import ArrowLeftIcon from '~icons/lucide/arrow-left';
   import PencilIcon from '~icons/lucide/pencil';
+  import ReplaceIcon from '~icons/lucide/replace';
   import SendIcon from '~icons/lucide/send';
   import UserPlusIcon from '~icons/lucide/user-plus';
   import UsersRoundIcon from '~icons/lucide/users-round';
@@ -43,6 +44,7 @@
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
+  import SwitchTemplateSheet from '#lib/components/switch-template-sheet.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -95,6 +97,11 @@
   let adding = $state(false);
   let addChosen = false;
   let added = $state<AddedCandidate | null>(null);
+  // Switch template (workflow-engine.md section 7): in More, for anyone who can edit a job that is not closed.
+  const canSwitch = $derived(mayEdit && detail !== undefined && detail.status !== 'Closed');
+  let switchOpen = $state(false);
+  let switchChosen = false;
+  let switched = $state('');
   const currentMemberId = $derived(members?.find((member) => member.userId === currentUserId)?.id);
   const history = createHistoryPages(
     (before) => getGetJobHistoryQueryOptions(params.jobId, { before }),
@@ -273,7 +280,7 @@
     <Tabs.Root value={tab} onValueChange={showTab} class={['gap-0', boardFills && 'min-h-0 flex-1']}>
       <!-- What saving the details or publishing did, in the band's line under the title, so a long message never pushes
            the actions onto a second row. -->
-      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || boardsUpdated || published || added || checkItems.length > 0 ? outcome : undefined}>
+      <HeaderBand title={detail.title} details={page.state.saved || publishFailure || boardsUpdated || published || added || switched || checkItems.length > 0 ? outcome : undefined}>
         {#snippet status()}<StatusBadge {...jobStatus[detail.status]} />{/snippet}
         {#snippet actions()}
           <!-- The one primary action; on a phone it sits in the action bar at the bottom of the screen (section 8). -->
@@ -291,13 +298,15 @@
             </Button>
           {/if}
           <!-- Closing the job lives in More, confirmed in a dialog (A2); phones fold the other actions in too. -->
-          {#if sidebar.isMobile || (mayEdit && detail.status === 'Open')}
+          {#if sidebar.isMobile || canSwitch}
             <MoreMenu
               label="More actions"
               onclosed={() => {
                 if (closeChosen) confirmClose = true;
                 if (teamChosen) teamOpen = true;
                 if (addChosen) adding = true;
+                if (switchChosen) switchOpen = true;
+                switchChosen = false;
                 closeChosen = false;
                 teamChosen = false;
                 addChosen = false;
@@ -318,8 +327,12 @@
                 {/if}
                 <DropdownMenu.Item onSelect={() => (teamChosen = true)}><UsersRoundIcon aria-hidden="true" />Edit hiring team</DropdownMenu.Item>
               {/if}
-              {#if mayEdit && detail.status === 'Open'}
+              {#if canSwitch}
                 {#if sidebar.isMobile}<DropdownMenu.Separator />{/if}
+                <DropdownMenu.Item onSelect={() => (switchChosen = true)}><ReplaceIcon aria-hidden="true" />Switch template</DropdownMenu.Item>
+              {/if}
+              {#if mayEdit && detail.status === 'Open'}
+                <DropdownMenu.Separator />
                 <DropdownMenu.Item variant="destructive" onSelect={() => (closeChosen = true)}>Close &amp; remove everywhere</DropdownMenu.Item>
               {/if}
             </MoreMenu>
@@ -362,6 +375,14 @@
       </HeaderBand>
       {#if canAdd}
         <AddCandidateSheet bind:open={adding} job={detail} onadded={(candidate) => (added = candidate)} />
+      {/if}
+      {#if canSwitch}
+        <SwitchTemplateSheet
+          bind:open={switchOpen}
+          job={detail}
+          onswitched={(_, name, moved) =>
+            (switched = `Switched to ${name}.${moved === 0 ? '' : ` ${moved === 1 ? '1 candidate is' : `${moved} candidates are`} in the new stages.`}`)}
+        />
       {/if}
       <HiringTeamSheet
         bind:open={teamOpen}
@@ -467,6 +488,7 @@
   <p role="status" class="empty:hidden" data-published>
     {#if published}Published. It is on your careers page now. <a href="?tab=postings" class="underline underline-offset-2">See Job postings</a>{/if}
   </p>
+  <p role="status" class="empty:hidden" data-switched>{switched}</p>
   <p role="status" class="empty:hidden" data-added>
     {#if added}Added <a href={`/applications/${added.applicationId}`} class="underline underline-offset-2">{added.name}</a> to this job.{/if}
   </p>

@@ -2259,6 +2259,13 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("employment_type");
 
+                    b.Property<string>("Former")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("former")
+                        .HasDefaultValueSql("'{\"stages\":[],\"questions\":[]}'::jsonb");
+
                     b.PrimitiveCollection<List<Guid>>("HiringTeam")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

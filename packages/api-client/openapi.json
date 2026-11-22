@@ -3549,6 +3549,159 @@
         ]
       }
     },
+    "/v1/jobs/{jobId}/workflow/switch-template": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "GetJobTemplateSwitch",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "templateVersionId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobTemplateSwitchPreview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "operationId": "SwitchJobTemplate",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchJobTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          },
+          {
+            "apiKey": [ ]
+          }
+        ]
+      }
+    },
     "/v1/templates": {
       "get": {
         "tags": [
@@ -19794,6 +19947,13 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "templateVersionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
@@ -23372,6 +23532,48 @@
         },
         "description": "A library form version's content: what a hiring template copies into its follow-up questionnaire."
       },
+      "FormerStage": {
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/StageKind"
+          }
+        },
+        "description": "A stage a job's workflow had: its id, its name and its kind as it last was."
+      },
+      "FormerWorkflowParts": {
+        "required": [
+          "stages",
+          "questions"
+        ],
+        "type": "object",
+        "properties": {
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormerStage"
+            }
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            }
+          }
+        },
+        "description": "The stages and apply-form questions a job's workflow no longer has, kept so what applications recorded under them still\nreads in words: a timeline entry names a stage by id, and an answer names its question by id. A workflow change that\ndrops a stage or a question adds it here (void Job.ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)); a current stage or question with the same\nid wins over a former one wherever names are looked up."
+      },
       "FormKind": {
         "enum": [
           "Standard",
@@ -24868,7 +25070,8 @@
           "postings",
           "lastUpdated",
           "workflowProblems",
-          "aiUse"
+          "aiUse",
+          "former"
         ],
         "type": "object",
         "properties": {
@@ -25004,6 +25207,9 @@
           },
           "aiUse": {
             "$ref": "#/components/schemas/JobAiUse"
+          },
+          "former": {
+            "$ref": "#/components/schemas/FormerWorkflowParts"
           }
         },
         "description": "Everything about one job: posting content, lifecycle, its workflow copy and where that came from."
@@ -25464,6 +25670,52 @@
           }
         },
         "description": "The template version a job's workflow was copied from, and whether a newer one is published."
+      },
+      "JobTemplateSwitchPreview": {
+        "required": [
+          "templateId",
+          "templateName",
+          "templateVersionId",
+          "version",
+          "expectedWorkflowVersion",
+          "stages",
+          "occupied"
+        ],
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateName": {
+            "type": "string"
+          },
+          "templateVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expectedWorkflowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SwitchStage"
+            }
+          },
+          "occupied": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OccupiedStage"
+            }
+          }
+        },
+        "description": "What switching a job to a template version would do, before it happens: the version, its stages in order, and each of\nthe job's current stages that holds candidates, with how many (saved and finished candidates included) and the stage\nthey are preselected to, by kind first and then by name. `expectedWorkflowVersion` is the job's workflow version\nthe preview read, to send back with the switch."
       },
       "JobTimeToHire": {
         "required": [
@@ -26504,6 +26756,35 @@
           }
         },
         "description": "One thing the assistant asked to be allowed. `grantable` is false when the signed-in person does not hold it\nthemselves; `reason` says why. Read is always offered and always granted."
+      },
+      "OccupiedStage": {
+        "required": [
+          "stageId",
+          "name",
+          "kind",
+          "candidates",
+          "suggestedStageId"
+        ],
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/StageKind"
+          },
+          "candidates": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "suggestedStageId": {
+            "type": "string"
+          }
+        },
+        "description": "One of the job's current stages that holds candidates: how many, and the new stage they are preselected to."
       },
       "OfferNewInterviewTimesRequest": {
         "required": [
@@ -30826,6 +31107,22 @@
           "Custom"
         ]
       },
+      "StageMappingRequest": {
+        "required": [
+          "fromStageId",
+          "toStageId"
+        ],
+        "type": "object",
+        "properties": {
+          "fromStageId": {
+            "type": "string"
+          },
+          "toStageId": {
+            "type": "string"
+          }
+        },
+        "description": "Candidates in the job's stage `fromStageId` go to `toStageId`, a stage of the new pipeline."
+      },
       "StartBillingCheckoutRequest": {
         "required": [
           "plan"
@@ -30910,6 +31207,33 @@
         },
         "description": "A reviewer's scorecard. Name one of two: `stageId`, a stage the application has reached whose workflow stage\nhas a scorecard (the job's own copy), or `scorecardTemplateId`, a library scorecard given at the stage the\napplication is in now. Each reviewer gives one per stage and scorecard: the same submission again returns the stored\none, a different one is a 409."
       },
+      "SwitchJobTemplateRequest": {
+        "required": [
+          "templateVersionId",
+          "expectedWorkflowVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "templateVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedWorkflowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stageMappings": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/StageMappingRequest"
+            }
+          }
+        },
+        "description": "Switches a job to a published version of another template (or of its own): the job's pipeline becomes that version's,\nits own edits included, and the template becomes its source. `stageMappings` says where the candidates in each\ncurrent stage go; every stage that holds candidates and is not in the new pipeline needs one, and a stage that is in\nit may have one. `GET /v1/jobs/{jobId}/workflow/switch-template` suggests them. Each application of the job gets a\ntimeline entry saying the pipeline changed; the moves send no email and run no automation. `expectedWorkflowVersion`\nworks as in UpdateJobWorkflowRequest, and a closed job is refused (409)."
+      },
       "SwitchOrganizationRequest": {
         "required": [
           "organizationId"
@@ -30922,6 +31246,26 @@
           }
         },
         "description": "Makes another of the signed-in user's organizations the one they work in."
+      },
+      "SwitchStage": {
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/StageKind"
+          }
+        },
+        "description": "One stage of the pipeline a job would switch to."
       },
       "TagChangeResult": {
         "required": [

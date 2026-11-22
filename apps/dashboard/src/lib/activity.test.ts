@@ -61,6 +61,17 @@ describe('activity', () => {
     expect(describeEvent(entries[0]!, names)).toBe('Applied on the careers page, into Applied');
   });
 
+  it('says the pipeline changed for a template switch, rather than that someone moved the candidate', () => {
+    const stageNames = { ...names, stageName: (id: string | null | undefined) => ({ screening: 'Screening', call: 'Phone call' })[id ?? ''] ?? '' };
+    const moved = entry('p1', { type: 'StageChanged', fromStageId: 'screening', toStageId: 'call', templateVersionId: 'v2' });
+    const stayed = entry('p2', { type: 'StageChanged', fromStageId: 'call', toStageId: 'call', templateVersionId: 'v2' });
+
+    expect(describeEvent(moved, stageNames)).toBe('The pipeline changed: from Screening to Phone call');
+    expect(describeEvent(stayed, stageNames)).toBe('The pipeline changed: stayed in Phone call');
+    expect(describeEvent({ ...moved, templateVersionId: null }, stageNames)).toBe('Moved from Screening to Phone call');
+    expect(kindCounts([moved])).toMatchObject({ stage: 1 });
+  });
+
   it('names a created task, with whoever created it, and lists it under All only', () => {
     const task = entry('t', { type: 'TaskCreated', note: 'Check the references', taskId: 't1', actorApiKeyId: 'k1', actorApiKeyName: 'Assistant' });
     expect(describeEvent(task, names)).toBe('Created a task');

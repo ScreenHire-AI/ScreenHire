@@ -179,8 +179,8 @@ internal static class ActivityFeed
         var jobIds = events.Select(e => e.JobId).Distinct().ToList();
         var workflows = jobIds.Count == 0
             ? []
-            : await db.Jobs.AsNoTracking().Where(j => jobIds.Contains(j.Id)).Select(j => new { j.Id, j.Workflow })
-                .ToDictionaryAsync(j => j.Id, j => j.Workflow, cancellationToken);
+            : await db.Jobs.AsNoTracking().Where(j => jobIds.Contains(j.Id)).Select(j => new { j.Id, j.Workflow, j.Former })
+                .ToDictionaryAsync(j => j.Id, j => (j.Workflow, j.Former), cancellationToken);
         var requestIds = events.Select(e => e.Event.Data.QuestionnaireRequestId).OfType<Guid>().Distinct().ToList();
         var forms = requestIds.Count == 0
             ? []
@@ -216,8 +216,9 @@ internal static class ActivityFeed
                 entry = entry with { ScorecardId = null };
             }
 
-            var workflow = workflows.GetValueOrDefault(row.JobId);
-            string? NameOf(string? stageId) => stageId is null ? null : workflow?.FindStage(stageId)?.Name;
+            // A stage the job's pipeline lost (a template switch) still has its former name.
+            string? NameOf(string? stageId) =>
+                workflows.TryGetValue(row.JobId, out var job) ? job.Former.StageName(job.Workflow, stageId) : null;
             return new ActivityEntry(
                 e.Id, Kinds[e.Type], e.OccurredAt, ActorOf(e), e.ActorUserId, keyName, row.JobId, row.JobTitle, e.ApplicationId, row.CandidateName,
                 entry, NameOf(entry.FromStageId), NameOf(entry.ToStageId), NameOf(entry.StageId),

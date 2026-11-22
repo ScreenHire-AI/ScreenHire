@@ -133,6 +133,12 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
     case 'Submitted':
       return entry.actorUserId || entry.actorApiKeyId ? `Added to ${names.stageName(entry.toStageId)}` : `Applied on the careers page, into ${names.stageName(entry.toStageId)}`;
     case 'StageChanged':
+      // A template switch put the candidate in a stage of the new pipeline: nobody moved them, the pipeline changed.
+      if (entry.templateVersionId) {
+        return entry.fromStageId === entry.toStageId
+          ? `The pipeline changed: stayed in ${names.stageName(entry.toStageId)}`
+          : `The pipeline changed: from ${names.stageName(entry.fromStageId)} to ${names.stageName(entry.toStageId)}`;
+      }
       return `Moved from ${names.stageName(entry.fromStageId)} to ${names.stageName(entry.toStageId)}`;
     case 'TagAdded':
       return `Tagged "${entry.tag}"`;
@@ -278,7 +284,7 @@ export function feedLine(entry: ActivityEntry, members: readonly TeamMember[] | 
     case 'Submitted':
       return entry.by === 'Candidate' ? candidate(' applied') : done('added ', name, entry.toStageName ? ` to ${entry.toStageName}` : '', href);
     case 'StageChanged':
-      return done('moved ', name, entry.toStageName ? ` to ${entry.toStageName}` : '', href);
+      return done('moved ', name, `${entry.toStageName ? ` to ${entry.toStageName}` : ''}${event.templateVersionId ? ' with the new pipeline' : ''}`, href);
     case 'TagAdded':
       return done('tagged ', name, ` "${event.tag ?? ''}"`, href);
     case 'TagRemoved':

@@ -102,6 +102,7 @@ import type {
   GetHiringReportParams,
   GetHiringTemplateHistoryParams,
   GetJobHistoryParams,
+  GetJobTemplateSwitchParams,
   GetOAuthAuthorizationRequestParams,
   GetOrganizationBrandingHistoryParams,
   GetOrganizationHistoryParams,
@@ -140,6 +141,7 @@ import type {
   JobPublishCheck,
   JobSummary,
   JobTemplateDiff,
+  JobTemplateSwitchPreview,
   JobVersionDetail,
   JobVersionSummary,
   KeepInMindRequest,
@@ -247,6 +249,7 @@ import type {
   StartCalendarConnectRequest,
   StartSlackLinkRequest,
   SubmitScorecardRequest,
+  SwitchJobTemplateRequest,
   SwitchOrganizationRequest,
   TagChangeResult,
   TagList,
@@ -4092,6 +4095,150 @@ return apiFetch<applyJobTemplateUpdateResponse>(getApplyJobTemplateUpdateUrl(job
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(applyTemplateUpdateRequest)
+  }
+);}
+
+
+
+export type getJobTemplateSwitchResponse200 = {
+  data: JobTemplateSwitchPreview
+  status: 200
+}
+
+export type getJobTemplateSwitchResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type getJobTemplateSwitchResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getJobTemplateSwitchResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getJobTemplateSwitchResponse429 = {
+  data: void
+  status: 429
+}
+
+export type getJobTemplateSwitchResponseSuccess = (getJobTemplateSwitchResponse200) & {
+  headers: Headers;
+};
+export type getJobTemplateSwitchResponseError = (getJobTemplateSwitchResponse400 | getJobTemplateSwitchResponse401 | getJobTemplateSwitchResponse404 | getJobTemplateSwitchResponse429) & {
+  headers: Headers;
+};
+
+export type getJobTemplateSwitchResponse = (getJobTemplateSwitchResponseSuccess | getJobTemplateSwitchResponseError)
+
+export const getGetJobTemplateSwitchUrl = (jobId: string,
+    params: GetJobTemplateSwitchParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/jobs/${jobId}/workflow/switch-template?${stringifiedParams}` : `/v1/jobs/${jobId}/workflow/switch-template`
+}
+
+export const getJobTemplateSwitch = async (jobId: string,
+    params: GetJobTemplateSwitchParams, options?: Parameters<typeof apiFetch>[1]): Promise<getJobTemplateSwitchResponse> => {
+
+  return apiFetch<getJobTemplateSwitchResponse>(getGetJobTemplateSwitchUrl(jobId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type switchJobTemplateResponse200 = {
+  data: JobDetail
+  status: 200
+}
+
+export type switchJobTemplateResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type switchJobTemplateResponse401 = {
+  data: void
+  status: 401
+}
+
+export type switchJobTemplateResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type switchJobTemplateResponse404 = {
+  data: void
+  status: 404
+}
+
+export type switchJobTemplateResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type switchJobTemplateResponse429 = {
+  data: void
+  status: 429
+}
+
+export type switchJobTemplateResponseSuccess = (switchJobTemplateResponse200) & {
+  headers: Headers;
+};
+export type switchJobTemplateResponseError = (switchJobTemplateResponse400 | switchJobTemplateResponse401 | switchJobTemplateResponse403 | switchJobTemplateResponse404 | switchJobTemplateResponse409 | switchJobTemplateResponse429) & {
+  headers: Headers;
+};
+
+export type switchJobTemplateResponse = (switchJobTemplateResponseSuccess | switchJobTemplateResponseError)
+
+export const getSwitchJobTemplateUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/workflow/switch-template`
+}
+
+export const switchJobTemplate = async (jobId: string,
+    switchJobTemplateRequest: SwitchJobTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<switchJobTemplateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<switchJobTemplateResponse>(getSwitchJobTemplateUrl(jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(switchJobTemplateRequest)
   }
 );}
 

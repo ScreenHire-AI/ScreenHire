@@ -190,6 +190,31 @@ public sealed class JobApplication : IJobScoped
     }
 
     /// <summary>
+    /// Puts the application in <paramref name="target"/>, a stage of the template its job just switched to, and returns
+    /// the timeline entry that says the pipeline changed (<see cref="ApplicationEventData.TemplateVersionId"/>). Every
+    /// application of the job gets one, even one whose stage id carries over, so it starts a new stage entry and any
+    /// timer of the old pipeline does nothing when it fires. Unlike <see cref="MoveTo"/>, a saved candidate stays saved,
+    /// and the time in the stage starts again only when the stage changes. The caller publishes no ApplicationMoved: the
+    /// switch sends no email and runs no automation.
+    /// </summary>
+    public ApplicationEvent ChangePipeline(WorkflowStage target, Guid templateVersionId, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        var from = CurrentStageId;
+        if (target.Id != from)
+        {
+            CurrentStageId = target.Id;
+            StageEnteredAt = now;
+        }
+
+        return NewEvent(
+            ApplicationEventType.StageChanged,
+            new ApplicationEventData(from, target.Id, ApiKeyId: actorApiKeyId, TemplateVersionId: templateVersionId),
+            now,
+            actorUserId);
+    }
+
+    /// <summary>
     /// Whether the application has ended: its stage (<paramref name="stage"/>, the current one from its job's workflow) is
     /// Hired, Rejected or Withdrawn, or the team kept the candidate in mind. Nothing sends, runs or counts time on it.
     /// </summary>
