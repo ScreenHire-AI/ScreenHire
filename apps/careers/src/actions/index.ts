@@ -62,6 +62,16 @@ export const server = {
     accept: 'form',
     handler: async (form: FormData, context) => changeInterview('cancel', form, addressOf(context)),
   }),
+  /** Tell us when you're free: the 3 to 5 times the candidate ticked. */
+  interviewSuggest: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => changeInterview('suggest', form, addressOf(context)),
+  }),
+  /** We'll suggest a time: the candidate cannot make the team's times and asks for another, with an optional note. */
+  interviewAnotherTime: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => changeInterview('another-time', form, addressOf(context)),
+  }),
 
   /**
    * Stops the employer keeping the candidate's details for future roles, posted as an HTML form from the link in a

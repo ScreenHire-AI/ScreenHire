@@ -23,8 +23,6 @@ export interface Shell {
   openNotifications(): void;
   /** Opens the Calendar sheet, for a page that needs the person's calendar connected (Your account has it too). */
   openCalendar(): void;
-  /** Whether this ScreenHire has a calendar to connect or a Slack workspace connected, which shows Connected accounts. */
-  hasConnections?(): boolean;
   /** Reads the person's account again after a page changed it (their name, photo, time zone or habits). */
   refreshAccount?(): void;
   /** The hub connection's state, for the top bar's Live indicator. */
