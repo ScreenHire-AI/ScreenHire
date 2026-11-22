@@ -1,8 +1,8 @@
 ---
 type: Design
 title: "Workflow Engine: Per-Job Hiring Workflows from User-Defined Templates"
-description: "Hiring templates and per-job workflow definitions: stages, scorecards, follow-up questionnaires, automations with triggers, conditions and actions, the guardrail that verification never rejects, the execution model, the builder, webhook subscriptions with signed deliveries, and what the v1 engine runs."
-tags: [workflow, automations, webhooks, scorecards, questionnaires]
+description: "Hiring templates and per-job workflow definitions: stages, scorecards, the form library and the forms sent at a stage or by hand, equality monitoring forms, automations with triggers, conditions and actions, the guardrail that verification never rejects, the execution model, the builder, webhook subscriptions with signed deliveries, and what the v1 engine runs."
+tags: [workflow, automations, webhooks, scorecards, questionnaires, forms]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/HiringWorkflow.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationNote.cs
@@ -10,7 +10,7 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/DefinitionValidator.cs
   - resource: apps/dashboard/src/lib/form-sections.ts
   - resource: apps/dashboard/src/lib/forms-timeline.ts
-  - resource: apps/dashboard/src/lib/components/workflow/form-timeline.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/form-cards.svelte
   - resource: apps/dashboard/src/lib/components/workflow/ai-use-row.svelte
   - resource: apps/dashboard/src/lib/components/job-ai-use-panel.svelte
   - resource: apps/dashboard/src/lib/simulate.ts
@@ -28,6 +28,24 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/BuiltInScorecards.cs
   - resource: src/ScreenHire.Domain/Hiring/ScorecardTemplate.cs
   - resource: src/ScreenHire.Domain/Applications/QuestionnaireRequest.cs
+  - resource: src/ScreenHire.Domain/Hiring/FormTemplate.cs
+  - resource: src/ScreenHire.Domain/History/FormTemplateChanges.cs
+  - resource: src/ScreenHire.Application/Applications/QuestionnaireSending.cs
+  - resource: apps/api/Endpoints/FormTemplateEndpoints.cs
+  - resource: apps/api/Endpoints/ApplicationFormEndpoints.cs
+  - resource: apps/api/Hiring/FormReferences.cs
+  - resource: apps/api/Hiring/FormsOptions.cs
+  - resource: apps/api/Contracts/FormTemplateContracts.cs
+  - resource: apps/dashboard/src/lib/form-library.ts
+  - resource: apps/dashboard/src/lib/application-forms.ts
+  - resource: apps/dashboard/src/lib/components/new-form-dialog.svelte
+  - resource: apps/dashboard/src/lib/components/form-update-templates-dialog.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/application-tab.svelte
+  - resource: apps/dashboard/src/lib/components/candidate/send-form-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/add-form-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/form-send-moment.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/question-list.svelte
+  - resource: apps/dashboard/src/routes/(app)/templates/forms/[formId]/+page.svelte
   - resource: src/ScreenHire.Domain/Webhooks/WebhookDelivery.cs
   - resource: src/ScreenHire.Domain/Webhooks/WebhookEndpoint.cs
   - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/WebhookConfiguration.cs
@@ -146,9 +164,11 @@ sources:
 
 ```
 Organization
+ ├─ FormTemplate (versioned)            ← the form library: a form built once, used by any template
  ├─ HiringTemplate (versioned)          ← user-defined, reusable
  │    ├─ WorkflowDefinition             stages + automations
- │    ├─ Questionnaire                  screening questions (+ knockouts, honeypots)
+ │    ├─ Questionnaire                  the application form (+ knockouts, honeypots)
+ │    ├─ FollowUpQuestionnaires         copies of library forms, each sent at a stage or by hand
  │    │                                 (the AI-use policy is not here: it is the organization's, with a job override, §8)
  │    ├─ PostingDefaults                target boards, duration, sponsorship defaults
  │    └─ JobContentDefaults             description blocks, benefits, EEO/legal boilerplate
@@ -190,7 +210,8 @@ Organization
   update expects), so the page can say "3 jobs, 1 on an older version" and update each one; the hiring
   templates whose current versions (the newest published and the draft) name a scorecard, and the automations that
   send an email, a Reject action counting for the rejection email and SendQuestionnaire for the follow-up questions
-  email. "Not used in 6 months" is `TemplateUses.NotUsedRecently`: nothing used it in 180 days, and the team has had it
+  email; and for a library form, the hiring templates whose current versions copy it, each with the form version it holds
+  (`templateVersion`), so the form's page can offer to update those on an older one. "Not used in 6 months" is `TemplateUses.NotUsedRecently`: nothing used it in 180 days, and the team has had it
   longer than that (a built-in from the organization's creation).
 
 ## 2. WorkflowDefinition
@@ -268,16 +289,17 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
 
 What the dashboard builds (`apps/dashboard`, routes `/templates`, `/templates/{id}` and `/jobs/{id}/workflow`). The
 Templates page has a tab each for hiring templates, library scorecards (`/templates/scorecards/{id}`, the form builder
-with its preview beside it, or behind an Edit / Preview switch where both do not fit) and email templates
-([email.md](email.md)), each listed by `template-list.svelte` with where it is used, from `GET /v1/template-usage`. The
+with its preview beside it, or behind an Edit / Preview switch where both do not fit), library forms
+(`/templates/forms/{id}`, section 7, Forms) and email templates ([email.md](email.md)), each listed by
+`template-list.svelte` with where it is used, from `GET /v1/template-usage`. The
 workflow builder is one editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own
-copy, with four tabs on the page's header band (Pipeline, Questions, Automations, Test; `#lib/workflow-tabs.ts`,
-kept in the address as `?tab=`; an address saved with the old Overview tab opens Pipeline). In what people read it is the
+copy, with four tabs on the page's header band (Pipeline, Forms, Automations, Test; `#lib/workflow-tabs.ts`,
+kept in the address as `?tab=`; an address saved with the old Overview tab opens Pipeline, and one with Questions opens Forms). In what people read it is the
 pipeline (design system W13): the job's Edit pipeline, Save pipeline. A workflow that cannot be edited there (a ScreenHire template, a
 published version, a closed job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no
 form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (design system section 11, Stage flow). The validation result is a Needs fixes badge beside the page title, shown only when there is a problem, with a Fix button beside it on every tab but Test.
 
-- **Pipeline:** `stage-cards.svelte`, the open stages as cards joined by a line (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`; the end stages keep their place after them), with a plus on the line between cards to insert one. Each card's facts come from `#lib/stage-facts.ts` (`stageFacts`, drawn by `stage-fact-list.svelte`), one a line: "Respond within 3 days" (`respondWithin`, through `timeLimitLabel`), the meeting when its name is not the stage's, each email sent, each other automation that is on as a short label (`automationLabel`: the condition in short from `ruleShort`, then the steps, "Right to work: No, team looks first"), "Asks 6 questions" on the first stage, and the scorecard. The stage's own reminder is the Respond within line. An automation's line links to `?tab=automations&show=<id>`, which the editor reads to open that automation as a sentence. Under the cards, `anyStageFacts` is the Any stage row and the end stages are the Ends row. The read-only `stage-flow.svelte` draws the same facts as text. The stage's name is a button with a pencil and the tooltip "Edit <stage>", and opens `stage-sheet.svelte`: name, Respond within as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other) with what it means under it ("After that they show as Overdue. Nothing happens to the candidate."), then "When overdue" with the labels of what runs when it passes (`whenOverdue`), or "Nothing yet." with Add a reminder, which adds a `SlaBreached` automation for the stage that tells the team and opens it on the Automations tab (never on a stage a check moves candidates into), scorecard, "What the meeting is called" (on every stage where a team meets a candidate: not Applied, Offer or a terminal stage), the automations that run there and More options with the stage's kind. A stage's kind follows its name (`kindFromName`) until it is set by hand. The name is matched by the words it contains, the first match winning: withdraw is Withdrawn; reject, not selected, declined, not hired or turned down is Rejected; hired, started or onboard is Hired; offer is Offer; interview is Interview; verif, background or reference is Verification; trial, test, task, assessment, skills, shift, group session or exercise is Assessment; phone, call, screen or review is Screening; anything else, and a stage still named New stage, is Custom. The first stage is always Applied, and setting a kind that ends the application removes the stage's reminder. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
+- **Pipeline:** `stage-cards.svelte`, the open stages as cards joined by a line (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`; the end stages keep their place after them), with a plus on the line between cards to insert one. Each card's facts come from `#lib/stage-facts.ts` (`stageFacts`, drawn by `stage-fact-list.svelte`), one a line: "Respond within 3 days" (`respondWithin`, through `timeLimitLabel`), the meeting when its name is not the stage's, each email sent, each form sent (a `form` fact for an automation that only sends forms, "Sends "Screening questionnaire""), each other automation that is on as a short label (`automationLabel`: the condition in short from `ruleShort`, then the steps, "Right to work: No, team looks first"), "Asks 6 questions" on the first stage, and the scorecard. The stage's own reminder is the Respond within line. An automation's line links to `?tab=automations&show=<id>`, which the editor reads to open that automation as a sentence. Under the cards, `anyStageFacts` is the Any stage row and the end stages are the Ends row. The read-only `stage-flow.svelte` draws the same facts as text. The stage's name is a button with a pencil and the tooltip "Edit <stage>", and opens `stage-sheet.svelte`: name, Respond within as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other) with what it means under it ("After that they show as Overdue. Nothing happens to the candidate."), then "When overdue" with the labels of what runs when it passes (`whenOverdue`), or "Nothing yet." with Add a reminder, which adds a `SlaBreached` automation for the stage that tells the team and opens it on the Automations tab (never on a stage a check moves candidates into), scorecard, "What the meeting is called" (on every stage where a team meets a candidate: not Applied, Offer or a terminal stage), the automations that run there and More options with the stage's kind. A stage's kind follows its name (`kindFromName`) until it is set by hand. The name is matched by the words it contains, the first match winning: withdraw is Withdrawn; reject, not selected, declined, not hired or turned down is Rejected; hired, started or onboard is Hired; offer is Offer; interview is Interview; verif, background or reference is Verification; trial, test, task, assessment, skills, shift, group session or exercise is Assessment; phone, call, screen or review is Screening; anything else, and a stage still named New stage, is Custom. The first stage is always Applied, and setting a kind that ends the application removes the stage's reminder. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
   team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, never in
   the workflow: on the Templates page's Scorecards tab (`/templates/scorecards/{id}`), in the form builder
@@ -377,24 +399,32 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     suggest it. Every open stage after Applied offers "Ask the team to review at X" in the second group. A recipe is hidden when the workflow already has an automation that does the same thing (`covers`:
     the same trigger and conditions and at least its actions) or one with its id `recipe-<key>` (cut, with a short hash of the key, to the validator's 40 characters), and when adding it
     would create a refused step.
-- **Questions:** the Form timeline across the top (`form-timeline.svelte`, design system section 11) has a card for the
-  apply form and one for each follow-up questionnaire, named by when it reaches the candidate: "When they apply",
-  "When they reach Trial shift", "3 days after Trial shift starts", or "Not sent yet" when no enabled automation sends it.
-  A form sent on submission reads "Right after they apply" and comes straight after the apply form.
-  A follow-up has no moment of its own: `timelineOf` (`#lib/forms-timeline.ts`) words the trigger of the automation whose
-  `SendQuestionnaire` step names it. **Ask more later** asks for a stage (never Applied or an end stage) and either
-  "When they reach it" or a number of days after it starts, then `addFormLater` makes the form, named after the moment, and
-  the automation that emails it (`StageEntered`, or `TimeElapsed` with `afterHours` of days times 24), and says so: "We add
-  the email automation for you." `removeForm` takes a form with the automations that exist to send it, those that run when
-  it is answered, and the answer rules that read it, and the dashboard lists them before it removes the form; an automation
-  that does more than send it keeps its other steps. The chosen form edits in the form builder
-  (`#lib/components/form-builder.svelte`) below: a row per question that opens to edit, and closes from Done, its chevron, a click
+- **Forms:** the Form cards across the top (`form-cards.svelte`, design system section 11) have a card for the
+  application form and one for each other form, each its name, when it is sent and its question count ("Screening
+  questionnaire", "Sent when they enter Screening", "4 questions"), with New form last. When a form is sent is the form's
+  own choice (`form-send-moment.svelte`): When they apply, When they enter a stage, Some days after they enter a stage, or
+  Only when sent by hand. Choosing one rewrites the automation behind it (`setSendMoment` in `#lib/forms-timeline.ts`: the
+  automations that only send this form go, and one `ApplicationSubmitted`, `StageEntered` or `TimeElapsed` automation
+  with `SendQuestionnaire` takes their place, named after the moment), and "Only when sent by hand" removes it, which is
+  what a form no automation sends reads. A form an automation sends that does more than send it (a condition, other
+  steps, another trigger) is never rewritten: `sendingOf` says so and the line links to that automation. New form opens
+  `add-form-sheet.svelte`: the library's published forms the workflow does not use, each with its question count; one
+  whose question ids another form here already uses is disabled and says which question (`questionClashes`), and Build a
+  new form opens the library's new form dialog, whose editor offers Use it in the template once it is published (the
+  template page then adds it from `?addForm=`). A library form's questions read here (`question-list.svelte`) with
+  Edit in the library, and Use version N when the library has a newer version (`useLibraryVersion`, which keeps the
+  form's id, so what sends it and what reads its answers still do). `removeForm` takes a form with the automations that
+  exist to send it, those that run when it is answered, and the answer rules that read it, and the dashboard lists them
+  before it removes the form; an automation that does more than send it keeps its other steps. The application form
+  edits in the form builder (`#lib/components/form-builder.svelte`) below, as does a job's own older form that copies no
+  library form: a row per question that opens to edit, and closes from Done, its chevron, a click
   on its header or Escape, with its answer kind from the answer
   menu, Required (a badge on a required row, none on an optional one), a row menu holding Duplicate and Delete, and a grip to
-  reorder. The apply form ends in a locked AI-use row (`ai-use-row.svelte`): "AI use. Asked by ScreenHire. Policy: Allowed
+  reorder. The application form ends in a locked AI-use row (`ai-use-row.svelte`): "AI use. Asked by ScreenHire. Policy: Allowed
   with disclosure." with a Change policy link, because the policy is not the template's. The kinds a question takes
-  (`applyFormKinds`, `followUpKinds` in `#lib/form-builder.ts`) are every `QuestionType`; a follow-up offers all but
-  File, because its page takes no uploads. What a kind needs beyond its text and options (a knockout, a number's range,
+  (`applyFormKinds`, `followUpKinds` in `#lib/form-builder.ts`) are every `QuestionType`; any other form offers all but
+  File, because its page takes no uploads, and an equality monitoring form only the choices (`equalityKinds` in
+  `#lib/form-library.ts`). What a kind needs beyond its text and options (a knockout, a number's range,
   the longest answer, a file's types) is `question-settings.svelte`. A duplicate takes an id unique across the workflow,
   so `answers.{id}` still names one question. Add a section (an outline button beside Add a question) gives the
   questionnaire named sections, each a page for the candidate (apply-flow.md §7): the first press makes "Section 1"
@@ -453,7 +483,14 @@ nothing, because each save of a job's workflow is a new version.
   `GET /v1/scorecard-templates/{id}/history`, `POST /v1/scorecard-templates/{id}/archive` and `/unarchive`: the
   scorecard library (section 8)
 - `POST /v1/templates/{id}/archive` and `/unarchive`; `GET /v1/template-usage` (signed-in people only), where each
-  hiring, scorecard and email template is used
+  hiring, scorecard, form and email template is used
+- `GET` and `POST /v1/form-templates`, `GET /v1/form-templates/{id}`, `GET /v1/form-templates/{id}/history`,
+  `POST /v1/form-templates/{id}/versions`, `GET` and `PUT /v1/form-templates/{id}/versions/{v}`,
+  `POST /v1/form-templates/{id}/versions/{v}/publish` and `/apply-to-templates`, `POST /v1/form-templates/{id}/archive`
+  and `/unarchive`: the form library (section 7, Forms)
+- `POST /v1/applications/{id}/forms/{questionnaireId}/send`: send one of the job's forms by hand (Email candidates;
+  signed-in people only), section 8
+- `GET /v1/reports/equality`: equality monitoring totals ([reports](reports.md#7-equality-monitoring))
 - Webhooks: `/v1/webhooks` (below).
 
 ### Webhook subscriptions
@@ -572,6 +609,33 @@ The data model and API from the jobs and templates task, and the engine that run
   apply questionnaire and every follow-up, and a follow-up cannot use the apply form's own ids (`resume`,
   `linkedin_export`), so `answers.{id}` names one question. No file questions: the follow-up page works without
   JavaScript and takes no uploads. The knockout rules apply to follow-up questions as to apply questions.
+- **Forms** (`FormTemplate`, `FormTemplateVersion`, tables `form_templates` and `form_template_versions`, migration
+  `AddFormLibrary`). A library form is an organization's follow-up questionnaire built once: its kind (`Standard` or
+  `EqualityMonitoring`, set when it is made and never changed) and numbered versions like a hiring template's, at most
+  one draft and published versions that never change (row-level security updates and deletes drafts only; the
+  application role cannot delete a form). A version's content is `FormContent` (name, questions, sections), checked by
+  `DefinitionValidator.ValidateForm` with the follow-up rules below; a library draft saves only whole. A hiring template
+  uses one by holding a copy in `followUpQuestionnaires` that names it: `formTemplateId` and `formVersion` together, and
+  `kind` (absent means Standard). `FormReferences` keeps a template's copy equal to the library: every template draft
+  save, a copy of a template and a template publish refuse a form that is not this organization's or a version that is
+  not published (at `followUpQuestionnaires[i].formTemplateId`), and rewrite the copy's name, kind, questions and
+  sections from the version it names, whatever the request held. A job's copy is never rewritten, because a live job's
+  questions change only through its template update; only its kind comes from the library. A new template's own
+  follow-ups (a copy of a ScreenHire template above all) become published version-1 library forms of the organization
+  (`FormReferences.Adopt`). Publishing a newer version changes no template; `POST .../versions/{v}/apply-to-templates`
+  updates the ones named: a template with a draft has the follow-up replaced in the draft, and one without gets a new
+  version that goes through the template's own publish (`TemplateEndpoints.PublishDraftAsync`: the validator, the
+  reference checks, `HiringTemplateVersionPublished`), so new jobs get it and its jobs show Update available. The result
+  names each template: Published, UpdatedDraft, or NotUpdated with the reason, such as a question id another form there
+  uses. The migration turned each own template's current versions' follow-ups into library forms (one per follow-up id,
+  a version per different content, in version order), linked them, and made a form of each job's own follow-up that no
+  template version holds unless the library has its content already; older published versions and jobs keep their
+  copies as they were. The form's history is the hiring template's kind of history (`FormTemplateChanges`).
+- **Equality monitoring forms** (`kind: EqualityMonitoring`), offered only where
+  `ScreenHire:Forms:EqualityMonitoring:Enabled` is on (default off, pending a legal review): every question is an
+  optional SingleChoice, MultiChoice or YesNo with no knockout; no condition may read an equality question's
+  `answers.{id}`, and no `QuestionnaireCompleted` trigger may name the form. Sending one is allowed. Its answers never
+  leave as answers (section 8): they only count toward totals in Reports.
 - **AI use.** A definition has no AI-use policy. ScreenHire asks the question on every application, and the policy is
   `VerificationSettings.DefaultAiUse` (Verification, Checks), which a job may override (`PUT /v1/jobs/{id}/ai-use`, in the
   job's own settings and not in its workflow). `AiUsePolicies.Effective` is the one place that decides: the job's override, else
@@ -883,8 +947,25 @@ name; the worker builds the careers URL from the same `ScreenHire:Domains` setti
   shape only), and the `GET` returns them while the link is open; answering, or the daily sweep 30 days after the first
   save, deletes them. A saved draft raises no event and fires no trigger, so a knockout answer in it decides nothing
   until the candidate sends the answers. It is 409 once answered and 410 once expired or closed.
-- The candidate page lists each follow-up in its own panel, with the answers once given, read against the copied
-  questions; Activity shows each send and the completion.
+- The candidate page's Application tab lists each form sent in a Forms panel, a row each that opens to the answers
+  once given, read against the copied questions ("Answered 2 days ago", "Sent 3 days ago, waiting"), with Expand all;
+  Activity shows each send and the completion.
+- **Send a form by hand.** `POST /v1/applications/{id}/forms/{questionnaireId}/send` (Email candidates; signed-in people
+  only, as the email composer is) sends one of the job's forms whatever its automations do. In one transaction the API
+  creates or refreshes the request (`QuestionnaireSending.PrepareAsync`, the same step the `SendQuestionnaire` action
+  takes, so a form sent both ways is one request with one count), appends `QuestionnaireSent` with the person as its
+  actor, and publishes `SendQuestionnaireLink`, whose worker handler issues the link and emails the follow-up questions
+  email in the person's name. 202 with the request; 409 once it is answered or the application has ended or the job is
+  closed; 404 for a form the job does not have or another organization's application; 503 where email or the careers
+  site is not set up. With an `Idempotency-Key` the send's entries take ids from the key, so a retried request sends
+  nothing twice. The candidate page's Send a form opens a sheet of the job's forms, each with Send, Send again while it
+  waits, or nothing once answered.
+- **Equality monitoring answers.** A request keeps the form's kind and library form from its first send
+  (`questionnaire_requests.kind`, `form_template_id`), and every reader goes by that, never by the workflow now: the
+  application's `followUps` carry an equality form's status with no questions and no answers (so the dashboard, API keys
+  and the MCP server's `get_application` never see them), `FactSources` leaves them out of every automation's facts, and
+  answering one raises no `QuestionnaireCompleted` run, because an automation that names no form fires on any form. The
+  page says the answers are optional and only ever counted. Reports' totals are the only place they appear.
 
 **Validate and simulate.** `POST /v1/workflows/validate` returns the validator's errors with their paths, 200 either
 way. `POST /v1/workflows/simulate` refuses an invalid workflow, then runs a sample facts snapshot through the same
