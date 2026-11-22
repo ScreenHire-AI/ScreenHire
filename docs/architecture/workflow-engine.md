@@ -102,6 +102,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-flow.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-form.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/automation-name.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-sentence.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-blank.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-recipes.svelte
@@ -380,18 +381,21 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   - **Links.** A "move to a stage" action also points at its stage by drawing a link from its right edge to a stage, a
     pointer shortcut for the form's Stage field (`connect`), never the only way (WCAG 2.5.7).
   - A validation message shows on the node its path names, an automation's own messages on its trigger node, as it does
-    under the sentence. Removing an automation is the Remove on its rules form (Edit as rules).
+    under the sentence. Removing an automation is Remove automation on its Rules tab.
   - **List and sheets.** The panel header has a List | Map switch and Add automation (`automations-panel.svelte`); the
     list (`automation-list.svelte`) groups the automations as the map does, by stage and then Any stage, with each one's
-    sentence, and a phone shows only it. One sheet in `workflow-editor.svelte` has three views: a stage's or Any stage's
-    automations as rows, the recipes, and one automation.
+    sentence, and a phone shows only it. One sheet in `workflow-editor.svelte`, one width in every view, has three views: a
+    stage's or Any stage's automations as rows, the recipes, and one automation: its Name and On (`automation-name.svelte`)
+    over two tabs, Sentence and Rules, that edit the same automation. Every automation opens on the tab the person chose
+    last (`preferences.automationView`, in the browser); one too complex for a sentence (`sentenceLimit`: a rejection, or
+    a condition on a fact its trigger does not offer) opens on Rules, and its Sentence tab says why.
   - **The sentence.** `automation-sentence.svelte` reads one automation as "When [someone applies] and [their answer to
     Right to work is No], [ask the team to review] and [add the tag ...]", from `sentenceOf` in
     `#lib/automation-sentence.ts`, which returns text and blanks; each blank holds its choices and an `apply` that returns
     the automation with that choice made, so the definition is the only thing stored and the validator stays the judge.
     The facts are grouped as Their answers, The application and ScreenHire's checks; a fixed list of values is ticked,
-    one value stored as is and two or more as is one of. The sheet has Name, On and Done; Edit as rules swaps in
-    `automation-form.svelte` in place, and Remove is there.
+    one value stored as is and two or more as is one of. The Rules tab is `automation-form.svelte`, When, If and
+    Then as three wells, with Remove automation at its foot.
   - **What a move sets off.** `enteringLines` in the same module says what entering a stage does, one sentence per
     automation that fires on it, in the list's words ("Send the "Moved to the next step" email."). The dashboard asks
     with it before a move (`createMoves`, `move-confirm-dialog.svelte`), unless the person ticked Don't ask again. An

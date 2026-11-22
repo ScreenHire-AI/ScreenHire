@@ -220,7 +220,7 @@
           {@const rulePath = `${path}.conditions.rules[${ruleIndex}]`}
           {@const ruleErrors = errorsUnder(errors, rulePath).map((error) => error.message)}
           <li data-rule-row class="flex flex-col gap-1.5 border-t border-border-subtle pt-3 first:border-0 first:pt-0">
-            <div class="grid items-end gap-2 @2xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto_auto]">
+            <div class="grid items-end gap-2 @xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto_auto]">
               <label class={labelClass}>
                 Fact <span class="sr-only">for condition {ruleIndex + 1}</span>
                 <select class={selectClass} value={rule.fact} data-focus={ruleIndex === 0 ? `${path}.conditions` : undefined} onchange={(event) => setFact(ruleIndex, event.currentTarget.value)}>
