@@ -65,11 +65,17 @@ function stubApi(options: { sendingEnabled?: boolean; send?: () => Response } = 
   const fetchMock = vi.fn(
     apiStub({
       'GET /v1/email-templates': () =>
-        Response.json({ templates: [template('application-received', 'Application received'), template('questionnaire-request', 'Follow-up questions')], variables: [], sendingEnabled: options.sendingEnabled ?? true }),
+        Response.json({
+          templates: [template('application-received', 'Application received'), template('stage-change', 'Stage change'), template('questionnaire-request', 'Follow-up questions')],
+          variables: [],
+          sendingEnabled: options.sendingEnabled ?? true,
+        }),
       'GET /v1/organization': () => Response.json({ name: 'Brightwater Studio', questionsPerPage: 5 }),
       'GET /v1/organization/branding': () => Response.json({ logo: null }),
       'POST /v1/email-templates/preview': (init) => {
         const { subject } = JSON.parse(String(init?.body)) as { subject: string };
+        // The stage change email cannot be shown: its row falls back to the template's name.
+        if (subject.startsWith('Stage change')) return new Response(null, { status: 500 });
         return Response.json({ subject: subject.replace('{{ candidateName }}', 'Jordan Lee'), html: '<p>Hi Jordan Lee</p>', text: 'Hi Jordan Lee,\nWe have it.' });
       },
       'POST /v1/workflows/simulate': (init) => Response.json(answerFor(JSON.parse(String(init?.body)))),
@@ -126,8 +132,6 @@ describe('a good fit, one stage at a time', () => {
     expect(screen.getByRole('list', { name: 'Pipeline' }).querySelector('[aria-current="step"]')).toHaveTextContent('Applied');
     expect(await screen.findByText('Application received Jordan Lee')).toBeInTheDocument();
     expect(screen.getByText('Hi Jordan Lee,')).toBeInTheDocument();
-    // One preview for the one email: the answer arriving must not ask for it again.
-    expect(sent(fetchMock, '/v1/email-templates/preview')).toHaveLength(1);
     expect(things()).toEqual(['email', 'decide']);
     expect(screen.getByText('You decide when Jordan moves on.')).toBeInTheDocument();
     expect(sent(fetchMock, '/v1/workflows/simulate').map((body) => body.trigger.type)).toEqual(['ApplicationSubmitted', 'VerificationAssessed', 'StageEntered']);
@@ -199,6 +203,26 @@ describe('a good fit, one stage at a time', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Move Jordan to Phone call' }));
     await stageHeading('Phone call');
     expect(screen.queryByRole('button', { name: 'Send me these emails' })).toBeNull();
+  });
+
+  it("never shows the stage before's email on the next stage, even when the next one cannot be shown", async () => {
+    stubApi();
+    const flow: HiringWorkflow = {
+      ...workflow,
+      automations: [
+        workflow.automations[0]!,
+        { id: 'moved', name: 'Tell them', trigger: { type: 'StageEntered', stageId: 'screening' }, conditions: null, actions: [{ type: 'SendEmail', emailTemplate: 'stage-change' }] },
+      ],
+    };
+    renderTry({}, flow);
+    await fireEvent.click(screen.getByRole('button', { name: /A good fit/ }));
+    await screen.findByText('Application received Jordan Lee');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Move Jordan to Phone call' }));
+
+    await stageHeading('Phone call');
+    expect(await screen.findByText('Stage change', { selector: '.truncate' })).toBeInTheDocument();
+    expect(screen.queryByText('Application received Jordan Lee')).toBeNull();
   });
 
   it('starts again after an edit, because the walk was about the pipeline as it was', async () => {

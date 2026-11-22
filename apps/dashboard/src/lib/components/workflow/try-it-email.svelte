@@ -30,6 +30,9 @@
   // The preview follows the template's wording only. The mutation's own state is read untracked: tracking it would run
   // the effect again each time the request settles, and send it again.
   $effect(() => {
+    // Another template starts from nothing, so a row never shows the email it held before.
+    preview = undefined;
+    failure = '';
     if (!template) return;
     const { subject, body, id } = template;
     let current = true;

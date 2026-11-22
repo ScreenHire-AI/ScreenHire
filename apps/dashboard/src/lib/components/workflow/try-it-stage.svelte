@@ -98,7 +98,8 @@
     <h3 bind:this={heading} tabindex="-1" class="text-heading focus-visible:outline-none">{stage.name}</h3>
     {#if waited}<p class="text-muted-foreground">{days(waited)} later</p>{/if}
     <ul class="flex flex-col gap-2">
-      {#each shown as thing, index (index)}
+      <!-- Keyed by what each row shows, so a row for another stage's email is a new row, not the old one reused. -->
+      {#each shown as thing, index (`${index}:${thing.kind === 'email' ? thing.templateId : thing.text}`)}
         <li data-thing={thing.kind}>
           {#if thing.kind === 'email'}
             <TryItEmail template={templates.get(thing.templateId)} {organizationName} {logoUrl} />
