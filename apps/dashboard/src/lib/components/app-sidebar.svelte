@@ -152,8 +152,10 @@
     };
   }
   const tooltipFor = (key: string) => ({ hidden: !rail && !cut.has(key) });
-  // The first letter of a saved view's name, for its square in the rail: a whole character, so an accent or emoji is not split.
-  const viewLetter = (name: string) => (Array.from(name.trim())[0] ?? '').toLocaleUpperCase();
+  // The first letter of a saved view's name, for its square in the rail. It takes the first grapheme, so an accent or an emoji
+  // is not split, and one letter, which `initials` (two, split on spaces) does not give. The API refuses a blank name.
+  const graphemes = new Intl.Segmenter();
+  const viewLetter = (name: string) => (graphemes.segment(name.trim())[Symbol.iterator]().next().value?.segment ?? '').toLocaleUpperCase();
 </script>
 
 <Sidebar.Root collapsible="icon">

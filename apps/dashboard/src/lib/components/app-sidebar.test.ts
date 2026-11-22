@@ -349,7 +349,7 @@ describe('the Views list in the sidebar', () => {
 });
 
 describe('the icon rail at tablet width', () => {
-  it('gives every built-in view its own icon, the same in the full sidebar', () => {
+  it('gives every built-in view its own icon, named in its tooltip in the rail, and the same icon in the full sidebar', async () => {
     const iconsOf = () =>
       ['To review', 'To verify', 'Overdue', 'New today', 'Not screened', 'Interviewing'].map(
         (name) => within(main()).getByRole('link', { name }).querySelector('svg')?.getAttribute('data-icon'),
@@ -360,6 +360,9 @@ describe('the icon rail at tablet width', () => {
     const { unmount } = render(ShellHarness, { props: { user } });
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
     expect(iconsOf()).toEqual(expected);
+    // An icon alone does not name a view, so the rail names each one in its tooltip.
+    await fireEvent.focus(within(main()).getByRole('link', { name: 'Overdue' }));
+    await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent('Overdue'));
     unmount();
 
     stubViewport(1280);
@@ -369,16 +372,19 @@ describe('the icon rail at tablet width', () => {
 
   it("shows a saved view as the first letter of its name in a square, named in its tooltip, and its icon in the full sidebar", async () => {
     const shared = savedView({ id: 'shared', name: 'team queue', shared: true, mine: false, canEdit: false, inSidebar: true });
+    // A name that starts with one emoji of several code points keeps the whole emoji, not its first half.
+    const emoji = savedView({ id: 'emoji', name: '👩‍💻 Engineers' });
     stubViewport(800);
-    const { unmount } = render(ShellHarness, { props: { user, saved: [view, shared] } });
+    const { unmount } = render(ShellHarness, { props: { user, saved: [view, shared, emoji] } });
 
     for (const [name, letter] of [
       ['Referrals in screening', 'R'],
       ['team queue', 'T'],
+      ['👩‍💻 Engineers', '👩‍💻'],
     ] as const) {
       const link = within(main()).getByRole('link', { name: new RegExp(`^${name}`) });
       const square = link.querySelector('[data-view-letter]');
-      expect(square).toHaveTextContent(letter);
+      expect(square?.textContent).toBe(letter);
       expect(square).toHaveAttribute('aria-hidden', 'true');
       expect(link.querySelector('svg')).toBeNull();
     }
