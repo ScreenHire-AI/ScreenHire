@@ -68,7 +68,8 @@
 //                               forwarded to the API: Sandbox:Enabled=true is the local catalogue of a dozen bundled fonts
 //                               (appsettings.Development.json and the test stacks turn it on, so nothing needs the
 //                               internet); otherwise the API lists Google Fonts through Fontsource, which needs no key.
-//                               Container (heading-fonts), CatalogueLifetime and PreviewsPerMinute tune it.
+//                               Container (heading-fonts), CatalogueLifetime and PreviewsPerMinute tune it, and
+//                               Fontsource:ApiUrl, FilesUrl and PackageUrl are the addresses it reads.
 //   CareersEmbedding:*          the sites allowed to embed the careers pages (the API's CareersEmbeddingOptions,
 //                               docs/architecture/careers-widget.md), forwarded to the API: AllowLoopback
 //                               (appsettings.Development.json and the test stacks turn it on, so a site on this machine,

@@ -216,7 +216,9 @@ the servable images, each null for ScreenHire's. `brandStylesheet` turns it into
 anonymous, with `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'` and a year's immutable
 cache. Only a file the family's row names is served, so nothing else in the container can be reached. Careers pages serve
 the files on their own origin at `{base}/brand/fonts/{id}/{file}` (`[organization]/brand/fonts/[font]/[file].ts`), which
-the brand stylesheet links relative to itself, so the content security policy keeps `font-src 'self'`.
+the brand stylesheet links relative to itself, so the content security policy keeps `font-src 'self'`. An answer from the
+API that is not the file (an outage, a missing name) is never cached: the careers route sends 502 for a server error and
+404 otherwise, both with `Cache-Control: no-store`, so a moment's outage does not stick to a file that will be there.
 
 ## 6. Emails
 
