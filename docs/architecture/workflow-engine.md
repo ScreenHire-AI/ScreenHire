@@ -734,7 +734,9 @@ The data model and API from the jobs and templates task, and the engine that run
   when the stage changes. The switch publishes `JobWorkflowChanged` and no `ApplicationMoved`, so no email goes, no
   automation runs and no Slack message or webhook reports a move. Activity reads "The pipeline changed: from Screening
   to Phone call", and the change history "switched to the template **Kitchen**". Stage-keyed records of the old
-  pipeline (an open task, a scorecard, an interview request) keep their stage id. Like the edits above, the switch takes
+  pipeline (an open task, a scorecard, an interview request) keep their stage id. A form sent and not yet answered is
+  read from the job's workflow when the candidate opens it, so one the new pipeline does not have stops opening, as when an
+  edit removes it. Like the edits above, the switch takes
   no lock, so an application submitted into an old stage between the read and the save is not moved.
 - **Former stages and questions:** every workflow change keeps what it drops in the job's `former` (`FormerWorkflowParts`:
   each stage's id, name and kind, and each apply-form question as it was asked), so a timeline entry or an answer that
