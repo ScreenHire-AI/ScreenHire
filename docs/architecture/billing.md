@@ -422,8 +422,8 @@ sends `NotifyAiCredits(ReloadFailed)`; it never throws for a refusal, so nothing
 that succeeded. The sandbox has no webhook, so its successful charge grants at once. A reload still waiting for the provider's
 confirmation a day later (`ReloadAiCreditsHandler.ConfirmationWindow`) is closed as failed by the next reload decision, with auto-reload
 turned off and the Owners told, so it never blocks the reloads after it in silence; a confirmation that arrives after that still grants,
-because money the provider took is always credited. Turning auto-reload on while the balance is already below the threshold reloads after
-the next check, which is when the balance is looked at.
+because money the provider took is always credited. Turning auto-reload on while the balance is already below the threshold sends
+`ReloadAiCredits` from the settings route at once, under the same key a check would use.
 
 **Alerts.** The Owners (Manage billing) hear about the balance in the bell and by email, by each Owner's own choice for AI use and
 billing on Your account; the organization's budget alert defaults are not read, so an organization that turned those off still hears

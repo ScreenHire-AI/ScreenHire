@@ -215,7 +215,7 @@ internal static class AiCreditEndpoints
         UpdateAiCreditSettingsRequest request,
         BillingAccess access,
         IOptions<BillingOptions> options,
-        ScreenHireDbContext db,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -225,8 +225,10 @@ internal static class AiCreditEndpoints
             return TypedResults.NotFound();
         }
 
+        var db = outbox.DbContext;
         var now = time.GetUtcNow();
-        var settings = await AiCreditLedger.SettingsAsync(db, tenant.OrganizationId!.Value, options.Value, now, cancellationToken);
+        var organizationId = tenant.OrganizationId!.Value;
+        var settings = await AiCreditLedger.SettingsAsync(db, organizationId, options.Value, now, cancellationToken);
         if (SettingsProblems(request, options.Value.Credits, settings.HasSavedCard) is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
@@ -235,7 +237,16 @@ internal static class AiCreditEndpoints
         var reload = request.AutoReload;
         settings.LowBalanceAlert = request.LowBalanceAlert;
         settings.SetAutoReload(reload.Enabled, reload.Below, reload.Amount, reload.MonthlyMax, now);
-        await db.SaveChangesAsync(cancellationToken);
+
+        // Turned on while the balance is already below its threshold: reload now rather than after the next check. The worker decides
+        // again (the monthly maximum, a reload already waiting), keyed on the newest grant as a check's request is, so the two are one.
+        if (reload is { Enabled: true, Below: { } below }
+            && await AiCreditLedger.BalanceMicrosAsync(db, cancellationToken) < AiCharge.ToMicros(below))
+        {
+            await outbox.PublishAsync(new ReloadAiCredits(organizationId, await AiCreditLedger.LatestGrantAsync(db, cancellationToken)));
+        }
+
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
 

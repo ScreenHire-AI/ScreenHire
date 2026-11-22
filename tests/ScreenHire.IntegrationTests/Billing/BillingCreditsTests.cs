@@ -458,6 +458,25 @@ public sealed class BillingCreditsTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Turning_auto_reload_on_below_its_threshold_reloads_at_once_without_waiting_for_a_check()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await fixture.BuyCreditsAsync(owner, 10m);
+        await WaitForBalanceAsync(owner, StartingCredit + 10m);
+        await VerificationSupport.DrainCreditsAsync(fixture, owner.OrganizationId);
+        var on = new JsonObject
+        {
+            ["lowBalanceAlert"] = 5,
+            ["autoReload"] = new JsonObject { ["enabled"] = true, ["below"] = 5, ["amount"] = 25, ["monthlyMax"] = 100 },
+        };
+
+        (await owner.PutAsync($"{BillingTestSupport.Credits}/settings", on)).Expect(HttpStatusCode.NoContent);
+
+        // No check runs here: the reload comes from turning it on, through the running worker and the sandbox's charge.
+        await WaitForBalanceAsync(owner, 25m);
+    }
+
+    [Fact]
     public async Task Another_organizations_credits_are_never_read_or_written()
     {
         using var ours = await fixture.SignedInWithOrganizationAsync();
