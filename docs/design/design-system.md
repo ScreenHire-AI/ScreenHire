@@ -612,8 +612,9 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 
 Titles take the employer's heading font where one is set (section 18), otherwise Bricolage Grotesque. Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
 `text-candidate-input` and `text-candidate-hint` in `packages/ui`. A form of several pages shows `PageProgress`
-(`packages/ui/src/questions`) above its fields: a bar of one segment per step, then "Step 2 of 4" and "9 of 24
-answered" in the hint size, the step semibold; each page's heading is its section's name. Marketing type is section 22.4. The dashboard's
+(`packages/ui/src/questions`) above its fields: one bar and "40% done" in the hint size, semibold, where sending counts as
+the last step, so the review never reads 100% (apply-flow.md section 7); each page's heading is its section's name. An
+apply form without sections asks four questions a page by default. Marketing type is section 22.4. The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
 A careers page's `h1` is `font-display text-candidate-title` (30 / 36, weight 700, -0.02em), so every title takes the
@@ -649,7 +650,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - The board's heading is "Open roles", because the header already names the employer, over a lede of one sentence.
 - A message about what just happened is `Notice`: an icon, the message, and one quieter line for what to do next. A page
   never builds its own bordered block for it.
-- Every step of a form names itself in a visible heading, so "Step 2 of 3" is never the only clue. The review step says
+- Every step of a form names itself in a visible heading, so the progress line ("40% done") is never the only clue. The review step says
   who receives the answers and when.
 - A page that cannot open (an unknown, expired or closed link) says what happened in one sentence and who to contact:
   the hiring team at the employer, by the address they write from. "Open it again" is never the only advice.
@@ -681,14 +682,23 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
   employer's brand colour.
 - A careers form with steps has one row of buttons: the primary button first in the document and at the right on a wide
   screen, Back beside it, and Save and finish later at the left. A page with one action leaves it at the left, under its
-  content.
+  content. Enter in a line presses the primary, except on the last step, where only the button sends. A page of
+  questions opens with the focus on its first question, and a text field left wrong shows its check line under it
+  (`:user-invalid`, no script).
+- The job page reads title, chips, the description, then the Apply button with "Takes about 4 minutes" under it (a
+  `clock` icon and hint text), then one muted line about the checks with the privacy link. It has no notice panel: the
+  notice is on the form, where collection starts.
+- The page after Send is a warm finish: a check mark in a soft circle above "Application sent", one line of thanks,
+  then "What happens next" as two steps each led by when (Next, Any time), the last linking the candidate's own page.
+  The heading and the thanks already say the employer has the application, so no step repeats it (W7). It names no date and never says who reads the application.
 - A candidate's own page shows an application's four steps as square markers on a line (T4), in one row at 390px, each
   with its name under it: a step done is filled with a tick, the step it is at is outlined with a filled centre and a bold
   name, and the steps to come are empty. A done or current marker is in `candidate-brand-text`, an empty one and the line
   to it in `candidate-input-border`, so each keeps 3:1, and the line runs under the markers through their centres. They are
   a list named "Where your application is", never radio-like circles in a grid, which read as choices.
 - The footer carries "What we collect and why" and "Your applications" (not on the candidate's own pages, which it opens), so a page does not repeat either
-  in its body (W7). The one exception is the notice, which links the privacy page because it is the notice. `public-style.test.ts` also
+  in its body (W7). The exceptions are the notice on the apply form and the job page's one line about the checks, which
+  stands in for the notice there: both link the privacy page because they are what it explains. `public-style.test.ts` also
   fails on candidate copy, and the two emails that once carried it, that says a person reads everything or your answer, that
   every application or yours is reviewed, or that no software decides.
 - A claim about who reads or decides must hold for every employer's setup. An eligibility question can end an application
@@ -1140,6 +1150,10 @@ lead to the tab that holds their settings now, with their query string.
 - Motion 120 to 180ms for hover and popovers, 200 to 240ms for sheets; `prefers-reduced-motion` turns it off, and so does
   Reduce motion on Your account > Preferences, for this browser: it puts `.reduce-motion` on the page, which the
   `motion-reduce` and `motion-safe` variants read as well as the system setting (`app.css`).
+- Careers pages move from page to page with cross-document view transitions and no script: a form step leaves in 160ms
+  and the next slides in from 16px to the right in 220ms while the header holds still. The rule lives inside
+  `prefers-reduced-motion: no-preference` and `scripting: enabled`, so reduced motion and JavaScript off get a plain
+  page load.
 - axe runs in component tests and Playwright; manual NVDA and VoiceOver passes per release; an external audit before
   general availability.
 

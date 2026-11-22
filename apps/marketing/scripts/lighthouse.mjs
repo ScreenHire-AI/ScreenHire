@@ -4,6 +4,11 @@
 //   pnpm --filter @screenhire/marketing build
 //   pnpm --filter @screenhire/marketing lighthouse              # every page in the sitemap
 //   pnpm --filter @screenhire/marketing lighthouse / /pricing/  # just these paths
+//   pnpm --filter @screenhire/marketing lighthouse http://127.0.0.1:4322/brightwater/jobs/x  # pages already served
+//
+// Absolute http(s) addresses measure pages some other server already serves, such as the careers pages of a stack
+// started with the production builds (`ScreenHire:Frontends=Built`, docs/process/testing.md), with the same budgets and
+// no build or preview server of its own. The budgets are the marketing site's, so on a careers page they are a report.
 //
 // It is not part of `pnpm verify`. CI's report-only `lighthouse` job runs it for a pull request that changes the
 // marketing build (ADR-0020). Every local run waits for any other run on the machine to finish first (acquireLock).
@@ -268,6 +273,18 @@ export function toolInstallCommand({ npmExecPath, platform }) {
   return { command: 'pnpm', args, shell: platform === 'win32' };
 }
 
+/**
+ * What to measure: every argument an absolute http(s) address (`urls`, served elsewhere), or site paths under the preview
+ * server (`paths`; none means the whole sitemap). `invalid` names the arguments that are neither, which includes a mix.
+ */
+export function targetsOf(args) {
+  if (args.length > 0 && args.every((arg) => /^https?:\/\//i.test(arg))) {
+    return { urls: args, paths: [], invalid: [] };
+  }
+
+  return { urls: null, paths: args, invalid: args.filter((arg) => !arg.startsWith('/')) };
+}
+
 /** Installs tools/lighthouse (frozen to its lockfile) and returns `{ lighthouse, chromeLauncher }` from it. */
 async function loadTool() {
   const { command, args, shell } = toolInstallCommand({ npmExecPath: process.env.npm_execpath, platform: process.platform });
@@ -281,18 +298,21 @@ async function loadTool() {
 
 /** Measures every path; returns the exit code. */
 async function main() {
-  if (!existsSync(`${dist}/sitemap-0.xml`)) {
+  const { urls, paths: given, invalid } = targetsOf(process.argv.slice(2));
+  if (invalid.length > 0) {
+    // Git Bash rewrites "/pricing/" into a Windows path; MSYS_NO_PATHCONV=1 stops it.
+    console.error(
+      `lighthouse: give paths that start with "/" or only http(s) addresses: ${invalid.join(', ')}. In Git Bash, set MSYS_NO_PATHCONV=1.`,
+    );
+    return 1;
+  }
+
+  if (!urls && !existsSync(`${dist}/sitemap-0.xml`)) {
     console.error('lighthouse: no build output. Run `pnpm --filter @screenhire/marketing build` first.');
     return 1;
   }
 
-  const paths = process.argv.slice(2).length > 0 ? process.argv.slice(2) : sitemapPaths();
-  const invalid = paths.filter((path) => !path.startsWith('/'));
-  if (invalid.length > 0) {
-    // Git Bash rewrites "/pricing/" into a Windows path; MSYS_NO_PATHCONV=1 stops it.
-    console.error(`lighthouse: paths must start with "/": ${invalid.join(', ')}. In Git Bash, set MSYS_NO_PATHCONV=1.`);
-    return 1;
-  }
+  const paths = urls ?? (given.length > 0 ? given : sitemapPaths());
 
   // Before the lock, so installing is neither charged to the run limit nor held against a queued run.
   let lighthouse;
@@ -326,8 +346,9 @@ async function main() {
     process.exit(1);
   }, RUN_LIMIT_MS).unref();
 
-  const port = await freePort();
-  const server = await preview({ root, logLevel: 'error', server: { host: '127.0.0.1', port } });
+  // Addresses served elsewhere need no preview server of ours.
+  const port = urls ? null : await freePort();
+  const server = urls ? null : await preview({ root, logLevel: 'error', server: { host: '127.0.0.1', port } });
   const failures = [];
   try {
     const chromePath = process.env.CHROME_PATH ?? playwrightChromium();
@@ -337,7 +358,7 @@ async function main() {
     chrome = await chromeLauncher.launch({ chromeFlags: ['--headless=new', '--no-first-run', ...sandbox], chromePath });
     console.log(`lighthouse: ${paths.length} page(s), mobile, ${chromePath ?? 'installed Chrome'} (pid ${chrome.pid})`);
     for (const path of paths) {
-      const url = `http://127.0.0.1:${port}${path}`;
+      const url = urls ? path : `http://127.0.0.1:${port}${path}`;
       let result;
       try {
         // Lighthouse's defaults: mobile form factor with simulated slow 4G and 4x CPU slowdown.
@@ -377,7 +398,9 @@ async function main() {
     if (chrome && !(await stopChrome(chrome))) {
       console.error(`lighthouse: Chrome (pid ${chrome.pid}) did not exit after it was killed.`);
     }
-    await withTimeout(server.stop(), 10_000, 'Stopping the preview server').catch((error) => console.error(`lighthouse: ${error.message}`));
+    if (server) {
+      await withTimeout(server.stop(), 10_000, 'Stopping the preview server').catch((error) => console.error(`lighthouse: ${error.message}`));
+    }
     release();
   }
 

@@ -5,6 +5,12 @@ description: "The candidate apply page: the notice before any collection, steps 
 tags: [careers, apply, astro]
 sources:
   - resource: apps/careers/src/pages/[organization]/jobs/[job]/apply.astro
+  - resource: apps/careers/src/pages/[organization]/jobs/[job].astro
+  - resource: apps/careers/src/pages/[organization]/jobs/[job]/applied.astro
+  - resource: apps/careers/src/styles/global.css
+  - resource: packages/ui/src/questions.css
+  - resource: packages/ui/src/questions/TextField.svelte
+  - resource: src/ScreenHire.Infrastructure/Persistence/Migrations/20261122102507_DefaultFourQuestionsPerPage.cs
   - resource: apps/careers/src/pages/404.astro
   - resource: apps/careers/src/pages/[organization]/uploads.ts
   - resource: apps/careers/src/lib/apply.ts
@@ -53,9 +59,9 @@ never calls the API.
 
 | Path (under `/{organization}`, or `/` on a tenant host) | What it is |
 |---|---|
-| `/jobs/{job}` | The job, the "How we review applications" notice and an Apply link. 410 once the job closes, 404 if unknown. An unknown organization is a 404 on every page here, drawn as one neutral "We could not find this page" (`src/pages/404.astro`): no organization name, branding or link, the same page for any address with no page, so it never says whether an organization exists. |
+| `/jobs/{job}` | The job, an Apply link with "Takes about 4 minutes" under it (§7), and one line on the checks: "We look out for bots and borrowed identities, so genuine applicants get a fair look." with the "What we collect and why" link. Nothing is collected while browsing, so the full notice is on the form, not here. 410 once the job closes, 404 if unknown. An unknown organization is a 404 on every page here, drawn as one neutral "We could not find this page" (`src/pages/404.astro`): no organization name, branding or link, the same page for any address with no page, so it never says whether an organization exists. |
 | `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), one **page** per section of the job's questionnaire (none when it has no questions beyond the resume; §7), **review** (summary, AI-use declaration, the optional "Keep my details for future roles" box, send). `?draft={token}` fills it from a saved draft. |
-| `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET. The same page whether the application is new or the email had already applied, so the form never reveals who applied. It links to `/my-applications`, where the candidate asks for the link to their own page ([candidate portal](candidate-portal.md)). |
+| `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET: a check mark, "Application sent", one line of thanks, and "What happens next" as two steps led by when they happen: Next (the employer contacts the candidate by email about next steps; the checks never reject anyone) and Any time (the candidate's own page). It names no date and no reader, because the employer sets neither. The same page whether the application is new or the email had already applied, so the form never reveals who applied. It links to `/my-applications`, where the candidate asks for the link to their own page ([candidate portal](candidate-portal.md)). |
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
 | `/uploads` | JSON endpoint for the upload island (section 3). |
@@ -67,8 +73,9 @@ never calls the API.
 | `/talent-pool/stopped` | Where stopping lands, after a POST-redirect-GET, with no token in the address. |
 
 Every step names itself in a visible heading ("Your details", the section's name, "Review and send"), and the review step says
-the employer receives the answers when they are sent. On the job page the Apply link comes before the notice, so a phone
-does not scroll past it; the form shows the notice again above its first field and nothing is collected until it is used.
+the employer receives the answers when they are sent. The job page carries one line about the checks under its Apply link;
+the form shows the full notice above its first field, and nothing is collected until it is used. The notice's words and
+`NOTICE_VERSION` did not change when the job page's notice panel became that line, because the job page collects nothing.
 
 Each step is a native `<form method="POST" enctype="multipart/form-data">` posted to the `apply` Astro Action
 (`src/actions/index.ts`), which re-renders the same page with the next step. What the candidate has entered travels
@@ -247,17 +254,52 @@ tenant host, a path that already starts with `/{tenant}` (a path-style link) get
 
 **Pages.** A questionnaire's named sections (`sections` on the hiring definition's questionnaire, workflow-engine.md §7)
 are its pages, one each, in order. Without sections the questions split into pages of the organization's questions per
-page (Settings > Careers site > Careers page, 1 to 50, default 8; `questionsPerPage` on the public form). One function,
+page (Settings > Careers site > Careers page, 1 to 50, default 4, so a page holds a few related questions;
+`questionsPerPage` on the public form). The default was 8 until 2026-11-22: the `DefaultFourQuestionsPerPage` migration
+moved every organization on 8 to 4 unless its change history shows someone set questions per page, and an organization
+on any other number kept it. One function,
 `questionPages` in `packages/ui/src/questions/model.ts`, pages the apply form, the follow-up page and the dashboard's
 preview, so the preview is the form. The resume stays on the details step, and a section left empty by that is
 dropped. Steps are `details`, `page-1` to `page-N` and `review`; each page's heading is its section's name
 ("Questions" for an automatic page). Each page posts the ids it rendered (`pageQuestions`), and the server reads only
 those, so an answer is never wiped when the pages change between showing a page and posting it.
 
-**Progress.** `PageProgress` (`packages/ui/src/questions`, rendered on the server with no JavaScript) shows a bar of one
-segment per step, then "Step 2 of 4" and "9 of 24 answered", counting the form's questions with the resume and not the
-contact fields. The review lists the answers page by page, each with its own Change; a page opened from the review has
-"Back to review" as its primary.
+**Progress.** `PageProgress` (`packages/ui/src/questions`, rendered on the server with no JavaScript) shows one bar and
+"40% done". The percentage is `progressPercent(step, steps)` in `model.ts`: the step on screen over the steps plus one,
+rounded, because sending is the last step. A form of four steps reads 20, 40, 60 and 80% done, so the review never says
+100% before anything is sent. The bar is a native `<progress>`, so its fill needs no inline style under the content
+security policy, and it is hidden from screen readers, which read the same "40% done" as everyone else. The review lists
+the answers page by page, each with its own Change; a page opened from the review has "Back to review" as its primary.
+
+**Time to apply.** The job page says "Takes about 4 minutes" under its Apply link, from `applyMinutes` on the public job
+(`ApplicationForm.EstimatedMinutes`): a minute for the details (name, email, phone and the resume), then 10 seconds for
+each yes/no, choice, multi-choice or number question, 20 for a line or a link, 90 for a few sentences and 30 for another
+file, rounded up to whole minutes and never under 2.
+
+**Moving between steps.** Each step is a new page, so the steps move with no script:
+
+- Every careers page opts in to cross-document view transitions in `src/styles/global.css` (`@view-transition {
+  navigation: auto; }`), so the form (`apply-step`) slides in from the right as the last step leaves, the header holds
+  still and the bar (`apply-progress`) cross-fades. The rule sits inside `prefers-reduced-motion: no-preference` and
+  `scripting: enabled`, so reduced motion gets a plain page load, as does a browser without view transitions. JavaScript
+  off gets one too: Chromium with scripting off starts a cross-document transition and never ends it, which leaves every
+  click on the new page caught by the transition's layer. The transition itself runs no script. The follow-up page and the step
+  after Send use the same names.
+- A page of questions opens with the focus on its first question (`autofocus`, through the shared fields' `autofocus`
+  prop, which the dashboard's preview never sets). The details step does not, because the notice comes first, and a step
+  with errors gives the focus to the error summary. A page whose first question is a file leaves the focus where the
+  browser puts it: the upload island draws its own input and takes no `autofocus`.
+- Enter in a line moves on: Continue is the first submit button on the details step and on every page, so the browser's
+  implicit submission presses it. A text area keeps Enter for a new line. On the review, and on a follow-up's last page,
+  the first submit button is a hidden one that posts `go:` the same step, so Enter keeps the candidate where they are with
+  what they typed and never sends the application or presses a panel's Change. (A disabled first button would not do:
+  Chromium skips it and presses the next.)
+- A text field left in a state the browser knows is wrong (empty and required, an address that is not an email or a web
+  address) turns its edge red and shows its check line under it ("Enter an email address like name@example.com.", "Add
+  an answer."), through `:user-invalid` in `questions.css`, once the candidate has left it. The form keeps `novalidate`, so
+  Back, Change and Save post unchecked, and the server's error summary stays the one accessible account of what is wrong.
+  The check line is not in the field's `aria-describedby`, and it hides while the server's own error shows.
+- Choices are 48px high and buttons 44px, so a thumb finds them on a phone.
 
 **Active time per page.** The page stamps `pageShownAt` into the state when it renders a step; any post of that step
 (Next, Back, Change, Save) adds the time since, at most 30 minutes, to `pageSeconds` for that step. A break between
@@ -331,7 +373,7 @@ board. Each page is a native form
 posted to the `questionnaire` Astro Action (`src/lib/questionnaire.ts`), so it works with JavaScript off and ships no
 script at all. Its fields are the same shared question components as the apply form, rendered on the server; follow-up
 questionnaires have no file questions, so there is no upload island. It pages like the apply form (§7): one section a
-page, or pages of the organization's size, with the progress line when there is more than one page, Back, and "Send
+page, or pages of the organization's size, with the progress bar when there is more than one page, Back, and "Send
 answers" on the last page.
 
 - **Save and finish later.** The answers are kept on the request (`PUT .../questionnaires/{token}/draft`, answers

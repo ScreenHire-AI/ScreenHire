@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { AiUsePolicy, Question, QuestionSection } from '@screenhire/api-client';
   import {
-    answeredCount,
     DEFAULT_QUESTIONS_PER_PAGE,
     formQuestions,
     PageProgress,
@@ -19,7 +18,7 @@
   // about AI use; a follow-up questionnaire (`followUp`) is its questions alone, as its page shows them. The candidate
   // meets the questions a page at a time (apply-flow.md §7): each named section, or pages of the organization's
   // `questionsPerPage`. The preview pages the same way, one step at a time with Back and Next, each step opening with the
-  // step line the candidate sees. The answers are the recruiter's to try out; nothing is sent anywhere, so the last
+  // progress bar the candidate sees. The answers are the recruiter's to try out; nothing is sent anywhere, so the last
   // step's send button is off and says so.
   let {
     questions,
@@ -59,7 +58,6 @@
   const at = $derived(Math.max(0, Math.min(chosen, steps.length - 1)));
   const step = $derived(steps[at]);
   const last = $derived(at === steps.length - 1);
-  const answered = $derived(answeredCount(shown, answers));
 
   // Moving between steps puts the focus on the new step's heading, as a new page would.
   async function go(to: number) {
@@ -82,7 +80,7 @@
 <div class="candidate-preview flex flex-col gap-6 rounded-lg bg-candidate-background p-4 text-candidate-body text-candidate-foreground">
   {#if step}
     <section aria-label={step.kind === 'page' && !step.page.name ? `Questions, page ${step.number}` : stepName(step)} class="flex flex-col gap-4" data-preview-step={step.kind} data-preview-page={step.kind === 'page' ? '' : undefined}>
-      {#if steps.length > 1}<PageProgress step={at + 1} steps={steps.length} {answered} total={shown.length} />{/if}
+      {#if steps.length > 1}<PageProgress step={at + 1} steps={steps.length} />{/if}
       <h3 bind:this={heading} tabindex="-1" class="font-display text-heading font-bold focus-visible:outline-none">{stepName(step)}</h3>
       {#if step.kind === 'details'}
         <TextField name="preview-firstName" label="First name" required autocomplete="off" bind:value={firstName} />

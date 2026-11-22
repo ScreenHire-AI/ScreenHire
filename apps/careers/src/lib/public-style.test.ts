@@ -132,6 +132,18 @@ describe('public page markup', () => {
     }
   });
 
+  it('moves between steps with cross-document view transitions, none for reduced motion and none with JavaScript off (apply-flow.md §7)', () => {
+    const css = readFileSync(fileURLToPath(new URL('../styles/global.css', import.meta.url)), 'utf8');
+    // With JavaScript off Chromium never ends a cross-document transition, and the page under it takes no clicks.
+    const reduced = css.indexOf('@media (prefers-reduced-motion: no-preference) and (scripting: enabled)');
+
+    expect(reduced).toBeGreaterThanOrEqual(0);
+    expect(css.match(/@view-transition/g)).toHaveLength(1);
+    expect(css.indexOf('@view-transition')).toBeGreaterThan(reduced);
+    expect(css.slice(reduced, css.indexOf('@view-transition'))).not.toContain('}');
+    expect(css).toMatch(/\.apply-step\s*\{\s*view-transition-name:\s*apply-step;/);
+  });
+
   it('leaves the cursor to the theme (A10): no cursor class on a component', () => {
     expect(offenders(/\bcursor-(?:pointer|default|not-allowed)\b/g)).toEqual([]);
   });

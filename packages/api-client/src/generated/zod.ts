@@ -469,7 +469,8 @@ export const ListPublicJobsResponse = zod.object({
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable(),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "url": zod.string()
+  "url": zod.string(),
+  "applyMinutes": zod.int()
 }).describe('A job as shown on a public careers page.')),
   "url": zod.string(),
   "branding": zod.object({
@@ -549,7 +550,8 @@ export const GetPublicJobResponse = zod.object({
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable(),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "url": zod.string()
+  "url": zod.string(),
+  "applyMinutes": zod.int()
 }).describe('A job as shown on a public careers page.')
 
 
@@ -632,7 +634,8 @@ export const GetPublicApplicationFormResponse = zod.object({
   "salaryPeriod": zod.union([zod.null(),zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])]),
   "validThrough": zod.iso.datetime({"offset":true}).nullable(),
   "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
-  "url": zod.string()
+  "url": zod.string(),
+  "applyMinutes": zod.int()
 }).describe('A job as shown on a public careers page.'),
   "questions": zod.array(zod.object({
   "id": zod.string(),

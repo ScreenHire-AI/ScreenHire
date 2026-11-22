@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, w
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { acquireLock, stopChrome, toolInstallCommand, withTimeout } from './lighthouse.mjs';
+import { acquireLock, stopChrome, targetsOf, toolInstallCommand, withTimeout } from './lighthouse.mjs';
 
 /** What chrome-launcher's launch() returns, with a child process that exits only when `exitsOnKill` says so. */
 function fakeChrome({ exitsOnKill }) {
@@ -189,5 +189,22 @@ describe('toolInstallCommand', () => {
   it('needs a shell for the pnpm.cmd shim on Windows only', () => {
     expect(toolInstallCommand({ npmExecPath: undefined, platform: 'win32' }).shell).toBe(true);
     expect(toolInstallCommand({ npmExecPath: undefined, platform: 'linux' }).shell).toBe(false);
+  });
+});
+
+describe('targetsOf', () => {
+  it('measures pages served elsewhere when every argument is an http(s) address', () => {
+    const urls = ['http://127.0.0.1:4322/brightwater/jobs/engineer', 'https://careers.example.com/acme/'];
+    expect(targetsOf(urls)).toEqual({ urls, paths: [], invalid: [] });
+  });
+
+  it('takes site paths under the preview server, and none means the sitemap', () => {
+    expect(targetsOf(['/', '/pricing/'])).toEqual({ urls: null, paths: ['/', '/pricing/'], invalid: [] });
+    expect(targetsOf([])).toEqual({ urls: null, paths: [], invalid: [] });
+  });
+
+  it('refuses a path that is not one, and a mix of paths and addresses', () => {
+    expect(targetsOf(['C:/Program Files/Git/pricing/']).invalid).toEqual(['C:/Program Files/Git/pricing/']);
+    expect(targetsOf(['/', 'http://127.0.0.1:4322/a']).invalid).toEqual(['http://127.0.0.1:4322/a']);
   });
 });

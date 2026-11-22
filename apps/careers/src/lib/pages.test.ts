@@ -1,4 +1,4 @@
-import { answeredCount, questionPages, type QuestionSpec } from '@screenhire/ui/questions/model';
+import { checkFor, DEFAULT_QUESTIONS_PER_PAGE, progressPercent, questionPages, type QuestionSpec } from '@screenhire/ui/questions/model';
 import { describe, expect, it } from 'vitest';
 
 // The shared paging rules (packages/ui) the careers pages and the dashboard's preview both follow.
@@ -38,11 +38,33 @@ describe('questionPages', () => {
   });
 });
 
-describe('answeredCount', () => {
-  it('counts text, choices and files that have an answer', () => {
-    const questions = [question('name'), question('shifts', 'MultiChoice'), question('resume', 'File'), question('blank')];
+describe('the default page size', () => {
+  it('asks four questions a page when the organization set nothing else', () => {
+    expect(DEFAULT_QUESTIONS_PER_PAGE).toBe(4);
+    expect(questionPages(ids(9), null, DEFAULT_QUESTIONS_PER_PAGE).map((page) => page.questionIds.length)).toEqual([4, 4, 1]);
+  });
+});
 
-    expect(answeredCount(questions, { name: 'Casey', shifts: ['a'], blank: '  ' }, { resume: { uploadId: 'x' } })).toBe(3);
-    expect(answeredCount(questions, { shifts: [] })).toBe(0);
+describe('progressPercent', () => {
+  it('counts the step on screen as reached and the sent form as the last step, so the review stays short of 100', () => {
+    expect([1, 2, 3, 4].map((step) => progressPercent(step, 4))).toEqual([20, 40, 60, 80]);
+    expect([1, 2].map((step) => progressPercent(step, 2))).toEqual([33, 67]);
+    expect(progressPercent(1, 1)).toBe(50);
+  });
+
+  it('keeps a step outside the form inside it', () => {
+    expect(progressPercent(0, 4)).toBe(20);
+    expect(progressPercent(9, 4)).toBe(80);
+    expect(progressPercent(1, 0)).toBe(50);
+  });
+});
+
+describe('checkFor', () => {
+  it('says what an email or a web address needs, and that a required field needs an answer', () => {
+    expect(checkFor('email', false)).toBe('Enter an email address like name@example.com.');
+    expect(checkFor('url', true)).toBe('Enter a web address like https://example.com.');
+    expect(checkFor('text', true)).toBe('Add an answer.');
+    expect(checkFor('text', false)).toBeNull();
+    expect(checkFor('tel', false)).toBeNull();
   });
 });

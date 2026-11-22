@@ -29272,7 +29272,8 @@
           "salaryPeriod",
           "validThrough",
           "updatedAt",
-          "url"
+          "url",
+          "applyMinutes"
         ],
         "type": "object",
         "properties": {
@@ -29372,6 +29373,10 @@
           },
           "url": {
             "type": "string"
+          },
+          "applyMinutes": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "description": "A job as shown on a public careers page."
