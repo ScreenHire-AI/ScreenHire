@@ -92,7 +92,7 @@ const usage: TemplateUsageList = {
     { templateId: 'application-received', usedBy: [], lastUsedAt: null, notUsedRecently: false },
     { templateId: 'application-rejected', usedBy: [], lastUsedAt: null, notUsedRecently: false },
     { templateId: 'e-own', usedBy: [{ kind: 'JobAutomation', id: 'j-1', name: 'Senior .NET Engineer', automationId: 'a-1', automationName: 'Invite' }], lastUsedAt: null, notUsedRecently: false },
-  ],
+  ],  forms: [],
 };
 
 function renderPage(path = '/templates', routes: Parameters<typeof apiStub>[0] = {}) {

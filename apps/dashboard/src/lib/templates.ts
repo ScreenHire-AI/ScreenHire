@@ -5,22 +5,23 @@ import type { TemplateUse, UsageItem } from '@screenhire/api-client';
 // months" pill counted 0 beside rows that said Never (a template younger than that never counted), so it went (the owner's
 // walk-through, 2026-11-21).
 
-export type TemplateKind = 'hiring' | 'scorecards' | 'emails';
+export type TemplateKind = 'hiring' | 'scorecards' | 'forms' | 'emails';
 
-export const templateKinds: readonly TemplateKind[] = ['hiring', 'scorecards', 'emails'];
+export const templateKinds: readonly TemplateKind[] = ['hiring', 'scorecards', 'forms', 'emails'];
 
 /** The tab's label and what its templates are called. */
 export const templateKindViews: Record<TemplateKind, { label: string; noun: string }> = {
   hiring: { label: 'Hiring', noun: 'Hiring templates' },
   scorecards: { label: 'Scorecards', noun: 'Scorecards' },
+  forms: { label: 'Forms', noun: 'Forms' },
   emails: { label: 'Emails', noun: 'Email templates' },
 };
 
 /**
  * The longest name each kind takes: the API's limits, from `HiringTemplateConfiguration`,
- * `ScorecardTemplate.MaxNameLength` and `EmailTemplate.MaxNameLength`.
+ * `ScorecardTemplate.MaxNameLength`, `DefinitionValidator.MaxFormNameLength` and `EmailTemplate.MaxNameLength`.
  */
-export const maxNameLength: Record<TemplateKind, number> = { hiring: 120, scorecards: 80, emails: 100 };
+export const maxNameLength: Record<TemplateKind, number> = { hiring: 120, scorecards: 80, forms: 80, emails: 100 };
 
 /** The Templates page's address, on a kind's tab. */
 export const templatesHref = (kind: TemplateKind) => (kind === 'hiring' ? '/templates' : `/templates?tab=${kind}`);
@@ -47,8 +48,11 @@ export const templateFilters: readonly { value: TemplateFilter; label: string }[
   { value: 'archived', label: 'Archived' },
 ];
 
-/** The filters a kind's tab offers: only hiring templates have versions, so only they have Drafts. */
-export const filtersFor = (kind: TemplateKind) => templateFilters.filter((filter) => filter.value !== 'drafts' || kind === 'hiring');
+/** Whether a kind's templates have versions, a Status and a Drafts filter: hiring templates and forms. */
+export const isVersioned = (kind: TemplateKind): boolean => kind === 'hiring' || kind === 'forms';
+
+/** The filters a kind's tab offers: only kinds with versions have Drafts. */
+export const filtersFor = (kind: TemplateKind) => templateFilters.filter((filter) => filter.value !== 'drafts' || isVersioned(kind));
 
 /** What a filter needs to know of a template. */
 export interface FilterableTemplate {
@@ -92,6 +96,7 @@ export function templateStatus(template: { archived: boolean; published?: number
 export const usedByNouns: Record<TemplateKind, { one: string; other: string }> = {
   hiring: { one: 'job', other: 'jobs' },
   scorecards: { one: 'hiring template', other: 'hiring templates' },
+  forms: { one: 'hiring template', other: 'hiring templates' },
   emails: { one: 'automation', other: 'automations' },
 };
 
@@ -108,10 +113,19 @@ export function olderJobs(usedBy: readonly UsageItem[], liveVersion: number | nu
   return usedBy.filter((item) => item.kind === 'Job' && item.templateVersion != null && item.templateVersion < liveVersion);
 }
 
-/** Used by with the jobs left on an older version: "3 jobs, 1 on an older version". Other kinds say the count. */
+/** The hiring templates a library form's newest published version is newer than: they can take the update. */
+export function olderTemplates(usedBy: readonly UsageItem[], liveVersion: number | null | undefined): UsageItem[] {
+  if (liveVersion == null) return [];
+  return usedBy.filter((item) => item.kind === 'HiringTemplate' && item.templateVersion != null && item.templateVersion < liveVersion);
+}
+
+/**
+ * Used by with the users left on an older version: "3 jobs, 1 on an older version", "2 hiring templates, 1 on an older
+ * version". Other kinds say the count.
+ */
 export function usedByWords(kind: TemplateKind, usedBy: readonly UsageItem[], liveVersion?: number | null): string {
   const count = usedByLabel(kind, usedBy.length);
-  const older = kind === 'hiring' ? olderJobs(usedBy, liveVersion).length : 0;
+  const older = kind === 'hiring' ? olderJobs(usedBy, liveVersion).length : kind === 'forms' ? olderTemplates(usedBy, liveVersion).length : 0;
   if (older === 0) return count;
   return `${count}, ${older} on ${older === 1 ? 'an older version' : 'older versions'}`;
 }
@@ -133,6 +147,17 @@ export function publishWords(version: number, jobs: readonly Pick<UsageItem, 'ki
   if (own.length === 1) return `${first} Your 1 job stays on ${only != null ? `version ${only}` : 'the version it has'} until you update it.`;
   if (versions.size === 1 && only != null) return `${first} Your ${own.length} jobs stay on version ${only} until you update them.`;
   return `${first} Your ${own.length} jobs stay on the versions they have until you update them.`;
+}
+
+/**
+ * What publishing a library form does, beside Publish: the version templates take when they add the form, and that the
+ * templates using it keep their version until someone updates them, which the next step offers.
+ */
+export function formPublishWords(version: number, templates: readonly Pick<UsageItem, 'kind'>[]): string {
+  const first = `Publishing makes version ${version} the version hiring templates add.`;
+  const count = templates.filter((item) => item.kind === 'HiringTemplate').length;
+  if (count === 0) return first;
+  return `${first} ${count === 1 ? 'The 1 hiring template that uses it keeps its version' : `The ${count} hiring templates that use it keep their versions`} until you update ${count === 1 ? 'it' : 'them'}.`;
 }
 
 /** Where a thing that uses a template lives: a job, its workflow, or a hiring template. */
@@ -168,5 +193,7 @@ export function subjectParts(subject: string, labels: ReadonlyMap<string, string
 
 /** The scorecard templates list. */
 export const scorecardTemplatesPath = '/v1/scorecard-templates';
+/** The form library. */
+export const formTemplatesPath = '/v1/form-templates';
 /** Where every template is used. */
 export const templateUsagePath = '/v1/template-usage';

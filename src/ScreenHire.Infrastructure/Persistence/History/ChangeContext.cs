@@ -48,6 +48,40 @@ public sealed class ChangeContext(ScreenHireDbContext db, EmailTemplates emailTe
         return await db.ScorecardTemplates.AsNoTracking().Where(t => t.Id == id).Select(t => t.Name).SingleOrDefaultAsync(cancellationToken);
     }
 
+    /// <summary>The name of the library form <paramref name="formId"/>, or null.</summary>
+    public async ValueTask<string?> FormNameAsync(Guid? formId, CancellationToken cancellationToken)
+    {
+        if (formId is not { } id)
+        {
+            return null;
+        }
+
+        if (db.ChangeTracker.Entries<FormTemplate>().FirstOrDefault(e => e.Entity.Id == id) is { } tracked)
+        {
+            return tracked.Entity.Name;
+        }
+
+        return await db.FormTemplates.AsNoTracking().Where(t => t.Id == id).Select(t => t.Name).SingleOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>The content of the newest version of library form <paramref name="formId"/> before <paramref name="version"/>.</summary>
+    public async ValueTask<FormContent?> PreviousFormContentAsync(Guid formId, int version, CancellationToken cancellationToken)
+    {
+        var tracked = db.ChangeTracker.Entries<FormTemplateVersion>()
+            .Where(e => e.State != EntityState.Added && e.Entity.FormTemplateId == formId && e.Entity.Version < version)
+            .MaxBy(e => e.Entity.Version);
+        if (tracked is not null)
+        {
+            return tracked.Entity.Content;
+        }
+
+        return await db.FormTemplateVersions.AsNoTracking()
+            .Where(v => v.FormTemplateId == formId && v.Version < version)
+            .OrderByDescending(v => v.Version)
+            .Select(v => v.Content)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     /// <summary>The definition of the newest version of a template below <paramref name="version"/>, or null for none.</summary>
     public async ValueTask<HiringTemplateDefinition?> PreviousDefinitionAsync(Guid templateId, int version, CancellationToken cancellationToken)
     {

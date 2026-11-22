@@ -116,9 +116,35 @@ public sealed record HiringWorkflow(
 /// <c>id</c>: Stable key, unique among the workflow's follow-up questionnaires; the trigger and the action name it.
 /// <c>name</c>: What the hiring team calls it, such as "Availability"; the candidate sees it as the page's heading.
 /// <c>sections</c>: Optional; named pages of its questions, as on <see cref="Questionnaire"/>.
+/// <c>formTemplateId</c>: Optional; the library form this is a copy of (workflow-engine.md §7, Forms). A hiring template's
+/// copy is refreshed from the library version on every save; a job's copy is never rewritten. Absent for a form that is
+/// the workflow's own.
+/// <c>formVersion</c>: The library form's version this copy holds; set exactly when <c>formTemplateId</c> is.
+/// <c>kind</c>: Optional; absent means <see cref="FormKind.Standard"/>. An equality monitoring form's answers never show
+/// on a candidate's page and are never an automation's fact.
 /// </remarks>
 public sealed record FollowUpQuestionnaire(
-    string Id, string Name, IReadOnlyList<Question> Questions, IReadOnlyList<QuestionSection>? Sections = null);
+    string Id,
+    string Name,
+    IReadOnlyList<Question> Questions,
+    IReadOnlyList<QuestionSection>? Sections = null,
+    Guid? FormTemplateId = null,
+    int? FormVersion = null,
+    FormKind? Kind = null);
+
+/// <summary>What a form is for. An equality monitoring form's answers only ever appear as totals in Reports.</summary>
+public enum FormKind
+{
+    Standard,
+    EqualityMonitoring,
+}
+
+/// <summary>A library form version's content: what a hiring template copies into its follow-up questionnaire.</summary>
+/// <remarks>
+/// <c>name</c>: What the hiring team calls the form; the candidate sees it as the page's heading.
+/// <c>sections</c>: Optional; named pages of its questions, as on <see cref="Questionnaire"/>.
+/// </remarks>
+public sealed record FormContent(string Name, IReadOnlyList<Question> Questions, IReadOnlyList<QuestionSection>? Sections = null);
 
 /// <summary>A hiring template version's full definition: the workflow a job copies, plus defaults for the job's posting.</summary>
 public sealed record HiringTemplateDefinition(HiringWorkflow Workflow, PostingDefaults PostingDefaults)

@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Domain.Organizations;
+using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Reports;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Domain.Hiring;
@@ -25,7 +28,37 @@ internal static class ReportEndpoints
         group.MapGet("/hiring", GetHiringReport).WithName("GetHiringReport").Produces(StatusCodes.Status401Unauthorized);
         group.MapGet("/hiring/funnel/{kind}/applications", GetFunnelApplications).WithName("GetFunnelApplications")
             .Produces(StatusCodes.Status401Unauthorized);
+
+        // Equality monitoring totals: signed-in people who may edit the organization's settings, never an API key or the MCP
+        // server, and only where this deployment offers equality monitoring forms (workflow-engine.md section 7, Forms).
+        var equality = app.MapGroup("/v1/reports").WithTags("Reports").RequireAuthorization();
+        equality.MapGet("/equality", GetEqualityReport).WithName("GetEqualityReport")
+            .RequirePermission(Permission.EditSettings)
+            .Produces(StatusCodes.Status401Unauthorized);
         return app;
+    }
+
+    // The same range and job filter as the hiring report; a job the person cannot see adds nothing.
+    private static async Task<Results<Ok<EqualityReport>, NotFound, ValidationProblem>> GetEqualityReport(
+        ScreenHireDbContext db,
+        IOptions<FormsOptions> options,
+        CancellationToken cancellationToken,
+        DateTimeOffset? from = null,
+        DateTimeOffset? to = null,
+        Guid[]? jobId = null)
+    {
+        if (!options.Value.EqualityMonitoring.Enabled)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (Problems(from, to, jobId) is { Count: > 0 } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        return TypedResults.Ok(await EqualityReportReads.ReadAsync(
+            db, from!.Value.ToUniversalTime(), to!.Value.ToUniversalTime(), jobId ?? [], cancellationToken));
     }
 
     // The browser turns "last 30 days" or a custom range into the person's own midnights, so the API never guesses a time

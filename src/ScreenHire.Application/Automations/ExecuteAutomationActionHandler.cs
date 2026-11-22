@@ -195,21 +195,9 @@ public static partial class ExecuteAutomationActionHandler
         }
 
         var application = context.Application;
-        var request = await context.Db.QuestionnaireRequests
-            .SingleOrDefaultAsync(r => r.ApplicationId == application.Id && r.QuestionnaireId == questionnaireId, cancellationToken);
-        if (request is { IsCompleted: true })
+        if (await QuestionnaireSending.PrepareAsync(context.Db, application, questionnaire, context.Now, cancellationToken) is not { } request)
         {
             return Skipped($"The candidate has answered \"{questionnaire.Name}\" already, so nothing was sent.");
-        }
-
-        if (request is null)
-        {
-            request = QuestionnaireRequest.Create(application, questionnaire, context.Now);
-            context.Db.QuestionnaireRequests.Add(request);
-        }
-        else
-        {
-            request.Resend(questionnaire, context.Now);
         }
 
         var slug = await context.Db.Organizations.AsNoTracking()

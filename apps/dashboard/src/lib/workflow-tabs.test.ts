@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { defaultWorkflowTab, tabFrom, tabHref, workflowTabs } from './workflow-tabs.js';
 
 describe('workflowTabs', () => {
-  it('are Pipeline, Questions, Automations and Test, in that order', () => {
+  it('are Pipeline, Forms, Automations and Test, in that order', () => {
     expect(workflowTabs.map((tab) => [tab.value, tab.label])).toEqual([
       ['pipeline', 'Pipeline'],
-      ['questions', 'Questions'],
+      ['forms', 'Forms'],
       ['automations', 'Automations'],
       ['test', 'Test'],
     ]);
@@ -16,14 +16,15 @@ describe('workflowTabs', () => {
 });
 
 describe('tabFrom', () => {
-  it.each(['pipeline', 'questions', 'automations', 'test'] as const)('reads %s as itself', (value) => {
+  it.each(['pipeline', 'forms', 'automations', 'test'] as const)('reads %s as itself', (value) => {
     expect(tabFrom(value)).toBe(value);
   });
 
   it('opens the new tab for an old name', () => {
     expect(tabFrom('overview')).toBe('pipeline');
     expect(tabFrom('graph')).toBe('automations');
-    expect(tabFrom('questionnaire')).toBe('questions');
+    expect(tabFrom('questionnaire')).toBe('forms');
+    expect(tabFrom('questions'), 'Questions became Forms').toBe('forms');
     expect(tabFrom('simulate')).toBe('test');
   });
 

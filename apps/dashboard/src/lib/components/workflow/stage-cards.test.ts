@@ -74,11 +74,11 @@ describe('stage cards', () => {
     expect(card('Interview').querySelector('ul')).toBeNull();
   });
 
-  it('links each automation to it on the Automations tab, and the question count to Questions', () => {
+  it('links each automation to it on the Automations tab, and the question count to Forms', () => {
     renderCards({ flow: { ...workflow, questionnaire: { questions: [{ id: 'q1', label: 'Right to work', type: 'YesNo', required: true }] } } as HiringWorkflow });
 
     expect(within(card('Phone screen')).getByRole('link', { name: 'Tag screened' })).toHaveAttribute('href', '?tab=automations&show=tag-screen');
-    expect(within(card('Applied')).getByRole('link', { name: 'Asks 1 question' })).toHaveAttribute('href', '?tab=questions');
+    expect(within(card('Applied')).getByRole('link', { name: 'Asks 1 question' })).toHaveAttribute('href', '?tab=forms');
   });
 
   it('lists a reminder a person wrote like any other automation', () => {

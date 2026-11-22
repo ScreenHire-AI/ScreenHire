@@ -13,7 +13,7 @@ const interviewChanges: readonly string[] = ['Booked', 'Rescheduled', 'Cancelled
 export type TaskAction = 'created' | 'completed' | 'reopened';
 
 /** The templates a teammate's change can be about: a published hiring template version, or an edit of an email template or a scorecard. */
-export type TemplateType = 'HiringTemplate' | 'EmailTemplate' | 'ScorecardTemplate';
+export type TemplateType = 'HiringTemplate' | 'EmailTemplate' | 'ScorecardTemplate' | 'FormTemplate';
 
 /**
  * A candidate applying through the careers site, or an API key adding one: a New candidates change with no member behind
@@ -204,7 +204,7 @@ const interviewWords: Record<InterviewChange, (when: string) => string> = {
   Cancelled: (when) => (when ? ` cancelled their interview on ${when}` : ' cancelled their interview'),
 };
 
-// The sentence and link of a template change: a published hiring template version, or an edit of an email template or a scorecard.
+// The sentence and link of a template change: a published hiring template version, or an edit of an email template, a scorecard or a form.
 function templateWords(
   change: Extract<TeammateChange, { kind: 'Templates' }>,
   actor: string,
@@ -216,6 +216,8 @@ function templateWords(
       return { sentence: [`${actor} changed the email template `, name ?? 'an email template', ''], href: `/templates/emails/${id}` };
     case 'ScorecardTemplate':
       return { sentence: [`${actor} changed the scorecard `, name ?? 'a scorecard', ''], href: `/templates/scorecards/${id}` };
+    case 'FormTemplate':
+      return { sentence: [`${actor} changed the form `, name ?? 'a form', ''], href: `/templates/forms/${id}` };
     default:
       return { sentence: [`${actor} published version ${change.version} of `, name ?? 'a hiring template', ''], href: `/templates/${id}` };
   }

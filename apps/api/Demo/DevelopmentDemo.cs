@@ -478,6 +478,20 @@ internal sealed partial class DevelopmentDemo(
         return db.Users.AsNoTracking().Where(u => u.NormalizedEmail == normalized).Select(u => (Guid?)u.Id).SingleOrDefaultAsync(cancellationToken);
     }
 
+    private const string ScreeningFormId = "screening_questionnaire";
+
+    /// <summary>The demo's library form: what the team asks once a candidate reaches Screening.</summary>
+    private static readonly FormContent ScreeningForm = new("Screening questionnaire",
+    [
+        new("q_start_date", QuestionType.ShortText, "When could you start?", Required: true),
+        new("q_salary", QuestionType.ShortText, "What salary are you looking for?", HelpText: "A range is fine. Optional."),
+        new("q_on_call", QuestionType.YesNo, "Could you join the on-call rota one week in six?", Required: true),
+    ]);
+
+    private static readonly Automation SendScreeningForm = new(
+        "send_screening_questionnaire", "Email the form when they enter Screening", new(TriggerType.StageEntered, "screening"), null,
+        [new(ActionType.SendQuestionnaire, QuestionnaireId: ScreeningFormId)]);
+
     // The id of the template's newest published version, which the demo's jobs are created from.
     private async Task<Guid?> SeedTemplateAsync(CancellationToken cancellationToken)
     {
@@ -501,9 +515,19 @@ internal sealed partial class DevelopmentDemo(
 
         var source = await db.HiringTemplateVersions.AsNoTracking()
             .SingleAsync(v => v.Id == SystemTemplates.SoftwareEngineerVersion5, cancellationToken);
+        // A library form the template sends when a candidate enters Screening, so the template's Forms tab and the form
+        // library have one to show (workflow-engine.md section 7, Forms). Only the jobs made from this template carry it;
+        // the open demo jobs are seeded on their own, so their candidates' Application tabs show no forms.
+        var form = FormTemplate.Create(step.OrganizationId, FormKind.Standard, ScreeningForm, step.Now, step.Owner);
+        form.Publish(form.Draft!, step.Now, step.Owner);
+        db.FormTemplates.Add(form);
         var definition = source.Definition with
         {
-            Workflow = source.Definition.Workflow with { Automations = [.. source.Definition.Workflow.Automations, .. CandidateEmails] },
+            Workflow = source.Definition.Workflow with
+            {
+                Automations = [.. source.Definition.Workflow.Automations, .. CandidateEmails, SendScreeningForm],
+                FollowUpQuestionnaires = [form.ToFollowUp(form.Versions[0], ScreeningFormId)],
+            },
         };
         var problems = DefinitionValidator.Validate(definition);
         if (problems.Count > 0)

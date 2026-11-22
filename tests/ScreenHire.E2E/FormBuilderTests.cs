@@ -224,7 +224,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
     {
         await Page.GotoAsync(new Uri(Fixture.GetEndpoint("dashboard"), $"/jobs/{jobId}/workflow").ToString());
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToContainTextAsync(" pipeline");
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Questions" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Forms" }).ClickAsync();
         await Expect(Region("Questions")).ToContainTextAsync("No questions yet.");
     }
 

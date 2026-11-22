@@ -33,6 +33,22 @@ public sealed class WorkflowDiffTests
         WorkflowDiff.Compare(Base, before).Should().ContainSingle().Which.Path.Should().Be("followUpQuestionnaires");
     }
 
+    // A job copied a form before forms named their library form: the template's linked copy asks the same, so no change.
+    [Fact]
+    public void A_forms_link_to_its_library_form_is_not_a_change_but_its_questions_are()
+    {
+        var question = new Question("start_date", QuestionType.ShortText, "When could you start?");
+        var own = Base with { FollowUpQuestionnaires = [new FollowUpQuestionnaire("availability", "Availability", [question])] };
+        var linked = Base with
+        {
+            FollowUpQuestionnaires = [new FollowUpQuestionnaire("availability", "Availability", [question], FormTemplateId: Guid.CreateVersion7(), FormVersion: 2)],
+        };
+
+        WorkflowDiff.Compare(own, linked).Should().BeEmpty();
+        WorkflowDiff.Compare(own, linked with { FollowUpQuestionnaires = [linked.FollowUpQuestionnaires![0] with { Questions = [question with { Label = "Earliest start?" }] }] })
+            .Select(change => change.Path).Should().Equal("followUpQuestionnaires[availability].questions[start_date].label");
+    }
+
     [Fact]
     public void A_renamed_stage_is_one_change_found_by_its_id()
     {

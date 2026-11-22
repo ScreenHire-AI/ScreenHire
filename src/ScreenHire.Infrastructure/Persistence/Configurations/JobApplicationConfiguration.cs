@@ -70,6 +70,7 @@ internal sealed class QuestionnaireRequestConfiguration : IEntityTypeConfigurati
     {
         builder.Property(r => r.QuestionnaireId).HasMaxLength(40);
         builder.Property(r => r.QuestionnaireName).HasMaxLength(80);
+        builder.Property(r => r.Kind).HasConversion<string>().HasMaxLength(40).HasDefaultValue(FormKind.Standard).HasSentinel((FormKind)(-1));
         builder.Property(r => r.Questions).HasJsonColumn();
         builder.Property(r => r.Answers).HasJsonColumn();
         builder.Property(r => r.DraftAnswers).HasJsonColumn().HasDefaultValueSql("'[]'::jsonb");
@@ -86,6 +87,8 @@ internal sealed class QuestionnaireRequestConfiguration : IEntityTypeConfigurati
             .OnDelete(DeleteBehavior.Cascade);
         // One request per application and questionnaire: sending again finds it, and two sends racing hit this index.
         builder.HasIndex(r => new { r.OrganizationId, r.ApplicationId, r.QuestionnaireId }).IsUnique();
+        // Reports' equality totals read one kind across the organization's jobs.
+        builder.HasIndex(r => new { r.OrganizationId, r.Kind, r.FormTemplateId });
     }
 }
 

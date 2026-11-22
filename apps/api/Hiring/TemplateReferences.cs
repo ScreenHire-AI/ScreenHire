@@ -5,8 +5,8 @@ namespace ScreenHire.Api.Hiring;
 
 /// <summary>
 /// A hiring template definition's errors: the validator's, plus every email template (<see cref="EmailTemplateReferences"/>),
-/// library scorecard (<see cref="ScorecardReferences"/>) and interviewer (<see cref="InterviewerReferences"/>) it names that
-/// does not exist. The template routes run it before each save and before publishing.
+/// library scorecard (<see cref="ScorecardReferences"/>), interviewer (<see cref="InterviewerReferences"/>) and library form
+/// (<see cref="FormReferences"/>) it names that does not exist. The template routes run it before each save and before publishing.
 /// </summary>
 internal static class TemplateReferences
 {
@@ -16,6 +16,7 @@ internal static class TemplateReferences
         .. await EmailTemplateReferences.ValidateAsync(db, definition, cancellationToken),
         .. await ScorecardReferences.MissingAsync(db, definition?.Workflow, "workflow", cancellationToken),
         .. await InterviewerReferences.MissingAsync(db, definition?.Workflow, "workflow", cancellationToken),
+        .. await FormReferences.MissingAsync(db, definition?.Workflow, "workflow", cancellationToken),
     ];
 
     /// <summary>
@@ -27,5 +28,6 @@ internal static class TemplateReferences
     [
         .. await EmailTemplateReferences.ValidateAsync(db, workflow, cancellationToken),
         .. await InterviewerReferences.MissingAsync(db, workflow, "", cancellationToken),
+        .. await FormReferences.MissingAsync(db, workflow, "", cancellationToken),
     ];
 }

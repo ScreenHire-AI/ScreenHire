@@ -78,3 +78,22 @@ public sealed record SourceCount(string Key, string Name, int Applications, int 
 
 /// <summary>An open job: when it opened, applications in the range, applications in an Interview stage now, days open and hires in the range.</summary>
 public sealed record ReportOpenJob(Guid JobId, string Title, DateTimeOffset? OpenedAt, int Applications, int InInterview, int DaysOpen, int Hires);
+
+/// <summary>
+/// Equality monitoring totals for the range (docs/architecture/reports.md, Equality monitoring): one entry per equality
+/// monitoring form in the library. Nothing here names a candidate. A count under <c>minimumCount</c> is null, and so is the
+/// next smallest when only one count of a question would be hidden, so no hidden count can be worked out from the rest.
+/// </summary>
+public sealed record EqualityReport(IReadOnlyList<EqualityForm> Forms, int MinimumCount);
+
+/// <summary>
+/// One form's totals. <c>responses</c> is how many candidates answered it in the range, null when that is under the
+/// minimum, and then <c>questions</c> is empty.
+/// </summary>
+public sealed record EqualityForm(Guid FormTemplateId, string Name, int? Responses, IReadOnlyList<EqualityQuestion> Questions);
+
+/// <summary>One question's totals, a count per answer and one for no answer (<c>value</c> empty).</summary>
+public sealed record EqualityQuestion(string QuestionId, string Label, IReadOnlyList<EqualityAnswerCount> Answers);
+
+/// <summary>How many gave this answer, or null where the count is hidden.</summary>
+public sealed record EqualityAnswerCount(string Value, string Label, int? Count);

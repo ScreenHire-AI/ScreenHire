@@ -1022,7 +1022,7 @@ describe('application page', () => {
     await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => String(url).endsWith(`/notes/${teammatesNote}`) && init?.method === 'DELETE')).toBe(true));
   });
 
-  it('shows each follow-up questionnaire with its answers on Application, and its sends and answers in Activity', async () => {
+  it('shows each form sent to the candidate as a row that opens to its answers, and its sends and answers in Activity', async () => {
     const withFollowUps = [
       ...timeline,
       entry({ type: 'QuestionnaireSent', occurredAt: '2026-10-20T11:40:00Z', automationRunId: '01a157d4-0000-7000-8000-000000000312', questionnaireId: 'availability', questionnaireRequestId: '01a157d4-0000-7000-8000-000000000310' }),
@@ -1031,16 +1031,24 @@ describe('application page', () => {
     stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json(withFollowUps) });
     renderPage('application');
 
-    const answered = await screen.findByRole('region', { name: 'Follow-up: Availability' });
-    const rows = within(answered)
+    const forms = await screen.findByRole('region', { name: 'Forms' });
+    const availability = within(forms).getByRole('button', { name: /Availability/ });
+    expect(availability).toHaveAttribute('aria-expanded', 'false');
+    expect(availability).toHaveTextContent(/Answered/);
+    expect(within(forms).getByRole('button', { name: /References/ })).toHaveTextContent(/Sent .* \(sent 2 times\)/);
+
+    // A row opens to the answers, read against the questions as the candidate saw them; Expand all opens every row.
+    await fireEvent.click(availability);
+    const rows = within(forms)
       .getAllByRole('term')
       .map((term) => [term.textContent?.trim(), term.nextElementSibling?.textContent?.trim()]);
     expect(rows).toEqual([
       ['When could you start?', 'Next month'],
       ['Do you hold a forklift licence?', 'No'],
     ]);
-    expect(answered).toHaveTextContent(/Answered/);
-    expect(await screen.findByRole('region', { name: 'Follow-up: References' })).toHaveTextContent(/Sent .* \(2 times\), not answered yet\./);
+    await fireEvent.click(within(forms).getByRole('button', { name: 'Expand all' }));
+    expect(within(forms).getByRole('button', { name: /References/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(forms).toHaveTextContent('Not answered yet.');
     cleanup();
 
     stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json(withFollowUps) });
@@ -1801,12 +1809,12 @@ describe('application page', () => {
         expect(within(panel).queryByRole('link', { name: 'Candidate profile' })).toBeNull();
       });
 
-      it('comes after the answers and the follow-ups', async () => {
+      it('comes after the answers and the forms', async () => {
         const other = summaryOf(otherApplicationId, jobId, 'Senior .NET Engineer');
         stubApi({ [`GET /v1/candidates/${candidateId}`]: () => Response.json(candidate([thisOne, other])) });
         renderPage('application');
 
-        await waitFor(() => expect(panelNames()).toEqual(['Answers', 'Follow-up: Availability', 'Follow-up: References', 'Other applications']));
+        await waitFor(() => expect(panelNames()).toEqual(['Answers', 'Forms', 'Other applications']));
       });
 
       it('has no panel and no footer link when the candidate has only this application: the header links the profile', async () => {

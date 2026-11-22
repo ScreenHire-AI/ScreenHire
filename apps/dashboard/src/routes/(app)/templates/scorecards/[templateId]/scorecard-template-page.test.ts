@@ -42,6 +42,7 @@ const usage: TemplateUsageList = {
     { templateId: 'screening', usedBy: [], lastUsedAt: null, notUsedRecently: false },
   ],
   emails: [],
+  forms: [],
 };
 
 function renderPage(templateId: string, routes: Parameters<typeof apiStub>[0] = {}) {

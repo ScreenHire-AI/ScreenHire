@@ -3,7 +3,7 @@
 
 export const workflowTabs = [
   { value: 'pipeline', label: 'Pipeline' },
-  { value: 'questions', label: 'Questions' },
+  { value: 'forms', label: 'Forms' },
   { value: 'automations', label: 'Automations' },
   { value: 'test', label: 'Test' },
 ] as const;
@@ -12,8 +12,11 @@ export type WorkflowTab = (typeof workflowTabs)[number]['value'];
 
 export const defaultWorkflowTab: WorkflowTab = 'pipeline';
 
-/** The tabs' old names, so an address saved before the rename still opens the right one. Overview merged into Pipeline. */
-const renamed: Record<string, WorkflowTab> = { overview: 'pipeline', graph: 'automations', questionnaire: 'questions', simulate: 'test' };
+/**
+ * The tabs' old names, so an address saved before a rename still opens the right one. Overview merged into Pipeline, and
+ * Questions became Forms.
+ */
+const renamed: Record<string, WorkflowTab> = { overview: 'pipeline', graph: 'automations', questionnaire: 'forms', questions: 'forms', simulate: 'test' };
 
 /** The tab an address names, or the first for anything else. */
 export function tabFrom(value: string | null | undefined): WorkflowTab {

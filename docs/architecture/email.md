@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Email to candidates"
-description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with SendQuestionnaire and the invitation to apply only with Invite to apply, the link to finish a saved application, the link to the candidate's own page that every email to a candidate ends with, sending through SendGrid, candidates' replies with their attachments, bounces and spam complaints, the company's own sending domain, and what is not built (an inbox, attachments on outgoing mail, scheduled sends)."
+description: "Organization email templates in Liquid with a rich-text body over fixed variables, the email composer (a template or a blank email changed for one send, previewed with the candidate's details), each email kept as it went for Messages, sending through the worker, the rules that the rejection email goes only with Reject, the follow-up questions email only with a form's own send and the invitation to apply only with Invite to apply, the link to finish a saved application, the link to the candidate's own page that every email to a candidate ends with, sending through SendGrid, candidates' replies with their attachments, bounces and spam complaints, the company's own sending domain, and what is not built (an inbox, attachments on outgoing mail, scheduled sends)."
 tags: [email, templates, liquid]
 sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
@@ -217,9 +217,10 @@ update `application_emails`, and a copy goes with its application. Every member 
   the dashboard never offers it. The organization may reword it, but it must keep the reason, and ScreenHire ends it
   with a fixed sentence (`EmailTemplates.AutomatedDecisionNotice`): the decision was automatic, and a person reviews it
   on request (docs/research/legal.md, principle 1). The preview shows that sentence too.
-- **The follow-up questions email goes only with `SendQuestionnaire`.** Its link is made for one questionnaire request,
-  so it cannot be sent by hand or by `SendEmail`: the API and the validator refuse it, the worker drops it, and the
-  dashboard never offers it. The organization may reword it, but it must keep the link.
+- **The follow-up questions email goes only with a form's own send.** Its link is made for one questionnaire request,
+  so it goes only with `SendQuestionnaire` or with Send a form on the candidate's page (`SendQuestionnaireLink`,
+  workflow-engine.md section 8), never from the composer or by `SendEmail`: the API and the validator refuse it there,
+  the worker drops it, and the composer never offers it. The organization may reword it, but it must keep the link.
 - **The invitation to apply (`talent-pool-invitation`) goes only with Invite to apply** ([saved candidates](talent-pool.md)). It must use
   `{{ jobLink }}` (the job's careers page; `{{ jobTitle }}` is that job here) and `{{ removeLink }}` (the candidate's
   signed link to stop being kept), which only it may use. The worker renders it, so its kept copy says "[the

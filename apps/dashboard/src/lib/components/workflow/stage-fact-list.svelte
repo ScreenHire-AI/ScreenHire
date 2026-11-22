@@ -3,6 +3,7 @@
   import CalendarIcon from '~icons/lucide/calendar';
   import ClipboardListIcon from '~icons/lucide/clipboard-list';
   import ClockIcon from '~icons/lucide/clock';
+  import FileTextIcon from '~icons/lucide/file-text';
   import ListIcon from '~icons/lucide/list';
   import MailIcon from '~icons/lucide/mail';
   import ZapIcon from '~icons/lucide/zap';
@@ -12,7 +13,7 @@
 
   // A stage's short facts (design system section 11, Stage cards and Stage flow): one fact a line, each its icon and a
   // muted line that wraps rather than cuts. Where the workflow can be edited, an automation's line is a link to it on the
-  // Automations tab and the question count a link to Questions (A5); where it only reads, they are text. The scorecard is
+  // Automations tab and the question count a link to Forms (A5); where it only reads, they are text. The scorecard is
   // its name, with the word Scorecard for screen readers only (W9).
   let {
     facts,
@@ -31,7 +32,7 @@
     onshow?: (automationId: string) => void;
   } = $props();
 
-  const icons: Record<StageFactKind, typeof ZapIcon> = { limit: ClockIcon, meeting: CalendarIcon, email: MailIcon, automation: ZapIcon, questions: ListIcon };
+  const icons: Record<StageFactKind, typeof ZapIcon> = { limit: ClockIcon, meeting: CalendarIcon, email: MailIcon, form: FileTextIcon, automation: ZapIcon, questions: ListIcon };
   // A stage that ends the candidacy has no scorecard to give, whatever it holds.
   const scorecard = $derived(Boolean(stage && !isTerminal(stage.kind) && (stage.scorecard || stage.scorecardTemplateId)));
   // Links are underlined text (A5): a light rule at rest that darkens on hover, so the muted lines stay calm.

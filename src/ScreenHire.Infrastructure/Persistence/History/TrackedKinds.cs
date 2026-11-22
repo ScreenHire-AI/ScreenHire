@@ -35,6 +35,8 @@ public static class TrackedKinds
         // A board's own title and description join the job's history. No `creates`: adding a posting is not creating the job.
         Track<JobPosting>(ChangeSubjectKind.Job, p => p.JobId.ToString("D"), JobPostingChanges.Describe),
         Track<ScorecardTemplate>(ChangeSubjectKind.ScorecardTemplate, t => t.Key, ScorecardTemplateAsync, creates: (_, _) => true),
+        Track<FormTemplate>(ChangeSubjectKind.FormTemplate, t => t.Id.ToString("D"), FormTemplateAsync, creates: (_, _) => true),
+        Track<FormTemplateVersion>(ChangeSubjectKind.FormTemplate, v => v.FormTemplateId.ToString("D"), FormTemplateVersionAsync),
         Track<CustomRole>(ChangeSubjectKind.Role, r => r.Id.ToString("D"), RoleChanges.Describe, creates: (_, _) => true),
 
         // One organization row holds the name and the brand colour, which two settings pages edit: each has a history of
@@ -141,6 +143,27 @@ public static class TrackedKinds
         ScorecardTemplate? before, ScorecardTemplate? after, ChangeContext context, CancellationToken cancellationToken) =>
         ScorecardTemplateChanges.Describe(
             before, after, before is null ? await context.ScorecardNameAsync(after?.CopiedFrom, cancellationToken) : null);
+
+    private static async ValueTask<IReadOnlyList<ChangeLine>> FormTemplateAsync(
+        FormTemplate? before, FormTemplate? after, ChangeContext context, CancellationToken cancellationToken) =>
+        FormTemplateChanges.Form(before, after, before is null ? await context.FormNameAsync(after?.CopiedFromFormId, cancellationToken) : null);
+
+    private static async ValueTask<IReadOnlyList<ChangeLine>> FormTemplateVersionAsync(
+        FormTemplateVersion? before, FormTemplateVersion? after, ChangeContext context, CancellationToken cancellationToken)
+    {
+        if (before is not null || after is null)
+        {
+            return FormTemplateChanges.Version(before, after);
+        }
+
+        // Version 1 arrives with its form, and "created the form" says it.
+        if (context.Adds<FormTemplate>(t => t.Id == after.FormTemplateId))
+        {
+            return FormTemplateChanges.Version(null, after, addedWithForm: true);
+        }
+
+        return FormTemplateChanges.Version(null, after, await context.PreviousFormContentAsync(after.FormTemplateId, after.Version, cancellationToken));
+    }
 
     private static async ValueTask<IReadOnlyList<ChangeLine>> JobAsync(
         Job? before, Job? after, ChangeContext context, CancellationToken cancellationToken)
