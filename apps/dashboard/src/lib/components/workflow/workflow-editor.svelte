@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { AiUsePolicy, DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { onMount, tick } from 'svelte';
+  import { page } from '$app/state';
+  import { APPLY_FORM_ID } from '#lib/forms-timeline.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
@@ -182,6 +184,14 @@
     editById(id);
   }
 
+  // A stage's form item opens that form on the Forms tab. Its link (`?tab=forms&form=<id>`) does the same when loaded,
+  // but the Forms tab is already mounted here and reads `form` only once, so a click chooses it directly.
+  let shownForm = $state(page.url.searchParams.get('form') ?? APPLY_FORM_ID);
+  function showForm(id: string) {
+    tab = 'forms';
+    shownForm = id;
+  }
+
   onMount(() => {
     const shown = new URLSearchParams(location.search).get('show');
     if (tab === 'automations' && shown && workflow.automations.some((automation) => automation.id === shown)) editById(shown);
@@ -302,6 +312,7 @@
     {automationHref}
     questionsHref={hrefOf('forms')}
     onshow={showAutomation}
+    onshowform={showForm}
   />
 </Tabs.Content>
 <Tabs.Content value="automations">
@@ -318,7 +329,7 @@
   {/if}
 </Tabs.Content>
 <Tabs.Content value="forms">
-  <QuestionnaireBuilder bind:workflow {errors} {aiUse} automationsHref={hrefOf('automations')} {automationHref} {templateId} />
+  <QuestionnaireBuilder bind:workflow bind:selected={shownForm} {errors} {aiUse} automationsHref={hrefOf('automations')} {automationHref} {templateId} />
 </Tabs.Content>
 <Tabs.Content value="test">
   <TryIt bind:workflow {errors} onfix={fix} aiUse={aiUse?.policy} {finish} onchange={openStage} />

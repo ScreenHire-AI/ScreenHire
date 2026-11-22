@@ -35,8 +35,20 @@ const renderCards = (props: { errors?: DefinitionError[]; flow?: HiringWorkflow 
 const stages = () => screen.getByRole('region', { name: 'Stages' });
 const cards = () => within(stages()).getAllByRole('group', { name: /^Stage / }).map((card) => card.getAttribute('aria-label'));
 const ids = () => screen.getByTestId('stage-ids').textContent;
-const card = (name: string) => within(stages()).getByRole('group', { name: new RegExp(`^(Stage \\d+|End stage): ${name}$`) });
-const facts = (name: string) => within(card(name)).queryAllByRole('listitem').map((item) => item.textContent?.trim());
+const card = (name: string) => within(stages()).getByRole('group', { name: new RegExp(`^Stage \\d+: ${name}$`) });
+const ends = () => within(stages()).getByRole('region', { name: 'Ends' });
+/** A card's chips, as their accessible names say them. */
+const chips = (name: string) =>
+  within(card(name))
+    .queryAllByRole('button')
+    .filter((button) => button.hasAttribute('data-chip'))
+    .map((button) => button.getAttribute('aria-label') ?? button.textContent?.trim());
+
+/** Opens a chip's list and returns it. */
+async function openChip(name: string, chip: RegExp) {
+  await fireEvent.click(within(card(name)).getByRole('button', { name: chip }));
+  return screen.findByRole('dialog', { name: chip });
+}
 
 async function openMenu(stage: string) {
   await fireEvent.pointerDown(within(stages()).getByRole('button', { name: `Actions for ${stage}` }), { button: 0, pointerType: 'mouse' });
@@ -55,54 +67,104 @@ afterEach(() => {
 });
 
 describe('stage cards', () => {
-  it('has a numbered card per open stage, in order, in a list named Stages, and the stages that end a candidacy under Ends', async () => {
+  it('has a numbered card per open stage, in order, in a list named Stages, and the stages that end a candidacy as buttons under Ends', async () => {
     const { container } = renderCards();
 
     expect(cards()).toEqual(['Stage 1: Applied', 'Stage 2: Phone screen', 'Stage 3: Interview']);
     expect(within(stages()).getByRole('list', { name: 'Stages' })).toBeInTheDocument();
-    const ends = within(stages()).getByRole('region', { name: 'Ends' });
-    expect(within(ends).getAllByRole('group').map((group) => group.getAttribute('aria-label'))).toEqual(['End stage: Hired', 'End stage: Not progressing']);
+    expect(within(ends()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Hired', 'Not progressing']);
     await expectNoAxeViolations(container);
   });
 
-  it('says each fact on its own line: the time limit, each automation that is on as a short label, and the scorecard', () => {
+  it('counts what happens at a stage in one row of chips, never a sentence: the time limit, the automations that are on, and the scorecard', () => {
     renderCards();
 
-    // The one that is off is not listed, and neither is the sheet's reminder: Respond within says it.
-    expect(facts('Phone screen')).toEqual(['Respond within 3 days', 'Tag screened', 'Tag again', 'Scorecard: Phone screen guide']);
-    expect(facts('Applied')).toEqual(['Tell the team']);
-    expect(card('Interview').querySelector('ul')).toBeNull();
+    // The one that is off is not counted, and neither is the sheet's reminder: Respond within says it.
+    expect(chips('Phone screen')).toEqual(['Respond within 3 days', '2 automations at Phone screen', 'Scorecard']);
+    expect(chips('Applied')).toEqual(['1 automation at Applied']);
+    expect(card('Phone screen')).not.toHaveTextContent('Tag screened');
   });
 
-  it('links each automation to it on the Automations tab, and the question count to Forms', () => {
+  it('says "Nothing happens automatically" on a stage with nothing on it, instead of an empty row', () => {
+    renderCards();
+
+    expect(card('Interview')).toHaveTextContent('Nothing happens automatically');
+    expect(within(card('Interview')).queryByRole('list', { name: /What happens/ })).toBeNull();
+  });
+
+  it('opens a count to a list of the automations by their own names, each linking to it on the Automations tab', async () => {
+    renderCards();
+
+    const list = await openChip('Phone screen', /2 automations/);
+
+    expect(within(list).getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+      ['Tag screened', '?tab=automations&show=tag-screen'],
+      ['Tag again', '?tab=automations&show=tag-two'],
+    ]);
+  });
+
+  it('counts the questions the first stage asks and opens to each form, linking to it on Forms', async () => {
     renderCards({ flow: { ...workflow, questionnaire: { questions: [{ id: 'q1', label: 'Right to work', type: 'YesNo', required: true }] } } as HiringWorkflow });
 
-    expect(within(card('Phone screen')).getByRole('link', { name: 'Tag screened' })).toHaveAttribute('href', '?tab=automations&show=tag-screen');
-    expect(within(card('Applied')).getByRole('link', { name: 'Asks 1 question' })).toHaveAttribute('href', '?tab=forms');
+    expect(chips('Applied')).toContain('1 question at Applied');
+    const list = await openChip('Applied', /1 question/);
+    expect(within(list).getByRole('link', { name: 'Application form' })).toHaveAttribute('href', '?tab=forms&form=apply');
   });
 
-  it('lists a reminder a person wrote like any other automation', () => {
+  it('counts the emails a stage sends and lists them by template name, each linking to the automation that sends it', async () => {
+    renderCards({
+      flow: {
+        ...workflow,
+        automations: [
+          ...workflow.automations,
+          { id: 'invite', name: 'Invite them', trigger: { type: 'StageEntered', stageId: 'interview' }, conditions: null, actions: [{ type: 'SendEmail', emailTemplate: 'interview-invitation' }] },
+        ],
+      },
+    });
+
+    expect(chips('Interview')).toEqual(['1 email at Interview']);
+    const list = await openChip('Interview', /1 email/);
+    expect(within(list).getByRole('link')).toHaveAttribute('href', '?tab=automations&show=invite');
+  });
+
+  it('opens the stage from its time limit and the scorecard sheet from its scorecard', async () => {
+    const watched = callbacks();
+    renderCards(watched);
+
+    await fireEvent.click(within(card('Phone screen')).getByRole('button', { name: 'Respond within 3 days' }));
+    await fireEvent.click(within(card('Phone screen')).getByRole('button', { name: 'Scorecard' }));
+
+    expect(watched.onopen).toHaveBeenCalledExactlyOnceWith('phone-screen');
+    expect(watched.onscorecard).toHaveBeenCalledExactlyOnceWith(1);
+  });
+
+  it('counts a reminder a person wrote like any other automation', () => {
     renderCards({
       flow: { ...workflow, automations: workflow.automations.map((automation) => (automation.id === 'reminder-phone-screen' ? { ...automation, id: 'my-reminder' } : automation)) },
     });
 
-    expect(facts('Phone screen')).toContain('When overdue: Tell the team');
+    expect(chips('Phone screen')).toContain('3 automations at Phone screen');
   });
 
-  it('shows no time limit or scorecard on a stage that ends the candidacy, whatever it holds', () => {
-    renderCards();
+  it('shows no time limit or scorecard on a stage that ends the candidacy, whatever it holds, and opens its sheet when pressed', async () => {
+    const watched = callbacks();
+    renderCards(watched);
 
-    expect(card('Hired')).not.toHaveTextContent('Respond within');
-    expect(card('Not progressing')).not.toHaveTextContent('Why not');
+    const hired = within(ends()).getByRole('button', { name: /^Edit Hired/ });
+    expect(hired).not.toHaveTextContent('Respond within');
+    expect(within(ends()).getByRole('button', { name: /^Edit Not progressing/ })).not.toHaveTextContent('Scorecard');
+    await fireEvent.click(hired);
+    expect(watched.onopen).toHaveBeenCalledExactlyOnceWith('hired');
   });
 
-  it('puts the automations that belong to no stage in one Any stage row', () => {
+  it('puts the automations that belong to no stage in one Any stage row', async () => {
     renderCards({
       flow: { ...workflow, automations: [...workflow.automations, { id: 'by-hand', name: 'By hand', trigger: { type: 'Manual' }, conditions: null, actions: [{ type: 'AddTag', tag: 'vip' }] }] },
     });
 
     const any = within(stages()).getByRole('region', { name: 'Any stage' });
-    expect(within(any).getByRole('link', { name: 'When run by hand: Tag vip' })).toHaveAttribute('href', '?tab=automations&show=by-hand');
+    await fireEvent.click(within(any).getByRole('button', { name: /1 automation/ }));
+    expect(within(await screen.findByRole('dialog', { name: /1 automation/ })).getByRole('link', { name: 'By hand' })).toHaveAttribute('href', '?tab=automations&show=by-hand');
   });
 
   it('has no Any stage row when every automation has a stage', () => {
@@ -196,16 +258,11 @@ describe('a card\'s menu', () => {
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit stage', 'Add an automation', 'Choose scorecard']);
   });
 
-  it('leaves Choose scorecard out of a stage that ends the candidacy and has none, and keeps it where it has one', async () => {
+  it('has no menu on a stage that ends the candidacy: its button opens the sheet, which holds the same actions', () => {
     renderCards();
 
-    const hired = await openMenu('Hired');
-    expect(within(hired).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit stage', 'Add an automation', 'Remove stage']);
-    await fireEvent.keyDown(hired, { key: 'Escape' });
-    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
-
-    const rejected = await openMenu('Not progressing');
-    expect(within(rejected).getByRole('menuitem', { name: 'Choose scorecard' })).toBeInTheDocument();
+    expect(within(stages()).queryByRole('button', { name: 'Actions for Hired' })).toBeNull();
+    expect(within(stages()).queryByRole('button', { name: 'Actions for Not progressing' })).toBeNull();
   });
 
   it('opens the sheet, the automations and the scorecard of the stage it was opened on, once the menu has closed', async () => {
@@ -236,10 +293,10 @@ describe('a card\'s menu', () => {
   it('puts the focus on the last card when the last one is removed', async () => {
     renderCards();
 
-    await fireEvent.click(within(await openMenu('Not progressing')).getByRole('menuitem', { name: 'Remove stage' }));
+    await fireEvent.click(within(await openMenu('Interview')).getByRole('menuitem', { name: 'Remove stage' }));
 
-    await waitFor(() => expect(within(stages()).getByRole('button', { name: 'Hired' })).toHaveFocus());
-    expect(ids()).toBe('applied,phone-screen,interview,hired');
+    await waitFor(() => expect(within(stages()).getByRole('button', { name: 'Phone screen' })).toHaveFocus());
+    expect(ids()).toBe('applied,phone-screen,hired,rejected');
   });
 });
 

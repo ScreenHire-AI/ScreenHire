@@ -146,14 +146,14 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
         var add = Page.GetByRole(AriaRole.Dialog, new() { Name = "Add a form" });
         await add.GetByRole(AriaRole.Button, new() { Name = "Add Screening questionnaire" }).ClickAsync();
         var card = forms.GetByRole(AriaRole.Button, new() { NameRegex = new("^Screening questionnaire") });
-        await Expect(card).ToContainTextAsync("Only when sent by hand");
+        await Expect(card).ToContainTextAsync("By hand only");
         await Page.GetByRole(AriaRole.Combobox, new() { Name = "When it's sent" }).SelectOptionAsync("stage");
         await Page.GetByRole(AriaRole.Combobox, new() { Name = "Stage", Exact = true }).SelectOptionAsync(new SelectOptionValue { Label = "Screening" });
-        await Expect(card).ToContainTextAsync("Sent when they enter Screening");
+        await Expect(card).ToContainTextAsync("Entering Screening");
         await Expect(card).ToContainTextAsync("1 question");
         await ExpectNoAccessibilityViolationsAsync();
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" })).ToContainTextAsync("Sends \"Screening questionnaire\"");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Button, new() { Name = "1 question at Screening" })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Publish", Exact = true }).ClickAsync();

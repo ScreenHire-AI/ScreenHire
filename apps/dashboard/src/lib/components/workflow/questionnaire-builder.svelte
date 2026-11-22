@@ -72,6 +72,7 @@
     automationsHref,
     automationHref,
     templateId,
+    selected = $bindable(page.url.searchParams.get('form') ?? APPLY_FORM_ID),
   }: {
     workflow: HiringWorkflow;
     errors: readonly DefinitionError[];
@@ -83,11 +84,11 @@
     automationHref: (automationId: string) => string;
     /** The hiring template being edited, so a new library form comes back to it. */
     templateId?: string;
+    /** `apply`, or the id of the form on show; the address's `?form=` when the tab opens, and a stage's form item after. */
+    selected?: string;
   } = $props();
 
   const queryClient = useQueryClient();
-  /** `apply`, or the id of the form on show. */
-  let selected = $state(page.url.searchParams.get('form') ?? APPLY_FORM_ID);
   let mode = $state<'edit' | 'preview'>('edit');
   let removing = $state(false);
   let adding = $state(false);

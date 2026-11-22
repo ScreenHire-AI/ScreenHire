@@ -3,7 +3,7 @@
 // the workflow, so the words are tested without a page. Generated text never names a person: a reviewer is "the team".
 import type { Automation, AutomationAction, HiringWorkflow, WorkflowStage } from '@screenhire/api-client';
 import { ruleShort } from '#lib/automation-sentence.js';
-import { emailTemplateNames, followUpName, isTerminal, placeOf, reminderId, timeLimitLabel } from '#lib/workflow.js';
+import { emailTemplateNames, followUpName, followUpsOf, isTerminal, placeOf, reminderId, timeLimitLabel } from '#lib/workflow.js';
 
 export type StageFactKind = 'limit' | 'meeting' | 'email' | 'form' | 'automation' | 'questions';
 
@@ -158,3 +158,90 @@ export function whenOverdue(workflow: HiringWorkflow, stageId: string, templateN
     .filter((automation) => isOn(automation) && automation.trigger.type === 'SlaBreached' && (automation.trigger.stageId ?? stageId) === stageId)
     .map((automation) => ({ kind: 'automation', text: automationLabel(automation, workflow, templateNames, false), automationId: automation.id }));
 }
+
+/** One automation in a stage's list: its own name, which a person gave it and can change. */
+export type ChipAutomation = { id: string; name: string };
+/** One email a stage sends: the template's name, and the automation that sends it, where it lives in this pipeline. */
+export type ChipEmail = { automationId: string; name: string };
+/** One form a candidate is asked to fill in at a stage, with how many questions it asks. `id` is `apply` or a follow-up's. */
+export type ChipForm = { id: string; name: string; questions: number };
+
+/**
+ * A stage as the Pipeline tab's chips count it (design system section 11, Stage chips): the time limit, the automations
+ * that are on (by their own names), the emails and forms it sends, the questions those forms ask (the application form's
+ * on the first stage), and whether it has a scorecard. Counts and names only, never a sentence made from conditions.
+ */
+export type StageChipCounts = {
+  limitDays?: number;
+  automations: ChipAutomation[];
+  emails: ChipEmail[];
+  forms: ChipForm[];
+  /** Every question the forms ask, added up. */
+  questions: number;
+  scorecard: boolean;
+};
+
+/** An automation's own name; one with none yet reads as its short label, so a list item is never blank. */
+function ownName(automation: Automation, workflow: HiringWorkflow, templateNames: ReadonlyMap<string, string>): string {
+  return automation.name.trim() || automationLabel(automation, workflow, templateNames);
+}
+
+function chipsOf(workflow: HiringWorkflow, here: readonly Automation[], templateNames: ReadonlyMap<string, string>): Pick<StageChipCounts, 'automations' | 'emails' | 'forms'> {
+  const automations: ChipAutomation[] = [];
+  const emails: ChipEmail[] = [];
+  const forms: ChipForm[] = [];
+  for (const automation of here) {
+    const plain = (automation.conditions?.rules.length ?? 0) === 0 && triggerPrefix(automation, workflow) === null;
+    if (plain && onlyEmails(automation)) {
+      for (const action of automation.actions) {
+        const name = action.type === 'SendEmail' && action.emailTemplate ? templateNames.get(action.emailTemplate) : undefined;
+        emails.push({ automationId: automation.id, name: name ?? ownName(automation, workflow, templateNames) });
+      }
+    } else if (plain && onlyForms(automation) && automation.actions.every((action) => action.type === 'SendQuestionnaire' && followUpsOf(workflow).some((form) => form.id === action.questionnaireId))) {
+      for (const action of automation.actions) {
+        if (action.type !== 'SendQuestionnaire') continue;
+        const form = followUpsOf(workflow).find((candidate) => candidate.id === action.questionnaireId);
+        if (form && !forms.some((existing) => existing.id === form.id)) forms.push({ id: form.id, name: form.name || form.id, questions: form.questions.length });
+      }
+    } else {
+      // Anything else, a form-only automation whose form is gone included, is counted by its own name, so a stage where
+      // an automation runs never says nothing happens.
+      automations.push({ id: automation.id, name: ownName(automation, workflow, templateNames) });
+    }
+  }
+  return { automations, emails, forms };
+}
+
+/**
+ * A stage's chips. The stage's own reminder is its time limit, so it is not counted again (W7); an automation that only
+ * sends emails counts as its emails, and one that only sends forms as its forms; the first stage asks the application
+ * form's questions.
+ */
+export function stageChips(
+  workflow: HiringWorkflow,
+  stage: WorkflowStage,
+  templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined),
+): StageChipCounts {
+  const open = !isTerminal(stage.kind);
+  const here = placedAt(workflow, stage.id).filter((automation) => automation.id !== reminderId(stage.id));
+  const { automations, emails, forms } = chipsOf(workflow, here, templateNames);
+  const apply = workflow.questionnaire.questions.length;
+  if (stage.id === workflow.stages[0]?.id && apply > 0) forms.unshift({ id: 'apply', name: 'Application form', questions: apply });
+  return {
+    limitDays: open && stage.slaDays ? stage.slaDays : undefined,
+    automations,
+    emails,
+    forms,
+    questions: forms.reduce((sum, form) => sum + form.questions, 0),
+    scorecard: open && Boolean(stage.scorecard || stage.scorecardTemplateId),
+  };
+}
+
+/** The automations that belong to no stage (a run by hand, any stage's time limit), as the Any stage row counts them. */
+export function anyStageChips(workflow: HiringWorkflow, templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined)): StageChipCounts {
+  return { automations: placedAt(workflow, 'any').map((automation) => ({ id: automation.id, name: ownName(automation, workflow, templateNames) })), emails: [], forms: [], questions: 0, scorecard: false };
+}
+
+/** Whether a stage has nothing on it to count: its card says "Nothing happens automatically". */
+export const chipsEmpty = (chips: StageChipCounts): boolean =>
+  !chips.limitDays && chips.automations.length === 0 && chips.emails.length === 0 && chips.forms.length === 0 && !chips.scorecard;
