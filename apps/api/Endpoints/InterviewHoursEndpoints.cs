@@ -61,13 +61,11 @@ internal static class InterviewHoursEndpoints
             return TypedResults.ValidationProblem(ValidationExtensions.Problem(field, problem));
         }
 
-        if (await RowAsync(db, tenant, time, cancellationToken) is not { } hours)
+        if (await ChangeRowAsync(db, tenant, time, h => h.Set(request.TimeZone!, request.Weekly, request.BufferMinutes, request.MaxPerDay, time.GetUtcNow()), cancellationToken) is not { } hours)
         {
             return TypedResults.NotFound();
         }
 
-        hours.Set(request.TimeZone!, request.Weekly, request.BufferMinutes, request.MaxPerDay, time.GetUtcNow());
-        await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await SettingsAsync(db, tenant, hours, feeds, domains.Value, cancellationToken));
     }
 
@@ -75,27 +73,48 @@ internal static class InterviewHoursEndpoints
     private static async Task<Results<Ok<InterviewHoursSettings>, NotFound>> TurnOnCalendarFeed(
         ScreenHireDbContext db, ITenantContext tenant, CalendarFeedLinks feeds, IOptions<DomainOptions> domains, TimeProvider time, CancellationToken cancellationToken)
     {
-        if (await RowAsync(db, tenant, time, cancellationToken) is not { } hours)
+        if (await ChangeRowAsync(db, tenant, time, h => h.SetFeedSecret(CalendarFeedLinks.NewSecret(), time.GetUtcNow()), cancellationToken) is not { } hours)
         {
             return TypedResults.NotFound();
         }
 
-        hours.SetFeedSecret(CalendarFeedLinks.NewSecret(), time.GetUtcNow());
-        await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await SettingsAsync(db, tenant, hours, feeds, domains.Value, cancellationToken));
     }
 
     private static async Task<Results<Ok<InterviewHoursSettings>, NotFound>> TurnOffCalendarFeed(
         ScreenHireDbContext db, ITenantContext tenant, CalendarFeedLinks feeds, IOptions<DomainOptions> domains, TimeProvider time, CancellationToken cancellationToken)
     {
-        if (await RowAsync(db, tenant, time, cancellationToken) is not { } hours)
+        if (await ChangeRowAsync(db, tenant, time, h => h.ClearFeed(time.GetUtcNow()), cancellationToken) is not { } hours)
         {
             return TypedResults.NotFound();
         }
 
-        hours.ClearFeed(time.GetUtcNow());
-        await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await SettingsAsync(db, tenant, hours, feeds, domains.Value, cancellationToken));
+    }
+
+    // Applies the change to the caller's row and saves it. Two first saves at once (two tabs) both make the row and one loses on
+    // the unique index; that one reads the row the other made and applies its change to it.
+    private static async Task<InterviewHours?> ChangeRowAsync(
+        ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, Action<InterviewHours> change, CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            if (await RowAsync(db, tenant, time, cancellationToken) is not { } hours)
+            {
+                return null;
+            }
+
+            change(hours);
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken);
+                return hours;
+            }
+            catch (DbUpdateException exception) when (attempt == 0 && exception.IsUniqueViolation())
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
     }
 
     // The caller's row here, made on the first save in their own time zone (tracked, so the caller saves it).
