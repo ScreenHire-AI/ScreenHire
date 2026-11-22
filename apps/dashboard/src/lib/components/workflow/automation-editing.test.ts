@@ -387,6 +387,7 @@ describe('the Sentence and Rules tabs', () => {
     expect(JSON.stringify(draft().automations[0])).toBe(before);
     // The name shows once, as the sheet's title, with no heading repeating it under the tabs.
     expect(within(edit).getAllByText('Tag new people')).toHaveLength(1);
+    expect(within(edit).getAllByRole('heading', { name: 'Tag new people' })).toHaveLength(1);
 
     await fireEvent.change(within(edit).getByRole('combobox', { name: /^Value/ }), { target: { value: 'yes' } });
     await fireEvent.click(tab(edit, 'Sentence'));
@@ -407,6 +408,17 @@ describe('the Sentence and Rules tabs', () => {
     expect(tab(second, 'Rules')).toHaveAttribute('aria-selected', 'true');
     expect(within(second).getByRole('combobox', { name: 'Trigger' })).toHaveValue('StageEntered');
     expect(localStorage.getItem('screenhire:automation-view')).toBe('rules');
+
+    // And back: choosing Sentence is remembered the same way.
+    await fireEvent.click(tab(second, 'Sentence'));
+    await fireEvent.click(within(second).getByRole('button', { name: 'Done' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    const again = await open('Tag new people');
+
+    expect(tab(again, 'Sentence')).toHaveAttribute('aria-selected', 'true');
+    expect(again.querySelector('[data-sentence]')).not.toBeNull();
+    expect(localStorage.getItem('screenhire:automation-view')).toBe('sentence');
   });
 
   it('open one too complex for a sentence on Rules, and the Sentence tab says why without changing the choice', async () => {
