@@ -7,7 +7,7 @@ def verify_screenhire_signature(raw_body: bytes, header: str, secret: str, toler
     """Checks a ScreenHire webhook before you trust it.
 
     raw_body is the request body exactly as it arrived, before any JSON parsing; header is the ScreenHire-Signature
-    header; secret is your endpoint's signing secret (whsec_...). A request more than tolerance_seconds old is refused,
+    header; secret is your endpoint's signing secret (shws_...). A request more than tolerance_seconds old is refused,
     so a captured delivery cannot be sent again later.
     """
     parts = dict(part.split("=", 1) for part in header.split(",") if "=" in part)

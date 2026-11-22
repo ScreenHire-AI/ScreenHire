@@ -38,7 +38,7 @@ const endpoint = (id: string, overrides: Partial<WebhookEndpointEntry> = {}): We
 });
 
 const created = endpoint('e9', { url: 'https://hooks.example.com/applicants', description: 'Applicant sync' });
-const signingSecret = 'whsec_0123456789abcdef0123456789abcdef';
+const signingSecret = 'shws_fictional_0123456789abcdef';
 
 function renderPage(endpoints: WebhookEndpointEntry[] | Response, routes: Parameters<typeof apiStub>[0] = {}) {
   const bodies: unknown[] = [];

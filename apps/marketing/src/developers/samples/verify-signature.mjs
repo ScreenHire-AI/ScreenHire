@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 /**
  * Checks a ScreenHire webhook before you trust it. `rawBody` is the request body exactly as it arrived (a string,
  * before any JSON parsing), `header` the ScreenHire-Signature header, and `secret` your endpoint's signing secret
- * (whsec_...). A request more than `toleranceSeconds` old is refused, so a captured delivery cannot be sent again later.
+ * (shws_...). A request more than `toleranceSeconds` old is refused, so a captured delivery cannot be sent again later.
  */
 export function verifyScreenHireSignature(rawBody, header, secret, toleranceSeconds = 300, nowSeconds = Date.now() / 1000) {
   const parts = Object.fromEntries(header.split(',').map((part) => part.split('=')));

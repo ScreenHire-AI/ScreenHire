@@ -27,7 +27,7 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
         var created = await CreateEndpointAsync(recruiter, receiver, "job.published", "application.submitted", "application.moved", "verification.assessed");
         var secret = created.Text("signingSecret");
         var endpointId = created.Id("endpoint.id");
-        secret.Should().StartWith("whsec_");
+        secret.Should().StartWith("shws_");
         created.Text("endpoint.events.0").Should().Be("application.moved", "events are stored sorted");
 
         var read = (await recruiter.GetAsync($"/v1/webhooks/{endpointId}")).Expect(HttpStatusCode.OK);
@@ -94,7 +94,7 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
 
         var rotated = (await recruiter.PostAsync($"/v1/webhooks/{endpointId}/rotate-secret")).Expect(HttpStatusCode.OK);
         var after = rotated.Text("signingSecret");
-        after.Should().StartWith("whsec_").And.NotBe(before);
+        after.Should().StartWith("shws_").And.NotBe(before);
 
         var second = await PublishNewJobAsync(recruiter, "After rotation");
         var delivered = await receiver.WaitForEventAsync("job.published", second, Ct);

@@ -90,7 +90,7 @@ public sealed class WebhookStatesTests(E2EFixture fixture) : BrowserTest(fixture
         await confirm.GetByRole(AriaRole.Button, new() { Name = "Rotate secret" }).ClickAsync();
         var shown = Page.GetByRole(AriaRole.Dialog, new() { Name = "Your new signing secret" });
         var field = shown.GetByRole(AriaRole.Textbox, new() { Name = "Signing secret" });
-        await Expect(field).ToHaveValueAsync(new Regex("^whsec_"));
+        await Expect(field).ToHaveValueAsync(new Regex("^shws_"));
         var secret = await field.InputValueAsync();
         secret.Should().NotBe(firstSecret);
         await Page.Keyboard.PressAsync("Escape");

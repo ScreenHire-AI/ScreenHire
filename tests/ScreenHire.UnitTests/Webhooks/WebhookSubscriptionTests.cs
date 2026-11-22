@@ -33,7 +33,7 @@ public sealed class WebhookSubscriptionTests
         var endpoint = Guid.CreateVersion7();
         var secret = WebhookSignature.EndpointSecret("platform", endpoint, 1);
 
-        secret.Should().StartWith("whsec_").And.HaveLength("whsec_".Length + 64).And.Be(WebhookSignature.EndpointSecret("platform", endpoint, 1));
+        secret.Should().StartWith("shws_").And.HaveLength("shws_".Length + 64).And.Be(WebhookSignature.EndpointSecret("platform", endpoint, 1));
         WebhookSignature.EndpointSecret("platform", endpoint, 2).Should().NotBe(secret);
         WebhookSignature.EndpointSecret("platform", Guid.CreateVersion7(), 1).Should().NotBe(secret);
         WebhookSignature.EndpointSecret("other-platform", endpoint, 1).Should().NotBe(secret);

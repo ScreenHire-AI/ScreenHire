@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import SecretDialog from './secret-dialog.svelte';
 
-const secret = 'whsec_0123456789abcdef0123456789abcdef';
+const secret = 'shws_fictional_0123456789abcdef';
 
 const renderDialog = (onclose = vi.fn()) => {
   render(SecretDialog, { props: { open: true, title: 'Your signing secret', label: 'Signing secret', value: secret, onclose } });

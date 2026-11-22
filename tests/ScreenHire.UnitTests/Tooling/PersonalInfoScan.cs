@@ -45,7 +45,29 @@ internal static partial class PersonalInfoScan
         ("private key", PrivateKey()),
         ("google api key", GoogleKey()),
         ("jwt", Jwt()),
+        ("screenhire api key", ScreenHireApiKey()),
     ];
+
+    /// <summary>
+    /// Prefixed secrets whose body is free-form, so a fixture can carry words: Stripe's secret and restricted keys and
+    /// webhook secrets, and ScreenHire's own webhook secrets. One is a finding only when its body has a run of letters and
+    /// digits as long as a real key's (Stripe's are 24 or more, ours 64 hex), so <c>whsec_some_other_secret</c> is not.
+    /// </summary>
+    private static readonly (string Kind, Regex Pattern)[] PrefixedSecrets =
+    [
+        ("stripe key", StripeKey()),
+        ("stripe webhook secret", StripeWebhookSecret()),
+        ("screenhire webhook secret", ScreenHireWebhookSecret()),
+    ];
+
+    /// <summary>
+    /// Words that mark a secret-shaped value as made up: <c>whsec_fictional_secret</c>, AWS's documented
+    /// <c>AKIAIOSFODNN7EXAMPLE</c>. A marker counts only inside the match itself, and for a prefixed secret only at the
+    /// start of its body, so a word placed beside a real key does not hide it. GitHub's own scanner ignores them, so a
+    /// committed value still must not match a provider's format; the marker only keeps this scan from failing on a
+    /// fixture that is plainly not a key.
+    /// </summary>
+    private static readonly string[] FictionalMarkers = ["fictional", "example", "test_vector"];
 
     public static bool IsExempt(string path) =>
         ExemptPaths.ContainsKey(path) || ExemptFileNames.Contains(path[(path.LastIndexOf('/') + 1)..], StringComparer.Ordinal);
@@ -84,7 +106,22 @@ internal static partial class PersonalInfoScan
         {
             foreach (Match match in pattern.Matches(text))
             {
-                Add(kind, match);
+                if (kind == "private key" || !IsFictional(match.Value))
+                {
+                    Add(kind, match);
+                }
+            }
+        }
+
+        foreach (var (kind, pattern) in PrefixedSecrets)
+        {
+            foreach (Match match in pattern.Matches(text))
+            {
+                var body = match.Groups["body"].Value;
+                if (KeyLikeRun().IsMatch(body) && !StartsFictional(body))
+                {
+                    Add(kind, match);
+                }
             }
         }
 
@@ -198,6 +235,17 @@ internal static partial class PersonalInfoScan
 
     private static int LineOf(string text, int index) => text.AsSpan(0, index).Count('\n') + 1;
 
+    /// <summary>Whether the match itself says it is made up, as <c>AKIAIOSFODNN7EXAMPLE</c> does.</summary>
+    private static bool IsFictional(string match) =>
+        FictionalMarkers.Any(marker => match.Contains(marker, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Whether a prefixed secret's body opens with a marker (<c>shws_fictional_...</c>). Only the opening counts: a real
+    /// key with <c>_example</c> after it is still a key.
+    /// </summary>
+    private static bool StartsFictional(string body) =>
+        FictionalMarkers.Any(marker => body.StartsWith(marker, StringComparison.OrdinalIgnoreCase));
+
     private static string? Git(string root, params string[] arguments)
     {
         var start = new ProcessStartInfo("git", ["-C", root, "-c", "core.quotepath=false", .. arguments])
@@ -257,6 +305,27 @@ internal static partial class PersonalInfoScan
 
     [GeneratedRegex(@"\beyJ[A-Za-z0-9_-]{15,}\.eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{10,}")]
     private static partial Regex Jwt();
+
+    /// <summary>A Stripe secret (<c>sk_</c>) or restricted (<c>rk_</c>) key, live or test.</summary>
+    [GeneratedRegex(@"\b(?:sk|rk)_(?:live|test)_(?<body>\w+)")]
+    private static partial Regex StripeKey();
+
+    [GeneratedRegex(@"\bwhsec_(?<body>\w+)")]
+    private static partial Regex StripeWebhookSecret();
+
+    /// <summary>ScreenHire's endpoint secret (<c>WebhookSignature.SecretPrefix</c>).</summary>
+    [GeneratedRegex(@"\bshws_(?<body>\w+)")]
+    private static partial Regex ScreenHireWebhookSecret();
+
+    /// <summary>
+    /// An organization API key exactly as <c>ApiKeyTokens</c> makes one (ADR-0011): prefix, organization and secret in
+    /// lower-case hex. The malformed keys <c>ApiKeyTokensTests</c> refuses do not match.
+    /// </summary>
+    [GeneratedRegex(@"\bshk_[0-9a-f]{8}_[0-9a-f]{32}_[0-9a-f]{64}(?![A-Za-z0-9_])")]
+    private static partial Regex ScreenHireApiKey();
+
+    [GeneratedRegex(@"[A-Za-z0-9]{24,}")]
+    private static partial Regex KeyLikeRun();
 
     [GeneratedRegex(@"AccountKey=(?<key>[A-Za-z0-9+/=]{40,})")]
     private static partial Regex AzureAccountKey();

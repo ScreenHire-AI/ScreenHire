@@ -1,17 +1,12 @@
 import mcpCatalogue from '@screenhire/api-client/mcp-tools.json';
 import openApi from '@screenhire/api-client/openapi-public.json';
 import { describe, expect, it } from 'vitest';
+import vector from '../developers/samples/signature-vector.json';
 import { verifyScreenHireSignature } from '../developers/samples/verify-signature.mjs';
 import { apiOrigin, apiTagGroups, exampleApiUrl, inlineCode, mcpToolGroups, webhookEvents } from './developers';
 
-// A delivery signed by the API's own signer (WebhookSignature.Create). The C# unit test SignatureSampleTests checks the same
-// vector against the signer and the C# sample, so the three samples and the API agree.
-const vector = {
-  secret: 'whsec_6f1d2c3b4a59687706f1d2c3b4a59687706f1d2c3b4a59687706f1d2c3b4a5',
-  body: '{"id":"0193a1b2-0000-8000-8000-000000000001","type":"job.closed","occurredAt":"2026-11-22T09:30:00+00:00","organizationId":"0193a1b2-1a2b-7c3d-8e4f-5a6b7c8d9e0f","data":{"jobId":"0193a1b2-6b3c-7d4e-8f5a-6b7c8d9e0f1a"}}',
-  header: 't=1795685400,v1=2bed3e1e1acabdfbb4a8b529ba76f2920439761e8d495fde69392a6f0e5e833d',
-  sentAt: 1795685400,
-};
+// A delivery signed by the API's own signer (WebhookSignature.Create), with a fictional secret. The C# unit test
+// SignatureSampleTests reads the same file and checks it against the signer and the C# sample, so the samples and the API agree.
 
 describe('developer docs data', () => {
   it('lists every operation of the public document once, under its group', () => {

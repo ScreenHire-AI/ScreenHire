@@ -1,0 +1,6 @@
+{
+  "secret": "shws_fictional_test_vector",
+  "body": "{\"id\":\"0193a1b2-0000-8000-8000-000000000001\",\"type\":\"job.closed\",\"occurredAt\":\"2026-11-22T09:30:00+00:00\",\"organizationId\":\"0193a1b2-1a2b-7c3d-8e4f-5a6b7c8d9e0f\",\"data\":{\"jobId\":\"0193a1b2-6b3c-7d4e-8f5a-6b7c8d9e0f1a\"}}",
+  "sentAt": 1795685400,
+  "header": "t=1795685400,v1=6357cbc082d2dcfa794619f0d62be580759a0c7f433695dcfe37ebb682787fae"
+}
