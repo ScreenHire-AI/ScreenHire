@@ -56,6 +56,26 @@ public sealed class CandidateDataExportTests
 
     private static JsonElement Parse(DataExportSource source) => JsonDocument.Parse(CandidateDataExport.Build(source, Now)).RootElement;
 
+    // A form answered after applying is the candidate's own data, an equality monitoring form's included: its answers are
+    // kept from the hiring team, never from the person who gave them.
+    [Fact]
+    public void Each_form_they_answered_is_in_the_copy_with_its_questions_as_they_saw_them()
+    {
+        var source = Source();
+        var forms = new DataExportForm[]
+        {
+            new("Screening questionnaire", Now.AddDays(-20), [new("start", QuestionType.ShortText, "When could you start?")], [new("start", "In May")]),
+            new("Equality monitoring", Now.AddDays(-19),
+                [new("age", QuestionType.SingleChoice, "Your age", Options: [new QuestionOption("under_25", "Under 25")])], [new("age", "under_25")]),
+        };
+        source = source with { Applications = [source.Applications[0] with { Forms = forms }] };
+
+        var exported = Parse(source).GetProperty("applications")[0].GetProperty("forms");
+        exported.EnumerateArray().Select(f => f.GetProperty("name").GetString()).Should().Equal("Screening questionnaire", "Equality monitoring");
+        exported[0].GetProperty("answers")[0].GetProperty("question").GetString().Should().Be("When could you start?");
+        exported[1].GetProperty("answers")[0].GetProperty("answer").GetString().Should().Be("Under 25", "a choice reads as its label");
+    }
+
     [Fact]
     public void The_file_holds_the_candidates_details_and_each_application_in_camel_case()
     {

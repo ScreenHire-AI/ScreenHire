@@ -36,6 +36,7 @@ public sealed record DataExportSource(
 /// <param name="Replies">What they emailed back.</param>
 /// <param name="Notes">The team's notes on it.</param>
 /// <param name="UploadedFiles">The names of the files they uploaded, with the question they answered.</param>
+/// <param name="Forms">The other forms they answered (workflow-engine.md section 8), each with the questions as they saw them.</param>
 public sealed record DataExportApplication(
     string JobTitle,
     DateTimeOffset SubmittedAt,
@@ -47,7 +48,8 @@ public sealed record DataExportApplication(
     IReadOnlyList<DataExportEmail> EmailsSent,
     IReadOnlyList<DataExportReply> Replies,
     IReadOnlyList<DataExportNote> Notes,
-    IReadOnlyList<DataExportFile> UploadedFiles);
+    IReadOnlyList<DataExportFile> UploadedFiles,
+    IReadOnlyList<DataExportForm>? Forms = null);
 
 public sealed record DataExportEmail(string To, string Subject, string Body, DateTimeOffset SentAt);
 
@@ -58,9 +60,15 @@ public sealed record DataExportNote(string Text, DateTimeOffset WrittenAt);
 public sealed record DataExportFile(string? Question, string FileName);
 
 /// <summary>
+/// A form the candidate answered after applying, with the questions as they saw them. An equality monitoring form is
+/// here too: its answers are kept from the hiring team, never from the person who gave them.
+/// </summary>
+public sealed record DataExportForm(string Name, DateTimeOffset AnsweredAt, IReadOnlyList<Question> Questions, IReadOnlyList<ApplicationAnswer> Answers);
+
+/// <summary>
 /// Builds the copy of a candidate's data as one JSON document (docs/architecture/data-requests.md, "The copy"). It holds
 /// what the candidate gave and what the organization wrote to or about them as a person: their details, each application
-/// with its answers, the emails both ways, the team's notes (the author is shown only as "Team member"), the note on a
+/// with its answers and the answers to every other form it sent them, the emails both ways, the team's notes (the author is shown only as "Team member"), the note on a
 /// saved entry, and the names of files, never the files. It leaves out verification output and scorecards, which are the
 /// organization's working judgement and not the candidate's data (ADR-0004; listed as a legal review item), and every
 /// internal id.
@@ -107,6 +115,9 @@ public static partial class CandidateDataExport
         answers = application.Answers
             .Where(a => application.Questions.FirstOrDefault(q => q.Id == a.QuestionId)?.Type != QuestionType.File)
             .Select(a => Answer(application.Questions, a))
+            .ToList(),
+        forms = (application.Forms ?? [])
+            .Select(f => new { name = f.Name, answeredAt = f.AnsweredAt, answers = f.Answers.Select(a => Answer(f.Questions, a)).ToList() })
             .ToList(),
         uploadedFiles = application.UploadedFiles.Select(f => new { question = f.Question, fileName = f.FileName }).ToList(),
         emailsSent = application.EmailsSent.Select(e => new { to = e.To, subject = e.Subject, body = e.Body, sentAt = e.SentAt }).ToList(),

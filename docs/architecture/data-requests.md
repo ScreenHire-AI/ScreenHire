@@ -157,8 +157,10 @@ The file holds:
 - the candidate's name, address, phone and the date they first applied;
 - for each application: the job title, when it was submitted, its current stage, the privacy notice version, whether the
   candidate asked to be kept for future roles, their answers (each with its question's label from the job's form, a choice
-  with its option's label, or the question's id when the form no longer has it), the names of the files they uploaded, the
-  emails the organization sent, the replies received with their attachments' names, and the team's notes;
+  with its option's label, or the question's id when the form no longer has it), each other form they answered with its
+  name, when they answered it and their answers against the questions as they saw them (an equality monitoring form's
+  included: its answers are kept from the hiring team, never from the person who gave them), the names of the files they
+  uploaded, the emails the organization sent, the replies received with their attachments' names, and the team's notes;
 - the note on the candidate's saved entry, if there is one.
 
 It leaves out verification output and scorecards (ADR-0004; a legal review item), tasks, the timeline and every internal id.
