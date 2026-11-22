@@ -132,7 +132,7 @@
 <TopBar crumbs={settingsCrumbs('/settings/sending-domain')} />
 
 <main class={['flex flex-col', sidebar.isMobile && domain && 'pb-28']}>
-  <HeaderBand title="Email domain" oneRow>
+  <HeaderBand title="Email domain" frame oneRow>
     {#snippet status()}
       {#if domain}<StatusBadge {...domainStatus(domain)} />{/if}
     {/snippet}
@@ -148,7 +148,7 @@
   </HeaderBand>
 
   <SettingsMenu>
-    <div class="flex w-full max-w-form flex-col gap-5">
+    <div class="flex w-full flex-col gap-5">
       <p role="status" class="sr-only">{announcement}</p>
       {#if sendingDomain.isError && !current}
         <Panel title="Domain">

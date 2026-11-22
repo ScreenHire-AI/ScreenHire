@@ -25,7 +25,7 @@
 <TopBar crumbs={settingsCrumbs('/settings/notification-defaults')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Notification defaults" oneRow>
+  <HeaderBand title="Notification defaults" frame oneRow>
     {#snippet actions()}
       {#if detail}
         <HistoryFact value={detail.lastUpdated} name="Verification settings" page={(before) => getGetOrganizationVerificationSettingsHistoryQueryOptions({ before })} />
@@ -34,7 +34,7 @@
   </HeaderBand>
 
   <SettingsMenu>
-    <div class="flex w-full max-w-form flex-col gap-5">
+    <div class="flex w-full flex-col gap-5">
       {#if settings.isError && !detail}
         <Panel title="Alerts">
           <QueryError message={describeError(settings.error, 'Could not load the notification defaults')} onretry={() => settings.refetch()} inset />

@@ -131,7 +131,7 @@
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
     title="Webhooks"
-    oneRow
+    frame oneRow
     actions={sidebar.isMobile ? undefined : addButton}
   />
 

@@ -125,6 +125,9 @@ const panels: Record<string, string[]> = {
   'Built in badge': ['Built in badge'],
   'Reorder grip': ['Reorder grip'],
   'Settings menu': ['Settings menu'],
+  // The Settings menu's demo is drawn in its frame.
+  'Settings frame': ['Settings menu'],
+  'Overview columns': ['Overview columns'],
   'Candidates list tabs': ['Candidates list tabs'],
   // The setup steps are the bell's first section, so the bell's example shows both.
   'Setup checklist': ['Notification bell'],

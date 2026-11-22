@@ -52,6 +52,36 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-reports-1440");
 
+        // An overview (design system section 7, S10): from about a 1440px window the weekly chart, the open jobs and the time to
+        // hire make the main column and the funnel and the sources the side column, each stacking on its own, both starting
+        // at the same top under the headline numbers.
+        foreach (var width in new[] { 1440, 2560 })
+        {
+            await Page.SetViewportSizeAsync(width, 1000);
+            var weekly = (await Region("Applications and hires by week").BoundingBoxAsync())!;
+            var funnelBox = (await funnel.BoundingBoxAsync())!;
+            var openJobs = (await Region("Open jobs").BoundingBoxAsync())!;
+            var sources = (await Region("Sources").BoundingBoxAsync())!;
+            funnelBox.X.Should().BeGreaterThan(weekly.X + weekly.Width, "the funnel is in the side column at {0}", width);
+            funnelBox.Y.Should().BeApproximately(weekly.Y, 1, "the two columns start at the same top at {0}", width);
+            openJobs.X.Should().BeApproximately(weekly.X, 1, "the open jobs are in the main column at {0}", width);
+            sources.X.Should().BeApproximately(funnelBox.X, 1, "the sources are in the side column at {0}", width);
+            weekly.Width.Should().BeGreaterThan(funnelBox.Width * 1.8f, "the main column is about two thirds at {0}", width);
+        }
+
+        await SaveScreenshotAsync(Page, "dashboard-reports-2560");
+
+        // Below the threshold, one column, main then side, at the same window width as Billing and the Verification overview.
+        await Page.SetViewportSizeAsync(1200, 1000);
+        var narrowWeekly = (await Region("Applications and hires by week").BoundingBoxAsync())!;
+        (await funnel.BoundingBoxAsync())!.Y.Should().BeGreaterThan(narrowWeekly.Y + narrowWeekly.Height, "the funnel follows the main column below the threshold");
+        await Page.SetViewportSizeAsync(1440, 1000);
+
+        // The weekly chart draws its columns in a panel stacked in the main column, whose height is its content's.
+        var tallest = await Region("Applications and hires by week").Locator("[data-week] span")
+            .EvaluateAllAsync<double>("bars => Math.max(...bars.map(bar => bar.getBoundingClientRect().height))");
+        tallest.Should().BeGreaterThan(50, "the busiest week's column reaches up the chart");
+
         // Compare is on by default and off on request.
         var compare = Page.GetByRole(AriaRole.Switch, new() { Name = "Compare periods" });
         await Expect(compare).ToBeCheckedAsync();
@@ -95,9 +125,10 @@ public sealed class ReportsTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(funnel.GetByRole(AriaRole.Img, new() { Name = "Applied: 1 application" })).ToBeVisibleAsync();
         await Expect(Region("Time to hire")).ToContainTextAsync("No hires in these dates");
 
-        // A phone: one column, nothing scrolls sideways.
+        // A phone: one column, main then side, nothing scrolls sideways.
         await Page.SetViewportSizeAsync(390, 844);
         await Expect(funnel).ToBeVisibleAsync();
+        (await funnel.BoundingBoxAsync())!.Y.Should().BeGreaterThan((await Region("Time to hire").BoundingBoxAsync())!.Y, "the side column follows the main one on a phone");
         (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
             .Should().BeTrue("the page at {0} scrolls sideways", Page.Url);
         await SaveScreenshotAsync(Page, "dashboard-reports-390");

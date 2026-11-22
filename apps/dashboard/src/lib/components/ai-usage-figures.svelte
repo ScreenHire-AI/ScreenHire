@@ -85,7 +85,7 @@
   </Panel>
 {:else if !data}
   <div aria-hidden="true" class="grid grid-cols-2 gap-4 md:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
-    <Skeleton class="h-32 w-full" /><Skeleton class="h-32 w-full" /><Skeleton class="h-32 w-full" />
+    <Skeleton class="h-32 w-full" /><Skeleton class="h-32 w-full" /><Skeleton class="col-span-2 h-32 w-full md:col-span-1" />
   </div>
   <p class="sr-only" role="status">Loading the AI usage…</p>
 {:else}
@@ -107,7 +107,9 @@
       value={formatTokens(data.totals.inputTokens + data.totals.outputTokens)}
       share={`${formatTokens(data.totals.inputTokens)} in, ${formatTokens(data.totals.outputTokens)} out`}
     />
+    <!-- Three cards in a phone's two columns: the last takes the whole row, so the row stays even (section 7, Overview). -->
     <ReportStat
+      class="col-span-2 md:col-span-1"
       icon={DollarSignIcon}
       title={ownKeyOnly ? ownKeyCostLabel : 'Cost'}
       value={formatCost(ownKeyOnly ? ownKey!.cost : (builtIn?.cost ?? 0))}

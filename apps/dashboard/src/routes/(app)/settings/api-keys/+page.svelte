@@ -203,7 +203,7 @@
 <main class={[sidebar.isMobile && 'pb-28']}>
   <HeaderBand
     title="API keys"
-    oneRow
+    frame oneRow
     actions={bandActions}
   />
 

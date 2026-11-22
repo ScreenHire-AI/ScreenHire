@@ -5,6 +5,7 @@
   import BarChart, { type BarRow } from '#lib/components/bar-chart.svelte';
   import ChartPanel, { type ChartColumn } from '#lib/components/chart-panel.svelte';
   import LevelMark from '#lib/components/level-mark.svelte';
+  import OverviewColumns from '#lib/components/overview-columns.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -104,41 +105,46 @@
     {/each}
   </div>
 
-  <div class="grid gap-5 @7xl:grid-cols-2">
-    <ChartPanel
-      title={`Findings by group, ${month}`}
-      basis="Applications this month in which a group of checks counted a signal towards the level. A group that is off says Off."
-      tableId="verification-groups"
-      columns={groupColumns}
-      rows={anything ? result.groups : []}
-      rowKey={(group) => group.group}
-    >
-      {#snippet chart()}
-        <BarChart label="Applications by group of checks" series={[{ label: 'Applications', tone: 'chart-1' }]} rows={groupRows} />
-      {/snippet}
-      {#snippet empty()}
-        <p class="text-muted-foreground">No group of checks found anything this month.</p>
-      {/snippet}
-    </ChartPanel>
-
-    {#if credits}
-      <Panel title="AI credits">
-        <div class="flex flex-col gap-4">
-          <SummaryList>
-            <SummaryItem label="Balance">
-              <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span class="tabular-nums">{formatCredits(credits.balance)}</span>
-                {#if credits.paused}<StatusBadge status="notInEffect" label="AI checks paused" />{/if}
-              </span>
-            </SummaryItem>
-          </SummaryList>
-          <p>
-            <a href="/settings/billing#ai-credits" class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11"
-              >See AI credits</a
-            >
-          </p>
-        </div>
-      </Panel>
-    {/if}
-  </div>
+  <!-- An overview (design system section 7): what the checks found in the main column, the credits they draw on in the side
+       column, each stacking on its own. -->
+  <OverviewColumns>
+    {#snippet main()}
+      <ChartPanel
+        title={`Findings by group, ${month}`}
+        basis="Applications this month in which a group of checks counted a signal towards the level. A group that is off says Off."
+        tableId="verification-groups"
+        columns={groupColumns}
+        rows={anything ? result.groups : []}
+        rowKey={(group) => group.group}
+      >
+        {#snippet chart()}
+          <BarChart label="Applications by group of checks" series={[{ label: 'Applications', tone: 'chart-1' }]} rows={groupRows} />
+        {/snippet}
+        {#snippet empty()}
+          <p class="text-muted-foreground">No group of checks found anything this month.</p>
+        {/snippet}
+      </ChartPanel>
+    {/snippet}
+    {#snippet side()}
+      {#if credits}
+        <Panel title="AI credits">
+          <div class="flex flex-col gap-4">
+            <SummaryList>
+              <SummaryItem label="Balance">
+                <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span class="tabular-nums">{formatCredits(credits.balance)}</span>
+                  {#if credits.paused}<StatusBadge status="notInEffect" label="AI checks paused" />{/if}
+                </span>
+              </SummaryItem>
+            </SummaryList>
+            <p>
+              <a href="/settings/billing#ai-credits" class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11"
+                >See AI credits</a
+              >
+            </p>
+          </div>
+        </Panel>
+      {/if}
+    {/snippet}
+  </OverviewColumns>
 {/if}

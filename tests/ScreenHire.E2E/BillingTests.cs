@@ -57,7 +57,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(plan.Locator("[data-headroom]")).ToHaveTextAsync($"0 of {Jobs(ShippedPlans.Growth.RequiredLimit)}");
         await Expect(plan.GetByRole(AriaRole.List, new() { Name = "What your plan includes" }).GetByRole(AriaRole.Listitem)).Not.ToHaveCountAsync(0);
 
-        // The plans as cards side by side at this width, each with its price and limit, the trial's plan marked.
+        // The plans as cards, each with its price and limit, the trial's plan marked.
         var plans = Page.GetByRole(AriaRole.Region, new() { Name = "Plans", Exact = true });
         await Expect(plans.Locator("[data-plan-card=starter]")).ToContainTextAsync($"${ShippedPlans.Starter.MonthlyPrice:0.00} a month");
         await Expect(plans.Locator("[data-plan-card=starter]")).ToContainTextAsync($"Up to {Jobs(ShippedPlans.Starter.RequiredLimit)}");
@@ -67,18 +67,32 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(plans.Locator("[data-plan-card=unlimited]")).ToContainTextAsync($"${ShippedPlans.Unlimited.MonthlyPrice:0.00} a month");
         await Expect(plans.Locator("[data-plan-card=unlimited]")).ToContainTextAsync("Unlimited open jobs");
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(3);
-        var cardTops = await plans.Locator("[data-plan-card]").EvaluateAllAsync<double[]>("cards => cards.map(card => Math.round(card.getBoundingClientRect().top))");
-        cardTops.Distinct().Should().HaveCount(1, "three cards sit side by side at 1440");
+        // From about a 1440px window Billing is an overview (design system section 7): the plans are in the side column, right of
+        // the plan card, one card above the other.
+        var planBox = await BoxAsync(plan);
+        (await BoxAsync(plans)).X.Should().BeGreaterThan(planBox.X + planBox.Width, "the plans are in the side column at 1440");
+        (await CardTopsAsync(plans)).Should().BeInAscendingOrder().And.OnlyHaveUniqueItems("the cards stack in the side column at 1440");
         (await NoSidewaysScrollAsync()).Should().BeTrue();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-trial-1440");
 
-        // On a phone the cards stack, one above the other, and the page never scrolls sideways.
+        // Below that the page is one column, and there the three cards sit side by side under the plan card. The pointer rests
+        // where the test last clicked; once the layout moves, a panel title under it would open its tooltip, so it waits in the
+        // window's corner.
+        await ParkPointerAsync();
+        await Page.SetViewportSizeAsync(1200, 1000);
+        await Expect(plans.Locator("[data-plan-card=unlimited]")).ToBeVisibleAsync();
+        (await BoxAsync(plans)).X.Should().BeApproximately((await BoxAsync(plan)).X, 1, "one column at 1200");
+        (await CardTopsAsync(plans)).Distinct().Should().HaveCount(1, "three cards sit side by side in the one column at 1200");
+
+        // On a phone the cards stack, one above the other, and the page never scrolls sideways. Measured once the phone's shell
+        // is in, the sidebar a sheet behind its button: until the resize reaches it, the full sidebar still takes 248px.
         await Page.SetViewportSizeAsync(390, 844);
+        await PhoneShellAsync();
         await Expect(plans.Locator("[data-plan-card=unlimited]")).ToBeVisibleAsync();
         var phoneTops = await plans.Locator("[data-plan-card]").EvaluateAllAsync<double[]>("cards => cards.map(card => Math.round(card.getBoundingClientRect().top))");
         phoneTops.Should().BeInAscendingOrder().And.OnlyHaveUniqueItems("the cards stack at 390");
-        (await NoSidewaysScrollAsync()).Should().BeTrue();
+        (await NoSidewaysScrollAsync()).Should().BeTrue("nothing reaches past the window: {0}", await PastTheWindowAsync());
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-trial-390");
         await Page.SetViewportSizeAsync(1440, 1000);
 
@@ -96,9 +110,9 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(plan.GetByRole(AriaRole.Button, new() { Name = "Change plan" })).ToBeVisibleAsync();
         await Expect(plans.Locator("[data-plan-card=starter]")).ToContainTextAsync("Your plan");
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Change to") })).ToHaveCountAsync(2);
-        // The longest label, Change to Unlimited, stays on one line inside its card (F5), here and at a laptop width where the
-        // three cards are at their narrowest.
-        foreach (var width in new[] { 1440, 1180 })
+        // The longest label, Change to Unlimited, stays on one line inside its card (F5): in the side column at 2560 and 1440, and
+        // at a laptop width where the page is one column and the three cards side by side are at their narrowest.
+        foreach (var width in new[] { 2560, 1440, 1200 })
         {
             await Page.SetViewportSizeAsync(width, 1000);
             var overflowing = await plans.Locator("[data-plan-card] button").EvaluateAllAsync<int>(
@@ -129,6 +143,34 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(trialEnds).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-1440");
+
+        // The overview's columns (design system section 7, S10): the plan, this month and the invoices in the main column, the
+        // card and the plans in the side column, each stacking on its own; on a phone one column, main then side.
+        await ParkPointerAsync();
+        foreach (var width in new[] { 1440, 2560 })
+        {
+            await Page.SetViewportSizeAsync(width, 1000);
+            var planCardBox = await BoxAsync(plan);
+            var monthBox = await BoxAsync(month);
+            // The panel, named Invoices like the table inside it.
+            var invoicesBox = await BoxAsync(invoices.First);
+            monthBox.X.Should().BeApproximately(planCardBox.X, 1, "This month so far is in the main column at {0}", width);
+            invoicesBox.X.Should().BeApproximately(planCardBox.X, 1, "the invoices are in the main column at {0}", width);
+            invoicesBox.Y.Should().BeGreaterThan(monthBox.Y, "the invoices follow this month at {0}", width);
+            var paymentBox = await BoxAsync(payment);
+            paymentBox.X.Should().BeGreaterThan(planCardBox.X + planCardBox.Width, "the payment method is in the side column at {0}", width);
+            paymentBox.Y.Should().BeApproximately(planCardBox.Y, 1, "the two columns start at the same top at {0}", width);
+            (await BoxAsync(plans)).X.Should().BeApproximately(paymentBox.X, 1, "the plans are in the side column at {0}", width);
+            (await NoSidewaysScrollAsync()).Should().BeTrue();
+        }
+
+        await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-2560");
+        await Page.SetViewportSizeAsync(390, 844);
+        await PhoneShellAsync();
+        (await BoxAsync(payment)).Y.Should().BeGreaterThan((await BoxAsync(invoices.First)).Y, "one column on a phone, the side column after the main one");
+        (await NoSidewaysScrollAsync()).Should().BeTrue();
+        await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-390");
+        await Page.SetViewportSizeAsync(1440, 1000);
 
         // Changing the card opens the payment page, which in the sandbox changes nothing and comes back still subscribed.
         await payment.GetByRole(AriaRole.Button, new() { Name = "Change card" }).ClickAsync();
@@ -291,6 +333,32 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
     // Measured against the window's width, which includes the stable scrollbar gutter (S8): a page that fits is never wider than it.
     private async Task<bool> NoSidewaysScrollAsync() =>
         await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth");
+
+    private static async Task<LocatorBoundingBoxResult> BoxAsync(ILocator locator)
+    {
+        await Expect(locator).ToBeVisibleAsync();
+        return (await locator.BoundingBoxAsync())!;
+    }
+
+    // What reaches past the window's right edge and is not cut by a scrolling ancestor, so a sideways scroll names its cause.
+    private Task<string> PastTheWindowAsync() => Page.EvaluateAsync<string>(
+        """
+        () => {
+          const width = document.documentElement.clientWidth;
+          const clipped = el => { for (let a = el.parentElement; a; a = a.parentElement) if (getComputedStyle(a).overflowX !== 'visible') return true; return false; };
+          return JSON.stringify([width, document.documentElement.scrollWidth, ...[...document.querySelectorAll('body *')]
+            .filter(el => { const r = el.getBoundingClientRect(); return r.right > width + 0.5 && r.width > 0 && !clipped(el); })
+            .slice(0, 10).map(el => [el.tagName, String(el.className?.baseVal ?? el.className).slice(0, 100), Math.round(el.getBoundingClientRect().right)])]);
+        }
+        """);
+
+    private Task ParkPointerAsync() => Page.Mouse.MoveAsync(0, 0);
+
+    private Task PhoneShellAsync() =>
+        Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" })).ToHaveCountAsync(0);
+
+    private static Task<double[]> CardTopsAsync(ILocator plans) =>
+        plans.Locator("[data-plan-card]").EvaluateAllAsync<double[]>("cards => cards.map(card => Math.round(card.getBoundingClientRect().top))");
 
     private static string Jobs(int count) => count == 1 ? "1 open job" : $"{count} open jobs";
 

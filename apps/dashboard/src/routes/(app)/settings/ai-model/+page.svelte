@@ -27,7 +27,7 @@
 <TopBar crumbs={settingsCrumbs('/settings/ai-model')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="AI model" oneRow>
+  <HeaderBand title="AI model" frame oneRow>
     {#snippet actions()}
       {#if detail}
         <HistoryFact value={detail.lastUpdated} name="Verification settings" page={(before) => getGetOrganizationVerificationSettingsHistoryQueryOptions({ before })} />
@@ -36,7 +36,7 @@
   </HeaderBand>
 
   <SettingsMenu>
-    <div class="flex w-full max-w-form flex-col gap-5">
+    <div class="flex w-full flex-col gap-5">
       {#if settings.isError && !detail}
         <Panel title="Whose key runs the AI check">
           <QueryError message={describeError(settings.error, 'Could not load the AI model')} onretry={() => settings.refetch()} inset />

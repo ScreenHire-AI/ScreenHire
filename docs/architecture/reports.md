@@ -132,7 +132,9 @@ because they have no fixed place in a pipeline, and Rejected and Withdrawn end a
 
 ## 5. The page
 
-`apps/dashboard/src/routes/(app)/reports/+page.svelte`, on the Report template (design system section 7). Dates, Job and
+`apps/dashboard/src/routes/(app)/reports/+page.svelte`, on the Overview template (design system section 7): the headline cards,
+then the weekly chart, Open jobs and Time to hire in the main column and the Hiring funnel, Sources and any equality
+monitoring totals in the side column (`OverviewColumns`), two columns from about a 1440px window and one below. Dates, Job and
 the Compare switch sit in the header band and live in the address (`?range=90`, `?from=2026-01-01&to=2026-03-31`, `?job=...`
 repeated, `?compare=off`), so a link or the trip back keeps them. Export CSV is the band's one action, left out until
 the report arrives and while it is empty.

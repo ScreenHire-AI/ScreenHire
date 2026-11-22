@@ -119,7 +119,7 @@
 <TopBar crumbs={settingsCrumbs('/settings/careers-site')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Careers page" oneRow>
+  <HeaderBand title="Careers page" frame oneRow>
     <!-- What people edit here (questions per page, the sites that embed it) is the organization's, so its history (T6). -->
     {#snippet actions()}
       {#if detail}<HistoryFact value={detail.lastUpdated} name="Careers page" page={(before) => getGetOrganizationHistoryQueryOptions({ before })} />{/if}
@@ -127,7 +127,7 @@
   </HeaderBand>
 
   <SettingsMenu>
-    <div class="flex w-full max-w-form flex-col gap-5">
+    <div class="flex w-full flex-col gap-5">
       {#if organization.isError && !detail}
         <Panel title="Public page">
           <QueryError message={describeError(organization.error, 'Could not load the careers page')} onretry={() => organization.refetch()} inset />

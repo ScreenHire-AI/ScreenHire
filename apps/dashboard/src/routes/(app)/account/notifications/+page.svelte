@@ -77,7 +77,7 @@
 <TopBar crumbs={accountCrumbs('/account/notifications')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Notifications" oneRow />
+  <HeaderBand title="Notifications" frame oneRow />
 
   <AccountMenu>
     <!-- The switches keep the form column; the grid is a table, which never stops short (S6). -->
@@ -96,7 +96,7 @@
       {:else}
         {@const current = draft}
         <form onsubmit={save} novalidate aria-label="Your notification choices" class="flex flex-col gap-5">
-          <Panel title="Toasts and jobs" class="max-w-form">
+          <Panel title="Toasts and jobs">
             <div class="flex flex-col gap-4">
               <div class="flex flex-col gap-2">
                 <span id="notice-scope" class="font-semibold">Jobs</span>
