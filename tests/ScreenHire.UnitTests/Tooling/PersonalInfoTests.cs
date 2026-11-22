@@ -44,7 +44,37 @@ public sealed class PersonalInfoTests
         { "azure storage key", "AccountKey" + "=" + new string('k', 86) + "==" },
         { "password in a connection string", "Host=db;Password" + "=hunter22;" },
         { "credentials in a url", "https://user:" + "hunter22" + "@db.internal.net/" },
+        { "stripe key", "sk_" + "live_" + new string('a', 24) },
+        { "stripe key", "rk_" + "test_" + "51Hx" + new string('b', 30) },
+        { "stripe webhook secret", "whsec_" + string.Concat(Enumerable.Repeat("0123456789abcdef", 2)) },
+        // The shape of the test vector GitHub's secret scanning reported (alert #2): a long hex body and no marker.
+        { "stripe webhook secret", "whsec_" + string.Concat(Enumerable.Repeat("6f1d2c3b4a5968770", 4)) },
+        { "screenhire webhook secret", "shws_" + string.Concat(Enumerable.Repeat("0123456789abcdef", 4)) },
     };
+
+    /// <summary>
+    /// Values shaped like a provider's secret that say they are made up, or are too short to be one. Built at run time,
+    /// so no committed literal here matches a provider's format for GitHub's scanner, which knows nothing of markers.
+    /// </summary>
+    public static TheoryData<string> Fictional => new()
+    {
+        "whsec_" + "fictional_secret",
+        "whsec_" + "some_other_secret",
+        "sk_" + "test_fictional_key",
+        "whsec_" + "example_" + "7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS",
+        "shws_fictional_test_vector",
+        "shws_fictional_" + string.Concat(Enumerable.Repeat("0123456789abcdef", 4)),
+        "AKIA" + "IOSFODNN7EXAMPLE",
+        "ghp_" + "Example" + new string('c', 30),
+        "whsec_...",
+    };
+
+    [Theory]
+    [MemberData(nameof(Fictional))]
+    public void A_secret_shaped_value_marked_fictional_is_allowed(string text)
+    {
+        PersonalInfoScan.Scan("notes.md", text, NoIdentity).Should().BeEmpty();
+    }
 
     [Theory]
     [MemberData(nameof(Findings))]

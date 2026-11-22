@@ -295,7 +295,7 @@ describe('webhook endpoint page', () => {
   });
 
   it('rotates the signing secret after a confirmation and shows the new secret once', async () => {
-    const secret = 'whsec_0123456789abcdef0123456789abcdef';
+    const secret = 'shws_fictional_0123456789abcdef';
     renderPage(endpoint(), { [`POST /v1/webhooks/${endpointId}/rotate-secret`]: () => Response.json({ endpoint: endpoint(), signingSecret: secret }) });
 
     await fireEvent.click(within(await openMoreActions()).getByRole('menuitem', { name: 'Rotate signing secret' }));

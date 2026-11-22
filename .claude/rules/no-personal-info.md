@@ -27,6 +27,11 @@ Never commit, in code, tests, scripts, docs, commit messages or PR bodies:
     `.localhost`, other than GitHub's and Anthropic's noreply addresses;
   - a token, private key, JWT, Azure storage key (other than Azurite's published one), or a password in a
     connection string or a URL whose host is not reserved;
+  - a value in a provider's live secret format (Stripe `sk_`/`rk_` keys and `whsec_` webhook secrets, AWS, GitHub,
+    Slack, OpenAI, Anthropic, Google, and ScreenHire's own `shws_` webhook secrets) unless its token says `fictional`,
+    `example` or `test_vector`. GitHub's secret scanning ignores those words, so a fixture still never matches a
+    provider's format as a literal: build it at run time, or use a body too short or too wordy to be a key
+    (`whsec_fictional_secret`). Never hide a path from GitHub's scanner with `paths-ignore`; it would hide a real leak too;
   - the committer's own `git config` name or address, matched whole and read at run time.
   Paths are exempt only in `PersonalInfoScan`, each with its reason: third-party data and lockfiles.
 

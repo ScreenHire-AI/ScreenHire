@@ -99,6 +99,12 @@ public static class WebhookSignature
     public const string Header = "ScreenHire-Signature";
 
     /// <summary>
+    /// The start of every endpoint secret. It is ScreenHire's own, not Stripe's <c>whsec_</c>, so a secret scanner never
+    /// reports a ScreenHire secret as a Stripe one. It is part of the HMAC key: changing it changes every endpoint's secret.
+    /// </summary>
+    public const string SecretPrefix = "shws_";
+
+    /// <summary>
     /// The key one organization's deliveries are signed with, and the one its receivers are given: hex HMAC-SHA256 of
     /// <c>webhook-signing:{organizationId}</c> under the platform key. A receiver holding one organization's key cannot
     /// sign a delivery that another organization's receiver would accept. The platform key itself is never handed out.
@@ -113,7 +119,7 @@ public static class WebhookSignature
     }
 
     /// <summary>
-    /// One subscription endpoint's secret, as its integrator is given it: <c>whsec_</c> and the hex HMAC-SHA256 of
+    /// One subscription endpoint's secret, as its integrator is given it: <see cref="SecretPrefix"/> and the hex HMAC-SHA256 of
     /// <c>webhook-endpoint:{endpointId}:{version}</c> under the platform key. Nothing secret is stored: the database keeps
     /// only the version, and rotating bumps it. Changing the platform key changes every endpoint's secret.
     /// </summary>
@@ -123,7 +129,7 @@ public static class WebhookSignature
         var mac = HMACSHA256.HashData(
             Encoding.UTF8.GetBytes(platformKey),
             Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"webhook-endpoint:{endpointId:D}:{version}")));
-        return $"whsec_{Convert.ToHexStringLower(mac)}";
+        return SecretPrefix + Convert.ToHexStringLower(mac);
     }
 
     public static string Create(string key, DateTimeOffset sentAt, string body)

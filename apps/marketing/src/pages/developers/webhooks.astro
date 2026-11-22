@@ -2,12 +2,14 @@
 import DeveloperPage from '../../components/DeveloperPage.astro';
 import csharp from '../../developers/samples/ScreenHireSignature.cs?raw';
 import node from '../../developers/samples/verify-signature.mjs?raw';
+import vector from '../../developers/samples/signature-vector.json';
 import python from '../../developers/samples/verify_signature.py?raw';
 import { inlineCode, webhookEvents } from '../../lib/developers';
 import { pages } from '../../lib/pages';
 
 const events = webhookEvents();
-const header = 'ScreenHire-Signature: t=1795685400,v1=2bed3e1e1acabdfbb4a8b529ba76f2920439761e8d495fde69392a6f0e5e833d';
+// The tested vector's header (SignatureSampleTests, developers.test.ts), so the example on the page is one the API signs.
+const header = `ScreenHire-Signature: ${vector.header}`;
 ---
 
 <DeveloperPage
@@ -18,7 +20,7 @@ const header = 'ScreenHire-Signature: t=1795685400,v1=2bed3e1e1acabdfbb4a8b529ba
   <h2>Add an endpoint</h2>
   <p>
     An Owner or Admin adds an endpoint in Settings, Webhooks: an HTTPS address and the events it wants. Its signing secret
-    (<code>whsec_...</code>) is shown once and can be rotated. To read more than the event says, call the{' '}
+    (<code>shws_...</code>) is shown once and can be rotated. To read more than the event says, call the{' '}
     <a href={pages.developerApi.path}>API</a> with the ids it carries.
   </p>
 
