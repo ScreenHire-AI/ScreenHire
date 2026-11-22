@@ -7,6 +7,7 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/EmailTemplate.cs
   - resource: src/ScreenHire.Application/Verification/Models/VerificationAlerts.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailTemplates.cs
+  - resource: src/ScreenHire.Domain/Hiring/EmailTemplateIds.cs
   - resource: src/ScreenHire.Infrastructure/Email/EmailTemplateStore.cs
   - resource: apps/dashboard/src/routes/(app)/templates/emails/[templateId]/+page.svelte
   - resource: apps/dashboard/src/lib/components/email-template-form.svelte
