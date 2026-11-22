@@ -89,7 +89,9 @@ internal sealed class SchedulingTools(
         var names = people.Select(id => members.Values.FirstOrDefault(m => m.UserId == id)?.DisplayName ?? "a former member").ToList();
         confirmation.Require(server, context, user, confirm,
             $"email the candidate for \"{job.Title}\" an invitation to a {minutes}-minute interview with {string.Join(", ", names)}, "
-            + (how == InterviewOption.TheirTimes ? $"asking when they are free in the next {days} days" : $"to pick a time in the next {days} days"));
+            + (how == InterviewOption.TheirTimes ? $"asking when they are free in the next {days} days" : $"to pick a time in the next {days} days"),
+            // The stage's defaults fill in what the call left out, so a change to them before the person answers asks again.
+            $"{how}|{minutes}|{days}|{string.Join(',', people)}");
 
         var now = time.GetUtcNow();
         var request = new ScheduleInterviewRequest(

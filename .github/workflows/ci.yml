@@ -384,7 +384,7 @@ jobs:
             exit 0
           fi
           if git diff --quiet "$base" HEAD -- apps/marketing packages/api-client packages/plans packages/ui pnpm-lock.yaml tools/lighthouse; then
-            echo "::notice::No change to apps/marketing, packages/plans, packages/ui, pnpm-lock.yaml or tools/lighthouse, so Lighthouse did not run."
+            echo "::notice::No change to apps/marketing, packages/api-client, packages/plans, packages/ui, pnpm-lock.yaml or tools/lighthouse, so Lighthouse did not run."
             echo "marketing=false" >> "$GITHUB_OUTPUT"
           else
             echo "marketing=true" >> "$GITHUB_OUTPUT"

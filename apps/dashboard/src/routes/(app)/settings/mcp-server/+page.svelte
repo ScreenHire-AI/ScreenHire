@@ -33,7 +33,7 @@
   import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
-  import { Badge, badgeVariants } from '#lib/components/ui/badge/index.js';
+  import { Badge } from '#lib/components/ui/badge/index.js';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
@@ -42,7 +42,6 @@
   import { mcpToolHref, mcpTools } from '#lib/mcp-tools.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
-  import { cn } from '#lib/utils.js';
 
   // The MCP server (docs/architecture/mcp-server.md), on the settings template: the values any MCP client needs, with no
   // client's own setup steps, and a link to API keys for the key it signs in with. The address comes from the API
@@ -179,7 +178,8 @@
           <SummaryItem label="API key access">Read only, or read and write, as the key allows</SummaryItem>
           {#each toolGroups as group (group.label)}
             <SummaryItem label={group.label} count={group.tools.length}>
-              <ul aria-label={group.label} class="flex flex-wrap gap-1.5">
+              <!-- Links look like links (design system A5): underlined text, never a badge someone has to guess is clickable. -->
+              <ul aria-label={group.label} class="flex flex-wrap gap-x-4 gap-y-1">
                 {#each group.tools as tool (tool.name)}
                   <li>
                     {#if apiOrigin}
@@ -187,10 +187,10 @@
                         href={mcpToolHref(apiOrigin, tool.name)}
                         target="_blank"
                         rel="noreferrer"
-                        class={cn(badgeVariants({ variant: 'muted' }), 'hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:h-11')}
+                        class="text-primary underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
                         >{tool.title}{' '}<span class="sr-only">{tool.confirms ? '(asks you first, opens in a new tab)' : '(opens in a new tab)'}</span></a
                       >
-                    {:else}<Badge variant="muted">{tool.title}</Badge>{/if}
+                    {:else}{tool.title}{/if}
                   </li>
                 {/each}
               </ul>
@@ -198,10 +198,13 @@
           {/each}
           {#if apiOrigin}
             <SummaryItem label="Reference">
-              <a href={`${apiOrigin}/mcp-tools`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary pointer-coarse:min-h-11">
-                <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">MCP tools reference</span>
-                <span class="sr-only">(opens in a new tab)</span>
-              </a>
+              <span class="flex flex-col gap-1">
+                <a href={`${apiOrigin}/mcp-tools`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary pointer-coarse:min-h-11">
+                  <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">MCP tools reference</span>
+                  <span class="sr-only">(opens in a new tab)</span>
+                </a>
+                <span class="text-muted-foreground">Sending an email, inviting to an interview, publishing or closing a job and rejecting a candidate ask you first.</span>
+              </span>
             </SummaryItem>
           {/if}
         </SummaryList>

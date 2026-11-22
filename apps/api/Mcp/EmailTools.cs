@@ -99,7 +99,10 @@ internal sealed class EmailTools(
             .Join(db.Jobs, a => a.JobId, j => j.Id, (_, j) => j.Title).SingleOrDefaultAsync(cancellationToken)
             ?? throw new McpException(NoApplication);
         var content = await ContentAsync(templateId, subject, body, cancellationToken);
-        confirmation.Require(server, context, user, confirm, $"email the candidate for \"{jobTitle}\" with the subject \"{content.Subject}\"");
+        // The person agrees to the words, not only the subject, and a template edited before they answer asks again.
+        confirmation.Require(server, context, user, confirm,
+            $"email the candidate for \"{jobTitle}\" with the subject \"{content.Subject}\" and this text: \"{Excerpt(content.Body)}\"",
+            $"{content.Subject}\n{content.Body}");
 
         var result = await EmailEndpoints.SendEmails(
             new SendEmailsRequest([applicationId], templateId, subject, body), user, Get<IValidator<SendEmailsRequest>>(), outbox, store, renderer,
@@ -145,6 +148,20 @@ internal sealed class EmailTools(
 
     private T Get<T>()
         where T : notnull => services.GetRequiredService<T>();
+
+    // The body as the question shows it: whole up to 500 characters, else cut at a word with an ellipsis.
+    internal static string Excerpt(string body)
+    {
+        const int Max = 500;
+        var text = body.Trim();
+        if (text.Length <= Max)
+        {
+            return text;
+        }
+
+        var cut = text.LastIndexOf(' ', Max);
+        return string.Concat(text.AsSpan(0, cut > 0 ? cut : Max), "...");
+    }
 
     // The template's wording, or the caller's own: what the composer sends and previews.
     private async Task<EmailTemplateContent> ContentAsync(string? templateId, string? subject, string? body, CancellationToken cancellationToken)

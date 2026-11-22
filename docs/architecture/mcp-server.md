@@ -203,7 +203,8 @@ one first: `send_email`, `invite_to_schedule` (it emails the candidate), `publis
   it there). A client on the 2026-07-28 protocol revision that declares form elicitation gets a multi round-trip request
   instead (MRTR, SEP-2322; ModelContextProtocol 2.3.0's `InputRequiredException` with `InputRequest.ForElicitation`): the
   call returns an input-required result with one yes/no question whose message says exactly what will happen ("email the
-  candidate for "Platform Engineer" with the subject ..."). The client asks the person and calls again with the answer.
+  candidate for "Platform Engineer" with the subject ... and this text: ...", the text whole up to 500 characters). The
+  client asks the person and calls again with the answer.
   A no is a tool error, "The person did not agree ..., so nothing changed."
 - **Any other client.** The tool takes `confirm`, required on the four that always ask and optional on `move_to_stage`.
   Without `confirm: true` the call is a tool error that says what would happen and tells the assistant to ask the person
@@ -211,9 +212,12 @@ one first: `send_email`, `invite_to_schedule` (it emails the candidate), `publis
   to pass it on the assistant's own judgement. A client that can ask is asked even when `confirm` is true.
 - **The echoed state is untrusted.** The client sends `requestState` back unchanged, so it is protected with ASP.NET Core
   data protection (purpose `ScreenHire.Mcp.Confirmation`) and holds the tool, a SHA-256 digest of the arguments other than
-  `confirm`, the key and an expiry ten minutes on. A retry with other arguments, from another key, after the expiry, or
-  with state the server did not write is refused, so a yes to one email never sends another. The tool runs all its
-  checks again on the retry.
+  `confirm` and of what the tool filled in from them (an email template's subject and body, a stage's interviewers,
+  length and window), the key (an assistant's connection is a key of its own) and an expiry ten minutes on. A retry with
+  other arguments, after a template or stage it read has changed, from another key, after the expiry, or with state the
+  server did not write is refused, so a yes covers what the person was shown. It is not single-use: within the ten
+  minutes the same key repeating the same request repeats the action, as a second call with `confirm: true` would. The
+  tool runs all its checks again on the retry.
 - **Hints.** All five carry `Destructive = true`, so a client that asks before destructive tools (claude.ai connectors
   do) asks too; `send_email`, `invite_to_schedule`, `publish_job` and `close_job` are `OpenWorld` and carry
   `_meta["anthropic/requiresUserInteraction"] = true`, which Claude Code honours by prompting on every call.

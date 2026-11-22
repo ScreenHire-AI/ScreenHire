@@ -121,6 +121,11 @@
       font-size: inherit;
     }
 
+    /* A route, a tool or an event type breaks where it must, so a table of them never widens a phone's page. */
+    & :not(pre) > code {
+      overflow-wrap: anywhere;
+    }
+
     & blockquote {
       border-left: 2px solid var(--border);
       padding-left: 1em;

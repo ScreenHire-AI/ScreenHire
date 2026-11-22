@@ -102,7 +102,7 @@ internal static class McpToolExamples
             """),
         ["get_scorecards"] = ($$$"""{"applicationId":"{{{Application}}}"}""", $$$"""
             {"applicationId":"{{{Application}}}","scorecards":[{"id":"{{{Scorecard}}}","stageId":"interview","reviewerUserId":"{{{Member}}}",
-              "recommendation":"Yes","rating":4,"answers":[],"note":"Clear on trade-offs.","submittedAt":"2026-11-21T16:00:00+00:00"}]}
+              "recommendation":"Yes","rating":4,"answers":[],"note":"Clear on trade-offs.","submittedAt":"2026-11-21T16:00:00+00:00","withheld":false}]}
             """),
         ["request_scorecard"] = ($$$"""{"applicationId":"{{{Application}}}","reviewerUserId":"{{{Member}}}","scorecardTemplateId":"interview"}""",
             $$$"""{"id":"{{{Task}}}","applicationId":"{{{Application}}}","note":"Fill in the Interview scorecard.","assigneeUserId":"{{{Member}}}","createdAt":"2026-11-22T09:30:00+00:00","completedAt":null}"""),

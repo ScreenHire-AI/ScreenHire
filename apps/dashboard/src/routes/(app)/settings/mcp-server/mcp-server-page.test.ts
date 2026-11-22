@@ -73,6 +73,8 @@ describe('MCP server page', () => {
     // Each list says how many it holds, in the count badge after its label (T4).
     expect(screen.getByText('Also with Verification read').closest('dt')).toHaveTextContent('Also with Verification read2');
     expect(reference).toHaveAttribute('href', 'https://api.example.com/mcp-tools');
+    // Which tools ask first is said where everyone sees it, not only to a screen reader.
+    expect(screen.getByText(/ask you first\.$/)).toBeVisible();
     await expectNoAxeViolations();
   });
 

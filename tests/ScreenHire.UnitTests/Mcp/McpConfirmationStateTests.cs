@@ -9,7 +9,8 @@ namespace ScreenHire.UnitTests.Mcp;
 
 /// <summary>
 /// The state a confirmation round trip echoes back (docs/architecture/mcp-server.md, "Confirmation"): it holds only for
-/// the tool, the arguments, the key and the ten minutes it was issued for, so a yes to one email never sends another. The
+/// the tool, the arguments, what the tool resolved from them, the key and the ten minutes it was issued for, so a yes
+/// to one email never sends another. The
 /// integration tests (<c>McpConfirmationTests</c>) drive the round trip itself, where the SDK hides the real state from
 /// the client; these pin what the state binds. Also here: the server registers every tool the catalogue lists.
 /// </summary>
@@ -53,6 +54,18 @@ public sealed class McpConfirmationStateTests
         confirmation.Matches("not a state the server wrote", "send_email", digest, "key-1").Should().BeFalse();
         clock.Now = Now.Add(McpConfirmation.Lifetime).AddSeconds(1);
         confirmation.Matches(state, "send_email", digest, "key-1").Should().BeFalse("the person has ten minutes to answer");
+    }
+
+    [Fact]
+    public void A_change_to_what_the_tool_resolved_refuses_the_yes()
+    {
+        var arguments = Arguments("""{"applicationId":"a","timeZone":"Europe/London"}""");
+        var asked = McpConfirmation.Digest("invite_to_schedule", arguments, "TheirTimes|30|14|p1");
+
+        McpConfirmation.Digest("invite_to_schedule", arguments, "TheirTimes|30|14|p1").Should().Be(asked);
+        McpConfirmation.Digest("invite_to_schedule", arguments, "TheirTimes|60|14|p1").Should()
+            .NotBe(asked, "the stage's length changed after the person said yes to 30 minutes");
+        McpConfirmation.Digest("invite_to_schedule", arguments).Should().NotBe(asked);
     }
 
     [Fact]

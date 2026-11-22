@@ -79,7 +79,11 @@ public sealed record McpUpcomingInterview(
 /// <summary>An application's scorecards, oldest first. Each is the team's judgement, never verification evidence.</summary>
 public sealed record McpScorecards(Guid ApplicationId, IReadOnlyList<McpScorecard> Scorecards);
 
-/// <summary>One reviewer's scorecard at a stage: the overall recommendation, the rating, each answer, and their note.</summary>
+/// <summary>
+/// One reviewer's scorecard at a stage: the overall recommendation, the rating, each answer, and their note.
+/// <c>withheld</c> is true when the signed-in person still owes a scorecard of their own for the application (ADR-0013):
+/// it then shows who gave it and when, and its recommendation, rating, answers and note stay empty. Always false for a key.
+/// </summary>
 public sealed record McpScorecard(
     Guid Id,
     string StageId,
@@ -88,7 +92,8 @@ public sealed record McpScorecard(
     decimal? Rating,
     IReadOnlyList<ScorecardAnswerEntry> Answers,
     string? Note,
-    DateTimeOffset SubmittedAt);
+    DateTimeOffset SubmittedAt,
+    bool Withheld);
 
 /// <summary>The organization's email templates: pass an <c>id</c> to <c>draft_email</c> or <c>send_email</c>.</summary>
 public sealed record McpEmailTemplates(bool SendingEnabled, IReadOnlyList<McpEmailTemplate> Templates);

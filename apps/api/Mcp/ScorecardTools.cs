@@ -32,7 +32,8 @@ internal sealed class ScorecardTools(
 
     [McpServerTool(Name = "get_scorecards", Title = "Read an application's scorecards", ReadOnly = true, OpenWorld = false, UseStructuredContent = true)]
     [Description("Read the scorecards reviewers gave an application, oldest first: each one's stage, reviewer, recommendation, rating, answers "
-        + "and note. They are the hiring team's judgements; verification results are not among them.")]
+        + "and note. They are the hiring team's judgements; verification results are not among them. A scorecard with withheld: true shows only "
+        + "who gave it and when, because the signed-in person still owes their own for this application.")]
     public async Task<McpScorecards> GetScorecards(
         [Description("The application's id.")] Guid applicationId,
         CancellationToken cancellationToken = default)
@@ -40,7 +41,7 @@ internal sealed class ScorecardTools(
         var result = await ScorecardEndpoints.ListApplicationScorecards(applicationId, tenant, db, cancellationToken);
         var scorecards = McpResults.ValueOf<List<ScorecardEntry>>(result.Result, NoApplication);
         return new(applicationId, [.. scorecards.Select(s => new McpScorecard(
-            s.Id, s.StageId, s.ReviewerUserId, s.Recommendation, s.Rating, s.Answers, s.Note, s.SubmittedAt))]);
+            s.Id, s.StageId, s.ReviewerUserId, s.Recommendation, s.Rating, s.Answers, s.Note, s.SubmittedAt, s.Withheld))]);
     }
 
     [McpServerTool(Name = "request_scorecard", Title = "Ask a teammate for a scorecard", Destructive = false, OpenWorld = false, UseStructuredContent = true)]

@@ -39,14 +39,17 @@ internal static class McpToolsPage
             <style>
             :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.5; }
             body { margin: 0 auto; max-width: 52rem; padding: 2rem 1rem 4rem; background: Canvas; color: CanvasText; }
-            nav ul { columns: 2; padding-left: 1.25rem; }
+            p { max-width: 72ch; }
+            nav ul { columns: 16rem; padding-left: 1.25rem; }
             section { border-top: 1px solid GrayText; padding-top: 1rem; margin-top: 2rem; }
             h2 { font-size: 1.25rem; margin: 0; }
             code, pre { font-family: ui-monospace, monospace; font-size: 0.875rem; }
+            code { overflow-wrap: anywhere; }
             pre { overflow-x: auto; padding: 0.75rem; border: 1px solid GrayText; border-radius: 0.375rem; }
+            .inputs { overflow-x: auto; }
             table { border-collapse: collapse; width: 100%; }
             th, td { text-align: left; vertical-align: top; padding: 0.25rem 0.5rem 0.25rem 0; }
-            .facts { color: GrayText; }
+            .facts { color: color-mix(in srgb, CanvasText 72%, Canvas); }
             </style>
             </head>
             <body>
@@ -88,7 +91,7 @@ internal static class McpToolsPage
         }
 
         var required = schema.TryGetProperty("required", out var names) ? names.EnumerateArray().Select(n => n.GetString()).ToHashSet() : [];
-        var rows = new StringBuilder("<table><thead><tr><th>Input</th><th>Type</th><th></th><th>What it is</th></tr></thead><tbody>");
+        var rows = new StringBuilder("<div class=\"inputs\"><table><thead><tr><th>Input</th><th>Type</th><th>Required</th><th>What it is</th></tr></thead><tbody>");
         foreach (var property in properties.EnumerateObject())
         {
             rows.Append("<tr><td><code>").Append(e.Encode(property.Name)).Append("</code></td><td>").Append(e.Encode(TypeOf(property.Value)))
@@ -96,7 +99,7 @@ internal static class McpToolsPage
                 .Append(e.Encode(property.Value.TryGetProperty("description", out var description) ? description.GetString() ?? "" : "")).Append("</td></tr>");
         }
 
-        return rows.Append("</tbody></table>").ToString();
+        return rows.Append("</tbody></table></div>").ToString();
     }
 
     // The JSON Schema type in a word: "string", "integer", "array of object", an enum's names, or "string or null".
@@ -115,7 +118,8 @@ internal static class McpToolsPage
         return types.Contains("null") ? $"{text} or null" : text;
     }
 
-    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+    // Apostrophes and the like as themselves, not ': the page HTML-encodes the text after this.
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     private static string Pretty(JsonNode node) => node.ToJsonString(Indented);
 }

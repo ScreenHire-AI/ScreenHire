@@ -52,7 +52,7 @@ public sealed class McpConfirmationTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task A_client_that_asks_the_person_sends_after_their_yes_and_names_the_job_in_the_question()
+    public async Task A_client_that_asks_the_person_sends_after_their_yes_and_shows_the_job_and_the_words_in_the_question()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         var (_, application, address) = await ApplicationAsync(owner);
@@ -63,7 +63,8 @@ public sealed class McpConfirmationTests(AppHostFixture fixture)
         var sent = await mcp.CallAsync("send_email", Email(application, confirm: false));
 
         sent.GetProperty("queued").GetBoolean().Should().BeTrue("the person said yes, so the argument is not what decides");
-        asked.Should().ContainSingle().Which.Should().Contain("Platform Engineer").And.Contain(Subject);
+        asked.Should().ContainSingle().Which.Should().Contain("Platform Engineer").And.Contain(Subject)
+            .And.Contain(Body, "the person agrees to what the candidate will read, not only its subject");
         await WaitForEmailEntryAsync(owner, application);
         (await fixture.Mailpit.WaitForMessagesAsync(address, 1, Ct)).Should().ContainSingle();
     }

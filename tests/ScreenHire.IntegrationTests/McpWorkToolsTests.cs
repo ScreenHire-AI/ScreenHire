@@ -217,6 +217,33 @@ public sealed class McpWorkToolsTests(AppHostFixture fixture)
         interview.GetProperty("interviewerUserIds").EnumerateArray().Select(i => i.GetGuid()).Should().BeEquivalentTo([world.Owner.UserId, world.Second.UserId]);
     }
 
+    [Fact]
+    public async Task Another_organizations_application_and_task_do_not_exist_for_the_work_tools()
+    {
+        using var ours = await fixture.SignedInWithOrganizationAsync();
+        using var theirs = await fixture.SignedInWithOrganizationAsync();
+        var theirJob = (await theirs.CreateJobAsync(Samples.RemoteJob("Their Engineer"))).Id();
+        var theirApplication = (await theirs.CreateApplicationAsync(theirJob, ApiSession.NewEmail("candidate"))).Id();
+        var theirTask = (await theirs.PostAsync($"/v1/applications/{theirApplication}/tasks", new JsonObject { ["note"] = "Check references." }))
+            .Expect(HttpStatusCode.Created).Id();
+        await using var mcp = await ConnectAsync(ours);
+        var application = new Dictionary<string, object?> { ["applicationId"] = theirApplication };
+
+        (await mcp.CallFailingAsync("read_email_thread", application)).Should().Contain("No application with that id");
+        (await mcp.CallFailingAsync("get_scorecards", application)).Should().Contain("No application with that id");
+        (await mcp.CallFailingAsync("draft_email", new(application) { ["subject"] = "Hello", ["body"] = "Hi." })).Should().Contain("No application with that id");
+        (await mcp.CallFailingAsync("send_email", new(application) { ["subject"] = "Hello", ["body"] = "Hi.", ["confirm"] = true }))
+            .Should().Contain("No application with that id");
+        (await mcp.CallFailingAsync("invite_to_schedule", new(application) { ["timeZone"] = "Europe/London", ["confirm"] = true }))
+            .Should().Contain("No application with that id");
+        (await mcp.CallFailingAsync("complete_task", new() { ["taskId"] = theirTask })).Should().Contain("No task with that id");
+
+        await using var db = await fixture.ContextAsync(theirs.OrganizationId, Ct);
+        var row = await db.ApplicationTasks.AsNoTracking().SingleAsync(t => t.Id == theirTask, Ct);
+        row.CompletedAt.Should().BeNull("another organization's key reached nothing");
+        (await db.ApplicationEmails.AsNoTracking().AnyAsync(e => e.ApplicationId == theirApplication, Ct)).Should().BeFalse();
+    }
+
     private async Task<McpClient> ConnectAsync(Tenant owner) =>
         await McpSupport.ConnectAsync(fixture, (await owner.CreateKeyAsync("Assistant", ["Read", "Write"])).Text("token"));
 
