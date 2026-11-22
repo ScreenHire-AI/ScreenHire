@@ -109,7 +109,7 @@ public static class AiCreditLedger
         }
     }
 
-    /// <summary>The newest grant's id: alerts and auto-reload are keyed on it, so each refill can alert and reload once.</summary>
+    /// <summary>The newest grant's id: alerts are keyed on it, and auto-reload with the settings' last change, so each refill can alert and reload once.</summary>
     public static Task<Guid> LatestGrantAsync(ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(db);
@@ -146,7 +146,8 @@ public static class AiCreditLedger
 
 /// <summary>
 /// What the balance calls for after a check drew on it: an auto-reload, and the low-balance or empty alert. Each message is keyed on
-/// the newest grant, so the checks that finish together send one, and the next refill can send them again.
+/// the newest grant (the reload also on the settings' last change and the month), so the checks that finish together send one, and the
+/// next refill can send them again.
 /// </summary>
 public static class AiCreditChecks
 {
@@ -168,9 +169,9 @@ public static class AiCreditChecks
         var pending = await db.CreditPurchases.AsNoTracking()
             .AnyAsync(p => p.Source == CreditPurchaseSource.AutoReload && p.Status == CreditPurchaseStatus.Pending, cancellationToken);
         var reload = AutoReload.Decide(settings, balance, reloaded, pending);
-        if (reload.Reloads)
+        if (reload.Reloads && settings is not null)
         {
-            due.Add(new ReloadAiCredits(organizationId, latestGrant));
+            due.Add(ReloadAiCredits.For(organizationId, latestGrant, settings, now));
         }
 
         if (CreditAlerts.Due(balance, settings?.LowBalanceAlert ?? options.Credits.LowBalanceAlert, reload.Reloads) is { } alert)
@@ -196,10 +197,20 @@ public sealed record GrantAiCredits(Guid OrganizationId, Guid PurchaseId, string
     public string IdempotencyKey => $"credits-grant:{PurchaseId:N}";
 }
 
-/// <summary>Auto-reload is due: the balance fell below its threshold after the grant <paramref name="AfterGrant"/>.</summary>
-public sealed record ReloadAiCredits(Guid OrganizationId, Guid AfterGrant) : ITenantMessage
+/// <summary>
+/// Auto-reload is due: the balance fell below its threshold after the grant <paramref name="AfterGrant"/>. <paramref name="Round"/> is the
+/// settings' last change and the UTC month (<see cref="For"/>), so the checks that finish together send one, and an Owner who turns
+/// auto-reload back on after a refusal, or raises the monthly maximum, or a new month, asks again with the same newest grant.
+/// </summary>
+public sealed record ReloadAiCredits(Guid OrganizationId, Guid AfterGrant, string Round = "") : ITenantMessage
 {
-    public string IdempotencyKey => $"credits-reload:{OrganizationId:N}:{AfterGrant:N}";
+    public string IdempotencyKey => $"credits-reload:{OrganizationId:N}:{AfterGrant:N}:{Round}";
+
+    public static ReloadAiCredits For(Guid organizationId, Guid afterGrant, CreditSettings settings, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        return new(organizationId, afterGrant, $"{settings.UpdatedAt.UtcTicks}:{AiUsageQueries.Month(now)}");
+    }
 }
 
 /// <summary>

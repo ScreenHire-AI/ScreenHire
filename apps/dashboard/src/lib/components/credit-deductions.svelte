@@ -9,6 +9,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
   import { formatCost } from '#lib/ai-usage.js';
+  import { rowLink } from '#lib/row-link.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { describeError } from '#lib/query.js';
 
@@ -66,12 +67,14 @@
         </Table.Header>
         <Table.Body>
           {#each sorted as row (`${row.kind}-${row.id}`)}
-            <Table.Row class="h-12">
+            <!-- A check's row opens its application from anywhere on the row (L5); an expiry has nothing to open. -->
+            <Table.Row {@attach rowLink} class="h-12">
               <Table.Cell class="font-semibold"><DateText at={row.date} /></Table.Cell>
               <Table.Cell>
                 {#if row.kind === 'Check' && row.applicationId && row.candidateName}
                   <a
                     href={`/applications/${row.applicationId}?tab=verification`}
+                    data-row-link
                     class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">{what(row)}</a
                   >
                 {:else}

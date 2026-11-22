@@ -109,8 +109,8 @@ public enum CheckNotRunKind
     Trusted,
 
     /// <summary>
-    /// The AI checks were paused because the organization reached its monthly cap. The rule-based checks ran. Never a mark
-    /// against the candidate.
+    /// The AI checks were paused because the organization's AI credits ran out (or, on older rows, it reached its monthly cap).
+    /// The rule-based checks ran. Never a mark against the candidate.
     /// </summary>
     Paused,
 }

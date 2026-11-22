@@ -233,7 +233,7 @@ internal sealed class ConsistencyCheckConfiguration : IEntityTypeConfiguration<C
             .OnDelete(DeleteBehavior.Cascade);
         // The claim: one check per application and prompt version, so a redelivered message never calls the model twice.
         builder.HasIndex(c => new { c.OrganizationId, c.ApplicationId, c.PromptVersion }).IsUnique();
-        // The monthly budget sums an organization's checks by start time.
+        // The AI use report and the resume sweep read an organization's checks by start time.
         builder.HasIndex(c => new { c.OrganizationId, c.StartedAt });
     }
 }

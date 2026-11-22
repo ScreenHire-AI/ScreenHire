@@ -147,7 +147,7 @@ public sealed partial class RolePermissionsTests
         ["ListAiUsageCalls"] = Permission.ViewAiUsage,
         ["ExportAiUsageCalls"] = Permission.ViewAiUsage,
         ["ExportVerificationActivity"] = Permission.ViewAiUsage,
-        // Owners set the monthly budget and cap: spend controls are billing, not general settings.
+        // The balance and deductions are for whoever sees AI usage; buying credits and auto-reload are billing, for Owners.
         ["GetAiCredits"] = Permission.ViewAiUsage,
         ["ListAiCreditDeductions"] = Permission.ViewAiUsage,
         ["ListAiCreditPurchases"] = Permission.ManageBilling,

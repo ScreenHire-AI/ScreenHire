@@ -133,7 +133,7 @@
             </SummaryItem>
           </SummaryList>
           <p>
-            <a href="/settings/billing#ai-credits" class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
+            <a href="/settings/billing#ai-credits" class="inline-flex min-h-6 items-center underline underline-offset-2 pointer-coarse:min-h-11"
               >See AI credits</a
             >
           </p>

@@ -239,11 +239,12 @@ internal static class AiCreditEndpoints
         settings.SetAutoReload(reload.Enabled, reload.Below, reload.Amount, reload.MonthlyMax, now);
 
         // Turned on while the balance is already below its threshold: reload now rather than after the next check. The worker decides
-        // again (the monthly maximum, a reload already waiting), keyed on the newest grant as a check's request is, so the two are one.
+        // again (the monthly maximum, a reload already waiting), keyed on the newest grant and this change of the settings as a check's
+        // request is, so the two are one, and turning it back on after a refusal asks again.
         if (reload is { Enabled: true, Below: { } below }
             && await AiCreditLedger.BalanceMicrosAsync(db, cancellationToken) < AiCharge.ToMicros(below))
         {
-            await outbox.PublishAsync(new ReloadAiCredits(organizationId, await AiCreditLedger.LatestGrantAsync(db, cancellationToken)));
+            await outbox.PublishAsync(ReloadAiCredits.For(organizationId, await AiCreditLedger.LatestGrantAsync(db, cancellationToken), settings, now));
         }
 
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
@@ -260,11 +261,15 @@ internal static class AiCreditEndpoints
         var smallest = credits.AmountsOnOffer.Count > 0 ? credits.AmountsOnOffer[0] : 1m;
         Money("lowBalanceAlert", request.LowBalanceAlert, 0m);
         var reload = request.AutoReload;
-        Money("autoReload.below", reload.Below, 0.01m);
-        Money("autoReload.amount", reload.Amount, smallest);
-        Money("autoReload.monthlyMax", reload.MonthlyMax, smallest);
+        // The reload amounts' minimums hold only when auto-reload is on: the form hides them while it is off, and a monthly maximum carried
+        // over from the old cap can be below the smallest amount on offer, which must not stop an Owner saving the low-balance alert.
+        // Off, they are still dollars to the cent within range, so what is kept fits its column.
+        Money("autoReload.below", reload.Below, reload.Enabled ? 0.01m : 0m);
+        Money("autoReload.amount", reload.Amount, reload.Enabled ? smallest : 0m);
+        Money("autoReload.monthlyMax", reload.MonthlyMax, reload.Enabled ? smallest : 0m);
         if (reload.Enabled)
         {
+
             if (reload.Below is null)
             {
                 problems.TryAdd("autoReload.below", ["Say when to add credits."]);
@@ -286,7 +291,7 @@ internal static class AiCreditEndpoints
             }
         }
 
-        if (reload is { Amount: { } amount, MonthlyMax: { } max } && max < amount)
+        if (reload is { Enabled: true, Amount: { } amount, MonthlyMax: { } max } && max < amount)
         {
             problems.TryAdd("autoReload.monthlyMax", ["The monthly maximum must allow at least one reload."]);
         }
