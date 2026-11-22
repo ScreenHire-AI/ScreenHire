@@ -53,7 +53,7 @@
     <Sheet.Header>
       {#if mode.kind === 'new'}
         <Sheet.Title>Post it yourself</Sheet.Title>
-        <Sheet.Description>For a board ScreenHire does not post to. Copy the job, post it there with its apply link, then save where you posted it.</Sheet.Description>
+        <Sheet.Description>For a board ScreenHire does not post to.</Sheet.Description>
       {:else if mode.kind === 'edit'}
         <Sheet.Title>Edit the posting on {mode.posting.boardName}</Sheet.Title>
         <Sheet.Description>The apply link stays the same, so links already on the board keep counting.</Sheet.Description>

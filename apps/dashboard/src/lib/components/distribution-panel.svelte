@@ -59,6 +59,7 @@
     type BoardRow,
     type PostingView,
   } from '#lib/distribution.js';
+  import { CopyFeedback } from '#lib/copy-feedback.svelte.js';
   import { formatDay } from '#lib/ai-usage.js';
   import { applicationsBySource, changedSentence, describeManualPosting, localToday, type PostItYourselfMode } from '#lib/manual-postings.js';
   import { can } from '#lib/permissions.js';
@@ -238,19 +239,7 @@
 
   // What Copy link says for two seconds after a press. Without a clipboard it says the copy failed; View posting is beside
   // it.
-  let copied = $state<string | null>(null);
-  let copyTimer: ReturnType<typeof setTimeout> | undefined;
-  async function copyLink(url: string) {
-    clearTimeout(copyTimer);
-    try {
-      await navigator.clipboard.writeText(url);
-      copied = 'Copied';
-    } catch {
-      copied = 'Could not copy';
-    }
-    copyTimer = setTimeout(() => (copied = null), 2000);
-  }
-  $effect(() => () => clearTimeout(copyTimer));
+  const copyFeedback = new CopyFeedback();
 </script>
 
 <!-- The tab's count says how many boards the job went to, so the panel's title has none (W4). -->
@@ -274,7 +263,8 @@
                   class={[
                     'px-3',
                     (header.id === 'status' || header.id === 'actions') && 'px-4',
-                    header.id === 'actions' && 'w-14',
+                    header.id === 'status' && 'sticky left-0 bg-muted',
+                    header.id === 'actions' && 'sticky right-0 w-14 bg-muted',
                     (numeric(header.id) || header.id === 'actions') && 'text-right',
                   ]}
                 />
@@ -285,19 +275,22 @@
         <tbody>
           {#each rows as row (row.id)}
             <!-- A row keeps one height (L1): a problem is the notice above the tabs, its fixes are in the row's menu. On a
-                 phone a row with dates has two more lines, so a row without them is held to the same height. -->
+                 phone a row with dates has three more lines (posted, applications, updated), so every row is held to that height. -->
             <!-- A board that can be customized opens Customize from anywhere on its row (L5): its name is the button. -->
-            <tr {@attach rowLink} data-board={row.original.kind === 'board' ? row.id : undefined} data-manual-posting={row.original.kind === 'manual' ? row.original.posting.id : undefined} class="h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted max-md:h-17">
+            <tr {@attach rowLink} data-board={row.original.kind === 'board' ? row.id : undefined} data-manual-posting={row.original.kind === 'manual' ? row.original.posting.id : undefined} class="group h-12 border-b border-border-subtle last:border-b-0 hover:bg-muted max-md:h-21">
               {#each row.getAllCells() as cell (cell.id)}
                 <td
                   class={[
                     'px-3 whitespace-nowrap max-md:py-2',
                     (cell.column.id === 'status' || cell.column.id === 'actions') && 'px-4',
+                    // Status and the row menu stick while a tablet scrolls the table (section 8); a stuck cell covers what
+                    // scrolls under it, so it carries the row's hover itself.
+                    cell.column.id === 'status' && 'sticky left-0 bg-card group-hover:bg-muted',
                     // The board takes the room the other columns leave. A long name is cut, whole in its tooltip (F5). On a
                     // phone it has no minimum, or the row menu is pushed past the panel's edge.
                     cell.column.id === 'board' && 'w-full max-w-0 min-w-40 max-md:min-w-0',
                     numeric(cell.column.id) && 'text-right text-muted-foreground tabular-nums max-md:hidden',
-                    cell.column.id === 'actions' && 'text-right',
+                    cell.column.id === 'actions' && 'sticky right-0 bg-card text-right group-hover:bg-muted',
                   ]}
                 >
                   <FlexRender {cell} />
@@ -367,9 +360,11 @@
     </span>
     {#if posted && board.posting}
       {@const count = countOf(row)}
-      <span class="flex flex-col text-caption text-muted-foreground md:hidden">
-        <span>Posted <DateText at={posted} />{#if count !== null}, {applicationWords(count)}{/if}</span>
-        <span>Updated <DateText at={board.posting.updatedAt} /></span>
+      <!-- One line each, cut rather than run under the row menu (L1); the count has its own line, so it is never the part cut. -->
+      <span class="flex min-w-0 flex-col text-caption text-muted-foreground md:hidden">
+        <span class="truncate">Posted <DateText at={posted} /></span>
+        {#if count !== null}<span class="truncate">{applicationWords(count)}</span>{/if}
+        <span class="truncate">Updated <DateText at={board.posting.updatedAt} /></span>
       </span>
     {/if}
   {:else}
@@ -390,9 +385,10 @@
       {/if}
     </span>
     {@const count = countOf(row)}
-    <span class="flex flex-col text-caption text-muted-foreground md:hidden">
-      <span>Posted {formatDay(posting.postedOn)}{#if count !== null}, {applicationWords(count)}{/if}</span>
-      <span>Updated <DateText at={posting.updatedAt} /></span>
+    <span class="flex min-w-0 flex-col text-caption text-muted-foreground md:hidden">
+      <span class="truncate">Posted {formatDay(posting.postedOn)}</span>
+      {#if count !== null}<span class="truncate">{applicationWords(count)}</span>{/if}
+      <span class="truncate">Updated <DateText at={posting.updatedAt} /></span>
     </span>
   {/if}
 {/snippet}
@@ -489,7 +485,7 @@
           {/snippet}
         </DropdownMenu.Item>
         <!-- Stays open, so the item can say the copy worked. -->
-        <DropdownMenu.Item closeOnSelect={false} onSelect={() => copyLink(url)}><CopyIcon aria-hidden="true" />{copied ?? 'Copy link'}</DropdownMenu.Item>
+        <DropdownMenu.Item closeOnSelect={false} onSelect={() => copyFeedback.copyText('link', url)}><CopyIcon aria-hidden="true" />{copyFeedback.said('link', 'Copy link')}</DropdownMenu.Item>
       {/if}
       {#if customizable}
         <DropdownMenu.Item onSelect={() => (chosen = { boardId: row.boardId, name: row.name })}><SlidersIcon aria-hidden="true" />Customize for {row.name}</DropdownMenu.Item>
