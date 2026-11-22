@@ -851,7 +851,7 @@ place to what the group looks at, one example of what it catches and what turnin
 `apps/dashboard/src/lib/verification-settings.ts`), and the settings that tune it: the AI-use policy and "Compare each application's
 sources" (the consistency check, `llmConsistencyCheck`) in Answers, trusted networks in Network, trusted email domains and the device
 check in Duplicates. A link can open one row by its key (`/verification/checks#answers`, the template's Change policy). The
-Verification suggested alert follows the groups. One Save keeps the tab and sends every setting, open or not. A group that is off is not run: the pipeline writes the analyzer's run with no signals and the
+Verification suggested alert follows the groups. One Save keeps the tab and sends every setting, open or not. When the API refuses a setting, its row opens: the trusted lists show the reason beside the field and any other setting's reason shows under Save. A group that is off is not run: the pipeline writes the analyzer's run with no signals and the
 note "<Group> checks are turned off in this organization's settings", the consistency check is recorded as off so no source
 is sent to a model, and `checksNotRun` shows the reviewer which groups did not look. A re-check never runs a group that is off.
 Turning Form activity off stops the apply page collecting form telemetry: the form is issued no session token, ingest keeps nothing
