@@ -172,7 +172,7 @@
     getRowId: (row) => row.id,
   });
   const rows = $derived(table.getRowModel().rows);
-  // A phone has no Applications column, so the count joins the date under the board's name.
+  // A phone has no Applications column, so the count is a line of its own under the board's name.
   const applicationWords = (count: number) => `${count} ${count === 1 ? 'application' : 'applications'}`;
   const numeric = (id: string) => id === 'posted' || id === 'applications' || id === 'updatedAt';
 
