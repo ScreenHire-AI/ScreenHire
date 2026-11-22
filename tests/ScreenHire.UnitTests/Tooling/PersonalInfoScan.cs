@@ -62,8 +62,10 @@ internal static partial class PersonalInfoScan
 
     /// <summary>
     /// Words that mark a secret-shaped value as made up: <c>whsec_fictional_secret</c>, AWS's documented
-    /// <c>AKIAIOSFODNN7EXAMPLE</c>. GitHub's own scanner ignores them, so a committed value still must not match a
-    /// provider's format; the marker only keeps this scan from failing on a fixture that is plainly not a key.
+    /// <c>AKIAIOSFODNN7EXAMPLE</c>. A marker counts only inside the match itself, and for a prefixed secret only at the
+    /// start of its body, so a word placed beside a real key does not hide it. GitHub's own scanner ignores them, so a
+    /// committed value still must not match a provider's format; the marker only keeps this scan from failing on a
+    /// fixture that is plainly not a key.
     /// </summary>
     private static readonly string[] FictionalMarkers = ["fictional", "example", "test_vector"];
 
@@ -104,7 +106,7 @@ internal static partial class PersonalInfoScan
         {
             foreach (Match match in pattern.Matches(text))
             {
-                if (kind == "private key" || !IsFictional(TokenAround(text, match)))
+                if (kind == "private key" || !IsFictional(match.Value))
                 {
                     Add(kind, match);
                 }
@@ -115,7 +117,8 @@ internal static partial class PersonalInfoScan
         {
             foreach (Match match in pattern.Matches(text))
             {
-                if (KeyLikeRun().IsMatch(match.Groups["body"].Value) && !IsFictional(match.Value))
+                var body = match.Groups["body"].Value;
+                if (KeyLikeRun().IsMatch(body) && !StartsFictional(body))
                 {
                     Add(kind, match);
                 }
@@ -232,27 +235,16 @@ internal static partial class PersonalInfoScan
 
     private static int LineOf(string text, int index) => text.AsSpan(0, index).Count('\n') + 1;
 
-    private static bool IsFictional(string token) =>
-        FictionalMarkers.Any(marker => token.Contains(marker, StringComparison.OrdinalIgnoreCase));
+    /// <summary>Whether the match itself says it is made up, as <c>AKIAIOSFODNN7EXAMPLE</c> does.</summary>
+    private static bool IsFictional(string match) =>
+        FictionalMarkers.Any(marker => match.Contains(marker, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>The match widened over the letters, digits, <c>_</c> and <c>-</c> around it: the whole token it sits in.</summary>
-    private static string TokenAround(string text, Match match)
-    {
-        static bool IsTokenChar(char c) => char.IsAsciiLetterOrDigit(c) || c is '_' or '-';
-        var start = match.Index;
-        var end = match.Index + match.Length;
-        while (start > 0 && IsTokenChar(text[start - 1]))
-        {
-            start--;
-        }
-
-        while (end < text.Length && IsTokenChar(text[end]))
-        {
-            end++;
-        }
-
-        return text[start..end];
-    }
+    /// <summary>
+    /// Whether a prefixed secret's body opens with a marker (<c>shws_fictional_...</c>). Only the opening counts: a real
+    /// key with <c>_example</c> after it is still a key.
+    /// </summary>
+    private static bool StartsFictional(string body) =>
+        FictionalMarkers.Any(marker => body.StartsWith(marker, StringComparison.OrdinalIgnoreCase));
 
     private static string? Git(string root, params string[] arguments)
     {

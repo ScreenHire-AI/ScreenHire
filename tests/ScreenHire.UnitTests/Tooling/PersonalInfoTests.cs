@@ -50,6 +50,10 @@ public sealed class PersonalInfoTests
         // The shape of the test vector GitHub's secret scanning reported (alert #2): a long hex body and no marker.
         { "stripe webhook secret", "whsec_" + string.Concat(Enumerable.Repeat("6f1d2c3b4a5968770", 4)) },
         { "screenhire webhook secret", "shws_" + string.Concat(Enumerable.Repeat("0123456789abcdef", 4)) },
+        // A marker beside a real key, rather than opening its body or inside the match, does not hide it.
+        { "screenhire webhook secret", "shws_" + string.Concat(Enumerable.Repeat("0123456789abcdef", 4)) + "_example" },
+        { "stripe webhook secret", "whsec_" + string.Concat(Enumerable.Repeat("0123456789abcdef", 2)) + "_test_vector" },
+        { "github token", "example-" + "ghp_" + new string('c', 36) },
         { "screenhire api key", "Bearer shk_" + "1a2b3c4d_" + string.Concat(Enumerable.Repeat("0123456789abcdef", 2)) + "_" + new string('9', 64) },
     };
 
