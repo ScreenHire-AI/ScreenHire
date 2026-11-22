@@ -48,6 +48,6 @@ describe('status catalogue', () => {
   it('keeps waiting states grey: nobody needs to act (T3)', () => {
     const attention = (Object.keys(statuses) as StatusName[]).filter(needsAttention);
 
-    expect(attention.toSorted()).toEqual(['broken', 'needsFixes', 'overdue', 'review', 'unsafeFile', 'verification']);
+    expect(attention.toSorted()).toEqual(['broken', 'needsFixes', 'overdue', 'review', 'stillPosted', 'unsafeFile', 'verification']);
   });
 });
