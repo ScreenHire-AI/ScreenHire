@@ -24,6 +24,12 @@ sources:
   - resource: apps/marketing/src/pages/index.astro
   - resource: apps/marketing/src/lib/home-page.test.ts
   - resource: apps/marketing/src/pages/product/real-people.astro
+  - resource: apps/marketing/src/pages/product/index.astro
+  - resource: apps/marketing/src/pages/product/never-guessing.astro
+  - resource: apps/marketing/src/pages/product/automate-anything.astro
+  - resource: apps/marketing/src/pages/product/integrations.astro
+  - resource: apps/marketing/src/pages/product/built-your-way.astro
+  - resource: apps/marketing/src/pages/product/careers-site.astro
 ---
 # Marketing site messaging
 
