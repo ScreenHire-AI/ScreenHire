@@ -111,7 +111,7 @@
   const verification = createGetOrganizationVerificationSettings();
   const aiUse = $derived({
     policy: verification.data?.data.defaultAiUse,
-    href: can(page.data.user, 'EditSettings') ? '/verification/checks' : undefined,
+    href: can(page.data.user, 'EditSettings') ? '/verification/checks#answers' : undefined,
   });
   const isDraft = $derived(current?.status === 'Draft' && !detail?.isSystem && !detail?.archived && mayEdit);
   // Duplicate and Archive, for the team's own template and a role that may change templates.
