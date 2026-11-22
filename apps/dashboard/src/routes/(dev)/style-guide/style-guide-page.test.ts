@@ -51,6 +51,8 @@ const panels: Record<string, string[]> = {
   'Automation list': ['Automation list'],
   'Stage flow': ['Stage flow'],
   'Stage cards': ['Stage cards'],
+  // Chips are drawn on the cards, and read only in the flow.
+  'Stage chips': ['Stage cards', 'Stage flow'],
   'Stage sheet': ['Stage sheet'],
   'Start from card': ['Start from card'],
   'Try it': ['Try it', 'Try it, paused by a problem'],

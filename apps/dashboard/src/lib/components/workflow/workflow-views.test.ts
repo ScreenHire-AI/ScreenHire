@@ -121,7 +121,7 @@ describe('validation badge', () => {
 });
 
 describe('read-only workflow', () => {
-  it('reads the pipeline as content: stages in a flow with their short facts, Ends in the footer, automations as rows', async () => {
+  it('reads the pipeline as content: stages in a flow with their chips, Ends in the footer, automations as rows', async () => {
     const { container } = renderViews('summary');
 
     const pane = screen.getByRole('tabpanel', { name: 'Pipeline' });
@@ -130,9 +130,11 @@ describe('read-only workflow', () => {
     const stages = within(pane).getByRole('region', { name: 'Stages' });
     const line = within(stages).getByRole('list', { name: 'Stages in order' });
     expect(Array.from(line.children).map((item) => item.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      '1 Applied Asks 1 question',
-      '2 Phone screen Respond within 3 days Tag screened',
+      '1 Applied 1',
+      '2 Phone screen Respond within 3 days 1',
     ]);
+    expect(within(line).getByRole('button', { name: '1 question at Applied' })).toBeInTheDocument();
+    expect(within(line).getByRole('button', { name: '1 automation at Phone screen' })).toBeInTheDocument();
     const ends = within(stages).getByRole('region', { name: 'Ends' });
     expect(ends).toHaveTextContent('Hired');
     expect(ends).toHaveTextContent('Not progressing');
@@ -282,14 +284,14 @@ describe('workflow builder', () => {
     const stages = screen.getByRole('region', { name: 'Stages' });
     const cards = () => within(stages).getAllByRole('group', { name: /^Stage / }).map((card) => card.getAttribute('aria-label'));
     expect(cards()).toEqual(['Stage 1: Applied', 'Stage 2: Phone screen']);
-    expect(within(within(stages).getByRole('region', { name: 'Ends' })).getAllByRole('group').map((card) => card.getAttribute('aria-label'))).toEqual([
-      'End stage: Hired',
-      'End stage: Not progressing',
+    expect(within(within(stages).getByRole('region', { name: 'Ends' })).getAllByRole('button').map((end) => end.textContent?.trim())).toEqual([
+      'Hired',
+      'Not progressing',
     ]);
     // The time limit is in the stage's sheet, not on the card, and a card is no panel inside the panel (S4).
     expect(within(stages).queryByRole('spinbutton')).toBeNull();
     expect(within(stages).getByRole('group', { name: 'Stage 2: Phone screen' })).toHaveTextContent('Respond within 3 days');
-    expect(within(stages).getByRole('group', { name: 'Stage 2: Phone screen' })).toHaveTextContent('Tag screened');
+    expect(within(within(stages).getByRole('group', { name: 'Stage 2: Phone screen' })).getByRole('button', { name: '1 automation at Phone screen' })).toBeInTheDocument();
     expect(stages.querySelectorAll('[data-slot="panel"]')).toHaveLength(0);
     // The old panel of automations is gone: they are counted on their stage and listed under Automations.
     expect(screen.queryByRole('region', { name: 'Workflow automations' })).toBeNull();
@@ -373,11 +375,11 @@ describe('workflow builder', () => {
 
     const added = await within(forms).findByRole('button', { name: /Screening questionnaire/ });
     expect(added).toHaveAttribute('aria-pressed', 'true');
-    expect(added).toHaveTextContent('Only when sent by hand');
+    expect(added).toHaveTextContent('By hand only');
 
     // When it is sent is the form's own choice, and it writes the automation behind it.
     await fireEvent.change(within(pane).getByRole('combobox', { name: "When it's sent" }), { target: { value: 'stage' } });
-    expect(added).toHaveTextContent('Sent when they enter Phone screen');
+    expect(added).toHaveTextContent('Entering Phone screen');
     expect(within(pane).getByRole('combobox', { name: 'Stage' })).toHaveValue('phone-screen');
     expect(screen.getByTestId('draft')).toHaveTextContent('"trigger":{"type":"StageEntered","stageId":"phone-screen"},"conditions":null,"actions":[{"type":"SendQuestionnaire","questionnaireId":"screening_questionnaire"}]');
 
@@ -442,7 +444,7 @@ describe('workflow builder', () => {
     render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: unsent, errors: [], mode: 'editor', tab: 'forms' } } });
     const pane = screen.getByRole('tabpanel', { name: 'Forms' });
 
-    expect(within(within(pane).getByRole('group', { name: 'Forms' })).getByRole('button', { name: /References/ })).toHaveTextContent('Only when sent by hand');
+    expect(within(within(pane).getByRole('group', { name: 'Forms' })).getByRole('button', { name: /References/ })).toHaveTextContent('By hand only');
   });
 
   it('offers Send a form and the form trigger only with a follow-up to name', async () => {
@@ -535,12 +537,8 @@ describe('workflow builder', () => {
     const { container } = renderViews('editor');
     const stages = screen.getByRole('region', { name: 'Stages' });
 
-    // A stage that ends the application has no scorecard, so its menu leaves the item out (A3).
-    await fireEvent.pointerDown(within(stages).getByRole('button', { name: 'Actions for Hired' }), { button: 0, pointerType: 'mouse' });
-    const hiredMenu = await screen.findByRole('menu');
-    expect(within(hiredMenu).getByRole('menuitem', { name: 'Add an automation' })).toBeInTheDocument();
-    expect(within(hiredMenu).queryByRole('menuitem', { name: 'Choose scorecard' })).toBeNull();
-    await fireEvent.keyDown(hiredMenu, { key: 'Escape' });
+    // A stage that ends the application has no scorecard, and no menu: its button opens its sheet (A3).
+    expect(within(stages).queryByRole('button', { name: 'Actions for Hired' })).toBeNull();
     await chooseStageAction('Phone screen', 'Choose scorecard');
     const sheet = await screen.findByRole('dialog', { name: 'Scorecard: Phone screen' });
     const picker = within(sheet).getByRole('combobox', { name: 'Scorecard' });
@@ -553,8 +551,8 @@ describe('workflow builder', () => {
       "Meets the role's requirements Rating, 1 to 5",
       'Notes Long text',
     ]);
-    // The stage's scorecard is its name beside an icon, with the word for screen readers only (W9).
-    expect(stages).toHaveTextContent('Scorecard: Phone screen');
+    // The stage's card has a Scorecard chip that opens the sheet again.
+    expect(within(within(stages).getByRole('group', { name: 'Stage 2: Phone screen' })).getByRole('button', { name: 'Scorecard' })).toBeInTheDocument();
     await expectNoAxeViolations(container);
     vi.unstubAllGlobals();
   });
@@ -573,14 +571,8 @@ describe('workflow builder', () => {
     try {
       await fireEvent.click(within(menu).getByRole('menuitem', { name: 'Remove stage' }));
       await vi.waitFor(() => expect(within(stages).queryByRole('group', { name: /Phone screen/ })).toBeNull());
-      // The card and its menu left with the stage, so focus moves on to the next card's name rather than falling to the page.
-      await vi.waitFor(() => expect(within(stages).getByRole('button', { name: 'Hired' })).toHaveFocus());
-
-      await fireEvent.pointerDown(within(stages).getByRole('button', { name: 'Actions for Not progressing' }), { button: 0, pointerType: 'mouse' });
-      await fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove stage' }));
-      // The last card went, so the last one left takes the focus.
-      await vi.waitFor(() => expect(within(stages).getByRole('button', { name: 'Hired' })).toHaveFocus());
-      expect(within(stages).queryByRole('group', { name: /Not progressing/ })).toBeNull();
+      // The card and its menu left with the stage, and it was the last, so the last card left takes the focus rather than the page.
+      await vi.waitFor(() => expect(within(stages).getByRole('button', { name: 'Applied' })).toHaveFocus());
     } finally {
       delete (Element.prototype as Partial<Element>).getAnimations;
     }

@@ -244,11 +244,11 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Service plumber");
         await ExpectNoProblemsAsync();
 
-        // The Pipeline tab, first, reads each stage back as short facts.
+        // The Pipeline tab, first, counts what happens at each stage in chips, never sentences.
         var stages = Page.GetByRole(AriaRole.Region, new() { Name = "Stages" });
         await Expect(stages).ToContainTextAsync("Trial shift");
         await Expect(stages).ToContainTextAsync("Respond within 5 days");
-        await Expect(stages).ToContainTextAsync("Sends \"Application received\"");
+        await Expect(stages.GetByRole(AriaRole.Button, new() { Name = "1 email at Applied" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-pipeline-light");
 

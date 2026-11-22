@@ -1,7 +1,7 @@
 // A pipeline's open stages as the read-only view draws them (design system section 11, Stage flow). jsdom has no layout,
-// so what these check is the markup both layouts share: the order, the facts and what a stage with nothing attached says.
+// so what these check is the markup both layouts share: the order, the chips and what a stage with nothing on it says.
 import type { HiringWorkflow, WorkflowStage } from '@screenhire/api-client';
-import { render, screen, within } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub } from '../../../test-support/fixtures.js';
@@ -43,32 +43,34 @@ describe('stage flow', () => {
     items.forEach((item, index) => expect(text(item)).toMatch(new RegExp(`^${index + 1} `)));
   });
 
-  it('shows a stage with nothing attached as its name alone', () => {
+  it('says "Nothing happens automatically" on a stage with nothing on it', () => {
     renderFlow();
 
     const offer = screen.getByRole('list', { name: 'Stages in order' }).children[3]!;
-    expect(text(offer)).toBe('4 Offer');
-    expect(within(offer as HTMLElement).queryByRole('list')).toBeNull();
+    expect(text(offer)).toBe('4 Offer Nothing happens automatically');
+    expect(within(offer as HTMLElement).queryByRole('button')).toBeNull();
   });
 
-  it('says what is attached as the stage cards do, one short fact a line, as text', () => {
+  it('counts what is on a stage as the stage cards do, and its lists are text with no links', async () => {
     renderFlow();
 
-    const [applied, phone, interview] = Array.from(screen.getByRole('list', { name: 'Stages in order' }).children) as HTMLElement[];
-    const facts = (stage: HTMLElement) => within(within(stage).getByRole('list')).getAllByRole('listitem').map(text);
+    const [applied, phone] = Array.from(screen.getByRole('list', { name: 'Stages in order' }).children) as HTMLElement[];
+    expect(within(applied!).getByRole('button', { name: '1 automation at Applied' })).toBeInTheDocument();
+    expect(text(within(phone!).getByRole('list', { name: 'What happens at Phone screen' }))).toBe('Respond within 3 days 2 Scorecard: Phone screen scorecard');
 
-    expect(facts(applied!)).toEqual(['Tag new']);
-    expect(facts(phone!)).toEqual(['Respond within 3 days', 'Tag screened', 'Tell the team', 'Scorecard: Phone screen scorecard']);
-    expect(facts(interview!)).toEqual(['Respond within 5 days', 'Tag interviewed']);
-    expect(within(phone!).queryByRole('link')).toBeNull();
+    await fireEvent.click(within(phone!).getByRole('button', { name: '2 automations at Phone screen' }));
+    const list = await screen.findByRole('dialog', { name: '2 automations at Phone screen' });
+    expect(within(list).getAllByRole('listitem').map(text)).toEqual(['Tag screened', 'Tell the team']);
+    expect(within(list).queryByRole('link')).toBeNull();
+    expect(within(phone!).queryByRole('button', { name: /Respond within/ })).toBeNull();
   });
 
-  it('leaves out an automation that is off, and a stage whose only automation is off shows its name alone', () => {
+  it('leaves out an automation that is off, and a stage whose only automation is off has nothing on it', () => {
     renderFlow();
 
     const list = screen.getByRole('list', { name: 'Stages in order' });
-    expect(text(list.children[2]!)).toBe('3 Interview Respond within 5 days Tag interviewed');
-    expect(text(list.children[3]!)).toBe('4 Offer');
+    expect(within(list.children[2] as HTMLElement).getByRole('button', { name: '1 automation at Interview' })).toBeInTheDocument();
+    expect(text(list.children[3]!)).toBe('4 Offer Nothing happens automatically');
   });
 
   it('names a scorecard from the library once the library loads, with its word for screen readers only', async () => {

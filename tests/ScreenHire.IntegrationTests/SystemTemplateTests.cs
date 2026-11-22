@@ -15,25 +15,31 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
         { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion3, 3, "Software engineer" },
         { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion4, 4, "Software engineer" },
         { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion5, 5, "Software engineer" },
+        { SystemTemplates.SoftwareEngineer, SystemTemplates.SoftwareEngineerVersion6, 6, "Software engineer" },
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion1, 1, "Hourly role" },
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion2, 2, "Hourly role" },
         { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion3, 3, "Hourly role" },
+        { SystemTemplates.HourlyRole, SystemTemplates.HourlyRoleVersion4, 4, "Hourly role" },
         { SystemTemplates.OfficeRole, SystemTemplates.OfficeRoleVersion1, 1, "Office role" },
+        { SystemTemplates.OfficeRole, SystemTemplates.OfficeRoleVersion2, 2, "Office role" },
         { SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion1, 1, "Trade role with a trial shift" },
         { SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion2, 2, "Trade role with a trial shift" },
         { SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion3, 3, "Trade role with a trial shift" },
+        { SystemTemplates.TradeRole, SystemTemplates.TradeRoleVersion4, 4, "Trade role with a trial shift" },
         { SystemTemplates.HighVolume, SystemTemplates.HighVolumeVersion1, 1, "High volume" },
+        { SystemTemplates.HighVolume, SystemTemplates.HighVolumeVersion2, 2, "High volume" },
         { SystemTemplates.Hospitality, SystemTemplates.HospitalityVersion1, 1, "Hospitality" },
         { SystemTemplates.Hospitality, SystemTemplates.HospitalityVersion2, 2, "Hospitality" },
+        { SystemTemplates.Hospitality, SystemTemplates.HospitalityVersion3, 3, "Hospitality" },
     };
 
     // The newest version of each starting point of the new template screen, which the dashboard copies from.
     public static TheoryData<Guid, int> StartingPoints => new()
     {
-        { SystemTemplates.OfficeRole, 1 },
-        { SystemTemplates.TradeRole, 3 },
-        { SystemTemplates.Hospitality, 2 },
-        { SystemTemplates.HighVolume, 1 },
+        { SystemTemplates.OfficeRole, 2 },
+        { SystemTemplates.TradeRole, 4 },
+        { SystemTemplates.Hospitality, 3 },
+        { SystemTemplates.HighVolume, 2 },
     };
 
     // The starting points of the new template screen: a copy of one is a draft a fresh organization can publish at
@@ -120,6 +126,48 @@ public sealed class SystemTemplateTests(AppHostFixture fixture)
             .Should().OnlyContain(s => !s.Has("meetingName"), "only the trial shift stage names its meeting");
         newer.At("definition.workflow.stages").GetArrayLength().Should().Be(older.At("definition.workflow.stages").GetArrayLength());
         StageOf(job.At("workflow.stages"), "trial_shift").GetProperty("meetingName").GetString().Should().Be("trial shift", "the job copies the stage as it is");
+    }
+
+    // Each system template's newest version is the one before it with its automations' short names (migration
+    // ShortenSystemAutomationNames), because the Pipeline tab lists automations by name. Only the names change: the ids,
+    // which feed idempotency keys, and everything else stay. The version before is published, so it keeps its words.
+    public static TheoryData<Guid, int> ShortNamed => new()
+    {
+        { SystemTemplates.SoftwareEngineer, 6 },
+        { SystemTemplates.HourlyRole, 4 },
+        { SystemTemplates.OfficeRole, 2 },
+        { SystemTemplates.TradeRole, 4 },
+        { SystemTemplates.HighVolume, 2 },
+        { SystemTemplates.Hospitality, 3 },
+    };
+
+    [Theory]
+    [MemberData(nameof(ShortNamed))]
+    public async Task The_newest_version_gives_its_automations_short_names_and_the_version_before_keeps_its_own(Guid templateId, int number)
+    {
+        var shortNames = new Dictionary<string, string>
+        {
+            ["right_to_work_review"] = "Right-to-work check",
+            ["integrity_review"] = "Verification review",
+            ["notify_team"] = "New application alert",
+        };
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+
+        var older = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/{number - 1}")).Expect(HttpStatusCode.OK);
+        var newer = (await recruiter.GetAsync($"/v1/templates/{templateId}/versions/{number}")).Expect(HttpStatusCode.OK);
+        var before = older.At("definition.workflow.automations").EnumerateArray().ToList();
+        var after = newer.At("definition.workflow.automations").EnumerateArray().ToList();
+
+        (await recruiter.GetAsync($"/v1/templates/{templateId}")).At("latestPublishedVersion").GetInt32().Should().Be(number);
+        after.Select(a => a.GetProperty("id").GetString()).Should().Equal(before.Select(a => a.GetProperty("id").GetString()));
+        after.Should().Contain(a => shortNames.ContainsKey(a.GetProperty("id").GetString()!), "every system template has one of them");
+        foreach (var (old, renamed) in before.Zip(after))
+        {
+            var id = old.GetProperty("id").GetString()!;
+            renamed.GetProperty("name").GetString().Should().Be(shortNames.GetValueOrDefault(id, old.GetProperty("name").GetString()!));
+            if (shortNames.TryGetValue(id, out var shortName)) old.GetProperty("name").GetString().Should().NotBe(shortName, "a published version never changes");
+        }
+        newer.At("definition.workflow.stages").GetRawText().Should().Be(older.At("definition.workflow.stages").GetRawText());
     }
 
     private static JsonElement StageOf(JsonElement stages, string id) => stages.EnumerateArray().Single(s => s.GetProperty("id").GetString() == id);

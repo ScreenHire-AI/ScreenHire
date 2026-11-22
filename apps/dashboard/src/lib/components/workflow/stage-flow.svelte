@@ -1,14 +1,15 @@
 <script lang="ts">
   import type { HiringWorkflow } from '@screenhire/api-client';
   import StepMarker from '#lib/components/step-marker.svelte';
-  import { stageFacts } from '#lib/stage-facts.js';
+  import { stageChips } from '#lib/stage-facts.js';
   import { emailTemplateNames, isTerminal } from '#lib/workflow.js';
-  import StageFactList from './stage-fact-list.svelte';
+  import StageChips from './stage-chips.svelte';
 
   // A pipeline's open stages in order, where it only reads (design system section 11, Stage flow): a row of columns where
   // every stage fits, and the vertical list where they do not, so 5 stages and 20 stages both read (S9). Each stage is its
-  // name, then its short facts as the Stage cards say them (#lib/stage-facts.ts), as text. A stage with nothing attached
-  // shows only its name. The stages that end a candidacy are not here; the page lists them under Ends.
+  // name, then its chips as the Stage cards count them (Stage chips), whose lists are text here: nothing links or edits. A
+  // stage with nothing on it says "Nothing happens automatically". The stages that end a candidacy are not here; the
+  // page lists them under Ends.
   let {
     workflow,
     label = 'Stages in order',
@@ -16,7 +17,7 @@
   }: {
     workflow: HiringWorkflow;
     label?: string;
-    /** The organization's email template names, for "Sends ..."; the built-in ones when left out. */
+    /** The organization's email template names, for the emails' list; the built-in ones when left out. */
     templateNames?: ReadonlyMap<string, string>;
   } = $props();
   const stages = $derived(workflow.stages.filter((stage) => !isTerminal(stage.kind)));
@@ -34,7 +35,7 @@
         {#if index < stages.length - 1}<span aria-hidden="true" class="line-down bg-border"></span>{/if}
         <StepMarker>{index + 1}</StepMarker>
         <span class="pt-1 font-semibold break-words">{stage.name}</span>
-        <div class="facts mt-1.5"><StageFactList facts={stageFacts(workflow, stage, templateNames)} {stage} /></div>
+        <div class="facts mt-1.5"><StageChips chips={stageChips(workflow, stage, templateNames)} stageName={stage.name} {stage} /></div>
       </li>
     {/each}
   </ol>

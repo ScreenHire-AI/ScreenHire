@@ -2,7 +2,7 @@
 // that belong to no stage and the stages that end a candidacy.
 import type { Automation, HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
-import { anyStageFacts, automationLabel, respondWithin, stageFacts, whenOverdue } from './stage-facts.js';
+import { anyStageChips, anyStageFacts, automationLabel, chipsEmpty, respondWithin, stageChips, stageFacts, whenOverdue } from './stage-facts.js';
 
 const automation = (id: string, trigger: Automation['trigger'], actions: Automation['actions'], extra: Partial<Automation> = {}): Automation => ({
   id,
@@ -121,6 +121,65 @@ describe('stageFacts, a stage that sends a form', () => {
     expect(stageFacts(withForm, stage('screen'), names)).toEqual([
       { kind: 'limit', text: 'Respond within 3 days' },
       { kind: 'form', text: 'Sends "Screening questionnaire"', automationId: 'send-screening' },
+    ]);
+  });
+});
+
+describe('stageChips', () => {
+  it('counts the first stage: its automations by their own names, the emails it sends by template name, and the application form\'s questions', () => {
+    const chips = stageChips(workflow, stage('applied'), names);
+
+    expect(chips.automations).toEqual([
+      { id: 'knockout', name: 'knockout' },
+      { id: 'checks', name: 'checks' },
+    ]);
+    expect(chips.emails).toEqual([{ automationId: 'thanks', name: 'Thank you' }]);
+    expect(chips.forms).toEqual([{ id: 'apply', name: 'Application form', questions: 2 }]);
+    expect(chips.questions).toBe(2);
+    expect(chips.limitDays).toBeUndefined();
+  });
+
+  it('folds the stage\'s own reminder into its time limit and leaves out an automation that is off', () => {
+    const chips = stageChips(workflow, stage('screen'), names);
+
+    expect(chips.limitDays).toBe(3);
+    expect(chips.automations.map((automation) => automation.id)).toEqual(['tag-left']);
+  });
+
+  it('counts a form sent at the stage with its questions, and names an automation with no name by its short label', () => {
+    const withForm: HiringWorkflow = {
+      ...workflow,
+      followUpQuestionnaires: [{ id: 'screening', name: 'Screening questionnaire', questions: [1, 2, 3].map((n) => ({ id: `q${n}`, label: `Q${n}`, type: 'ShortText', required: false })) }],
+      automations: [
+        automation('send-screening', { type: 'StageEntered', stageId: 'screen' }, [{ type: 'SendQuestionnaire', questionnaireId: 'screening' }]),
+        automation('unnamed', { type: 'StageEntered', stageId: 'screen' }, [{ type: 'AddTag', tag: 'vip' }], { name: '  ' }),
+      ],
+    };
+
+    const chips = stageChips(withForm, stage('screen'), names);
+
+    expect(chips.forms).toEqual([{ id: 'screening', name: 'Screening questionnaire', questions: 3 }]);
+    expect(chips.questions).toBe(3);
+    expect(chips.automations).toEqual([{ id: 'unnamed', name: 'Tag vip' }]);
+  });
+
+  it('gives a stage that ends a candidacy no time limit or scorecard, only what it sends', () => {
+    const chips = stageChips({ ...workflow, stages: workflow.stages.map((s) => (s.id === 'rejected' ? { ...s, slaDays: 2, scorecardTemplateId: 'x' } : s)) }, stage('rejected'), names);
+
+    expect(chips).toEqual({ limitDays: undefined, automations: [], emails: [{ automationId: 'sorry', name: 'Not this time' }], forms: [], questions: 0, scorecard: false });
+  });
+
+  it('says a stage with nothing on it is empty', () => {
+    const empty = stageChips({ ...workflow, automations: [], questionnaire: { questions: [] } }, stage('applied'), names);
+
+    expect(chipsEmpty(empty)).toBe(true);
+    expect(chipsEmpty(stageChips(workflow, stage('screen'), names))).toBe(false);
+  });
+
+  it('counts the automations that belong to no stage by their own names', () => {
+    expect(anyStageChips(workflow, names).automations).toEqual([
+      { id: 'by-hand', name: 'by-hand' },
+      { id: 'any-late', name: 'any-late' },
     ]);
   });
 });

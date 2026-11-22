@@ -9,8 +9,8 @@ export interface StartingPoint {
 }
 
 export const startingPoints: readonly StartingPoint[] = [
-  { templateId: '0199e8a0-0000-7000-8000-000000000003', versionId: '0199e8a0-0000-7000-8000-000000000301' }, // Office role
-  { templateId: '0199e8a0-0000-7000-8000-000000000004', versionId: '0199e8a0-0000-7000-8000-000000000403' }, // Trade role with a trial shift, version 3
-  { templateId: '0199e8a0-0000-7000-8000-000000000006', versionId: '0199e8a0-0000-7000-8000-000000000602' }, // Hospitality, version 2
-  { templateId: '0199e8a0-0000-7000-8000-000000000005', versionId: '0199e8a0-0000-7000-8000-000000000501' }, // High volume
+  { templateId: '0199e8a0-0000-7000-8000-000000000003', versionId: '0199e8a0-0000-7000-8000-000000000302' }, // Office role, version 2
+  { templateId: '0199e8a0-0000-7000-8000-000000000004', versionId: '0199e8a0-0000-7000-8000-000000000404' }, // Trade role with a trial shift, version 4
+  { templateId: '0199e8a0-0000-7000-8000-000000000006', versionId: '0199e8a0-0000-7000-8000-000000000603' }, // Hospitality, version 3
+  { templateId: '0199e8a0-0000-7000-8000-000000000005', versionId: '0199e8a0-0000-7000-8000-000000000502' }, // High volume, version 2
 ];

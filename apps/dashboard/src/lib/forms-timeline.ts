@@ -21,6 +21,10 @@ export type TimelineForm = {
   name: string;
   /** When it reaches the candidate: "When they apply", "Sent when they enter Screening", "Only when sent by hand". */
   when: string;
+  /** The same in the few words a card's chip holds: "When they apply", "Entering Screening", "By hand only". */
+  whenShort: string;
+  /** Which moment it is, for the chip's icon; `other` when an automation that does more sends it. */
+  moment: SendMoment['kind'] | 'other';
   /** How many questions it asks. */
   questions: number;
   /** Whether it is a copy of a library form (every form but the application form, and a job's own older ones). */
@@ -179,6 +183,22 @@ function position(workflow: HiringWorkflow, sending: FormSending, order: number)
   return [stage, sending.moment.kind === 'later' ? sending.moment.days : 0, order];
 }
 
+/** When a form is sent, as its card's chip says it. */
+export function shortWords(workflow: HiringWorkflow, sending: FormSending): string {
+  if (!sending.editable) return sending.words.replace(/^Sent /, '').replace(/^./, (first) => first.toUpperCase());
+  const { moment } = sending;
+  switch (moment.kind) {
+    case 'apply':
+      return 'When they apply';
+    case 'stage':
+      return `Entering ${stageName(workflow, moment.stageId)}`;
+    case 'later':
+      return `${plural(moment.days, 'day')} after ${stageName(workflow, moment.stageId)}`;
+    default:
+      return 'By hand only';
+  }
+}
+
 /** The forms in the order the candidate meets them: the application form, then each other form by when it is sent. */
 export function timelineOf(workflow: HiringWorkflow): TimelineForm[] {
   const later = followUpsOf(workflow).map((form, order) => {
@@ -189,6 +209,8 @@ export function timelineOf(workflow: HiringWorkflow): TimelineForm[] {
         id: form.id,
         name: form.name || form.id,
         when: sending.words,
+        whenShort: shortWords(workflow, sending),
+        moment: sending.editable ? sending.moment.kind : 'other',
         questions: form.questions.length,
         library: Boolean(form.formTemplateId),
         equality: form.kind === 'EqualityMonitoring',
@@ -197,7 +219,7 @@ export function timelineOf(workflow: HiringWorkflow): TimelineForm[] {
   });
   later.sort((a, b) => a.at[0] - b.at[0] || a.at[1] - b.at[1] || a.at[2] - b.at[2]);
   return [
-    { id: APPLY_FORM_ID, name: 'Application form', when: 'When they apply', questions: workflow.questionnaire.questions.length, library: false, equality: false },
+    { id: APPLY_FORM_ID, name: 'Application form', when: 'When they apply', whenShort: 'When they apply', moment: 'apply', questions: workflow.questionnaire.questions.length, library: false, equality: false },
     ...later.map((entry) => entry.card),
   ];
 }
