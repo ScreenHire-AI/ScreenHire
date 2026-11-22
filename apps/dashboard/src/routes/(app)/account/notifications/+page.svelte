@@ -137,7 +137,7 @@
           <Panel title="What you hear about" flush>
             {#if data.slackAvailable && !data.slackLinked}
               <p class="border-b border-border-subtle px-4.5 py-3 text-muted-foreground max-md:px-4">
-                Link your Slack account in <a href="/account/connected">Connected accounts</a> to get Slack messages too.
+                Link your Slack account in <a href="/account/connected">Calendar and accounts</a> to get Slack messages too.
               </p>
             {/if}
             <!-- A table once the panel is wide enough for every column: a row per kind, a column per way to hear of it. Narrower,

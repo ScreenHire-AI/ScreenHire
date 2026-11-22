@@ -41,6 +41,9 @@ public static class ApplicationActivity
         ApplicationEventType.InterviewRescheduled,
         ApplicationEventType.InterviewCancelled,
         ApplicationEventType.InterviewNewTimesOffered,
+        ApplicationEventType.InterviewOptionChanged,
+        ApplicationEventType.InterviewTimesSuggested,
+        ApplicationEventType.InterviewAnotherTimeAsked,
     ];
 
     /// <summary>

@@ -7,6 +7,7 @@
   import AccountMenu from '#lib/components/account-menu.svelte';
   import CalendarConnection from '#lib/components/calendar-connection.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
+  import InterviewHoursPanels from '#lib/components/interview-hours-panels.svelte';
   import Panel from '#lib/components/panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SlackConnection from '#lib/components/slack-connection.svelte';
@@ -15,8 +16,9 @@
   import { describeError } from '#lib/query.js';
   import { isSlackOutcome, slackFailure } from '#lib/slack.js';
 
-  // Your account > Connected accounts (design system section 21): the person's calendar (docs/architecture/interview-scheduling.md)
-  // and Slack account (docs/architecture/slack.md), each a section, shown only where this ScreenHire has one to connect (A3).
+  // Your account > Calendar and accounts (design system section 21): the person's own interview hours and ScreenHire's calendar
+  // with its subscribe link, always (docs/architecture/interview-scheduling.md), then their calendar and Slack account
+  // (docs/architecture/slack.md), each a section, shown only where this ScreenHire has one to connect (A3).
   // Connecting goes through the provider's page and comes back here with ?calendar= or ?slack-account=, which says how it went
   // in that section and leaves the address so a reload does not repeat it.
   const calendar = createGetCalendar();
@@ -39,16 +41,17 @@
 </script>
 
 <svelte:head>
-  <title>Connected accounts · ScreenHire</title>
+  <title>Calendar and accounts · ScreenHire</title>
 </svelte:head>
 
 <TopBar crumbs={accountCrumbs('/account/connected')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Connected accounts" oneRow />
+  <HeaderBand title="Calendar and accounts" oneRow />
 
   <AccountMenu>
     <div class="flex w-full max-w-form flex-col gap-5">
+      <InterviewHoursPanels />
       {#if calendar.isError && slack.isError}
         <Panel title="Calendar">
           <QueryError message={describeError(calendar.error, 'Could not load your connected accounts')} onretry={() => (calendar.refetch(), slack.refetch())} inset />
@@ -66,11 +69,6 @@
           <Panel title="Slack">
             {#if slackStatus.workspace}<p class="mb-3 text-muted-foreground">{slackStatus.workspace.teamName}</p>{/if}
             <SlackConnection status={slackStatus} outcome={slackOutcome} />
-          </Panel>
-        {/if}
-        {#if !calendarShown && !slackShown}
-          <Panel title="Connected accounts">
-            <p class="text-muted-foreground">There is nothing to connect here yet. An owner or admin connects Slack in Settings.</p>
           </Panel>
         {/if}
       {/if}

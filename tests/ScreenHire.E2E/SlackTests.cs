@@ -353,14 +353,14 @@ public sealed class SlackTests(E2EFixture fixture) : BrowserTest(fixture)
             because,
             Ct);
 
-    // Your account > Connected accounts links the account through the sandbox's sign-in and comes back there, showing the
+    // Your account > Calendar and accounts links the account through the sandbox's sign-in and comes back there, showing the
     // link; the notification grid then has its Slack column, with Mentions and Tasks on.
     private async Task LinkFromMenuAsync(IPage page)
     {
         var back = page.Url;
         await page.Locator("[data-sidebar=footer]").GetByRole(AriaRole.Button).ClickAsync();
         await page.GetByRole(AriaRole.Menuitem, new() { Name = "Your account" }).ClickAsync();
-        await page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Connected accounts" }).ClickAsync();
+        await page.GetByRole(AriaRole.Navigation, new() { Name = "Your account" }).GetByRole(AriaRole.Link, new() { Name = "Calendar and accounts" }).ClickAsync();
         var slack = page.GetByRole(AriaRole.Region, new() { Name = "Slack" });
         await Expect(slack).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();

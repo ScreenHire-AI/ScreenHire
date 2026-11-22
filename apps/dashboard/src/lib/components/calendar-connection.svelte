@@ -15,7 +15,7 @@
 
   // A person's own calendar (docs/architecture/interview-scheduling.md): connect Google, Outlook or the sandbox calendar
   // through the provider's consent page, see which account it is, or disconnect it. Only the providers this ScreenHire has
-  // configured are offered. Every member can do it; nothing here needs a permission. Your account > Connected accounts
+  // configured are offered. Every member can do it; nothing here needs a permission. Your account > Calendar and accounts
   // shows it as a section, and the Calendar sheet (`CalendarAccountSheet`) for a page that needs it connected.
   let {
     status,

@@ -37,7 +37,8 @@ public sealed record InterviewBookingResult(
 
 /// <summary>
 /// Books or moves an interview without double-booking an interviewer (docs/architecture/interview-scheduling.md). It
-/// recomputes the offered times, checks the chosen start is one of them, takes a Postgres advisory lock per interviewer
+/// checks the chosen start is one the interview offers (for pick from our times, the times recomputed from calendars and
+/// hours; for the candidate's or the team's own times, one of those), takes a Postgres advisory lock per interviewer
 /// (sorted, so two bookings never wait on each other in a circle), checks again against the interviews ScreenHire has
 /// already confirmed, then changes the request and marks every attendee's calendar event Pending.
 /// </summary>
@@ -94,15 +95,24 @@ public sealed class InterviewBooking(ScreenHireDbContext db, InterviewAvailabili
             return new InterviewBookingResult(InterviewBookingOutcome.NoCalendar, interview, attendees, []);
         }
 
-        // Before the locks: these are the slow calls to the providers.
-        var offered = await availability.FindSlotsAsync(interview, attendees, cancellationToken);
-        if (!offered.HasAllCalendars)
+        if (interview.Option == InterviewOption.OurTimes)
         {
-            return new InterviewBookingResult(InterviewBookingOutcome.NoCalendar, interview, attendees, offered.UnavailableInterviewers);
-        }
+            // Before the locks: these are the slow calls to the providers.
+            var offered = await availability.FindSlotsAsync(interview, attendees, cancellationToken);
+            if (!offered.HasAllCalendars)
+            {
+                return new InterviewBookingResult(InterviewBookingOutcome.NoCalendar, interview, attendees, offered.UnavailableInterviewers);
+            }
 
-        if (!offered.Slots.Contains(start))
+            if (!offered.Slots.Contains(start))
+            {
+                return new InterviewBookingResult(InterviewBookingOutcome.SlotTaken, interview, attendees);
+            }
+        }
+        else if (!interview.NamedTimes().Contains(start) || start <= now)
         {
+            // The candidate's times (booked by the team) or the team's (accepted by the candidate): a person chose the time, so
+            // their calendars are the team's call. Only a booking ScreenHire already holds refuses it, under the locks below.
             return new InterviewBookingResult(InterviewBookingOutcome.SlotTaken, interview, attendees);
         }
 
@@ -121,8 +131,9 @@ public sealed class InterviewBooking(ScreenHireDbContext db, InterviewAvailabili
         // An interviewer may have left while this waited, and writing to their removed row would fail the booking.
         attendees = await LoadAttendeesAsync(interviewId, cancellationToken);
         var end = start + interview.Duration;
-        var taken = await availability.ConfirmedBusyAsync(userIds, start, end, interview.Id, cancellationToken);
-        if (taken.Count > 0)
+        // Our times were offered inside each interviewer's own hours, so the check repeats them: a booking that landed while
+        // this waited can put the time in its buffer or fill the day. A person chose the other options' times (above).
+        if (await availability.BookingsKeepAsync(userIds, start, end, interview.Id, withHours: interview.Option == InterviewOption.OurTimes, cancellationToken))
         {
             return new InterviewBookingResult(InterviewBookingOutcome.SlotTaken, interview, attendees);
         }
@@ -157,6 +168,12 @@ public sealed class InterviewBooking(ScreenHireDbContext db, InterviewAvailabili
         if (reschedule)
         {
             if (interview.Status != InterviewStatus.Booked)
+            {
+                return InterviewBookingOutcome.NotOpen;
+            }
+
+            // A move with another way to pick runs through the times that option names, so it needs the move to be pending.
+            if (interview.Option != InterviewOption.OurTimes && !interview.HasPendingNewTimes(now))
             {
                 return InterviewBookingOutcome.NotOpen;
             }

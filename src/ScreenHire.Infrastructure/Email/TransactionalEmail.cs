@@ -26,10 +26,12 @@ public sealed class TransactionalEmail(IServiceProvider services, EmailTemplates
         EmailTemplateModel model,
         EmailHeader? header,
         CancellationToken cancellationToken,
-        MailRoute? route = null)
+        MailRoute? route = null,
+        IReadOnlyList<EmailAttachment>? attachments = null)
     {
         var rendered = templates.Render(content, to, model, templateId, header);
-        await (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync((route ?? MailRoute.None).Apply(rendered), cancellationToken);
+        var sent = (route ?? MailRoute.None).Apply(rendered) with { Attachments = attachments };
+        await (sender ?? throw new InvalidOperationException("No email sender is configured.")).SendAsync(sent, cancellationToken);
         return rendered;
     }
 

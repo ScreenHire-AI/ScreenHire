@@ -261,6 +261,24 @@ describe('jobs page', () => {
       expect(goto).not.toHaveBeenCalled();
     });
 
+    it('points someone with no calendar and no hours to where either is set', async () => {
+      page.url = new URL('http://dashboard.test/?joined=1');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          apiStub({
+            'GET /v1/jobs': () => Response.json(jobs),
+            'GET /v1/calendar': () => Response.json({ providers: [], connection: null }),
+            'GET /v1/account/interview-hours': () => Response.json({ timeZone: 'UTC', weekly: null, bufferMinutes: 0, maxPerDay: null, feedUrl: null }),
+          }),
+        ),
+      );
+      renderPage();
+
+      expect(await screen.findByRole('link', { name: 'Connect your calendar or set your hours' })).toHaveAttribute('href', '/account/connected');
+      expect(joinedLine()).toHaveTextContent('so you can be scheduled for interviews.');
+    });
+
     it('goes when dismissed', async () => {
       arrive('?joined=1');
 

@@ -1,7 +1,7 @@
 ---
 type: Design
 title: "Interview scheduling on team calendars"
-description: "Members connect their own Google, Outlook or sandbox calendar on Your account: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off. The recruiter's side in the dashboard: the Schedule interview sheet on the candidate's page, the Interview panel on Overview, whose first fact is the booked time. Reminders to the candidate and the interviewers a day before a booked interview, and to the candidate an hour before. Moving a booked interview: the team offers new days, the booked time stays held until the candidate picks one, and the events in every calendar then move."
+description: "Three ways to pick an interview time, chosen per interview and changeable later: pick from our times (calendars or interview blocks), tell us when you're free, or we'll suggest a time; stage defaults, members' own interview hours, ScreenHire's calendar with a private subscribe link, and .ics invitations on every booking. Members connect their own Google, Outlook or sandbox calendar on Your account: the OAuth round trip kept apart from sign-in, tokens under Data Protection for each member, the ICalendarProvider seam with a Postgres-backed sandbox, token refresh under an advisory lock, and the configuration that hides a provider until its client id and secret are set. Interview requests: the slot finder in the interview's time zone, the offered times, and the booking transaction that never double-books an interviewer. Offering, booking, moving and cancelling an interview: the staff and candidate routes with their problem codes, and the worker that writes one calendar event per interviewer and emails the candidate. The careers page where the candidate picks, moves or cancels a time with JavaScript off. The recruiter's side in the dashboard: the Schedule interview sheet on the candidate's page, the Interview panel on Overview, whose first fact is the booked time. Reminders to the candidate and the interviewers a day before a booked interview, and to the candidate an hour before. Moving a booked interview: the team offers new days, the booked time stays held until the candidate picks one, and the events in every calendar then move."
 tags: [scheduling, calendar, integrations, oauth]
 sources:
   - resource: src/ScreenHire.Domain/Scheduling/CalendarConnection.cs
@@ -21,6 +21,27 @@ sources:
   - resource: apps/api/Contracts/CalendarContracts.cs
   - resource: src/ScreenHire.Domain/Scheduling/InterviewRequest.cs
   - resource: src/ScreenHire.Domain/Scheduling/SlotFinder.cs
+  - resource: src/ScreenHire.Domain/Scheduling/WeeklyHours.cs
+  - resource: src/ScreenHire.Domain/Scheduling/InterviewHours.cs
+  - resource: src/ScreenHire.Application/Scheduling/IcsWriter.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewInvites.cs
+  - resource: src/ScreenHire.Application/Scheduling/InterviewOptionHandlers.cs
+  - resource: src/ScreenHire.Application/Scheduling/CalendarFeedLinks.cs
+  - resource: src/ScreenHire.Application/Scheduling/SchedulingTasks.cs
+  - resource: apps/api/Endpoints/SchedulingEndpoints.cs
+  - resource: apps/api/Endpoints/InterviewHoursEndpoints.cs
+  - resource: apps/api/Endpoints/PublicCalendarFeedEndpoints.cs
+  - resource: apps/api/Contracts/InterviewHoursContracts.cs
+  - resource: apps/api/Hiring/OrganizationScope.cs
+  - resource: apps/dashboard/src/lib/interview-options.ts
+  - resource: apps/dashboard/src/lib/components/change-option-sheet.svelte
+  - resource: apps/dashboard/src/lib/components/weekly-hours-editor.svelte
+  - resource: apps/dashboard/src/lib/components/open-times-check.svelte
+  - resource: apps/dashboard/src/lib/components/who-is-free.svelte
+  - resource: apps/dashboard/src/lib/components/interview-hours-panels.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/stage-scheduling-fields.svelte
+  - resource: tests/ScreenHire.IntegrationTests/Scheduling/InterviewOptionsTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Scheduling/CalendarFeedTests.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewAvailability.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewBooking.cs
   - resource: src/ScreenHire.Application/Scheduling/InterviewLinks.cs
@@ -46,7 +67,6 @@ sources:
   - resource: apps/dashboard/src/lib/calendar.ts
   - resource: apps/dashboard/src/lib/schedule-interview.ts
   - resource: apps/dashboard/src/lib/components/schedule-interview-sheet.svelte
-  - resource: apps/dashboard/src/lib/components/offer-new-times-sheet.svelte
   - resource: apps/dashboard/src/lib/components/candidate/interview-panel.svelte
   - resource: apps/dashboard/src/lib/components/candidate/interview-details.svelte
   - resource: apps/dashboard/src/lib/activity.ts
@@ -60,7 +80,9 @@ sources:
 # Interview scheduling on team calendars
 
 ScreenHire schedules interviews on the calendars the team already uses, through the free Google Calendar and Microsoft
-Graph APIs ([ADR-0024](../adr/0024-interview-scheduling-on-calendar-apis.md)). This page describes a member connecting
+Graph APIs ([ADR-0024](../adr/0024-interview-scheduling-on-calendar-apis.md)), and without them: a business with no shared
+calendar offers interview blocks, lets the candidate say when they are free, or suggests a time itself, and every booking
+emails a calendar invitation. "Three ways to pick a time" and the sections after it describe that. This page describes a member connecting
 and disconnecting their own calendar, the interview request with its slot finder and booking transaction, the routes that
 offer, book, move and cancel an interview, the team offering new times for a booked interview, the workflow action that
 offers one without a person, the worker that writes the events, emails the candidate and sends the reminders, the careers
@@ -68,7 +90,7 @@ page the candidate books on, and the recruiter's side in the dashboard.
 
 ## Connecting a calendar
 
-Any member can connect a calendar on Your account > Connected accounts (`CalendarConnection`), or from the Calendar sheet a
+Any member can connect a calendar on Your account > Calendar and accounts (`CalendarConnection`), or from the Calendar sheet a
 page opens when it needs one (scheduling an interview, through `shell.openCalendar()`). No permission is needed: each route
 changes only the caller's own row. The section shows only when this ScreenHire has a calendar to connect.
 
@@ -84,7 +106,7 @@ handler signs a person in, while this stores tokens for later calls. Sign-in's o
 Data Protection under its own purpose, limited to ten minutes, and carries the provider, the organization, the member and
 a nonce. The nonce also sits in an HttpOnly, Lax cookie whose path is `/v1/calendar/oauth/callback`, so a state copied out
 of one browser does not work in another. The callback redirects to the dashboard with `?calendar=connected`, `denied`,
-`expired` or `failed`, and the page it started on shows how it went: Connected accounts in its Calendar section, any other page
+`expired` or `failed`, and the page it started on shows how it went: Calendar and accounts in its Calendar section, any other page
 in the Calendar sheet.
 
 The redirect URI is built like Slack's, `ScreenHire:Domains` plus the callback path, so it sits on the dashboard origin,
@@ -297,6 +319,123 @@ so a link issued for a booked interview reads until the later of the two, plus t
 the same `UpdateInterviewEvents` moves each interviewer's event, the candidate gets `interview-confirmation` for the new
 time, the new time gets its own reminders, and `Reschedule` clears `NewTimesOfferedAt`. Cancelling clears it too.
 
+## Three ways to pick a time
+
+Each interview is offered one way, chosen in the Schedule interview sheet before the candidate is told
+(`InterviewRequest.Option`, `InterviewPick`). Nothing reaches the candidate until Send.
+
+| Option | The candidate | The team |
+|---|---|---|
+| `OurTimes`, Pick from our times | Picks an open slot; it is booked at once. | Offers the slots of the interviewers' calendars and hours, or interview blocks (`UseBlocks`, below). Up to three one-off times (`ExtraTimes`) are offered beside the slots. |
+| `TheirTimes`, Tell us when you're free | Ticks 3 to 5 of the times within the team's limits (the days, the hours, the minimum notice, on the step), whatever anyone's calendar says. | Sees each time with who is free and books one, or asks for more times with a short message. |
+| `OurSuggestion`, We'll suggest a time | Accepts one of the team's one or two times (`ProposedTimes`), or asks for another with an optional note. | Picks the times, each with who is free; when the candidate asks for another it changes how they pick. |
+
+Status stays Open, Booked, Cancelled or Expired. "The next step is the team's" (`WaitsForTeam`: the candidate sent times, or
+asked for another) is read from the row; the Interview panel shows it as Times to book or Wants another time. We'll suggest a time
+has no days of its own: its window runs from today to the end of the last time's day, so it expires once its times have passed.
+
+**Interview blocks.** Pick from our times with `UseBlocks` and `Hours` offers the blocks the business set ("Tue and Thu, 2 to 5")
+and needs no calendar: an interviewer with neither a calendar nor hours is still offered, and only what ScreenHire knows (its
+bookings, a connected calendar, personal hours) removes a time. Times from calendars need each interviewer's time to be known: a
+working calendar, or their own interview hours. Otherwise scheduling answers 422 and names them.
+
+**Booking the candidate's or the team's times.** `InterviewBooking` checks the chosen start is one the option names (for B the
+candidate's times, booked by the team; for C the team's, accepted by the candidate through the ordinary `/book` or `/reschedule`
+route). A person chose those times, so a busy connected calendar or a time outside someone's hours is a warning beside the time,
+not a refusal. The one hard check is a booking ScreenHire already holds for an interviewer, under the interviewers' locks. The
+candidate's `/book` and `/reschedule` refuse B with `not_offered`: the team books it.
+
+**Staff booking.** The staff routes run for a member who may see only some jobs, while the booking check must see every
+interviewer's bookings. `POST /v1/interviews/{id}/book`, `POST /v1/scheduling/open-times` and `POST /v1/scheduling/free` therefore
+check the member sees the job (and that each interviewer named sees it), then run in a scope of their own whose tenant is the whole
+organization (`OrganizationScope`, as API keys are read); its DbContext, outbox and services share one transaction, so a booking
+commits with its messages. They answer only open times and free or busy, never what anyone is busy with. The staff Book raises the
+`InterviewScheduled` trigger, as the candidate's own booking does.
+
+| Route | What it does |
+|---|---|
+| `POST /v1/interviews/{id}/option` | Change how they pick (Open) or move (Booked), with any option over new days. 200; 400 names the field; 409 when cancelled, expired or the application ended; 422 as for scheduling. |
+| `POST /v1/interviews/{id}/book` `{start}` | Books one of the candidate's times; a Booked interview being moved is moved. 409 for a time they did not send or one another booking took. |
+| `POST /v1/interviews/{id}/more-times` `{note}` | Clears the candidate's times and emails `interview-more-times` with the note. 409 when there are no times waiting. |
+| `POST /v1/scheduling/open-times` | The slots pick from our times would offer (the first 50), how many fall in the next 7 days, and the interviewers whose time cannot be known. |
+| `POST /v1/scheduling/free` | For one to ten times: each interviewer `Free`, `Busy`, `OutsideHours` or `Unknown`. |
+
+The candidate's side adds `POST /suggest {times}` (409 `too_few_times`, `too_many_times`, `not_offered`) and
+`POST /another-time {note?}`, and `GET` adds `option`, `suggestable`, `suggestedTimes`, `proposedTimes`, `anotherTimeAsked`,
+`waitingForTeam` and `teamNote`. Sending times or asking for another tells the request's creator and interviewers through the
+per-person interview notice (`NotifyInterviewChanged` with `TimesSuggested` or `AnotherTimeAsked`) and toasts the job's hiring team.
+
+## Changing course
+
+Change how they pick, on an open invitation, switches between the three ways; the candidate's link stays the same and shows the
+new choice, and they get `interview-options-updated` ("We've updated your options"). The old option's state (the candidate's
+times, both notes) goes. Moving a booked interview offers the same three, with the booked time held until a new one is booked,
+as Offer new times did (`NewTimesOfferedAt`); `POST /new-times` stays, as a move with pick from our times over the new days.
+
+When pick from our times has nothing in the next 7 days, the sheet says so while it is filled in (`open-times`) and offers Tell
+us when you're free, We'll suggest a time, or a one-off time.
+
+## Hours
+
+`WeeklyHours` is hours in a week in a zone's wall-clock time: a list of `{day, from, to}` ("HH:mm", `to` may be "24:00"), at
+most 14 stretches, none overlapping on a day. A request's hours (`Hours`, the hours times are offered in, any day of the week)
+replace weekdays `DayStart` to `DayEnd`, which a null `Hours` still reads as. Everything that limits a time becomes busy time for
+`SlotFinder`: the time outside a member's own hours (`WeeklyHours.Outside`), the buffer either side of each booking, and the
+whole local day once it holds their daily maximum. So the slot finder walks every day of the request's hours and stays pure.
+
+## Personal hours and ScreenHire's calendar
+
+A member sets their own interview hours on Your account, Calendar and accounts (`InterviewHours`, one tenant row per membership,
+`GET`/`PUT /v1/account/interview-hours`): the days and hours they interview, minutes kept free around each interview (0 to 120),
+the most interviews in a day (1 to 12), and the zone. Every way of scheduling respects them: pick from our times leaves those
+times out, and the team sees "Outside their hours" beside a candidate's or its own times.
+
+With hours set and no Google or Outlook calendar, a member is on ScreenHire's calendar: their busy time is the interviews booked
+through ScreenHire, and they can be offered from calendars. Their attendee is `CalendarProvider.ScreenHire`: no provider is
+called for them, it is marked Synced with the interview's UID as its event id, and the invitation emailed to them is their
+event. A member with no connection at all is treated the same way when an interview is booked; one whose connection stopped
+working is Failed, as before, and gets the invitation meanwhile.
+
+## Calendar invitations
+
+Every booking sends an `.ics` (`IcsWriter`, written by hand: .NET has no iCalendar type and the subset is small; `InterviewInvites`).
+Each copy of one interview has the UID `interview-{id}` and the request's revision as its `SEQUENCE`: `METHOD:REQUEST` for a
+booking or a move, `METHOD:CANCEL` for a cancellation, so a calendar app updates or removes the event it has.
+
+- The candidate's confirmation and cancellation always carry it (`invite.ics`), because ScreenHire cannot know whether the
+  provider's invitation reached the candidate's calendar app. Its organizer is the address replies go to.
+- Each interviewer whose own calendar did not get the event (ScreenHire's calendar, or a connection that failed) gets "Interview
+  booked", "moved" or "cancelled" in ScreenHire's wording with the `.ics`, once per revision (`InterviewAttendee.InvitedRevision`),
+  and only while they see the job. An interviewer whose event synced gets none: a second copy on their calendar would be noise.
+- A connected calendar still gets its event as before. `EmailMessage.Attachments` carries the file through SMTP and SendGrid.
+
+## The subscribe link
+
+A member can turn on a private subscribe link (`POST`/`DELETE /v1/account/interview-hours/feed`): an iCalendar feed of their
+booked interviews from 30 days back to 180 ahead at `GET /v1/public/calendar-feeds/{token}.ics`, anonymous because a calendar app
+cannot sign in. The token is Data Protection under `ScreenHire.Calendar.Feed.v1` over the organization, the member and the feed
+secret on their hours row (`CalendarFeedLinks`). Reset link gives a new secret, so every earlier link answers 404; turning it off
+clears the secret. Each event names the meeting, the job and a link to the application, never the candidate, so a link that leaks
+shows nobody's name or address. The feed is `Cache-Control: private, no-store` and outside the API's description.
+
+## Stage defaults
+
+A stage may say how interviews in it are usually offered (`WorkflowStage.Scheduling`, `StageScheduling`; the stage sheet's
+Interview scheduling section): the option, the interviewers as people or a named team, the length, the days ahead and the hours
+(or interview blocks). The Schedule interview sheet opens from it. A team is resolved when the sheet opens, so it stays current;
+its people who are not on the job's hiring team are named in a muted line and never ticked, and nobody's access changes. A team
+deleted since gives no default interviewers and says so. Saving a workflow checks the people are members and the team exists
+(`InterviewerReferences`).
+
+The `ScheduleInterview` action sends with its own option, else the stage's default, else pick from our times (`interviewOption`;
+we'll suggest a time needs a person, so an action never sends it). In `interviewMode` Choose it offers nothing and gives the team
+a `ChooseScheduling` task, "Choose how Grace schedules an interview", as does a stage whose default is we'll suggest a time. The
+task is done when anyone offers the application an interview, never by ticking it (`SchedulingTasks`); its link opens Schedule
+interview (`?schedule=1`).
+
+The setup checklist's Interviewing step ("Connect your calendar or set your hours") shows once a job has a stage that holds
+interviews, and an invited member's welcome line says the same until they have done either.
+
 ## When an interview is cut short
 
 Three changes outside the interview itself end or change it. Each is a worker message sent in the same transaction as the
@@ -470,21 +609,26 @@ ADR-0017: a record's facts sit in its header, and Overview is a grid of panels).
 **Schedule interview** is a button beside Email in the header band, and an item in the More menu on a phone. It shows only
 where Email does (the person may email candidates and this deployment can send), and it is hidden while the application has
 ended, while an interview is open or booked (the API would refuse both) and until the application's interviews have loaded.
-It opens `ScheduleInterviewSheet`, which lists the members who see the job from `GET /v1/interviewers`:
+It opens `ScheduleInterviewSheet`, which starts with "How should Grace pick a time?" (three choice cards, set from the stage's
+default) and lists the members who see the job from `GET /v1/interviewers`. Only the chosen way's fields follow: the days, the
+hours editor and "Open times come from" (Their calendars or Interview blocks) for pick from our times, with its 7-day check and
+one-off times; the days and the hours they may pick from for tell us when you're free; one or two times, each with who is free,
+for we'll suggest a time.
 
-- A member with no calendar is listed but cannot be ticked, and says "No calendar connected" in words. The person scheduling
-  starts ticked when their own calendar is connected. The first person ticked is the organizer, in the order of ticking, and
-  the sheet says whose calendar sends the invitation.
-- When nobody can be ticked, the sheet shows one line and a Connect your calendar button instead of the form. The button
-  closes the sheet and opens the Calendar sheet through `shell.openCalendar()`.
+- For times from calendars, a member with no calendar and no hours is listed but cannot be ticked, and says "No calendar or
+  hours" in words. The stage's people, else the person scheduling, start ticked. The first person ticked is the organizer, in
+  the order of ticking, and the sheet says whose calendar sends the invitation.
+- When nobody can be ticked, the sheet shows one line and a Connect your calendar or set your hours button instead of the
+  form. The button closes the sheet and opens the Calendar sheet through `shell.openCalendar()`, which links to the hours.
 - Length is one of the six the API allows. The first and last day are the person's own days in the zone they pick, which
   starts as the browser's zone, and the working hours default to 9:00 to 17:00 on weekdays. `lib/schedule-interview.ts` turns
   the days into the instants the API takes: the start of the first day to the start of the day after the last, in the chosen
   zone whatever zone the browser is in (the offset is read twice, so a clock change in the window is right). A window longer
   than 90 days is refused in the form; a 90-day window that crosses the clock change that ends daylight saving time is an
   hour over the API's 90 days of elapsed time, so its end is held to 90 days.
-- The form checks the same things the API does and names the same fields, so a 400 lands under the field it is about. A 422
-  becomes one sentence naming the interviewers whose calendars do not work, under the list. A 409 shows the API's own words
+- The form checks the same things the API does and names the same fields (`hours`, `proposedTimes` and `extraTimes` land on
+  their lists), so a 400 lands under the field it is about. A 422 becomes one sentence naming the interviewers with neither a
+  working calendar nor hours, under the list. A 409 shows the API's own words
   (an interview is already open or booked, or the application has ended), and a 404 says scheduling is not set up here.
 
 **The header** says nothing about the interview: the candidate's header holds the verification state, one meta line, the rating,
@@ -496,11 +640,13 @@ state has a status badge (design system section 3.2): Waiting for the candidate 
 (grey). An open interview gives the days the candidate can choose from, in the interview's zone. A booked
 one lists the interviewers with the organizer marked in words when there are two or more, the meeting link, and a note under an interviewer whose
 calendar event is still pending or failed (the failure's own words, such as "Their calendar refused the event"). A cancelled or expired
-one is one line saying how it ended. The panel's menu, for people who may email candidates, has two items. Offer new times
-(booked interviews only) opens a sheet with the first and last day, in the interview's zone, and the interview's own length and
-working hours; it emails the candidate. While the offer is pending a booked interview also shows Waiting for a new time, the new
-days, and says the booked time stays until the candidate picks one. Cancel is a destructive item behind a dialog, because it
-tells the candidate and removes the event from every calendar.
+one is one line saying how it ended. When the candidate sent their times the panel lists them, each with who is free and a Book
+button, and Ask for more times opens a sheet for a short message; when they asked for another time it shows their note. The
+panel's menu, for people who may email candidates, has two items. Change how they pick (open) or Move the interview (booked)
+opens `ChangeOptionSheet`: the same three ways over new days, in the interview's own length, zone and interviewers; it emails
+the candidate. While a move is pending a booked interview also shows Waiting for a new time and says the booked time stays until
+a new one is booked. Cancel is a destructive item behind a dialog, because it tells the candidate and removes the event from
+every calendar.
 
 Activity lists the five interview entries under an Interviews filter. A booking or a move says the time it was about, so a
 move is history the panel no longer shows.

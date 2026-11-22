@@ -1,7 +1,8 @@
 ---
 // A candidate's interview (docs/architecture/interview-scheduling.md), opened from the signed link the invitation or
-// confirmation email carries. Open: pick a time. Booked: see it, move it or cancel it. Cancelled or expired: a calm
-// page that says the link is closed. Native forms posted to the `interview*` actions, so it works with JavaScript off;
+// confirmation email carries. Open, by how the team asked: pick one of our times, tell us the times you are free (3 to 5,
+// all days in one form so ticks on a closed day still post), or accept one of the team's times or ask for another.
+// Booked: see it, move it or cancel it. Cancelled or expired: a calm page that says the link is closed. Native forms posted to the `interview*` actions, so it works with JavaScript off;
 // every time is written here on the server in the zone the candidate chose (a plain GET form changes it). The page
 // collects the choice and nothing else: no device check, no form telemetry (CLAUDE.md non-negotiable 4).
 import { actions } from 'astro:actions';
@@ -36,7 +37,12 @@ const locale = localeOf(Astro.request);
 
 // A post answers with where to look next, and the page redirects to its own address with it, so a refresh never posts
 // twice. The address carries the zone, the picker and one outcome word; never the posted time.
-const posted = Astro.getActionResult(actions.interviewBook) ?? Astro.getActionResult(actions.interviewReschedule) ?? Astro.getActionResult(actions.interviewCancel);
+const posted =
+  Astro.getActionResult(actions.interviewBook) ??
+  Astro.getActionResult(actions.interviewReschedule) ??
+  Astro.getActionResult(actions.interviewCancel) ??
+  Astro.getActionResult(actions.interviewSuggest) ??
+  Astro.getActionResult(actions.interviewAnotherTime);
 if (posted && isToken(token)) {
   const view = posted.data ?? { outcome: 'error' as const };
   const keepPicking = view.change && (view.outcome === 'slot-taken' || view.outcome === 'no-choice' || view.outcome === 'unavailable');
@@ -67,13 +73,24 @@ const notice = noticeFor(outcome, meeting);
 const zone = displayZone(interview?.timeZone);
 const minutes = interview?.durationMinutes ?? 30;
 const booked = state === 'Booked' && interview?.startsAt ? describeBooked(interview.startsAt, minutes, zone, locale) : null;
-const changing = state === 'Booked' && !!interview?.canChange && query.get('change') === '1';
+const option = interview?.option ?? 'OurTimes';
 // The team offered new times: the booked time stays until the candidate picks one, and they may move it whatever the notice.
 const newTimes = state === 'Booked' && !!interview?.newTimesOffered;
-const picking = state === 'Open' || changing;
+// Pick from our times picks from the slots; a booked one moves through the same picker.
+const changing = option === 'OurTimes' && state === 'Booked' && !!interview?.canChange && query.get('change') === '1';
+const picking = option === 'OurTimes' && (state === 'Open' || changing);
+// The other two ways are open while the candidate chooses: an open interview, or a booked one the team asked to move.
+const choosing = state === 'Open' || newTimes;
+const suggesting = option === 'TheirTimes' && choosing && (interview?.suggestedTimes?.length ?? 0) === 0;
+const suggested = option === 'TheirTimes' && choosing && (interview?.suggestedTimes?.length ?? 0) > 0;
+const accepting = option === 'OurSuggestion' && choosing && !interview?.anotherTimeAsked && (interview?.proposedTimes?.length ?? 0) > 0;
+const askedAnother = option === 'OurSuggestion' && choosing && !!interview?.anotherTimeAsked;
+const suggestDays = suggesting && interview ? groupByDay(interview.suggestable ?? [], zone, locale) : [];
+const sentDays = suggested && interview ? groupByDay(interview.suggestedTimes ?? [], zone, locale) : [];
+const proposedDays = accepting && interview ? groupByDay(interview.proposedTimes ?? [], zone, locale) : [];
 const days = interview ? groupByDay(interview.slots, zone, locale) : [];
 const screen = screenOf(days, query.get('from'));
-const reference = new Date(interview?.slots[0] ?? interview?.startsAt ?? Date.now());
+const reference = new Date(interview?.slots[0] ?? interview?.suggestable?.[0] ?? interview?.proposedTimes?.[0] ?? interview?.startsAt ?? Date.now());
 const zones = interview ? zoneOptions(displayZone(interview.defaultTimeZone), zone, reference) : [];
 const here = { tz: asked ? zone : null, change: changing };
 const noTimes = picking && !!interview && (interview.slotsUnavailable || days.length === 0);
@@ -83,8 +100,28 @@ const heading = {
   'not-found': 'We could not find this interview',
   Cancelled: `This ${meeting} is cancelled`,
   Expired: 'This link has expired',
-  Open: `Pick a time for your ${meeting}`,
-  Booked: changing ? (newTimes ? 'Pick a new time' : 'Pick another time') : newTimes ? 'The team offered new times' : `Your ${meeting} is booked`,
+  Open: suggested
+    ? "We've got your times"
+    : suggesting
+      ? `When are you free for your ${meeting}?`
+      : askedAnother
+        ? 'We asked the team for another time'
+        : accepting
+          ? `A time for your ${meeting}`
+          : `Pick a time for your ${meeting}`,
+  Booked: changing
+    ? newTimes
+      ? 'Pick a new time'
+      : 'Pick another time'
+    : suggested
+      ? "We've got your times"
+      : suggesting
+        ? 'When are you free instead?'
+        : accepting
+          ? 'A new time for you'
+          : newTimes
+            ? 'The team offered new times'
+            : `Your ${meeting} is booked`,
 }[state];
 const message = {
   busy: 'Too many tries from your network. Wait a minute, then open the link again.',
@@ -138,6 +175,14 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
         }
 
         {
+          interview.teamNote && suggesting && (
+            <div class="mt-5">
+              <Notice kind="info" message={`None of your last times works for the team. Their message: ${interview.teamNote}`} />
+            </div>
+          )
+        }
+
+        {
           booked && !changing && (
             <Panel label="Your time" class="mt-5">
               <p class="font-display text-panel-title">
@@ -150,7 +195,7 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
         }
 
         {
-          (picking || booked) && (
+          (picking || booked || suggesting || suggested || accepting) && (
             <form method="GET" class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
               {changing && <input type="hidden" name="change" value="1" />}
               <div class="flex-1">
@@ -233,6 +278,107 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
         }
 
         {
+          suggesting && (
+            <form method="POST" action={actions.interviewSuggest} aria-labelledby="free-heading" class="times-form mt-6 flex flex-col gap-4" data-suggest>
+              <input type="hidden" name="organization" value={employer.slug} />
+              <input type="hidden" name="token" value={token} />
+              <input type="hidden" name="tz" value={zone} />
+              <div>
+                <h2 id="free-heading" class="text-candidate-body font-semibold">Choose 3 to 5 times you are free</h2>
+                <p class="mt-1 text-candidate-hint text-candidate-muted-foreground">
+                  Each takes {durationText(minutes)}. All times are in {zoneName(reference, zone)}. The team books one of them.
+                </p>
+              </div>
+              {/* Every day in one form: a tick in a closed day still posts. */}
+              <div class="divide-y divide-candidate-border rounded-panel border border-candidate-border bg-candidate-surface shadow-surface">
+                {suggestDays.map((day, index) => (
+                  <details class="group" open={index === 0}>
+                    <summary class="flex min-h-11 items-center justify-between gap-3 px-4 py-2 text-candidate-body font-semibold">
+                      <span>{day.heading}<span class="font-normal text-candidate-muted-foreground">, {day.slots.length} {day.slots.length === 1 ? 'time' : 'times'}</span></span>
+                      <svg aria-hidden="true" class="order-2 size-4 flex-none group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                    </summary>
+                    <fieldset class="px-4 pb-4">
+                      <legend class="sr-only">{day.heading}</legend>
+                      <div class="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-2">
+                        {day.slots.map((slot) => (
+                          <label class="choice time-chip relative min-h-11 justify-center px-2 has-checked:bg-candidate-chip has-checked:text-candidate-chip-foreground has-checked:ring-2 has-checked:ring-candidate-cta">
+                            <input type="checkbox" name="times" value={slot.value} class="absolute inset-0 m-0 size-full opacity-0" />
+                            <span>{slot.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  </details>
+                ))}
+              </div>
+              <div class="flex flex-col gap-3 sm:flex-row">
+                <button type="submit" class="button-primary">Send these times</button>
+              </div>
+            </form>
+          )
+        }
+
+        {
+          suggested && (
+            <Panel label="Your times" class="mt-5">
+              <ul class="flex flex-col gap-1">
+                {sentDays.flatMap((day) => day.slots.map((slot) => <li class="text-candidate-body">{day.heading} at {slot.label}</li>))}
+              </ul>
+              <p class="mt-3 text-candidate-hint text-candidate-muted-foreground">The team books one of them and emails you the details.</p>
+            </Panel>
+          )
+        }
+
+        {
+          accepting && (
+            <>
+              <form method="POST" action={state === 'Booked' ? actions.interviewReschedule : actions.interviewBook} aria-labelledby="proposed-heading" class="mt-6 flex flex-col gap-4" data-accept>
+                <input type="hidden" name="organization" value={employer.slug} />
+                <input type="hidden" name="token" value={token} />
+                <input type="hidden" name="tz" value={zone} />
+                <fieldset class="flex flex-col gap-2">
+                  <legend id="proposed-heading" class="text-candidate-body font-semibold">The team suggests</legend>
+                  {proposedDays.flatMap((day) =>
+                    day.slots.map((slot) => (
+                      <label class="choice min-h-11 px-4 has-checked:ring-2 has-checked:ring-candidate-cta">
+                        <input type="radio" name="start" value={slot.value} checked={proposedDays.length === 1 && day.slots.length === 1} />
+                        <span>{day.heading} at {slot.label}</span>
+                      </label>
+                    )),
+                  )}
+                  <p class="text-candidate-hint text-candidate-muted-foreground">{durationText(minutes)}, in {zoneName(reference, zone)}.</p>
+                </fieldset>
+                <div class="flex flex-col gap-3 sm:flex-row">
+                  <button type="submit" class="button-primary">Accept this time</button>
+                </div>
+              </form>
+              <Panel id="another-heading" title="None of these work?" class="mt-8">
+                <details class="group">
+                  <summary class="button-secondary w-fit gap-2">
+                    Ask for another time
+                    <svg aria-hidden="true" class="size-4 flex-none group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                  </summary>
+                  <form method="POST" action={actions.interviewAnotherTime} class="mt-4 flex flex-col items-start gap-3" data-another-time>
+                    <input type="hidden" name="organization" value={employer.slug} />
+                    <input type="hidden" name="token" value={token} />
+                    <input type="hidden" name="tz" value={zone} />
+                    <label for="another-note" class="text-candidate-body font-semibold">When suits you better? (optional)</label>
+                    <textarea id="another-note" name="note" maxlength="500" rows="3" class="field-input w-full"></textarea>
+                    <button type="submit" class="button-secondary">Ask for another time</button>
+                  </form>
+                </details>
+              </Panel>
+            </>
+          )
+        }
+
+        {
+          askedAnother && (
+            <p class="mt-6 text-candidate-body text-candidate-muted-foreground">The team will be in touch with other times. You do not need to do anything now.</p>
+          )
+        }
+
+        {
           picking && noTimes && changing && (
             <p class="mt-5">
               <a href={interviewPath(base, token!, { tz: here.tz })} class="button-secondary">Keep my current time</a>
@@ -243,9 +389,11 @@ const closed = !interview || state === 'Cancelled' || state === 'Expired';
         {
           booked && !changing && interview.canChange && (
             <>
-              <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-                <a href={interviewPath(base, token!, { tz: here.tz, change: true })} class="button-primary">{newTimes ? 'Pick a new time' : 'Pick another time'}</a>
-              </div>
+              {option === 'OurTimes' && (
+                <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <a href={interviewPath(base, token!, { tz: here.tz, change: true })} class="button-primary">{newTimes ? 'Pick a new time' : 'Pick another time'}</a>
+                </div>
+              )}
               <Panel id="cancel-heading" title="Cannot make it?" class="mt-8">
                 <details class="group">
                   <summary class="button-secondary w-fit gap-2">

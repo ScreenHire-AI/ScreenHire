@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { locales } from '#lib/dates.js';
 import { zoneName } from '#lib/report-range.js';
 
@@ -77,7 +76,14 @@ function offsetAt(instant: number, zone: string): number {
 export function zonedMidnight(day: string, zone: string): number | null {
   const parts = parseDay(day);
   if (!parts || !knowsZone(zone)) return null;
-  const wall = Date.UTC(parts.year, parts.month - 1, parts.day);
+  return zonedWallClock(Date.UTC(parts.year, parts.month - 1, parts.day), zone);
+}
+
+/**
+ * The instant a wall-clock time is in `zone`, given as the milliseconds it would be in UTC. The offset is read at a first
+ * guess and again at the corrected one, because the guess can fall on the other side of a clock change.
+ */
+export function zonedWallClock(wall: number, zone: string): number {
   const guess = wall - offsetAt(wall, zone);
   return wall - offsetAt(guess, zone);
 }
@@ -123,7 +129,7 @@ export function windowInstants(first: string, last: string, zone: string): { win
   return { windowStart: new Date(start).toISOString(), windowEnd: new Date(capped).toISOString() };
 }
 
-/** The first and last day of a window, as the Schedule interview form and the Offer new times form both take them. */
+/** The first and last day of a window, as the Schedule interview and Change how they pick forms take them. */
 export interface WindowValues {
   windowStart: string;
   windowEnd: string;
@@ -146,53 +152,10 @@ export function checkWindow(value: WindowValues, zone: string, issue: (field: ke
   }
 }
 
-const minutesOf = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
-
-export interface ScheduleValues {
-  interviewerUserIds: string[];
-  durationMinutes: number;
-  windowStart: string;
-  windowEnd: string;
-  timeZone: string;
-  dayStart: string;
-  dayEnd: string;
-}
-
-/**
- * What is wrong with the choices, in words, each on the field it belongs to. The API checks the same things and names the
- * same fields (`windowEnd` for any problem with the window), so a refusal lands in the same place.
- */
-export function checkSchedule(value: ScheduleValues, issue: (field: keyof ScheduleValues, message: string) => void, now: number): void {
-  if (!knowsZone(value.timeZone)) issue('timeZone', 'Choose a time zone.');
-  checkWindow(value, value.timeZone, issue, now);
-  if (minutesOf(value.dayEnd) <= minutesOf(value.dayStart)) issue('dayEnd', 'Working hours have to end after they start.');
-  else if (minutesOf(value.dayEnd) - minutesOf(value.dayStart) < value.durationMinutes) issue('dayEnd', 'Working hours are shorter than the interview.');
-}
-
 const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-export const scheduleSchema = z
-  .object({
-    interviewerUserIds: z
-      .array(z.string())
-      .min(1, 'Choose who will interview.')
-      .max(maxInterviewers, `Choose 1 to ${maxInterviewers} interviewers.`),
-    durationMinutes: z.number().refine((minutes) => (durations as readonly number[]).includes(minutes), 'Choose how long it lasts.'),
-    windowStart: z.string(),
-    windowEnd: z.string(),
-    timeZone: z.string(),
-    dayStart: z.string().regex(timePattern, 'Choose when the day starts.'),
-    dayEnd: z.string().regex(timePattern, 'Choose when the day ends.'),
-  })
-  .superRefine((value, context) => {
-    checkSchedule(value, (field, message) => context.addIssue({ code: 'custom', path: [field], message }), Date.now());
-  });
-
-/** The Offer new times form: the days the candidate may pick from, in the interview's own zone. */
-export const newTimesSchema = (zone: string) =>
-  z.object({ windowStart: z.string(), windowEnd: z.string() }).superRefine((value, context) => {
-    checkWindow(value, zone, (field, message) => context.addIssue({ code: 'custom', path: [field], message }), Date.now());
-  });
+/** Whether `time` is an `HH:mm` time of day. */
+export const isTimeOfDay = (time: string) => timePattern.test(time);
 
 /**
  * The people ticked, in the order they were ticked: the first is the organizer, whose calendar sends the invitation.

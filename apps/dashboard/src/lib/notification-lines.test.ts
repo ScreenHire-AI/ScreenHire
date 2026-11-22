@@ -54,3 +54,12 @@ describe('notification lines', () => {
     });
   });
 });
+
+describe('interview notices', () => {
+  it('says what happened to the interview, the next step the team takes included', () => {
+    expect(notificationLine('interview-changed', { change: 'Booked' })).toBe('An interview was booked');
+    expect(notificationLine('interview-changed', { change: 'TimesSuggested' })).toBe('A candidate sent times to book');
+    expect(notificationLine('interview-changed', { change: 'AnotherTimeAsked' })).toBe('A candidate asked for another interview time');
+    expect(notificationLine('interview-changed', {})).toBe('An interview changed');
+  });
+});

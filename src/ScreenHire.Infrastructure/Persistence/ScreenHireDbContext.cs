@@ -242,6 +242,8 @@ public sealed class ScreenHireDbContext
     /// <summary>The interviewers of an interview, one calendar event each (see <see cref="InterviewAttendee"/>).</summary>
     public DbSet<InterviewAttendee> InterviewAttendees => Set<InterviewAttendee>();
 
+    public DbSet<InterviewHours> InterviewHours => Set<InterviewHours>();
+
     /// <summary>
     /// The cross-employer Signal Network (ADR-0005). Not tenant-owned; the application role has no access to the table,
     /// and nothing uses it while the network's feature flag is off.

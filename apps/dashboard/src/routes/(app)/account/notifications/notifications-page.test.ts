@@ -78,7 +78,9 @@ describe('Your account > Notifications', () => {
 
     const grid_ = await table();
     expect(within(grid_).queryByRole('columnheader', { name: 'Slack' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Connected accounts' })).toHaveAttribute('href', '/account/connected');
+    // The line above the table says where; the account menu has a link of the same name too.
+    const where = screen.getByText(/to get Slack messages too/);
+    expect(within(where).getByRole('link', { name: 'Calendar and accounts' })).toHaveAttribute('href', '/account/connected');
   });
 
   it('shows Slack once linked, with a dash on rows that have no Slack message', async () => {

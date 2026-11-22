@@ -133,6 +133,7 @@ const panels: Record<string, string[]> = {
   Rating: ['Rating'],
   'Rating answer': ['Rating answer'],
   'Choice card': ['Choice card'],
+  'Weekly hours': ['Weekly hours'],
   'Filter menu': ['Filter menu'],
   Picker: ['Picker'],
   'Country picker': ['Country picker'],

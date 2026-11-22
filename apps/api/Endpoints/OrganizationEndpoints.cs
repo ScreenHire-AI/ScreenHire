@@ -172,7 +172,7 @@ internal static class OrganizationEndpoints
         ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
     {
         var organization = await db.Organizations.AsNoTracking().SingleOrDefaultAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
-        return organization is null ? TypedResults.NotFound() : TypedResults.Ok(ToSetup(organization));
+        return organization is null ? TypedResults.NotFound() : TypedResults.Ok(await ToSetupAsync(db, organization, cancellationToken));
     }
 
     private static async Task<Results<Ok<OrganizationSetup>, NotFound, ValidationProblem>> SkipSetupStep(
@@ -215,10 +215,26 @@ internal static class OrganizationEndpoints
         change(organization);
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return ToSetup(organization);
+        return await ToSetupAsync(db, organization, cancellationToken);
     }
 
-    private static OrganizationSetup ToSetup(Organization organization) => new(organization.SetupHidden, organization.SkippedSetupSteps);
+    private static async Task<OrganizationSetup> ToSetupAsync(ScreenHireDbContext db, Organization organization, CancellationToken cancellationToken) =>
+        new(organization.SetupHidden, organization.SkippedSetupSteps, await HasInterviewStageAsync(db, cancellationToken));
+
+    // A job whose workflow has a stage of the interview kind, or a stage with a scheduling default. The workflow is one jsonb
+    // column, so Postgres answers inside it; row-level security keeps it to this organization's jobs. The JSON to look for is
+    // a parameter: EF formats a raw query's text, so a literal brace in it would be read as a placeholder.
+    private const string InterviewStage = """{"stages": [{"kind": "Interview"}]}""";
+
+    private static async Task<bool> HasInterviewStageAsync(ScreenHireDbContext db, CancellationToken cancellationToken) =>
+        (await db.Database.SqlQuery<bool>(
+            $"""
+            SELECT EXISTS (
+                SELECT 1 FROM jobs
+                WHERE workflow @> {InterviewStage}::jsonb
+                   OR jsonb_path_exists(workflow, '$.stages[*].scheduling')
+            ) AS "Value"
+            """).ToListAsync(cancellationToken)).Single();
 
     private static async Task<OrganizationProfile> ToProfileAsync(
         ScreenHireDbContext db, Organization organization, DomainOptions domains, CancellationToken cancellationToken)

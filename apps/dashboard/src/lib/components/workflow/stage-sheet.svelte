@@ -29,6 +29,7 @@
   import FieldErrors from './field-errors.svelte';
   import ScorecardName from './scorecard-name.svelte';
   import StageFactList from './stage-fact-list.svelte';
+  import StageSchedulingFields from './stage-scheduling-fields.svelte';
 
   // One stage's sheet (design system section 11, Stage sheet): its name, how soon the team should respond, scorecard and
   // the automations that run there, with the stage's kind under More options. It opens in place from a stage card and
@@ -74,7 +75,7 @@
   const meetingNameErrors = $derived(errorsAt(errors, `stages[${index}].meetingName`));
   const stageErrors = $derived(
     errorsUnder(errors, `stages[${index}]`)
-      .filter((error) => error.path !== `stages[${index}].meetingName`)
+      .filter((error) => error.path !== `stages[${index}].meetingName` && !error.path.startsWith(`stages[${index}].scheduling`))
       .map((error) => error.message),
   );
 
@@ -237,6 +238,7 @@
           </label>
           <p id="stage-meeting-name-hint" class="-mt-3 text-muted-foreground">Candidates see it in emails and on the page where they book, as in "Book your trial shift".</p>
           <FieldErrors id="stage-meeting-name-errors" messages={meetingNameErrors} />
+          <StageSchedulingFields {stage} {index} {errors} />
         {/if}
 
         <div class="flex flex-col gap-2">
