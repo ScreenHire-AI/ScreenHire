@@ -1,0 +1,65 @@
+---
+import { PUBLIC_API_URL } from 'astro:env/server';
+import DeveloperPage from '../../components/DeveloperPage.astro';
+import { apiOrigin, mcpPath } from '../../lib/developers';
+import { pages } from '../../lib/pages';
+
+const api = apiOrigin(PUBLIC_API_URL);
+const header = 'Authorization: Bearer shk_...';
+---
+
+<DeveloperPage
+  page={pages.developerAuthentication}
+  heading="Authentication"
+  lead="Your systems sign in with an organization API key. AI assistants sign in with the same kind of key, or with OAuth when a person connects them."
+>
+  <h2>API keys</h2>
+  <p>
+    An Owner or Admin creates a key in Settings, Integrations, API keys. The key is shown once, so store it as a secret. Send it on
+    every request:
+  </p>
+  <pre><code>{header}</code></pre>
+  <p>
+    A key acts for the organization, not for a person, and sees every job. Every change it makes shows in the candidate's activity
+    under the key's name. Revoke a key on the same page and it stops working at once.
+  </p>
+
+  <h2>Scopes</h2>
+  <table>
+    <thead>
+      <tr><th>Scope</th><th>What it allows</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Read</td><td>Read jobs, applications, candidates, scorecards, templates and reports. Every key has it.</td></tr>
+      <tr><td>Write</td><td>Also change them: create and publish jobs, add applications, move candidates, add notes, tags and tasks.</td></tr>
+      <tr>
+        <td>Verification read</td>
+        <td>
+          Read verification results: levels, reasons and evidence. Only an Owner can give it, and every read is recorded on the
+          candidate. A level is evidence for a person to review, never a reason to reject anyone on its own.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>OAuth for AI assistants</h2>
+  <p>
+    A client that signs in only with OAuth, such as a claude.ai custom connector, needs just the server address,{' '}
+    <code>{api}{mcpPath}</code>. It finds the authorization server from the first answer, registers itself and sends you to
+    ScreenHire to approve it. An Owner or Admin chooses its scopes, never more than they hold themselves. Its access tokens work
+    only on the MCP server, and the connection can be ended at once in Settings, Integrations, MCP server.
+  </p>
+
+  <h2>Rate limits</h2>
+  <p>
+    Each key may make 600 requests a minute unless it has a lower limit of its own, counted in fixed one-minute windows. Past it
+    the API answers <code>429 Too Many Requests</code>: wait for the next minute and try again. Each MCP tool call is one request.
+  </p>
+
+  <h2>When it fails</h2>
+  <p>
+    A missing, revoked or malformed key gets <code>401</code>. A route the key's scope does not cover gets <code>403</code>. Errors
+    are <a href="https://www.rfc-editor.org/rfc/rfc9457">problem details</a>; the <a href={pages.developerApi.path}>API reference</a>{' '}
+    says what each status means.
+  </p>
+</DeveloperPage>

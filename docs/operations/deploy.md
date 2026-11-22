@@ -275,9 +275,11 @@ and worker start knowing only `screenhire_app`.
    Cloudflare Worker that forwards the host in `X-Forwarded-Host` and trust that header in `careers-allowed-domains`.
 3. DNS in Cloudflare, proxied: `api` to the API's address, the careers domain and `*` to the careers address, `reply` per the
    SendGrid step. Set the SSL mode to Full (strict).
-4. Pages. Build and publish the two static sites. `SITE_URL` and `PUBLIC_APP_URL` are read at build time:
+4. Pages. Build and publish the two static sites. `SITE_URL`, `PUBLIC_APP_URL` and `PUBLIC_API_URL` (the API's address,
+   which the developer docs under `/developers` show; the `domains-api` host) are read at build time:
    ```bash
-   SITE_URL=https://www.example.org PUBLIC_APP_URL=https://app.example.org pnpm --filter @screenhire/marketing build
+   SITE_URL=https://www.example.org PUBLIC_APP_URL=https://app.example.org PUBLIC_API_URL=https://api.example.org \
+     pnpm --filter @screenhire/marketing build
    pnpm dlx wrangler pages deploy apps/marketing/dist --project-name screenhire-marketing
 
    pnpm --filter @screenhire/dashboard build

@@ -63,6 +63,9 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Persistence/DataProtectionRegistration.cs
   - resource: src/ScreenHire.Application/Webhooks/WebhookDeliveryHandlers.cs
   - resource: src/ScreenHire.Application/Webhooks/WebhookEvents.cs
+  - resource: src/ScreenHire.Application/Webhooks/WebhookCatalog.cs
+  - resource: tests/ScreenHire.UnitTests/Webhooks/WebhookCatalogTests.cs
+  - resource: tests/ScreenHire.IntegrationTests/Webhooks/WebhookEventCatalogueTests.cs
   - resource: src/ScreenHire.Application/Webhooks/WebhookRetention.cs
   - resource: apps/api/Endpoints/TemplateEndpoints.cs
   - resource: apps/api/Endpoints/TemplateUsageEndpoints.cs
@@ -526,16 +529,34 @@ connect time (`WebhookAddresses`), so DNS cannot point a public name at a privat
 
 **Events.** Each comes from a domain event that already exists; that event's worker handler cascades a
 `FanOutWebhook` message (`WebhookEvents`), which writes one delivery row per enabled endpoint that subscribes and sends
-its first attempt.
+its first attempt. The events without a worker handler of their own get one in `WebhookDeliveryHandlers.cs`
+(`CandidateErasedWebhookHandler`, `InterviewChangedWebhookHandler`, `ScorecardSubmittedWebhookHandler`); each does
+nothing for an application erased since.
 
 | Event | From | `data` |
 |---|---|---|
 | `application.submitted` | `ApplicationSubmitted` | `applicationId`, `jobId`, `stageId` |
 | `application.moved` | `ApplicationMoved` | `applicationId`, `jobId`, `fromStageId`, `toStageId` |
+| `application.hired` | `ApplicationMoved` into a stage of kind Hired (the move's `application.moved` comes too) | `applicationId`, `jobId`, `candidateId`, `stageId` |
 | `verification.assessed` | `VerificationAssessed` | `applicationId`, `jobId`, `authenticity`, `aiAssistance` (levels), `rulesetVersion` |
 | `automation.failed` | `AutomationRunFinished` with status `Failed` or `Blocked` | `applicationId`, `jobId`, `automationId`, `runId`, `status` |
 | `job.published` | `JobPublished` | `jobId`, `version`, `jobVersionId` |
 | `job.closed` | `JobClosed` | `jobId` |
+| `candidate.erased` | `CandidateErased` (a person's erasure or the retention purge) | `candidateId` |
+| `interview.scheduled` | `InterviewChanged` with change `Booked` | `interviewId`, `applicationId`, `jobId`, `startsAt`, `durationMinutes`, `byCandidate` |
+| `interview.rescheduled` | `InterviewChanged` with change `Rescheduled` | as `interview.scheduled`, `startsAt` the new time |
+| `interview.cancelled` | `InterviewChanged` with change `Cancelled`, by the team, the candidate or ScreenHire | as `interview.scheduled`, `startsAt` the time a booking had (null for an offer) |
+| `scorecard.submitted` | `ScorecardSubmitted` | `scorecardId`, `applicationId`, `jobId`, `stageId`, `recommendation` (never the ratings, answers or note) |
+
+An offer (`Invited`), new times and calendar writes raise no interview event. The interview events key on the interview
+and its `Revision`, which a booking, a new time and a cancellation each move on by one; `InterviewChanged` carries it
+with the time of the change (`ChangedAt`), so a redelivered message raises the same event and two moves of one
+interview raise two.
+
+**The payload contract.** `WebhookCatalog` (`src/ScreenHire.Application/Webhooks/WebhookCatalog.cs`) lists every event in
+`WebhookEventTypes.All` order with a summary, a description, its `data` record and a sample. The public OpenAPI document's
+`webhooks` section and the developer docs' catalogue are built from it ([API reference](api-reference.md)), and the unit
+test `WebhookCatalogTests` pins each payload's members by name and order: a field is added, never renamed or removed.
 
 The body is `{"id", "type", "occurredAt", "organizationId", "data"}`: ids and facts, never names, emails, resume text,
 answers or verification evidence. An integrator reads anything else through the API with its own credentials.

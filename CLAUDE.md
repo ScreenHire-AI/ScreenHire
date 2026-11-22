@@ -20,7 +20,7 @@ subsystem.
 | `apps/marketing` | Astro 7 static — SEO-first marketing site |
 | `apps/dashboard` | SvelteKit 3 SPA — recruiter dashboard (shadcn-svelte on bits-ui) |
 | `packages/ui` | Warm Grid design tokens, Tailwind 4 theme, self-hosted fonts, and the candidate question components (`./questions`, `./questions.css`) shared by the careers apply page and the dashboard's questionnaire preview |
-| `packages/api-client` | Orval-generated TS fetch client, TanStack Query hooks (`./svelte-query`) and Zod schemas (do not edit `src/generated`) |
+| `packages/api-client` | Orval-generated TS fetch client, TanStack Query hooks (`./svelte-query`) and Zod schemas (do not edit `src/generated`), from `openapi.json`; the public OpenAPI document (`openapi_public.json`, only what a key can call) and the MCP tools catalogue (`mcp-tools.json`) that the developer docs and the dashboard read ([`docs/architecture/api-reference.md`](docs/architecture/api-reference.md)) |
 | `packages/telemetry` | Framework-free form telemetry for the apply flow: per-field counts only (never key values, timings per key or content), automation markers, the device fingerprint, `sendBeacon` snapshots; under 5 KB brotli, checked by its `build` |
 | `packages/realtime` | SignalR client for live updates: reconnect and re-subscribe, a runes connection-state store, Zod schemas per tenant event (checked against `contract/events.json`), cache invalidation by event type |
 | `packages/plans` | The plan catalogue, `plans.json`: each plan's name, monthly price, active job limit and Stripe price id, the free trial, `trial.json` (days and plan), and the margin on AI use, `ai.json`, as shared defaults. The API embeds all three, the marketing site reads them (`catalogPlans`, `trial`, `ai`), and `ScreenHire:Billing:Plans:<key>:*` and `Trial:*` override them for the API ([`docs/architecture/billing.md`](docs/architecture/billing.md)) |
@@ -144,7 +144,10 @@ subsystem.
 - After changing the AppHost's publish model (`apps/apphost/AzurePublish.cs`): regenerate `infra/` with
   `rm -rf infra && dotnet aspire publish --apphost apps/apphost/ScreenHire.AppHost.csproj --output-path infra --non-interactive` and
   commit it; CI's `infra` job fails when it differs. Deploying is the owner's, from [`docs/operations/deploy.md`](docs/operations/deploy.md).
-- After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json` + `src/generated`.
+- After changing an endpoint or contract: `pnpm generate:api` and commit `openapi.json`, `openapi_public.json` + `src/generated`.
+  A route a key can call needs `.WithSummary(...)` (`PublicApiDocumentTests`).
+- After changing an MCP tool: `UPDATE_MCP_TOOLS=1 dotnet test --project tests/ScreenHire.UnitTests --filter-class "*McpToolCatalogTests"`
+  rewrites `packages/api-client/mcp-tools.json`; a new tool also needs its example in `apps/api/Mcp/McpToolExamples.cs`.
 - After changing code a doc describes: `node scripts/docs-bundle.mjs sources <file>` names the docs whose `sources:`
   list it (`/sync-docs`). A new or changed doc keeps its frontmatter and its line in the folder's `index.md` in step;
   `DocsBundleTests` checks both (ADR-0012).

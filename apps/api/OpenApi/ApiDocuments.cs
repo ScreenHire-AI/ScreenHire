@@ -191,7 +191,7 @@ internal static class ApiDocuments
 
         ## Errors
 
-        Errors are [problem details](https://www.rfc-editor.org/rfc/rfc9457) (`application/problem+json`) with a `title` and a `detail` you can show. A request that fails validation gets `400` with an `errors` object: each key names a field and holds its messages. Something that does not exist, or belongs to another organization, is `404`. A change that clashes with the current state, such as an edit made from an old copy, is `409`. A missing or revoked key gets `401`.
+        Errors are [problem details](https://www.rfc-editor.org/rfc/rfc9457) (`application/problem+json`) with a `title` and a `detail` you can show. A request that fails validation gets `400` with an `errors` object: each key names a field and holds its messages. Something that does not exist, or belongs to another organization, is `404`. A change that clashes with the current state, such as an edit made from an old copy, is `409`. A missing or revoked key gets `401`, and a key without the scope a route needs, such as a read-only key asking for a change, gets `403`.
 
         ## Pagination
 

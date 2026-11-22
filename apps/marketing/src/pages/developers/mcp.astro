@@ -1,0 +1,86 @@
+---
+import { PUBLIC_API_URL } from 'astro:env/server';
+import DeveloperPage from '../../components/DeveloperPage.astro';
+import { apiOrigin, mcpPath, mcpToolGroups } from '../../lib/developers';
+import { pages } from '../../lib/pages';
+
+const api = apiOrigin(PUBLIC_API_URL);
+const server = `${api}${mcpPath}`;
+const config = JSON.stringify(
+  { mcpServers: { screenhire: { type: 'http', url: server, headers: { Authorization: 'Bearer <your API key>' } } } },
+  null,
+  2,
+);
+const groups = mcpToolGroups();
+const accessWords: Record<string, string> = {
+  Read: 'Every key and connection has these.',
+  Write: 'With the Write scope.',
+  'Verification read': 'Only with the Verification read scope an Owner gives.',
+};
+---
+
+<DeveloperPage
+  page={pages.developerMcp}
+  heading="MCP for AI assistants"
+  lead="Connect Claude or another AI assistant to ScreenHire through the Model Context Protocol. It works with your jobs and candidates within the access you give it."
+>
+  <h2>Connect</h2>
+  <p>
+    The server is <code>{server}</code>, over Streamable HTTP. A client that signs in with OAuth, such as a claude.ai custom
+    connector, needs only that address: it asks you to sign in and choose what it may do. A client that takes a key uses a
+    configuration of this shape; each client documents where its file lives.
+  </p>
+  <pre><code>{config}</code></pre>
+
+  <h2>What it asks you first</h2>
+  <p>
+    Sending an email, inviting a candidate to an interview, publishing or closing a job and moving a candidate to a Rejected stage
+    reach people outside your team or end a candidacy, so you confirm each one. A client that can ask you directly shows a yes or no
+    question; any other client's assistant must ask you itself and only then call the tool again with <code>confirm: true</code>.
+    These tools are also marked destructive, so clients that ask before such tools ask too.
+  </p>
+
+  <h2>What it never does</h2>
+  <ul>
+    <li>It never acts on verification results. Only a key with the Verification read scope reads them, and a level is never a reason to reject anyone.</li>
+    <li>It moves a candidate to a Rejected stage only when you ask it to.</li>
+    <li>It treats what a candidate wrote as data, never as instructions: those fields come marked as the candidate's.</li>
+    <li>Everything it changes shows in the candidate's activity under its name.</li>
+  </ul>
+
+  <h2>Tools</h2>
+  <p>
+    The <a href={`${api}/mcp-tools`}>tools reference</a> on your API has each tool's inputs and an example call.
+  </p>
+  {
+    groups.map((group) => (
+      <>
+        <h3>{group.access}</h3>
+        <p>{accessWords[group.access]}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Tool</th>
+              <th>What it does</th>
+            </tr>
+          </thead>
+          <tbody>
+            {group.tools.map((tool) => (
+              <tr>
+                <td>
+                  <a href={`${api}/mcp-tools#${tool.name}`}>
+                    <code>{tool.name}</code>
+                  </a>
+                </td>
+                <td>
+                  {tool.title}.{tool.confirms === 'always' && ' Asks you first.'}
+                  {tool.confirms === 'rejection' && ' Asks you first before a rejection.'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    ))
+  }
+</DeveloperPage>

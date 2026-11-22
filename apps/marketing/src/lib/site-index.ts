@@ -6,7 +6,7 @@ export interface IndexedPage {
   path: string;
   title: string;
   description: string;
-  section: 'Pages' | 'Hiring-AI law tracker' | 'Comparisons' | 'Blog';
+  section: 'Pages' | 'Developers' | 'Hiring-AI law tracker' | 'Comparisons' | 'Blog';
 }
 
 /**
@@ -19,7 +19,7 @@ export async function siteIndex(): Promise<IndexedPage[]> {
   const posts = await publishedPosts();
 
   return [
-    ...Object.values(pages).map((page): IndexedPage => ({ ...page, section: 'Pages' })),
+    ...Object.values(pages).map((page): IndexedPage => ({ ...page, section: page.path.startsWith(pages.developers.path) ? 'Developers' : 'Pages' })),
     ...laws.map((law): IndexedPage => ({
       path: `${pages.laws.path}${law.id}/`,
       title: law.data.title,

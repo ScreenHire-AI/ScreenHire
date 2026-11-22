@@ -1,0 +1,51 @@
+---
+// One page of the developer docs: the page's intro, the list of the docs' pages (the current one marked), and its content
+// as long-form text. Static HTML only: the pages are read, not used (design system section 22).
+import PageIntro from './shell/PageIntro.astro';
+import Section from './shell/Section.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { developerNav, pages, type PageMeta } from '../lib/pages';
+
+interface Props {
+  page: PageMeta;
+  /** The page's h1. */
+  heading: string;
+  lead: string;
+}
+
+const { page, heading, lead } = Astro.props;
+const breadcrumbs =
+  page.path === pages.developers.path
+    ? [{ name: pages.developers.label, path: pages.developers.path }]
+    : [
+        { name: pages.developers.label, path: pages.developers.path },
+        { name: page.label, path: page.path },
+      ];
+---
+
+<BaseLayout title={page.title} description={page.description} breadcrumbs={breadcrumbs}>
+  <PageIntro joined title={heading} lead={lead} />
+  <Section label={page.label} class="flex flex-wrap gap-x-16 gap-y-10">
+    <nav aria-label="Developer docs" class="flex-[0_1_12rem]">
+      <ul class="flex flex-col gap-2">
+        {
+          developerNav.map((item) => (
+            <li>
+              <a
+                href={item.path}
+                aria-current={item.path === page.path ? 'page' : undefined}
+                class:list={[
+                  'inline-flex min-h-11 items-center underline-offset-2 hover:underline',
+                  item.path === page.path ? 'font-bold text-foreground' : 'text-secondary-foreground',
+                ]}>{item.label}</a
+              >
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+    <article class="prose min-w-0 flex-[1_1_32rem]">
+      <slot />
+    </article>
+  </Section>
+</BaseLayout>

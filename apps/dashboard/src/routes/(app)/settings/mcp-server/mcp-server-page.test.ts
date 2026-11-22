@@ -1,3 +1,4 @@
+import catalogue from '@screenhire/api-client/mcp-tools.json';
 import type { OAuthConnectionSummary } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -46,20 +47,32 @@ async function openMenu(name: string) {
 }
 
 describe('MCP server page', () => {
-  it('lists every tool, with the two verification tools apart as the ones that need the scope', async () => {
+  it('lists every tool in the catalogue by the access it needs, each linked to its entry in the reference', async () => {
     renderPage([]);
 
-    const tools = await screen.findByRole('list', { name: 'Tools' });
+    // The links wait for the API's address (/v1/meta), as the server URL does.
+    const reference = await screen.findByRole('link', { name: 'MCP tools reference (opens in a new tab)' });
+    const tools = screen.getByRole('list', { name: 'Tools' });
+    const writes = screen.getByRole('list', { name: 'Also with Write' });
     const verification = screen.getByRole('list', { name: 'Also with Verification read' });
+    const shown = [tools, writes, verification].flatMap((list) => within(list).getAllByRole('link'));
 
-    expect(within(tools).getAllByRole('listitem')).toHaveLength(10);
-    expect(within(tools).getByText('Read the hiring report')).toBeInTheDocument();
-    expect(within(tools).getByText('List saved candidates')).toBeInTheDocument();
+    // The page lists exactly the server's tools, from the catalogue the API's tests keep in step with it.
+    expect(shown).toHaveLength(catalogue.tools.length);
+    for (const tool of catalogue.tools) {
+      const list = tool.access === 'Read' ? tools : tool.access === 'Write' ? writes : verification;
+      const name = `${tool.title} ${tool.confirms ? '(asks you first, opens in a new tab)' : '(opens in a new tab)'}`;
+      expect(within(list).getByRole('link', { name })).toHaveAttribute(
+        'href',
+        `https://api.example.com/mcp-tools#${tool.name}`,
+      );
+    }
+
     expect(within(tools).queryByText(/verification/i)).not.toBeInTheDocument();
-    expect(within(verification).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(writes).getByRole('link', { name: 'Send an email (asks you first, opens in a new tab)' })).toBeInTheDocument();
     // Each list says how many it holds, in the count badge after its label (T4).
-    expect(screen.getByText('Tools').closest('dt')).toHaveTextContent('Tools10');
     expect(screen.getByText('Also with Verification read').closest('dt')).toHaveTextContent('Also with Verification read2');
+    expect(reference).toHaveAttribute('href', 'https://api.example.com/mcp-tools');
     await expectNoAxeViolations();
   });
 

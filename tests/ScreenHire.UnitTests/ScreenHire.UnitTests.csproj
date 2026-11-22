@@ -29,6 +29,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The C# webhook signature sample the developer docs show (/developers/webhooks), compiled and tested as it is shown. -->
+    <Compile Include="..\..\apps\marketing\src\developers\samples\ScreenHireSignature.cs" Link="Webhooks\ScreenHireSignature.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="AwesomeAssertions" />
     <Using Include="Xunit" />
   </ItemGroup>

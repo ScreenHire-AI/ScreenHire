@@ -13,8 +13,11 @@ internal static class McpSupport
     /// <summary>The endpoint, on the API's address.</summary>
     public static Uri Endpoint(AppHostFixture fixture) => new(fixture.GetEndpoint("api"), "/v1/mcp");
 
-    /// <summary>Connects as an assistant would with <paramref name="token"/> as its bearer key. Dispose the client.</summary>
-    public static async Task<McpClient> ConnectAsync(AppHostFixture fixture, string token)
+    /// <summary>
+    /// Connects as an assistant would with <paramref name="token"/> as its bearer key. <paramref name="options"/> gives the
+    /// client handlers, such as an elicitation handler that answers the person's yes or no. Dispose the client.
+    /// </summary>
+    public static async Task<McpClient> ConnectAsync(AppHostFixture fixture, string token, McpClientOptions? options = null)
     {
         var transport = new HttpClientTransport(
             new HttpClientTransportOptions
@@ -25,7 +28,7 @@ internal static class McpSupport
             },
             new HttpClient(new SocketsHttpHandler { UseCookies = false }),
             ownsHttpClient: true);
-        return await McpClient.CreateAsync(transport, cancellationToken: Ct);
+        return await McpClient.CreateAsync(transport, options, cancellationToken: Ct);
     }
 
     /// <summary>The names of the tools the client is offered.</summary>

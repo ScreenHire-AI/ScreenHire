@@ -101,7 +101,7 @@ internal sealed class McpConfirmation(IDataProtectionProvider protection, TimePr
     }
 
     // The arguments as the client sent them, minus confirm, in name order: the retry must ask for the same thing.
-    private static string Digest(string tool, IDictionary<string, JsonElement>? arguments)
+    internal static string Digest(string tool, IDictionary<string, JsonElement>? arguments)
     {
         var builder = new StringBuilder(tool);
         foreach (var (name, value) in (arguments ?? new Dictionary<string, JsonElement>()).Where(a => a.Key != Argument).OrderBy(a => a.Key, StringComparer.Ordinal))
@@ -112,10 +112,10 @@ internal sealed class McpConfirmation(IDataProtectionProvider protection, TimePr
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
     }
 
-    private string Protect(string tool, string digest, string key) =>
+    internal string Protect(string tool, string digest, string key) =>
         protector.Protect(string.Join('|', tool, digest, key, time.GetUtcNow().Add(Lifetime).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)));
 
-    private bool Matches(string state, string tool, string digest, string key)
+    internal bool Matches(string state, string tool, string digest, string key)
     {
         string plain;
         try

@@ -95,6 +95,36 @@ export const pages = {
     title: 'Blog: hiring, applicant fraud and fairness | ScreenHire',
     description: 'Notes from the ScreenHire team on applicant fraud, AI in hiring, and running a fair process with a small team.',
   },
+  developers: {
+    path: '/developers/',
+    label: 'Developers',
+    title: 'Developers: the ScreenHire API, webhooks and MCP',
+    description: 'Build on ScreenHire: call the API with a key, get signed webhooks when something happens, and connect an AI assistant through MCP.',
+  },
+  developerAuthentication: {
+    path: '/developers/authentication/',
+    label: 'Authentication',
+    title: 'Authentication: API keys, OAuth and scopes | ScreenHire',
+    description: 'How an API key or an AI assistant signs in to ScreenHire, what the Read, Write and Verification read scopes allow, and the rate limit.',
+  },
+  developerApi: {
+    path: '/developers/api/',
+    label: 'API reference',
+    title: 'API reference: every route a key can call | ScreenHire',
+    description: 'Every route of the ScreenHire API an organization key can call, by area, with errors, paging and versioning, and the full reference.',
+  },
+  developerWebhooks: {
+    path: '/developers/webhooks/',
+    label: 'Webhooks',
+    title: 'Webhooks: events, signatures and retries | ScreenHire',
+    description: 'Every webhook event ScreenHire sends with a sample payload, how to check the signature in Node, Python and C#, and how retries and replays work.',
+  },
+  developerMcp: {
+    path: '/developers/mcp/',
+    label: 'MCP for AI assistants',
+    title: 'MCP server: connect an AI assistant | ScreenHire',
+    description: 'Connect Claude or another AI assistant to ScreenHire through MCP: the tools it gets, the access each needs, and what it asks you before it acts.',
+  },
 } as const satisfies Record<string, PageMeta>;
 
 export const notFound = {
@@ -116,6 +146,15 @@ export const productNav: PageMeta[] = [
 /** Main navigation, in order. The header shows `pages.product` as a menu of `productNav`. */
 export const mainNav: PageMeta[] = [pages.product, pages.pricing, pages.laws, pages.blog];
 
+/** The developer docs, in reading order. Each of their pages lists them beside its content. */
+export const developerNav: PageMeta[] = [
+  pages.developers,
+  pages.developerAuthentication,
+  pages.developerApi,
+  pages.developerWebhooks,
+  pages.developerMcp,
+];
+
 /** Footer navigation, in order. */
 export const footerNav: PageMeta[] = [
   ...productNav,
@@ -123,4 +162,5 @@ export const footerNav: PageMeta[] = [
   pages.laws,
   pages.compare,
   pages.blog,
+  pages.developers,
 ];

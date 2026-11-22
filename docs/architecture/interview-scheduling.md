@@ -271,7 +271,9 @@ the request's status is what closes it.
 
 ## Offering an interview
 
-All three routes need a signed-in person, never an API key, and take the permission that emails candidates. A host with no
+All three routes need a signed-in person, never an API key, and take the permission that emails candidates. The MCP
+server's `invite_to_schedule` calls the Schedule interview handler for a key, with the person's confirmation, filled from
+the stage's defaults; its InterviewInvited entry names the key ([MCP server](mcp-server.md)). A host with no
 email sender or no careers site address (`ScreenHire:Domains`) answers 404, as the talent pool invitation does, because
 the candidate could not be sent the link.
 

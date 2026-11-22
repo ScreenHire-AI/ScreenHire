@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ExternalLinkIcon from '~icons/lucide/external-link';
   import KeyRoundIcon from '~icons/lucide/key-round';
   import PlugIcon from '~icons/lucide/plug';
   import UnplugIcon from '~icons/lucide/unplug';
@@ -32,14 +33,16 @@
   import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
-  import { Badge } from '#lib/components/ui/badge/index.js';
+  import { Badge, badgeVariants } from '#lib/components/ui/badge/index.js';
   import { buttonVariants } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
+  import { mcpToolHref, mcpTools } from '#lib/mcp-tools.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
+  import { cn } from '#lib/utils.js';
 
   // The MCP server (docs/architecture/mcp-server.md), on the settings template: the values any MCP client needs, with no
   // client's own setup steps, and a link to API keys for the key it signs in with. The address comes from the API
@@ -56,20 +59,14 @@
     'Sign in to ScreenHire when it asks, and choose what the assistant may do.',
   ];
 
-  // The server's tools in words: HiringTools.cs, and VerificationTools.cs, which only a key with the scope sees (ADR-0021).
-  const tools = [
-    'Find jobs',
-    'Find candidates',
-    'Read an application',
-    'Read the hiring report',
-    'List saved candidates',
-    'Add notes',
-    'Add tags',
-    'Remove tags',
-    'Create tasks',
-    'Move to a stage',
+  // The server's tools in words, by the access that shows them, from the catalogue the API's tests write (#lib/mcp-tools.ts).
+  // Each chip opens its entry in the tools reference beside the API reference; the verification tools need the scope an
+  // Owner gives (ADR-0021).
+  const toolGroups = [
+    { label: 'Tools', tools: mcpTools.read },
+    { label: 'Also with Write', tools: mcpTools.write },
+    { label: 'Also with Verification read', tools: mcpTools.verification },
   ];
-  const verificationTools = ["Read an application's verification", 'Find candidates by verification level'];
 
   // The connected assistants, on the API keys page's table pattern. Disconnecting ends the assistant's access at once and is
   // for good: it connects again only when someone approves it again.
@@ -180,16 +177,33 @@
           <SummaryItem label="Transport">Streamable HTTP</SummaryItem>
           <SummaryItem label="API key header"><span class="font-mono text-code break-all">Authorization: Bearer &lt;API key&gt;</span></SummaryItem>
           <SummaryItem label="API key access">Read only, or read and write, as the key allows</SummaryItem>
-          <SummaryItem label="Tools" count={tools.length}>
-            <ul aria-label="Tools" class="flex flex-wrap gap-1.5">
-              {#each tools as tool (tool)}<li><Badge variant="muted">{tool}</Badge></li>{/each}
-            </ul>
-          </SummaryItem>
-          <SummaryItem label="Also with Verification read" count={verificationTools.length}>
-            <ul aria-label="Also with Verification read" class="flex flex-wrap gap-1.5">
-              {#each verificationTools as tool (tool)}<li><Badge variant="muted">{tool}</Badge></li>{/each}
-            </ul>
-          </SummaryItem>
+          {#each toolGroups as group (group.label)}
+            <SummaryItem label={group.label} count={group.tools.length}>
+              <ul aria-label={group.label} class="flex flex-wrap gap-1.5">
+                {#each group.tools as tool (tool.name)}
+                  <li>
+                    {#if apiOrigin}
+                      <a
+                        href={mcpToolHref(apiOrigin, tool.name)}
+                        target="_blank"
+                        rel="noreferrer"
+                        class={cn(badgeVariants({ variant: 'muted' }), 'hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:h-11')}
+                        >{tool.title}{' '}<span class="sr-only">{tool.confirms ? '(asks you first, opens in a new tab)' : '(opens in a new tab)'}</span></a
+                      >
+                    {:else}<Badge variant="muted">{tool.title}</Badge>{/if}
+                  </li>
+                {/each}
+              </ul>
+            </SummaryItem>
+          {/each}
+          {#if apiOrigin}
+            <SummaryItem label="Reference">
+              <a href={`${apiOrigin}/mcp-tools`} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-primary pointer-coarse:min-h-11">
+                <ExternalLinkIcon aria-hidden="true" class="shrink-0" /><span class="underline underline-offset-2">MCP tools reference</span>
+                <span class="sr-only">(opens in a new tab)</span>
+              </a>
+            </SummaryItem>
+          {/if}
         </SummaryList>
         {#if serverUrl}
           <CodeBlock code={config(serverUrl)} label="Example client configuration" />

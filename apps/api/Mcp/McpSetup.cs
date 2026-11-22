@@ -63,7 +63,9 @@ internal static class McpSetup
             })
             .WithHttpTransport(options => options.SessionMode = HttpServerSessionMode.Stateless)
             .AddAuthorizationFilters()
-            .WithTools(McpToolCatalog.ToolTypes, json);
+            // The cast picks WithTools(IEnumerable<Type>). Passed as an IReadOnlyList<Type>, the call binds to the generic
+            // WithTools<T>(T target, ...) with the list itself as the tool type, which registers no tool at all.
+            .WithTools((IEnumerable<Type>)McpToolCatalog.ToolTypes, json);
         builder.Services.AddScoped<McpConfirmation>();
 
         builder.Services.AddAuthorizationBuilder()
