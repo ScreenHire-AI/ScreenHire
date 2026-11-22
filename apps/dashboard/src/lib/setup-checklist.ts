@@ -37,6 +37,7 @@ export const setupStepLabels: Record<SetupStepId, string> = {
   Job: 'Publish your first job',
   Team: 'Invite your team',
   Email: 'Send email from your own domain',
+  Interviewing: 'Connect your calendar or set your hours',
 };
 
 /** The answers the steps read. A missing one (still loading) is `undefined`, and the panel waits for all of them. */
@@ -48,6 +49,8 @@ export interface SetupInputs {
   jobs: readonly JobSummary[] | undefined;
   /** The organization's own choices: the steps it skipped and whether it hid the checklist. */
   setup: OrganizationSetup | undefined;
+  /** Whether the person has a calendar connected or their own interview hours set: either lets times be offered from them. */
+  interviewing: { calendarConnected: boolean; hasHours: boolean } | undefined;
 }
 
 /**
@@ -59,8 +62,9 @@ export interface SetupInputs {
  * still loading, so the panel never flashes steps that are already done.
  */
 export function setupSteps(inputs: SetupInputs): SetupStep[] | undefined {
-  const { members, invitations, branding, sendingDomain, jobs, setup } = inputs;
+  const { members, invitations, branding, sendingDomain, jobs, setup, interviewing } = inputs;
   if (!members || !invitations || !branding || !sendingDomain || !jobs || !setup) return undefined;
+  if (setup.hasInterviewStage && !interviewing) return undefined;
 
   const steps: Omit<SetupStep, 'skipped'>[] = [
     {
@@ -74,6 +78,15 @@ export function setupSteps(inputs: SetupInputs): SetupStep[] | undefined {
     { id: 'Job', label: setupStepLabels.Job, href: '/jobs/new', done: jobs.some((job) => job.publishedAt !== null) },
     { id: 'Team', label: setupStepLabels.Team, href: '/settings/team', done: members.length > 1 || invitations.length > 0 },
   ];
+  // Only for an organization that interviews: a job with a stage that holds interviews.
+  if (setup.hasInterviewStage && interviewing) {
+    steps.push({
+      id: 'Interviewing',
+      label: setupStepLabels.Interviewing,
+      href: '/account/connected',
+      done: interviewing.calendarConnected || interviewing.hasHours,
+    });
+  }
   // Last, because it is DNS work outside ScreenHire and the team can start without it.
   if (sendingDomain.available) {
     steps.push({ id: 'Email', label: setupStepLabels.Email, href: '/settings/sending-domain', done: sendingDomain.domain?.status === 'Verified', optional: true });

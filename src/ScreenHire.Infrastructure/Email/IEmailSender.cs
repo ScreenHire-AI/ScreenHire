@@ -15,6 +15,7 @@ public interface IEmailSender
 /// default From address (an organization's verified sending domain), <paramref name="ReplyTo"/> is where a candidate's
 /// answer goes, and <paramref name="CustomArgs"/> are ids the provider echoes back in its event webhook, so a bounce can
 /// be matched to an organization and an email. All three are optional; the SMTP adapter ignores the custom arguments.
+/// <paramref name="Attachments"/> are files sent with it, such as an interview's calendar invitation (.ics).
 /// </summary>
 public sealed record EmailMessage(
     string To,
@@ -23,4 +24,8 @@ public sealed record EmailMessage(
     string? HtmlBody = null,
     string? From = null,
     string? ReplyTo = null,
-    IReadOnlyDictionary<string, string>? CustomArgs = null);
+    IReadOnlyDictionary<string, string>? CustomArgs = null,
+    IReadOnlyList<EmailAttachment>? Attachments = null);
+
+/// <summary>A file sent with an email: its name, its media type (with parameters, such as <c>text/calendar; method=REQUEST</c>) and its bytes.</summary>
+public sealed record EmailAttachment(string FileName, string ContentType, byte[] Content);

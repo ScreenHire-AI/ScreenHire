@@ -5,6 +5,9 @@ import CalendarCheckIcon from '~icons/lucide/calendar-check';
 import CalendarClockIcon from '~icons/lucide/calendar-clock';
 import CalendarPlusIcon from '~icons/lucide/calendar-plus';
 import CalendarRangeIcon from '~icons/lucide/calendar-range';
+import CalendarCogIcon from '~icons/lucide/calendar-cog';
+import CalendarSearchIcon from '~icons/lucide/calendar-search';
+import CalendarSyncIcon from '~icons/lucide/calendar-sync';
 import CalendarXIcon from '~icons/lucide/calendar-x';
 import ClipboardCheckIcon from '~icons/lucide/clipboard-check';
 import ClipboardListIcon from '~icons/lucide/clipboard-list';
@@ -64,6 +67,9 @@ const kinds: Partial<Record<ApplicationEventType, ActivityKind>> = {
   InterviewRescheduled: 'interviews',
   InterviewCancelled: 'interviews',
   InterviewNewTimesOffered: 'interviews',
+  InterviewOptionChanged: 'interviews',
+  InterviewTimesSuggested: 'interviews',
+  InterviewAnotherTimeAsked: 'interviews',
 };
 
 export const activityKind = (entry: Pick<ApplicationTimelineEntry, 'type'>): ActivityKind | undefined => kinds[entry.type];
@@ -106,6 +112,9 @@ export const eventIcons: Record<ApplicationEventType, Component> = {
   InterviewRescheduled: CalendarClockIcon,
   InterviewCancelled: CalendarXIcon,
   InterviewNewTimesOffered: CalendarRangeIcon,
+  InterviewOptionChanged: CalendarCogIcon,
+  InterviewTimesSuggested: CalendarSearchIcon,
+  InterviewAnotherTimeAsked: CalendarSyncIcon,
 };
 
 /** What the screen knows that an entry names by id: stage names, follow-up questionnaire names and job titles. */
@@ -184,6 +193,12 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
       return entry.startsAt ? `Offered new times for the interview on ${formatDateTime(entry.startsAt)}` : 'Offered new interview times';
     case 'InterviewCancelled':
       return entry.startsAt ? `Interview on ${formatDateTime(entry.startsAt)} cancelled` : 'Interview cancelled';
+    case 'InterviewOptionChanged':
+      return 'Changed how they pick an interview time';
+    case 'InterviewTimesSuggested':
+      return 'Sent the times they are free for an interview';
+    case 'InterviewAnotherTimeAsked':
+      return 'Asked for another interview time';
   }
 }
 
@@ -227,6 +242,9 @@ export function activityHref(entry: Linkable, applicationId: string): string {
     case 'InterviewRescheduled':
     case 'InterviewCancelled':
     case 'InterviewNewTimesOffered':
+    case 'InterviewOptionChanged':
+    case 'InterviewTimesSuggested':
+    case 'InterviewAnotherTimeAsked':
       return `${candidate}#interview`;
     case 'VerificationAssessed':
       return `${candidate}?tab=verification`;
@@ -313,6 +331,12 @@ export function feedLine(entry: ActivityEntry, members: readonly TeamMember[] | 
       return done('cancelled ', name, `'s interview${at('on')}`, href);
     case 'InterviewNewTimesOffered':
       return done('offered ', name, ' new interview times', href);
+    case 'InterviewOptionChanged':
+      return done('changed how ', name, ' picks an interview time', href);
+    case 'InterviewTimesSuggested':
+      return candidate(' sent the times they are free for an interview');
+    case 'InterviewAnotherTimeAsked':
+      return candidate(' asked for another interview time');
     default:
       return done('changed ', name, '', href);
   }

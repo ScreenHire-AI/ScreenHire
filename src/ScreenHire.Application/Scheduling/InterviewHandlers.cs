@@ -14,6 +14,7 @@ using ScreenHire.Infrastructure.Persistence;
 using Wolverine;
 using Wolverine.Attributes;
 using ScreenHire.Application.Notifications;
+using System.Globalization;
 
 namespace ScreenHire.Application.Scheduling;
 
@@ -50,6 +51,18 @@ public static class InterviewChanges
     public const string Rescheduled = "Rescheduled";
     public const string Cancelled = "Cancelled";
     public const string NewTimesOffered = "NewTimesOffered";
+
+    /// <summary>The team changed how the candidate picks a time for an open interview.</summary>
+    public const string OptionChanged = "OptionChanged";
+
+    /// <summary>The candidate sent the times they are free.</summary>
+    public const string TimesSuggested = "TimesSuggested";
+
+    /// <summary>The candidate asked for another time than the team's.</summary>
+    public const string AnotherTimeAsked = "AnotherTimeAsked";
+
+    /// <summary>The team asked the candidate for more times.</summary>
+    public const string MoreTimesAsked = "MoreTimesAsked";
 }
 
 /// <summary>What the interview handlers load for one interview: the rows an email or a calendar event is written from.</summary>
@@ -98,7 +111,7 @@ internal static class InterviewContexts
 /// sits in a message or in the copy the team reads. A request that is no longer open (cancelled, booked, expired) sends
 /// nothing, with a warning. The email goes before its entries commit, so a crash between the two can repeat it once.
 /// </summary>
-public static partial class SendInterviewInvitationHandler
+public static class SendInterviewInvitationHandler
 {
     [Deduplicated(ValueSource.InputMember, nameof(SendInterviewInvitation.IdempotencyKey))]
     public static async Task<OutgoingMessages> Handle(
@@ -114,58 +127,13 @@ public static partial class SendInterviewInvitationHandler
         ILogger<SendInterviewInvitation> logger,
         CancellationToken cancellationToken)
     {
-        var outgoing = new OutgoingMessages();
-        if (await db.ApplicationEvents.AnyAsync(e => e.Id == message.SendId, cancellationToken))
-        {
-            return outgoing; // sent already
-        }
-
-        var now = time.GetUtcNow();
-        var context = await InterviewContexts.LoadAsync(db, message.InterviewId, cancellationToken);
-        var stage = context?.Job.Workflow.FindStage(context.Application.CurrentStageId);
-        var reason = context is null ? "the interview or its application is gone"
-            : context.Interview.EffectiveStatus(now) != InterviewStatus.Open ? "the interview is no longer open"
-            : context.Application.HasEnded(stage) ? "the application has ended"
-            : !email.IsConfigured ? "this host has no email sender"
-            : !links.IsConfigured ? "the careers site address is not set up"
-            : null;
-        if (reason is not null)
-        {
-            LogNotSent(logger, message.SendId, reason);
-            return outgoing;
-        }
-
-        var (interview, application, job, candidate, organization) = context!;
-        if (await store.FindAsync(db, EmailTemplateIds.InterviewInvitation, cancellationToken) is not { } template)
-        {
-            LogNotSent(logger, message.SendId, "the invitation template is missing");
-            return outgoing;
-        }
-
-        var model = ApplicationEmails.ModelFor(candidate, job.Title, organization.Name, stageName: null) with
-        {
-            MeetingName = interview.MeetingNameOrDefault(),
-            BookingLink = links.Url(organization.Slug, links.Issue(interview)),
-            InterviewLength = InterviewText.Length(interview.DurationMinutes),
-        };
-        var header = await headers.ForAsync(db, organization, cancellationToken);
-        // Routed like every email about an application: a reply address, so the candidate's answer lands in Messages.
-        var route = await routing.ForAsync(db, application.OrganizationId, message.SendId, cancellationToken, candidate.Id);
-        await email.SendAsync(EmailTemplateIds.InterviewInvitation, template.Content, candidate.Email, model, header, cancellationToken, route);
-
-        // The team's copy says where the candidate's own link was: it lets whoever holds it book as the candidate.
-        var kept = renderer.Render(
-            template.Content, candidate.Email, model with { BookingLink = ApplicationEmails.QuestionnaireLinkNotKept },
-            EmailTemplateIds.InterviewInvitation, header);
-        var copy = application.PrepareEmail(message.SendId, EmailTemplateIds.InterviewInvitation, kept.To, kept.Subject, kept.TextBody, kept.HtmlBody ?? "", now);
-        db.ApplicationEmails.Add(copy);
-        db.ApplicationEvents.Add(application.EmailSent(copy, now, message.ActorUserId));
-        outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, message.SendId, now, message.ActorUserId));
-        return outgoing;
+        // The template follows how the candidate picks, as the interview stands when the email goes.
+        var option = await db.InterviewRequests.AsNoTracking().Where(r => r.Id == message.InterviewId).Select(r => (InterviewOption?)r.Option).SingleOrDefaultAsync(cancellationToken);
+        return await InterviewLinkEmail.SendAsync(
+            InterviewLinkEmail.InvitationTemplate(option ?? InterviewOption.OurTimes), message.InterviewId, message.SendId, message.ActorUserId,
+            (interview, now) => interview.EffectiveStatus(now) == InterviewStatus.Open ? null : "the interview is no longer open",
+            db, email, renderer, store, links, headers, routing, time, logger, cancellationToken);
     }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Interview invitation {SendId} was not sent: {Reason}")]
-    private static partial void LogNotSent(ILogger logger, Guid sendId, string reason);
 }
 
 /// <summary>
@@ -204,6 +172,7 @@ internal static partial class InterviewCalendarSync
         Branding.EmailHeaders headers,
         Applications.CandidateMailRouting routing,
         IOptions<DashboardLinkOptions> dashboard,
+        IOptions<EmailOptions> emailOptions,
         TimeProvider time,
         ILogger logger,
         CancellationToken cancellationToken)
@@ -221,11 +190,22 @@ internal static partial class InterviewCalendarSync
         var title = InterviewText.EventTitle(candidate.FullName, job.Title, interview.MeetingName);
         var link = dashboard.Value.Url($"/applications/{application.Id}");
         var attendees = await LoadAttendeesAsync(db, interviewId, cancellationToken);
+        var connected = await ConnectedAsync(db, attendees, cancellationToken);
         foreach (var attendee in attendees.Where(a => a.SyncStatus != InterviewSyncStatus.Synced))
         {
             if (await calendar.GetSessionAsync(attendee.UserId, cancellationToken) is not { } session)
             {
-                attendee.MarkFailed(NoCalendar);
+                // No calendar connected at all is ScreenHire's calendar: the emailed invitation is their event. A connection that
+                // stopped working is a problem to fix, and they get the invitation meanwhile.
+                if (connected.Contains(attendee.UserId))
+                {
+                    attendee.MarkFailed(NoCalendar);
+                }
+                else
+                {
+                    attendee.MarkOnScreenHireCalendar();
+                }
+
                 continue;
             }
 
@@ -278,9 +258,14 @@ internal static partial class InterviewCalendarSync
                 InterviewTime = InterviewText.Time(start, end, interview.TimeZone, CandidateLanguage.Culture(application.Language)),
                 InterviewLength = InterviewText.Length(interview.DurationMinutes),
             };
-            await SendAsync(db, email, renderer, headers, routing, organization, application, candidate, template, EmailTemplateIds.InterviewConfirmation, model, sendId, now, cancellationToken);
+            // The invitation goes with every confirmation: ScreenHire cannot tell whether the organizer's calendar invitation
+            // reached the candidate's calendar app, and with no connected calendar it is the only one.
+            await SendAsync(db, email, renderer, headers, routing, organization, application, candidate, template, EmailTemplateIds.InterviewConfirmation, model, sendId, now, cancellationToken,
+                route => [InterviewInvites.ForCandidate(interview, organization.Name, job.Title, candidate.Email, Organizer(route, emailOptions.Value), manageLink, now)]);
             outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, sendId, now));
         }
+
+        await InviteTeamAsync(db, email, dashboard.Value, emailOptions.Value, interview, candidate, job, attendees, moved: move, now, cancellationToken);
 
         // The reminders are about this time, not this revision: they check the interview is still Booked at `start` when they
         // go, so a later move or cancellation makes them harmless, and the move's own message schedules the new ones.
@@ -310,6 +295,8 @@ internal static partial class InterviewCalendarSync
         EmailTemplateStore store,
         Branding.EmailHeaders headers,
         Applications.CandidateMailRouting routing,
+        IOptions<DashboardLinkOptions> dashboard,
+        IOptions<EmailOptions> emailOptions,
         TimeProvider time,
         ILogger logger,
         CancellationToken cancellationToken)
@@ -327,11 +314,16 @@ internal static partial class InterviewCalendarSync
         // An event may exist with no saved id only when the interview was booked. It can sit at any time the interview had,
         // so the look-up covers the lookup span (every window the interview has had).
         var wasBooked = interview.StartsAt is not null;
+        var connected = await ConnectedAsync(db, attendees, cancellationToken);
         foreach (var attendee in attendees.Where(a => a.SyncStatus != InterviewSyncStatus.Synced && (a.ProviderEventId is not null || wasBooked)))
         {
             if (await calendar.GetSessionAsync(attendee.UserId, cancellationToken) is not { } session)
             {
-                if (attendee.ProviderEventId is not null)
+                if (!connected.Contains(attendee.UserId))
+                {
+                    attendee.MarkOnScreenHireCalendar(); // the cancellation they are emailed removes their event
+                }
+                else if (attendee.ProviderEventId is not null)
                 {
                     attendee.MarkFailed(NoCalendar);
                 }
@@ -369,8 +361,15 @@ internal static partial class InterviewCalendarSync
                     ? InterviewText.Time(start, start + interview.Duration, interview.TimeZone, CandidateLanguage.Culture(application.Language))
                     : null,
             };
-            await SendAsync(db, email, renderer, headers, routing, organization, application, candidate, template, EmailTemplateIds.InterviewCancelled, model, sendId, now, cancellationToken);
+            // A booked interview's invitation is withdrawn with the same UID; an open one never had an event.
+            await SendAsync(db, email, renderer, headers, routing, organization, application, candidate, template, EmailTemplateIds.InterviewCancelled, model, sendId, now, cancellationToken,
+                wasBooked ? route => [InterviewInvites.ForCandidate(interview, organization.Name, job.Title, candidate.Email, Organizer(route, emailOptions.Value), null, now)] : null);
             outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, sendId, now));
+        }
+
+        if (wasBooked)
+        {
+            await InviteTeamAsync(db, email, dashboard.Value, emailOptions.Value, interview, candidate, job, attendees, moved: false, now, cancellationToken);
         }
 
         outgoing.Add(new InterviewChanged(application.OrganizationId, application.Id, application.JobId, interviewId, interview.Status.ToString()));
@@ -405,11 +404,12 @@ internal static partial class InterviewCalendarSync
         EmailTemplateModel model,
         Guid sendId,
         DateTimeOffset now,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<MailRoute, IReadOnlyList<EmailAttachment>>? attach = null)
     {
         var header = await headers.ForAsync(db, organization, cancellationToken);
         var route = await routing.ForAsync(db, application.OrganizationId, sendId, cancellationToken, candidate.Id);
-        await email.SendAsync(templateId, template.Content, candidate.Email, model, header, cancellationToken, route);
+        await email.SendAsync(templateId, template.Content, candidate.Email, model, header, cancellationToken, route, attach?.Invoke(route));
 
         // The copy the team reads hides the candidate's own link: it lets whoever holds it change or cancel the interview.
         var kept = renderer.Render(
@@ -418,6 +418,69 @@ internal static partial class InterviewCalendarSync
         db.ApplicationEmails.Add(copy);
         db.ApplicationEvents.Add(application.EmailSent(copy, now, actorUserId: null));
     }
+
+    /// <summary>
+    /// Emails the calendar invitation to each interviewer whose own calendar did not get the event: one on ScreenHire's
+    /// calendar, or one whose connection failed. A cancellation goes to those who were sent the booking. Once per revision
+    /// (<see cref="InterviewAttendee.InvitedRevision"/>), and only to a member who still sees the job (ADR-0015).
+    /// </summary>
+    private static async Task InviteTeamAsync(
+        ScreenHireDbContext db,
+        TransactionalEmail email,
+        DashboardLinkOptions dashboard,
+        EmailOptions emailOptions,
+        InterviewRequest interview,
+        Candidate candidate,
+        Job job,
+        IReadOnlyList<InterviewAttendee> attendees,
+        bool moved,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (!email.IsConfigured || interview.StartsAt is not { } start)
+        {
+            return;
+        }
+
+        var cancelled = interview.Status == InterviewStatus.Cancelled;
+        var link = dashboard.Url($"/applications/{interview.ApplicationId}");
+        var time = InterviewText.Time(start, start + interview.Duration, interview.TimeZone, CultureInfo.GetCultureInfo("en-US"));
+        foreach (var attendee in attendees.Where(a => a.InvitedRevision != interview.Revision))
+        {
+            var needsOne = cancelled
+                ? attendee.InvitedRevision is not null
+                : attendee.Provider == CalendarProvider.ScreenHire || attendee.SyncStatus == InterviewSyncStatus.Failed;
+            if (!needsOne || !await JobAccessQueries.SeesJobAsync(db, interview.OrganizationId, attendee.UserId, interview.JobId, cancellationToken))
+            {
+                continue;
+            }
+
+            var person = await db.Users.Where(u => u.Id == attendee.UserId).Select(u => new { u.Email, u.DisplayName }).SingleOrDefaultAsync(cancellationToken);
+            if (person?.Email is not { } to)
+            {
+                continue;
+            }
+
+            var invite = InterviewInvites.ForInterviewer(
+                interview, candidate.FullName, job.Title, new IcsPerson(to, person.DisplayName), InterviewInvites.AddressOf(emailOptions.From), link, now);
+            await email.SendAsync(
+                TeamEmail.WithFooter(
+                    InterviewTeamInviteEmail.Compose(to, candidate.FullName, job.Title, time, cancelled, moved, interview.MeetingUrl, link, interview.MeetingNameOrDefault(), invite),
+                    dashboard),
+                cancellationToken);
+            attendee.MarkInvited(interview.Revision);
+        }
+    }
+
+    // Who of the attendees has a calendar connection row at all, working or not.
+    private static async Task<HashSet<Guid>> ConnectedAsync(ScreenHireDbContext db, IReadOnlyList<InterviewAttendee> attendees, CancellationToken cancellationToken)
+    {
+        var userIds = attendees.Select(a => a.UserId).ToList();
+        return [.. await db.CalendarConnections.AsNoTracking().Where(c => userIds.Contains(c.UserId)).Select(c => c.UserId).ToListAsync(cancellationToken)];
+    }
+
+    // The organizer an invitation names: where the candidate's replies go, else the address it comes from.
+    private static string? Organizer(MailRoute route, EmailOptions options) => route.ReplyTo ?? route.From ?? options.From;
 
     private static Task<List<InterviewAttendee>> LoadAttendeesAsync(ScreenHireDbContext db, Guid interviewId, CancellationToken cancellationToken) =>
         db.InterviewAttendees.Where(a => a.InterviewId == interviewId)
@@ -443,12 +506,13 @@ public static class CreateInterviewEventsHandler
         Branding.EmailHeaders headers,
         Applications.CandidateMailRouting routing,
         IOptions<DashboardLinkOptions> dashboard,
+        IOptions<EmailOptions> emailOptions,
         TimeProvider time,
         ILogger<CreateInterviewEvents> logger,
         CancellationToken cancellationToken)
     {
         var outgoing = await InterviewCalendarSync.WriteAsync(
-            message.OrganizationId, message.InterviewId, message.Revision, move: false, db, calendar, email, renderer, store, links, headers, routing, dashboard, time, logger, cancellationToken);
+            message.OrganizationId, message.InterviewId, message.Revision, move: false, db, calendar, email, renderer, store, links, headers, routing, dashboard, emailOptions, time, logger, cancellationToken);
         // The interviewers, by their own choices (docs/architecture/notifications.md); out of date by then, it tells nobody.
         outgoing.Add(new NotifyInterviewChanged(message.OrganizationId, message.InterviewId, message.Revision, "Booked"));
         return outgoing;
@@ -470,12 +534,13 @@ public static class UpdateInterviewEventsHandler
         Branding.EmailHeaders headers,
         Applications.CandidateMailRouting routing,
         IOptions<DashboardLinkOptions> dashboard,
+        IOptions<EmailOptions> emailOptions,
         TimeProvider time,
         ILogger<UpdateInterviewEvents> logger,
         CancellationToken cancellationToken)
     {
         var outgoing = await InterviewCalendarSync.WriteAsync(
-            message.OrganizationId, message.InterviewId, message.Revision, move: true, db, calendar, email, renderer, store, links, headers, routing, dashboard, time, logger, cancellationToken);
+            message.OrganizationId, message.InterviewId, message.Revision, move: true, db, calendar, email, renderer, store, links, headers, routing, dashboard, emailOptions, time, logger, cancellationToken);
         outgoing.Add(new NotifyInterviewChanged(message.OrganizationId, message.InterviewId, message.Revision, "Moved"));
         return outgoing;
     }
@@ -494,12 +559,14 @@ public static class CancelInterviewEventsHandler
         EmailTemplateStore store,
         Branding.EmailHeaders headers,
         Applications.CandidateMailRouting routing,
+        IOptions<DashboardLinkOptions> dashboard,
+        IOptions<EmailOptions> emailOptions,
         TimeProvider time,
         ILogger<CancelInterviewEvents> logger,
         CancellationToken cancellationToken)
     {
         var outgoing = await InterviewCalendarSync.CancelAsync(
-            message.OrganizationId, message.InterviewId, message.Revision, message.TellCandidate, db, calendar, email, renderer, store, headers, routing, time, logger, cancellationToken);
+            message.OrganizationId, message.InterviewId, message.Revision, message.TellCandidate, db, calendar, email, renderer, store, headers, routing, dashboard, emailOptions, time, logger, cancellationToken);
         outgoing.Add(new NotifyInterviewChanged(message.OrganizationId, message.InterviewId, message.Revision, "Cancelled", message.ActorUserId));
         return outgoing;
     }

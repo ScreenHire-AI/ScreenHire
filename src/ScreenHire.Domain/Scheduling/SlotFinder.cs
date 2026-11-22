@@ -11,7 +11,8 @@ public sealed record BusyInterval(DateTimeOffset Start, DateTimeOffset End);
 /// <para>
 /// The walk is over local days in the interview's time zone, so daylight saving time is right: working hours are wall-clock
 /// hours, a slot never starts at a local time that does not exist (the hour skipped in spring), and a local time that
-/// happens twice (the hour repeated in autumn) means its first occurrence. Only weekdays are offered.
+/// happens twice (the hour repeated in autumn) means its first occurrence. Only the days the hours name are offered: the
+/// working hours every request had before hours could be set per day are weekdays only (<see cref="WeeklyHours.Weekdays"/>).
 /// </para>
 /// <para>
 /// Start times are <c>dayStart + k * step</c> in local wall-clock time, so with a 30 minute step and 09:00 working hours
@@ -46,14 +47,34 @@ public static class SlotFinder
         TimeOnly dayEnd,
         DateTimeOffset earliestStart,
         IReadOnlyList<IReadOnlyList<BusyInterval>> busyPerInterviewer,
+        int maxSlots) =>
+        dayEnd <= dayStart
+            ? []
+            : Find(windowStart, windowEnd, duration, step, zone, WeeklyHours.Weekdays(dayStart, dayEnd), earliestStart, busyPerInterviewer, maxSlots);
+
+    /// <summary>
+    /// The start instants at which every interviewer is free, inside <paramref name="hours"/> (local wall-clock time in
+    /// <paramref name="zone"/>, any day of the week). Start times are each stretch's start plus <c>k * step</c>, and a slot ends
+    /// at or before its stretch's end.
+    /// </summary>
+    public static IReadOnlyList<DateTimeOffset> Find(
+        DateTimeOffset windowStart,
+        DateTimeOffset windowEnd,
+        TimeSpan duration,
+        int step,
+        TimeZoneInfo zone,
+        WeeklyHours hours,
+        DateTimeOffset earliestStart,
+        IReadOnlyList<IReadOnlyList<BusyInterval>> busyPerInterviewer,
         int maxSlots)
     {
         ArgumentNullException.ThrowIfNull(zone);
+        ArgumentNullException.ThrowIfNull(hours);
         ArgumentNullException.ThrowIfNull(busyPerInterviewer);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(duration, TimeSpan.Zero);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(step, 0);
         var slots = new List<DateTimeOffset>();
-        if (maxSlots <= 0 || windowEnd <= windowStart || dayEnd <= dayStart)
+        if (maxSlots <= 0 || windowEnd <= windowStart)
         {
             return slots;
         }
@@ -64,32 +85,30 @@ public static class SlotFinder
         var lastDay = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(windowEnd, zone).DateTime);
         for (var day = firstDay; day <= lastDay; day = day.AddDays(1))
         {
-            if (day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            foreach (var (from, to) in hours.On(day))
             {
-                continue;
-            }
-
-            var dayEndsAt = InstantOf(day.ToDateTime(dayEnd), zone);
-            for (var local = day.ToDateTime(dayStart); local < day.ToDateTime(dayEnd); local = local.AddMinutes(step))
-            {
-                if (zone.IsInvalidTime(local))
+                var stretchEndsAt = InstantOf(to, zone);
+                for (var local = from; local < to; local = local.AddMinutes(step))
                 {
-                    continue;
-                }
-
-                var start = InstantOf(local, zone);
-                var end = start + duration;
-                if (start < notBefore || end > windowEnd || end > dayEndsAt)
-                {
-                    continue;
-                }
-
-                if (busy.All(intervals => IsFree(intervals, start, end)))
-                {
-                    slots.Add(start);
-                    if (slots.Count >= maxSlots)
+                    if (zone.IsInvalidTime(local))
                     {
-                        return slots;
+                        continue;
+                    }
+
+                    var start = InstantOf(local, zone);
+                    var end = start + duration;
+                    if (start < notBefore || end > windowEnd || end > stretchEndsAt)
+                    {
+                        continue;
+                    }
+
+                    if (busy.All(intervals => IsFree(intervals, start, end)) && (slots.Count == 0 || slots[^1] < start))
+                    {
+                        slots.Add(start);
+                        if (slots.Count >= maxSlots)
+                        {
+                            return slots;
+                        }
                     }
                 }
             }

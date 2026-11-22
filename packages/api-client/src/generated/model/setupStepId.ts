@@ -18,4 +18,5 @@ export const SetupStepId = {
   Job: 'Job',
   Team: 'Team',
   Email: 'Email',
+  Interviewing: 'Interviewing',
 } as const;

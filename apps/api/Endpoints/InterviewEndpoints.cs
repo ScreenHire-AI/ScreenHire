@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Hiring;
+using ScreenHire.Application.Automations;
 using ScreenHire.Application.Scheduling;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Scheduling;
 using ScreenHire.Infrastructure.Email;
@@ -20,9 +22,10 @@ namespace ScreenHire.Api.Endpoints;
 /// it. Scheduling emails the candidate, so it needs the permission that emails them, <c>EmailCandidates</c>.
 /// </summary>
 /// <remarks>
-/// These routes run for a signed-in member, who may see only some jobs, so they never use <c>InterviewAvailability</c> or
-/// <c>InterviewBooking</c> (those refuse a context limited to some jobs, because a booking check there could miss an
-/// interviewer's other interviews). They offer and cancel; the candidate books through the public routes.
+/// These routes run for a signed-in member, who may see only some jobs, so they use <c>InterviewAvailability</c> and
+/// <c>InterviewBooking</c> only through <see cref="OrganizationScope"/>, after checking the member sees the job: those refuse
+/// a context limited to some jobs, because a booking check there could miss an interviewer's other interviews. They offer,
+/// change how the candidate picks, book one of the candidate's times, and cancel; the candidate books through the public routes.
 /// </remarks>
 internal static class InterviewEndpoints
 {
@@ -56,6 +59,22 @@ internal static class InterviewEndpoints
             .RequirePermission(Permission.EmailCandidates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
+        interviews.MapPost("/{interviewId:guid}/option", ChangeOption).WithName("ChangeInterviewOption")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EmailCandidates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .Produces(StatusCodes.Status401Unauthorized);
+        interviews.MapPost("/{interviewId:guid}/book", BookTime).WithName("BookInterviewTime")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EmailCandidates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        interviews.MapPost("/{interviewId:guid}/more-times", AskForMoreTimes).WithName("AskForMoreInterviewTimes")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EmailCandidates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
 
@@ -80,6 +99,8 @@ internal static class InterviewEndpoints
             .Select(c => new { c.UserId, c.Provider, c.Problem })
             .ToListAsync(cancellationToken);
         var byUser = connections.ToDictionary(c => c.UserId);
+        var withHours = (await db.InterviewHours.AsNoTracking()
+            .Where(h => userIds.Contains(h.UserId) && h.Weekly != null).Select(h => h.UserId).ToListAsync(cancellationToken)).ToHashSet();
 
         return TypedResults.Ok(members
             .OrderBy(m => m.DisplayName, StringComparer.CurrentCultureIgnoreCase)
@@ -87,7 +108,7 @@ internal static class InterviewEndpoints
             {
                 // A row the host cannot use (its provider is not configured here) does not count as connected.
                 var usable = byUser.TryGetValue(m.UserId, out var connection) && connection.Problem is null && calendar.Options.IsAvailable(connection.Provider);
-                return new Interviewer(m.UserId, m.DisplayName, usable, usable ? connection!.Provider : null);
+                return new Interviewer(m.UserId, m.DisplayName, usable, usable ? connection!.Provider : null, withHours.Contains(m.UserId));
             })
             .ToList());
     }
@@ -112,6 +133,12 @@ internal static class InterviewEndpoints
 
         var now = time.GetUtcNow();
         var (dayStart, dayEnd, problems) = Validate(request, now);
+        var pick = PickOf(request.Option ?? InterviewOption.OurTimes, request.Hours, request.UseBlocks, request.ProposedTimes, request.ExtraTimes);
+        if (problems is null && InterviewRequest.PickProblem(pick, request.DurationMinutes, request.WindowStart, request.WindowEnd, now) is { } pickProblem)
+        {
+            problems = ValidationExtensions.Problem(PickField(pickProblem), pickProblem);
+        }
+
         if (problems is not null)
         {
             return TypedResults.ValidationProblem(problems);
@@ -137,19 +164,10 @@ internal static class InterviewEndpoints
                 "interviewerUserIds", "Choose members of the team who see this job."));
         }
 
-        var connections = await db.CalendarConnections.AsNoTracking().Where(c => chosen.Contains(c.UserId)).ToListAsync(cancellationToken);
-        var usable = connections
-            .Where(c => c.Problem is null && calendar.Options.IsAvailable(c.Provider))
-            .ToDictionary(c => c.UserId, c => c.Provider);
-        var missing = chosen.Where(id => !usable.ContainsKey(id)).ToList();
-        if (missing.Count > 0)
+        var (usable, noCalendar) = await CalendarsAsync(db, calendar, chosen, pick, byUser, cancellationToken);
+        if (noCalendar is not null)
         {
-            return TypedResults.Problem(
-                title: "Calendar not connected",
-                detail: $"These interviewers have no working calendar connected: {string.Join(", ", missing.Select(id => byUser[id].DisplayName))}. "
-                    + "Ask them to connect a calendar in Your account, Connected accounts.",
-                statusCode: StatusCodes.Status422UnprocessableEntity,
-                extensions: new Dictionary<string, object?> { ["interviewerUserIds"] = missing });
+            return noCalendar;
         }
 
         // An Open request past its window is stored as Expired first: the partial unique index sees the stored status.
@@ -173,13 +191,19 @@ internal static class InterviewEndpoints
 
         var interview = InterviewRequest.Create(
             application, request.DurationMinutes, request.WindowStart, request.WindowEnd, request.TimeZone!, tenant.UserId, now, dayStart, dayEnd,
-            meetingName: job.Workflow.FindStage(application.CurrentStageId)?.MeetingName);
+            meetingName: job.Workflow.FindStage(application.CurrentStageId)?.MeetingName, pick: pick);
         var attendees = chosen
-            .Select((userId, index) => InterviewAttendee.Create(interview, userId, isOrganizer: index == 0, usable[userId]))
+            .Select((userId, index) => InterviewAttendee.Create(
+                interview, userId, isOrganizer: index == 0, usable.TryGetValue(userId, out var provider) ? provider : CalendarProvider.ScreenHire))
             .ToList();
         db.InterviewRequests.Add(interview);
         db.InterviewAttendees.AddRange(attendees);
         db.ApplicationEvents.Add(application.InterviewInvited(interview, now, tenant.UserId));
+        foreach (var done in await SchedulingTasks.CompleteAsync(db, application, tenant.UserId, now, cancellationToken))
+        {
+            await outbox.PublishAsync(done);
+        }
+
         await outbox.PublishAsync(new SendInterviewInvitation(application.OrganizationId, application.Id, interview.Id, Guid.CreateVersion7(), tenant.UserId));
         await outbox.PublishAsync(new InterviewChanged(
             application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.Invited, tenant.UserId));
@@ -330,6 +354,253 @@ internal static class InterviewEndpoints
         return TypedResults.Ok(interview.ToDto(attendees, byUser, now));
     }
 
+    // Change how they pick on an open interview, or move a booked one with any of the three options. Under the interviewers'
+    // locks, as a cancellation is, so a change and a candidate's booking at the same moment cannot both win. The candidate's
+    // link stays; they are emailed that their options changed.
+    private static async Task<Results<Ok<ApplicationInterview>, NotFound, ValidationProblem, ProblemHttpResult>> ChangeOption(
+        Guid interviewId,
+        ChangeInterviewOptionRequest request,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        CalendarAccess calendar,
+        InterviewLinks links,
+        IServiceProvider services,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (services.GetService<IEmailSender>() is null || !links.IsConfigured)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var db = outbox.DbContext;
+        var attendeeUsers = await db.InterviewAttendees.AsNoTracking().Where(a => a.InterviewId == interviewId).Select(a => a.UserId).ToListAsync(cancellationToken);
+        // No CommitAsync here: SaveChangesAndFlushMessagesAsync commits this transaction with the outbox rows.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await InterviewLocks.TakeAsync(db, tenant.OrganizationId!.Value, attendeeUsers, cancellationToken);
+        if (await db.InterviewRequests.SingleOrDefaultAsync(r => r.Id == interviewId, cancellationToken) is not { } interview)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var now = time.GetUtcNow();
+        var status = interview.EffectiveStatus(now);
+        if (status is not (InterviewStatus.Open or InterviewStatus.Booked))
+        {
+            return TypedResults.Problem("This interview is cancelled or has expired. Offer a new one instead.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        var pick = PickOf(request.Option, request.Hours, request.UseBlocks, request.ProposedTimes, request.ExtraTimes);
+        if (interview.ChangeProblem(pick, request.WindowStart, request.WindowEnd, now) is { } problem)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem(PickField(problem), problem));
+        }
+
+        var application = await db.Applications.SingleAsync(a => a.Id == interview.ApplicationId, cancellationToken);
+        var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
+        if (application.HasEnded(job.Workflow.FindStage(application.CurrentStageId)))
+        {
+            return TypedResults.Problem("The application has ended, so there is nothing to schedule.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        var byUser = (await HiringTeams.MembersAsync(db, tenant, cancellationToken)).Values.ToDictionary(m => m.UserId);
+        var (_, noCalendar) = await CalendarsAsync(db, calendar, attendeeUsers, pick, byUser, cancellationToken);
+        if (noCalendar is not null)
+        {
+            return noCalendar;
+        }
+
+        interview.ChangeOption(pick, request.WindowStart, request.WindowEnd, now);
+        db.ApplicationEvents.Add(status == InterviewStatus.Booked
+            ? application.InterviewNewTimesOffered(interview, now, tenant.UserId)
+            : application.InterviewOptionChanged(interview, now, tenant.UserId));
+        await outbox.PublishAsync(new SendInterviewOptionsUpdated(application.OrganizationId, application.Id, interview.Id, Guid.CreateVersion7(), tenant.UserId));
+        await outbox.PublishAsync(new InterviewChanged(
+            application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(),
+            status == InterviewStatus.Booked ? InterviewChanges.NewTimesOffered : InterviewChanges.OptionChanged, tenant.UserId, StartsAt: interview.StartsAt));
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        return TypedResults.Ok(interview.ToDto(await AttendeesAsync(db, interviewId, cancellationToken), byUser, now));
+    }
+
+    // The team books one of the times the candidate suggested. The booking runs for the whole organization (the booking check
+    // must see every interviewer's bookings), in a scope of its own whose outbox commits it with its messages, as the
+    // candidate's own booking does.
+    private static async Task<Results<Ok<ApplicationInterview>, NotFound, ProblemHttpResult>> BookTime(
+        Guid interviewId,
+        BookInterviewTimeRequest request,
+        ScreenHireDbContext db,
+        ITenantContext tenant,
+        IServiceScopeFactory scopes,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        // Read through the member's own filters first: an interview on a job they cannot see is a 404, before any wider scope.
+        if (await db.InterviewRequests.AsNoTracking().Where(r => r.Id == interviewId).Select(r => new { r.Option, r.Status }).SingleOrDefaultAsync(cancellationToken) is not { } seen)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (seen.Option != InterviewOption.TheirTimes)
+        {
+            return TypedResults.Problem("Only times the candidate suggested are booked here.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        var userId = tenant.UserId;
+        var outcome = await OrganizationScope.RunAsync(scopes, tenant.OrganizationId!.Value, async scope =>
+        {
+            var outbox = scope.GetRequiredService<IDbContextOutbox<ScreenHireDbContext>>();
+            var booking = scope.GetRequiredService<InterviewBooking>();
+            var inner = outbox.DbContext;
+            // No CommitAsync here: SaveChangesAndFlushMessagesAsync commits the booking's transaction with the outbox rows.
+            await using var transaction = await inner.Database.BeginTransactionAsync(cancellationToken);
+            var reschedule = seen.Status == InterviewStatus.Booked;
+            var result = reschedule
+                ? await booking.RescheduleAsync(interviewId, request.Start, byCandidate: false, cancellationToken)
+                : await booking.BookAsync(interviewId, request.Start, cancellationToken);
+            if (!result.IsDone)
+            {
+                return result.Outcome;
+            }
+
+            var interview = result.Interview!;
+            var application = await inner.Applications.AsNoTracking().SingleAsync(a => a.Id == interview.ApplicationId, cancellationToken);
+            var now = time.GetUtcNow();
+            if (reschedule)
+            {
+                inner.ApplicationEvents.Add(application.InterviewRescheduled(interview, now, userId));
+                await outbox.PublishAsync(new UpdateInterviewEvents(application.OrganizationId, application.Id, interview.Id, interview.Revision));
+            }
+            else
+            {
+                inner.ApplicationEvents.Add(application.InterviewBooked(interview, now, userId));
+                await outbox.PublishAsync(new CreateInterviewEvents(application.OrganizationId, application.Id, interview.Id, interview.Revision));
+                // Booked by a person for the candidate, it is still the candidate's first booking: the trigger fires once per interview.
+                await outbox.PublishAsync(new RunAutomations(
+                    application.OrganizationId, application.Id, TriggerType.InterviewScheduled, StageId: null, interview.Id, now));
+            }
+
+            await outbox.PublishAsync(new InterviewChanged(
+                application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(),
+                reschedule ? InterviewChanges.Rescheduled : InterviewChanges.Booked, userId, StartsAt: interview.StartsAt));
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            return result.Outcome;
+        });
+
+        return outcome switch
+        {
+            InterviewBookingOutcome.Done => TypedResults.Ok(await DtoAsync(db, tenant, interviewId, time.GetUtcNow(), cancellationToken)),
+            InterviewBookingOutcome.NotFound => TypedResults.NotFound(),
+            InterviewBookingOutcome.SlotTaken => TypedResults.Problem(
+                "That time is not one the candidate suggested, or another interview took it. Choose another.", statusCode: StatusCodes.Status409Conflict),
+            _ => TypedResults.Problem("This interview is not waiting for a time to be booked.", statusCode: StatusCodes.Status409Conflict),
+        };
+    }
+
+    // None of the candidate's times works: the team asks for more, with an optional message, on the same link.
+    private static async Task<Results<Ok<ApplicationInterview>, NotFound, ValidationProblem, ProblemHttpResult>> AskForMoreTimes(
+        Guid interviewId,
+        AskForMoreTimesRequest request,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        InterviewLinks links,
+        IServiceProvider services,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        if (services.GetService<IEmailSender>() is null || !links.IsConfigured)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (request.Note is { Length: > InterviewRequest.MaxNoteLength })
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("note", $"Keep the message to {InterviewRequest.MaxNoteLength} characters."));
+        }
+
+        var db = outbox.DbContext;
+        var attendeeUsers = await db.InterviewAttendees.AsNoTracking().Where(a => a.InterviewId == interviewId).Select(a => a.UserId).ToListAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await InterviewLocks.TakeAsync(db, tenant.OrganizationId!.Value, attendeeUsers, cancellationToken);
+        if (await db.InterviewRequests.SingleOrDefaultAsync(r => r.Id == interviewId, cancellationToken) is not { } interview)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var now = time.GetUtcNow();
+        if (interview.Option != InterviewOption.TheirTimes || !interview.IsPicking(now) || interview.CandidateTimes.Count == 0)
+        {
+            return TypedResults.Problem("The candidate has no times waiting to be booked.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        var application = await db.Applications.AsNoTracking().SingleAsync(a => a.Id == interview.ApplicationId, cancellationToken);
+        interview.AskForMoreTimes(request.Note, now);
+        db.ApplicationEvents.Add(application.InterviewOptionChanged(interview, now, tenant.UserId));
+        await outbox.PublishAsync(new SendInterviewMoreTimes(application.OrganizationId, application.Id, interview.Id, Guid.CreateVersion7(), tenant.UserId));
+        await outbox.PublishAsync(new InterviewChanged(
+            application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.MoreTimesAsked, tenant.UserId,
+            StartsAt: interview.StartsAt));
+        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        var byUser = (await HiringTeams.MembersAsync(db, tenant, cancellationToken)).Values.ToDictionary(m => m.UserId);
+        return TypedResults.Ok(interview.ToDto(await AttendeesAsync(db, interviewId, cancellationToken), byUser, now));
+    }
+
+    /// <summary>
+    /// Each interviewer's calendar provider, and the 422 to answer when times are offered from calendars and an interviewer's
+    /// time cannot be known: no working calendar and no interview hours. Interview blocks, the candidate's times and the
+    /// team's own need no calendar; an interviewer without one is on ScreenHire's calendar.
+    /// </summary>
+    internal static async Task<(Dictionary<Guid, CalendarProvider> Usable, ProblemHttpResult? NoCalendar)> CalendarsAsync(
+        ScreenHireDbContext db, CalendarAccess calendar, IReadOnlyList<Guid> chosen, InterviewPick pick,
+        IReadOnlyDictionary<Guid, HiringTeams.Member> byUser, CancellationToken cancellationToken)
+    {
+        var connections = await db.CalendarConnections.AsNoTracking().Where(c => chosen.Contains(c.UserId)).ToListAsync(cancellationToken);
+        var usable = connections
+            .Where(c => c.Problem is null && calendar.Options.IsAvailable(c.Provider))
+            .ToDictionary(c => c.UserId, c => c.Provider);
+        if (pick.Option != InterviewOption.OurTimes || pick.UseBlocks)
+        {
+            return (usable, null);
+        }
+
+        var withHours = await db.InterviewHours.AsNoTracking().Where(h => chosen.Contains(h.UserId) && h.Weekly != null).Select(h => h.UserId).ToListAsync(cancellationToken);
+        var missing = chosen.Where(id => !usable.ContainsKey(id) && !withHours.Contains(id)).ToList();
+        return missing.Count == 0
+            ? (usable, null)
+            : (usable, TypedResults.Problem(
+                title: "Calendar not connected",
+                detail: $"These interviewers have no working calendar and no interview hours: {string.Join(", ", missing.Select(id => byUser.TryGetValue(id, out var m) ? m.DisplayName : "A former member"))}. "
+                    + "Ask them to connect a calendar or set their hours in Your account, Calendar.",
+                statusCode: StatusCodes.Status422UnprocessableEntity,
+                extensions: new Dictionary<string, object?> { ["interviewerUserIds"] = missing }));
+    }
+
+    private static InterviewPick PickOf(
+        InterviewOption option, WeeklyHours? hours, bool useBlocks, IReadOnlyList<DateTimeOffset>? proposed, IReadOnlyList<DateTimeOffset>? extra) =>
+        new(option, hours, useBlocks, proposed ?? [], extra ?? []);
+
+    // The field a pick's problem is about, so a form can show it beside the input.
+    private static string PickField(string problem) =>
+        problem.StartsWith("Pick one or", StringComparison.Ordinal) || problem.StartsWith("Only We'll", StringComparison.Ordinal) ? "proposedTimes"
+        : problem.StartsWith("Add at most", StringComparison.Ordinal) || problem.StartsWith("Only Pick", StringComparison.Ordinal) ? "extraTimes"
+        : problem.StartsWith("Each time", StringComparison.Ordinal) || problem.StartsWith("Times are", StringComparison.Ordinal) ? "proposedTimes"
+        : problem.StartsWith("Choose how", StringComparison.Ordinal) ? "option"
+        : problem.StartsWith("An interview lasts", StringComparison.Ordinal) || problem.StartsWith("Choose a time zone", StringComparison.Ordinal)
+            || problem.StartsWith("The window", StringComparison.Ordinal) || problem.StartsWith("Working hours", StringComparison.Ordinal) ? ProblemField(problem)
+        : "hours";
+
+    private static Task<List<InterviewAttendee>> AttendeesAsync(ScreenHireDbContext db, Guid interviewId, CancellationToken cancellationToken) =>
+        db.InterviewAttendees.AsNoTracking()
+            .Where(a => a.InterviewId == interviewId)
+            .OrderByDescending(a => a.IsOrganizer).ThenBy(a => a.Id)
+            .ToListAsync(cancellationToken);
+
+    private static async Task<ApplicationInterview> DtoAsync(ScreenHireDbContext db, ITenantContext tenant, Guid interviewId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var interview = await db.InterviewRequests.AsNoTracking().SingleAsync(r => r.Id == interviewId, cancellationToken);
+        var byUser = (await HiringTeams.MembersAsync(db, tenant, cancellationToken)).Values.ToDictionary(m => m.UserId);
+        return interview.ToDto(await AttendeesAsync(db, interviewId, cancellationToken), byUser, now);
+    }
+
     private static bool SeesJob(HiringTeams.Member member, IReadOnlyCollection<Guid> team) => member.SeesAllJobs || team.Contains(member.Id);
 
     private static ProblemHttpResult AlreadyOffered() =>
@@ -397,5 +668,16 @@ internal static class InterviewEndpoints
             interview.CreatedAt,
             interview.CreatedByUserId,
             interview.CancelledByCandidate,
-            interview.HasPendingNewTimes(now) ? interview.NewTimesOfferedAt : null);
+            interview.HasPendingNewTimes(now) ? interview.NewTimesOfferedAt : null,
+            interview.Option,
+            interview.Hours,
+            interview.UseBlocks,
+            interview.ProposedTimes,
+            interview.ExtraTimes,
+            interview.CandidateTimes,
+            interview.CandidateTimesAt,
+            interview.AnotherTimeAskedAt,
+            interview.CandidateNote,
+            interview.TeamNote,
+            interview.WaitsForTeam(now));
 }

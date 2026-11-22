@@ -6,6 +6,7 @@
  */
 import type { Scorecard } from './scorecard.ts';
 import type { StageKind } from './stageKind.ts';
+import type { StageScheduling } from './stageScheduling.ts';
 
 /**
  * One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.
@@ -21,4 +22,5 @@ export interface WorkflowStage {
   scorecardTemplateId?: string | null;
   /** @nullable */
   meetingName?: string | null;
+  scheduling?: null | StageScheduling;
 }

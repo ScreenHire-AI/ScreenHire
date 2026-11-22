@@ -271,7 +271,7 @@ public static class DigestEmail
         {
             NoticeKind.Mentions => $"{someone} mentioned you in a note on {candidate}, {job}",
             NoticeKind.Replies => $"{candidate} replied to your email about {job}",
-            NoticeKind.Interviews => $"The interview with {candidate}, {job}, was {MemberNoticeEmails.InterviewVerb(item.Detail)}",
+            NoticeKind.Interviews => MemberNoticeEmails.InterviewLine(item.Detail, candidate, job),
             NoticeKind.Tasks => actor is null ? $"A new task on {candidate}, {job}" : $"{actor} gave you a task on {candidate}, {job}",
             NoticeKind.NewApplications => $"{candidate} applied to {job}",
             NoticeKind.TeammateChanges => $"{someone} {MemberNoticeEmails.ChangeVerb(item.Detail)} {candidate}, {job}",

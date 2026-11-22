@@ -4,8 +4,10 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { InterviewOption } from './interviewOption.ts';
 import type { InterviewParticipant } from './interviewParticipant.ts';
 import type { InterviewStatus } from './interviewStatus.ts';
+import type { WeeklyHours } from './weeklyHours.ts';
 
 /**
  * An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),
@@ -39,4 +41,22 @@ export interface ApplicationInterview {
   cancelledByCandidate: boolean;
   /** @nullable */
   newTimesOfferedAt: string | null;
+  option?: InterviewOption;
+  hours?: null | WeeklyHours;
+  useBlocks?: boolean;
+  /** @nullable */
+  proposedTimes?: string[] | null;
+  /** @nullable */
+  extraTimes?: string[] | null;
+  /** @nullable */
+  candidateTimes?: string[] | null;
+  /** @nullable */
+  candidateTimesAt?: string | null;
+  /** @nullable */
+  anotherTimeAskedAt?: string | null;
+  /** @nullable */
+  candidateNote?: string | null;
+  /** @nullable */
+  teamNote?: string | null;
+  waitsForTeam?: boolean;
 }

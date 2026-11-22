@@ -4,6 +4,8 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { InterviewOption } from './interviewOption.ts';
+import type { WeeklyHours } from './weeklyHours.ts';
 
 /**
  * Offers an application's candidate an interview. `interviewerUserIds` are one to five members who see the job; the
@@ -25,4 +27,11 @@ export interface ScheduleInterviewRequest {
   dayStart?: string | null;
   /** @nullable */
   dayEnd?: string | null;
+  option?: null | InterviewOption;
+  hours?: null | WeeklyHours;
+  useBlocks?: boolean;
+  /** @nullable */
+  proposedTimes?: string[] | null;
+  /** @nullable */
+  extraTimes?: string[] | null;
 }

@@ -91,6 +91,17 @@ public sealed class SendGridEmailSender : IEmailSender, IDisposable
             body["reply_to"] = Address(replyTo);
         }
 
+        if (message.Attachments is { Count: > 0 } attachments)
+        {
+            body["attachments"] = attachments.Select(a => new Dictionary<string, string>
+            {
+                ["content"] = Convert.ToBase64String(a.Content),
+                ["type"] = a.ContentType,
+                ["filename"] = a.FileName,
+                ["disposition"] = "attachment",
+            }).ToList();
+        }
+
         return JsonSerializer.Serialize(body);
     }
 

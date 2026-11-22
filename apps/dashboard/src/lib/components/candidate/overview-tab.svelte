@@ -12,7 +12,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { overviewStepOf, verificationStateOf } from '#lib/verification.js';
   import { describeError } from '#lib/query.js';
-  import { completesByHand, createTaskCompletion, reviewLink, scorecardLink } from '#lib/tasks.svelte.js';
+  import { completesByHand, createTaskCompletion, reviewLink, scheduleLink, scorecardLink } from '#lib/tasks.svelte.js';
 
   // A candidate's Overview (design system section 21): four panels, and nothing a tab already holds. On the left, Needs you (the
   // application's tasks and, when the verification state needs a look, its one-sentence step) and the Scorecards given; on the
@@ -59,6 +59,8 @@
   // the whole team), so their row's Fill in opens the sheet there: on the requested scorecard, or for a review on the
   // scorecard for the stage the candidate is in.
   function scorecardWork(task: TaskRow): { href: string; label: string } | undefined {
+    // Choosing how the candidate schedules is done in Schedule interview, by anyone on the team.
+    if (task.kind === 'ChooseScheduling') return { href: `?${scheduleLink}`, label: 'Schedule' };
     if (completesByHand(task.kind) || (task.assigneeUserId !== null && task.assigneeUserId !== currentUserId)) return undefined;
     return { href: `?${task.kind === 'Scorecard' && task.scorecardTemplateId ? scorecardLink(task.scorecardTemplateId) : reviewLink}`, label: 'Fill in' };
   }
@@ -119,7 +121,7 @@
 
   <div class="flex min-w-0 flex-col gap-5">
     <!-- The interview offered to the candidate, once there is one (docs/architecture/interview-scheduling.md). -->
-    <InterviewPanel applicationId={detail.id} candidateName={detail.candidate.fullName} mayChange={permissions.includes('EmailCandidates')} ondone={oninterviewchanged} />
+    <InterviewPanel applicationId={detail.id} jobId={detail.jobId} candidateName={detail.candidate.fullName} mayChange={permissions.includes('EmailCandidates')} ondone={oninterviewchanged} />
     <LatestMessagePanel applicationId={detail.id} {emails} {members} {currentUserId} />
   </div>
 </div>
