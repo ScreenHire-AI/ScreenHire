@@ -43,7 +43,8 @@ Your prompt gives a diff range (for example `origin/main...HEAD`) or `all`, and 
    | S1 | `<fieldset disabled>` or disabled inputs used to show read-only data |
    | K1 | `<kbd>` outside a tooltip, menu or the shortcuts dialog; a footer of shortcut hints |
    | S4 | a card or panel inside another card or panel (summary cards on a panel's summary band are allowed, section 6) |
-   | S6 | `max-w-page`, `page-wide` or another max-width on a page's content container (pages fill the window); a long paragraph with no `max-w-measure` (72ch, 60ch on marketing pages) |
+   | S6 | `max-w-page`, `page-wide` or another max-width on a page's content container (pages fill the window; the one exception is `max-w-settings-frame`, from `SettingsFrame` and `HeaderBand frame`); a long paragraph with no `max-w-measure` (72ch, 60ch on marketing pages) |
+   | S10 | a page with the Settings or account menu that does not render it through `SettingsMenu` or `AccountMenu` (so not in `SettingsFrame`), or whose `HeaderBand` lacks `frame`; an overview (Reports, the Verification overview, Billing) whose panels sit in a row of a grid or flex-wrap instead of `OverviewColumns`; a width set inside the settings column other than a form's 688px |
    | F2 | fixed widths on content elements (not menus, graph nodes or board columns); no `@container` where a component's layout changes with its width |
    | T5 | dates formatted by hand or with a fixed locale (`toLocaleDateString('en-GB')`, format strings) |
    | I1 | icons from anything but Lucide through `~icons/lucide/<name>` (an `@lucide/svelte` import is wrong too); text characters or emoji used as icons |

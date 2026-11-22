@@ -68,7 +68,8 @@
   /* Widths (section 5). Pages fill the window and have none, except the settings frame. `max-w-measure` stops a long
      paragraph at 72 characters, `max-w-form` is the 688px form column, and `max-w-settings-frame` is the settings frame:
      74rem of content (the 200px menu, its 24px gap and the 960px column) plus the page's two 24px gutters, centred on every
-     page with the Settings or account menu, and the header band's box on those pages (section 7). */
+     page with the Settings or account menu, and the header band's box on those pages (section 7). `OverviewColumns`'
+     55rem threshold for Billing is set from that 960px column, so a change here moves it too. */
   --container-measure: 72ch;
   --container-form: 43rem;
   --container-settings-frame: 77rem;
