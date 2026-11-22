@@ -118,6 +118,9 @@ public sealed class ScreenHireDbContext
 
     public DbSet<JobPosting> JobPostings => Set<JobPosting>();
 
+    /// <summary>Postings the team made themselves on boards we do not integrate with (see <see cref="ManualPosting"/>).</summary>
+    public DbSet<ManualPosting> ManualPostings => Set<ManualPosting>();
+
     public DbSet<IndexingNotification> IndexingNotifications => Set<IndexingNotification>();
 
     /// <summary>Indexing API calls used per UTC day, for the whole deployment: no tenant data, no tenant filter.</summary>

@@ -78,7 +78,7 @@ internal sealed class HiringTools(
         [Description("How many applications to return, 1 to 50.")] int? limit = null,
         CancellationToken cancellationToken = default)
     {
-        var applications = await ApplicationReads.ListAsync(user, tenant, db, time, new(jobId, Search(text), Limit(limit)), cancellationToken);
+        var applications = await ApplicationReads.ListAsync(user, tenant, db, time, boards, new(jobId, Search(text), Limit(limit)), cancellationToken);
         return new([.. applications.Select(a => a.ToMcp())]);
     }
 
@@ -92,7 +92,7 @@ internal sealed class HiringTools(
         [Description("The application's id, from find_candidates.")] Guid applicationId,
         CancellationToken cancellationToken = default)
     {
-        var detail = await ApplicationReads.DetailAsync(tenant, db, applicationId, cancellationToken) ?? throw new McpException(NoApplication);
+        var detail = await ApplicationReads.DetailAsync(tenant, db, boards, applicationId, cancellationToken) ?? throw new McpException(NoApplication);
         var timeline = await ApplicationReads.TimelineAsync(user, tenant, db, applicationId, cancellationToken) ?? [];
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == detail.JobId, cancellationToken);
         return detail.ToMcp(job.Workflow, Enumerable.Reverse(timeline).Take(ActivityShown));
@@ -169,7 +169,7 @@ internal sealed class HiringTools(
         CancellationToken cancellationToken = default)
     {
         McpResults.Require(user, Permission.AddNotesAndTags);
-        var result = await ApplicationChanges.AddTagAsync(applicationId, new(tag), tagValidator, outbox, tenant, user, time, cancellationToken);
+        var result = await ApplicationChanges.AddTagAsync(applicationId, new(tag), tagValidator, outbox, tenant, boards, user, time, cancellationToken);
         var application = McpResults.ValueOf<ApplicationDetail>(result.Result, NoApplication);
         return new(application.Id, application.Tags);
     }
@@ -184,7 +184,7 @@ internal sealed class HiringTools(
         CancellationToken cancellationToken = default)
     {
         McpResults.Require(user, Permission.AddNotesAndTags);
-        var result = await ApplicationChanges.RemoveTagAsync(applicationId, tag, outbox, tenant, user, time, cancellationToken);
+        var result = await ApplicationChanges.RemoveTagAsync(applicationId, tag, outbox, tenant, boards, user, time, cancellationToken);
         var application = McpResults.ValueOf<ApplicationDetail>(result.Result, NoApplication);
         return new(application.Id, application.Tags);
     }
@@ -220,7 +220,7 @@ internal sealed class HiringTools(
     {
         McpResults.Require(user, Permission.MoveCandidates);
         var result = await ApplicationChanges.MoveAsync(
-            applicationId, new(stageId, note), moveValidator, outbox, tenant, user, time, cancellationToken);
+            applicationId, new(stageId, note), moveValidator, outbox, tenant, boards, user, time, cancellationToken);
         var application = McpResults.ValueOf<ApplicationDetail>(result.Result, NoApplication);
         return new(application.Id, application.Stage, application.StageEnteredAt);
     }

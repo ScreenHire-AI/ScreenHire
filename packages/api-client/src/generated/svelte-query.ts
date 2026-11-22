@@ -73,6 +73,7 @@ import type {
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
+  CreateManualPostingRequest,
   CreateRoleRequest,
   CreateScorecardTemplateRequest,
   CreateViewRequest,
@@ -159,6 +160,8 @@ import type {
   MagicLinkRequest,
   MagicLinkVerification,
   ManualAutomationQueued,
+  ManualPostingList,
+  ManualPostingStatus,
   MemberJob,
   MembershipLogEntry,
   MergeTagRequest,
@@ -243,6 +246,7 @@ import type {
   SlackChannelOption,
   SlackStatus,
   SlackTestResult,
+  SourceApplications,
   StageKind,
   StartBillingCheckoutRequest,
   StartCalendarConnectRequest,
@@ -271,6 +275,7 @@ import type {
   UpdateHiringTemplateVersionRequest,
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
+  UpdateManualPostingRequest,
   UpdateOrganizationRequest,
   UpdateProfileRequest,
   UpdateRetentionRequest,
@@ -12899,6 +12904,623 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getPreviewPostingCustomizationMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listManualPostingsResponse200 = {
+  data: ManualPostingList
+  status: 200
+}
+
+export type listManualPostingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listManualPostingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listManualPostingsResponseSuccess = (listManualPostingsResponse200) & {
+  headers: Headers;
+};
+export type listManualPostingsResponseError = (listManualPostingsResponse401 | listManualPostingsResponse404) & {
+  headers: Headers;
+};
+
+export const getListManualPostingsUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/manual-postings`
+}
+
+export const listManualPostings = async (jobId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listManualPostingsResponseSuccess> => {
+
+  return apiQueryFetch<listManualPostingsResponseSuccess>(getListManualPostingsUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListManualPostingsQueryKey = (jobId: string,) => {
+    return [
+    'v1','jobs',jobId,'manual-postings'
+    ] as const;
+    }
+
+
+export const getListManualPostingsQueryOptions = <TData = Awaited<ReturnType<typeof listManualPostings>>, TError = ErrorType<void>>(jobId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listManualPostings>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListManualPostingsQueryKey(jobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listManualPostings>>> = ({ signal }) => listManualPostings(jobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: jobId !== null && jobId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listManualPostings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListManualPostingsQueryResult = NonNullable<Awaited<ReturnType<typeof listManualPostings>>>
+export type ListManualPostingsQueryError = ErrorType<void>
+
+
+
+export function createListManualPostings<TData = Awaited<ReturnType<typeof listManualPostings>>, TError = ErrorType<void>>(
+ jobId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listManualPostings>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListManualPostingsQueryOptions(jobId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type createManualPostingResponse201 = {
+  data: ManualPostingStatus
+  status: 201
+}
+
+export type createManualPostingResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createManualPostingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createManualPostingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createManualPostingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createManualPostingResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createManualPostingResponseSuccess = (createManualPostingResponse201) & {
+  headers: Headers;
+};
+export type createManualPostingResponseError = (createManualPostingResponse400 | createManualPostingResponse401 | createManualPostingResponse403 | createManualPostingResponse404 | createManualPostingResponse409) & {
+  headers: Headers;
+};
+
+export const getCreateManualPostingUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/manual-postings`
+}
+
+export const createManualPosting = async (jobId: string,
+    createManualPostingRequest: CreateManualPostingRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<createManualPostingResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<createManualPostingResponseSuccess>(getCreateManualPostingUrl(jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createManualPostingRequest)
+  }
+);}
+
+
+
+
+
+export const getCreateManualPostingMutationKey = () => ['createManualPosting'] as const;
+
+export const getCreateManualPostingMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createManualPosting>>, TError,CreateManualPostingMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof createManualPosting>>, TError,CreateManualPostingMutationVariables, TContext> => {
+
+const mutationKey = getCreateManualPostingMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createManualPosting>>, CreateManualPostingMutationVariables> = (props) => {
+          const {jobId,data} = props ?? {};
+
+          return  createManualPosting(jobId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateManualPostingMutationResult = NonNullable<Awaited<ReturnType<typeof createManualPosting>>>
+    export type CreateManualPostingMutationBody = CreateManualPostingRequest
+    export type CreateManualPostingMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type CreateManualPostingMutationVariables = {jobId: string;data: CreateManualPostingRequest}
+
+    export const createCreateManualPosting = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createManualPosting>>, TError,CreateManualPostingMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof createManualPosting>>,
+        TError,
+        CreateManualPostingMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getCreateManualPostingMutationOptions(options?.()) }), queryClient);
+    }
+
+export type listSourceApplicationsResponse200 = {
+  data: SourceApplications[]
+  status: 200
+}
+
+export type listSourceApplicationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listSourceApplicationsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listSourceApplicationsResponseSuccess = (listSourceApplicationsResponse200) & {
+  headers: Headers;
+};
+export type listSourceApplicationsResponseError = (listSourceApplicationsResponse401 | listSourceApplicationsResponse404) & {
+  headers: Headers;
+};
+
+export const getListSourceApplicationsUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/source-applications`
+}
+
+export const listSourceApplications = async (jobId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listSourceApplicationsResponseSuccess> => {
+
+  return apiQueryFetch<listSourceApplicationsResponseSuccess>(getListSourceApplicationsUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSourceApplicationsQueryKey = (jobId: string,) => {
+    return [
+    'v1','jobs',jobId,'source-applications'
+    ] as const;
+    }
+
+
+export const getListSourceApplicationsQueryOptions = <TData = Awaited<ReturnType<typeof listSourceApplications>>, TError = ErrorType<void>>(jobId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listSourceApplications>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSourceApplicationsQueryKey(jobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSourceApplications>>> = ({ signal }) => listSourceApplications(jobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: jobId !== null && jobId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listSourceApplications>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListSourceApplicationsQueryResult = NonNullable<Awaited<ReturnType<typeof listSourceApplications>>>
+export type ListSourceApplicationsQueryError = ErrorType<void>
+
+
+
+export function createListSourceApplications<TData = Awaited<ReturnType<typeof listSourceApplications>>, TError = ErrorType<void>>(
+ jobId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listSourceApplications>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListSourceApplicationsQueryOptions(jobId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type updateManualPostingResponse200 = {
+  data: ManualPostingStatus
+  status: 200
+}
+
+export type updateManualPostingResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateManualPostingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateManualPostingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateManualPostingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateManualPostingResponseSuccess = (updateManualPostingResponse200) & {
+  headers: Headers;
+};
+export type updateManualPostingResponseError = (updateManualPostingResponse400 | updateManualPostingResponse401 | updateManualPostingResponse403 | updateManualPostingResponse404) & {
+  headers: Headers;
+};
+
+export const getUpdateManualPostingUrl = (jobId: string,
+    postingId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/manual-postings/${postingId}`
+}
+
+export const updateManualPosting = async (jobId: string,
+    postingId: string,
+    updateManualPostingRequest: UpdateManualPostingRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateManualPostingResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateManualPostingResponseSuccess>(getUpdateManualPostingUrl(jobId,postingId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateManualPostingRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateManualPostingMutationKey = () => ['updateManualPosting'] as const;
+
+export const getUpdateManualPostingMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateManualPosting>>, TError,UpdateManualPostingMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateManualPosting>>, TError,UpdateManualPostingMutationVariables, TContext> => {
+
+const mutationKey = getUpdateManualPostingMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateManualPosting>>, UpdateManualPostingMutationVariables> = (props) => {
+          const {jobId,postingId,data} = props ?? {};
+
+          return  updateManualPosting(jobId,postingId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateManualPostingMutationResult = NonNullable<Awaited<ReturnType<typeof updateManualPosting>>>
+    export type UpdateManualPostingMutationBody = UpdateManualPostingRequest
+    export type UpdateManualPostingMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type UpdateManualPostingMutationVariables = {jobId: string;postingId: string;data: UpdateManualPostingRequest}
+
+    export const createUpdateManualPosting = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateManualPosting>>, TError,UpdateManualPostingMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateManualPosting>>,
+        TError,
+        UpdateManualPostingMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateManualPostingMutationOptions(options?.()) }), queryClient);
+    }
+
+export type markManualPostingUpdatedResponse200 = {
+  data: ManualPostingStatus
+  status: 200
+}
+
+export type markManualPostingUpdatedResponse401 = {
+  data: void
+  status: 401
+}
+
+export type markManualPostingUpdatedResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type markManualPostingUpdatedResponse404 = {
+  data: void
+  status: 404
+}
+
+export type markManualPostingUpdatedResponseSuccess = (markManualPostingUpdatedResponse200) & {
+  headers: Headers;
+};
+export type markManualPostingUpdatedResponseError = (markManualPostingUpdatedResponse401 | markManualPostingUpdatedResponse403 | markManualPostingUpdatedResponse404) & {
+  headers: Headers;
+};
+
+export const getMarkManualPostingUpdatedUrl = (jobId: string,
+    postingId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/manual-postings/${postingId}/updated`
+}
+
+export const markManualPostingUpdated = async (jobId: string,
+    postingId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<markManualPostingUpdatedResponseSuccess> => {
+
+  return apiQueryFetch<markManualPostingUpdatedResponseSuccess>(getMarkManualPostingUpdatedUrl(jobId,postingId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkManualPostingUpdatedMutationKey = () => ['markManualPostingUpdated'] as const;
+
+export const getMarkManualPostingUpdatedMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof markManualPostingUpdated>>, TError,MarkManualPostingUpdatedMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof markManualPostingUpdated>>, TError,MarkManualPostingUpdatedMutationVariables, TContext> => {
+
+const mutationKey = getMarkManualPostingUpdatedMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markManualPostingUpdated>>, MarkManualPostingUpdatedMutationVariables> = (props) => {
+          const {jobId,postingId} = props ?? {};
+
+          return  markManualPostingUpdated(jobId,postingId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkManualPostingUpdatedMutationResult = NonNullable<Awaited<ReturnType<typeof markManualPostingUpdated>>>
+
+    export type MarkManualPostingUpdatedMutationError = ErrorType<void | ProblemDetails>
+    export type MarkManualPostingUpdatedMutationVariables = {jobId: string;postingId: string}
+
+    export const createMarkManualPostingUpdated = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof markManualPostingUpdated>>, TError,MarkManualPostingUpdatedMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof markManualPostingUpdated>>,
+        TError,
+        MarkManualPostingUpdatedMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getMarkManualPostingUpdatedMutationOptions(options?.()) }), queryClient);
+    }
+
+export type takeDownManualPostingResponse200 = {
+  data: ManualPostingStatus
+  status: 200
+}
+
+export type takeDownManualPostingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type takeDownManualPostingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type takeDownManualPostingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type takeDownManualPostingResponseSuccess = (takeDownManualPostingResponse200) & {
+  headers: Headers;
+};
+export type takeDownManualPostingResponseError = (takeDownManualPostingResponse401 | takeDownManualPostingResponse403 | takeDownManualPostingResponse404) & {
+  headers: Headers;
+};
+
+export const getTakeDownManualPostingUrl = (jobId: string,
+    postingId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/manual-postings/${postingId}/taken-down`
+}
+
+export const takeDownManualPosting = async (jobId: string,
+    postingId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<takeDownManualPostingResponseSuccess> => {
+
+  return apiQueryFetch<takeDownManualPostingResponseSuccess>(getTakeDownManualPostingUrl(jobId,postingId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getTakeDownManualPostingMutationKey = () => ['takeDownManualPosting'] as const;
+
+export const getTakeDownManualPostingMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof takeDownManualPosting>>, TError,TakeDownManualPostingMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof takeDownManualPosting>>, TError,TakeDownManualPostingMutationVariables, TContext> => {
+
+const mutationKey = getTakeDownManualPostingMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof takeDownManualPosting>>, TakeDownManualPostingMutationVariables> = (props) => {
+          const {jobId,postingId} = props ?? {};
+
+          return  takeDownManualPosting(jobId,postingId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TakeDownManualPostingMutationResult = NonNullable<Awaited<ReturnType<typeof takeDownManualPosting>>>
+
+    export type TakeDownManualPostingMutationError = ErrorType<void | ProblemDetails>
+    export type TakeDownManualPostingMutationVariables = {jobId: string;postingId: string}
+
+    export const createTakeDownManualPosting = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof takeDownManualPosting>>, TError,TakeDownManualPostingMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof takeDownManualPosting>>,
+        TError,
+        TakeDownManualPostingMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getTakeDownManualPostingMutationOptions(options?.()) }), queryClient);
     }
 
 export type getJobBoardResponse200 = {

@@ -27,14 +27,15 @@ afterEach(() => {
 
 // The frame every signed-in page sits in, at each size class of the design system (section 8).
 describe('app shell', () => {
-  it('shows the full sidebar from lg: icons and labels, plain view icons, no view counts, one Settings item', async () => {
+  it('shows the full sidebar from lg: icons and labels, uncoloured view icons, no view counts, one Settings item', async () => {
     stubViewport(1280);
     render(ShellHarness, { props: { user, openTasks: 3 } });
 
     expect(sidebar()).toHaveAttribute('data-state', 'expanded');
     const links = within(main()).getAllByRole('link');
     expect(links.map((link) => link.textContent?.trim())).toEqual(['Jobs', 'Candidates', 'Templates', 'My tasks 3', 'Reports', 'Verification', ...views, 'Settings']);
-    // Navigation pairs an icon with its label (I1); no view has a status icon, so I2 holds even for To verify and Overdue.
+    // Navigation pairs an icon with its label (I1). To verify and Overdue show their status's mark as a bare icon, never a
+    // coloured status icon (I2).
     expect(main().querySelector('[data-status-icon]')).toBeNull();
     expect(links.every((link) => link.querySelector('svg'))).toBe(true);
     expect(screen.getByRole('link', { name: 'Verification' })).toHaveAttribute('href', '/verification');

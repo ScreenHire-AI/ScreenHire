@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using NpgsqlTypes;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Infrastructure.Persistence;
 
@@ -215,6 +216,24 @@ internal static class HiringReportReads
                 [.. Args(from, to)])
             .ToListAsync(cancellationToken);
 
+        // A board the team posted on themselves is named as they named it, by its newest posting with that key (job-distribution.md,
+        // "Posted by you"). Automatic boards keep the registry's name.
+        var manualKeys = sources
+            .Select(s => s.Key.StartsWith("board:", StringComparison.Ordinal) ? s.Key["board:".Length..] : null)
+            .OfType<string>()
+            .Where(key => !Boards.All.Contains(key))
+            .ToList();
+        var manualNames = manualKeys.Count == 0
+            ? []
+            : (await db.ManualPostings.AsNoTracking()
+                    .Where(p => manualKeys.Contains(p.SourceKey))
+                    .OrderByDescending(p => p.UpdatedAt)
+                    .Select(p => new { p.SourceKey, p.BoardName })
+                    .ToListAsync(cancellationToken))
+                .DistinctBy(p => p.SourceKey)
+                .ToDictionary(p => p.SourceKey, p => p.BoardName, StringComparer.Ordinal);
+        string SourceBoardName(string key) => manualNames.TryGetValue(key, out var name) ? name : boardName(key);
+
         var openJobs = await db.Database.SqlQueryRaw<OpenJobRow>(
                 Scope + CohortCte + HiresCte + """
 
@@ -277,7 +296,7 @@ internal static class HiringReportReads
                 ]),
             [
                 .. sources
-                    .Select(s => new SourceCount(s.Key, SourceName(s.Key, boardName), s.Applications, s.Hires))
+                    .Select(s => new SourceCount(s.Key, SourceName(s.Key, SourceBoardName), s.Applications, s.Hires))
                     .OrderByDescending(s => s.Applications)
                     .ThenBy(s => s.Name, StringComparer.CurrentCulture),
             ],

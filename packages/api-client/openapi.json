@@ -6937,6 +6937,376 @@
         ]
       }
     },
+    "/v1/jobs/{jobId}/manual-postings": {
+      "get": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "ListManualPostings",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualPostingList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "CreateManualPosting",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateManualPostingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualPostingStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}/source-applications": {
+      "get": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "ListSourceApplications",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceApplications"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}/manual-postings/{postingId}": {
+      "put": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "UpdateManualPosting",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "postingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateManualPostingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualPostingStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}/manual-postings/{postingId}/updated": {
+      "post": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "MarkManualPostingUpdated",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "postingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualPostingStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{jobId}/manual-postings/{postingId}/taken-down": {
+      "post": {
+        "tags": [
+          "Distribution"
+        ],
+        "operationId": "TakeDownManualPosting",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "postingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManualPostingStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/public/boards/{organizationSlug}": {
       "get": {
         "tags": [
@@ -17702,6 +18072,18 @@
               "null",
               "string"
             ]
+          },
+          "sourceBoard": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourceBoardName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "One application: the candidate, the job, where it is in the job's workflow, its tags, the candidate's\ndeclarations, answers and files."
@@ -18169,6 +18551,18 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "sourceBoard": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourceBoardName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself."
@@ -20865,6 +21259,44 @@
           }
         },
         "description": "A new job. With `templateVersionId` (a published version of an own or system template), the job copies that\nversion's workflow, and every field left out here takes the template's posting default. Without a slug, one is made\nfrom the title. The description is rich text as HTML, kept to the dashboard editor's elements (p, br, strong, em, h2,\nh3, ul, ol, li and links to http, https or mailto addresses); anything else is removed with its text kept. Plain text\nworks too: a blank line starts a paragraph and lines starting with \"- \" make a list. The summary is the plain-text\nline a careers card shows under the title, at most 160 characters; leave it out and the card uses the description's\nfirst sentence. Who's hiring: the job's hiring team starts with the person who creates it, the people of the named team\n`teamId` as they are now, and `memberIds`, the organization's member ids. They are copied, so a later change\nto the team changes no job. An API key sends neither, and its job starts with nobody on its team."
+      },
+      "CreateManualPostingRequest": {
+        "required": [
+          "boardName"
+        ],
+        "type": "object",
+        "properties": {
+          "boardName": {
+            "type": "string"
+          },
+          "sourceKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "listingUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "postedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "endsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "description": "Saving a posting the team made. `sourceKey` is the `src` of the link the person copied, lower-case letters,\ndigits and hyphens; left out, it is made from `boardName`. It cannot be an automatic board's id. `postedOn`\nleft out is today (UTC); the dashboard sends the person's own today. A board the job already has a posting on that was\ntaken down is posted again: the row takes these details and the job as it is now."
       },
       "CreateRoleRequest": {
         "required": [
@@ -23896,6 +24328,100 @@
         },
         "description": "A manual automation was queued. `eventId` keys its run: find it in the application's automation runs."
       },
+      "ManualPostingList": {
+        "required": [
+          "jobUrl",
+          "postings"
+        ],
+        "type": "object",
+        "properties": {
+          "jobUrl": {
+            "type": "string"
+          },
+          "postings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManualPostingStatus"
+            }
+          }
+        },
+        "description": "The job's postings by the team, and the address their tracked links extend: the job's careers page. A tracked link is\n`jobUrl` with `src=` and a source key, which the dashboard shows before a posting is saved."
+      },
+      "ManualPostingStatus": {
+        "required": [
+          "id",
+          "boardName",
+          "sourceKey",
+          "trackedUrl",
+          "listingUrl",
+          "postedOn",
+          "endsOn",
+          "contentAt",
+          "takenDownAt",
+          "changedFields",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "boardName": {
+            "type": "string"
+          },
+          "sourceKey": {
+            "type": "string"
+          },
+          "trackedUrl": {
+            "type": "string"
+          },
+          "listingUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "postedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "endsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "contentAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "takenDownAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "changedFields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostedField"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A job the team posted themselves on a board we do not integrate with (docs/architecture/job-distribution.md, \"Posted by\nyou\"). `trackedUrl` is the job's careers page with `src=``sourceKey`: applications through it name the\nboard in Source and in Reports. `listingUrl` is where the listing is, as the person gave it; nothing fetches it.\n`changedFields` are the fields of the job that differ from what was posted (empty when it is up to date), until\nthe person marks the posting updated. `contentAt` is when the posted text was taken. `takenDownAt` is when\nthe person said the listing is down; while it is null and the job is closed or `endsOn` has passed, the row says\nit is still posted."
+      },
       "MemberJob": {
         "required": [
           "id",
@@ -25160,6 +25686,17 @@
           }
         },
         "description": "A permission in the order the Roles page lists it: its group, its name and one line on what it covers.\n`ownerOnly` ones never go into a custom role; `everyRole` ones are in every role."
+      },
+      "PostedField": {
+        "enum": [
+          "Title",
+          "Location",
+          "Type",
+          "Salary",
+          "Description",
+          "Link"
+        ],
+        "description": "A field of the job a person copies to a board by hand. `Link` is the apply link, which holds the job's slug."
       },
       "PostingCustomization": {
         "required": [
@@ -28777,6 +29314,23 @@
         },
         "description": "The connected workspace, as every member sees it. `disconnected`: Slack stopped taking the app's token."
       },
+      "SourceApplications": {
+        "required": [
+          "source",
+          "applications"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "applications": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Applications to one job through one link: `source` is `careers` (the careers page with no board tag), an\nautomatic board's id, or a posting by the team's source key. A source with no application is left out. An application\nthrough the organization's own site, or added by a recruiter, has no row here."
+      },
       "SourceCount": {
         "required": [
           "key",
@@ -29878,6 +30432,37 @@
           }
         },
         "description": "Replaces a job's workflow with the recruiter's edit of it: the job's own copy, tailored. `expectedWorkflowVersion`\nis the `workflowVersion` the edit started from; if someone saved in between, the request is refused (409) rather\nthan overwriting their change. A stage that still holds applications cannot be removed."
+      },
+      "UpdateManualPostingRequest": {
+        "required": [
+          "boardName",
+          "listingUrl",
+          "postedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "boardName": {
+            "type": "string"
+          },
+          "listingUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "postedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "endsOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          }
+        },
+        "description": "Changing what the team said about a posting. The source key stays, so links already shared keep counting."
       },
       "UpdateOrganizationRequest": {
         "required": [
