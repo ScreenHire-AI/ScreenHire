@@ -4,6 +4,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Contracts;
@@ -12,6 +13,7 @@ using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Reports;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Slack;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
@@ -38,7 +40,8 @@ internal sealed class HiringTools(
     IValidator<MoveApplicationRequest> moveValidator,
     IValidator<AddApplicationNoteRequest> noteValidator,
     IValidator<AddApplicationTagRequest> tagValidator,
-    IValidator<CreateApplicationTaskRequest> taskValidator)
+    IValidator<CreateApplicationTaskRequest> taskValidator,
+    McpConfirmation confirmation)
 {
     private const int DefaultLimit = 20;
     private const int MaxLimit = 50;
@@ -210,15 +213,28 @@ internal sealed class HiringTools(
     [Authorize(Policy = McpSetup.WritePolicy)]
     [Description("Move an application to another stage of its job, by a stage id from get_application. A stage of kind Rejected ends the "
         + "candidacy: move someone there only when the person you work for explicitly asks you to reject that candidate, never on your "
-        + "own judgement. Moving to the current stage changes nothing.")]
+        + "own judgement, and the person confirms it first: ask them, then pass confirm: true. Other moves need no confirm. Moving to the "
+        + "current stage changes nothing.")]
     public async Task<McpStageMove> MoveToStage(
         ClaimsPrincipal user,
+        McpServer server,
+        RequestContext<CallToolRequestParams> context,
         [Description("The application's id.")] Guid applicationId,
         [Description("The stage's id, from the application's stages.")] string stageId,
         [Description("Why, for the hiring team. Up to 1,000 characters.")] string? note = null,
+        [Description("True once the person you work for has said yes to rejecting this candidate. Needed only for a Rejected stage.")] bool? confirm = null,
         CancellationToken cancellationToken = default)
     {
         McpResults.Require(user, Permission.MoveCandidates);
+        // A rejection ends the candidacy and, with an automation, can email the candidate: the person says yes first.
+        var target = await db.Applications.AsNoTracking().Where(a => a.Id == applicationId)
+            .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { j.Title, j.Workflow, a.CurrentStageId })
+            .SingleOrDefaultAsync(cancellationToken) ?? throw new McpException(NoApplication);
+        if (target.Workflow.FindStage(stageId) is { Kind: StageKind.Rejected } rejected && target.CurrentStageId != stageId)
+        {
+            confirmation.Require(server, context, user, confirm, $"reject the candidate for \"{target.Title}\" by moving them to {rejected.Name}");
+        }
+
         var result = await ApplicationChanges.MoveAsync(
             applicationId, new(stageId, note), moveValidator, outbox, tenant, boards, user, time, cancellationToken);
         var application = McpResults.ValueOf<ApplicationDetail>(result.Result, NoApplication);

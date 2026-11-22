@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -423,7 +424,7 @@ internal static class EmailEndpoints
 
     // Wording as one application's candidate would receive it, before a person sends it: the composer's preview. The
     // wording may use the general variables only, as a send by hand does.
-    private static async Task<Results<Ok<EmailPreview>, NotFound, ValidationProblem>> PreviewApplicationEmail(
+    internal static async Task<Results<Ok<EmailPreview>, NotFound, ValidationProblem>> PreviewApplicationEmail(
         ApplicationEmailDraft request,
         IValidator<ApplicationEmailDraft> validator,
         ScreenHireDbContext db,
@@ -464,8 +465,11 @@ internal static class EmailEndpoints
     // for its candidate now, as the preview showed it; the message carries ids only, because wording a person typed can
     // hold personal data (messaging.md). The worker sends each copy and records it on the timeline. The stage-change
     // email skips applications that have ended, as the worker would.
-    private static async Task<Results<Accepted<EmailsQueued>, ValidationProblem, NotFound>> SendEmails(
+    // The MCP server's send_email calls this handler too, for one application, so the rules are one; a key's send names the
+    // key on the timeline instead of a member (docs/architecture/mcp-server.md).
+    internal static async Task<Results<Accepted<EmailsQueued>, ValidationProblem, NotFound>> SendEmails(
         SendEmailsRequest request,
+        ClaimsPrincipal user,
         IValidator<SendEmailsRequest> validator,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         EmailTemplateStore store,
@@ -530,7 +534,7 @@ internal static class EmailEndpoints
                 renderer, row.Application, row.Candidate, row.Job.Title, organization.Name, stage?.Name, request.TemplateId, content,
                 header, Guid.CreateVersion7(), now);
             db.ApplicationEmails.Add(copy);
-            await outbox.PublishAsync(new SendApplicationEmail(row.Application.OrganizationId, row.Application.Id, copy.Id, tenant.UserId!.Value));
+            await outbox.PublishAsync(new SendApplicationEmail(row.Application.OrganizationId, row.Application.Id, copy.Id, tenant.UserId, user.ApiKeyId()));
         }
 
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
@@ -555,7 +559,7 @@ internal static class EmailEndpoints
     // Every email that went to the candidate, about any of their applications, newest first: the Messages tab. Each is
     // its timeline entry, with whether its copy was kept (emails sent before copies were kept have only a subject), the
     // first line of its text for the row, and for a reply the email it answers, so the tab can show it under that one.
-    private static async Task<Results<Ok<List<CandidateEmailEntry>>, NotFound>> ListCandidateEmails(
+    internal static async Task<Results<Ok<List<CandidateEmailEntry>>, NotFound>> ListCandidateEmails(
         Guid candidateId, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         if (!await db.Candidates.AnyAsync(c => c.Id == candidateId, cancellationToken))
@@ -660,7 +664,7 @@ internal static class EmailEndpoints
         return TypedResults.Ok(candidate.ToSummary());
     }
 
-    private static bool SendingEnabled(IServiceProvider services) => services.GetService<IEmailSender>() is not null;
+    internal static bool SendingEnabled(IServiceProvider services) => services.GetService<IEmailSender>() is not null;
 
     private static async Task<EmailMessage?> RenderDraftAsync(
         EmailTemplateDraft request,

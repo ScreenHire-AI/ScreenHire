@@ -157,6 +157,8 @@ app.MapScalarApiReference((options, context) => options
         .AddServer(context.RequestServices.GetRequiredService<IOptions<DomainOptions>>().Value.GetApiOrigin().ToString().TrimEnd('/'))
         .DisableTelemetry().DisableDefaultFonts().DisableAgent().DisableMcp())
     .AllowAnonymous();
+// The MCP tools reference, beside it and public for the same reason (McpToolsPage).
+app.MapMcpToolsPage();
 app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPasskeyEndpoints();

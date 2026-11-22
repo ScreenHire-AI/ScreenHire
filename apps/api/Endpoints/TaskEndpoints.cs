@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Auth;
@@ -44,7 +45,7 @@ internal static class TaskEndpoints
     // Mine is the tasks assigned to the signed-in person, Team the tasks for the whole team (no assignee), and Everyone
     // every task the person can see, teammates' included. Open tasks oldest first, so the longest-waiting is on top;
     // done ones newest first.
-    private static async Task<Ok<List<TaskListItem>>> ListTasks(
+    internal static async Task<Ok<List<TaskListItem>>> ListTasks(
         ScreenHireDbContext db,
         ITenantContext tenant,
         CancellationToken cancellationToken,
@@ -77,9 +78,11 @@ internal static class TaskEndpoints
 
     // Anyone who can change hiring data may mark any of the organization's tasks done, the assignee's included: the
     // team shares the work. A task that is done already stays as it was and raises nothing, including one someone else
-    // completed between this request's read and its save (CompletedAt is a concurrency token).
-    private static async Task<Results<Ok<ApplicationTaskEntry>, NotFound, ProblemHttpResult>> CompleteTask(
+    // completed between this request's read and its save (CompletedAt is a concurrency token). The MCP server's
+    // complete_task calls it with an API key, which the task records in place of a person.
+    internal static async Task<Results<Ok<ApplicationTaskEntry>, NotFound, ProblemHttpResult>> CompleteTask(
         Guid taskId,
+        ClaimsPrincipal user,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         TimeProvider time,
@@ -87,7 +90,9 @@ internal static class TaskEndpoints
     {
         var db = outbox.DbContext;
         var task = await db.ApplicationTasks.SingleOrDefaultAsync(t => t.Id == taskId, cancellationToken);
-        if (task is null || tenant.UserId is not { } userId)
+        var userId = tenant.UserId;
+        var apiKeyId = user.ApiKeyId();
+        if (task is null || (userId is null && apiKeyId is null))
         {
             return TypedResults.NotFound();
         }
@@ -98,7 +103,7 @@ internal static class TaskEndpoints
         }
 
         var now = time.GetUtcNow();
-        if (task.Complete(userId, now))
+        if (task.Complete(userId, now, apiKeyId))
         {
             var jobId = await db.Applications.AsNoTracking()
                 .Where(a => a.Id == task.ApplicationId).Select(a => a.JobId).SingleAsync(cancellationToken);

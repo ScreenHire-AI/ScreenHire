@@ -51,7 +51,7 @@ internal static class ScorecardEndpoints
     // team's judgements, not verification evidence. A reviewer with their own scorecard still to give sees who gave the
     // others and when, but never what they said (withheld rows: no recommendation, rating, answers or note), so the others
     // cannot anchor them (ADR-0013); the application's rating says AfterYourScorecard meanwhile.
-    private static async Task<Results<Ok<List<ScorecardEntry>>, NotFound>> ListApplicationScorecards(
+    internal static async Task<Results<Ok<List<ScorecardEntry>>, NotFound>> ListApplicationScorecards(
         Guid applicationId, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         if (!await db.Applications.AnyAsync(a => a.Id == applicationId, cancellationToken))

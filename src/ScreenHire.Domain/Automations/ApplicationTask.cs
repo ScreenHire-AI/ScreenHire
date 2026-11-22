@@ -50,6 +50,9 @@ public sealed class ApplicationTask : IApplicationScoped
     /// <summary>The person who marked it done.</summary>
     public Guid? CompletedByUserId { get; private set; }
 
+    /// <summary>The organization API key that marked it done, through the MCP server; null when a person or ScreenHire did.</summary>
+    public Guid? CompletedByApiKeyId { get; private set; }
+
     /// <summary>
     /// Whether a person ticks it off by hand: a to-do and a rejection review. A review and a requested scorecard are done
     /// where their work is done, when the scorecard is submitted (ADR-0017 decision 11), so nobody marks them done
@@ -87,11 +90,11 @@ public sealed class ApplicationTask : IApplicationScoped
 
     /// <summary>
     /// Marks the task done by <paramref name="userId"/> (null when ScreenHire finished it, as offering an interview by an
-    /// automation finishes a choose-scheduling task). A task that is done already keeps who finished it and when, and
-    /// this returns false. Completing a task changes nothing about the application: a rejection review is decided by
-    /// moving the candidate, not by this.
+    /// automation finishes a choose-scheduling task, or when <paramref name="apiKeyId"/>, an organization API key, did). A
+    /// task that is done already keeps who finished it and when, and this returns false. Completing a task changes nothing
+    /// about the application: a rejection review is decided by moving the candidate, not by this.
     /// </summary>
-    public bool Complete(Guid? userId, DateTimeOffset now)
+    public bool Complete(Guid? userId, DateTimeOffset now, Guid? apiKeyId = null)
     {
         if (CompletedAt is not null)
         {
@@ -100,6 +103,7 @@ public sealed class ApplicationTask : IApplicationScoped
 
         CompletedAt = now;
         CompletedByUserId = userId;
+        CompletedByApiKeyId = userId is null ? apiKeyId : null;
         return true;
     }
 
@@ -116,6 +120,7 @@ public sealed class ApplicationTask : IApplicationScoped
 
         CompletedAt = null;
         CompletedByUserId = null;
+        CompletedByApiKeyId = null;
         return true;
     }
 }

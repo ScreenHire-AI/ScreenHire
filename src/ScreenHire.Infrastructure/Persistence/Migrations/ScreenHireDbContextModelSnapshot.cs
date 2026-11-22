@@ -1001,6 +1001,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
 
+                    b.Property<Guid?>("CompletedByApiKeyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("completed_by_api_key_id");
+
                     b.Property<Guid?>("CompletedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("completed_by_user_id");

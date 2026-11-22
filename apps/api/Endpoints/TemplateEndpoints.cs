@@ -77,7 +77,7 @@ internal static class TemplateEndpoints
     }
 
     // System templates first, then the organization's own, by name.
-    private static async Task<List<HiringTemplateSummary>> ListTemplates(ScreenHireDbContext db, CancellationToken cancellationToken)
+    internal static async Task<List<HiringTemplateSummary>> ListTemplates(ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var templates = await db.HiringTemplates.AsNoTracking()
             .Include(t => t.Versions)

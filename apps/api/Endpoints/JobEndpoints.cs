@@ -122,7 +122,7 @@ internal static class JobEndpoints
 
     // A draft: no event until it is published. With a template version, the job copies that version's workflow, and
     // the version's posting defaults fill whatever the request leaves out.
-    private static async Task<Results<Created<JobDetail>, ValidationProblem, ProblemHttpResult>> CreateJob(
+    internal static async Task<Results<Created<JobDetail>, ValidationProblem, ProblemHttpResult>> CreateJob(
         CreateJobRequest request,
         ScreenHireDbContext db,
         ITenantContext tenant,
@@ -271,7 +271,7 @@ internal static class JobEndpoints
 
     // Replaces the posting content. Editing an open job does not republish it: the change is live on the careers page,
     // and boards get it when someone publishes again, which freezes a new version (hasUnpublishedChanges until then).
-    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJob(
+    internal static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJob(
         Guid jobId,
         UpdateJobRequest request,
         ScreenHireDbContext db,
@@ -398,7 +398,7 @@ internal static class JobEndpoints
     // and raises no JobPublished; it still posts to boards named in the request, or to every board if the job is on
     // none. A publish that races another publish, an edit or a close gets 409 (the job's row version, or a unique
     // index), so a closed job stays closed. A board answer the worker is saving is not a race: the publish waits for it.
-    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> PublishJob(
+    internal static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> PublishJob(
         Guid jobId,
         PublishJobRequest? request,
         IDbContextOutbox<ScreenHireDbContext> outbox,
@@ -554,7 +554,7 @@ internal static class JobEndpoints
     // 410 Gone at once, feeds and the job-board API drop it at once, Google's URL_DELETED is queued, and each push board
     // is asked to remove it. Each posting reports its own state and estimate; only what is confirmed is Closed. Closing a
     // closed job commits nothing and raises no second event.
-    private static async Task<Results<Ok<JobDetail>, NotFound, ProblemHttpResult>> CloseJob(
+    internal static async Task<Results<Ok<JobDetail>, NotFound, ProblemHttpResult>> CloseJob(
         Guid jobId,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         DistributionPlanner planner,
@@ -656,7 +656,7 @@ internal static class JobEndpoints
     }
 
     // 404 for a job that was not created from a template: there is nothing to compare with.
-    private static async Task<Results<Ok<JobTemplateDiff>, NotFound>> GetJobTemplateDiff(
+    internal static async Task<Results<Ok<JobTemplateDiff>, NotFound>> GetJobTemplateDiff(
         Guid jobId, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var job = await db.Jobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
@@ -685,7 +685,7 @@ internal static class JobEndpoints
     // (the response lists them) and the job cannot be opened until they are fixed. A save on an open job is live at once,
     // so it is validated like a template, guardrails included: a job can never run a definition a template could not.
     // It does not republish the job: the careers form reads the workflow live, and boards never see it.
-    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJobWorkflow(
+    internal static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJobWorkflow(
         Guid jobId,
         UpdateJobWorkflowRequest request,
         IDbContextOutbox<ScreenHireDbContext> outbox,
@@ -753,7 +753,7 @@ internal static class JobEndpoints
 
     // "Apply update": the job takes a published version of its source template, replacing its own edits as the diff
     // showed. The version is validated again, because the rules may have tightened since it was published.
-    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> ApplyTemplateUpdate(
+    internal static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> ApplyTemplateUpdate(
         Guid jobId,
         ApplyTemplateUpdateRequest request,
         IDbContextOutbox<ScreenHireDbContext> outbox,
