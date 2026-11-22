@@ -445,26 +445,26 @@ describe('workflow builder', () => {
     expect(within(within(pane).getByRole('group', { name: 'Forms' })).getByRole('button', { name: /References/ })).toHaveTextContent('Only when sent by hand');
   });
 
-  it('offers Send a questionnaire and the questionnaire trigger only with a follow-up to name', async () => {
+  it('offers Send a form and the form trigger only with a follow-up to name', async () => {
     const followUp: HiringWorkflow = {
       ...workflow,
       followUpQuestionnaires: [{ id: 'availability', name: 'Availability', questions: [{ id: 'start', type: 'ShortText', label: 'When could you start?' }] }],
     };
     const view = render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: structuredClone(workflow), errors: [], mode: 'editor' } } });
     let sheet = await writeOwnAsRules('Phone screen');
-    expect(within(sheet).queryByRole('option', { name: 'Send a questionnaire' })).toBeNull();
+    expect(within(sheet).queryByRole('option', { name: 'Send a form' })).toBeNull();
     view.unmount();
 
     render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: followUp, errors: [], mode: 'editor' } } });
     sheet = await writeOwnAsRules('Phone screen');
     const action = within(sheet).getByRole('combobox', { name: 'Action 1' });
     await fireEvent.change(action, { target: { value: 'SendQuestionnaire' } });
-    expect((within(sheet).getByRole('combobox', { name: 'Questionnaire' }) as HTMLSelectElement).value).toBe('availability');
+    expect((within(sheet).getByRole('combobox', { name: 'Form' }) as HTMLSelectElement).value).toBe('availability');
 
     const trigger = within(sheet).getByRole('combobox', { name: 'Trigger' });
     await fireEvent.change(trigger, { target: { value: 'QuestionnaireCompleted' } });
-    const pickers = within(sheet).getAllByRole('combobox', { name: 'Questionnaire' });
-    expect(within(pickers[0]!).getByRole('option', { name: 'Any follow-up questionnaire' })).toBeInTheDocument();
+    const pickers = within(sheet).getAllByRole('combobox', { name: 'Form' });
+    expect(within(pickers[0]!).getByRole('option', { name: 'Any form' })).toBeInTheDocument();
     expect((pickers[0] as HTMLSelectElement).value).toBe('availability');
   });
 

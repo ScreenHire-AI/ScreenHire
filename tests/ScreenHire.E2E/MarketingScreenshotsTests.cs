@@ -20,7 +20,7 @@ namespace ScreenHire.E2E;
 /// The same picture every run: a fixed viewport at twice the pixels, reduced motion, the fonts loaded, a pinned locale and
 /// time zone, no hover, focus ring, toast or caret in the frame. Each screen has its full picture (<c>name.png</c>) and a
 /// picture at phone width (<c>name-phone.png</c>): the same screen laid out for a phone, for a page to show where the full
-/// screen would be unreadable. The verification panels leave out their reason codes, which the public site does not show.
+/// screen would be unreadable. No verification panel is taken: the public site never shows one.
 /// Times in the pictures are relative to the run.
 /// </remarks>
 [Collection<MarketingScreenshotsRun>]
@@ -34,11 +34,10 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
 
     private const int MaxBytes = 600 * 1024;
 
-    // A laptop-sized window. At twice the pixels a busy screen stays under the size budget. The pipeline and the candidates
-    // list are wider: the board shows its Offer column and the table its Last activity column only from about 1600 px.
+    // A laptop-sized window. At twice the pixels a busy screen stays under the size budget. The pipeline is wider: the board
+    // shows its Offer column only from about 1600 px.
     private const int Width = 1440;
     private const int Height = 900;
-    private const int WideWidth = 1600;
     private const int PipelineWidth = 1980; // all six columns of the board whole, the closed stages' column included (checked)
 
     // Phone width: the pictures a page shows on a phone are the screens laid out for one, not a crop of the wide screen,
@@ -95,30 +94,29 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         var showcaseJobId = await WorkflowShowcaseAsync(avery);
 
         await using var light = await CaptureContextAsync(state, ColorScheme.Light);
-        await using var dark = await CaptureContextAsync(state, ColorScheme.Dark);
 
         // The studio's brand and a connected setup are in place first, so every public page and the editor show them.
         await BrandAsync(light);
         await ConnectIntegrationsAsync(avery, light);
         var templateUrl = await TemplateUrlAsync(light);
         var portalLink = await PortalLinkAsync(light);
-        // The booking page is taken from a second interview offer, left open: the first is booked, for the activity.
-        var bookingLink = await InterviewLinkAsync(OtherEmail) + "?tz=Europe%2FLondon";
+        await PostItYourselfAsync(avery, showcaseJobId);
 
         // Where the phone pictures stop: between elements, never through the middle of one.
         // The fourth stage on a Pipeline tab: its card where the pipeline can be edited, its column where it only reads.
         static ILocator Stage4(IPage page) =>
             page.GetByRole(AriaRole.Group, new() { NameRegex = new Regex("^Stage 4: ") })
                 .Or(page.GetByRole(AriaRole.List, new() { Name = "Stages in order" }).Locator("> li").Nth(3));
-        static ILocator Book(IPage page) => page.GetByRole(AriaRole.Button, new() { Name = "Book your interview" });
+        static ILocator StartAgain(IPage page) => page.GetByRole(AriaRole.Button, new() { Name = "Start again" });
+        static ILocator HowToPick(IPage page) => Sheet(page).GetByRole(AriaRole.Radiogroup).First;
+        static ILocator Bell(IPage page) => page.GetByRole(AriaRole.Dialog, new() { Name = "Notifications" });
+        static ILocator Sheet(IPage page) => page.GetByRole(AriaRole.Dialog).Filter(new() { Has = page.GetByRole(AriaRole.Radiogroup).First });
         static ILocator Entry(IPage page, string text) => page.Locator("main ol[aria-label] > li").Filter(new() { HasText = text });
 
         var screens = new List<Screen>
         {
-            // 2. The job's pipeline, light and dark. On a phone, one stage and its cards.
+            // 2. The job's pipeline. On a phone, one stage and its cards.
             new("pipeline", DashboardUrl($"/jobs/{jobId}"), "Senior .NET Engineer", PreparePipelineAsync, Width: PipelineWidth,
-                Phone: new(Only: page => page.Locator("[data-stage-column]").First)),
-            new("pipeline-dark", DashboardUrl($"/jobs/{jobId}"), "Senior .NET Engineer", PreparePipelineAsync, Width: PipelineWidth, Scheme: ColorScheme.Dark,
                 Phone: new(Only: page => page.Locator("[data-stage-column]").First)),
 
             // 3. An application's page: its activity, with the reply and the booked interview. The full picture ends on the last entry;
@@ -127,10 +125,8 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
                 WideTo: page => page.Locator("main ol[aria-label] > li").Last,
                 Phone: new(Height: 2600, From: page => Entry(page, "Candidate replied"), To: page => Entry(page, "Good detail on the billing ledger"))),
 
-            // 4. The candidates list with stage and last activity.
-            // The list runs past the window, so both pictures end after the last row the window shows whole.
-            new("candidates", DashboardUrl("/candidates"), "Candidates", PrepareCandidatesAsync, Width: WideWidth, WideTo: CaptureEnd, WideMargin: 0,
-                Phone: new(To: CaptureEnd)),
+            // 4. The team's Activity feed in the bell, from the Jobs page: who did what, newest first. It never shows a level.
+            new("activity-feed", DashboardUrl("/"), "Jobs", OpenActivityAsync, Target: Bell, Phone: new(Only: Bell)),
 
             // 5. The candidate's own page, from the link in the email they ask for.
             new("candidate-portal", portalLink, "Your applications", PreparePortalAsync, Public: true),
@@ -144,11 +140,27 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
                 WideTo: page => PanelTitled(page, "Stages"), WideMargin: 4,
                 Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Stages"), To: Stage4)),
 
-            // 7. The candidate's interview booking page, before they pick a time: the first day open, the other days one line each.
-            // Both pictures end at the Book button.
-            new("interview-booking", bookingLink, "Pick a time for your interview", _ => Task.CompletedTask, Public: true, Height: 1150,
-                WideTo: Book, WideMargin: 12,
-                Phone: new(Height: 1400, Margin: 12, To: Book)),
+            // 7. Try it on the showcase job: the good-fit applicant, moved on from Applied, with the email the next stage sends and the
+            // step that moves them on. Never the applicant the checks flag. Both pictures end below the row with Start again.
+            new("try-it", DashboardUrl($"/jobs/{showcaseJobId}/workflow?tab=test"), "pipeline", TryItAsync, Height: 1500,
+                WideTo: StartAgain, WideMargin: 24,
+                Phone: new(Height: 2400, Margin: 24, From: page => page.Locator("[data-try-it-step]"), To: StartAgain)),
+
+            // The Schedule interview sheet on Sam Okafor, in Screening with no interview offered: the three ways to pick a time. The
+            // window is narrow enough that the sheet fills it, and both pictures end below the three ways.
+            new("schedule-interview", DashboardUrl($"/applications/{IdOf("Sam Okafor")}?schedule=1"), "Sam Okafor",
+                page => Expect(HowToPick(page).GetByRole(AriaRole.Radio)).ToHaveCountAsync(3), Width: 620,
+                WideTo: HowToPick, Phone: new(Margin: 24, To: HowToPick)),
+
+            // A hiring template's forms: the application form and the library's screening form, with when each is sent.
+            new("forms", templateUrl + "?tab=forms", "Brightwater engineering",
+                page => Expect(page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Screening questionnaire") })).ToBeVisibleAsync(),
+                WideTo: page => PanelTitled(page, "Forms"), Phone: new(Height: 1400, Margin: 10, To: page => PanelTitled(page, "Forms"))),
+
+            // The showcase job's postings: the boards with their honest states, and a board posted by hand with its tracked link.
+            new("job-postings", DashboardUrl($"/jobs/{showcaseJobId}?tab=postings"), "Senior Product Designer",
+                page => Expect(PanelTitled(page, "Job postings")).ToContainTextAsync("Posted by you"),
+                Target: page => PanelTitled(page, "Job postings"), Height: 1400, Phone: new(Only: page => PanelTitled(page, "Job postings"))),
 
             // 8. Slack, connected, in Settings, whose menu lists each integration beside the other settings.
             new("integrations", DashboardUrl("/settings/slack"), "Slack",
@@ -175,7 +187,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         };
         foreach (var screen in screens)
         {
-            await CaptureAsync(screen, screen.Scheme == ColorScheme.Dark ? dark : light, Save);
+            await CaptureAsync(screen, light, Save);
         }
 
         // Every screen has its full picture and its phone picture, and what is committed is there and within budget.
@@ -218,7 +230,6 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         bool Public = false,
         int Width = MarketingScreenshotsTests.Width,
         int Height = MarketingScreenshotsTests.Height,
-        ColorScheme Scheme = ColorScheme.Light,
         Func<IPage, ILocator>? WideTo = null,
         Phone? Phone = null,
         int WideMargin = 24);
@@ -354,40 +365,30 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         await Expect(page.GetByText(new Regex("[Ii]nterview (booked|scheduled)")).First).ToBeVisibleAsync(Slow);
     }
 
-    // Every organization's applicants are on the list, the other jobs' included, so the wait is for the whole list: its rows are
-    // in, and no chip is still pending once the demo's analysis has drained.
-    private static async Task PrepareCandidatesAsync(IPage page)
-    {
-        // A table in the laptop window, a list on a phone.
-        const string rows = "main tbody tr, main ul[aria-label] > li";
-        await Expect(page.Locator(rows).Filter(new() { HasText = "Joel Mensah" })).ToHaveCountAsync(1, new() { Timeout = 60_000 });
-        await Expect(page.Locator("[data-verification-chip][data-level='pending']")).ToHaveCountAsync(0, new() { Timeout = 60_000 });
-        await MarkLastWholeAsync(page, rows);
-    }
-
     private static async Task PrepareReportsAsync(IPage page) =>
         await Expect(page.GetByText(new Regex(@"^Week of .+ applications"))).ToBeVisibleAsync(Slow);
 
-    private static ILocator CaptureEnd(IPage page) => page.Locator("[data-capture-end]");
+    // The bell, opened on its Activity tab, with entries in.
+    private static async Task OpenActivityAsync(IPage page)
+    {
+        await page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Notifications") }).ClickAsync();
+        await page.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^Activity") }).ClickAsync();
+        // Avery hires on no job of their own, so the feed opens on My jobs with nothing in it: the whole workspace instead.
+        await page.GetByRole(AriaRole.Dialog, new() { Name = "Notifications" }).GetByText("Everything I can see", new() { Exact = true }).ClickAsync();
+        await Expect(page.GetByRole(AriaRole.List, new() { Name = "Activity" }).GetByRole(AriaRole.Listitem).First).ToBeVisibleAsync(Slow);
+        // The popover places itself after it opens; until then it can stand past the window's right edge.
+        await page.WaitForFunctionAsync("() => document.documentElement.scrollWidth <= document.documentElement.clientWidth");
+    }
 
-    // Marks the last element of a list that the window shows whole, so a picture can end below it instead of through the next.
-    // A list inside a scrolling box is cut by the box, which can end above the window's bottom.
-    private static async Task MarkLastWholeAsync(IPage page, string selector) =>
-        await page.EvaluateAsync(
-            """
-            selector => {
-              const shown = element => {
-                let bottom = innerHeight;
-                for (let box = element.parentElement; box; box = box.parentElement) {
-                  if (getComputedStyle(box).overflowY !== 'visible') bottom = Math.min(bottom, box.getBoundingClientRect().bottom);
-                }
-                return element.getBoundingClientRect().bottom <= bottom;
-              };
-              const whole = [...document.querySelectorAll(selector)].filter(shown);
-              whole.at(-1)?.setAttribute('data-capture-end', '');
-            }
-            """,
-            selector);
+    // Try it with the good-fit applicant, moved on once, so the picture shows a stage with what it sends.
+    private static async Task TryItAsync(IPage page)
+    {
+        await page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^A good fit") }).ClickAsync();
+        var first = await page.Locator("[data-try-it-step=stage]").GetAttributeAsync("data-stage");
+        await page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Move .+ to ") }).ClickAsync();
+        await Expect(page.Locator("[data-try-it-step=stage]")).Not.ToHaveAttributeAsync("data-stage", first!);
+        await Expect(page.Locator("[data-try-it-step=stage] [aria-busy=true]")).ToHaveCountAsync(0);
+    }
 
     private static async Task PreparePortalAsync(IPage page) =>
         await Expect(page.GetByRole(AriaRole.List, new() { Name = "Where your application is" }).GetByRole(AriaRole.Listitem)).ToHaveCountAsync(4);
@@ -416,8 +417,6 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
     private static readonly LocatorAssertionsToBeVisibleOptions Slow = new() { Timeout = 60_000 };
 
     private const string JoelsEmail = "joel.mensah@example.org";
-
-    private const string OtherEmail = "sam.okafor@example.org";
 
     private string DashboardUrl(string pathAndQuery) => new Uri(Fixture.GetEndpoint("dashboard"), pathAndQuery).ToString();
 
@@ -522,6 +521,16 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
 
     private static LocatorScreenshotOptions Options() => new() { Type = ScreenshotType.Png, Animations = ScreenshotAnimations.Disabled, Caret = ScreenshotCaret.Hide };
 
+    // A board ScreenHire does not post to, posted by hand with a tracked link (job-distribution.md, "Posted by you").
+    private static async Task PostItYourselfAsync(ApiSession avery, Guid jobId)
+    {
+        using var posted = await avery.PostAsync(
+            $"/v1/jobs/{jobId}/manual-postings",
+            new { boardName = "LinkedIn", sourceKey = "linkedin" },
+            Ct);
+        posted.StatusCode.Should().Be(HttpStatusCode.Created, await posted.Content.ReadAsStringAsync(Ct));
+    }
+
     // A clean frame: fonts loaded, nothing focused or hovered, no toast, no transition in flight.
     private static async Task ReadyAsync(IPage page)
     {
@@ -621,11 +630,6 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
         await booking.GetByRole(AriaRole.Button, new() { Name = "Book your interview" }).ClickAsync();
         await Expect(booking.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Your interview is booked");
         await booking.CloseAsync();
-
-        // A second offer, left open, for the booking page's own picture.
-        var other = (await ReadAsync(await avery.Client.GetAsync("/v1/applications", Ct), HttpStatusCode.OK))
-            .EnumerateArray().Single(a => a.GetProperty("candidateName").GetString() == "Sam Okafor").GetProperty("id").GetGuid();
-        await OfferInterviewAsync(avery, other);
     }
 
     private static async Task OfferInterviewAsync(ApiSession avery, Guid applicationId)

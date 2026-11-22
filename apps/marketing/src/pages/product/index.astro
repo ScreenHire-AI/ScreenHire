@@ -1,6 +1,6 @@
 ---
-import activityPhone from '../../assets/product/candidate-activity-phone.png';
-import activity from '../../assets/product/candidate-activity.png';
+import activityPhone from '../../assets/product/activity-feed-phone.png';
+import activity from '../../assets/product/activity-feed.png';
 import careersPhone from '../../assets/product/careers-phone.png';
 import careers from '../../assets/product/careers.png';
 import integrationsPhone from '../../assets/product/integrations-phone.png';
@@ -11,16 +11,14 @@ import pipelinePhone from '../../assets/product/pipeline-phone.png';
 import pipeline from '../../assets/product/pipeline.png';
 import templatePhone from '../../assets/product/template-stages-phone.png';
 import template from '../../assets/product/template-stages.png';
-import workflowPhone from '../../assets/product/workflow-phone.png';
-import workflow from '../../assets/product/workflow.png';
+import tryItPhone from '../../assets/product/try-it-phone.png';
+import tryIt from '../../assets/product/try-it.png';
 import ClosingBand from '../../components/shell/ClosingBand.astro';
 import PageHero from '../../components/shell/PageHero.astro';
 import ProductFrame from '../../components/shell/ProductFrame.astro';
-import ProofList from '../../components/shell/ProofList.astro';
-import RuledList from '../../components/shell/RuledList.astro';
 import SellingPoint from '../../components/shell/SellingPoint.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { careersSite, integrations, sellingPoints } from '../../lib/features';
+import { careersSite, sellingPoints } from '../../lib/features';
 import { pages, productNav } from '../../lib/pages';
 import { plans, pricedOffers } from '../../lib/pricing';
 import { softwareApplication } from '../../lib/seo';
@@ -52,7 +50,7 @@ const link = 'inline-flex min-h-11 items-center font-semibold text-primary under
 >
   <PageHero
     title="Everything a small team needs, from the first applicant to the offer."
-    lead="What a small hiring team needs, and where each part lives in the product. Every feature is on every plan."
+    lead="Six parts, one price. Every feature is on every plan."
   >
     <nav aria-label="Product pages">
       <ul class="flex flex-col">
@@ -74,11 +72,10 @@ const link = 'inline-flex min-h-11 items-center font-semibold text-primary under
     <ProductFrame
       src={pipeline}
       phoneSrc={pipelinePhone}
-      alt="A job's pipeline with every candidate's level on their card: No concerns, Review suggested or Verification suggested."
+      alt="A job's pipeline with each candidate's card in their stage, and Review or Verify on the cards that need a look."
       sizes="(min-width: 80rem) 44rem, 100vw"
     />
     <Fragment slot="words">
-      <ProofList items={realPeople!.proof} />
       <a href={pages.realPeople.path} class={link}>{linkText['real-people']}</a>
     </Fragment>
   </SellingPoint>
@@ -89,7 +86,7 @@ const link = 'inline-flex min-h-11 items-center font-semibold text-primary under
         class="min-w-0 flex-[3_1_26rem]"
         src={activity}
         phoneSrc={activityPhone}
-        alt="A candidate's activity: the interview times the team emailed, the candidate's reply and the team's notes."
+        alt="The team's Activity feed in the bell: who emailed, booked or changed what, on which job and how long ago, newest first."
         sizes="(min-width: 80rem) 44rem, 100vw"
       />
       <ProductFrame
@@ -101,29 +98,24 @@ const link = 'inline-flex min-h-11 items-center font-semibold text-primary under
       />
     </div>
     <Fragment slot="words">
-      <ProofList items={neverGuessing!.proof} />
       <a href={pages.neverGuessing.path} class={link}>{linkText['never-guessing']}</a>
     </Fragment>
   </SellingPoint>
 
   <SellingPoint point={automate!} layout="reverse">
     <ProductFrame
-      src={workflow}
-      phoneSrc={workflowPhone}
-      alt="A job's workflow: its stages with their time limits, and the automations that run on them."
+      src={tryIt}
+      phoneSrc={tryItPhone}
+      alt="Try it on a job's hiring process: a made-up candidate in one stage, with the email that stage sends and the step that moves them on."
       sizes="(min-width: 80rem) 44rem, 100vw"
     />
     <Fragment slot="words">
-      <ProofList items={automate!.proof} />
       <a href={pages.automateAnything.path} class={link}>{linkText['automate-anything']}</a>
     </Fragment>
   </SellingPoint>
 
   <SellingPoint point={integrationsPoint!} layout="stacked" tone="band">
-    <div class="flex flex-col gap-10">
-      <RuledList items={integrations.map((item) => ({ term: item.name, detail: item.does }))} />
-      <ProductFrame src={integrationsPicture} phoneSrc={integrationsPhone} alt="Slack connected in Settings, whose menu lists each integration beside the other settings." />
-    </div>
+    <ProductFrame src={integrationsPicture} phoneSrc={integrationsPhone} alt="Slack connected in Settings, whose menu lists each integration beside the other settings." />
     <Fragment slot="words">
       <a href={pages.integrations.path} class={link}>{linkText.integrations}</a>
     </Fragment>
@@ -133,11 +125,10 @@ const link = 'inline-flex min-h-11 items-center font-semibold text-primary under
     <ProductFrame
       src={template}
       phoneSrc={templatePhone}
-      alt="A hiring template's stages, each with the email, questionnaire or scorecard that goes with it."
+      alt="A hiring template's stages, each with the email, form or scorecard that goes with it."
       sizes="(min-width: 80rem) 44rem, 100vw"
     />
     <Fragment slot="words">
-      <ProofList items={builtYourWay!.proof} />
       <a href={pages.builtYourWay.path} class={link}>{linkText['built-your-way']}</a>
     </Fragment>
   </SellingPoint>
@@ -150,7 +141,6 @@ const link = 'inline-flex min-h-11 items-center font-semibold text-primary under
       sizes="(min-width: 80rem) 44rem, 100vw"
     />
     <Fragment slot="words">
-      <ProofList items={careersSite.proof} />
       <a href={pages.careersSite.path} class={link}>{linkText['careers-site']}</a>
     </Fragment>
   </SellingPoint>

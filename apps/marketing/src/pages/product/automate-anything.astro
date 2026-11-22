@@ -1,6 +1,8 @@
 ---
-import bookingPhone from '../../assets/product/interview-booking-phone.png';
-import booking from '../../assets/product/interview-booking.png';
+import schedulePhone from '../../assets/product/schedule-interview-phone.png';
+import schedule from '../../assets/product/schedule-interview.png';
+import tryItPhone from '../../assets/product/try-it-phone.png';
+import tryIt from '../../assets/product/try-it.png';
 import workflowPhone from '../../assets/product/workflow-phone.png';
 import workflow from '../../assets/product/workflow.png';
 import ClosingBand from '../../components/shell/ClosingBand.astro';
@@ -18,35 +20,37 @@ import { faqPage, type Faq } from '../../lib/seo';
 const { title, description, path, label } = pages.automateAnything;
 const point = sellingPoints.find((item) => item.id === 'automate-anything')!;
 
-// The triggers and actions that exist (docs/design/marketing-site.md, "Automate anything"; docs/architecture/workflow-engine.md).
-// Name nothing else here.
+// The triggers and actions the workflow editor offers (`triggerLabels` and `actionLabels` in the dashboard's workflow.ts,
+// docs/architecture/workflow-engine.md), less the verification trigger and the rejection actions, which the site does not
+// sell. Name nothing else here.
 const triggers = [
   'An application arrives',
-  'A candidate enters a stage',
-  'A candidate leaves a stage',
-  'A candidate has waited a set time in a stage',
+  'A candidate enters or leaves a stage',
+  'Time passes in a stage',
   "A stage's time limit passes",
-  'A scorecard comes in',
-  'A follow-up questionnaire is answered',
+  'A form is answered',
+  'A reviewer records a decision',
   'An interview is booked',
-  'Someone presses Run',
+  'Someone runs it by hand',
 ];
 const actions = [
   'Email the candidate',
+  'Send a form',
   'Move them to a stage',
   'Tag them',
-  'Give a teammate, or the team, a review task',
-  'Remind or notify the team',
-  'Create a task',
-  'Send follow-up questions',
+  'Ask a teammate to review',
+  'Notify the team or create a task',
   'Offer interview times',
   'Call a webhook',
 ];
 
+// The three ways a candidate picks an interview time, in the Schedule interview sheet's own words (docs/architecture/interview-scheduling.md).
 const hands = [
-  { term: 'Follow-up questions', detail: 'Send a questionnaire to the candidate by a link that expires. It works without JavaScript, and answering it can start the next automation.' },
-  { term: 'Scorecards', detail: 'Ask a teammate for a scorecard. It shows up as a task for them and is done when they submit it.' },
-  { term: 'Interview times', detail: 'Offer times that are free for every interviewer on their Google or Outlook calendar. The candidate picks one on a page that needs no account, and can move or cancel it from the same link.' },
+  { term: 'Forms', detail: 'Send a form from your library when a candidate reaches a stage, some days later, or by hand.' },
+  { term: 'Scorecards', detail: 'Ask a teammate for a scorecard. It lands on their task list.' },
+  { term: 'Pick from our times', detail: "Times the interviewers are free, inside each person's own hours." },
+  { term: "Tell us when you're free", detail: 'The candidate sends the times that suit them, and you book one.' },
+  { term: "We'll suggest a time", detail: 'You propose a time or two, and the candidate takes one or asks for another.' },
 ];
 
 const faqs: Faq[] = [
@@ -63,8 +67,8 @@ const faqs: Faq[] = [
     answer: 'No. An automation can tag a candidate or ask the team to review when a check finishes, and a workflow that tries to reject on one cannot be published.',
   },
   {
-    question: 'Can I see what an automation will do before it runs on real candidates?',
-    answer: 'Yes. Sample candidates run through your template after every change and show what happens to each, and a problem in the workflow shows on the step that has it before you publish.',
+    question: 'Can I see what happens before a real candidate applies?',
+    answer: 'Yes. Try it walks a made-up candidate through your process one stage at a time, and you can have its emails sent to you. Nothing else is saved.',
   },
 ];
 ---
@@ -86,10 +90,7 @@ const faqs: Faq[] = [
   <Section labelledby="when-title" class="flex flex-col gap-10">
     <div class="flex max-w-measure flex-col gap-4">
       <h2 id="when-title" class="font-display text-section text-balance">When, if, then. From one reminder to a whole process.</h2>
-      <p class="max-w-measure text-pretty text-secondary-foreground">
-        Each automation is built in a form: a trigger, an optional condition on the answers a candidate gave or where the
-        application came from, and what happens. It is not free text, and nothing guesses.
-      </p>
+      <p class="max-w-measure text-pretty text-secondary-foreground">Each automation is a short form, not free text. Nothing guesses what you meant.</p>
     </div>
     <RuledList items={automation.examples.map((example) => ({ term: example.scope, detail: example.text }))} />
   </Section>
@@ -98,18 +99,25 @@ const faqs: Faq[] = [
     <div class="flex min-w-0 flex-[1_1_20rem] flex-col gap-4">
       <h2 id="stages-title" class="font-display text-section text-balance">On any stage, or on the whole workflow.</h2>
       <p class="max-w-measure text-pretty text-secondary-foreground">
-        Add an automation to a stage or to the workflow as a whole, in the pipeline view or on the graph. Both edit the same
-        draft.
-      </p>
-      <p class="max-w-measure text-pretty text-secondary-foreground">
-        Before it goes live, see what it would do: sample candidates run through your template after every change. A problem
-        shows on the step that has it, and the template cannot be published until it is fixed.
+        Each stage says in a few words what it sends and what runs there. A problem shows on the step that has it, before you
+        publish.
       </p>
     </div>
     <ProductFrame class="flex-[1_1_32rem]" src={workflow} phoneSrc={workflowPhone} alt="A job's pipeline: each stage with how soon to respond, the emails it sends and its automations, in a few words each." sizes="(min-width: 80rem) 44rem, 100vw" />
   </Section>
 
-  <Section labelledby="parts-title" class="flex flex-col gap-10">
+  <Section labelledby="try-title" class="flex flex-wrap items-center gap-x-16 gap-y-10">
+    <ProductFrame class="flex-[1_1_32rem] lg:order-first" src={tryIt} phoneSrc={tryItPhone} alt="Try it on a job's hiring process: a made-up candidate in one stage, with the email that stage sends and the step that moves them on." sizes="(min-width: 80rem) 44rem, 100vw" />
+    <div class="flex min-w-0 flex-[1_1_20rem] flex-col gap-4">
+      <h2 id="try-title" class="font-display text-section text-balance">Try it before a candidate does.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">
+        Pick a made-up applicant, a good fit or one who says no to a must-have, and step through every stage. You see the emails,
+        the tasks and who decides.
+      </p>
+    </div>
+  </Section>
+
+  <Section tone="band" labelledby="parts-title" class="flex flex-col gap-10">
     <h2 id="parts-title" class="max-w-3xl font-display text-section text-balance">Everything an automation can start from, and do.</h2>
     <div class="grid grid-cols-[repeat(auto-fit,minmax(18rem,1fr))] gap-x-16 gap-y-10">
       <div>
@@ -123,15 +131,16 @@ const faqs: Faq[] = [
     </div>
   </Section>
 
-  <Section tone="band" labelledby="hands-title" class="flex flex-wrap items-start gap-x-16 gap-y-10">
-    <ProductFrame class="flex-[1_1_28rem] lg:order-first" src={booking} phoneSrc={bookingPhone} alt="A candidate's page for picking an interview time, with the days and times that are free." sizes="(min-width: 80rem) 40rem, 100vw" />
+  <Section labelledby="hands-title" class="flex flex-wrap items-start gap-x-16 gap-y-10">
     <div class="flex min-w-0 flex-[1_1_24rem] flex-col gap-6">
       <h2 id="hands-title" class="font-display text-section text-balance">The follow-ups nobody wants to do by hand.</h2>
+      <p class="max-w-measure text-pretty text-secondary-foreground">An interview can be booked three ways. Every booking sends a calendar invite.</p>
       <RuledList items={hands} />
     </div>
+    <ProductFrame class="flex-[1_1_28rem]" src={schedule} phoneSrc={schedulePhone} alt="The Schedule interview sheet, with the three ways a candidate can pick a time." sizes="(min-width: 80rem) 40rem, 100vw" />
   </Section>
 
-  <Section labelledby="guardrails-title" class="flex flex-wrap gap-x-16 gap-y-6">
+  <Section tone="band" labelledby="guardrails-title" class="flex flex-wrap gap-x-16 gap-y-6">
     <h2 id="guardrails-title" class="flex-[1_1_22rem] font-display text-band text-balance">A check never rejects anyone.</h2>
     <p class="max-w-measure flex-[2_1_26rem] text-pretty text-secondary-foreground">
       An automation can tag a candidate or ask your team to review when a check finishes. It cannot reject on one, and a
@@ -139,7 +148,7 @@ const faqs: Faq[] = [
     </p>
   </Section>
 
-  <QuestionsList faqs={faqs} tone="band" />
+  <QuestionsList faqs={faqs} />
 
   <ClosingBand title="Let ScreenHire do the same thing the same way every time." />
 </BaseLayout>

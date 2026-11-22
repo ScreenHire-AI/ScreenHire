@@ -1,0 +1,54 @@
+---
+// The bell's Activity tab, simplified: no tabs, filters or icons (apps/dashboard/src/lib/components/activity-feed.svelte, docs/architecture/notifications.md):
+// who did what to whom, the job and how long ago on a second line, the count since you last looked and the "Seen before"
+// line. Markup rather than a capture, so it reads at the size it is drawn. Each sentence is one the feed writes
+// (`feedLine` in the dashboard's activity.ts); the people are fictional, and the feed never shows a verification level.
+// The names are not links here, so they are bold and not underlined (design system A13).
+import ProductFrame from './ProductFrame.astro';
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+
+interface Entry {
+  before?: string;
+  name: string;
+  after?: string;
+  job: string;
+  when: string;
+}
+
+const since: Entry[] = [
+  { name: 'Hannah Brooks', after: ' replied "Interview times"', job: 'Product Designer', when: '5 minutes ago' },
+  { before: 'Jordan moved ', name: 'Hannah Brooks', after: ' to Interview', job: 'Product Designer', when: '1 hour ago' },
+  { name: 'Sam Lee', after: ' answered "Screening questions"', job: 'Product Designer', when: '2 hours ago' },
+];
+const seen: Entry[] = [{ before: 'You emailed ', name: 'Priya Raman', after: ' "Thanks for applying"', job: 'Senior .NET Engineer', when: 'yesterday' }];
+---
+
+<ProductFrame class={className}>
+  <p class="border-b border-border-subtle px-5 py-4 font-bold">Activity</p>
+  <p class="border-b border-border-subtle px-5 py-3">Since you were last here: {since.length} changes</p>
+  <ol aria-label="Activity" class="flex flex-col">
+    {
+      [...since, ...seen].map((entry, index) => (
+        <>
+          {index === since.length && <li class="border-b border-border-subtle bg-muted px-5 py-2 text-xs text-muted-foreground">Seen before</li>}
+          <li class="flex flex-col gap-1 border-b border-border-subtle px-5 py-3 last:border-b-0">
+            <p class="text-pretty">
+              {entry.before}
+              <span class="font-semibold">{entry.name}</span>
+              {entry.after}
+            </p>
+            <p class="flex flex-wrap gap-x-3 text-sm text-muted-foreground">
+              <span>{entry.job}</span>
+              <span>{entry.when}</span>
+            </p>
+          </li>
+        </>
+      ))
+    }
+  </ol>
+</ProductFrame>

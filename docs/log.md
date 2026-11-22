@@ -1,5 +1,18 @@
 # Log
 
+## 2026-11-22
+
+**The marketing site caught up with the app, and shows it instead of listing it.** It still described the app before both
+fifth-build nights: four level names the dashboard no longer uses, questionnaires, one way to book an interview, testing on
+a sample application, a "Step 2 of 4" apply form. Every page was checked against the app and rewritten where it drifted.
+`LevelChip` now draws Clear, Review and Verify as the dashboard's chip does, with AI help apart. The home page lost its
+lists: the levels each get one line, the team's activity is the bell's feed in its own sentences, automation is one
+sentence and Try it, and integrations is an assistant asking before it emails, in the MCP server's own words. The product
+pages got five new pictures from the demo (the activity feed, Try it, the Schedule interview sheet, a template's forms
+and a job's postings with one posted by hand), and three that no page used any more were dropped. Two law-page lines
+promised what is not built (a "why we asked you to verify" page, retention to the law's record periods) and now say what
+is. The AI price wording is unchanged: it is the owner's open decision.
+
 ## 2026-11-21
 
 **Every dashboard page was held to the List template and the checklist.** The walk measured every route at 1440 px and

@@ -173,10 +173,10 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
       // The candidate wrote, so nobody is named. The reply itself is in Messages.
       return `Candidate replied "${entry.emailSubject ?? 'to an email'}"`;
     case 'QuestionnaireSent':
-      return `Sent the "${names.followUpName(entry.questionnaireRequestId)}" questionnaire`;
+      return `Sent the "${names.followUpName(entry.questionnaireRequestId)}" form`;
     case 'QuestionnaireCompleted':
       // The answers are on the Application tab.
-      return `Answered the "${names.followUpName(entry.questionnaireRequestId)}" questionnaire`;
+      return `Answered the "${names.followUpName(entry.questionnaireRequestId)}" form`;
     case 'TaskCreated':
       // What the task asks shows under it, quoted, as a stage move's note does.
       return 'Created a task';

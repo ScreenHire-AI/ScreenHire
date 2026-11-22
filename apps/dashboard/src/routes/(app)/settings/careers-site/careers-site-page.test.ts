@@ -65,7 +65,7 @@ describe('careers site settings page', () => {
     const bodies = renderPage();
     const field = (await screen.findByLabelText('Questions per page')) as HTMLInputElement;
     await waitFor(() => expect(field.value).toBe('8'));
-    expect(screen.getByText('When a questionnaire has no sections, candidates see this many questions a page.')).toBeInTheDocument();
+    expect(screen.getByText('When a form has no sections, candidates see this many questions a page.')).toBeInTheDocument();
 
     await fireEvent.input(field, { target: { value: '12' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));

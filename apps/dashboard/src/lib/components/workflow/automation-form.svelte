@@ -188,7 +188,7 @@
       {/if}
       {#if triggerMayHaveQuestionnaire(automation.trigger.type)}
         <label class={labelClass}>
-          Questionnaire
+          Form
           <select
             class={selectClass}
             bind:value={
@@ -197,7 +197,7 @@
                 (automation.trigger = questionnaireId ? { type: automation.trigger.type, questionnaireId } : { type: automation.trigger.type })
             }
           >
-            <option value="">Any follow-up questionnaire</option>
+            <option value="">Any form</option>
             {#each followUps as followUp (followUp.id)}<option value={followUp.id}>{followUp.name || followUp.id}</option>{/each}
             {#if automation.trigger.questionnaireId && !followUps.some((followUp) => followUp.id === automation.trigger.questionnaireId)}
               <option value={automation.trigger.questionnaireId}>{automation.trigger.questionnaireId}</option>

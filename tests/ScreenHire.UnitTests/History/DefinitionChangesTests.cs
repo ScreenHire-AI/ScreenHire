@@ -217,7 +217,7 @@ public sealed class DefinitionChangesTests
 
         var lines = DefinitionChanges.Describe(HiringWorkflow.Default, HiringWorkflow.Default with { FollowUpQuestionnaires = [followUp] });
 
-        Sentences(lines).Should().Equal("added the follow-up questionnaire Availability");
+        Sentences(lines).Should().Equal("added the follow-up form Availability");
         lines[0].Details.Should().Equal(new ChangeDetail("Questions", null, "When could you start?"));
     }
 

@@ -1054,8 +1054,8 @@ describe('application page', () => {
     stubApi({ [`GET /v1/applications/${applicationId}/timeline`]: () => Response.json(withFollowUps) });
     renderPage('activity');
     const activity = await screen.findByRole('region', { name: 'Activity' });
-    await within(activity).findByText(/Answered the "Availability" questionnaire/);
-    expect(within(activity).getByText(/Sent the "Availability" questionnaire/)).toBeInTheDocument();
+    await within(activity).findByText(/Answered the "Availability" form/);
+    expect(within(activity).getByText(/Sent the "Availability" form/)).toBeInTheDocument();
   });
 
   it('lists every email to the candidate on Messages, newest first, each opening to the email as it went', async () => {

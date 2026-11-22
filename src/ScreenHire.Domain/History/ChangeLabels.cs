@@ -54,7 +54,7 @@ public static class ChangeLabels
         TriggerType.StageEntered => "A candidate enters a stage",
         TriggerType.StageExited => "A candidate leaves a stage",
         TriggerType.TimeElapsed => "Time passes in a stage",
-        TriggerType.QuestionnaireCompleted => "A follow-up questionnaire is answered",
+        TriggerType.QuestionnaireCompleted => "A form is answered",
         TriggerType.VerificationAssessed => "The verification checks finish",
         TriggerType.ReviewerDecision => "A reviewer records a decision",
         TriggerType.SlaBreached => "A stage's time limit passes",
@@ -68,7 +68,7 @@ public static class ChangeLabels
     public static string Action(ActionType type) => type switch
     {
         ActionType.SendEmail => "Send an email",
-        ActionType.SendQuestionnaire => "Send a questionnaire",
+        ActionType.SendQuestionnaire => "Send a form",
         ActionType.MoveToStage => "Move to a stage",
         ActionType.AddTag => "Add a tag",
         ActionType.AssignReviewer => "Assign a reviewer",

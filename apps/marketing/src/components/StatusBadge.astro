@@ -7,11 +7,13 @@ import StatusIcon from './StatusIcon.astro';
 interface Props {
   status: 'done' | 'review' | 'verification' | 'open' | 'ai';
   label: string;
+  /** The long name for screen readers, when the label on screen is one word ("Verify" for "Verification suggested"). */
+  description?: string;
   quiet?: boolean;
   class?: string;
 }
 
-const { status, label, quiet = false, class: className } = Astro.props;
+const { status, label, description, quiet = false, class: className } = Astro.props;
 // Whole class names, so Tailwind finds them.
 const tones = {
   done: { fill: 'bg-status-clear-soft text-status-clear', mark: 'text-status-clear-mark' },
@@ -24,5 +26,14 @@ const tone = tones[status];
 ---
 
 <span class:list={['inline-flex h-6 items-center gap-2 rounded-full text-xs font-semibold', quiet ? 'text-muted-foreground' : `${tone.fill} pr-3 pl-2`, className]}>
-  <StatusIcon status={status} class={tone.mark} />{label}
+  <StatusIcon status={status} class={tone.mark} />{
+    description ? (
+      <>
+        <span aria-hidden="true">{label}</span>
+        <span class="sr-only">{description}</span>
+      </>
+    ) : (
+      label
+    )
+  }
 </span>

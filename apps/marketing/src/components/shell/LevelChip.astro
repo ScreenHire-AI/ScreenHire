@@ -1,16 +1,18 @@
 ---
-// A verification level as the dashboard shows it: the same label, icon and colour (design system T1, section 3.2). The
-// labels and tones are in `levels` (lib/features.ts), so a page cannot reword a level.
+// A verification level as the dashboard shows it (design system T1, section 3.2, the dashboard's VerificationChip): one
+// word on screen, Clear, Review or Verify, with the long name for screen readers. Clear is quiet, an icon and a muted
+// word (T3); Review and Verify are filled. `aiHelp` is AI help, a separate assessment shown as information. The words and
+// tones are in lib/features.ts, so a page cannot reword a level.
 import StatusBadge from '../StatusBadge.astro';
-import { levels, type LevelKey } from '../../lib/features';
+import { aiHelp, levels, type LevelKey } from '../../lib/features';
 
 interface Props {
-  level: LevelKey;
+  level: LevelKey | 'aiHelp';
   class?: string;
 }
 
 const { level, class: className } = Astro.props;
-const { label, status } = levels[level];
+const { word, label, status, quiet } = level === 'aiHelp' ? aiHelp : levels[level];
 ---
 
-<StatusBadge status={status} label={label} class={className} />
+<StatusBadge status={status} label={word} description={word === label ? undefined : label} quiet={quiet} class={className} />

@@ -47,7 +47,7 @@ The ICO's 2024 audit of AI recruitment tools found vendors classing themselves a
 
 - A check never makes a hiring decision. It suggests a next step, and a person decides.
 - Each flag shows its evidence and what speaks for the candidate, so the reviewer weighs something real rather than accepting a score.
-- Candidate-facing notice comes before collection, and the design includes a "why we asked you to verify" page and a way to ask for human review.
+- Candidate-facing notice comes before collection, and a candidate can write to the team from their own page at any time.
 
 ## Still unclear
 

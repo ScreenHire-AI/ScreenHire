@@ -453,8 +453,8 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   AI-use question; a follow-up's is its questions alone, as its page shows them. The preview pages as the candidate does (each named section, or
   pages of the organization's questions per page), one step at a time with Back and Next, each opening with the progress bar the
   candidate sees ("40% done", apply-flow.md section 7); the last step's send button is off, because nothing is sent from a preview; in Try it it hands the answers back instead, still sending nothing. Marking a yes/no question as a knockout shows what a knockout may be (an
-  objective eligibility check, never AI use or an accommodation), and, while no automation's condition reads its answer, that nothing happens to it yet, with a link to the Automations tab (A11). The automation form offers "Send a questionnaire" and
-  the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
+  objective eligibility check, never AI use or an accommodation), and, while no automation's condition reads its answer, that nothing happens to it yet, with a link to the Automations tab (A11). The automation form offers "Send a form" and
+  the "A form is answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
 - **Try it:** `try-it.svelte` (rules in `#lib/try-it.ts`, design system section 11, Try it; the owner's walk-through of
   2026-11-21 replaced a Test tab of four sample candidates and a guided test, which showed far too much to read). The tab

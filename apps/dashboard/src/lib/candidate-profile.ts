@@ -61,7 +61,7 @@ export function historyItems(
       return {
         id: entry.id,
         icon: eventIcons[entry.type],
-        event: describeEvent(entry, { stageName, followUpName: () => 'a follow-up questionnaire', jobName }),
+        event: describeEvent(entry, { stageName, followUpName: () => 'a follow-up form', jobName }),
         actor: inJob ? (who ? `${who} in ${item.jobTitle}` : `in ${item.jobTitle}`) : (who ?? undefined),
         note: entry.note ?? undefined,
         // A team note can mention a member by id, so the page draws it as the team reads it, not as a quote.

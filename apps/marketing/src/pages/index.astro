@@ -1,14 +1,17 @@
 ---
 // The home page, in direction B + C (design system section 22, docs/design/marketing-site.md): a dark hero, three sourced
 // numbers, the five selling points in the owner's order, pricing, questions and the close. Its words come from
-// lib/features.ts, its prices from the plan catalogue, and its pictures from the captured screenshots. The hero's bold
-// element is ApplicantPair (markup), not the captured flagged panel, which names the kinds of signal a check uses. The
-// team's activity and the candidate's page are markup too. The workflow screenshot is left out, because the captured
-// activity and workflow screens show a matching card, a rejection-review automation and a verification tag.
+// lib/features.ts, its prices from the plan catalogue. The hero's bold element is ApplicantPair (markup), not the captured
+// flagged panel, which names the kinds of signal a check uses. Each point shows the product rather than a list: the
+// levels, the team's activity beside the candidate's page, one automation, an assistant asking first, and the one
+// screenshot, the template. The workflow screenshot is left out, because the captured activity and workflow screens show a
+// matching card and a verification tag.
 import { PUBLIC_APP_URL } from 'astro:env/server';
 import templateStages from '../assets/product/template-stages.png';
 import templateStagesPhone from '../assets/product/template-stages-phone.png';
+import ActivityFeed from '../components/shell/ActivityFeed.astro';
 import ApplicantPair from '../components/shell/ApplicantPair.astro';
+import AssistantAsks from '../components/shell/AssistantAsks.astro';
 import ClosingBand from '../components/shell/ClosingBand.astro';
 import CtaLink from '../components/shell/CtaLink.astro';
 import DarkBand from '../components/shell/DarkBand.astro';
@@ -17,13 +20,12 @@ import PlanRows from '../components/shell/PlanRows.astro';
 import ProofList from '../components/shell/ProofList.astro';
 import ProductFrame from '../components/shell/ProductFrame.astro';
 import QuestionsList from '../components/shell/QuestionsList.astro';
-import RuledList from '../components/shell/RuledList.astro';
 import Section from '../components/shell/Section.astro';
 import SellingPoint from '../components/shell/SellingPoint.astro';
 import SourcedNumber from '../components/shell/SourcedNumber.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { appLinks } from '../lib/app-links';
-import { automation, hero, integrations, notPaidExtra, pricingNotes, sellingPoints } from '../lib/features';
+import { automation, hero, notPaidExtra, pricingNotes, sellingPoints, type LevelKey } from '../lib/features';
 import { pages } from '../lib/pages';
 import { plans, pricedOffers, startingPrice, trialLabel, trialPlan } from '../lib/pricing';
 import { faqPage, softwareApplication, type Faq } from '../lib/seo';
@@ -41,15 +43,15 @@ const automationNote = marketNote('automate-anything');
 const faqs: Faq[] = [
   {
     question: 'Does ScreenHire reject people for me?',
-    answer: 'Never on a check. A flag asks for a closer look, and a person on your team makes every decision.',
+    answer: 'Never on a check. A flag asks for a closer look, and a person on your team decides.',
   },
   {
     question: 'Is it fair to candidates?',
-    answer: 'Candidates are told what is collected before they start. Nothing reads faces, voices or feelings, and they can see where they stand.',
+    answer: 'Candidates are told what is collected before they start. Nothing reads faces, voices or feelings.',
   },
   {
     question: 'How long does setup take?',
-    answer: 'Start from a ready-made hiring template, add your branding and post your first job. There is nothing to install.',
+    answer: 'An afternoon. Start from a ready-made hiring template, add your branding and post your first job.',
   },
   {
     question: 'What happens when the trial ends?',
@@ -57,16 +59,15 @@ const faqs: Faq[] = [
   },
 ];
 
-// What the team sees on a candidate. It is fictional, and each line is something the dashboard records (docs/status.md).
-const activity = [
-  { when: 'Today 09:12', what: 'Hannah replied: "Thursday at 10 works for me."' },
-  { when: 'Yesterday', what: 'Avery emailed the interview times.' },
-  { when: 'Yesterday', what: 'Jordan moved her to Interview with a note: "Strong portfolio."' },
-  { when: 'Monday 14:30', what: 'Applied from your careers page.' },
+// What each level means, in one line. The words on the chips come from lib/features.ts.
+const levelLines: { level: LevelKey; line: string }[] = [
+  { level: 'clear', line: 'Nothing unusual found.' },
+  { level: 'review', line: 'Something is worth a closer look.' },
+  { level: 'verify', line: 'Confirm who they are first, for example on a short video call.' },
 ];
 
-// The same candidate on her own page: the four steps a candidate sees (docs/architecture/candidate-portal.md). It is
-// markup rather than the captured portal, which draws too small to read beside the activity list.
+// The same candidate on her own page: the four steps a candidate sees, drawn as the portal draws them (square markers on a
+// line, apps/careers my-applications/[token]; docs/architecture/candidate-portal.md). It is markup rather than the captured portal, which draws too small to read beside the activity list.
 const steps: { name: string; state: 'done' | 'current' | 'next' }[] = [
   { name: 'Applied', state: 'done' },
   { name: 'In review', state: 'done' },
@@ -110,17 +111,17 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
       }
       <p><a href={realPeople!.pagePath} class={standalone}>{pages.realPeople.label}</a></p>
     </Fragment>
-    <div class="grid gap-x-10 gap-y-8 sm:grid-cols-2">
-      <div class="flex flex-col gap-3">
-        <h3 class="text-xl font-bold">What you see</h3>
-        <ProofList items={['A level for every applicant', 'The evidence behind it', 'What speaks for them', 'A suggested next step']} />
-        <ul aria-label="Levels you may see" class="mt-2 flex flex-col items-start gap-2">
-          <li><LevelChip level="noConcerns" /></li>
-          <li><LevelChip level="reviewSuggested" /></li>
-          <li><LevelChip level="verificationSuggested" /></li>
-          <li><LevelChip level="someSignsOfAiHelp" /></li>
-        </ul>
-      </div>
+    <div class="flex flex-col gap-10">
+      <dl aria-label="What each level means" class="flex flex-col">
+        {
+          levelLines.map((item) => (
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border py-4 last:border-b">
+              <dt class="flex-[0_0_7rem]"><LevelChip level={item.level} /></dt>
+              <dd class="min-w-0 flex-[1_1_16rem] text-pretty">{item.line}</dd>
+            </div>
+          ))
+        }
+      </dl>
       <div class="flex flex-col gap-3">
         <h3 class="text-xl font-bold">What ScreenHire never does</h3>
         <ProofList items={['Reject anyone on a check', 'Give a score or a percentage', 'Read faces, voices or feelings', 'Look people up on social media']} />
@@ -131,22 +132,10 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
   <SellingPoint point={neverGuessing!} layout="stacked" tone="band">
     {neverGuessing!.figures.map((figure) => <SourcedNumber slot="words" figure={figure} class="mt-4 max-w-measure" />)}
     <div class="flex flex-col gap-4">
-      <div class="flex flex-wrap gap-x-8 gap-y-10">
+      <div class="flex flex-wrap items-start gap-x-8 gap-y-10">
         <figure class="flex min-w-0 flex-[3_1_28rem] flex-col gap-3">
           <figcaption class="text-xl font-bold">What your team sees</figcaption>
-          <ProductFrame>
-            <p class="border-b border-border-subtle px-5 py-4 font-bold">Hannah Brooks, Product Designer</p>
-            <ol class="flex flex-col px-5 pb-3">
-              {
-                activity.map((entry) => (
-                  <li class="flex flex-wrap gap-x-4 gap-y-1 border-b border-border-subtle py-3 last:border-b-0">
-                    <span class="flex-[0_1_7rem] text-muted-foreground">{entry.when}</span>
-                    <span class="min-w-0 flex-[1_1_14rem] text-pretty">{entry.what}</span>
-                  </li>
-                ))
-              }
-            </ol>
-          </ProductFrame>
+          <ActivityFeed />
         </figure>
         <figure class="flex min-w-0 flex-[2_1_20rem] flex-col gap-3">
           <figcaption class="text-xl font-bold">What the candidate sees</figcaption>
@@ -154,16 +143,26 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
             <div class="flex flex-col gap-5 px-5 py-5">
               <p class="font-display text-xl font-semibold">Your applications</p>
               <p class="font-bold">Product Designer</p>
-              <ol aria-label="Where Hannah stands" class="grid grid-cols-2 gap-x-6 gap-y-3">
+              <ol aria-label="Where Hannah stands" class="grid grid-cols-4">
                 {
-                  steps.map((step) => (
-                    <li aria-current={step.state === 'current' ? 'step' : undefined} class:list={['flex items-center gap-2', step.state === 'current' ? 'font-bold' : step.state === 'next' && 'text-muted-foreground']}>
-                      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:list={['size-5 shrink-0', step.state === 'done' ? 'text-status-clear-mark' : 'text-foreground']}>
-                        <circle cx="12" cy="12" r="10" />
-                        {step.state === 'done' && <path d="m16 9-5.5 5.5L8 12" />}
-                        {step.state === 'current' && <circle cx="12" cy="12" r="4" fill="currentColor" />}
-                      </svg>
-                      {step.name}
+                  steps.map((step, index) => (
+                    <li aria-current={step.state === 'current' ? 'step' : undefined} class="relative flex flex-col items-center gap-2 text-center">
+                      {index > 0 && <span aria-hidden="true" class:list={['absolute top-2.5 right-1/2 h-0.5 w-full -translate-y-1/2', step.state === 'next' ? 'bg-border' : 'bg-foreground']} />}
+                      <span
+                        aria-hidden="true"
+                        class:list={[
+                          'relative z-10 grid size-5 place-items-center border-2',
+                          step.state === 'done' ? 'border-foreground bg-foreground text-background' : step.state === 'current' ? 'border-foreground bg-card' : 'border-border bg-card',
+                        ]}
+                      >
+                        {step.state === 'done' && (
+                          <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12l5 5 9-10" />
+                          </svg>
+                        )}
+                        {step.state === 'current' && <span class="size-2 bg-foreground" />}
+                      </span>
+                      <span class:list={['text-sm', step.state === 'current' ? 'font-bold' : step.state === 'next' && 'text-muted-foreground']}>{step.name}</span>
                     </li>
                   ))
                 }
@@ -173,13 +172,12 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
           </ProductFrame>
         </figure>
       </div>
-      <p class="text-sm text-muted-foreground">Sample candidate. The people and the company here are fictional.</p>
+      <p class="text-sm text-muted-foreground">Sample team and candidate. The people and the company here are fictional.</p>
     </div>
   </SellingPoint>
 
   <SellingPoint point={automate!}>
     <Fragment slot="words">
-      <p class="max-w-measure text-pretty">Each automation reads as When, If, Then. Test it on a sample application before it goes live. Every plan has all of it.</p>
       {
         automationNote && (
           <p class="max-w-measure text-pretty text-secondary-foreground">
@@ -189,31 +187,25 @@ const standalone = `${link} inline-flex min-h-6 items-center pointer-coarse:min-
         )
       }
     </Fragment>
-    <div class="flex flex-col gap-8">
-      <p class="dark rounded-panel bg-background px-6 py-6 font-display text-2xl font-semibold text-balance text-foreground md:px-8 md:py-8 md:text-3xl">
+    <div class="flex flex-col gap-6">
+      <p class="rounded-panel border border-border px-6 py-6 font-display text-2xl font-semibold text-balance md:px-8 md:py-8 md:text-3xl">
         {automation.sentence}
       </p>
-      <ul class="flex flex-col">
-        {
-          automation.examples.map((example) => (
-            <li class="flex flex-wrap gap-x-6 gap-y-1 border-t border-border py-4 last:border-b">
-              <span class="flex-[0_1_11rem] font-bold">{example.scope}</span>
-              <span class="min-w-0 flex-[1_1_16rem] text-pretty">{example.text}</span>
-            </li>
-          ))
-        }
-      </ul>
+      <p class="max-w-measure text-xl text-pretty">{automation.tryIt}</p>
     </div>
   </SellingPoint>
 
-  <SellingPoint point={integrationsPoint!} tone="band">
-    <RuledList items={integrations.map((integration) => ({ term: integration.name, detail: integration.does }))} />
+  <SellingPoint point={integrationsPoint!} layout="reverse" tone="band">
+    <Fragment slot="words">
+      <p><a href={pages.developers.path} class={standalone}>Read the developer docs</a></p>
+    </Fragment>
+    <figure class="flex flex-col gap-3">
+      <AssistantAsks />
+      <figcaption class="text-sm text-muted-foreground">Sample request. The people here are fictional.</figcaption>
+    </figure>
   </SellingPoint>
 
   <SellingPoint point={builtYourWay!} layout="stacked">
-    <Fragment slot="words">
-      <p><a href={pages.compare.path} class={standalone}>See how other tools price it</a></p>
-    </Fragment>
     <ProductFrame
       src={templateStages}
       phoneSrc={templateStagesPhone}

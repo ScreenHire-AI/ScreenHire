@@ -368,7 +368,7 @@ describe('the step blanks', () => {
       'Ask the team to review before turning them down',
     ]);
     const withFollowUp = flow(workflow.automations, { followUpQuestionnaires: [{ id: 'more', name: 'More details', questions: [] }] });
-    expect(labels(choice(withFollowUp, 'action-0-kind'))).toContain('Send a questionnaire');
+    expect(labels(choice(withFollowUp, 'action-0-kind'))).toContain('Send a form');
   });
 
   it('keeps a saved rejection readable, and offers it nowhere else', () => {

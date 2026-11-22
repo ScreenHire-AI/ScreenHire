@@ -71,7 +71,7 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
         await Expect(followUp).ToContainTextAsync("Do you hold a forklift licence?");
         await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
         var activity = Page.GetByRole(AriaRole.Region, new() { Name = "Activity" });
-        await Expect(activity).ToContainTextAsync("Answered the \"Availability\" questionnaire");
+        await Expect(activity).ToContainTextAsync("Answered the \"Availability\" form");
         await ExpectNoAccessibilityViolationsAsync();
     }
 

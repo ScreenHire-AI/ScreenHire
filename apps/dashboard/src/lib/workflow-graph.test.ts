@@ -383,7 +383,7 @@ describe('toGraph layout', () => {
     expectGeometry(graph);
   });
 
-  it("draws the time-limit and questionnaire automations: from a stage's limit or the lane, and naming the questionnaire", () => {
+  it("draws the time-limit and form automations: from a stage's limit or the lane, and naming the form", () => {
     const followUps: HiringWorkflow = {
       ...workflow,
       followUpQuestionnaires: [{ id: 'availability', name: 'Availability', questions: [{ id: 'start', type: 'ShortText', label: 'When could you start?' }] }],
@@ -399,7 +399,7 @@ describe('toGraph layout', () => {
     expect(links(graph)).toEqual(expect.arrayContaining(['stage:screening>late:trigger', `${LANE_NODE}>any-late:trigger`, `${LANE_NODE}>answered:trigger`]));
     expect(node(graph, 'late:trigger').data).toMatchObject({ title: 'Time limit passes in Screening', detail: 'Late' });
     expect(node(graph, 'any-late:trigger').data.title).toBe('A time limit passes');
-    expect(node(graph, 'ask:action:0').data.title).toBe('Send the "Availability" questionnaire');
+    expect(node(graph, 'ask:action:0').data.title).toBe('Send the "Availability" form');
     expect(node(graph, 'answered:trigger').data).toMatchObject({ title: 'Answers Availability', detail: 'Answered' });
     expectGeometry(graph);
   });

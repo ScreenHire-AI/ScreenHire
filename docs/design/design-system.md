@@ -114,6 +114,8 @@ sources:
   - resource: apps/marketing/src/components/shell/ProductFrame.astro
   - resource: apps/marketing/src/components/shell/ApplicantPair.astro
   - resource: apps/marketing/src/components/shell/LevelChip.astro
+  - resource: apps/marketing/src/components/shell/ActivityFeed.astro
+  - resource: apps/marketing/src/components/shell/AssistantAsks.astro
   - resource: apps/marketing/src/components/shell/SourcedNumber.astro
   - resource: apps/marketing/src/components/shell/PlanRows.astro
   - resource: apps/marketing/src/components/shell/QuestionsList.astro
@@ -1652,10 +1654,10 @@ beside or under it. The layout changes with the content, so neighbouring section
 
 | Point | Proof is shown as |
 |---|---|
-| Real people | Two lists side by side: what you see and what ScreenHire never does |
-| Never guessing | The team's activity beside the candidate's own page, in a stacked layout |
-| Automate anything | One automation written out as When, If, Then, then three examples from one step to a whole process |
-| Integrations | A plain list of what each one does |
+| Real people | The three levels, each with one plain line, beside what ScreenHire never does |
+| Never guessing | The team's Activity feed (`ActivityFeed`) beside the candidate's own page, in a stacked layout |
+| Automate anything | One automation written out as When, If, Then, then the line on Try it |
+| Integrations | An assistant asking before it emails a candidate (`AssistantAsks`), the picture first |
 | Built your way | A hiring template with its own stages |
 
 The pain may carry a sourced number (`SourcedNumber`: the number, what it says and a link to where it comes from). A
@@ -1679,7 +1681,8 @@ to action a band, not counting the header's Start free trial, which is the same 
 | `ProductFrame`, `ApplicantPair` | The real product (22.7), and the hero's real-versus-flagged pair. A screenshot takes a `phoneSrc`, the same screen at phone width, which a phone downloads instead of the wide picture |
 | `PageHero` | The dark band that opens a product page: the `h1` at `text-display` (`text-section` past 40 characters) across the full width, then the lead and call to action beside the page's one bold element (a screenshot, the applicant pair, a sentence). The page passes `headerTone="dark"` |
 | `RuledList`, `ProofList` | A `dl` of terms and what each does with a rule between rows, which grows by a row and never by a tile (22.6); and a plain bulleted list: a selling point's proof points beside a picture, or any short list on a product page |
-| `LevelChip` | The dashboard's four labels and icons: No concerns, Review suggested, Verification suggested, Some signs of AI help. It lags the dashboard's one-word states (Clear, Review, Verify) until a marketing task redraws it |
+| `LevelChip` | A level as the dashboard's `VerificationChip` draws it: one word (Clear, Review, Verify), its icon, and the long name (No concerns, Review suggested, Verification suggested) for screen readers. Clear is quiet; Review and Verify are filled. `aiHelp` is Some signs of AI help, shown apart from the levels as information |
+| `ActivityFeed`, `AssistantAsks` | Product moments in markup, in the product's own words: the bell's Activity tab, and an AI assistant asking before it emails a candidate (the MCP server's confirmation). The page captions them as fictional |
 | `SourcedNumber` | A number with its claim and source link |
 | `PlanRows` | The plans as rows, read from the plan catalogue (`packages/plans`): name and open-job limit, then the price. A plan with no price shows no amount, and one with no limit shows none |
 | `QuestionsList` | Questions as a list with rules between them |

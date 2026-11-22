@@ -36,7 +36,7 @@ describe('home page', () => {
     expect(home.match(/<ProductFrame\b[^>]*\bphoneSrc=/gs)).toHaveLength(screenshots.length);
   });
 
-  it('leaves out the captured activity and workflow screens, which show a matching card, a rejection review and a verification tag', () => {
+  it('leaves out the captured activity and workflow screens, which show a matching card and a verification tag', () => {
     expect(home).not.toMatch(/assets\/product\/(?:candidate-activity|workflow)/);
   });
 });

@@ -234,18 +234,18 @@ public static class DefinitionChanges
             added: f =>
             {
                 skipped.UnionWith(f.Questions.Select(q => q.Id));
-                lines.Add(ChangeLine.Of("added the follow-up questionnaire ", f.Name, details: [new("Questions", null, Join(f.Questions.Select(q => q.Label)))]));
+                lines.Add(ChangeLine.Of("added the follow-up form ", f.Name, details: [new("Questions", null, Join(f.Questions.Select(q => q.Label)))]));
             },
             removed: f =>
             {
                 skipped.UnionWith(f.Questions.Select(q => q.Id));
-                lines.Add(ChangeLine.Of("removed the follow-up questionnaire ", f.Name));
+                lines.Add(ChangeLine.Of("removed the follow-up form ", f.Name));
             },
             kept: (a, b) =>
             {
                 if (a.Name != b.Name)
                 {
-                    lines.Add(ChangeLine.Of($"renamed the follow-up questionnaire from {a.Name} to ", b.Name));
+                    lines.Add(ChangeLine.Of($"renamed the follow-up form from {a.Name} to ", b.Name));
                 }
 
                 if (b.FormVersion is { } version && (a.FormTemplateId != b.FormTemplateId || a.FormVersion != version))
