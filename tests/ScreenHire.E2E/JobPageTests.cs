@@ -165,7 +165,7 @@ public sealed class JobPageTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await postings.GetByRole(AriaRole.Button, new() { Name = "Post it yourself" }).ClickAsync();
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Post it yourself" });
-        await Expect(sheet.GetByRole(AriaRole.Button, new() { Name = "Copy the description formatted" })).ToBeVisibleAsync();
+        await Expect(sheet.GetByRole(AriaRole.Button, new() { Name = "Copy formatted description" })).ToBeVisibleAsync();
         await sheet.GetByLabel("Board", new() { Exact = true }).FillAsync("Riverside Jobs Weekly");
         // The link the person pastes on the board, read as they see it.
         var link = await sheet.GetByLabel("Apply link for this board").InputValueAsync();

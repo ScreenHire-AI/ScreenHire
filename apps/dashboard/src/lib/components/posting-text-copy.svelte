@@ -57,6 +57,8 @@
   }
 
   const said = (key: string, label: string) => (copied?.key === key ? (copied.ok ? 'Copied' : 'Could not copy') : label);
+  // The button's name starts with what it shows and then says which field (WCAG 2.5.3): "Copy formatted description".
+  const named = (key: string, label: string, field: string) => `${said(key, label)} ${field}`;
 </script>
 
 <ul class="flex min-w-0 flex-col divide-y divide-border-subtle rounded-lg border border-border-subtle" data-posting-text>
@@ -67,14 +69,15 @@
         {#if changed.includes(field.field)}<Badge variant="muted" class="shrink-0">Changed</Badge>{/if}
         <div class="ml-auto flex shrink-0 flex-wrap justify-end gap-2">
           {#if field.field === 'Description'}
-            <Button variant="outline" size="sm" onclick={() => copyFormatted(field.text)} aria-label={copied?.key === 'formatted' ? undefined : 'Copy the description formatted'}>
+            <Button variant="outline" size="sm" onclick={() => copyFormatted(field.text)} aria-label={named('formatted', 'Copy formatted', 'description')}>
               {#if copied?.key === 'formatted' && copied.ok}<CheckIcon aria-hidden="true" />{:else}<CopyIcon aria-hidden="true" />{/if}{said('formatted', 'Copy formatted')}
             </Button>
-            <Button variant="outline" size="sm" onclick={() => copyText('plain', field.text)} aria-label={copied?.key === 'plain' ? undefined : 'Copy the description as plain text'}>
+            <Button variant="outline" size="sm" onclick={() => copyText('plain', field.text)} aria-label={named('plain', 'Copy as plain text', 'description')}>
               {#if copied?.key === 'plain' && copied.ok}<CheckIcon aria-hidden="true" />{:else}<CopyIcon aria-hidden="true" />{/if}{said('plain', 'Copy as plain text')}
             </Button>
           {:else}
-            <Button variant="outline" size="sm" onclick={() => copyText(field.field, field.text)} aria-label={copied?.key === field.field ? undefined : `Copy the ${field.label.toLowerCase()}`}>
+            <!-- The visible word starts the name, which says which field (WCAG 2.5.3). -->
+            <Button variant="outline" size="sm" onclick={() => copyText(field.field, field.text)} aria-label={named(field.field, 'Copy', field.label.toLowerCase())}>
               {#if copied?.key === field.field && copied.ok}<CheckIcon aria-hidden="true" />{:else}<CopyIcon aria-hidden="true" />{/if}{said(field.field, 'Copy')}
             </Button>
           {/if}

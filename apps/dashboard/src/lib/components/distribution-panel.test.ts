@@ -508,9 +508,9 @@ describe('distribution panel', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: 'Post it yourself' })).toBeEnabled());
       await fireEvent.click(screen.getByRole('button', { name: 'Post it yourself' }));
       const sheet = await screen.findByRole('dialog', { name: 'Post it yourself' });
-      expect(within(sheet).getByRole('button', { name: 'Copy the title' })).toBeInTheDocument();
-      expect(within(sheet).getByRole('button', { name: 'Copy the description formatted' })).toBeInTheDocument();
-      expect(within(sheet).getByRole('button', { name: 'Copy the description as plain text' })).toBeInTheDocument();
+      expect(within(sheet).getByRole('button', { name: 'Copy title' })).toBeInTheDocument();
+      expect(within(sheet).getByRole('button', { name: 'Copy formatted description' })).toBeInTheDocument();
+      expect(within(sheet).getByRole('button', { name: 'Copy as plain text description' })).toBeInTheDocument();
 
       await fireEvent.input(within(sheet).getByLabelText('Board'), { target: { value: 'Riverside Jobs Weekly' } });
       expect(within(sheet).getByLabelText('Apply link for this board')).toHaveValue(`${jobUrl}?src=riverside-jobs-weekly`);

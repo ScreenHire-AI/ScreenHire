@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
@@ -160,7 +161,7 @@ internal static class ManualPostingEndpoints
         {
             await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         }
-        catch (DbUpdateException) when (existing is null)
+        catch (DbUpdateException exception) when (existing is null && exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
             // Two saves of the same board at once: the unique index kept one.
             return TypedResults.Problem(
