@@ -6,11 +6,10 @@
     createGetBilling,
     createGetBillingPaymentMethod,
     createGetOrganizationVerificationSettings,
+    createListBillingInvoices,
     createOpenBillingPortal,
     createStartBillingCheckout,
-    getGetBillingQueryKey,
   } from '@screenhire/api-client/svelte-query';
-  import { useIsFetching } from '@tanstack/svelte-query';
   import { tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -132,11 +131,15 @@
   );
 
   // A link to `#ai-use` (an alert, the Activity log, the Overview) arrives before the panels above the section have loaded, so
-  // the browser's one jump lands short. Once billing's queries have settled, bring the section to the top, once.
-  const billingFetching = useIsFetching({ queryKey: getGetBillingQueryKey() });
+  // the browser's one jump lands short. Once the Owner's queries above it have settled, bring the section to the top, once. The
+  // invoices are read here only for their state: the same query as the Invoices panel's, so no second request.
+  const invoices = createListBillingInvoices(() => ({ query: { enabled: ownerParts && hasCustomer } }));
+  const aboveSettled = $derived(
+    !ownerParts || (!billing.isPending && (!hasCustomer || (!paymentMethod.isPending && !invoices.isPending))),
+  );
   let arrived = false;
   $effect(() => {
-    if (arrived || !usage || page.url.hash !== '#ai-use' || billingFetching.current > 0) return;
+    if (arrived || !usage || page.url.hash !== '#ai-use' || !aboveSettled) return;
     arrived = true;
     void tick().then(() => document.getElementById('ai-use')?.scrollIntoView({ block: 'start' }));
   });
