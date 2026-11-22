@@ -65,6 +65,19 @@ public sealed class AutomationEvaluatorTests
             .HoursInStage.Should().Be(48);
     }
 
+    // A template switch that leaves the candidate in a stage with the same id keeps their time in it (as StageEnteredAt
+    // does); one that puts them in another stage starts it again.
+    [Fact]
+    public void Hours_in_stage_run_on_through_a_template_switch_that_keeps_the_stage()
+    {
+        var submitted = Event(ApplicationEventType.Submitted, Start, new(ToStageId: "applied"));
+        var kept = Event(ApplicationEventType.StageChanged, Start.AddHours(20), new("applied", "applied", TemplateVersionId: Guid.CreateVersion7()));
+        var moved = Event(ApplicationEventType.StageChanged, Start.AddHours(20), new("applied", "new", TemplateVersionId: Guid.CreateVersion7()));
+
+        AutomationFacts.FromTimeline([submitted, kept], Guid.CreateVersion7(), TriggerType.Manual, Start.AddHours(50)).HoursInStage.Should().Be(50);
+        AutomationFacts.FromTimeline([submitted, moved], Guid.CreateVersion7(), TriggerType.Manual, Start.AddHours(50)).HoursInStage.Should().Be(30);
+    }
+
     // A timer is keyed on its stage entry (that is how leaving the stage cancels it) but fires at its due time, so it sees
     // what happened while it waited, and nothing after.
     [Fact]

@@ -27,6 +27,8 @@ internal sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.SalaryMax).HasPrecision(12, 2);
         builder.Ignore(j => j.Salary);
         builder.Property(j => j.Workflow).HasJsonColumn();
+        // The stages and questions earlier workflows had; existing jobs start with none, as nothing recorded them before.
+        builder.Property(j => j.Former).HasJsonColumn().HasDefaultValueSql("""'{"stages":[],"questions":[]}'::jsonb""");
 
         // Enums as text: readable in SQL and stable when members are reordered.
         builder.Property(j => j.Status).HasConversion<string>().HasMaxLength(20);

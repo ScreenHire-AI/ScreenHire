@@ -140,7 +140,7 @@ internal static class DataExportLoader
         var ids = applications.Select(a => a.Id).ToList();
         var jobIds = applications.Select(a => a.JobId).Distinct().ToList();
         var jobs = await db.Jobs.AsNoTracking().Where(j => jobIds.Contains(j.Id))
-            .Select(j => new { j.Id, j.Title, j.Workflow }).ToDictionaryAsync(j => j.Id, cancellationToken);
+            .Select(j => new { j.Id, j.Title, j.Workflow, j.Former }).ToDictionaryAsync(j => j.Id, cancellationToken);
         var sent = await db.ApplicationEmails.AsNoTracking().Where(e => ids.Contains(e.ApplicationId)).OrderBy(e => e.CreatedAt).ToListAsync(cancellationToken);
         var replies = await db.InboundEmails.AsNoTracking().Where(e => ids.Contains(e.ApplicationId)).OrderBy(e => e.ReceivedAt).ToListAsync(cancellationToken);
         var attachments = await db.InboundEmailAttachments.AsNoTracking().Where(a => ids.Contains(a.ApplicationId)).ToListAsync(cancellationToken);
@@ -153,7 +153,8 @@ internal static class DataExportLoader
         var items = applications.Select(application =>
         {
             var job = jobs[application.JobId];
-            var questions = ApplicationForm.QuestionsFor(job.Workflow);
+            // A question the form no longer asks (an edit or a template switch dropped it) still labels its answer.
+            var questions = job.Former.WithQuestions(ApplicationForm.QuestionsFor(job.Workflow));
             return new DataExportApplication(
                 job.Title,
                 application.SubmittedAt,

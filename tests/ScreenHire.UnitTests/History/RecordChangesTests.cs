@@ -160,6 +160,18 @@ public sealed class RecordChangesTests
         Sentences(JobChanges.Describe(job, edited)).Should().Equal("added Do you need a visa?");
     }
 
+    [Fact]
+    public void A_job_that_switched_templates_names_the_new_one_rather_than_a_version_of_it()
+    {
+        var job = NewJob();
+        var switched = NewJob();
+        var template = HiringTemplate.Create(Organization, "Hospitality", null, new(job.Workflow, PostingDefaults.None), Monday, null);
+        template.Publish(template.Versions[0], Monday, null);
+        switched.SwitchTemplate(template.Versions[0], Monday);
+
+        Sentences(JobChanges.Describe(job, switched, "Hospitality")).Should().Equal("switched to the template Hospitality");
+    }
+
     [Theory]
     [InlineData("<p>One</p><p>Two &amp; three</p>", "One\n\nTwo & three")]
     [InlineData("<h2>Role</h2><ul><li>C#</li><li>SQL</li></ul>", "Role\n\n- C#\n- SQL")]

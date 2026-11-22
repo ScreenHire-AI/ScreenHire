@@ -1393,6 +1393,7 @@ export const createJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const createJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const createJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 export const createJobResponseLastUpdatedCreatedDefault = false;
+export const createJobResponseFormerQuestionsItemRequiredDefault = false;
 
 export const CreateJobResponse = zod.object({
   "id": zod.uuid(),
@@ -1608,7 +1609,33 @@ export const CreateJobResponse = zod.object({
   "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
   "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
   "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.'),
+  "former": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage a job\'s workflow had: its id, its name and its kind as it last was.')),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(createJobResponseFormerQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The stages and apply-form questions a job\'s workflow no longer has, kept so what applications recorded under them still\nreads in words: a timeline entry names a stage by id, and an answer names its question by id. A workflow change that\ndrops a stage or a question adds it here (void Job.ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)); a current stage or question with the same\nid wins over a former one wherever names are looked up.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1626,6 +1653,7 @@ export const getJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const getJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const getJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 export const getJobResponseLastUpdatedCreatedDefault = false;
+export const getJobResponseFormerQuestionsItemRequiredDefault = false;
 
 export const GetJobResponse = zod.object({
   "id": zod.uuid(),
@@ -1841,7 +1869,33 @@ export const GetJobResponse = zod.object({
   "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
   "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
   "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.'),
+  "former": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage a job\'s workflow had: its id, its name and its kind as it last was.')),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(getJobResponseFormerQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The stages and apply-form questions a job\'s workflow no longer has, kept so what applications recorded under them still\nreads in words: a timeline entry names a stage by id, and an answer names its question by id. A workflow change that\ndrops a stage or a question adds it here (void Job.ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)); a current stage or question with the same\nid wins over a former one wherever names are looked up.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -1882,6 +1936,7 @@ export const updateJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const updateJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const updateJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 export const updateJobResponseLastUpdatedCreatedDefault = false;
+export const updateJobResponseFormerQuestionsItemRequiredDefault = false;
 
 export const UpdateJobResponse = zod.object({
   "id": zod.uuid(),
@@ -2097,7 +2152,33 @@ export const UpdateJobResponse = zod.object({
   "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
   "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
   "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.'),
+  "former": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage a job\'s workflow had: its id, its name and its kind as it last was.')),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateJobResponseFormerQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The stages and apply-form questions a job\'s workflow no longer has, kept so what applications recorded under them still\nreads in words: a timeline entry names a stage by id, and an answer names its question by id. A workflow change that\ndrops a stage or a question adds it here (void Job.ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)); a current stage or question with the same\nid wins over a former one wherever names are looked up.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2167,6 +2248,7 @@ export const setJobAiUseResponseWorkflowAutomationsItemEnabledDefault = true;
 export const setJobAiUseResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const setJobAiUseResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 export const setJobAiUseResponseLastUpdatedCreatedDefault = false;
+export const setJobAiUseResponseFormerQuestionsItemRequiredDefault = false;
 
 export const SetJobAiUseResponse = zod.object({
   "id": zod.uuid(),
@@ -2382,7 +2464,33 @@ export const SetJobAiUseResponse = zod.object({
   "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
   "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
   "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.'),
+  "former": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage a job\'s workflow had: its id, its name and its kind as it last was.')),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(setJobAiUseResponseFormerQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The stages and apply-form questions a job\'s workflow no longer has, kept so what applications recorded under them still\nreads in words: a timeline entry names a stage by id, and an answer names its question by id. A workflow change that\ndrops a stage or a question adds it here (void Job.ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)); a current stage or question with the same\nid wins over a former one wherever names are looked up.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2404,6 +2512,7 @@ export const publishJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const publishJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const publishJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 export const publishJobResponseLastUpdatedCreatedDefault = false;
+export const publishJobResponseFormerQuestionsItemRequiredDefault = false;
 
 export const PublishJobResponse = zod.object({
   "id": zod.uuid(),
@@ -2619,7 +2728,33 @@ export const PublishJobResponse = zod.object({
   "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
   "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
   "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.'),
+  "former": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage a job\'s workflow had: its id, its name and its kind as it last was.')),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(publishJobResponseFormerQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The stages and apply-form questions a job\'s workflow no longer has, kept so what applications recorded under them still\nreads in words: a timeline entry names a stage by id, and an answer names its question by id. A workflow change that\ndrops a stage or a question adds it here (void Job.ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)); a current stage or question with the same\nid wins over a former one wherever names are looked up.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -2637,6 +2772,7 @@ export const closeJobResponseWorkflowAutomationsItemEnabledDefault = true;
 export const closeJobResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const closeJobResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 export const closeJobResponseLastUpdatedCreatedDefault = false;
+export const closeJobResponseFormerQuestionsItemRequiredDefault = false;
 
 export const CloseJobResponse = zod.object({
   "id": zod.uuid(),
@@ -2852,7 +2988,33 @@ export const CloseJobResponse = zod.object({
   "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
   "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
   "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.'),
+  "former": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage a job\'s workflow had: its id, its name and its kind as it last was.')),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(closeJobResponseFormerQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The stages and apply-form questions a job\'s workflow no longer has, kept so what applications recorded under them still\nreads in words: a timeline entry names a stage by id, and an answer names its question by id. A workflow change that\ndrops a stage or a question adds it here (void Job.ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)); a current stage or question with the same\nid wins over a former one wherever names are looked up.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -3087,6 +3249,7 @@ export const updateJobWorkflowResponseWorkflowAutomationsItemEnabledDefault = tr
 export const updateJobWorkflowResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const updateJobWorkflowResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 export const updateJobWorkflowResponseLastUpdatedCreatedDefault = false;
+export const updateJobWorkflowResponseFormerQuestionsItemRequiredDefault = false;
 
 export const UpdateJobWorkflowResponse = zod.object({
   "id": zod.uuid(),
@@ -3302,7 +3465,33 @@ export const UpdateJobWorkflowResponse = zod.object({
   "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
   "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
   "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.'),
+  "former": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage a job\'s workflow had: its id, its name and its kind as it last was.')),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(updateJobWorkflowResponseFormerQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The stages and apply-form questions a job\'s workflow no longer has, kept so what applications recorded under them still\nreads in words: a timeline entry names a stage by id, and an answer names its question by id. A workflow change that\ndrops a stage or a question adds it here (void Job.ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)); a current stage or question with the same\nid wins over a former one wherever names are looked up.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -3325,6 +3514,7 @@ export const applyJobTemplateUpdateResponseWorkflowAutomationsItemEnabledDefault
 export const applyJobTemplateUpdateResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const applyJobTemplateUpdateResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
 export const applyJobTemplateUpdateResponseLastUpdatedCreatedDefault = false;
+export const applyJobTemplateUpdateResponseFormerQuestionsItemRequiredDefault = false;
 
 export const ApplyJobTemplateUpdateResponse = zod.object({
   "id": zod.uuid(),
@@ -3540,7 +3730,331 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
   "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
   "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
-}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.'),
+  "former": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage a job\'s workflow had: its id, its name and its kind as it last was.')),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(applyJobTemplateUpdateResponseFormerQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The stages and apply-form questions a job\'s workflow no longer has, kept so what applications recorded under them still\nreads in words: a timeline entry names a stage by id, and an answer names its question by id. A workflow change that\ndrops a stage or a question adds it here (void Job.ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)); a current stage or question with the same\nid wins over a former one wherever names are looked up.')
+}).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
+
+
+export const GetJobTemplateSwitchParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const GetJobTemplateSwitchQueryParams = zod.object({
+  "templateVersionId": zod.uuid()
+})
+
+export const GetJobTemplateSwitchResponse = zod.object({
+  "templateId": zod.uuid(),
+  "templateName": zod.string(),
+  "templateVersionId": zod.uuid(),
+  "version": zod.int(),
+  "expectedWorkflowVersion": zod.int(),
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('One stage of the pipeline a job would switch to.')),
+  "occupied": zod.array(zod.object({
+  "stageId": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
+  "candidates": zod.int(),
+  "suggestedStageId": zod.string()
+}).describe('One of the job\'s current stages that holds candidates: how many, and the new stage they are preselected to.'))
+}).describe('What switching a job to a template version would do, before it happens: the version, its stages in order, and each of\nthe job\'s current stages that holds candidates, with how many (saved and finished candidates included) and the stage\nthey are preselected to, by kind first and then by name. `expectedWorkflowVersion` is the job\'s workflow version\nthe preview read, to send back with the switch.')
+
+
+export const SwitchJobTemplateParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const SwitchJobTemplateBody = zod.object({
+  "templateVersionId": zod.uuid(),
+  "expectedWorkflowVersion": zod.int(),
+  "stageMappings": zod.array(zod.object({
+  "fromStageId": zod.string(),
+  "toStageId": zod.string()
+}).describe('Candidates in the job\'s stage `fromStageId` go to `toStageId`, a stage of the new pipeline.')).nullish()
+}).describe('Switches a job to a published version of another template (or of its own): the job\'s pipeline becomes that version\'s,\nits own edits included, and the template becomes its source. `stageMappings` says where the candidates in each\ncurrent stage go; every stage that holds candidates and is not in the new pipeline needs one, and a stage that is in\nit may have one. `GET /v1/jobs/{jobId}/workflow/switch-template` suggests them. Each application of the job gets a\ntimeline entry saying the pipeline changed; the moves send no email and run no automation. `expectedWorkflowVersion`\nworks as in UpdateJobWorkflowRequest, and a closed job is refused (409).')
+
+export const switchJobTemplateResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const switchJobTemplateResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const switchJobTemplateResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
+export const switchJobTemplateResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
+export const switchJobTemplateResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const switchJobTemplateResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
+export const switchJobTemplateResponseWorkflowAutomationsItemEnabledDefault = true;
+export const switchJobTemplateResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
+export const switchJobTemplateResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
+export const switchJobTemplateResponseLastUpdatedCreatedDefault = false;
+export const switchJobTemplateResponseFormerQuestionsItemRequiredDefault = false;
+
+export const SwitchJobTemplateResponse = zod.object({
+  "id": zod.uuid(),
+  "title": zod.string(),
+  "slug": zod.string(),
+  "status": zod.enum(['Draft', 'Open', 'Closed']),
+  "description": zod.string(),
+  "summary": zod.string(),
+  "summaryFollowsDescription": zod.boolean(),
+  "department": zod.string().nullable(),
+  "employmentType": zod.enum(['FullTime', 'PartTime', 'Contract', 'Temporary', 'Internship']),
+  "workplaceType": zod.enum(['Onsite', 'Hybrid', 'Remote']),
+  "locations": zod.array(zod.object({
+  "city": zod.string().nullable(),
+  "region": zod.string().nullable(),
+  "country": zod.string().nullable()
+}).describe('A place the job is based: schema.org `PostalAddress` without the street. string? JobLocation.Country is an ISO 3166-1\nalpha-2 code. The API requires it; a location carried over from the old free-text column may lack it.')),
+  "applicantLocationRequirements": zod.array(zod.string()),
+  "location": zod.string(),
+  "salary": zod.union([zod.null(),zod.object({
+  "min": zod.number().nullable(),
+  "max": zod.number().nullable(),
+  "currency": zod.string(),
+  "period": zod.union([zod.literal('Hour'),zod.literal('Day'),zod.literal('Week'),zod.literal('Month'),zod.literal('Year'),zod.literal(null)])
+}).describe('A pay range. At least one of decimal? JobSalary.Min and decimal? JobSalary.Max is set; string JobSalary.Currency is ISO 4217.')]),
+  "validThrough": zod.iso.datetime({"offset":true}).nullable(),
+  "workflow": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom']),
+  "slaDays": zod.int().nullish(),
+  "scorecard": zod.union([zod.null(),zod.object({
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['YesNo', 'SingleChoice', 'MultiChoice', 'ShortText', 'LongText', 'Rating5', 'Rating10', 'RatingYesNo']).describe('A scorecard question\'s answer kind. The General kinds share QuestionType\'s names. The Rating kinds are\nthe ones the candidate\'s rating averages: ScorecardQuestionType.Rating5 (1 to 5), ScorecardQuestionType.Rating10 (1 to 10) and\nScorecardQuestionType.RatingYesNo (yes or no).'),
+  "label": zod.string(),
+  "required": zod.boolean().default(switchJobTemplateResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault),
+  "guidance": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish()
+}).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
+}).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
+  "scorecardTemplateId": zod.string().nullish(),
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(switchJobTemplateResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(switchJobTemplateResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
+}).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
+  "questionnaire": zod.object({
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(switchJobTemplateResponseWorkflowQuestionnaireQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish()
+}).describe('The screening questions a candidate answers when applying.'),
+  "automations": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "trigger": zod.object({
+  "type": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'VerificationAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
+  "stageId": zod.string().nullish(),
+  "afterHours": zod.int().nullish(),
+  "questionnaireId": zod.string().nullish()
+}),
+  "conditions": zod.union([zod.null(),zod.object({
+  "match": zod.enum(['All', 'Any']),
+  "rules": zod.array(zod.object({
+  "fact": zod.string(),
+  "operator": zod.enum(['EqualTo', 'In', 'Contains', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Exists']),
+  "value": zod.string().nullish(),
+  "values": zod.array(zod.string()).nullish(),
+  "negate": zod.boolean().default(switchJobTemplateResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault)
+}).describe('One test of an application fact, such as `answers.work_authorization EqualTo no` (yes/no answers are\n`yes` and `no`, choice answers are option ids). Facts are\n`answers.{questionId}`, `verification.authenticity`, `verification.aiAssistance`,\n`verification.result`, `application.tags`, `application.source`,\n`application.hoursInStage` and, for a TriggerType.ReviewerDecision automation only,\n`reviewer.recommendation`.'))
+}).describe('Conditions combined with ConditionMatch AutomationConditions.Match; a rule with bool AutomationCondition.Negate is a "not". One\nlevel on purpose: a recursive tree would make the JSON Schema and the generated client recursive too.')]),
+  "actions": zod.array(zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(switchJobTemplateResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
+  "enabled": zod.boolean().default(switchJobTemplateResponseWorkflowAutomationsItemEnabledDefault),
+  "allowAutoReject": zod.boolean().default(switchJobTemplateResponseWorkflowAutomationsItemAllowAutoRejectDefault)
+}).describe('Trigger, conditions, actions (workflow-engine.md §2). Stored and validated structurally here; the workflow engine\nruns them. DefinitionValidator refuses an automation that would reject anyone because of a verification\nsignal (ADR-0004).')),
+  "followUpQuestionnaires": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(switchJobTemplateResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.')),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "questionIds": zod.array(zod.string())
+}).describe('One named page of a questionnaire: its name, the page\'s heading, and the ids of its questions in order.')).nullish(),
+  "formTemplateId": zod.uuid().nullish(),
+  "formVersion": zod.int().nullish(),
+  "kind": zod.union([zod.null(),zod.union([zod.literal('Standard'),zod.literal('EqualityMonitoring'),zod.literal(null)])]).optional()
+}).describe('A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads.')).nullish()
+}).describe('What a hiring template versions and a job copies: the stage pipeline, the screening questionnaire, the\nautomations and the follow-up questionnaires a ActionType.SendQuestionnaire action sends.'),
+  "workflowVersion": zod.int(),
+  "template": zod.union([zod.null(),zod.object({
+  "templateId": zod.uuid(),
+  "templateName": zod.string(),
+  "versionId": zod.uuid(),
+  "version": zod.int(),
+  "latestPublishedVersion": zod.int().nullable(),
+  "updateAvailable": zod.boolean()
+}).describe('The template version a job\'s workflow was copied from, and whether a newer one is published.')]),
+  "publishedVersion": zod.int(),
+  "hasUnpublishedChanges": zod.boolean(),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "publishedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "postings": zod.array(zod.object({
+  "id": zod.uuid(),
+  "boardId": zod.string(),
+  "boardName": zod.string(),
+  "mode": zod.union([zod.null(),zod.union([zod.literal('Hosted'),zod.literal('Pull'),zod.literal('PullFromAts'),zod.literal('Notify'),zod.literal('Push'),zod.literal(null)])]),
+  "state": zod.enum(['Draft', 'Queued', 'Submitted', 'Live', 'Rejected', 'Closing', 'Closed', 'Error']),
+  "jobVersion": zod.int(),
+  "confirmsLive": zod.boolean(),
+  "confirmsRemoval": zod.boolean(),
+  "canUnpublish": zod.boolean(),
+  "expectedBy": zod.iso.datetime({"offset":true}).nullable(),
+  "issues": zod.array(zod.string()),
+  "lastError": zod.string().nullable(),
+  "updatedAt": zod.iso.datetime({"offset":true}),
+  "submittedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "liveAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closingAt": zod.iso.datetime({"offset":true}).nullable(),
+  "closedAt": zod.iso.datetime({"offset":true}).nullable(),
+  "viewUrl": zod.string().nullable(),
+  "customizedTitle": zod.boolean(),
+  "customizedDescription": zod.boolean(),
+  "jobChangedSinceCustomized": zod.boolean()
+}).describe('One job on one board: where it stands and what is still uncertain.')),
+  "lastUpdated": zod.object({
+  "at": zod.iso.datetime({"offset":true}).nullable(),
+  "by": zod.union([zod.null(),zod.union([zod.literal('Member'),zod.literal('ApiKey'),zod.literal('ScreenHire'),zod.literal(null)])]),
+  "userId": zod.uuid().nullish(),
+  "apiKeyId": zod.uuid().nullish(),
+  "created": zod.boolean().default(switchJobTemplateResponseLastUpdatedCreatedDefault)
+}).describe('When a tracked object last changed and who changed it, the last fact in its header.'),
+  "workflowProblems": zod.array(zod.object({
+  "path": zod.string(),
+  "message": zod.string()
+}).describe('A problem with a definition. Path is a JSON path such as `workflow.stages[1].id` for code;\nMessage is a whole sentence for a person that names the thing and says what to do, so a screen can\nshow it as it is.')),
+  "aiUse": zod.object({
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "override": zod.union([zod.null(),zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')]),
+  "organizationDefault": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.')
+}).describe('The AI-use policy the apply form asks under for one job. The organization sets `organizationDefault` once\n(Verification) and a job may override it with `override`; `policy` is the one in force, the override when\nthere is one. The question itself is asked on every application, and no automation reads the answer.'),
+  "former": zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage a job\'s workflow had: its id, its name and its kind as it last was.')),
+  "questions": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['ShortText', 'LongText', 'SingleChoice', 'MultiChoice', 'YesNo', 'Number', 'Url', 'File']),
+  "label": zod.string(),
+  "required": zod.boolean().default(switchJobTemplateResponseFormerQuestionsItemRequiredDefault),
+  "helpText": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})).nullish(),
+  "knockout": zod.union([zod.null(),zod.object({
+  "disqualifyingAnswer": zod.boolean(),
+  "reason": zod.string().nullish()
+}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+  "min": zod.number().nullish(),
+  "max": zod.number().nullish(),
+  "maxLength": zod.int().nullish(),
+  "acceptedFileTypes": zod.array(zod.string()).nullish()
+}).describe('One screening question. Which optional members apply depends on QuestionType Question.Type: IReadOnlyList&lt;QuestionOption&gt;? Question.Options for the\nchoice types, Knockout? Question.Knockout for QuestionType.YesNo, decimal? Question.Min and decimal? Question.Max\nfor QuestionType.Number, int? Question.MaxLength for the text types and\nIReadOnlyList&lt;string&gt;? Question.AcceptedFileTypes for QuestionType.File.'))
+}).describe('The stages and apply-form questions a job\'s workflow no longer has, kept so what applications recorded under them still\nreads in words: a timeline entry names a stage by id, and an answer names its question by id. A workflow change that\ndrops a stage or a question adds it here (void Job.ReviseWorkflow(HiringWorkflow workflow, DateTimeOffset now)); a current stage or question with the same\nid wins over a former one wherever names are looked up.')
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
@@ -5434,7 +5948,8 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "otherApplicationId": zod.uuid().nullish(),
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "endsAt": zod.iso.datetime({"offset":true}).nullish()
+  "endsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "templateVersionId": zod.uuid().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -5475,7 +5990,8 @@ export const AddApplicationNoteResponse = zod.object({
   "otherApplicationId": zod.uuid().nullish(),
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "endsAt": zod.iso.datetime({"offset":true}).nullish()
+  "endsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "templateVersionId": zod.uuid().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
@@ -5887,7 +6403,8 @@ export const GetCandidateHistoryResponseItem = zod.object({
   "otherApplicationId": zod.uuid().nullish(),
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "endsAt": zod.iso.datetime({"offset":true}).nullish()
+  "endsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "templateVersionId": zod.uuid().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.'),
   "fromStageName": zod.string().nullish(),
   "toStageName": zod.string().nullish(),
@@ -8832,7 +9349,8 @@ export const GetActivityResponse = zod.object({
   "otherApplicationId": zod.uuid().nullish(),
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "endsAt": zod.iso.datetime({"offset":true}).nullish()
+  "endsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "templateVersionId": zod.uuid().nullish()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')]),
   "fromStageName": zod.string().nullable(),
   "toStageName": zod.string().nullable(),
