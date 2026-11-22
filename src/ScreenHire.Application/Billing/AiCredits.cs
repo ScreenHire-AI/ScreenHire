@@ -203,6 +203,17 @@ public sealed record ReloadAiCredits(Guid OrganizationId, Guid AfterGrant) : ITe
 }
 
 /// <summary>
+/// Charges one auto-reload purchase that <see cref="ReloadAiCredits"/> recorded. The purchase is the idempotency key, at the provider too.
+/// </summary>
+public sealed record ChargeAiCreditReload(Guid OrganizationId, Guid PurchaseId) : ITenantMessage;
+
+/// <summary>The alert keys of a refused auto-reload, one per purchase.</summary>
+public static class ReloadAiCreditKeys
+{
+    public static string Failed(Guid purchaseId) => $"reload-failed:{purchaseId:N}";
+}
+
+/// <summary>
 /// Tells the Owners about the balance: low, run out, or an auto-reload refused. <paramref name="Key"/> is claimed in
 /// <c>ai_usage_alerts</c>, so each goes once. <paramref name="Amount"/> is the balance for a low one, the reload's amount for a refusal.
 /// </summary>
@@ -300,14 +311,17 @@ public static partial class GrantAiCreditsHandler
 }
 
 /// <summary>
-/// Charges the saved card for an auto-reload. The purchase is saved as Pending before the charge, so a charge that times out is
-/// retried as the same purchase, with the same idempotency keys at the provider: one charge however often this runs. Not wrapped in
-/// the handler's transaction for the same reason. A refusal never throws, because a retry would charge again: it marks the purchase
-/// failed, turns auto-reload off and tells the Owners.
+/// Decides an auto-reload and records it: a <c>Pending</c> purchase and the <see cref="ChargeAiCreditReload"/> that charges it, in one
+/// commit through the outbox, so the charge always has its purchase and the purchase always has its charge. The partial unique index
+/// allows one auto-reload in flight; a second one loses the insert and is retried, and then finds the first. A reload the provider never
+/// confirmed in a day (a payment that stays pending, a charge that kept failing to reach the provider) is closed as failed, auto-reload
+/// turns off and the Owners are told, so it never blocks the next one in silence.
 /// </summary>
 public static partial class ReloadAiCreditsHandler
 {
-    [NonTransactional]
+    /// <summary>How long an auto-reload may wait for the provider's confirmation before it is closed as failed.</summary>
+    public static readonly TimeSpan ConfirmationWindow = TimeSpan.FromDays(1);
+
     [Deduplicated(ValueSource.InputMember, nameof(ReloadAiCredits.IdempotencyKey))]
     public static async Task<OutgoingMessages> Handle(
         ReloadAiCredits message,
@@ -326,43 +340,80 @@ public static partial class ReloadAiCreditsHandler
 
         var now = time.GetUtcNow();
         var settings = await db.CreditSettings.SingleOrDefaultAsync(cancellationToken);
-        // An auto-reload whose charge never answered (the provider timed out, the worker stopped) is finished first, as the same purchase.
-        var purchase = await db.CreditPurchases.SingleOrDefaultAsync(
-            p => p.Source == CreditPurchaseSource.AutoReload && p.Status == CreditPurchaseStatus.Pending && p.ProviderPaymentId == null, cancellationToken);
-        if (purchase is null)
+        var stale = now - ConfirmationWindow;
+        if (await db.CreditPurchases.SingleOrDefaultAsync(
+                p => p.Source == CreditPurchaseSource.AutoReload && p.Status == CreditPurchaseStatus.Pending && p.CreatedAt < stale, cancellationToken) is { } stuck)
         {
-            var balance = await AiCreditLedger.BalanceMicrosAsync(db, cancellationToken);
-            var reloaded = await AiCreditLedger.ReloadedThisMonthAsync(db, now, cancellationToken);
-            var pending = await db.CreditPurchases.AsNoTracking()
-                .AnyAsync(p => p.Source == CreditPurchaseSource.AutoReload && p.Status == CreditPurchaseStatus.Pending, cancellationToken);
-            var decision = AutoReload.Decide(settings, balance, reloaded, pending);
-            if (!decision.Reloads)
-            {
-                LogNotReloaded(logger, message.OrganizationId, decision.Outcome);
-                return outgoing;
-            }
-
-            purchase = new CreditPurchase
-            {
-                OrganizationId = message.OrganizationId,
-                Source = CreditPurchaseSource.AutoReload,
-                Amount = decision.Amount,
-                CreatedAt = now,
-            };
-            db.CreditPurchases.Add(purchase);
-            try
-            {
-                await db.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException e) when (e.IsUniqueViolation())
-            {
-                // Another reload is waiting for its payment (the index allows one): that one is the reload.
-                return outgoing;
-            }
+            // A confirmation that comes later still grants: GrantAiCredits credits a purchase marked failed, because the money was taken.
+            stuck.MarkFailed(stuck.ProviderPaymentId, "not-confirmed", now);
+            settings?.StopAutoReload(now);
+            await db.SaveChangesAsync(cancellationToken);
+            outgoing.Add(new NotifyAiCredits(message.OrganizationId, CreditAlert.ReloadFailed, ReloadAiCreditKeys.Failed(stuck.Id), stuck.Amount));
+            outgoing.Add(new BillingChanged(message.OrganizationId));
+            LogNotConfirmed(logger, message.OrganizationId, stuck.Id);
+            return outgoing;
         }
 
+        var balance = await AiCreditLedger.BalanceMicrosAsync(db, cancellationToken);
+        var reloaded = await AiCreditLedger.ReloadedThisMonthAsync(db, now, cancellationToken);
+        var pending = await db.CreditPurchases.AsNoTracking()
+            .AnyAsync(p => p.Source == CreditPurchaseSource.AutoReload && p.Status == CreditPurchaseStatus.Pending, cancellationToken);
+        var decision = AutoReload.Decide(settings, balance, reloaded, pending);
+        if (!decision.Reloads)
+        {
+            LogNotReloaded(logger, message.OrganizationId, decision.Outcome);
+            return outgoing;
+        }
+
+        var purchase = new CreditPurchase
+        {
+            OrganizationId = message.OrganizationId,
+            Source = CreditPurchaseSource.AutoReload,
+            Amount = decision.Amount,
+            CreatedAt = now,
+        };
+        db.CreditPurchases.Add(purchase);
+        await db.SaveChangesAsync(cancellationToken);
+        outgoing.Add(new ChargeAiCreditReload(message.OrganizationId, purchase.Id));
+        return outgoing;
+    }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Organization {OrganizationId}: auto-reload did not run: {Outcome}")]
+    private static partial void LogNotReloaded(ILogger logger, Guid organizationId, AutoReloadOutcome outcome);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Organization {OrganizationId}: auto-reload {PurchaseId} was never confirmed; it is closed as failed, auto-reload is off and the Owners are told")]
+    private static partial void LogNotConfirmed(ILogger logger, Guid organizationId, Guid purchaseId);
+}
+
+/// <summary>
+/// Charges the saved card for one auto-reload purchase. Idempotent on its own: it charges only a purchase still <c>Pending</c> with no
+/// payment recorded, and every call to the provider carries an idempotency key made from the purchase, so a retry after a timeout is the
+/// same charge. It runs outside a transaction, so what it records stays when a later step fails. A refusal never throws, because a retry
+/// would charge again: it marks the purchase failed, turns auto-reload off and tells the Owners.
+/// </summary>
+public static partial class ChargeAiCreditReloadHandler
+{
+    [NonTransactional]
+    public static async Task<OutgoingMessages> Handle(
+        ChargeAiCreditReload message,
+        ScreenHireDbContext db,
+        BillingAccess billing,
+        TimeProvider time,
+        ILogger<ChargeAiCreditReload> logger,
+        CancellationToken cancellationToken)
+    {
+        var outgoing = new OutgoingMessages();
+        var purchase = await db.CreditPurchases.SingleOrDefaultAsync(p => p.Id == message.PurchaseId, cancellationToken);
+        if (!billing.IsConfigured || purchase is not { Status: CreditPurchaseStatus.Pending, ProviderPaymentId: null })
+        {
+            return outgoing; // charged already, or settled: a redelivery does nothing
+        }
+
+        var now = time.GetUtcNow();
+        var settings = await db.CreditSettings.SingleOrDefaultAsync(cancellationToken);
         if (settings is not { AutoReloadEnabled: true, PaymentMethodId: { } card })
         {
+            // Turned off since it was decided: nothing to charge.
             purchase.MarkFailed(null, "auto-reload-off", now);
             await db.SaveChangesAsync(cancellationToken);
             return outgoing;
@@ -375,11 +426,12 @@ public static partial class ReloadAiCreditsHandler
             purchase.MarkFailed(null, "no-customer", now);
             settings.StopAutoReload(now);
             await db.SaveChangesAsync(cancellationToken);
-            outgoing.Add(new NotifyAiCredits(message.OrganizationId, CreditAlert.ReloadFailed, ReloadFailedKey(purchase.Id), purchase.Amount));
+            outgoing.Add(new NotifyAiCredits(message.OrganizationId, CreditAlert.ReloadFailed, ReloadAiCreditKeys.Failed(purchase.Id), purchase.Amount));
+            outgoing.Add(new BillingChanged(message.OrganizationId));
             return outgoing;
         }
 
-        // A provider that cannot be reached throws, and Wolverine retries: this purchase again, so the same charge.
+        // A provider that cannot be reached throws, and Wolverine retries this message: the same purchase, so the same charge.
         var charge = await billing.Provider.ChargeCreditsAsync(
             new CreditChargeRequest(message.OrganizationId, purchase.Id, purchase.Amount, customer, card), cancellationToken);
         if (charge.Status == CreditChargeStatus.Declined)
@@ -387,7 +439,7 @@ public static partial class ReloadAiCreditsHandler
             purchase.MarkFailed(charge.PaymentId, charge.FailureCode, now);
             settings.StopAutoReload(now);
             await db.SaveChangesAsync(cancellationToken);
-            outgoing.Add(new NotifyAiCredits(message.OrganizationId, CreditAlert.ReloadFailed, ReloadFailedKey(purchase.Id), purchase.Amount));
+            outgoing.Add(new NotifyAiCredits(message.OrganizationId, CreditAlert.ReloadFailed, ReloadAiCreditKeys.Failed(purchase.Id), purchase.Amount));
             outgoing.Add(new BillingChanged(message.OrganizationId));
             LogDeclined(logger, message.OrganizationId, purchase.Id, charge.FailureCode);
             return outgoing;
@@ -404,11 +456,6 @@ public static partial class ReloadAiCreditsHandler
         LogCharged(logger, message.OrganizationId, purchase.Id, purchase.Amount);
         return outgoing;
     }
-
-    private static string ReloadFailedKey(Guid purchaseId) => $"reload-failed:{purchaseId:N}";
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Organization {OrganizationId}: auto-reload did not run: {Outcome}")]
-    private static partial void LogNotReloaded(ILogger logger, Guid organizationId, AutoReloadOutcome outcome);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Organization {OrganizationId}: auto-reload {PurchaseId} was refused ({Code}); auto-reload is off and the Owners are told")]
     private static partial void LogDeclined(ILogger logger, Guid organizationId, Guid purchaseId, string? code);

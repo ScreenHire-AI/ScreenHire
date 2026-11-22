@@ -933,6 +933,7 @@ public sealed class StripeBillingProviderTests : IDisposable
         url.Should().Be(new Uri("https://checkout.stripe.com/c/pay/cs_fictional"));
         var form = stripe.Calls.Single().Form;
         form["mode"].Should().Be("payment");
+        form["payment_method_types[0]"].Should().Be("card", "auto-reload needs a method that answers at once, never a debit that settles days later");
         form["line_items[0][price_data][currency]"].Should().Be("usd");
         form["line_items[0][price_data][unit_amount]"].Should().Be("1250");
         form["line_items[0][quantity]"].Should().Be("1");

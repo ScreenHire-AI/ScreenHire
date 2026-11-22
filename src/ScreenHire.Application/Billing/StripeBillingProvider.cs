@@ -230,6 +230,9 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
         var form = new List<KeyValuePair<string, string>>
         {
             new("mode", "payment"),
+            // A card only: auto-reload charges the saved method off-session and needs its answer at once. A bank debit settles days
+            // later, which would leave a reload waiting with every later one blocked behind it.
+            new("payment_method_types[0]", "card"),
             new("line_items[0][price_data][currency]", "usd"),
             new("line_items[0][price_data][unit_amount]", Cents(request.Amount)),
             new("line_items[0][price_data][product_data][name]", "AI credits"),

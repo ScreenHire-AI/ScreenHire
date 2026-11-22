@@ -404,15 +404,26 @@ grant resumes the paused checks, as the daily 05:12 run does. The balance is rea
 moment can take it a little below zero; the next grant repays that first.
 
 **Auto-reload,** off by default: "when the balance falls below $X, add $Y", never more than a monthly maximum in a UTC month (the
-month's auto-reloads that are paid or still waiting count toward it), charged to the card the last purchase saved. After a check draws on
-the balance, `AiCreditChecks.DueAsync` decides (`AutoReload.Decide`, pure) and sends `ReloadAiCredits`, keyed on the newest grant, so the
-checks that finish together send one reload. Its handler saves a `Pending` purchase first (a partial unique index allows one auto-reload
-in flight per organization), then charges: in Stripe, a draft invoice (`auto_advance=false`, `pending_invoice_items_behavior=exclude`,
-`automatic_tax` with tax on), its one item, finalize, and `POST /v1/invoices/{id}/pay` with the card and `off_session=true`, each call with
-an `Idempotency-Key` from the purchase. A timeout throws and Wolverine retries the same purchase, so Stripe charges once. A refused charge
-(402, a declined card or `authentication_required`) voids the invoice, marks the purchase Failed, turns auto-reload off and sends
-`NotifyAiCredits(ReloadFailed)`; it never throws for a refusal, so nothing retries it. Stripe's signed `invoice.paid` grants a
-reload that succeeded. The sandbox has no webhook, so its successful charge grants at once.
+month's auto-reloads that are paid or still waiting count toward it), charged to the card the last purchase saved. A credit Checkout takes
+a card only (`payment_method_types[0]=card`), because an off-session reload needs its answer at once, where a bank debit settles days later.
+It runs in two steps:
+
+1. After a check draws on the balance, `AiCreditChecks.DueAsync` decides (`AutoReload.Decide`, pure) and sends `ReloadAiCredits`, keyed on
+   the newest grant, so the checks that finish together send one reload. Its handler (`[Deduplicated]`, in its transaction) records a
+   `Pending` purchase and queues `ChargeAiCreditReload` through the outbox in the same commit. A partial unique index allows one auto-reload
+   in flight per organization.
+2. `ChargeAiCreditReload` charges only a purchase still `Pending` with no payment recorded, so a redelivery does nothing. It runs outside a
+   transaction, so what it records stays. In Stripe it makes a draft invoice (`auto_advance=false`, `pending_invoice_items_behavior=exclude`,
+   `automatic_tax` with tax on), its one item, finalize, and `POST /v1/invoices/{id}/pay` with the card and `off_session=true`, each call with
+   an `Idempotency-Key` from the purchase. A timeout throws and Wolverine retries the same purchase, so Stripe charges once.
+
+A refused charge (402, a declined card or `authentication_required`) voids the invoice, marks the purchase Failed, turns auto-reload off and
+sends `NotifyAiCredits(ReloadFailed)`; it never throws for a refusal, so nothing retries it. Stripe's signed `invoice.paid` grants a reload
+that succeeded. The sandbox has no webhook, so its successful charge grants at once. A reload still waiting for the provider's
+confirmation a day later (`ReloadAiCreditsHandler.ConfirmationWindow`) is closed as failed by the next reload decision, with auto-reload
+turned off and the Owners told, so it never blocks the reloads after it in silence; a confirmation that arrives after that still grants,
+because money the provider took is always credited. Turning auto-reload on while the balance is already below the threshold reloads after
+the next check, which is when the balance is looked at.
 
 **Alerts.** The Owners (Manage billing) hear about the balance in the bell and by email, by each Owner's own choice for AI use and
 billing on Your account; the organization's budget alert defaults are not read, so an organization that turned those off still hears
@@ -628,7 +639,7 @@ owner.
 | `TrialReminderTests` (integration) | on the running worker: signing up schedules the five steps, the worker leaves the account alone and an immediate checkout is applied, each email reaches every Owner once and a redelivery adds none, an Admin gets nothing, one `trial-ending` notification becomes one `trial-ended` one, the retention purge keeps it, and choosing a plan clears it and makes the reminders still waiting do nothing |
 | `AiChargeTests` (unit) | a call's charge in micro-dollars (cost plus the margin, half away from zero, nothing for a cost that is unknown or zero) and the sum of rounded charges |
 | `AiCreditsTests` (unit) | expiry by the credit that expires first, a credit that never expires used last, a shortfall repaid by the next grant, an expiry recorded once; auto-reload's decision for each outcome and the monthly maximum; the low-balance and empty alerts, quiet only while a reload starts |
-| `BillingCreditsTests` (integration) | a credit granted only by the confirmed payment (never by the return URL or an unconfirmed purchase) and once for a redelivery; one debit per built-in call at cost plus the margin and none for an own key; the check paused at zero with the credits note and no candidate marked, and resumed by a grant; auto-reload's refusal (a declined card, authentication required) failing the purchase, turning it off, voiding the invoice and telling the Owners in the bell and by email, never retried; a sandbox reload granted; the monthly maximum; the low-balance alert once per refill; expiry once; who may read, buy and change settings |
+| `BillingCreditsTests` (integration) | the running worker deciding, charging and granting a sandbox reload; a reload never confirmed in a day closed as failed; a credit granted only by the confirmed payment (never by the return URL or an unconfirmed purchase) and once for a redelivery; one debit per built-in call at cost plus the margin and none for an own key; the check paused at zero with the credits note and no candidate marked, and resumed by a grant; auto-reload's refusal (a declined card, authentication required) failing the purchase, turning it off, voiding the invoice and telling the Owners in the bell and by email, never retried; a sandbox reload granted; the monthly maximum; the low-balance alert once per refill; expiry once; who may read, buy and change settings |
 | `RolePermissionsTests` (unit) | Manage billing is an Owner-only permission and its routes join the route table |
 
 The test stacks pin nothing: they sell the plans in `plans.json`, and a test that needs a price or a limit reads it through
@@ -638,6 +649,11 @@ The test stacks pin nothing: they sell the plans in `plans.json`, and a test tha
 
 - Tax filing and registration. Checkout calculates tax and collects tax ids (see Tax), but registering with Stripe Tax and filing returns are the owner's ([billing providers](../research/billing-providers.md) says what Stripe Tax does and does not do). The overview and the Billing page show prices without tax, with the words "plus tax where it applies", and never the tax Stripe charged.
 - A list of invoices or receipts; Stripe's portal has them.
+- Change history for the credit settings (the low-balance alert and auto-reload); `credit_settings` is not one of `TrackedKinds`.
+- Credit purchases among the sandbox's sample invoices. The Purchases panel lists them; in Stripe the credit invoices are among the real ones.
+- Slack for the credit alerts: the bell and email only, as for the trial's reminders.
+- The Payment method and Invoices panels for an organization that bought credits but has no plan: they open with a subscription.
+- Deductions past the newest 50: the panel says so, and the Activity log has every call.
 - Amounts read from Stripe except in a plan change's preview. The rest of the page shows the catalogue's price and Stripe
   charges its own.
 - Completing a payment that needs the Owner (3-D Secure) inside a plan change. It fails whole and sends the Owner to Change card.

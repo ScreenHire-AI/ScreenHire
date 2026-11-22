@@ -253,6 +253,51 @@ public sealed class BillingCreditsTests(AppHostFixture fixture)
         (await AiCreditLedger.BalanceMicrosAsync(after, Ct)).Should().Be(0);
     }
 
+    [Fact]
+    public async Task The_running_worker_decides_charges_and_grants_an_auto_reload_in_the_sandbox()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await ArrangeAutoReloadAsync(owner.OrganizationId, customer: null);
+
+        // The worker's own handler chain: the decision (deduplicated, in its transaction), the charge it queues, and the grant.
+        await PublishToWorkerAsync(new ReloadAiCredits(owner.OrganizationId, Guid.CreateVersion7()));
+
+        await WolverineStore.WaitUntilAsync(
+            async () =>
+            {
+                await using var db = await VerificationSupport.TenantDbAsync(fixture, owner.OrganizationId);
+                return await AiCreditLedger.BalanceMicrosAsync(db, Ct) == 25_000_000;
+            },
+            "the reload to be granted",
+            Ct);
+        await using var after = await VerificationSupport.TenantDbAsync(fixture, owner.OrganizationId);
+        (await after.CreditPurchases.AsNoTracking().SingleAsync(Ct)).Should().Match<CreditPurchase>(p => p.Status == CreditPurchaseStatus.Paid && p.Source == CreditPurchaseSource.AutoReload);
+    }
+
+    [Fact]
+    public async Task An_auto_reload_never_confirmed_in_a_day_is_closed_as_failed_turns_auto_reload_off_and_tells_the_Owners()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await ArrangeAutoReloadAsync(owner.OrganizationId, customer: null);
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, owner.OrganizationId))
+        {
+            var waiting = new CreditPurchase { OrganizationId = owner.OrganizationId, Source = CreditPurchaseSource.AutoReload, Amount = 25m, CreatedAt = DateTimeOffset.UtcNow };
+            waiting.RecordProviderPayment("in_fictional_waiting");
+            db.CreditPurchases.Add(waiting);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var meanwhile = await ReloadAsync(owner.OrganizationId, SandboxOptions(), null);
+        meanwhile.Should().BeEmpty("a reload waiting for its confirmation is the reload, until the window has passed");
+
+        var later = await ReloadAsync(owner.OrganizationId, SandboxOptions(), null, new FixedClock(DateTimeOffset.UtcNow + ReloadAiCreditsHandler.ConfirmationWindow + TimeSpan.FromMinutes(1)));
+
+        later.OfType<NotifyAiCredits>().Should().ContainSingle().Which.Kind.Should().Be(CreditAlert.ReloadFailed);
+        await using var after = await VerificationSupport.TenantDbAsync(fixture, owner.OrganizationId);
+        (await after.CreditPurchases.AsNoTracking().SingleAsync(Ct)).Should().Match<CreditPurchase>(p => p.Status == CreditPurchaseStatus.Failed && p.FailureCode == "not-confirmed");
+        (await after.CreditSettings.AsNoTracking().SingleAsync(Ct)).AutoReloadEnabled.Should().BeFalse();
+    }
+
     // ---- Alerts ----
 
     [Fact]
@@ -546,13 +591,27 @@ public sealed class BillingCreditsTests(AppHostFixture fixture)
             message, db, providers.Access, Microsoft.Extensions.Options.Options.Create(options), TimeProvider.System, NullLogger<GrantAiCredits>.Instance, Ct);
     }
 
-    private async Task<OutgoingMessages> ReloadAsync(Guid organizationId, BillingOptions options, HttpMessageHandler? stripe)
+    // Both steps of an auto-reload, as the worker runs them: the decision, then the charge it queued. What both send, but the charge itself.
+    private async Task<List<object>> ReloadAsync(Guid organizationId, BillingOptions options, HttpMessageHandler? stripe, TimeProvider? clock = null)
     {
         using var providers = new Providers(options, stripe);
-        await using var db = await VerificationSupport.TenantDbAsync(fixture, organizationId);
-        return await ReloadAiCreditsHandler.Handle(
-            new ReloadAiCredits(organizationId, Guid.CreateVersion7()), db, providers.Access, Microsoft.Extensions.Options.Options.Create(options),
-            TimeProvider.System, NullLogger<ReloadAiCredits>.Instance, Ct);
+        var time = clock ?? TimeProvider.System;
+        OutgoingMessages decided;
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, organizationId))
+        {
+            decided = await ReloadAiCreditsHandler.Handle(
+                new ReloadAiCredits(organizationId, Guid.CreateVersion7()), db, providers.Access, Microsoft.Extensions.Options.Options.Create(options),
+                time, NullLogger<ReloadAiCredits>.Instance, Ct);
+        }
+
+        var sent = decided.Where(m => m is not ChargeAiCreditReload).ToList();
+        foreach (var charge in decided.OfType<ChargeAiCreditReload>())
+        {
+            await using var db = await VerificationSupport.TenantDbAsync(fixture, organizationId);
+            sent.AddRange(await ChargeAiCreditReloadHandler.Handle(charge, db, providers.Access, time, NullLogger<ChargeAiCreditReload>.Instance, Ct));
+        }
+
+        return sent;
     }
 
     private async Task ExpireAsync(Guid organizationId, DateTimeOffset now, string day)

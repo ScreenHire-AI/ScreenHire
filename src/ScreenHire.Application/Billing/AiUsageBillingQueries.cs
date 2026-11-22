@@ -36,3 +36,17 @@ public static class AiUsageBillingQueries
         return new AiUsageBillingSummary(builtIn?.Calls ?? 0, (long)(builtIn?.Micros ?? 0m), builtIn?.Unknown ?? 0, ownKey);
     }
 }
+
+/// <summary>
+/// The old 15-minute report of AI use to Stripe's meter, which prepaid credits replaced (ADR-0032). Its schedule is gone, but Wolverine keeps
+/// a recurring schedule's next occurrence as a scheduled envelope, so a database that ran the report still holds one. This type and its
+/// handler, under the same name, let that envelope be handled and do nothing rather than land among the dead letters. Remove both a
+/// release after ADR-0032.
+/// </summary>
+public sealed record ReportAiUsage;
+
+public static class ReportAiUsageHandler
+{
+    /// <summary>Nothing to do: AI use is no longer reported to a meter.</summary>
+    public static void Handle(ReportAiUsage message) => ArgumentNullException.ThrowIfNull(message);
+}
