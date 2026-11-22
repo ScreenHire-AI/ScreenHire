@@ -118,7 +118,7 @@
     </ChartPanel>
 
     {#if limits}
-      <Panel title="Monthly limits">
+      <Panel title="Spending limits">
         <div class="flex flex-col gap-4">
           <LimitsSummary {limits} cap={false} />
           <p><a href={aiUseAddress} class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center">See AI use</a></p>

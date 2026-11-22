@@ -33,9 +33,11 @@
 
   let list = $state<HTMLDivElement>();
   // Below lg the row may hide the current entry past its edge: scroll the row, never the page, to centre it. From lg the
-  // row is a column that does not scroll, so this changes nothing there.
+  // row is a column that does not scroll, so this changes nothing there. It runs again when the entries change: sections
+  // behind a feature appear once the shell's queries answer, which moves the current entry after the first centring.
   $effect(() => {
     void domainMark;
+    void groups;
     const entry = list?.querySelector(`a[href="${current}"]`)?.parentElement;
     if (list && entry) list.scrollLeft = entry.offsetLeft - (list.clientWidth - entry.offsetWidth) / 2;
   });

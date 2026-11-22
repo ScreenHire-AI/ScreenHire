@@ -6,8 +6,8 @@ import { settingsWith, stubSettings } from '../../../../test-support/verificatio
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
-// Settings > Organization > Notification defaults: the organization's starting choices for the Verification suggested alert
-// (once on Verification's Checks tab) and the AI usage alert (once on the AI use tab), in one place.
+// Settings > Organization > Notification defaults: the organization's starting choices for the Verification suggested and AI
+// usage alerts, in one place.
 vi.mock('$app/state', () => ({ page: { data: { user }, url: new URL('http://dashboard.test/settings/notification-defaults') }, navigating: { to: null } }));
 // Superforms needs the rest of the module (beforeNavigate).
 vi.mock(import('$app/navigation'), async (importOriginal) => ({ ...(await importOriginal()), goto: vi.fn(async () => {}) }));
